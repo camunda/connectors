@@ -134,8 +134,11 @@ High-frequency traps (detail behind each link):
   `docs/design/ai-agent-document-flow.md` §4.
 - **The document delivery is `reference` by default**: for an instance with the `documents` feature the model sees a
   `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
-  document of a type outside the allowlist or above the size limit before returning its content. Content is persisted
-  as a document reference (`DocumentReferenceContent`) with the delivery `content`, expanded to its tag text and the content from the registry at window time; the content stays in every request
+  document of a type outside the allowlist or above the size limit before returning its content. Documents are persisted
+  as typed document references (`DocumentReferenceContent`), also a document that is a whole tool result, and the one whose
+  content was added has the delivery `content`; at window time a reference of a user message is expanded to its tag text and,
+  with the delivery `content`, the content from the registry, and a reference of a tool result to its document, which the provider
+  renders as the short tag. The content stays in every request
   until its message leaves the window. Passing an id to a tool never adds content. The delivery `content` is the opt-in
   exception: the user prompt dropdown `data.userPrompt.documentDelivery` (`reference` by default, or `content`; v2
   templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity

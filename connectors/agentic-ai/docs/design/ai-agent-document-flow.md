@@ -139,9 +139,9 @@ through the response.
    per document and no document content (section 4.1); the reference renders as the `<doc .../>` tag the model sees
    (`toTag()`). The documents of a tool result are shown as
    their tag inside the tool result, without a follow-up message. `AgentConversation.window` expands
-   the document references to their tag text and, for the references with the delivery `content`, the document from the
-   registry (`DocumentExpander`), so the providers see the tag
-   of a document with content followed by its `DocumentContent` and never a document reference; the model asks for content with the
+   the document references of a user message to their tag text and, for the references with the delivery `content`, the document from the
+   registry, and the document references of a tool result to the document from the registry (`DocumentExpander`), so the providers see the tag
+   of a document with content followed by its `DocumentContent`, the short tag of a document of a tool result, and never a document reference; the model asks for content with the
    runtime tool `c8__get_document` (`GetDocumentTool`), whose result the composer follows with a
    message that carries the reference with the delivery `content`. The composer does the same for the documents of a tool with the delivery
    `content` and gives the user prompt documents the delivery `content` when the prompt asks for it (3.15).
@@ -261,7 +261,7 @@ string:
 
 ```json
 {"anyOf": [{"type": "string"}, {"type": "string", "format": "camunda-document-id"}],
- "description": "The message body. This parameter takes text or a document. To pass a document, give its tag exactly as listed for the known documents, for example <doc id=\"...\" />. Any other text is passed as text."}
+ "description": "The message body. This parameter takes text or a document. To pass a document, give its tag exactly as you read it, for example <doc id=\"...\" />. Any other text is passed as text."}
 ```
 
 - *Authoring.* `fromAi(value: toolCall.body, description: "The message body.", schema: {"anyOf": [{"type": "string"},
@@ -278,7 +278,7 @@ string:
   a flag for a union). The alternatives are not searched further (3.3).
 - *Hint.* The description of a union parameter ends with its own hint `DocumentParameterSchema.UNION_HINT`, added in
   the same place and with the same rules as `HINT`: `This parameter takes text or a document. To pass a document, give
-  its tag exactly as listed for the known documents, for example <doc id="..." />. Any other text is passed as text.`
+  its tag exactly as you read it, for example <doc id="..." />. Any other text is passed as text.`
   The alternatives get no hint. The hints are not part of each other, so a definition holding both reads the right one
   for each parameter.
 - *Provider schema.* The derived schema replaces the document alternative by a plain `{"type": "string"}`
@@ -328,9 +328,14 @@ Reason: the tag is the only identity the model needs (decision 2); the tool orig
 choose between similarly named files; the same text next to a native block and in a tool result keeps
 one id per document.
 
-A `Document` inside tool result content (bare or nested in object content) serializes as the tag, not
-as the Camunda reference JSON, on every provider path. A bare document is the tag text; a nested one
-is the tag string inside the JSON value.
+The content of a tool result is a list of typed blocks (`ToolCallResultContent.content`): text, an object, a
+document, a document reference, and for a result of a runtime tool any list of such blocks. A document that is a
+whole result is persisted as a document reference without a source (the short tag: id, file name, content type, size),
+see 4.1. A `Document` in a tool result, bare, as a block or nested in object content, serializes as that short tag,
+not as the Camunda reference JSON, on every provider path. A bare document is the tag text; a nested one
+is the tag string inside the JSON value. Every block of a result is a part of its own for the model: the providers
+whose tool result is one text (OpenAI chat completions, the Mistral dialect and langchain4j) join the parts with a newline, the
+others send a part per block.
 
 | Provider path | Where | Rendering |
 |---------------|-------|-----------|
@@ -354,12 +359,15 @@ carries the id.
 
 When the conversation is windowed, the registry of the current `AgentContext` is compared with the
 windowed messages. A registry document is visible when its id appears as `DocumentContent` of a user
-message, as a `DocumentReferenceContent`, as a `Document` in a tool result content tree (`ContentTreeDocumentWalker`), or as the id of
-a `<doc/>` tag in user or tool result text, or when the message that introduced it
-(`DocumentSource.messageId`) is windowed. The last rule covers a document that the walk of the content
+message or a tool result, as a `DocumentReferenceContent`, or as a `Document` in the object content of a tool result
+(`ContentTreeDocumentWalker`), or when the message that introduced it
+(`DocumentSource.messageId`) is windowed. Text is never read: a tag that a user or the model wrote into a text does
+not make a document visible. The last rule covers a document that the walk of the content
 does not find, for example one extracted from the result of a gateway tool: it is shown as part of its own
-tool result and must not be listed next to it. If at least one document is not visible, a user message is appended to the snapshot only: the preamble
-`EvictedDocumentsNote.PREAMBLE` plus the tag of each such document (`DocumentReferenceContent.from(entry).toTag()`: id, file name, content type, source or tool call). It is
+tool result and must not be listed next to it. If at least one document is not visible, a user message is appended to the snapshot only: the preamble text
+`EvictedDocumentsNote.PREAMBLE` plus a `DocumentReferenceContent` with the delivery `reference` for each such document
+(`DocumentReferenceContent.from(entry, DocumentDelivery.REFERENCE)`), which the expansion (4.1) renders as its tag: id, file name,
+content type, source or tool call. It is
 never part of `allMessages()`, never persisted and leaves the frozen system prompt alone.
 
 Reason for a trailing note instead of a system prompt addition or a rewritten message: the system
@@ -375,13 +383,12 @@ invocation.
 ### 3.6 Batch policy (mixed batches)
 
 A batch is split per call. `RuntimeToolCallHandler.handle(executionContext, conversation, toolCalls)` returns a
-`RuntimeToolCallSplit(conversation, runtimeResults, remainingCalls)`; `conversation` is the input conversation
+`RuntimeToolCallSplit(conversation, runtimeResults, remainingCalls)` with `runtimeResults` a `List<ToolCallResultContent>`; `conversation` is the input conversation
 with the context updates of the runtime results applied:
 
 - **Runtime tool calls.** A call of an available runtime tool (section 9) is run by the agent and gets its result
   immediately: the built-in `c8__return_document` and every other registered tool. A call of a process tool
-  whose document parameter is not a known id is answered with an error result listing the known
-  documents.
+  whose document parameter is not a known id is answered with an error result.
 - **Remaining calls.** Every other call goes to the process like any tool call, also a call of a runtime
   tool that is not available for this agent.
 
@@ -395,16 +402,21 @@ The request handler then proceeds by what is left:
 The context updates of the runtime results, for `c8__return_document` the response documents in
 `AgentContext.responseDocuments`, are applied immediately in both cases.
 
-**Pending runtime results.** `AgentContext.pendingRuntimeToolCallResults` is a `List<ToolCallResult>`,
+**Pending runtime results.** `AgentContext.pendingRuntimeToolCallResults` is a `List<ToolCallResultContent>`, the persisted typed form,
 `@JsonInclude(NON_EMPTY)`, a missing field binds to an empty list, no schema version bump. It rides in
 `agentContext` like the registry, so it reaches the next job whatever the conversation store is (the stores
 only handle the conversation pointer), and it is written by the same job completion that activates the
-real calls. Content is whatever the runtime tool answered (text or object content); `completedAt` is the time of the
-runtime answer.
+real calls. `RuntimeToolCallHandlerImpl` builds each result directly from the `RuntimeToolResult`: text becomes a `TextContent`, a
+`Document` a `DocumentContent`, any other object an `ObjectContent`, and a list of typed blocks
+(`RuntimeToolResult.successWithContent`) stays that list, so a block such as a `DocumentReferenceContent` is still a
+typed block after the round trip through the process variable. `completedAt` is the time of the
+runtime answer; the result has no element id.
 
 **Merging in the next job.** `resolveOrderedToolCallResults` looks up each tool call id of the last
 assistant message first in the pending runtime results, then in the arrived process results (gateway
-transformed; runtime results are never transformed). The `ToolCallResultMessage` keeps the order of the calls.
+transformed; runtime results are never transformed). The runtime results are typed already; a process result is lifted into
+`ToolCallResultContent` (`ToolCallResultContent.from`). The `ToolCallResultMessage` keeps the order of the calls, and
+a document that is a whole result becomes a document reference (4.1) for the results of both kinds.
 
 - *Partial arrival.* The composer waits for the real calls only. Missing real calls make the result
   `Deferred`; its `arrivedResults` hold the process results only. The runtime results were reported
@@ -436,22 +448,19 @@ whitespace, an id or a tag inside other text, and a value with more than one tag
 reaches the process is the Camunda document reference of the registry entry; the persisted assistant message
 keeps the value exactly as the model sent it.
 
-One sentence per invalid value, then the known documents (at most 50 are listed, the rest is
-counted):
+The answer is one sentence per invalid value, joined by a space, and nothing else:
 
 ```
-Parameter 'docs[1]' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'x'. Known documents:
-<doc id="..." fileName="..." contentType="..." toolName="..." toolCallId="..." />
+Parameter 'docs[1]' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'x'.
 ```
 
 **Union parameters.** A union parameter (3.2) is read stricter on the side of text: only a value that is exactly one
 `<doc ... />` tag (the same recognition as above: whitespace around it, the XML-unescaped `id` attribute, no text around
-it, no second tag, a non-blank `id`) stands for a document. The id must be known; an unknown id is answered, followed by
-the list of known documents as above, and the call does not run. The sentence differs from the one for a document
+it, no second tag, a non-blank `id`) stands for a document. The id must be known; an unknown id is answered with the sentence below and the call does not run. The sentence differs from the one for a document
 parameter, because a bare id is text here and the model must not be told to pass one:
 
 ```
-Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the tag of a known document, or pass other text. Known documents:
+Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the tag of a document exactly as you read it, or pass other text.
 ```
 
 Every other value is left untouched: a plain string, also one that equals the id of a known document, a string that holds a tag
@@ -462,10 +471,10 @@ from the id of a tag. An array of union parameters is read per element.
 
 The parameter path is `name`, `parent.name` for nested objects and `name[i]` for array elements. A
 non-string value reads "Parameter 'p' must be the exact id of a known document (the id attribute of its
-<doc /> tag) or that tag itself, a string.", an array parameter that is not an array "Parameter 'p' must be an array.". With an empty
-registry the list is replaced by "No documents are known.". Results are plain text because no provider
-has a tool error flag in the domain model, so the model reads the text. Reason: the list of known tags
-lets the model correct itself in one retry without any further tool call. The error result reaches the model with its next request: in the synthetic round when the whole batch was answered by runtime tools, in the next job together with the results of the real calls of the batch otherwise (section 3.6).
+<doc /> tag) or that tag itself, a string.", an array parameter that is not an array "Parameter 'p' must be an array.". Results are plain text because no provider
+has a tool error flag in the domain model, so the model reads the text. Reason: the model read the tags of the documents it can
+pass in its conversation (and in the eviction note, 3.5), so the sentence only says what was wrong and the model corrects
+itself in one retry. The error result reaches the model with its next request: in the synthetic round when the whole batch was answered by runtime tools, in the next job together with the results of the real calls of the batch otherwise (section 3.6).
 
 ### 3.8 `c8__return_document` semantics
 
@@ -481,7 +490,7 @@ document, what the key is, that the description is optional and that the same ke
 document returned under it. A valid call answers "Returned the document under the key 'k'." and
 adds the document to the response documents with a context update (put into `AgentContext.responseDocuments`). A key that does not
 match the pattern or is missing gives an error answer that states the pattern so the model retries; a
-missing `document` gives an error answer listing the known documents. An error answer adds nothing.
+missing `document` gives the error answer "Parameter 'document' must be the id of a known document.". An error answer adds nothing.
 
 - **Accumulate.** Every valid call puts its document into the response documents under its key, also across jobs and
   turns of the same run. A key that is already used is replaced in place and keeps its position.
@@ -625,7 +634,7 @@ is already in the conversation is not loaded again. The tool checks, in this ord
 | The document is already in the windowed conversation (a document reference with the delivery `content` in a windowed user message, `AgentConversation.documentIdsWithContent`) | Success, `Document <id> is already in the conversation.`; no reference with content is added, so no second copy of the content. After the message holding the reference with content left the window, the document can be loaded again. |
 | The content type is outside the allowlist (`DocumentContentLimits.isSupported`) | Error, `The document is of type X which cannot be loaded into the conversation; pass its id to a tool that processes it.` |
 | The size exceeds the limit of the type (`DocumentContentLimits.limitFor`) | Error, `The document is N KB, too large to load into the conversation (limit L KB); pass its id to a tool that processes it.` |
-| Otherwise | Success, `Loaded the document <doc .../>. Its content follows in the next message.` with the tag of the document, built from its registry entry (the tag the model saw before); the result carries the property `documentIdWithContent`. |
+| Otherwise | Success, a result of three typed blocks (`RuntimeToolResult.successWithContent`): the text `Loaded the document.`, a `DocumentReferenceContent` of the document built from its registry entry (the delivery `reference`, the tag the model saw before) and the text `Its content follows in the next message.`; the result carries the property `documentIdWithContent`. |
 
 The checks of the three rejecting cases are `DocumentContentGuard` (`aiagent/document/DocumentContentGuard.java`), which
 also serves the delivery `content` of section 3.15; `GetDocumentTool` adds the registry lookup and the check for content already in the conversation.
@@ -651,7 +660,7 @@ a token-based guard is an open point (section 7).
 
 **What a successful load does.** The composer follows the tool result message with a user message
 (`composeDocumentContentMessage`): the preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.` and the tag of every
-document that a result of the turn returned the content of, each as a document reference with the delivery `content`; the metadata `toolCallDocuments` makes the
+document that a result of the turn returned the content of (the property `documentIdWithContent` of a `c8__get_document` result, read from the `ToolCallResultContent`), each as a document reference with the delivery `content`; the metadata `toolCallDocuments` makes the
 message leave the window together with its tool results (`MessageWindowFilter`). A document that the
 registry does not know is not added. At window time `DocumentExpander` expands each reference to its tag text and adds the content after it
 (4.1). A load in a mixed batch (3.6) goes the same way: the result is a pending runtime result, and the follow-up
@@ -852,8 +861,12 @@ document and event document (the event references follow the text `Documents att
 A document reference is a typed content block with a document delivery of `reference` or `content`. The tag the model sees is
 rendered from the block (`toTag()`): `size="<bytes>"` is present for a Camunda document whose reference metadata has a
 size, `source` only for a user prompt or event document, `toolName` and `toolCallId` only for a tool result document, and
-a file name that equals the id is dropped. A tool result document has no reference message: the
-persisted `ToolCallResultMessage` keeps it unchanged and the providers render it as its tag. A document
+a file name that equals the id is dropped. A document that is a whole tool result (a top-level `DocumentContent`
+of a result, of a process tool or of a runtime tool) is persisted as a `DocumentReferenceContent` without a source, which
+renders the short tag the model sees for a document of a tool result (`ToolCallResultContent.withDocumentReferences`,
+applied by the composer when it builds the `ToolCallResultMessage` of a turn input; a runtime result of a synthetic round (3.6)
+keeps its `DocumentContent`, which the providers render as the same short tag); a document nested in the object content of a result stays a
+document in an `ObjectContent`, which the providers render as its short tag inside the JSON. A document
 the model loads with `c8__get_document`, or a document of a tool result whose tool has the delivery `content`, is
 persisted in a follow-up user message (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`, metadata
 `toolCallDocuments`) whose reference has the delivery `content`; a prompt document with the delivery `content` is the reference
@@ -868,14 +881,16 @@ the later one, and an earlier block is never rewritten. The expansion therefore 
 messages in every request, which keeps the prompt cache of the request prefix stable.
 
 The providers see another form and never a document reference. `AgentConversation.window` passes the windowed messages through
-`DocumentExpander`, which expands each document reference to its tag text (a `TextContent`) and, when the delivery is
+`DocumentExpander`. In a user message it expands each document reference to its tag text (a `TextContent`) and, when the delivery is
 `content`, adds after it a `DocumentContent` with the document built from
 the registry reference map, with the same document deserialization the persisted messages use (the
 connectors object mapper with its document factory). The result is the pair every provider converter
-already handled: tag text followed by the native block. Every provider converter fails with an
+already handled: tag text followed by the native block. In a tool result it expands each document reference to the
+`DocumentContent` of the document read from the registry, which every provider renders as the short tag, or to the tag text when the
+registry has no entry or cannot supply the document; the delivery of such a reference is not read, a document of a tool result is a tag only. Every provider converter fails with an
 `IllegalStateException` if it is handed a document reference that was not expanded. The expansion
 
-- is skipped for the content of a reference that a `DocumentContent` of the same document already follows (idempotent);
+- is skipped for the content of a reference in a user message that a `DocumentContent` of the same document already follows (idempotent);
 - gives the tag text only when the registry has no entry for the id or the reference cannot be read,
   and never fails the request;
 - depends on the messages and the registry only, so the request bytes are stable between requests
@@ -885,7 +900,9 @@ already handled: tag text followed by the native block. Every provider converter
   works on the stored messages, before the expansion.
 
 The agent instance history reports a user message with the expansion of every document reference (`AgentInstanceHistoryMapper`
-with the registry of `HistoryDocuments`): the tag text and the document as a `DOCUMENT` part. The AWS AgentCore conversion
+with the registry of `HistoryDocuments`): the tag in backticks and the document as a `DOCUMENT` part. A tool result is reported
+block by block: text as it is, an object with the documents in it replaced by their tags (the documents follow it), and a
+document, live or as a reference, as its short tag in backticks followed by the document. The AWS AgentCore conversion
 keeps a document reference in its content blob (a text without metadata stays a conversational payload), so the block survives that store.
 
 The history shows the document next to every document reference of a user message, with content or not, so it is a superset of
@@ -900,8 +917,8 @@ with content in the window by scanning the user messages for references with the
 Reason: the reference of a document (for an inline document its complete content) is held once, by the registry. A
 tag costs a few dozen tokens, so a conversation can carry any number of documents, and the content is paid for
 only by documents the model asked for, in the form the provider needs (text, file, image), without a second copy
-in the stored conversation. The tool result keeps the complete reference of its document because the provider
-converters and the tool result history read it; the providers render it as the tag (3.4).
+in the stored conversation. A tool result holds a reference of the document as well, so it shows the same short tag in every
+request and in the history, and the document itself is read from the registry (3.4).
 
 ### 4.2 Agent instance features and instances created before the documents feature
 
@@ -1009,7 +1026,7 @@ process tools only. The fingerprint of the configuration covers the offered tool
 |------|------------------|--------------------|
 | Batch with no remaining call (synthetic round) | `applyTurnStart` (turn input), `applyTurnCompletion` with `THINKING` (assistant item with all calls), `applyTurnStart` of the synthetic turn (input = the runtime results), the next `applyTurnCompletion` with the terminal status | `TOOL_RESULT` items in the synthetic `applyTurnStart`, `loopIteration` = assistant turn + 1 |
 | Mixed batch | `applyTurnStart`, `applyTurnCompletion` with `TOOL_CALLING` (assistant item with all calls, runtime and real), then `applyToolCallResults` with the runtime results (no status). The next job: `applyTurnStart` with the merged results | `TOOL_RESULT` items of the runtime results in the `applyToolCallResults` of the job that answered them; the next job's `applyTurnStart` reports them again under the same `historyItemId` and the engine keeps one row. They stay in call order with the process results |
-| `c8__get_document` load (a runtime tool call, alone or in a mixed batch) | as in the two rows above | `TOOL_RESULT` item with the text `Loaded the document <doc .../>. Its content follows in the next message.`; the `USER` item of the follow-up message comes with the `applyTurnStart` that carries the results |
+| `c8__get_document` load (a runtime tool call, alone or in a mixed batch) | as in the two rows above | `TOOL_RESULT` item with the parts `Loaded the document.`, the tag of the document in backticks, the document and `Its content follows in the next message.`; the `USER` item of the follow-up message comes with the `applyTurnStart` that carries the results |
 | Mixed batch, partial arrival (`Deferred`) | `applyToolCallResults` with the arrived process results only | none; the runtime results were reported by the job that answered them |
 
 In a mixed batch `BaseAgentRequestHandler.driveContinuationLoop` calls `applyToolCallResults` with the runtime
@@ -1029,11 +1046,11 @@ so the history shows what the model reads. The call of `c8__get_document` is an 
 element id, with the id of the document in its `arguments`, as the model sent it (below). A rejected
 load is a `TOOL_RESULT` item with the error text and no follow-up item.
 
-**Document tags in the text.** The text parts of the history items (user, assistant and tool result
-text, the document tags and their preambles included) show every `<doc .../>` tag in inline code backticks
-(`` `<doc id="..." />` ``), so a markdown renderer shows the tag instead of treating it as markup; a tag that
-is already inside backticks is left as it is. `AgentInstanceHistoryMapper` does this when it maps a
-`TextContent`; the persisted messages and the text the model reads are not changed.
+**Document tags.** The tag of a document reference or of a document in a user message or a tool result is shown in
+backticks (`` `<doc id="..." />` ``), so a markdown renderer shows the tag instead of treating it as markup.
+`AgentInstanceHistoryMapper` does this when it maps a document reference or a document of a tool result. A text is reported
+as it is, also when a user or the model wrote a tag into it or an error text quotes one; the persisted messages and the text the model reads
+are not changed.
 
 **Document arguments.** The `arguments` of a call, in the `ASSISTANT` item and in the `TOOL_RESULT` item, are shown as
 the model sent them: a document parameter holds the id the model passed (or the `<doc />` tag, when the model
@@ -1092,16 +1109,20 @@ below concerns the instances with the feature.
   reference) next to its tag in the history and a tag plus the document content (text, file or image part) in
   the request. The history also shows that block next to the tag of a document the model has no content of
   (prompt and event documents), so it holds at least what the model receives.
-- A tool result with a document is an `OBJECT` block with the complete reference in the history and the
-  JSON with the `<doc/>` tag in place of the reference in the request.
-- A `<doc/>` tag in a text block is wrapped in inline code backticks in the history.
+- A tool result that is a document is its short tag in backticks followed by a `DOCUMENT` block (an `OBJECT` block for an external
+  document) in the history, and the tag text in the request. A tool result with an object that holds documents is an `OBJECT` block with the
+  `<doc/>` tags in place of the documents, followed by a `DOCUMENT` block per document, in the history and in the request the
+  JSON with the tags.
+- The tag of a document reference is wrapped in backticks in the history; the text blocks are reported as they are.
+- The request of a provider whose tool result is one text (OpenAI chat completions, langchain4j) holds the parts of a result joined with
+  a newline, where the history has a block per part.
 
 **Guard test.** `AgentSubProcessHistoryAuditTests` records every model request of a document flow (prompt
 document, tool result document, a load with `c8__get_document`, document arguments, `c8__return_document` next to a real call) and requires
 each message to be covered by an item of the history as the engine returns it: system prompt by the
 `CONFIGURATION` item, the other roles by the blocks of the item (text equal without backticks, object
 blocks equal as JSON with a reference matched by the `documentId` of the tag, document blocks matched by a
-part that is not a tag), tool calls by id, name and arguments (an argument equals the request or is the
+part that is not a tag; the texts and objects of a tool result item follow each other in the joined text of the request, one newline between them), tool calls by id, name and arguments (an argument equals the request or is the
 reference of the document it names). The only message without a history item is listed in the test
 (`KNOWN_UNREPORTED`): the evicted-documents note. A model-visible message that is neither covered nor
 listed fails the test.
@@ -1302,7 +1323,7 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 |----------|------|--------|
 | (a) schema | `toolDefinitionMarksTheDocumentParameterWithTheDocumentFormatAndTheProviderGetsAStringWithAHint` | The first raw request has `type: string`, no `format` and the hint for the document parameter, and `required`; no tool schema of any request has the type `document` or the format `camunda-document-id` (parsed, in `assertNoDocumentInternalsInLlmRequests`); the persisted `agentContext.toolDefinitions` keep `format: camunda-document-id` and hold the hint in the description; the model gets the process tools and `c8__return_document`. |
 | (b) round trip | `passesADownloadedDocumentToAToolAndReturnsIt` | Download (job 1), upload with the id (job 2, real connector, multipart `file` part equals the served bytes), `c8__return_document` (runtime round), final text; `agent.responseDocuments` holds the key `report` with the description and the Camunda reference as `document` (`camunda.document.type`, `storeId`, `documentId` = the id the model saw, `contentHash`); response documents kept in `agentContext`. |
-| (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the known documents, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
+| (c) unknown id | `unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries` (both flavors) | A batch made of the bad call alone is answered in the loop: error tool result with the sentence of 3.7, the tool endpoint is hit exactly once (by the retry), process completes without incident, four model calls. |
 | (d) eviction | `documentOfAnEvictedMessageStaysPassable` | With `contextWindowSize=3` the third request holds neither the download nor its tool result, but ends with the eviction note (preamble + tag with tool origin); the model still passes the id and the tool gets the real bytes. |
 | (e) stores | `passesADownloadedDocumentToAToolAndReturnsIt` parameterized | Same round trip with in-process, Camunda document and AWS AgentCore memory (the registry lives in `agentContext`, so it survives the job boundaries in every store). |
 | (f) task flavor | `AgentTaskDocumentFlowTests` | Round trip and unknown id retry with the AI Agent Task (`agent.responseDocuments` on the `AgentResponse`). |
@@ -1315,13 +1336,13 @@ result tag, so the model-visible id and the id in `agent.responseDocuments` are 
 
 | (l) load | `loadsAFetchedDocumentOnceAndPassesItsIdToATool` (both flavors, text and PDF) | A tool returns a document, the model loads it twice and passes its id to a tool: the first load puts the content next to the tag (text part or file part), the second is answered without loading again, the tool gets the real bytes. |
 | (m) large document | `rejectsALargeDocumentAndStillPassesItsIdToATool` (both flavors) | A text document above 256 KB is rejected with the answer that tells to pass the id to a tool; no request body holds its content and the tool still receives the real bytes. |
-| (n) unknown id | `answersGetDocumentOfAnUnknownIdWithTheKnownDocuments` (both flavors) | The framework answers with the error text of 3.7 listing the known documents. |
+| (n) unknown id | `answersGetDocumentOfAnUnknownIdWithTheKnownDocuments` (both flavors) | The framework answers with the error text of 3.7. |
 | (o) user prompt documents | `handlesDocumentType`, `loadsDocumentOfTypeOnRequest`, `rejectsLoadingADocumentOfATypeThatIsNotSupported` (both flavors) | A prompt document is a tag only, for every type. Loaded on request, a CSV, GIF, JPEG, JSON, PDF, PNG, text, WebP, XML or YAML document reaches the next request in the form its type has on the wire. A ZIP document is answered with the type error as the tool result: no incident, the conversation continues, no content follows. |
 | (q) prompt documents with content | `addsTheContentOfPromptDocumentsWithTheDeliveryContent`, `keepsPromptDocumentsAsReferencesWithTheDeliveryReference`, `keepsAPromptDocumentThatFailsTheGuardAsAReferenceWithANote` (`AgentSubProcessUserPromptDocumentsTests`, `AgentTaskUserPromptDocumentsTests`) | With the delivery `content` the first request holds the prompt text, the tag and the content block of the document, and no `c8__get_document` call is needed; with `reference` the document is a tag only; a ZIP document stays a tag followed by the note. |
 | (r) tool documents with content | `addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel`, `keepsADocumentOfAToolWithTheDeliveryContentThatFailsTheGuardAsAReferenceWithANote` (both flavors; processes `agentic-ai-ahsp-connectors-documents-content.bpmn` and `agentic-ai-connectors-documents-content.bpmn`, which mark `Download_A_File`) | The result of the marked tool is followed by the message with the tag and the content (text part or file part), the model passes the id to the upload without asking for content, the tool gets the real bytes; a ZIP and a text above 256 KB stay references with the note and no content in any request. |
 | (s) history audit of the delivery `content` | `everyModelVisibleMessageOfADocumentWithTheDeliveryContentIsInTheHistory` (`AgentSubProcessHistoryAuditTests`) | A prompt document with the delivery `content` set by the option, a tool document with the delivery `content` set by the marker and a note are all covered by items of the history. |
 | (t) returned documents across turns | `accumulatesTheResponseDocumentsOfSeveralTurnsOnTheFinalResponse`, `replacesTheResponseDocumentOfAKeyInPlaceWhenALaterTurnReturnsTheKeyAgain` (`AgentSubProcessFeedbackLoopTests`, `AgentTaskFeedbackLoopTests`) | With user feedback between the turns, the final response of a later turn holds the documents returned in the earlier turns next to its own, in the order of their first return; returning a key again replaces its entry and keeps its position. |
-| (u) union parameter | `AgentSubProcessUnionDocumentParameterTests` (process `agentic-ai-ahsp-connectors-documents-union.bpmn`: the tool `Send_Message` declares `fromAi(value: toolCall.body, ..., schema: {"anyOf": [{"type": "string"}, {"type": "document"}]})` and answers what it received) | The first raw request has a plain `{type: string, description}` for the parameter, with the union hint and no `anyOf`, no format; the persisted definition keeps the alternatives and the format; a tag of the downloaded document reaches the tool as the Camunda document reference, text and a bare id as text; a tag with an unknown id is answered with the union sentence of 3.7 and the known documents, the tool does not run and the model retries with text. |
+| (u) union parameter | `AgentSubProcessUnionDocumentParameterTests` (process `agentic-ai-ahsp-connectors-documents-union.bpmn`: the tool `Send_Message` declares `fromAi(value: toolCall.body, ..., schema: {"anyOf": [{"type": "string"}, {"type": "document"}]})` and answers what it received) | The first raw request has a plain `{type: string, description}` for the parameter, with the union hint and no `anyOf`, no format; the persisted definition keeps the alternatives and the format; a tag of the downloaded document reaches the tool as the Camunda document reference, text and a bare id as text; a tag with an unknown id is answered with the union sentence of 3.7, the tool does not run and the model retries with text. |
 | (p) provider wire format | `ProviderWireFormatSmokeTests` (`documentRequestedByTheModel` and the tag-only prompt document, per provider fixture) | The request of every WireMock provider that can carry id placeholders holds the tag text and the content block of a document with content; Bedrock is covered by the converter unit tests (section 7). |
 
 Global assertion: `DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests` checks the raw body
@@ -1422,10 +1443,13 @@ public interface RuntimeToolConversation {   // implemented by AgentConversation
   AgentContext toAgentContext();             // properties() is the free-form state
 }
 
-public record RuntimeToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates) {
+public record RuntimeToolResult(Object content, boolean error, List<UnaryOperator<AgentContext>> contextUpdates,
+    Map<String, Object> properties) {
   static RuntimeToolResult success(Object content);
+  static RuntimeToolResult successWithContent(List<Content> blocks);  // typed blocks: text, objects, document references
   static RuntimeToolResult error(String message);
   RuntimeToolResult withContextUpdate(UnaryOperator<AgentContext> update);
+  RuntimeToolResult withProperty(String key, Object value);           // property of the tool call result
 }
 
 public class RuntimeToolException extends RuntimeException {}   // an error the model can act on
@@ -1455,7 +1479,8 @@ creates a flat object schema; `document(..)` is a parameter with the format `cam
    `RuntimeToolConversation`. The typed handler binds
    `arguments` to its type (a document parameter is a `String`, the id), and an argument that does not fit
    the type answers the call with "Invalid arguments for tool '<name>': ...".
-5. **Result.** The content becomes the `ToolCallResult` (text or object content, a `Document` inside renders
+5. **Result.** The content becomes a `ToolCallResultContent` (text becomes a `TextContent`, a `Document` a `DocumentContent`,
+   any other object an `ObjectContent`, and the blocks of `successWithContent` stay as they are; a `Document` inside renders
    as its tag, 3.4). The context updates are applied to the working conversation in order, call after call,
    so a later call of the batch sees the state an earlier one left. An error result carries no update.
    The results follow the paths of 3.6 (synthetic round or pending results) and are reported as in 5.1.

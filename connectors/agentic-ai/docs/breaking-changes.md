@@ -162,9 +162,10 @@ functions that return SDK `ConnectorResponse` types.
   `ProviderContent` (a provider native block, preserved verbatim) and `DocumentReferenceContent` (the
   persisted form of a document of an agent instance with the documents feature: the document id, the
   attributes of its `<doc/>` tag and a document delivery of `reference` or `content`). Code that switches over
-  `Content` must handle or ignore them. A chat model provider never receives a `DocumentReferenceContent`:
-  the conversation window expands it to its tag text and, with the delivery `content`, the document content
-  before the request is built, and the provider converters of the connector fail with an
+  `Content` must handle or ignore them. A tool result whose content is a document holds a `DocumentReferenceContent` as well.
+  A chat model provider never receives a `DocumentReferenceContent`:
+  the conversation window expands it in a user message to its tag text and, with the delivery `content`, the document content, and in
+  a tool result to the document read from the registry, before the request is built, and the provider converters of the connector fail with an
   `IllegalStateException` if one is handed over.
 - `AgentMetrics.TokenUsage` gains `cacheReadTokenCount`, `cacheCreationTokenCount` and
   `reasoningTokenCount` (omitted from JSON when zero). There is no combined total.

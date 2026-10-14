@@ -331,8 +331,11 @@ turn's input messages. Unlike `ToolCallResult`, it carries a structured `List<Co
 untyped payload, so later stages can inspect the shape of a tool result (documents, images,
 reasoning, provider-native blocks) without stringifying it. The lift (`ToolCallResultContent.from`)
 maps a `String` to `TextContent`, a `Document` to `DocumentContent`, and anything else to
-`ObjectContent`; it currently only ever produces a singleton list — a multi-element list is reserved
-for future provider-specific chat models that emit structured content directly.
+`ObjectContent`; for a result of a process tool it produces a singleton list. A runtime tool (§25.4) answers with a
+`RuntimeToolResult` whose content the agent turns into a `ToolCallResultContent` directly (the same mapping, or the list of
+typed blocks the tool returned with `RuntimeToolResult.successWithContent`), so such a result is typed from the start: it is
+kept in `AgentContext.pendingRuntimeToolCallResults`, a `List<ToolCallResultContent>`, and its blocks keep their types through
+the JSON round trip of the process variable.
 
 The sealed `Content` model gained two additive members alongside the existing `TextContent` /
 `DocumentContent` / `ObjectContent`:
@@ -355,8 +358,9 @@ ready for chat model implementations that need them.
 `DocumentReferenceContent` (content type `documentReference`) is the persisted form of a document of an agent
 instance with the `documents` feature: the document id, the attributes of its `<doc .../>` tag (`fileName`,
 `contentType`, `size`, `source`, `toolName`, `toolCallId`) and a `delivery`, `reference` or `content`. Its `toTag()`
-renders the tag the model sees. `AgentConversation.window` expands it before a request is built (the tag text and,
-with the delivery `content`, the document content); a provider converter that is handed one fails with an
+renders the tag the model sees. A document that is a whole tool result is persisted as such a block without a source
+(`ToolCallResultContent.withDocumentReferences`). `AgentConversation.window` expands it before a request is built (in a user message the tag text and,
+with the delivery `content`, the document content; in a tool result the document read from the registry, which the provider renders as its short tag); a provider converter that is handed one fails with an
 `IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes
 when the same document gets another delivery later (prompt caching).
 
@@ -707,10 +711,9 @@ fromAi(
 ```
 
 The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`. A union parameter gets its own
-hint: the model passes a document as its `<doc />` tag exactly as listed for the known documents, and the tool receives the
+hint: the model passes a document as its `<doc />` tag exactly as it reads it, and the tool receives the
 Camunda document reference. Every other value is passed as it is: a plain string, also one that equals the id of a known
-document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that says the tag is not a known document and lists
-the known documents, and the tool does not run. For `anyOf: [string, document]` the model provider gets
+document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that says the tag is not a known document, and the tool does not run. For `anyOf: [string, document]` the model provider gets
 `{"type": "string", "description": "..."}` with the hint. See the document flow design notes, sections 3.2, 3.3 and 3.7.
 
 ---
@@ -1917,7 +1920,7 @@ lease-fenced `update()` mechanism).
 
 - A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
   document-reference messages and the follow-up message of documents loaded by `c8__get_document`). The
-  document references of a user message are reported as their tag text and the content of their documents from the registry
+  document references of a user message are reported as their tag in backticks and their documents from the registry
   (`DocumentExpander`), so the history shows at least what the model receives. A message of an agent instance
   without the `documents` feature is reported as stored.
 - A `ToolCallResultMessage` → **one `TOOL_RESULT` item per result**, each with that result's content
@@ -1931,9 +1934,9 @@ lease-fenced `update()` mechanism).
   tool call is an invariant violation and fails the turn.
 - The `arguments` of a tool call, in the `ASSISTANT` item and in the `TOOL_RESULT` items, are shown as the model
   sent them: a document parameter (a string schema node with the format `camunda-document-id`, see the document
-  flow design notes) holds the id of the document, or its `<doc />` tag when the model passed the tag. The text
-  parts of the history items show every `<doc .../>` tag in inline code backticks; the persisted messages and
-  the text the model reads are not changed. An agent instance without the `documents` feature has no registry and
+  flow design notes) holds the id of the document, or its `<doc />` tag when the model passed the tag. The tag of a document
+  reference or of a document of a tool result is shown in backticks, and a text is reported as it is, also when it holds a
+  tag; the persisted messages and the text the model reads are not changed. An agent instance without the `documents` feature has no registry and
   reports texts as they are (`HistoryDocuments.documentFlow()` is `false`).
   `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take a
   `HistoryDocuments` (the document registry and the features of the agent instance) for this.
@@ -2188,7 +2191,9 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
    conversation) -> ...)` to receive a record instead of a map. A document parameter arrives as the document id
    (`String`); look the document up with `conversation.documentRegistry().findById(id)`. Or implement
    `RuntimeTool` directly. A tool receives the services it needs, such as the `ObjectMapper`, through its constructor.
-2. Return `RuntimeToolResult.success(content)`; report failures the model can act on with
+2. Return `RuntimeToolResult.success(content)` (text, an object or a `Document`) or, for an answer of several parts,
+   `RuntimeToolResult.successWithContent(blocks)` with typed `Content` blocks such as text and document references, which the model reads
+   in that order; report failures the model can act on with
    `RuntimeToolResult.error(message)` or a thrown `RuntimeToolException`. Any other exception propagates and
    fails the job.
 3. Change agent state only with `RuntimeToolResult.withContextUpdate(agentContext -> ...)`; the framework
