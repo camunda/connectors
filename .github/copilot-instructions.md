@@ -6,6 +6,8 @@ Camunda Connectors is the connector ecosystem for Camunda Platform 8: an SDK for
 a runtime that executes them, and 30+ out-of-the-box connectors (AWS, HTTP, Kafka, etc.). Java 21
 (SDK: Java 17). Product docs: https://docs.camunda.io/docs/components/connectors/overview/
 
+Product context: part of the connectors system (`SYSTEM.md` at the repo root); boundaries and constraints in ARCHITECTURE.md (root: core platform; `connectors/ARCHITECTURE.md`; `connectors/agentic-ai/ARCHITECTURE.md`; `connectors/idp-extraction/ARCHITECTURE.md`).
+
 Don't overengineer — follow YAGNI and KISS. No abstractions for single-use code, no error handling
 for impossible scenarios, no unrequested flexibility. Touch only what the task requires; don't
 "improve" adjacent code or delete pre-existing dead code you didn't cause.
