@@ -29,14 +29,15 @@ import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolSchema;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.SaveNoteTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -123,16 +124,22 @@ class RuntimeToolCallHandlerImplTest {
     }
   }
 
-  private final Handler handler = handlerOf(SaveNoteTool.create());
+  private final Handler handler = handlerOf(new SaveNoteTool());
 
   private static Handler handlerOf(RuntimeTool... tools) {
     return new Handler(new RuntimeToolCallHandlerImpl(new RuntimeToolRegistryImpl(List.of(tools))));
   }
 
   private static final RuntimeTool ECHO_TOOL =
-      RuntimeTool.builder("acme_echo")
-          .description("Echoes.")
-          .handler((call, executionContext, conv) -> RuntimeToolResult.success("echo"));
+      StubRuntimeTool.of(
+          "acme_echo", (call, executionContext, conv) -> RuntimeToolResult.success("echo"));
+
+  private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
+    return ToolDefinition.builder()
+        .name(name)
+        .inputSchema(Map.of("type", "object", "properties", properties))
+        .build();
+  }
 
   private static AgentConversation conversationWithFeatures(
       Set<String> features, ToolCall... calls) {
@@ -288,11 +295,12 @@ class RuntimeToolCallHandlerImplTest {
   void answersArgumentsOfTheWrongTypeWithAnErrorResultTheModelCanActOn() {
     record Args(int limit) {}
     final var tool =
-        RuntimeTool.builder("c8__limited")
-            .handler(
-                Args.class,
-                TestObjectMapperSupplier.INSTANCE,
-                (args, executionContext, conv) -> RuntimeToolResult.success("never"));
+        StubRuntimeTool.of(
+            "c8__limited",
+            (call, executionContext, conv) -> {
+              call.argumentsAs(Args.class, TestObjectMapperSupplier.INSTANCE);
+              return RuntimeToolResult.success("never");
+            });
     final var call = new ToolCall("l1", "c8__limited", Map.of("limit", "many"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
@@ -319,19 +327,20 @@ class RuntimeToolCallHandlerImplTest {
     final var received = new ArrayList<Object>();
     record Args(String file, List<String> files) {}
     final var tool =
-        RuntimeTool.builder("c8__read_file")
-            .inputSchema(
-                RuntimeToolSchema.object()
-                    .document("file", "The file", true)
-                    .stringArray("files", "More files", false))
-            .handler(
-                Args.class,
-                TestObjectMapperSupplier.INSTANCE,
-                (args, executionContext, conv) -> {
-                  received.add(args.file());
-                  received.add(args.files());
-                  return RuntimeToolResult.success("read");
-                });
+        StubRuntimeTool.of(
+            definitionOf(
+                "c8__read_file",
+                Map.of(
+                    "file",
+                    DocumentParameterSchema.documentSchema("The file"),
+                    "files",
+                    Map.of("type", "array", "items", Map.of("type", "string")))),
+            (call, executionContext, conv) -> {
+              final var args = call.argumentsAs(Args.class, TestObjectMapperSupplier.INSTANCE);
+              received.add(args.file());
+              received.add(args.files());
+              return RuntimeToolResult.success("read");
+            });
     final var call = new ToolCall("r1", "c8__read_file", Map.of("file", reportId));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
@@ -344,13 +353,14 @@ class RuntimeToolCallHandlerImplTest {
   void handsTheIdOfATagPassedToADocumentParameterOfARuntimeTool() {
     final var received = new ArrayList<Object>();
     final var tool =
-        RuntimeTool.builder("c8__read_file")
-            .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
-            .handler(
-                (call, executionContext, conv) -> {
-                  received.add(call.arguments());
-                  return RuntimeToolResult.success("read");
-                });
+        StubRuntimeTool.of(
+            definitionOf(
+                "c8__read_file",
+                Map.of("file", DocumentParameterSchema.documentSchema("The file"))),
+            (call, executionContext, conv) -> {
+              received.add(call.arguments());
+              return RuntimeToolResult.success("read");
+            });
     final var arguments =
         Map.<String, Object>of(
             "file", "<doc id=\"" + reportId + "\" fileName=\"report.txt\" />", "other", "kept");
@@ -366,13 +376,14 @@ class RuntimeToolCallHandlerImplTest {
   void answersAnUnknownDocumentIdOfARuntimeToolAndDoesNotRunIt() {
     final var runs = new AtomicInteger();
     final var tool =
-        RuntimeTool.builder("c8__read_file")
-            .inputSchema(RuntimeToolSchema.object().document("file", "The file", true))
-            .handler(
-                (call, executionContext, conv) -> {
-                  runs.incrementAndGet();
-                  return RuntimeToolResult.success("read");
-                });
+        StubRuntimeTool.of(
+            definitionOf(
+                "c8__read_file",
+                Map.of("file", DocumentParameterSchema.documentSchema("The file"))),
+            (call, executionContext, conv) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("read");
+            });
     final var call = new ToolCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
@@ -391,13 +402,12 @@ class RuntimeToolCallHandlerImplTest {
   void handsTheIdOfATagAndOtherValuesAsTheyAreToAUnionParameterOfARuntimeTool() {
     final var received = new ArrayList<Object>();
     final var tool =
-        RuntimeTool.builder("c8__send")
-            .inputSchema(Map.of("type", "object", "properties", Map.of("body", TEXT_OR_DOCUMENT)))
-            .handler(
-                (call, executionContext, conv) -> {
-                  received.add(call.arguments().get("body"));
-                  return RuntimeToolResult.success("sent");
-                });
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", TEXT_OR_DOCUMENT)),
+            (call, executionContext, conv) -> {
+              received.add(call.arguments().get("body"));
+              return RuntimeToolResult.success("sent");
+            });
     final var tagCall =
         new ToolCall("s1", "c8__send", Map.of("body", "<doc id=\"" + reportId + "\" />"));
     final var bareIdCall = new ToolCall("s2", "c8__send", Map.of("body", reportId));
@@ -419,13 +429,12 @@ class RuntimeToolCallHandlerImplTest {
   void answersATagWithAnUnknownIdOfAUnionParameterOfARuntimeToolAndDoesNotRunIt() {
     final var runs = new AtomicInteger();
     final var tool =
-        RuntimeTool.builder("c8__send")
-            .inputSchema(Map.of("type", "object", "properties", Map.of("body", TEXT_OR_DOCUMENT)))
-            .handler(
-                (call, executionContext, conv) -> {
-                  runs.incrementAndGet();
-                  return RuntimeToolResult.success("sent");
-                });
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", TEXT_OR_DOCUMENT)),
+            (call, executionContext, conv) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("sent");
+            });
     final var call = new ToolCall("s1", "c8__send", Map.of("body", "<doc id=\"bogus\" />"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
@@ -525,7 +534,7 @@ class RuntimeToolCallHandlerImplTest {
   @Test
   void aReturnDocumentToolCanBeRegisteredNextToOtherTools() {
     final var both =
-        handlerOf(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), SaveNoteTool.create());
+        handlerOf(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), new SaveNoteTool());
 
     assertThat(both.availableToolDefinitions(WITH_MEMORY, NEW_INSTANCE))
         .extracting(ToolDefinition::name)
@@ -574,9 +583,10 @@ class RuntimeToolCallHandlerImplTest {
   @Test
   void answersTheCallsOfAToolOnlyForAgentsThatHaveTheFeatureItNeeds() {
     final var featured =
-        RuntimeTool.builder("acme_featured")
-            .available((executionContext, agentContext) -> agentContext.supports("acme"))
-            .handler((call, executionContext, conv) -> RuntimeToolResult.success("featured"));
+        StubRuntimeTool.of(
+                "acme_featured",
+                (call, executionContext, conv) -> RuntimeToolResult.success("featured"))
+            .availableWhen((executionContext, agentContext) -> agentContext.supports("acme"));
     final var call = new ToolCall("f1", "acme_featured", Map.of());
 
     final var without =
@@ -598,14 +608,14 @@ class RuntimeToolCallHandlerImplTest {
   void aToolReadsTheConversationAndTheExecutionContextItIsCalledWith() {
     final var seen = new ArrayList<Object>();
     final var reading =
-        RuntimeTool.builder("acme_reading")
-            .handler(
-                (call, executionContext, conv) -> {
-                  seen.add(executionContext);
-                  seen.add(conv.documentRegistry().entries());
-                  seen.add(conv.toAgentContext().features());
-                  return RuntimeToolResult.success("read");
-                });
+        StubRuntimeTool.of(
+            "acme_reading",
+            (call, executionContext, conv) -> {
+              seen.add(executionContext);
+              seen.add(conv.documentRegistry().entries());
+              seen.add(conv.toAgentContext().features());
+              return RuntimeToolResult.success("read");
+            });
     final var call = new ToolCall("r1", "acme_reading", Map.of());
     final var conversation = conversation(WITH_MEMORY, call);
 
@@ -624,16 +634,15 @@ class RuntimeToolCallHandlerImplTest {
   void aToolCreatesADocumentWithTheFactoryItWasGiven() {
     final var factory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
     final var creating =
-        RuntimeTool.builder("acme_create")
-            .description("Creates a document.")
-            .handler(
-                (call, executionContext, conv) ->
-                    RuntimeToolResult.success(
-                        factory.create(
-                            DocumentCreationRequest.from("created".getBytes(StandardCharsets.UTF_8))
-                                .contentType("text/plain")
-                                .fileName("created.txt")
-                                .build())));
+        StubRuntimeTool.of(
+            "acme_create",
+            (call, executionContext, conv) ->
+                RuntimeToolResult.success(
+                    factory.create(
+                        DocumentCreationRequest.from("created".getBytes(StandardCharsets.UTF_8))
+                            .contentType("text/plain")
+                            .fileName("created.txt")
+                            .build())));
     final var call = new ToolCall("c1", "acme_create", Map.of());
     final var conversation = conversationWithFeatures(Set.of("runtimeTools"), call);
 

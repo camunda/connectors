@@ -119,6 +119,20 @@ class ReturnDocumentToolTest {
   }
 
   @Test
+  void definitionKeepsADeterministicKeyOrder() {
+    final var schema = TOOL.definition().inputSchema();
+
+    assertThat(schema.keySet()).containsExactly("type", "properties", "required");
+    @SuppressWarnings("unchecked")
+    final var properties = (Map<String, Object>) schema.get("properties");
+    assertThat(properties.keySet()).containsExactly("key", "document", "description");
+    assertThat(((Map<String, Object>) properties.get("key")).keySet())
+        .containsExactly("type", "description");
+    assertThat(((Map<String, Object>) properties.get("document")).keySet())
+        .containsExactly("type", "format", "description");
+  }
+
+  @Test
   void theDescriptionIsOptional() {
     final var split = run(CONFIGURATION, call("1", Map.of("key", "report", "document", reportId)));
 

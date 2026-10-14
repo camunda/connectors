@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolRegistryImplTest {
@@ -50,17 +51,17 @@ class RuntimeToolRegistryImplTest {
 
   private final RuntimeToolRegistry registry =
       new RuntimeToolRegistryImpl(
-          List.of(
-              new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), SaveNoteTool.create()));
+          List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE), new SaveNoteTool()));
 
   private static AgentContext withFeatures(Set<String> features) {
     return AgentContext.empty().withFeatures(new LinkedHashSet<>(features));
   }
 
-  private static RuntimeTool tool(String name, RuntimeTool.Availability availability) {
-    return RuntimeTool.builder(name)
-        .available(availability)
-        .handler((call, executionContext, conversation) -> RuntimeToolResult.success(name));
+  private static RuntimeTool tool(
+      String name, BiPredicate<AgentExecutionContext, AgentContext> availability) {
+    return StubRuntimeTool.of(
+            name, (call, executionContext, conversation) -> RuntimeToolResult.success(name))
+        .availableWhen(availability);
   }
 
   private static List<String> names(List<ToolDefinition> definitions) {
@@ -160,7 +161,7 @@ class RuntimeToolRegistryImplTest {
   @Test
   void acceptsAToolNameOutsideTheBuiltInPrefix() {
     final var custom =
-        RuntimeTool.builder("acme_lookup").handler((call, executionContext, conversation) -> null);
+        StubRuntimeTool.of("acme_lookup", (call, executionContext, conversation) -> null);
 
     assertThat(new RuntimeToolRegistryImpl(List.of(custom)).toolNames())
         .containsExactly("acme_lookup");
@@ -168,8 +169,7 @@ class RuntimeToolRegistryImplTest {
 
   @Test
   void rejectsABlankToolName() {
-    final var blank =
-        RuntimeTool.builder(" ").handler((call, executionContext, conversation) -> null);
+    final var blank = StubRuntimeTool.of(" ", (call, executionContext, conversation) -> null);
 
     assertThatThrownBy(() -> new RuntimeToolRegistryImpl(List.of(blank)))
         .isInstanceOf(IllegalStateException.class)
@@ -179,8 +179,7 @@ class RuntimeToolRegistryImplTest {
   @Test
   void rejectsDuplicateToolNames() {
     assertThatThrownBy(
-            () ->
-                new RuntimeToolRegistryImpl(List.of(SaveNoteTool.create(), SaveNoteTool.create())))
+            () -> new RuntimeToolRegistryImpl(List.of(new SaveNoteTool(), new SaveNoteTool())))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("c8__save_note");
   }
