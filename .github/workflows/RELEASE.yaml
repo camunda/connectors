@@ -427,9 +427,12 @@ jobs:
             echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
           fi
 
+      # Maven 3.10 only sends a server's credentials to the origins that server declares, which default to
+      # the host of the mirror with the same id. camunda-nexus has no mirror here, so the Artifactory
+      # deploy would go out unauthenticated (HTTP 401). credentialScope=id restores id-only matching.
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: ./mvnw -U deploy -Dmaven.repository.credentialScope=id -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded -DdeploymentName=connectors-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -439,7 +442,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: ./mvnw -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: ./mvnw -U deploy -Dmaven.repository.credentialScope=id -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
