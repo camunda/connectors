@@ -23,9 +23,12 @@ jobs:
     name: Approve and auto-merge backport PR
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # The run's actor is the authenticated pusher of the tested commit, so this
+    # ensures nobody but the backport automation changed the branch.
     if: |
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login == 'team-connectors-int-automation[bot]' &&
       startsWith(github.event.workflow_run.head_branch, 'backport-')
     steps:
       - name: Import Secrets
@@ -57,8 +60,6 @@ jobs:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           BACKPORT_AUTHOR: app/team-connectors-int-automation
-          # korthout/backport-action commits clean cherry-picks as this user
-          CHERRY_PICK_COMMITTER: github-actions[bot]
         run: |
           skip() {
             echo "Not auto-merging: $1"
@@ -70,12 +71,21 @@ jobs:
             skip "branch $HEAD_BRANCH is not a backport branch"
           fi
 
-          PR=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open \
-            --json number,id,author,baseRefName,headRefOid,isDraft,autoMergeRequest --jq '.[0] // empty')
-          [[ -n "$PR" ]] || skip "no open PR for $HEAD_BRANCH"
-
-          NUMBER=$(jq -r .number <<< "$PR")
+          NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+          [[ -n "$NUMBER" ]] || skip "no open PR for $HEAD_BRANCH"
           echo "Checking PR #$NUMBER"
+
+          # Mergeability is computed asynchronously, wait for it before taking the
+          # snapshot below to keep the window until the approval small
+          for _ in 1 2 3 4 5; do
+            MERGEABLE=$(gh pr view "$NUMBER" --repo "$REPO" --json mergeable --jq .mergeable)
+            [[ "$MERGEABLE" == "UNKNOWN" ]] || break
+            sleep 10
+          done
+          [[ "$MERGEABLE" == "MERGEABLE" ]] || skip "PR is not mergeable ($MERGEABLE)"
+
+          PR=$(gh pr view "$NUMBER" --repo "$REPO" \
+            --json id,author,baseRefName,headRefOid,isDraft,autoMergeRequest)
 
           [[ "$(jq -r .author.login <<< "$PR")" == "$BACKPORT_AUTHOR" ]] || skip "PR not created by $BACKPORT_AUTHOR"
           [[ "$(jq -r .baseRefName <<< "$PR")" == stable/* ]] || skip "base branch is not stable/*"
@@ -83,24 +93,12 @@ jobs:
           [[ "$(jq -r .isDraft <<< "$PR")" == "false" ]] || skip "PR is a draft (cherry-pick had conflicts)"
           [[ "$(jq -r .autoMergeRequest <<< "$PR")" == "null" ]] || skip "auto-merge already enabled"
 
-          # A PR that has ever been a draft had conflicts that were resolved by hand
+          # A PR that has ever been a draft had conflicts, even if nothing was pushed
+          # after the backport automation committed them
           if gh api "repos/$REPO/issues/$NUMBER/timeline" --paginate --jq '.[].event' \
               | grep -qxE 'ready_for_review|convert_to_draft'; then
-            skip "PR was a draft at some point (conflicts were resolved manually)"
+            skip "PR was a draft at some point (cherry-pick had conflicts)"
           fi
-
-          # Every commit must be an untouched cherry-pick from the backport action
-          FOREIGN_COMMITS=$(gh api "repos/$REPO/pulls/$NUMBER/commits" --paginate \
-            --jq ".[] | select(.committer.login != \"$CHERRY_PICK_COMMITTER\") | .sha")
-          [[ -z "$FOREIGN_COMMITS" ]] || skip "PR contains commits not created by the backport action: $FOREIGN_COMMITS"
-
-          # Mergeability is computed asynchronously, retry while it is unknown
-          for _ in 1 2 3 4 5; do
-            MERGEABLE=$(gh pr view "$NUMBER" --repo "$REPO" --json mergeable --jq .mergeable)
-            [[ "$MERGEABLE" == "UNKNOWN" ]] || break
-            sleep 10
-          done
-          [[ "$MERGEABLE" == "MERGEABLE" ]] || skip "PR is not mergeable ($MERGEABLE)"
 
           {
             echo "eligible=true"
@@ -115,11 +113,23 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.check.outputs.number }}
           PR_NODE_ID: ${{ steps.check.outputs.node-id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          gh pr review "$PR_NUMBER" --repo "$REPO" --approve \
-            --body "Auto-approved: clean backport of an already reviewed change, tests passed."
+          # Both the approval and auto-merge are bound to the tested commit
+          REVIEW_ID=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            -f event=APPROVE -f commit_id="$HEAD_SHA" \
+            -f body="Auto-approved: clean backport of an already reviewed change, tests passed." \
+            --jq .id)
+
           # Call the API directly to work around https://github.com/cli/cli/issues/8352;
           # on merge queue branches this enqueues the PR once all requirements are met.
-          # shellcheck disable=SC2016 # $id is a GraphQL variable
-          gh api graphql -f query='mutation($id: ID!) { enablePullRequestAutoMerge(input: {pullRequestId: $id}) { clientMutationId } }' \
-            -f id="$PR_NODE_ID"
+          # expectedHeadOid makes this fail if the branch moved since it was checked.
+          # shellcheck disable=SC2016 # $id and $sha are GraphQL variables
+          if ! gh api graphql \
+              -f query='mutation($id: ID!, $sha: GitObjectID!) { enablePullRequestAutoMerge(input: {pullRequestId: $id, expectedHeadOid: $sha}) { clientMutationId } }' \
+              -f id="$PR_NODE_ID" -f sha="$HEAD_SHA"; then
+            echo "Enabling auto-merge failed, dismissing the approval"
+            gh api -X PUT "repos/$REPO/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" \
+              -f message="Auto-merge could not be enabled for the tested commit, manual review required."
+            exit 1
+          fi
