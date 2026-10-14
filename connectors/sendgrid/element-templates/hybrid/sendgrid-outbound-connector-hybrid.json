@@ -84,7 +84,8 @@
       "isEmpty" : true,
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "from.name",
     "label" : "Name",

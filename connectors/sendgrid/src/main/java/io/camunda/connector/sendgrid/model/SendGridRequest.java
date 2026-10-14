@@ -50,6 +50,7 @@ public class SendGridRequest {
   @TemplateProperty(
       group = "authentication",
       label = "SendGrid API key",
+      secret = true,
       condition =
           @PropertyCondition(property = "sendGridCredential", isEmpty = NullableBoolean.TRUE),
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
