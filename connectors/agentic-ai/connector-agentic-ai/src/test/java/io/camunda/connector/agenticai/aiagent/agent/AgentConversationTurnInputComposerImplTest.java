@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
@@ -45,7 +46,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -672,13 +672,24 @@ class AgentConversationTurnInputComposerImplTest {
           .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
           .build();
 
+  /** The split of the tool calls of the turn that answers the calls of the given results. */
+  private static TestRuntimeToolCallSplit deferred(ToolCallResultContent... results) {
+    return deferredAnswers(
+        java.util.Arrays.stream(results)
+            .map(RuntimeToolCallAnswer::of)
+            .toArray(RuntimeToolCallAnswer[]::new));
+  }
+
   /** The split of the tool calls of the turn that answers the calls of the given answers. */
-  private static TestRuntimeToolCallSplit deferred(ToolCallResultContent... answers) {
+  private static TestRuntimeToolCallSplit deferredAnswers(RuntimeToolCallAnswer... answers) {
     final var answeredIds =
-        java.util.Arrays.stream(answers).map(ToolCallResultContent::id).collect(Collectors.toSet());
-    return TestRuntimeToolCallSplit.answering(
+        java.util.Arrays.stream(answers)
+            .map(answer -> answer.result().id())
+            .collect(Collectors.toSet());
+    return TestRuntimeToolCallSplit.answeringWith(
         TOOL_CALLS.stream().filter(call -> answeredIds.contains(call.id())).toList(),
-        List.of(answers));
+        List.of(answers),
+        List.of());
   }
 
   private static List<ToolCallResultContent> resultsOf(CompositionResult result) {
@@ -731,14 +742,16 @@ class AgentConversationTurnInputComposerImplTest {
         .containsExactly(DocumentHandle.idFor(document));
   }
 
-  private static ToolCallResultContent contentResult(String id, String documentId) {
-    return ToolCallResultContent.builder()
-        .id(id)
-        .name(GetDocumentTool.NAME)
-        .content(List.of(textContent("Loaded document " + documentId + ".")))
-        .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
-        .properties(Map.of(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, documentId))
-        .build();
+  /** The answer of a custom runtime tool that asks for the content of the document. */
+  private static RuntimeToolCallAnswer loadingAnswer(String id, String documentId) {
+    return new RuntimeToolCallAnswer(
+        ToolCallResultContent.builder()
+            .id(id)
+            .name("acme_load")
+            .content(List.of(textContent("Loaded document " + documentId + ".")))
+            .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
+            .build(),
+        List.of(documentId));
   }
 
   private DocumentRegistry registryOf(Document... documents) {
@@ -759,9 +772,9 @@ class AgentConversationTurnInputComposerImplTest {
         composer.composeDocumentContentMessage(
             registry,
             List.of(
-                contentResult("c1", DocumentHandle.idFor(second)),
-                RUNTIME_RESULT,
-                contentResult("c2", DocumentHandle.idFor(first))));
+                loadingAnswer("c1", DocumentHandle.idFor(second)),
+                RuntimeToolCallAnswer.of(RUNTIME_RESULT),
+                loadingAnswer("c2", DocumentHandle.idFor(first))));
 
     assertThat(message).isNotNull();
     assertThat(message.metadata()).containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
@@ -779,40 +792,42 @@ class AgentConversationTurnInputComposerImplTest {
 
     var message =
         composer.composeDocumentContentMessage(
-            registryOf(document), List.of(contentResult("c1", id), contentResult("c2", id)));
+            registryOf(document), List.of(loadingAnswer("c1", id), loadingAnswer("c2", id)));
 
     assertThat(message).isNotNull();
     assertThat(message.content()).hasSize(2);
   }
 
   @Test
-  void documentContentMessage_isNullWithoutALoadingResult() {
+  void documentContentMessage_isNullWithoutALoadingAnswer() {
     var document = createDocument("first", "text/plain", "first.txt");
     var registry = registryOf(document);
     var id = DocumentHandle.idFor(document);
 
-    // an error or an already-loaded answer carries no id, a result of another tool is not trusted
-    var otherTool = contentResult("c1", id).withName("getWeather");
-    var unknownDocument = contentResult("c2", "not-registered");
+    // an error or an already-loaded answer names no document, and an unknown id is ignored
+    var unknownDocument = loadingAnswer("c2", "not-registered");
     var answered =
-        ToolCallResultContent.builder()
-            .id("c3")
-            .name(GetDocumentTool.NAME)
-            .content(List.of(textContent("Document " + id + " is already in the conversation.")))
-            .build();
+        RuntimeToolCallAnswer.of(
+            ToolCallResultContent.builder()
+                .id("c3")
+                .name("acme_load")
+                .content(
+                    List.of(textContent("Document " + id + " is already in the conversation.")))
+                .build());
 
     assertThat(
             composer.composeDocumentContentMessage(
-                registry, List.of(otherTool, unknownDocument, answered, RUNTIME_RESULT)))
+                registry,
+                List.of(unknownDocument, answered, RuntimeToolCallAnswer.of(RUNTIME_RESULT))))
         .isNull();
     assertThat(composer.composeDocumentContentMessage(registry, List.of())).isNull();
   }
 
   @Test
-  void deferredGetDocumentCall_isFollowedByTheDocumentContentMessageNextToTheProcessResults() {
+  void deferredLoadingCall_isFollowedByTheDocumentContentMessageNextToTheProcessResults() {
     var document = createDocument("first", "text/plain", "first.txt");
     var context = CTX_WITH_CONVERSATION.withDocuments(registryOf(document).entries());
-    var answer = contentResult("abcdef", DocumentHandle.idFor(document));
+    var answer = loadingAnswer("abcdef", DocumentHandle.idFor(document));
     // the second call is the real one: its result arrives, the first was answered by the agent
     var input =
         AgentInput.from(
@@ -822,7 +837,7 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, context, history, input, deferred(answer));
+    var result = composer.compose(CONFIG, context, history, input, deferredAnswers(answer));
 
     var messages = ((CompositionResult.NextTurn) result).messages();
     assertThat(messages).hasSize(2);
@@ -841,8 +856,7 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void
-      deferredGetDocumentCallWithContentBlocks_keepsTheBlocksInTheToolResultNextToTheProcessResults() {
+  void deferredLoadingCallWithContentBlocks_keepsTheBlocksInTheToolResultNextToTheProcessResults() {
     var document = createDocument("first", "text/plain", "first.txt");
     var blocks =
         List.<Content>of(
@@ -853,13 +867,9 @@ class AgentConversationTurnInputComposerImplTest {
     var pending =
         ToolCallResultContent.builder()
             .id("abcdef")
-            .name(GetDocumentTool.NAME)
+            .name("acme_load")
             .content(blocks)
             .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
-            .properties(
-                Map.of(
-                    ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT,
-                    DocumentHandle.idFor(document)))
             .build();
     var context = CTX_WITH_CONVERSATION.withDocuments(registryOf(document).entries());
     var input =
@@ -870,7 +880,14 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, context, history, input, deferred(pending));
+    var result =
+        composer.compose(
+            CONFIG,
+            context,
+            history,
+            input,
+            deferredAnswers(
+                new RuntimeToolCallAnswer(pending, List.of(DocumentHandle.idFor(document)))));
 
     assertThat(resultsOf(result).getFirst().content()).isEqualTo(blocks);
     assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(2);

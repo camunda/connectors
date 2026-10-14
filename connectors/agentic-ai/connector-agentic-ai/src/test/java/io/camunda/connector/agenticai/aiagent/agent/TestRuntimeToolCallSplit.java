@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -39,8 +40,17 @@ final class TestRuntimeToolCallSplit implements RuntimeToolCallSplit {
       List<ToolCall> answeredCalls,
       List<ToolCallResultContent> results,
       List<UnaryOperator<AgentContext>> contextUpdates) {
+    return answeringWith(
+        answeredCalls, results.stream().map(RuntimeToolCallAnswer::of).toList(), contextUpdates);
+  }
+
+  /** A split that answers the given calls with the given answers, in the order of the calls. */
+  static TestRuntimeToolCallSplit answeringWith(
+      List<ToolCall> answeredCalls,
+      List<RuntimeToolCallAnswer> answers,
+      List<UnaryOperator<AgentContext>> contextUpdates) {
     return new TestRuntimeToolCallSplit(
-        answeredCalls, new RuntimeToolCallAnswers(results, contextUpdates));
+        answeredCalls, new RuntimeToolCallAnswers(answers, contextUpdates));
   }
 
   /** How often the answers were computed. */

@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentRefe
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
@@ -202,9 +201,10 @@ class GetDocumentToolTest {
             result -> {
               assertThat(result.content())
                   .isEqualTo(loadedAnswer(camundaEntry("doc-1", "text/plain", 10L)));
-              assertThat(result.properties())
-                  .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1");
+              assertThat(result.properties()).isEmpty();
             });
+    assertThat(split.answers().answers().getFirst().documentIdsWithContent())
+        .containsExactly("doc-1");
     assertThat(split.remainingCalls()).isEmpty();
   }
 
@@ -216,12 +216,8 @@ class GetDocumentToolTest {
             List.of(),
             call("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
 
-    assertThat(split.runtimeResults())
-        .singleElement()
-        .satisfies(
-            result ->
-                assertThat(result.properties())
-                    .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1"));
+    assertThat(split.answers().answers().getFirst().documentIdsWithContent())
+        .containsExactly("doc-1");
   }
 
   @Test
@@ -236,7 +232,7 @@ class GetDocumentToolTest {
               assertThat(text(result))
                   .isEqualTo(
                       "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
-              assertThat(result.properties()).isEmpty();
+              assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
   }
 
@@ -256,7 +252,7 @@ class GetDocumentToolTest {
         .satisfies(
             result -> {
               assertThat(text(result)).isEqualTo("Document doc-1 is already in the conversation.");
-              assertThat(result.properties()).isEmpty();
+              assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
     assertThat(store.opened.get()).isZero();
   }
@@ -272,8 +268,8 @@ class GetDocumentToolTest {
             List.of(UserMessage.builder().content(List.of(referenceTag)).build()),
             call("1", "doc-1"));
 
-    assertThat(split.runtimeResults().getFirst().properties())
-        .containsEntry(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, "doc-1");
+    assertThat(split.answers().answers().getFirst().documentIdsWithContent())
+        .containsExactly("doc-1");
   }
 
   @Test
@@ -290,7 +286,7 @@ class GetDocumentToolTest {
               assertThat(text(result))
                   .isEqualTo(
                       "The document is 300 KB, too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
-              assertThat(result.properties()).isEmpty();
+              assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
     assertThat(store.opened.get()).isZero();
   }
@@ -349,7 +345,7 @@ class GetDocumentToolTest {
     assertThat(text(split.runtimeResults().get(0)))
         .isEqualTo(
             "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
-    assertThat(split.runtimeResults().get(0).properties()).isEmpty();
+    assertThat(split.answers().answers().get(0).documentIdsWithContent()).isEmpty();
     assertThat(text(split.runtimeResults().get(1)))
         .startsWith("The document is of type image/tiff which cannot be loaded");
     assertThat(split.runtimeResults().get(2).content())
@@ -369,7 +365,7 @@ class GetDocumentToolTest {
               assertThat(text(result))
                   .isEqualTo(
                       "The document is larger than 256 KB, too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
-              assertThat(result.properties()).isEmpty();
+              assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
     assertThat(store.bytesRead.get()).isEqualTo(TEXT_LIMIT + 1);
   }
@@ -459,7 +455,7 @@ class GetDocumentToolTest {
 
     assertThat(text(split.runtimeResults().getFirst()))
         .startsWith("The document could not be read to check its size: document expired");
-    assertThat(split.runtimeResults().getFirst().properties()).isEmpty();
+    assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
   }
 
   @Test
@@ -475,7 +471,7 @@ class GetDocumentToolTest {
 
     assertThat(result.error()).isTrue();
     assertThat(result.content()).isEqualTo("Parameter 'id' must be the id of a known document.");
-    assertThat(result.properties()).isEmpty();
+    assertThat(result.documentIdsWithContent()).isEmpty();
   }
 
   @Test

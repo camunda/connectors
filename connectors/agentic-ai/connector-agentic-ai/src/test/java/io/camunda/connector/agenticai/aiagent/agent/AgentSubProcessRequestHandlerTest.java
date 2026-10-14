@@ -1459,7 +1459,7 @@ class AgentSubProcessRequestHandlerTest {
     // agent, the call of the process is not
     assertThat(splitCaptor.getValue().answeredCalls()).containsExactly(returnCall, badCall);
     assertThat(splitCaptor.getValue().remainingCalls()).containsExactly(processCall);
-    // a split decides, it runs no tool
+    // the answers are computed from the split: the call of the built-in tool selects its document
     assertThat(splitCaptor.getValue().answer().contextUpdates()).hasSize(1);
   }
 

@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
@@ -35,10 +36,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -223,12 +224,17 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
   // --- tool results
 
   private CompositionResult composeToolResults(AgentContext context, ToolCallResult... results) {
+    return composeToolResults(context, NO_DEFERRED_CALLS, results);
+  }
+
+  private CompositionResult composeToolResults(
+      AgentContext context, RuntimeToolCallSplit deferredCalls, ToolCallResult... results) {
     final var input =
         AgentInput.from(new UserPromptConfiguration("user input", List.of()), List.of(results));
     final var history =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
-    return composer.compose(CONFIG, context, history, input, NO_DEFERRED_CALLS);
+    return composer.compose(CONFIG, context, history, input, deferredCalls);
   }
 
   private static ToolCallResult result(String id, String name, Object content) {
@@ -389,13 +395,18 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
         nextTurn(
             composeToolResults(
                 context,
-                result("abcdef", "getWeather", Map.of("file", doc)).withName("getWeather"),
-                ToolCallResult.builder()
-                    .id("fedcba")
-                    .name(GetDocumentTool.NAME)
-                    .content("Loaded document " + id + ".")
-                    .properties(Map.of(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, id))
-                    .build()));
+                TestRuntimeToolCallSplit.answeringWith(
+                    List.of(TOOL_CALLS.get(1)),
+                    List.of(
+                        new RuntimeToolCallAnswer(
+                            ToolCallResultContent.builder()
+                                .id("fedcba")
+                                .name("acme_load")
+                                .content(List.of(textContent("Loaded document " + id + ".")))
+                                .build(),
+                            List.of(id))),
+                    List.of()),
+                result("abcdef", "getWeather", Map.of("file", doc)).withName("getWeather")));
 
     assertThat(((UserMessage) turn.messages().get(1)).content())
         .filteredOn(AgentConversationTurnInputComposerDocumentDeliveryTest::isTagWithContent)

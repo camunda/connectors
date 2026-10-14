@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -32,26 +33,33 @@ import org.jspecify.annotations.Nullable;
  *     carries none
  * @param properties properties of the tool call result the agent creates from this result (see
  *     {@code ToolCallResult.properties()}); an error result carries none
+ * @param documentIdsWithContent the ids of the documents whose content the agent adds to the
+ *     request that follows the tool results, in the order the tool named them; an id that is not
+ *     the id of a known document is ignored. The ids are not part of the tool call result: they are
+ *     handed to the agent only while it answers the call. An error result carries none
  */
 public record RuntimeToolResult(
     Object content,
     boolean error,
     List<UnaryOperator<AgentContext>> contextUpdates,
-    Map<String, Object> properties) {
+    Map<String, Object> properties,
+    List<String> documentIdsWithContent) {
 
   public RuntimeToolResult {
     contextUpdates = error ? List.of() : List.copyOf(contextUpdates);
     properties = error ? Map.of() : Map.copyOf(properties);
+    documentIdsWithContent =
+        error ? List.of() : List.copyOf(new LinkedHashSet<>(documentIdsWithContent));
   }
 
   /** A successful result with the given content and no change of the agent context. */
   public static RuntimeToolResult success(Object content) {
-    return new RuntimeToolResult(content, false, List.of(), Map.of());
+    return new RuntimeToolResult(content, false, List.of(), Map.of(), List.of());
   }
 
   /** An error result; {@code message} is what the model reads, so it says what to change. */
   public static RuntimeToolResult error(String message) {
-    return new RuntimeToolResult(message, true, List.of(), Map.of());
+    return new RuntimeToolResult(message, true, List.of(), Map.of(), List.of());
   }
 
   /**
@@ -59,7 +67,7 @@ public record RuntimeToolResult(
    * order the model reads them, and no change of the agent context.
    */
   public static RuntimeToolResult successWithContent(List<Content> blocks) {
-    return new RuntimeToolResult(List.copyOf(blocks), false, List.of(), Map.of());
+    return new RuntimeToolResult(List.copyOf(blocks), false, List.of(), Map.of(), List.of());
   }
 
   /**
@@ -84,13 +92,28 @@ public record RuntimeToolResult(
   public RuntimeToolResult withContextUpdate(UnaryOperator<AgentContext> update) {
     final var updates = new ArrayList<>(contextUpdates);
     updates.add(update);
-    return new RuntimeToolResult(content, error, updates, properties);
+    return new RuntimeToolResult(content, error, updates, properties, documentIdsWithContent);
   }
 
   /** Returns a copy whose tool call result carries the property. Ignored for an error result. */
   public RuntimeToolResult withProperty(String key, Object value) {
     final var updated = new LinkedHashMap<>(properties);
     updated.put(key, value);
-    return new RuntimeToolResult(content, error, contextUpdates, updated);
+    return new RuntimeToolResult(content, error, contextUpdates, updated, documentIdsWithContent);
+  }
+
+  /**
+   * Returns a copy that also asks the agent to add the content of the document to the request that
+   * follows the tool results. The agent adds the content of every document it knows that the
+   * answers name, once per document; it ignores an id that is not the id of a known document and
+   * checks nothing else. A tool therefore checks the document with {@link
+   * io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard} and does not name a
+   * document whose content is already in the conversation ({@link
+   * RuntimeToolConversation#messages()}) before it names it. Ignored for an error result.
+   */
+  public RuntimeToolResult withDocumentContent(String documentId) {
+    final var updated = new ArrayList<>(documentIdsWithContent);
+    updated.add(documentId);
+    return new RuntimeToolResult(content, error, contextUpdates, properties, updated);
   }
 }

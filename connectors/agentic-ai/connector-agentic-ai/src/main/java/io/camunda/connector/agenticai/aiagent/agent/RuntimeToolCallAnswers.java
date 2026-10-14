@@ -15,15 +15,40 @@ import java.util.function.UnaryOperator;
 /**
  * The answers of the agent to the tool calls it answers itself.
  *
- * @param results the tool call results, in the order of the calls
+ * @param answers the answer to each call, in the order of the calls
  * @param contextUpdates the changes of the agent context the calls made, in call order
  */
 public record RuntimeToolCallAnswers(
-    List<ToolCallResultContent> results, List<UnaryOperator<AgentContext>> contextUpdates) {
+    List<RuntimeToolCallAnswer> answers, List<UnaryOperator<AgentContext>> contextUpdates) {
+
+  /**
+   * The answer to one tool call.
+   *
+   * @param result the tool call result that becomes part of the conversation
+   * @param documentIdsWithContent the ids of the documents whose content the agent adds to the
+   *     request that follows the tool results; held in memory only, never part of the result
+   */
+  public record RuntimeToolCallAnswer(
+      ToolCallResultContent result, List<String> documentIdsWithContent) {
+
+    public RuntimeToolCallAnswer {
+      documentIdsWithContent = List.copyOf(documentIdsWithContent);
+    }
+
+    /** An answer that adds no document content. */
+    public static RuntimeToolCallAnswer of(ToolCallResultContent result) {
+      return new RuntimeToolCallAnswer(result, List.of());
+    }
+  }
 
   public RuntimeToolCallAnswers {
-    results = List.copyOf(results);
+    answers = List.copyOf(answers);
     contextUpdates = List.copyOf(contextUpdates);
+  }
+
+  /** The tool call results of the answers, in the order of the calls. */
+  public List<ToolCallResultContent> results() {
+    return answers.stream().map(RuntimeToolCallAnswer::result).toList();
   }
 
   /** The answers of a batch the agent answers no call of. */

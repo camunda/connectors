@@ -250,10 +250,6 @@ class ToolResultDocumentRenderingTest {
                         registry.entries().getFirst(), DocumentDelivery.REFERENCE),
                     TextContent.textContent("Its content follows in the next message.")))
             .completedAt(completedAt)
-            .properties(
-                Map.of(
-                    ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT,
-                    registry.entries().getFirst().id()))
             .build();
     final var processResult =
         ToolCallResult.builder()

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -13,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -36,17 +36,15 @@ public interface AgentConversationTurnInputComposer {
       RuntimeToolCallSplit deferredCalls);
 
   /**
-   * Composes the message that carries the content of the documents the given tool call results get
-   * into the conversation: the results of {@code c8__get_document}. The message shows the tag of
-   * each document with content, so the content of the document is added for the model. It is
-   * evicted together with the tool call results (see {@link
-   * UserMessage#METADATA_TOOL_CALL_DOCUMENTS}).
+   * Composes the message that carries the content of the documents the answers of the agent itself
+   * name (see {@code RuntimeToolResult#withDocumentContent}). The message shows the tag of each
+   * document with content, so the content of the document is added for the model. It is evicted
+   * together with the tool call results (see {@link UserMessage#METADATA_TOOL_CALL_DOCUMENTS}).
    *
    * @param registry the documents the agent knows
-   * @param results the tool call results of one turn input, including the ones answered by the
-   *     agent
-   * @return the message, or {@code null} if no result loads a document known to the registry
+   * @param answers the answers of the agent itself to the tool calls of one turn input
+   * @return the message, or {@code null} if no answer names a document known to the registry
    */
   @Nullable UserMessage composeDocumentContentMessage(
-      DocumentRegistry registry, List<ToolCallResultContent> results);
+      DocumentRegistry registry, List<RuntimeToolCallAnswer> answers);
 }

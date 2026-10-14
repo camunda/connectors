@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler.RuntimeToolCallSplit;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
@@ -38,7 +39,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -181,7 +182,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       if (documentFlow) {
         final var documentContentMessage =
             composeDocumentContentMessage(
-                getDocumentTags(documentRegistry, toolCallResults),
+                getDocumentTags(
+                    documentRegistry,
+                    resolvedResults.stream()
+                        .flatMap(result -> result.documentIdsWithContent().stream())),
                 toolDocumentContent(
                     agentContext,
                     configuration,
@@ -298,17 +302,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   /**
    * A tool call result as it is part of the tool result message. The result of a process tool also
    * carries the result as the process returned it, from which its documents are extracted; the
-   * result the agent answered itself is typed already.
+   * result the agent answered itself is typed already and names the documents whose content it
+   * adds, which a result of the process never does.
    */
   private record ResolvedToolCallResult(
-      ToolCallResultContent content, @Nullable ToolCallResult processResult) {
+      ToolCallResultContent content,
+      @Nullable ToolCallResult processResult,
+      List<String> documentIdsWithContent) {
 
     static ResolvedToolCallResult ofProcess(ToolCallResult result) {
-      return new ResolvedToolCallResult(ToolCallResultContent.from(result), result);
+      return new ResolvedToolCallResult(ToolCallResultContent.from(result), result, List.of());
     }
 
-    static ResolvedToolCallResult ofRuntime(ToolCallResultContent result) {
-      return new ResolvedToolCallResult(result, null);
+    static ResolvedToolCallResult ofRuntime(RuntimeToolCallAnswer answer) {
+      return new ResolvedToolCallResult(answer.result(), null, answer.documentIdsWithContent());
     }
   }
 
@@ -354,8 +361,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // answered also when interrupting: the answers are cheap and complete the results of the turn
     final var answers = deferredCalls.answer();
     final var answersById =
-        answers.results().stream()
-            .collect(Collectors.toMap(ToolCallResultContent::id, Function.identity(), (a, b) -> a));
+        answers.answers().stream()
+            .collect(
+                Collectors.toMap(answer -> answer.result().id(), Function.identity(), (a, b) -> a));
     final var orderedToolCallResults = new ArrayList<ResolvedToolCallResult>();
     toolCalls.forEach(
         toolCall -> {
@@ -381,18 +389,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   @Override
   public @Nullable UserMessage composeDocumentContentMessage(
-      DocumentRegistry registry, List<ToolCallResultContent> results) {
-    return composeDocumentContentMessage(getDocumentTags(registry, results), List.of());
+      DocumentRegistry registry, List<RuntimeToolCallAnswer> answers) {
+    return composeDocumentContentMessage(
+        getDocumentTags(
+            registry, answers.stream().flatMap(a -> a.documentIdsWithContent().stream())),
+        List.of());
   }
 
-  /** The tags with content of the documents that the results of c8__get_document returned. */
-  private List<Content> getDocumentTags(
-      DocumentRegistry registry, List<ToolCallResultContent> results) {
-    return results.stream()
-        .filter(result -> GetDocumentTool.NAME.equals(result.name()))
-        .map(result -> result.properties().get(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT))
-        .filter(String.class::isInstance)
-        .map(String.class::cast)
+  /** The tags with content of the documents named by the ids that the registry knows. */
+  private List<Content> getDocumentTags(DocumentRegistry registry, Stream<String> documentIds) {
+    return documentIds
         .distinct()
         .map(registry::findById)
         .flatMap(Optional::stream)
@@ -424,11 +430,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var handledDocumentIds =
         new HashSet<>(documentIdsWithContent(configuration, previousConversation));
     results.stream()
-        .map(ResolvedToolCallResult::content)
-        .filter(result -> GetDocumentTool.NAME.equals(result.name()))
-        .map(result -> result.properties().get(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT))
-        .filter(String.class::isInstance)
-        .map(String.class::cast)
+        .flatMap(result -> result.documentIdsWithContent().stream())
         .forEach(handledDocumentIds::add);
 
     final var content = new ArrayList<Content>();

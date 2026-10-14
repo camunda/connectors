@@ -372,7 +372,7 @@ public abstract class BaseAgentRequestHandler<
         throwIfLimitsReached(workingConversation, agentConfiguration);
         final var documentContentMessage =
             agentInputComposer.composeDocumentContentMessage(
-                workingConversation.documentRegistry(), answers.results());
+                workingConversation.documentRegistry(), answers.answers());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
                 ToolCallResultMessage.builder().results(answers.results()).build(),

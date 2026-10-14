@@ -47,12 +47,6 @@ public record ToolCallResult(
 
   public static final String PROPERTY_INTERRUPTED = "interrupted";
 
-  /**
-   * The id of the document whose content the result of {@code c8__get_document} loads into the
-   * conversation.
-   */
-  public static final String PROPERTY_DOCUMENT_ID_WITH_CONTENT = "documentIdWithContent";
-
   public static final String CONTENT_NO_RESULT =
       "Tool execution succeeded, but returned no result.";
   public static final String CONTENT_CANCELLED = "Tool execution was canceled.";

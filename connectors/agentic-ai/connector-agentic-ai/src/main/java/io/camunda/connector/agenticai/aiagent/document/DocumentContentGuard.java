@@ -17,9 +17,10 @@ import org.jspecify.annotations.Nullable;
  * type. The size is read from the reference metadata without reading the document; when the
  * metadata has none, at most one byte more than the limit is read.
  *
- * <p>The model asks for content with {@code c8__get_document}, the agent adds it for the documents
- * of a user prompt or of a tool result with the delivery {@code content}. All of them use this
- * guard, so the same documents pass whoever asks.
+ * <p>A runtime tool asks for content by naming a document (see {@code
+ * RuntimeToolResult#withDocumentContent}) after it checked the document with this guard, and the
+ * agent adds it for the documents of a user prompt or of a tool result with the delivery {@code
+ * content}. All of them use this guard, so the same documents pass whoever asks.
  */
 public final class DocumentContentGuard {
 

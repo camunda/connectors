@@ -46,7 +46,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
  *       error result} answers the call with an error the model can act on; any other exception
  *       propagates and fails the job.
  *   <li>The content becomes the tool result, the context updates of the result are applied to the
- *       agent context.
+ *       agent context, and the content of the documents the result {@link
+ *       RuntimeToolResult#withDocumentContent names} is added to the request that follows the tool
+ *       results.
  * </ol>
  *
  * <p>The name of a runtime tool must not equal the name of a tool of a process: the agent then

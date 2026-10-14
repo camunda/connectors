@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallAnswers.RuntimeToolCallAnswer;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -119,7 +120,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
     @Override
     public RuntimeToolCallAnswers answer() {
       final var completedAt = OffsetDateTime.now();
-      final var results = new ArrayList<ToolCallResultContent>();
+      final var answers = new ArrayList<RuntimeToolCallAnswer>();
       final var contextUpdates = new ArrayList<UnaryOperator<AgentContext>>();
       var workingConversation = conversation;
       for (final var answered : answeredCalls) {
@@ -134,23 +135,25 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
                     workingConversation);
 
         final var blocks = result.contentBlocks();
-        results.add(
-            ToolCallResultContent.builder()
-                .id(toolCall.id())
-                .name(toolCall.name())
-                .content(
-                    blocks == null
-                        ? ToolCallResultContent.contentFromObject(result.content())
-                        : blocks)
-                .completedAt(completedAt)
-                .properties(result.properties())
-                .build());
+        answers.add(
+            new RuntimeToolCallAnswer(
+                ToolCallResultContent.builder()
+                    .id(toolCall.id())
+                    .name(toolCall.name())
+                    .content(
+                        blocks == null
+                            ? ToolCallResultContent.contentFromObject(result.content())
+                            : blocks)
+                    .completedAt(completedAt)
+                    .properties(result.properties())
+                    .build(),
+                result.documentIdsWithContent()));
         for (final var update : result.contextUpdates()) {
           contextUpdates.add(update);
           workingConversation = workingConversation.withContextUpdate(update);
         }
       }
-      return new RuntimeToolCallAnswers(results, contextUpdates);
+      return new RuntimeToolCallAnswers(answers, contextUpdates);
     }
   }
 
