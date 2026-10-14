@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.84.3</version.grpc>
+    <version.grpc>1.85.0</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.24.0</version.mockito>
@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260930-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.75.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.76.0</version.google-genai>
+    <version.google-genai>1.77.0</version.google-genai>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
