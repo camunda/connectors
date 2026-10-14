@@ -21,11 +21,11 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -40,21 +40,21 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -84,10 +84,10 @@ jobs:
         run: ls -lh apps/bundle/camunda-saas-bundle/target/
 
       - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Harbor
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
@@ -126,7 +126,7 @@ jobs:
           echo "should-push=true" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -137,7 +137,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/default-bundle/
           provenance: false
@@ -148,7 +148,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/camunda-saas-bundle/
           provenance: false
@@ -185,13 +185,13 @@ jobs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -258,11 +258,11 @@ jobs:
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -589,7 +589,7 @@ jobs:
 
       - name: Upload SaaS downstream context artifact
         if: always() && steps.saas-context.outcome == 'success'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: alwaysgreen-saas-category
           path: ${{ runner.temp }}/alwaysgreen-saas-category.json
@@ -650,13 +650,13 @@ jobs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -696,11 +696,11 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check for agentic-ai changes
         id: changes
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             ai:
@@ -710,7 +710,7 @@ jobs:
       - name: Import Secrets
         if: steps.changes.outputs.ai == 'true'
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -725,7 +725,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
@@ -733,7 +733,7 @@ jobs:
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
@@ -741,7 +741,7 @@ jobs:
 
       - name: Create settings.xml
         if: steps.changes.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -754,7 +754,7 @@ jobs:
 
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}

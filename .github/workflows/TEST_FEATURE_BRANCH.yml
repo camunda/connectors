@@ -27,7 +27,7 @@ jobs:
 
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
@@ -55,14 +55,14 @@ jobs:
 
       # Restore cache (distinct key for internal vs external to avoid mixing artifacts)
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
@@ -78,7 +78,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -95,7 +95,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -157,23 +157,23 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/bundle/default-bundle/Dockerfile
 
@@ -196,7 +196,7 @@ jobs:
 
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
@@ -218,14 +218,14 @@ jobs:
           fi
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
@@ -233,7 +233,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -250,7 +250,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -277,7 +277,7 @@ jobs:
 
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
@@ -299,14 +299,14 @@ jobs:
           fi
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
@@ -314,7 +314,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -331,7 +331,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -358,7 +358,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           # Full history so the merge-base with origin/main can be resolved for
