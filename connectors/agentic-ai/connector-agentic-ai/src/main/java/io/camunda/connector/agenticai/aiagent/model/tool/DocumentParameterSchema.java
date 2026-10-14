@@ -64,9 +64,8 @@ public final class DocumentParameterSchema {
 
   /** Ends the description of every union parameter. */
   public static final String UNION_HINT =
-      "This parameter takes text or a document. To pass a document, give its tag exactly as listed"
-          + " for the known documents, for example <doc id=\"...\" />. Any other text is passed as"
-          + " text.";
+      "This parameter takes text or a document. To pass a document, give its tag exactly as you"
+          + " read it, for example <doc id=\"...\" />. Any other text is passed as text.";
 
   private DocumentParameterSchema() {}
 

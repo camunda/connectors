@@ -407,14 +407,11 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
-    final var documentId =
-        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
     final var errorResult = recorded.lastRequest().messages().getLast();
     assertThat(errorResult.role()).isEqualTo("tool");
     assertThat(errorResult.content())
-        .startsWith(
-            "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
-        .contains("<doc id=\"" + documentId + "\"");
+        .isEqualTo(
+            "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
@@ -438,17 +435,13 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
     // second request: after the download. third request: the bad id is answered without any tool
     // run, so no process step sits between the second and the third model call
-    final var downloadResult = recorded.requests().get(1).messages().get(3);
-    final var documentId = parseDocumentTag(downloadResult.content()).id();
 
     final var errorResult = recorded.requests().get(2).messages().getLast();
     assertThat(errorResult.role()).isEqualTo("tool");
     assertThat(errorResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
     assertThat(errorResult.content())
-        .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
-        .contains("Known documents:")
-        .contains("<doc id=\"" + documentId + "\"");
+        .isEqualTo(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
 
     // the retry with the valid id is the only upload
     final var retryResult = recorded.lastRequest().messages().getLast();
@@ -618,17 +611,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
 
-    final var documentId =
-        parseDocumentTag(recorded.requests().get(1).messages().get(3).content()).id();
     final var messages = recorded.requests().get(2).messages();
     final var results = messages.subList(messages.size() - 2, messages.size());
     assertThat(results)
         .extracting(m -> m.toolCallId())
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
-        .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.")
-        .contains("<doc id=\"" + documentId + "\"");
+        .isEqualTo(
+            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
     assertThat(results.get(1).content()).contains("pong");
 
     // only the retry with the valid id uploads

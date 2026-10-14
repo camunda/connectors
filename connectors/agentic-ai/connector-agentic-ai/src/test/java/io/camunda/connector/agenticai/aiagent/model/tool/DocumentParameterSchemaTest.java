@@ -555,8 +555,7 @@ class DocumentParameterSchemaTest {
     assertThat(UNION_HINT)
         .isEqualTo(
             "This parameter takes text or a document. To pass a document, give its tag exactly as"
-                + " listed for the known documents, for example <doc id=\"...\" />. Any other text"
-                + " is passed as text.");
+                + " you read it, for example <doc id=\"...\" />. Any other text is passed as text.");
     assertThat(UNION_HINT).doesNotContain(HINT);
     assertThat(HINT).doesNotContain(UNION_HINT);
   }

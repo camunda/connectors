@@ -52,7 +52,7 @@ class DocumentParameterResolverTest {
   private static String unionProblem(String path, String id) {
     return "Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
             .formatted(path, id)
-        + " Pass the tag of a known document, or pass other text.";
+        + " Pass the tag of a document exactly as you read it, or pass other text.";
   }
 
   private Map<String, Object> reference(String id) {

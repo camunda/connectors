@@ -133,7 +133,7 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    application/octet-stream which cannot be loaded into the conversation; pass its id to a tool that processes it.`, no
    incident, and the conversation continues.
 7. **Unknown id.** Prompt: `Upload the document with the id "does-not-exist".` Check: the agent instance history shows an
-   error tool result listing the known documents, no `Upload_File` element instance was started, and the agent retries
+   error tool result that names the unknown id, no `Upload_File` element instance was started, and the agent retries
    with a valid id or explains. The same answer comes for `c8__get_document` with an unknown id.
 8. **Array upload.** Prompt: `Download <baseUrl>/image/png and <baseUrl>/image/jpeg and upload both in one request.`
    Check: `Upload_Many` ran once and `receivedFiles` contains the field `files` with `parts: 2`.

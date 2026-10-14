@@ -16,7 +16,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
@@ -172,11 +171,6 @@ class DocumentReferenceContentTest {
                 .toTag())
         .isEqualTo(expected);
     assertThat(DocumentReferenceContent.from(entry).toTag()).isEqualTo(expected);
-    assertThat(
-            DocumentRegistry.of(java.util.List.of(entry)).knownDocumentsError("x").contentBlocks())
-        .filteredOn(DocumentReferenceContent.class::isInstance)
-        .extracting(block -> ((DocumentReferenceContent) block).toTag())
-        .containsExactly(expected);
   }
 
   @Test

@@ -214,7 +214,7 @@ class GetDocumentToolTest {
   }
 
   @Test
-  void answersAnUnknownIdWithAnErrorListingTheKnownDocuments() {
+  void answersAnUnknownIdWithAnError() {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), call("1", "bogus"));
 
@@ -222,12 +222,9 @@ class GetDocumentToolTest {
         .singleElement()
         .satisfies(
             result -> {
-              assertThat(result.contentBlocks())
-                  .containsExactly(
-                      textContent(
-                          "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:"),
-                      DocumentReferenceContent.from(
-                          camundaEntry("doc-1", "text/plain", 10L), DocumentDelivery.REFERENCE));
+              assertThat(result.content())
+                  .isEqualTo(
+                      "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
               assertThat(result.properties()).isEmpty();
             });
   }
@@ -460,9 +457,7 @@ class GetDocumentToolTest {
         tool.call(call, withConfiguration(CONFIGURATION), conversation(List.of(), List.of()));
 
     assertThat(result.error()).isTrue();
-    assertThat(result.content().toString())
-        .startsWith("Parameter 'id' must be the id of a known document.")
-        .endsWith("No documents are known.");
+    assertThat(result.content()).isEqualTo("Parameter 'id' must be the id of a known document.");
     assertThat(result.properties()).isEmpty();
   }
 

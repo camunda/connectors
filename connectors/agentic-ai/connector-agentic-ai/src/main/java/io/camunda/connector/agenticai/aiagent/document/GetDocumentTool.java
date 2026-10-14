@@ -105,7 +105,7 @@ public final class GetDocumentTool implements RuntimeTool {
     final var documents = conversation.documentRegistry();
     final var entry = id == null ? null : documents.findById(id).orElse(null);
     if (entry == null) {
-      return documents.knownDocumentsError(
+      return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document.".formatted(PARAMETER_ID));
     }
 

@@ -136,8 +136,7 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
   }
 
   @Test
-  void aTagWithAnUnknownIdIsAnsweredWithTheKnownDocumentsAndTheModelRetriesWithText()
-      throws Exception {
+  void aTagWithAnUnknownIdIsAnsweredWithAnErrorAndTheModelRetriesWithText() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
         Turn.toolCalls(
@@ -157,15 +156,11 @@ public class AgentSubProcessUnionDocumentParameterTests extends BaseAgentSubProc
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
-    final var id = documentIdOfToolResult(recorded, DOWNLOAD_CALL_ID);
-
     // the call is answered in the loop and never reaches the tool
     assertThat(toolResult(recorded.requests().get(2).messages(), UNKNOWN_CALL_ID))
         .contains(
             "Parameter 'body' holds a <doc /> tag with the id 'gone'. That is not a known"
-                + " document. Pass the tag of a known document, or pass other text.")
-        .contains("Known documents:")
-        .contains(id);
+                + " document. Pass the tag of a document exactly as you read it, or pass other text.");
     assertThat(toolResult(recorded.lastRequest().messages(), RETRY_CALL_ID))
         .contains("text:see the report");
 

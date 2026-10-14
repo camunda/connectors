@@ -117,7 +117,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
         case DocumentParameterResolver.Resolution.Resolved resolved ->
             toolArguments = resolved.arguments();
         case DocumentParameterResolver.Resolution.Invalid invalid -> {
-          return documents.knownDocumentsError(String.join(" ", invalid.problems()));
+          return RuntimeToolResult.error(String.join(" ", invalid.problems()));
         }
       }
     }
@@ -154,7 +154,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
     return switch (DocumentParameterResolver.resolve(toolCall, definition.get(), documents)) {
       case DocumentParameterResolver.Resolution.Resolved ignored -> null;
       case DocumentParameterResolver.Resolution.Invalid invalid ->
-          documents.knownDocumentsError(String.join(" ", invalid.problems()));
+          RuntimeToolResult.error(String.join(" ", invalid.problems()));
     };
   }
 }

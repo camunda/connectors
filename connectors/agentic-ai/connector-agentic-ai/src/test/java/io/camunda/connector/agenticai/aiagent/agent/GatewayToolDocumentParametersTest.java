@@ -24,8 +24,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -183,19 +181,9 @@ class GatewayToolDocumentParametersTest {
             result -> {
               assertThat(result.id()).isEqualTo("call-2");
               assertThat(result.name()).isEqualTo(UPLOAD_TOOL);
-              assertThat(result.contentBlocks().getFirst())
-                  .isInstanceOfSatisfying(
-                      TextContent.class,
-                      text ->
-                          assertThat(text.text())
-                              .contains(
-                                  "Parameter 'document' must be the exact id of a known document")
-                              .contains("got 'does-not-exist'")
-                              .endsWith("Known documents:"));
-              assertThat(result.contentBlocks())
-                  .filteredOn(DocumentReferenceContent.class::isInstance)
-                  .extracting(block -> ((DocumentReferenceContent) block).id())
-                  .contains(reportId, summaryId);
+              assertThat(result.content().toString())
+                  .contains("Parameter 'document' must be the exact id of a known document")
+                  .contains("got 'does-not-exist'");
             });
 
     // the answered call does not reach the process: the handler is not given it

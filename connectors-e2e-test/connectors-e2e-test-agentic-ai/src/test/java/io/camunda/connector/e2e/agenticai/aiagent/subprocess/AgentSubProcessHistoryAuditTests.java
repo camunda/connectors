@@ -194,8 +194,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The answer to an unknown document id is a text, a document reference per known document and the
-   * count of the rest. The history shows the text, then the tag and the document of each reference.
+   * The answer to an unknown document id is one text with the problem. The history shows that text
+   * and no document.
    */
   @Test
   void everyModelVisibleMessageOfAnUnknownDocumentIdAnswerIsInTheHistory() throws Exception {
@@ -207,16 +207,16 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
 
     final var answer = toolResultOf(awaitCommittedHistory(agentInstanceKey), UPLOAD_CALL_ID);
-    assertThat(answer.getContent().getFirst())
+    assertThat(answer.getContent())
+        .singleElement()
         .isInstanceOfSatisfying(
             AgentInstanceHistoryContent.TextContent.class,
             text ->
                 assertThat(text.getText())
-                    .startsWith("Parameter 'document' must be the exact id of a known document")
-                    .endsWith("Known documents:"));
+                    .isEqualTo(
+                        "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'."));
     assertThat(answer.getContent())
-        .filteredOn(AgentInstanceHistoryContent.DocumentContent.class::isInstance)
-        .hasSize(2);
+        .noneMatch(AgentInstanceHistoryContent.DocumentContent.class::isInstance);
   }
 
   /**

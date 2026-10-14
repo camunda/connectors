@@ -6,12 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,8 +18,6 @@ import java.util.Optional;
  * again is a no-op.
  */
 public final class DocumentRegistry {
-
-  private static final int MAX_LISTED_DOCUMENTS = 50;
 
   private static final DocumentRegistry EMPTY = new DocumentRegistry(Map.of());
 
@@ -78,31 +70,5 @@ public final class DocumentRegistry {
 
   public int size() {
     return entriesById.size();
-  }
-
-  /**
-   * The error result that tells the model what was wrong and which documents it can use: the
-   * problems, then the known documents, at most 50 of them as references in registration order with
-   * the rest counted. The content is a list of text and document references, so the model reads
-   * each document as its own part. A sentence says when no document is known, in the text of the
-   * problems.
-   *
-   * @param problems what was wrong, as the model reads it
-   */
-  public RuntimeToolResult knownDocumentsError(String problems) {
-    if (isEmpty()) {
-      return RuntimeToolResult.error(problems + " No documents are known.");
-    }
-    final var content = new ArrayList<Content>();
-    content.add(TextContent.textContent(problems + " Known documents:"));
-    entriesById.values().stream()
-        .limit(MAX_LISTED_DOCUMENTS)
-        .map(entry -> DocumentReferenceContent.from(entry, DocumentDelivery.REFERENCE))
-        .forEach(content::add);
-    final var omitted = entriesById.size() - MAX_LISTED_DOCUMENTS;
-    if (omitted > 0) {
-      content.add(TextContent.textContent("(and %d more)".formatted(omitted)));
-    }
-    return RuntimeToolResult.errorWithContent(content);
   }
 }

@@ -63,16 +63,8 @@ public record RuntimeToolResult(
   }
 
   /**
-   * An error result whose content is the given blocks, text and document references in the order
-   * the model reads them.
-   */
-  public static RuntimeToolResult errorWithContent(List<Content> blocks) {
-    return new RuntimeToolResult(List.copyOf(blocks), true, List.of(), Map.of());
-  }
-
-  /**
    * The content as typed blocks when the tool answered with a non-empty list of them ({@link
-   * #successWithContent}, {@link #errorWithContent}), {@code null} for text and object content.
+   * #successWithContent}), {@code null} for text and object content.
    */
   public @Nullable List<Content> contentBlocks() {
     if (content instanceof List<?> list

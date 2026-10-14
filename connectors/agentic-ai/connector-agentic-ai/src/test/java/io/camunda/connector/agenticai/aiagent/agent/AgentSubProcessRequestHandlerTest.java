@@ -909,17 +909,14 @@ class AgentSubProcessRequestHandlerTest {
                           assertThat(result.id()).isEqualTo("call-1");
                           assertThat(result.name()).isEqualTo("upload");
                           assertThat(result.completedAt()).isNotNull();
-                          assertThat(result.content()).hasSize(2);
-                          assertThat(result.content().get(0))
-                              .isEqualTo(
-                                  TextContent.textContent(
-                                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:"));
-                          assertThat(result.content().get(1))
+                          assertThat(result.content())
+                              .singleElement()
                               .isInstanceOfSatisfying(
-                                  DocumentContent.class,
-                                  known ->
-                                      assertThat(DocumentHandle.idFor(known.document()))
-                                          .isEqualTo(documentId));
+                                  TextContent.class,
+                                  text ->
+                                      assertThat(text.text())
+                                          .isEqualTo(
+                                              "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
                         }));
 
     // the tool call of the final round goes to the process; the first round stays in the history
@@ -1146,10 +1143,10 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(result.id()).isEqualTo("call-1");
               assertThat(result.name()).isEqualTo("upload");
               assertThat(result.completedAt()).isNotNull();
-              assertThat(result.contentBlocks().getFirst())
+              assertThat(result.content())
+                  .asString()
                   .isEqualTo(
-                      TextContent.textContent(
-                          "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'. Known documents:"));
+                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
             });
 
     // the stored assistant message keeps both calls, no results are stored yet
@@ -1402,7 +1399,7 @@ class AgentSubProcessRequestHandlerTest {
         .satisfies(
             result ->
                 assertThat(result.content())
-                    .first()
+                    .singleElement()
                     .isInstanceOfSatisfying(
                         TextContent.class,
                         text ->
@@ -1590,7 +1587,9 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(
             new CompositionResult.NextTurn(
                 List.of(USER_MESSAGE),
-                List.of(new IngestedDocument(document, DocumentSource.userMessage(null)))));
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.userMessage(USER_MESSAGE.id().toString())))));
   }
 
   private void mockProceed(Message... inputMessages) {
