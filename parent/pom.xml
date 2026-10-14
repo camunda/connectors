@@ -119,11 +119,11 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
     <version.netty>4.2.19.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.2.3</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.2.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.55.14</version.aws-sdk2>
+    <version.aws-sdk2>2.55.15</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
