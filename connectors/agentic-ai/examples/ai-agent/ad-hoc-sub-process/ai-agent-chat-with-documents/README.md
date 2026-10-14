@@ -1,7 +1,7 @@
 # AI Agent Chat With Documents Example
 
 This example shows the document flow of the AI Agent Sub-process (v2 template). The agent receives documents in the
-prompt, downloads documents with a tool, reads a document on request, hands a document to other tools by its id, and
+prompt, downloads documents with a tool, reads a document on request, hands a document to other tools by its tag, and
 returns documents to the process.
 A local file server (go-httpbin) acts as download source and upload target.
 
@@ -9,16 +9,16 @@ It demonstrates:
 
 - **`fromAi` document parameters**: `Upload_File` takes `fromAi(toolCall.document, ..., "document")`, `Upload_Many` takes
   `fromAi(toolCall.documents, ..., "array", {"items": {"type": "document"}})`. Both become string schemas with the format
-  `camunda-document-id`. The model sees a string and passes the id of a known document (the `id` attribute of its `<doc />` tag); the connector
-  receives the real Camunda document reference.
+  `camunda-document-id`. The model sees a string and passes the tag of a known document exactly as it reads it (a bare id is
+  rejected); the connector receives the real Camunda document reference.
 - **Reference-only documents**: every document of the conversation (prompt, tool results) is remembered in the agent
   context (the registry) and shown to the model as a `<doc id="..." fileName="..." contentType="..." size="..."/>` tag,
   independent of the memory store and the context window. The model does not see the content of a document unless it
-  asks for it. Passing a document id to a tool never loads the content; the tool receives the full document reference.
+  asks for it. Passing the tag of a document to a tool never loads the content; the tool receives the full document reference.
 - **`c8__get_document`**: the agent gets a built-in tool that loads the whole content of a known document into the
   conversation (text, PDF and the PNG, JPEG, GIF and WebP images). A document of another type, or a document above the
   size limit (256 KB for text-based types, 10 MB for PDF and images), is rejected with an error tool result that tells
-  the agent to pass the id to a tool that processes it; this is not an incident. A document whose content is already in the
+  the agent to pass the tag to a tool that processes it; this is not an incident. A document whose content is already in the
   conversation is not added again. The document content stays in every model request until its message leaves the context window.
 - **Document delivery**: the dropdown of the user prompt group of the template (property
   `data.userPrompt.documentDelivery`, `reference` in this process) with the choice `content` adds the content of the
@@ -34,9 +34,10 @@ It demonstrates:
 - **Tool names**: a tool element of the process must not have the name of a built-in tool (`c8__get_document`,
   `c8__return_document`); tool discovery fails with the error code `RUNTIME_TOOL_NAME_CONFLICT` for such an element.
 - **Eviction**: with a small `data.memory.contextWindowSize` documents leave the window; the agent gets a note listing the
-  documents it still knows by id, so it can still pass them to a tool or load them again.
+  documents it still knows by tag, so it can still pass them to a tool or load them again.
 - **Mixed batches**: `Slow_Tool` is a user task, so a tool call batch containing `Slow_Tool` and `c8__return_document`
-  keeps the process tool open while the runtime result of `c8__return_document` is already visible in the agent instance history.
+  keeps the process tool open. Only `Slow_Tool` is activated; the agent answers `c8__return_document` when the next turn
+  is composed, together with the result of `Slow_Tool`, in the order of the calls.
 - **Memory stores**: `in-process` (default), `camunda-document` and `aws-agentcore` all carry the registry.
 
 ## Process
@@ -109,7 +110,7 @@ The start event sets the process variable `baseUrl` (output mapping, default `ht
 Use the Operate instance view (variables `agent`, `toolCallResults`) and the agent instance history.
 
 1. **Tool schema.** Start with `List your tools and their parameters.` Check the answer: `Upload_File` has a string
-   parameter `document` whose description ends with `Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself.`; `Upload_Many`
+   parameter `document` whose description ends with `Pass the tag of a known document exactly as you read it, for example <doc id="..." />.`; `Upload_Many`
    has an array of strings; `c8__get_document` and `c8__return_document` are listed.
 2. **Download and upload.** Prompt: `Download <baseUrl>/image/png and upload it with the description "logo".` Check:
    `Download_File` returned a document (`toolCallResult.document`, a Camunda document reference), `Upload_File` has status
@@ -120,29 +121,32 @@ Use the Operate instance view (variables `agent`, `toolCallResults`) and the age
    next feedback task `agent.responseDocuments` holds one entry (the key the agent chose, the document reference as `document`) and the `User Feedback` form shows it
    (preview/download).
 4. **Read a document.** Start a new instance and prompt: `Download <baseUrl>/image/svg and describe what it shows.`
-   Check: the agent calls `c8__get_document` with the id of the downloaded document, the tool result reads
-   `Loaded the document <doc .../>. Its content follows in the next message.`, and the agent instance history shows a follow-up user item with the tag and the content of
-   the document. Ask a second question about the same document: the agent answers without another load, or
+   Check: the agent calls `c8__get_document` with the tag of the downloaded document, the tool result reads
+   `Loaded the document.`, the tag of the document and `Its content follows in the next message.`, and the agent instance
+   history shows a follow-up user item with the tag and the content of the document. Ask a second question about the same document: the agent answers without another load, or
    `c8__get_document` answers that the document is already in the conversation.
 5. **Document too large.** Prompt: `Download <baseUrl>/range/300000, read it and tell me how many characters it has.`
    (a text document above 256 KB). Check: `c8__get_document` is answered with an error that states the size and the limit
-   and tells to pass the id to a tool; no content follows, the process has no incident, and the agent explains that it
+   and tells to pass the tag to a tool; no content follows, the process has no incident, and the agent explains that it
    cannot read the document or passes it to `Upload_File`, which receives the real bytes.
 6. **Unsupported type.** Prompt: `Download <baseUrl>/bytes/100 and read it.` (a binary document of the type
    `application/octet-stream`). Check: `c8__get_document` is answered with `The document is of type
-   application/octet-stream which cannot be loaded into the conversation; pass its id to a tool that processes it.`, no
+   application/octet-stream which cannot be loaded into the conversation; pass its tag to a tool that processes it.`, no
    incident, and the conversation continues.
-7. **Unknown id.** Prompt: `Upload the document with the id "does-not-exist".` Check: the agent instance history shows an
-   error tool result that names the unknown id, no `Upload_File` element instance was started, and the agent retries
-   with a valid id or explains. The same answer comes for `c8__get_document` with an unknown id.
+7. **Unknown document.** Prompt: `Upload the document with the id "does-not-exist".` Check: the agent instance history shows an
+   error tool result that quotes the value the agent passed and asks for the `<doc />` tag of a known document, no
+   `Upload_File` element instance was started, and the agent retries with the tag of a known document or explains. The
+   same answer comes for `c8__get_document` with a value that is not the tag of a known document.
 8. **Array upload.** Prompt: `Download <baseUrl>/image/png and <baseUrl>/image/jpeg and upload both in one request.`
    Check: `Upload_Many` ran once and `receivedFiles` contains the field `files` with `parts: 2`.
 9. **Eviction.** Set `data.memory.contextWindowSize` of `AI Agent` to a small value such as `3`, redeploy, repeat
    scenario 2 and then ask several unrelated questions followed by `Upload the file you downloaded earlier.` Check:
-   the agent still uploads it by its id (the eviction note lists the document) and the call succeeds.
+   the agent still uploads it by its tag (the eviction note lists the document) and the call succeeds.
 10. **Mixed batch.** Prompt: `Call Slow_Tool and in the same step return the downloaded file.` (after scenario 2). Check:
-    `Slow_Tool` stays active; the agent instance history already shows the `c8__return_document` result while the job of the
-    agent has not continued. Complete the `Slow tool` task in Tasklist; the agent continues and answers.
+    only `Slow_Tool` is activated and stays active; the agent has not continued, so neither the agent instance history nor
+    `agent.context.responseDocuments` holds the result of `c8__return_document` yet. Complete the `Slow tool` task in
+    Tasklist; the agent continues, the history shows the results of both calls in call order with the next turn, and the
+    final response carries the returned document in `agent.responseDocuments`.
 11. **User prompt document.** Start a new instance, pick a text file in the start form and ask `Summarize the attached
     file.` Check: the first model request shows the tag of the document only (agent instance history); the agent calls
     `c8__get_document` to read it. Then ask `Upload the attached file.`: no download step is needed, `Upload_File` receives

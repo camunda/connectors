@@ -167,9 +167,10 @@ that nothing has to change when they ship.
 
 **Trade-offs accepted.** A model that sends a bare id gets an error and retries once. The error is only the problem
 sentences, one per invalid value, without a list of known documents: the model has read the tags in its conversation (and
-in the evicted-documents note), so the sentence only needs to say what was wrong. For a union parameter, a runtime tool cannot tell
-a bare id the model wrote as text from the id of a tag, because it receives the id of a tag and any other text as it is. The alternatives of a union are not searched
-for nested documents: a value cannot be assigned to one alternative reliably.
+in the evicted-documents note), so the sentence only needs to say what was wrong. For a union parameter, a runtime tool
+cannot tell a bare id the model wrote as text from the id of a tag, because it receives the id of a tag and any other
+text as it is. The alternatives of a union are not searched for nested documents: a value cannot be assigned to one
+alternative reliably.
 
 ### 2.6 Document parameters in tool definitions
 

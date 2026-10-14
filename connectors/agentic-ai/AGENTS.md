@@ -132,14 +132,19 @@ High-frequency traps (detail behind each link):
   element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   `docs/design/ai-agent-document-flow.md` §2.13.
+- **Runtime calls of a mixed batch are answered one job later**: when the model issues runtime tool calls and process
+  calls together, only the process calls are activated, and the agent answers its own calls when it composes the next
+  turn, merged with the process results in call order. The calls are classified again in that job, so
+  `RuntimeTool.isAvailable` must not change within one turn. `ai-agent.md` §9, `docs/design/ai-agent-document-flow.md` §2.8.
 - **The document delivery is `reference` by default**: for an instance with the `documents` feature the model sees a
   `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
   document of a type outside the allowlist or above the size limit before returning its content. Documents are persisted
   as typed document references (`DocumentReferenceContent`), also a document that is a whole tool result, and the one whose
-  content was added has the delivery `content`; at window time a reference of a user message is expanded to its tag text and,
-  with the delivery `content`, the content from the registry, and a reference of a tool result to its document, which the provider
-  renders as the short tag. The content stays in every request
-  until its message leaves the window. Passing an id to a tool never adds content. The delivery `content` is the opt-in
+  content was added has the delivery `content`. The window decorator (`DocumentExpander`) turns a reference into its tag
+  text and, with the delivery `content`, the content from the registry; in a tool result it renders the short tag as
+  text, so the providers have no document specific code. The content stays in every request until its message leaves
+  the window. Passing the tag of a document to a tool never adds content, and the tag is the only thing a document
+  parameter accepts (a bare id is invalid). The delivery `content` is the opt-in
   exception: the user prompt dropdown `data.userPrompt.documentDelivery` (`reference` by default, or `content`; v2
   templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity
   extension property `io.camunda.agenticai.documents.delivery` = `content` (`ToolDefinition.documentDelivery`) set the
@@ -368,8 +373,9 @@ Before claiming a change is complete:
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
 tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
-a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
-tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §2.7).
+a Spring bean. A runtime tool is the three-method interface `RuntimeTool` (`definition`, `isAvailable`, `call`); the
+built-in tools in `aiagent/tool/runtime/builtin` use only that SPI. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §2.7).
 
 ## Element templates
 
