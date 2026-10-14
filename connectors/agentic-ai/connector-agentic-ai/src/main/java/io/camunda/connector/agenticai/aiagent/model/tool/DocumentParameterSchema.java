@@ -29,7 +29,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <ul>
  *   <li>a <em>document parameter</em>: a string schema with the format {@link #FORMAT_DOCUMENT_ID},
- *       whose value is the id of a known document or its {@code <doc />} tag, or
+ *       whose value is the {@code <doc />} tag of a known document, or
  *   <li>a <em>union parameter</em>: a node with {@code anyOf} or {@code oneOf} alternatives, one of
  *       which is such a string schema and at least one other alternative exists (typically a plain
  *       string). Its value is a document only when it is exactly one {@code <doc />} tag; any other
@@ -60,7 +60,7 @@ public final class DocumentParameterSchema {
 
   /** Ends the description of every document parameter. */
   public static final String HINT =
-      "Pass the id of a known document (the id attribute of its <doc /> tag) or the tag itself.";
+      "Pass the tag of a known document exactly as you read it, for example <doc id=\"...\" />.";
 
   /** Ends the description of every union parameter. */
   public static final String UNION_HINT =

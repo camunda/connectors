@@ -83,7 +83,10 @@ class DocumentBlocksModelFacingTest {
                     new IngestedDocument(
                         archive, DocumentSource.toolCall("search", "call-0", "evicted"))));
     final var call =
-        new ToolCall("call-1", "c8__get_document", Map.of("id", DocumentHandle.idFor(report)));
+        new ToolCall(
+            "call-1",
+            "c8__get_document",
+            Map.of("id", "<doc id=\"" + DocumentHandle.idFor(report) + "\" />"));
     final var previous =
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("loading", List.of(call))));
@@ -154,7 +157,7 @@ class DocumentBlocksModelFacingTest {
   }
 
   private static final String NOTE_PREAMBLE =
-      "Documents from earlier messages that are no longer part of this conversation context. They are still available by id:";
+      "Documents from earlier messages that are no longer part of this conversation context. They are still available by tag:";
 
   @Test
   void theWindowedConversationKeepsTheToolResultPartsSeparateAndEndsWithTheNote() {

@@ -265,7 +265,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     assertThat(messages.get(3).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(messages.get(3).content())
         .isEqualTo(
-            "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
+            "The document is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it.");
 
     assertAgentResponse(
         zeebeTest,
@@ -385,7 +385,7 @@ public class AgentTaskUserPromptDocumentsTests extends BaseAgentTaskTest {
     final var tag = parseDocumentTag(userMessage.contentParts().get(1).path("text").asText());
     assertThat(userMessage.contentParts().get(2).path("text").asText())
         .isEqualTo(
-            "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its id to a tool that processes it."
+            "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its tag to a tool that processes it."
                 .formatted(tag.id()));
 
     assertAgentResponse(

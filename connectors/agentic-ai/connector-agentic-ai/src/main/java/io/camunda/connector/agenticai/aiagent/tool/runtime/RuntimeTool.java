@@ -34,9 +34,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
  *   <li>The call is looked up among the available tools; other calls go to the process.
  *   <li>The {@link DocumentParameterSchema document parameters} of the definition, the schema nodes
  *       with the document format, are checked: an unknown document answers the call with an error
- *       result and the tool does not run. The tool receives the id of each document, also when the
- *       model passed the {@code <doc />} tag of the document; it looks the document up in the
- *       {@link AgentContext#documentRegistry() registry} of the {@link
+ *       result and the tool does not run. The tool receives the id of each document, taken from the
+ *       {@code <doc />} tag the model passed; it looks the document up in the {@link
+ *       AgentContext#documentRegistry() registry} of the {@link
  *       RuntimeToolConversation#agentContext() agent context}. A union parameter (text or a
  *       document, a schema node with {@code anyOf} or {@code oneOf} alternatives of which one is a
  *       document schema) receives the id when the model passed exactly one {@code <doc />} tag, and

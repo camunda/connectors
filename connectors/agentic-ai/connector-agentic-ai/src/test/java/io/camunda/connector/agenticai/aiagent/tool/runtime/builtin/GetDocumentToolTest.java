@@ -166,7 +166,7 @@ class GetDocumentToolTest {
     assertThat(definition.description())
         .contains("Loads a known document")
         .contains("too large")
-        .contains("pass the id of a large document to a tool that processes it")
+        .contains("pass the tag of a large document to a tool that processes it")
         .contains("sandbox");
     assertThat(definition.inputSchema().get("required")).isEqualTo(List.of("id"));
     assertThat(definition.inputSchema().get("properties"))
@@ -174,7 +174,7 @@ class GetDocumentToolTest {
         .containsOnlyKeys("id");
     assertThat(definition.inputSchema().toString())
         .contains("format=camunda-document-id")
-        .contains("Pass the id of a known document");
+        .contains("Pass the tag of a known document");
   }
 
   @Test
@@ -214,14 +214,14 @@ class GetDocumentToolTest {
         run(
             List.of(camundaEntry("doc-1", "text/plain", 10L)),
             List.of(),
-            call("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
+            callWith("1", "<doc id=\"doc-1\" contentType=\"text/plain\" />"));
 
     assertThat(split.answers().answers().getFirst().documentIdsWithContent())
         .containsExactly("doc-1");
   }
 
   @Test
-  void answersAnUnknownIdWithAnError() {
+  void answersAnUnknownTagWithAnError() {
     final var split =
         run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), call("1", "bogus"));
 
@@ -231,7 +231,23 @@ class GetDocumentToolTest {
             result -> {
               assertThat(text(result))
                   .isEqualTo(
-                      "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
+                      "Parameter 'id' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"bogus\" />'.");
+              assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
+            });
+  }
+
+  @Test
+  void answersABareIdOfAKnownDocumentWithAnError() {
+    final var split =
+        run(List.of(camundaEntry("doc-1", "text/plain", 10L)), List.of(), callWith("1", "doc-1"));
+
+    assertThat(split.runtimeResults())
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(text(result))
+                  .isEqualTo(
+                      "Parameter 'id' must be the <doc /> tag of a known document, exactly as you read it, got 'doc-1'.");
               assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
   }
@@ -285,7 +301,7 @@ class GetDocumentToolTest {
             result -> {
               assertThat(text(result))
                   .isEqualTo(
-                      "The document is 300 KB, too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
+                      "The document is 300 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it.");
               assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
     assertThat(store.opened.get()).isZero();
@@ -344,7 +360,7 @@ class GetDocumentToolTest {
 
     assertThat(text(split.runtimeResults().get(0)))
         .isEqualTo(
-            "The document is of type application/zip which cannot be loaded into the conversation; pass its id to a tool that processes it.");
+            "The document is of type application/zip which cannot be loaded into the conversation; pass its tag to a tool that processes it.");
     assertThat(split.answers().answers().get(0).documentIdsWithContent()).isEmpty();
     assertThat(text(split.runtimeResults().get(1)))
         .startsWith("The document is of type image/tiff which cannot be loaded");
@@ -364,7 +380,7 @@ class GetDocumentToolTest {
             result -> {
               assertThat(text(result))
                   .isEqualTo(
-                      "The document is larger than 256 KB, too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
+                      "The document is larger than 256 KB, too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it.");
               assertThat(split.answers().answers().getFirst().documentIdsWithContent()).isEmpty();
             });
     assertThat(store.bytesRead.get()).isEqualTo(TEXT_LIMIT + 1);
@@ -488,7 +504,11 @@ class GetDocumentToolTest {
   }
 
   private static ToolCall call(String id, String documentId) {
-    return new ToolCall(id, GetDocumentTool.NAME, Map.of("id", documentId));
+    return callWith(id, "<doc id=\"" + documentId + "\" />");
+  }
+
+  private static ToolCall callWith(String id, String idArgument) {
+    return new ToolCall(id, GetDocumentTool.NAME, Map.of("id", idArgument));
   }
 
   private AgentConversation conversation(

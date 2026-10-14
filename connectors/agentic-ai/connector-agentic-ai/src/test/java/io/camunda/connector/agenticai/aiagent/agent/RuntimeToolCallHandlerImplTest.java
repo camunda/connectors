@@ -343,7 +343,8 @@ class RuntimeToolCallHandlerImplTest {
               received.add(args.files());
               return RuntimeToolResult.success("read");
             });
-    final var call = new ToolCall("r1", "c8__read_file", Map.of("file", reportId));
+    final var call =
+        new ToolCall("r1", "c8__read_file", Map.of("file", "<doc id=\"" + reportId + "\" />"));
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -375,7 +376,7 @@ class RuntimeToolCallHandlerImplTest {
   }
 
   @Test
-  void answersAnUnknownDocumentIdOfARuntimeToolAndDoesNotRunIt() {
+  void answersAValueThatIsNotATagOfARuntimeToolAndDoesNotRunIt() {
     final var runs = new AtomicInteger();
     final var tool =
         StubRuntimeTool.of(
@@ -397,7 +398,7 @@ class RuntimeToolCallHandlerImplTest {
             result ->
                 assertThat(text(result))
                     .isEqualTo(
-                        "Parameter 'file' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
+                        "Parameter 'file' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'."));
   }
 
   @Test
@@ -490,7 +491,7 @@ class RuntimeToolCallHandlerImplTest {
 
   @Test
   void passesACallWithKnownDocumentsToTheProcess() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", reportId));
+    final var call = new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -508,8 +509,8 @@ class RuntimeToolCallHandlerImplTest {
   }
 
   @Test
-  void answersAnUnknownDocumentIdOfAProcessTool() {
-    final var call = new ToolCall("u1", "upload", Map.of("doc", "nope"));
+  void answersAValueThatIsNotATagOfAProcessTool() {
+    final var call = new ToolCall("u1", "upload", Map.of("doc", reportId));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));
 
@@ -520,7 +521,9 @@ class RuntimeToolCallHandlerImplTest {
             result ->
                 assertThat(text(result))
                     .isEqualTo(
-                        "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'."));
+                        "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got '"
+                            + reportId
+                            + "'."));
   }
 
   @Test

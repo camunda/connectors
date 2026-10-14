@@ -874,7 +874,7 @@ class AgentSubProcessRequestHandlerTest {
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
 
     final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
-    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", documentId));
+    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", docTag(documentId)));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
     final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -910,7 +910,7 @@ class AgentSubProcessRequestHandlerTest {
                                   text ->
                                       assertThat(text.text())
                                           .isEqualTo(
-                                              "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
+                                              "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'."));
                         }));
 
     // the tool call of the final round goes to the process; the first round stays in the history
@@ -992,7 +992,8 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 
-    final var getCall = new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", documentId));
+    final var getCall =
+        new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", docTag(documentId)));
     final var firstMessage = AssistantMessage.builder().toolCalls(List.of(getCall)).build();
     final var secondMessage = assistantMessage("done");
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
@@ -1179,7 +1180,9 @@ class AgentSubProcessRequestHandlerTest {
 
     final var returnCall =
         new ToolCall(
-            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", documentId));
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(documentId)));
     final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     mockChatModelExecution(
         AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
@@ -1225,7 +1228,9 @@ class AgentSubProcessRequestHandlerTest {
 
     final var returnCall =
         new ToolCall(
-            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", documentId));
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(documentId)));
     final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
     doReturn(chatModel).when(chatModelRegistry).resolve(any());
     doReturn(
@@ -1315,7 +1320,7 @@ class AgentSubProcessRequestHandlerTest {
                         text ->
                             assertThat(text.text())
                                 .startsWith(
-                                    "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.")));
+                                    "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.")));
     assertThat(response.responseValue().context().responseDocuments()).isEmpty();
   }
 
@@ -1430,7 +1435,7 @@ class AgentSubProcessRequestHandlerTest {
         new ToolCall(
             "call-1",
             ReturnDocumentTool.NAME,
-            Map.of("key", "report", "document", knownEntry.id()));
+            Map.of("key", "report", "document", docTag(knownEntry.id())));
     final var badCall = new ToolCall("call-2", "upload", Map.of("doc", "bogus"));
     final var processCall = new ToolCall("call-3", "getWeather", Map.of("location", "MUC"));
     final var context =
@@ -1570,6 +1575,10 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.responseValue().context().documents()).isEmpty();
     assertThat(response.responseValue().context().features()).isEmpty();
     assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+  }
+
+  private static String docTag(String documentId) {
+    return "<doc id=\"" + documentId + "\" />";
   }
 
   private Document createDocument(String content, String fileName) {

@@ -214,7 +214,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
             text ->
                 assertThat(text.getText())
                     .isEqualTo(
-                        "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'."));
+                        "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'."));
     assertThat(answer.getContent())
         .noneMatch(AgentInstanceHistoryContent.DocumentContent.class::isInstance);
   }

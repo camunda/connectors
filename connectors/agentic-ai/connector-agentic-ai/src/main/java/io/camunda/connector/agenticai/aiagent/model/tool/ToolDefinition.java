@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A parameter that carries a document has the string schema with the format {@code
  * camunda-document-id} (see {@link DocumentParameterSchema}) and a description that ends with the
- * hint to pass the id of a known document, so the stored input schema holds the text the model
+ * hint to pass the tag of a known document, so the stored input schema holds the text the model
  * sees. The model providers see the schema without the format, which {@link
  * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
  * built.

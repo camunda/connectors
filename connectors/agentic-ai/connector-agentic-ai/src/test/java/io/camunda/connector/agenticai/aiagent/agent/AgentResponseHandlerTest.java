@@ -131,7 +131,9 @@ class AgentResponseHandlerTest {
         io.camunda.connector.agenticai.aiagent.document.DocumentHandle.idFor(document);
     final var toolCall =
         new io.camunda.connector.agenticai.aiagent.model.tool.ToolCall(
-            "call-1", "upload", java.util.Map.of("doc", documentId, "note", "x"));
+            "call-1",
+            "upload",
+            java.util.Map.of("doc", "<doc id=\"" + documentId + "\" />", "note", "x"));
     final var assistantMessage = assistantMessage("uploading", List.of(toolCall));
     final var config =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
@@ -173,7 +175,7 @@ class AgentResponseHandlerTest {
             });
     assertThat(conversation.allMessages().getLast()).isEqualTo(assistantMessage);
     assertThat(assistantMessage.toolCalls().getFirst().arguments())
-        .containsEntry("doc", documentId);
+        .containsEntry("doc", "<doc id=\"" + documentId + "\" />");
   }
 
   @Nested

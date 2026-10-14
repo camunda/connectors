@@ -191,7 +191,7 @@ class AgentResponseHandlerDocumentsTest {
                 Map.of("document", DocumentParameterSchema.documentSchema("The document"))));
     final var mcpTool = gatewayToolDefinition("MCP_files___read");
     final var a2aTool = gatewayToolDefinition("A2A_assistant");
-    final var uploadCall = new ToolCall("call-1", "upload", Map.of("document", reportId));
+    final var uploadCall = new ToolCall("call-1", "upload", Map.of("document", docTag(reportId)));
     // arguments that look like the id of a known document and like its tag
     final var mcpCall =
         new ToolCall(

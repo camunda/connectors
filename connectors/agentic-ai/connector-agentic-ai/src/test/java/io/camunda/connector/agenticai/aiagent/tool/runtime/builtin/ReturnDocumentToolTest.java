@@ -57,6 +57,8 @@ class ReturnDocumentToolTest {
   private final Document summary = createDocument("summary", "summary.txt");
   private final String reportId = DocumentHandle.idFor(report);
   private final String summaryId = DocumentHandle.idFor(summary);
+  private final String reportTag = "<doc id=\"" + reportId + "\" />";
+  private final String summaryTag = "<doc id=\"" + summaryId + "\" />";
 
   private final DocumentRegistry registry =
       DocumentRegistry.empty()
@@ -115,7 +117,7 @@ class ReturnDocumentToolTest {
     final var split =
         run(
             CONFIGURATION,
-            call("1", Map.of("key", "summary", "document", summaryId, "description", "Short")));
+            call("1", Map.of("key", "summary", "document", summaryTag, "description", "Short")));
 
     assertThat(split.runtimeResults())
         .extracting(r -> text(r))
@@ -140,7 +142,7 @@ class ReturnDocumentToolTest {
 
   @Test
   void theDescriptionIsOptional() {
-    final var split = run(CONFIGURATION, call("1", Map.of("key", "report", "document", reportId)));
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "report", "document", reportTag)));
 
     assertThat(split.conversation().responseDocuments())
         .containsExactly(Map.entry("report", new ResponseDocumentSelection(reportId, null)));
@@ -151,8 +153,8 @@ class ReturnDocumentToolTest {
     final var split =
         run(
             CONFIGURATION,
-            call("1", Map.of("key", "b", "document", summaryId)),
-            call("2", Map.of("key", "a", "document", reportId)));
+            call("1", Map.of("key", "b", "document", summaryTag)),
+            call("2", Map.of("key", "a", "document", reportTag)));
 
     assertThat(split.conversation().responseDocuments().keySet()).containsExactly("b", "a");
   }
@@ -162,9 +164,9 @@ class ReturnDocumentToolTest {
     final var split =
         run(
             CONFIGURATION,
-            call("1", Map.of("key", "first", "document", reportId)),
-            call("2", Map.of("key", "second", "document", summaryId)),
-            call("3", Map.of("key", "first", "document", summaryId, "description", "Replaced")));
+            call("1", Map.of("key", "first", "document", reportTag)),
+            call("2", Map.of("key", "second", "document", summaryTag)),
+            call("3", Map.of("key", "first", "document", summaryTag, "description", "Replaced")));
 
     assertThat(split.conversation().responseDocuments())
         .containsExactly(
@@ -173,8 +175,9 @@ class ReturnDocumentToolTest {
   }
 
   @Test
-  void answersAnUnknownIdWithAnErrorAndSelectsNothing() {
-    final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", "bogus")));
+  void answersAnUnknownTagWithAnErrorAndSelectsNothing() {
+    final var split =
+        run(CONFIGURATION, call("1", Map.of("key", "k", "document", "<doc id=\"bogus\" />")));
 
     assertThat(split.runtimeResults())
         .singleElement()
@@ -182,12 +185,28 @@ class ReturnDocumentToolTest {
             result ->
                 assertThat(text(result))
                     .isEqualTo(
-                        "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
+                        "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"bogus\" />'."));
     assertThat(split.conversation().responseDocuments()).isEmpty();
   }
 
   @Test
-  void acceptsTheTagOfTheDocumentLikeItsId() {
+  void answersABareIdOfAKnownDocumentWithAnErrorAndSelectsNothing() {
+    final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", reportId)));
+
+    assertThat(split.runtimeResults())
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(text(result))
+                    .isEqualTo(
+                        "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '"
+                            + reportId
+                            + "'."));
+    assertThat(split.conversation().responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void acceptsATagWithFurtherAttributes() {
     final var tag = "<doc id=\"" + reportId + "\" fileName=\"report.txt\" />";
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
@@ -208,7 +227,7 @@ class ReturnDocumentToolTest {
         .satisfies(
             result ->
                 assertThat(text(result))
-                    .startsWith("Parameter 'document' must be the exact id of a known document")
+                    .startsWith("Parameter 'document' must be the <doc /> tag of a known document")
                     .contains("got '" + tag + "'"));
     assertThat(split.conversation().responseDocuments()).isEmpty();
   }
@@ -216,7 +235,7 @@ class ReturnDocumentToolTest {
   @Test
   void answersAnInvalidKeyWithAnErrorAndSelectsNothing() {
     for (final var key : List.of("", "1abc", "a b", "a.b", "-a")) {
-      final var split = run(CONFIGURATION, call("1", Map.of("key", key, "document", reportId)));
+      final var split = run(CONFIGURATION, call("1", Map.of("key", key, "document", reportTag)));
 
       assertThat(split.runtimeResults())
           .singleElement()
@@ -231,7 +250,7 @@ class ReturnDocumentToolTest {
   @Test
   void acceptsKeysWithUnderscoresDigitsAndHyphens() {
     final var split =
-        run(CONFIGURATION, call("1", Map.of("key", "_report-2024_final", "document", reportId)));
+        run(CONFIGURATION, call("1", Map.of("key", "_report-2024_final", "document", reportTag)));
 
     assertThat(split.conversation().responseDocuments()).containsOnlyKeys("_report-2024_final");
   }
@@ -240,10 +259,10 @@ class ReturnDocumentToolTest {
   void answersAMissingKeyOrDocumentWithAnError() {
     final var nullKey = new HashMap<String, Object>();
     nullKey.put("key", null);
-    nullKey.put("document", reportId);
+    nullKey.put("document", reportTag);
 
     for (final var arguments :
-        List.<Map<String, Object>>of(Map.of("document", reportId), nullKey, Map.of("key", "k"))) {
+        List.<Map<String, Object>>of(Map.of("document", reportTag), nullKey, Map.of("key", "k"))) {
       final var split = run(CONFIGURATION, call("1", arguments));
 
       assertThat(split.runtimeResults()).singleElement();
@@ -257,8 +276,8 @@ class ReturnDocumentToolTest {
     final var split =
         run(
             CONFIGURATION,
-            call("r1", Map.of("key", "report", "document", reportId)),
-            call("r2", Map.of("key", "other", "document", "bogus")),
+            call("r1", Map.of("key", "report", "document", reportTag)),
+            call("r2", Map.of("key", "other", "document", "<doc id=\"bogus\" />")),
             new ToolCall("t1", "getWeather", Map.of("location", "MUC")));
 
     assertThat(split.conversation().responseDocuments())
@@ -271,7 +290,7 @@ class ReturnDocumentToolTest {
         .isEqualTo("Returned the document under the key 'report'.");
     assertThat(text(split.runtimeResults().get(1)))
         .startsWith(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
+            "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"bogus\" />'.");
   }
 
   private static ToolCall call(String id, Map<String, Object> arguments) {

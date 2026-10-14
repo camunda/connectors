@@ -252,7 +252,8 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
             toolCallMessage,
             10,
             20,
-            new ToolCallStub("get111", "c8__get_document", "{\"id\": \"@@DOC_ID_0@@\"}")),
+            new ToolCallStub(
+                "get111", "c8__get_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
         TurnStub.text(responseText, 11, 22));
     enqueueUserFeedback(userSatisfiedFeedback());
 

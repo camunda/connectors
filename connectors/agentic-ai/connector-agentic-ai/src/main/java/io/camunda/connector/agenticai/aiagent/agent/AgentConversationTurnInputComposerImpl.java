@@ -520,7 +520,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             rejection.problem(),
             rejection.retryable()
                 ? "c8__get_document can try to load it again."
-                : "Pass its id to a tool that processes it.");
+                : "Pass its tag to a tool that processes it.");
   }
 
   /** The documents of the results in the order of the results, grouped by tool call. */

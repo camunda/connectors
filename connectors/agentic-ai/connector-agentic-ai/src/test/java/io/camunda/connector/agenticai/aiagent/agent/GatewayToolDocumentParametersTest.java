@@ -128,9 +128,12 @@ class GatewayToolDocumentParametersTest {
   }
 
   @Test
-  void theHandlerReceivesTheResolvedDocumentOfAKnownId() {
+  void theHandlerReceivesTheResolvedDocumentOfAKnownTag() {
     final var call =
-        new ToolCall("call-2", UPLOAD_TOOL, Map.of("document", reportId, "folder", "/inbox"));
+        new ToolCall(
+            "call-2",
+            UPLOAD_TOOL,
+            Map.of("document", "<doc id=\"%s\" />".formatted(reportId), "folder", "/inbox"));
 
     final var response = responseHandler.createResponse(conversation(call));
 
@@ -153,19 +156,7 @@ class GatewayToolDocumentParametersTest {
   }
 
   @Test
-  void theHandlerReceivesTheResolvedDocumentOfAKnownTag() {
-    final var call =
-        new ToolCall(
-            "call-2", UPLOAD_TOOL, Map.of("document", "<doc id=\"%s\" />".formatted(summaryId)));
-
-    responseHandler.createResponse(conversation(call));
-
-    assertThat(filesHandler.receivedCalls.getFirst().arguments())
-        .containsEntry("document", registry.findById(summaryId).orElseThrow().reference());
-  }
-
-  @Test
-  void anUnknownIdIsAnsweredWithAnErrorAndTheHandlerNeverGetsTheCall() {
+  void aValueThatIsNotATagIsAnsweredWithAnErrorAndTheHandlerNeverGetsTheCall() {
     final var call = new ToolCall("call-2", UPLOAD_TOOL, Map.of("document", "does-not-exist"));
     final var conversation = conversation(call);
 
@@ -183,7 +174,7 @@ class GatewayToolDocumentParametersTest {
               assertThat(result.id()).isEqualTo("call-2");
               assertThat(result.name()).isEqualTo(UPLOAD_TOOL);
               assertThat(result.content().toString())
-                  .contains("Parameter 'document' must be the exact id of a known document")
+                  .contains("Parameter 'document' must be the <doc /> tag of a known document")
                   .contains("got 'does-not-exist'");
             });
 

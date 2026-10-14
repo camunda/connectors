@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 
@@ -26,9 +27,9 @@ import org.jspecify.annotations.Nullable;
  * arguments of a tool call mirror the schema, so each such node addresses the argument values that
  * carry a document.
  *
- * <p>For a document parameter the model passes the id of a known document, exactly as the {@code
- * id} attribute of its {@code <doc />} tag, or the tag itself: a value that is exactly one tag,
- * surrounded by whitespace at most, stands for the document of its {@code id} attribute.
+ * <p>For a document parameter the model passes the {@code <doc />} tag of a known document: a value
+ * that is exactly one tag, surrounded by whitespace at most, stands for the document of its {@code
+ * id} attribute. Any other value is invalid, also a string that equals the id of a known document.
  *
  * <p>For a union parameter only a value that is exactly one tag stands for a document. Any other
  * value is left as it is: a plain string, also one that equals the id of a known document, text
@@ -60,10 +61,10 @@ public final class DocumentParameterResolver {
 
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null} is left as is. For a document parameter, a value that is neither exactly the id of a
-   * registered document nor exactly one tag with such an id (not a string, text around a tag, more
-   * than one tag, an unknown id) is reported as a problem naming the parameter. For a union
-   * parameter, only a tag with an unknown id is reported.
+   * null} is left as is. For a document parameter, a value that is not exactly one tag with the id
+   * of a registered document (not a string, a bare id, text around a tag, more than one tag, an
+   * unknown id) is reported as a problem naming the parameter. For a union parameter, only a tag
+   * with an unknown id is reported.
    */
   public static Resolution resolve(
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -74,8 +75,8 @@ public final class DocumentParameterResolver {
 
   /**
    * Validates the document parameters of {@code toolCall} like {@link #resolve}, but replaces each
-   * valid value by the plain id of its document: a bare id stays as it is and a tag becomes the id
-   * of the tag. A union parameter that holds text stays that text.
+   * valid value by the plain id of its document: a tag becomes the id of the tag. A union parameter
+   * that holds text stays that text.
    */
   public static Resolution resolveIds(
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -242,35 +243,30 @@ public final class DocumentParameterResolver {
       List<String> problems) {
     if (!(value instanceof String text)) {
       problems.add(
-          ("Parameter '%s' must be the exact id of a known document (the id attribute of its"
-                  + " <doc /> tag) or that tag itself, a string.")
+          ("Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it, a"
+                  + " string.")
               .formatted(path));
       return value == null ? "" : value;
     }
-    final var id = idOf(text);
-    final var entry = registry.findById(id);
+    final var tagId = DocumentTag.idOfSingleTag(text);
+    final var entry =
+        tagId == null ? Optional.<DocumentRegistryEntry>empty() : registry.findById(tagId);
     if (entry.isEmpty()) {
-      problems.add(unknownIdProblem(path, id));
-      return id;
+      problems.add(invalidDocumentProblem(path, text));
+      return text;
     }
     return replacement.apply(entry.get());
   }
 
-  private static String unknownIdProblem(String path, String id) {
-    return ("Parameter '%s' must be the exact id of a known document (the id attribute of its"
-            + " <doc /> tag) or that tag itself, got '%s'.")
-        .formatted(path, id);
+  private static String invalidDocumentProblem(String path, String value) {
+    return ("Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it,"
+            + " got '%s'.")
+        .formatted(path, value);
   }
 
   private static String unknownUnionTagProblem(String path, String id) {
     return ("Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
             + " Pass the tag of a document exactly as you read it, or pass other text.")
         .formatted(path, id);
-  }
-
-  /** The id a value stands for: the id attribute of a value that is one tag, else the value. */
-  private static String idOf(String value) {
-    final var tagId = DocumentTag.idOfSingleTag(value);
-    return tagId != null ? tagId : value;
   }
 }

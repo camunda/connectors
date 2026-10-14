@@ -89,6 +89,14 @@ public final class DocumentFlowFixtures {
             callId, "Download_A_File", "{\"url\": \"%s/%s\"}".formatted(wireMockBaseUrl, file)));
   }
 
+  /**
+   * The {@code <doc />} tag of the document, escaped for a JSON string of the scripted arguments: a
+   * document parameter takes the tag of a document.
+   */
+  public static String tag(String documentId) {
+    return "<doc id=\\\"" + documentId + "\\\" />";
+  }
+
   /** Loads the first known document of the request. */
   public static Turn getDocumentTurn() {
     return getDocumentTurn(documentId(0));
@@ -103,7 +111,7 @@ public final class DocumentFlowFixtures {
         "I will read the document.",
         10,
         20,
-        ToolCall.of(callId, "c8__get_document", "{\"id\": \"%s\"}".formatted(documentId)));
+        ToolCall.of(callId, "c8__get_document", "{\"id\": \"%s\"}".formatted(tag(documentId))));
   }
 
   /**
@@ -129,7 +137,7 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": \"%s\"}".formatted(documentId)));
+            UPLOAD_CALL_ID, "Upload_A_File", "{\"document\": \"%s\"}".formatted(tag(documentId))));
   }
 
   /** The key and the description of the document the model returns. */
@@ -147,7 +155,7 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))));
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))));
   }
 
   /** Returns the document with the given id under the given key. */
@@ -161,7 +169,7 @@ public final class DocumentFlowFixtures {
             callId,
             "c8__return_document",
             "{\"key\": \"%s\", \"document\": \"%s\", \"description\": \"%s\"}"
-                .formatted(key, documentId, description)));
+                .formatted(key, tag(documentId), description)));
   }
 
   /**
@@ -173,7 +181,7 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 
@@ -187,7 +195,7 @@ public final class DocumentFlowFixtures {
         10,
         20,
         ToolCall.of(
-            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(documentId(0))),
+            RETURN_CALL_ID, "c8__return_document", RETURN_ARGUMENTS.formatted(tag(documentId(0)))),
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
@@ -200,7 +208,7 @@ public final class DocumentFlowFixtures {
         ToolCall.of(
             UPLOAD_CALL_ID,
             "Upload_A_File",
-            "{\"document\": \"%s\"}".formatted("no-such-document")),
+            "{\"document\": \"%s\"}".formatted(tag("no-such-document"))),
         ToolCall.of(PING_CALL_ID, "Ping", "{}"));
   }
 

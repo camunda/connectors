@@ -168,7 +168,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
             tag(loadable, source, true),
             tag(archive, source, false),
             textContent(
-                "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its id to a tool that processes it."
+                "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its tag to a tool that processes it."
                     .formatted(DocumentHandle.idFor(archive))));
     // both documents are registered, loaded or not
     assertThat(turn.documents()).extracting(IngestedDocument::document).contains(loadable, archive);
@@ -356,7 +356,7 @@ class AgentConversationTurnInputComposerDocumentDeliveryTest {
             textContent(AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE),
             tag(loadable, source, true),
             textContent(
-                "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its id to a tool that processes it."
+                "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its tag to a tool that processes it."
                     .formatted(DocumentHandle.idFor(archive))));
   }
 

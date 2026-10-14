@@ -54,7 +54,7 @@ public final class GetDocumentTool implements RuntimeTool {
           NAME,
           "Loads a known document so that its content can be read in the conversation. Use it when"
               + " you need the content of a document that you only see as a <doc/> tag. It fails"
-              + " for documents that are too large: pass the id of a large document to a tool that"
+              + " for documents that are too large: pass the tag of a large document to a tool that"
               + " processes it instead, for example a sandbox. Only text, PDF and image documents can"
               + " be loaded. A document that is already in the conversation is not loaded again.",
           ordered(
@@ -115,7 +115,7 @@ public final class GetDocumentTool implements RuntimeTool {
             : new RuntimeToolException(message, rejection.cause());
       }
       return RuntimeToolResult.error(
-          "The document %s; pass its id to a tool that processes it."
+          "The document %s; pass its tag to a tool that processes it."
               .formatted(rejection.problem()));
     }
 

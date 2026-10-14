@@ -43,7 +43,7 @@ public final class EvictedDocumentsNote {
   /** Text introducing the listed tags. */
   public static final String PREAMBLE =
       "Documents from earlier messages that are no longer part of this conversation context. "
-          + "They are still available by id:";
+          + "They are still available by tag:";
 
   private EvictedDocumentsNote() {}
 

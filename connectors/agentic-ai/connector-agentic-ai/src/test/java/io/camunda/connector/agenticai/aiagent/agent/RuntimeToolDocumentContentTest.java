@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -68,7 +69,12 @@ class RuntimeToolDocumentContentTest {
       StubRuntimeTool.of(
           ToolDefinition.builder()
               .name(CUSTOM_TOOL_NAME)
-              .inputSchema(Map.of("type", "object", "properties", Map.of("id", Map.of())))
+              .inputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("id", DocumentParameterSchema.documentSchema("The document"))))
               .build(),
           (call, executionContext, conversation) -> {
             final var id = (String) call.arguments().get("id");
@@ -134,7 +140,8 @@ class RuntimeToolDocumentContentTest {
   void aToolAnswersTheCallInTheSameRoundAndTheContentIsAddedLikeForGetDocument() {
     final var messages = new ArrayList<UserMessage>();
     for (final var toolName : toolNames()) {
-      final var call = new ToolCall("call-1", toolName, Map.of("id", reportId));
+      final var call =
+          new ToolCall("call-1", toolName, Map.of("id", "<doc id=\"" + reportId + "\" />"));
       final var conversation = conversation(call);
 
       final var split =
@@ -167,7 +174,8 @@ class RuntimeToolDocumentContentTest {
         ToolCallResult.builder().id("call-2").name("getWeather").content("Sunny").build();
 
     for (final var toolName : toolNames()) {
-      final var loadCall = new ToolCall("call-1", toolName, Map.of("id", reportId));
+      final var loadCall =
+          new ToolCall("call-1", toolName, Map.of("id", "<doc id=\"" + reportId + "\" />"));
       final var conversation = conversation(loadCall, weatherCall);
       final var split =
           handler.split(

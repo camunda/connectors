@@ -83,8 +83,8 @@ import org.springframework.core.io.Resource;
 
 /**
  * Document flow of the AI Agent Sub-process against a scripted model: a document parameter of a
- * tool (a real HTTP connector that uploads the document), the registry across jobs, unknown ids and
- * returning documents.
+ * tool (a real HTTP connector that uploads the document), the registry across jobs, unknown
+ * document tags and returning documents.
  */
 @SlowTest
 @Import(AgentCoreMemoryTestConfiguration.class)
@@ -234,9 +234,10 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * A tool returns a document, the model loads it twice and passes its id to a tool: the first load
-   * puts the content next to the tag, the second one is answered without loading again, and the
-   * tool receives the real bytes. The content is a text for a text document and a file for a PDF.
+   * A tool returns a document, the model loads it twice and passes its tag to a tool: the first
+   * load puts the content next to the tag, the second one is answered without loading again, and
+   * the tool receives the real bytes. The content is a text for a text document and a file for a
+   * PDF.
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
@@ -292,7 +293,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(afterRejection.get(5).toolCallId()).isEqualTo(GET_CALL_ID);
     assertThat(afterRejection.get(5).content())
         .endsWith(
-            "too large to load into the conversation (limit 256 KB); pass its id to a tool that processes it.");
+            "too large to load into the conversation (limit 256 KB); pass its tag to a tool that processes it.");
     assertThat(recorded.lastRequest().messages().getLast().content()).contains("200");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
@@ -309,7 +310,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   /**
    * A tool whose activity sets the document delivery {@code content} returns a document: the agent
    * adds its content to the request in the message after the tool result, so the model reads it
-   * without a {@code c8__get_document} call and still passes its id to a tool. The tool receives
+   * without a {@code c8__get_document} call and still passes its tag to a tool. The tool receives
    * the real bytes.
    */
   @ParameterizedTest(name = "{0}")
@@ -384,7 +385,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var tag = parseDocumentTag(afterDownload.get(3).content());
     assertThat(afterDownload.get(4).textContent())
         .startsWith("Document %s was not loaded automatically: it ".formatted(tag.id()))
-        .endsWith("Pass its id to a tool that processes it.");
+        .endsWith("Pass its tag to a tool that processes it.");
     assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
         .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
 
@@ -411,7 +412,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(errorResult.role()).isEqualTo("tool");
     assertThat(errorResult.content())
         .isEqualTo(
-            "Parameter 'id' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
+            "Parameter 'id' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
@@ -441,7 +442,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     assertThat(errorResult.toolCallId()).isEqualTo(UPLOAD_CALL_ID);
     assertThat(errorResult.content())
         .isEqualTo(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
+            "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
 
     // the retry with the valid id is the only upload
     final var retryResult = recorded.lastRequest().messages().getLast();
@@ -525,12 +526,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The history of the agent instance shows the arguments of a call as the model sent them: the id
+   * The history of the agent instance shows the arguments of a call as the model sent them: the tag
    * of a document in the call of the assistant item and in the arguments of the result item, for a
    * tool of the process and for the runtime tool.
    */
   @Test
-  void agentInstanceHistoryShowsTheDocumentIdInTheToolCallArguments() throws Exception {
+  void agentInstanceHistoryShowsTheDocumentTagInTheToolCallArguments() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         roundTripTurns(wireMock.getHttpBaseUrl()).toArray(Turn[]::new));
 
@@ -550,10 +551,14 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasToolCallArguments(
             "Upload_A_File",
-            arguments -> assertThat(arguments.get("document")).isEqualTo(documentId))
+            arguments ->
+                assertThat(arguments.get("document"))
+                    .isEqualTo("<doc id=\"" + documentId + "\" />"))
         .hasToolCallArguments(
             "c8__return_document",
-            arguments -> assertThat(arguments.get("document")).isEqualTo(documentId))
+            arguments ->
+                assertThat(arguments.get("document"))
+                    .isEqualTo("<doc id=\"" + documentId + "\" />"))
         .verify();
   }
 
@@ -618,7 +623,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .containsExactly(UPLOAD_CALL_ID, PING_CALL_ID);
     assertThat(results.get(0).content())
         .isEqualTo(
-            "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'no-such-document'.");
+            "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
     assertThat(results.get(1).content()).contains("pong");
 
     // only the retry with the valid id uploads
