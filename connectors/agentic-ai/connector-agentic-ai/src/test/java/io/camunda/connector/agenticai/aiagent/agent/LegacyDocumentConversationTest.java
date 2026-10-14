@@ -79,16 +79,15 @@ class LegacyDocumentConversationTest {
     return ((InProcessConversationContext) context.conversation()).messages();
   }
 
-  private static AgentConfiguration configurationOf(AgentContext context) {
+  private static AgentConfiguration configuration() {
     return new AgentConfiguration(
-            TestMessagesFixture.TEST_CHAT_MODEL,
-            TestMessagesFixture.TEST_SYSTEM_PROMPT,
-            null,
-            null,
-            null,
-            null,
-            null)
-        .withFeatures(context.features());
+        TestMessagesFixture.TEST_CHAT_MODEL,
+        TestMessagesFixture.TEST_SYSTEM_PROMPT,
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   private Document newDocument(String fileName) {
@@ -137,7 +136,7 @@ class LegacyDocumentConversationTest {
 
     final var composition =
         composer.compose(
-            configurationOf(context),
+            configuration(),
             context,
             TurnReconstructor.reconstruct(messagesOf(context), context.metadata()),
             AgentInput.from(
@@ -189,7 +188,7 @@ class LegacyDocumentConversationTest {
 
     final var composition =
         composer.compose(
-            configurationOf(context),
+            configuration(),
             context,
             TurnReconstructor.reconstruct(messages, context.metadata()),
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)));
@@ -214,7 +213,7 @@ class LegacyDocumentConversationTest {
     final var context = loadContext();
     final var messages = messagesOf(context);
     final JsonNode messagesBefore = objectMapper.valueToTree(messages.subList(1, messages.size()));
-    final var configuration = configurationOf(context);
+    final var configuration = configuration();
     final var previous = TurnReconstructor.reconstruct(messages, context.metadata());
     final var nextTurn =
         (CompositionResult.NextTurn)
@@ -259,7 +258,7 @@ class LegacyDocumentConversationTest {
   @Test
   void rendersTheDocumentsOfToolResultsAsTheirReferenceLikeCamunda810() throws IOException {
     final var context = loadContext();
-    final var configuration = configurationOf(context);
+    final var configuration = configuration();
     final var previous = TurnReconstructor.reconstruct(messagesOf(context), context.metadata());
     final var conversation =
         AgentConversation.rehydrate(
@@ -302,7 +301,7 @@ class LegacyDocumentConversationTest {
   @Test
   void offersNoRuntimeToolAndHandsEveryCallToTheProcess() throws IOException {
     final var context = loadContext();
-    final var configuration = configurationOf(context);
+    final var configuration = configuration();
     final var registry = new RuntimeToolRegistryImpl(List.of(new ReturnDocumentTool(objectMapper)));
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);

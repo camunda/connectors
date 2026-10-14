@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentTool;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
@@ -31,11 +32,11 @@ public class AgentInstanceToolMapper {
   }
 
   /**
-   * Maps the tools of the agent. A runtime tool has no BPMN element; {@code runtimeTools} tells
-   * whether the agent instance has the runtime tools feature, without which no tool is a runtime
-   * tool.
+   * Maps the tools of the agent. A runtime tool has no BPMN element; an agent instance without the
+   * runtime tools feature has no runtime tool.
    */
-  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions, boolean runtimeTools) {
+  public List<AgentTool> mapTools(List<ToolDefinition> toolDefinitions, AgentContext agentContext) {
+    final boolean runtimeTools = agentContext.supportsRuntimeTools();
     return toolDefinitions.stream().map(tool -> mapTool(tool, runtimeTools)).toList();
   }
 

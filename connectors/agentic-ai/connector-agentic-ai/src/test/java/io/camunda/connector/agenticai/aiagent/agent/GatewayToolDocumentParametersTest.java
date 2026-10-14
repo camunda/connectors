@@ -231,7 +231,6 @@ class GatewayToolDocumentParametersTest {
     final var features = AgentContext.newInstanceFeatures();
     final var config =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-            .withFeatures(features)
             .withToolDefinitions(discoveredContext.toolDefinitions());
     final var context =
         AgentContext.builder()

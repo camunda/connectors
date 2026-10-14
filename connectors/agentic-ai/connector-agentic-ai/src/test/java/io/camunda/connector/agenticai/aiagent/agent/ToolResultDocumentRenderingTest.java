@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceHistoryMapper;
-import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter;
@@ -208,13 +207,16 @@ class ToolResultDocumentRenderingTest {
                 .build(),
             toolCallsById,
             completedAt,
-            new HistoryDocuments(DocumentRegistry.empty()));
+            AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures()));
     final var composed =
         mapper.inputHistoryItems(
             nextTurn.messages().getFirst(),
             toolCallsById,
             completedAt,
-            new HistoryDocuments(DocumentRegistry.empty().withDocuments(nextTurn.documents())));
+            AgentContext.empty()
+                .withFeatures(AgentContext.newInstanceFeatures())
+                .withDocumentRegistry(
+                    DocumentRegistry.empty().withDocuments(nextTurn.documents())));
 
     assertThat(live).hasSize(2);
     assertThat(composed.stream().map(this::describe).toList())
@@ -280,17 +282,20 @@ class ToolResultDocumentRenderingTest {
             mock(GatewayToolHandlerRegistry.class),
             new RuntimeToolRegistryImpl(List.of()),
             expander);
-    final var historyDocuments = new HistoryDocuments(registry);
+    final var historyContext =
+        AgentContext.empty()
+            .withFeatures(AgentContext.newInstanceFeatures())
+            .withDocumentRegistry(registry);
 
     final var early =
         mapper.inputHistoryItems(
             ToolCallResultMessage.builder().results(List.of(answer)).build(),
             toolCallsById,
             completedAt,
-            historyDocuments);
+            historyContext);
     final var composed =
         mapper.inputHistoryItems(
-            nextTurn.messages().getFirst(), toolCallsById, completedAt, historyDocuments);
+            nextTurn.messages().getFirst(), toolCallsById, completedAt, historyContext);
 
     assertThat(early).hasSize(1);
     assertThat(early.getFirst().content()).hasSize(4);

@@ -41,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -491,16 +490,16 @@ class AgentSubProcessRequestHandlerTest {
     @SuppressWarnings("unchecked")
     final ArgumentCaptor<List<ToolCallResultContent>> resultsCaptor =
         ArgumentCaptor.forClass(List.class);
-    final var documentsCaptor = ArgumentCaptor.forClass(HistoryDocuments.class);
+    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
     verify(agentInstanceClient)
         .applyToolCallResults(
             eq(agentExecutionContext),
             any(),
             resultsCaptor.capture(),
             any(),
-            documentsCaptor.capture());
+            contextCaptor.capture());
     assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
-    assertThat(documentsCaptor.getValue().documents().entries()).containsExactly(knownEntry);
+    assertThat(contextCaptor.getValue().documentRegistry().entries()).containsExactly(knownEntry);
   }
 
   @Test
@@ -1525,16 +1524,16 @@ class AgentSubProcessRequestHandlerTest {
 
     requestHandler.handleRequest(agentExecutionContext);
 
-    final var startDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
+    final var startContext = ArgumentCaptor.forClass(AgentContext.class);
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), any(), any(), any(), startDocuments.capture());
-    final var completionDocuments = ArgumentCaptor.forClass(HistoryDocuments.class);
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), startContext.capture());
+    final var completionContext = ArgumentCaptor.forClass(AgentContext.class);
     verify(agentInstanceClient)
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), any(), any(), any(), completionDocuments.capture());
-    for (final var documents : List.of(startDocuments.getValue(), completionDocuments.getValue())) {
-      assertThat(documents.documents().findById(DocumentHandle.idFor(document))).isPresent();
+            eq(agentExecutionContext), any(), any(), any(), any(), completionContext.capture());
+    for (final var context : List.of(startContext.getValue(), completionContext.getValue())) {
+      assertThat(context.documentRegistry().findById(DocumentHandle.idFor(document))).isPresent();
     }
   }
 

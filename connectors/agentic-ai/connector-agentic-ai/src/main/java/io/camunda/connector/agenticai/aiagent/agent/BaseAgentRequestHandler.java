@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
@@ -130,7 +129,6 @@ public abstract class BaseAgentRequestHandler<
       final var configuration =
           executionContext
               .configuration()
-              .withFeatures(agentContext.features())
               .withToolDefinitions(
                   Stream.concat(
                           agentContext.toolDefinitions().stream(),
@@ -152,11 +150,7 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
-              executionContext,
-              agentContext,
-              arrivedResults,
-              previousConversation,
-              historyDocuments(agentContext));
+              executionContext, agentContext, arrivedResults, previousConversation);
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -190,13 +184,6 @@ public abstract class BaseAgentRequestHandler<
         agentContext.documentRegistry().withDocuments(newDocuments));
   }
 
-  /** The documents the history shows for the agent context, before this turn registers any. */
-  private HistoryDocuments historyDocuments(AgentContext agentContext) {
-    return agentContext.supportsDocuments()
-        ? new HistoryDocuments(agentContext.documentRegistry())
-        : HistoryDocuments.withoutDocumentFlow(agentContext.supportsRuntimeTools());
-  }
-
   /**
    * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
    * previous turn to correlate against.
@@ -205,8 +192,7 @@ public abstract class BaseAgentRequestHandler<
       C executionContext,
       AgentContext agentContext,
       List<ToolCallResult> arrivedResults,
-      PreviousConversation previousConversation,
-      HistoryDocuments documents) {
+      PreviousConversation previousConversation) {
     if (arrivedResults.isEmpty() || previousConversation.turns().isEmpty()) {
       return;
     }
@@ -215,7 +201,7 @@ public abstract class BaseAgentRequestHandler<
         AgentInstanceKey.from(agentContext.metadata()),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
         previousConversation.turns().getLast(),
-        documents);
+        agentContext);
   }
 
   private R proceed(
@@ -245,7 +231,7 @@ public abstract class BaseAgentRequestHandler<
         conversation.currentTurn(),
         conversation.lastTurn(),
         OffsetDateTime.now(),
-        historyDocuments(conversation));
+        conversation.toAgentContext());
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -326,7 +312,7 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn(),
           OffsetDateTime.now(),
           status,
-          historyDocuments(workingConversation));
+          workingConversation.toAgentContext());
 
       if (continued) {
         LOGGER.debug(
@@ -356,7 +342,7 @@ public abstract class BaseAgentRequestHandler<
             workingConversation.currentTurn(),
             workingConversation.lastTurn(),
             OffsetDateTime.now(),
-            historyDocuments(workingConversation));
+            workingConversation.toAgentContext());
       } else if (split.hasRuntimeResults()) {
         LOGGER.debug(
             "Answered {} of the tool calls of turn (iterationKey={}) locally; {} go to the process",
@@ -373,7 +359,7 @@ public abstract class BaseAgentRequestHandler<
             agentInstanceKey,
             split.runtimeResults(),
             workingConversation.currentTurn(),
-            historyDocuments(workingConversation));
+            workingConversation.toAgentContext());
 
         // the results join the process results of the remaining calls in the next job
         workingConversation =
@@ -381,12 +367,6 @@ public abstract class BaseAgentRequestHandler<
       }
     } while (anotherRound);
     return workingConversation;
-  }
-
-  private static HistoryDocuments historyDocuments(AgentConversation conversation) {
-    return conversation.supportsDocuments()
-        ? new HistoryDocuments(conversation.documentRegistry())
-        : HistoryDocuments.withoutDocumentFlow(conversation.supportsRuntimeTools());
   }
 
   /**

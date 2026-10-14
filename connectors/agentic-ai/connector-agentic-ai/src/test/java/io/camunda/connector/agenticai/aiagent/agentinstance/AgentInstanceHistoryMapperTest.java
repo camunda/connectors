@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -55,8 +56,8 @@ import org.mockito.Mockito;
 
 class AgentInstanceHistoryMapperTest {
 
-  private static final HistoryDocuments NO_DOCUMENTS =
-      new HistoryDocuments(DocumentRegistry.empty());
+  private static final AgentContext NO_DOCUMENTS =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
   private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
       OffsetDateTime.parse("2026-07-02T10:00:00Z");
@@ -107,7 +108,10 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, new HistoryDocuments(registry));
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS.withDocumentRegistry(registry));
 
     assertThat(items)
         .singleElement()
@@ -149,7 +153,10 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            loadedMessage, Map.of(), TURN_INGESTION_TIMESTAMP, new HistoryDocuments(registry));
+            loadedMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS.withDocumentRegistry(registry));
 
     assertThat(items)
         .singleElement()
@@ -287,7 +294,7 @@ class AgentInstanceHistoryMapperTest {
 
   @Test
   void withoutTheDocumentsFeatureTextsAndRuntimeToolNamesAreReportedAsStored() {
-    final var withoutDocumentFlow = HistoryDocuments.withoutDocumentFlow(false);
+    final var withoutDocumentFlow = AgentContext.empty();
     final var tag = "<doc toolName=\"t\" toolCallId=\"c\" documentId=\"d1\" />";
     final var toolCall =
         ToolCall.builder().id("call-1").name(ReturnDocumentTool.NAME).arguments(Map.of()).build();
@@ -411,7 +418,7 @@ class AgentInstanceHistoryMapperTest {
         DocumentRegistry.empty()
             .withDocuments(
                 List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
-    private final HistoryDocuments documents = new HistoryDocuments(registry);
+    private final AgentContext agentContext = NO_DOCUMENTS.withDocumentRegistry(registry);
 
     private final ToolCall uploadCall =
         ToolCall.builder()
@@ -431,7 +438,7 @@ class AgentInstanceHistoryMapperTest {
     void assistantToolCallShowsTheArgumentsAsTheModelSentThem() {
       final var calls =
           mapper.assistantToolCalls(
-              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(), documents);
+              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(), agentContext);
 
       assertThat(calls)
           .singleElement()
@@ -454,7 +461,7 @@ class AgentInstanceHistoryMapperTest {
               ToolCallResultMessage.builder().results(List.of(result)).build(),
               Map.of("call-1", uploadCall),
               TURN_INGESTION_TIMESTAMP,
-              documents);
+              agentContext);
 
       assertThat(items)
           .singleElement()
@@ -478,7 +485,7 @@ class AgentInstanceHistoryMapperTest {
 
       final var calls =
           mapper.assistantToolCalls(
-              AssistantMessage.builder().toolCalls(List.of(call)).build(), documents);
+              AssistantMessage.builder().toolCalls(List.of(call)).build(), agentContext);
 
       assertThat(calls)
           .singleElement()
@@ -490,7 +497,7 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void showsTheArgumentsAsGivenWithoutKnownDocuments() {
-      final var withoutRegistry = new HistoryDocuments(DocumentRegistry.empty());
+      final var withoutRegistry = NO_DOCUMENTS;
 
       assertThat(
               mapper.assistantToolCalls(
@@ -775,7 +782,7 @@ class AgentInstanceHistoryMapperTest {
                         document, DocumentSource.toolCall("fetch", "call-1", "m-1")),
                     new IngestedDocument(
                         otherDocument, DocumentSource.toolCall("fetch", "call-1", "m-1"))));
-    private final HistoryDocuments documents = new HistoryDocuments(registry);
+    private final AgentContext agentContext = NO_DOCUMENTS.withDocumentRegistry(registry);
 
     private final ToolCall call =
         ToolCall.builder()
@@ -799,10 +806,10 @@ class AgentInstanceHistoryMapperTest {
     }
 
     private AgentInstanceHistoryMapper.InputHistoryItem item(
-        ToolCallResultMessage message, HistoryDocuments historyDocuments) {
+        ToolCallResultMessage message, AgentContext agentContext) {
       final var items =
           mapper.inputHistoryItems(
-              message, Map.of("call-1", call), TURN_INGESTION_TIMESTAMP, historyDocuments);
+              message, Map.of("call-1", call), TURN_INGESTION_TIMESTAMP, agentContext);
       assertThat(items).hasSize(1);
       return items.getFirst();
     }
@@ -847,7 +854,7 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void aBareLiveDocumentIsTheShortTagInInlineCodeFollowedByTheDocument() {
-      final var item = item(message(DocumentContent.documentContent(document)), documents);
+      final var item = item(message(DocumentContent.documentContent(document)), agentContext);
 
       assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
       assertThat(item.content()).hasSize(2);
@@ -859,8 +866,8 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void aBareTypedReferenceIsReportedLikeTheLiveDocument() {
-      final var live = item(message(DocumentContent.documentContent(document)), documents);
-      final var stored = item(message(DocumentReferenceContent.from(document)), documents);
+      final var live = item(message(DocumentContent.documentContent(document)), agentContext);
+      final var stored = item(message(DocumentReferenceContent.from(document)), agentContext);
 
       assertThat(described(stored)).isEqualTo(described(live));
     }
@@ -871,8 +878,8 @@ class AgentInstanceHistoryMapperTest {
       final var stored = persisted(message(DocumentReferenceContent.from(document)));
 
       // the early write knows no document of this turn yet
-      final var early = item(live, new HistoryDocuments(DocumentRegistry.empty()));
-      final var later = item(stored, documents);
+      final var early = item(live, NO_DOCUMENTS);
+      final var later = item(stored, agentContext);
 
       assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
     }
@@ -890,7 +897,7 @@ class AgentInstanceHistoryMapperTest {
                   TextContent.textContent("Loaded the document."),
                   block,
                   TextContent.textContent("Its content follows in the next message.")),
-              documents);
+              agentContext);
 
       assertThat(block.toTag()).contains("toolName").contains("toolCallId");
       assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");
@@ -909,7 +916,7 @@ class AgentInstanceHistoryMapperTest {
               message(
                   TextContent.textContent("The tool wrote " + tag),
                   DocumentReferenceContent.from(otherDocument)),
-              documents);
+              agentContext);
 
       assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + tag);
       assertThat(texts(item.content()).get(1)).isEqualTo("`" + otherTag + "`");
@@ -921,7 +928,7 @@ class AgentInstanceHistoryMapperTest {
           new DocumentReferenceContent(
               "unknown", "u.txt", null, null, null, null, null, DocumentDelivery.REFERENCE);
 
-      final var item = item(message(unknown), new HistoryDocuments(DocumentRegistry.empty()));
+      final var item = item(message(unknown), NO_DOCUMENTS);
 
       assertThat(item.content()).hasSize(1);
       assertThat(texts(item.content())).containsExactly("`" + unknown.toTag() + "`");
@@ -934,7 +941,7 @@ class AgentInstanceHistoryMapperTest {
               message(
                   ObjectContent.objectContent(
                       Map.of("status", 200, "file", document, "meta", Map.of("kind", "pdf")))),
-              documents);
+              agentContext);
 
       assertThat(item.content()).hasSize(2);
       assertThat(item.content().getFirst())
@@ -951,7 +958,7 @@ class AgentInstanceHistoryMapperTest {
     @Test
     void theTagInAnObjectIsNotWrappedInBackticksAndEqualsWhatTheModelSees() throws Exception {
       final var item =
-          item(message(ObjectContent.objectContent(Map.of("file", document))), documents);
+          item(message(ObjectContent.objectContent(Map.of("file", document))), agentContext);
 
       final var reported =
           ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
@@ -969,7 +976,7 @@ class AgentInstanceHistoryMapperTest {
               message(
                   ObjectContent.objectContent(
                       Map.of("attachments", List.of(new Attachment("a", document))))),
-              documents);
+              agentContext);
 
       assertThat(item.content()).hasSize(2);
       assertThat(
@@ -989,7 +996,7 @@ class AgentInstanceHistoryMapperTest {
                           Map.of("file", document),
                           Map.of("file", otherDocument),
                           Map.of("again", document)))),
-              documents);
+              agentContext);
 
       assertThat(item.content()).hasSize(3);
       assertThat(item.content().get(1))
@@ -1012,8 +1019,8 @@ class AgentInstanceHistoryMapperTest {
           ObjectContent.objectContent(
               Map.of("status", 200, "file", document, "list", List.of(otherDocument)));
 
-      final var early = item(message(content), new HistoryDocuments(DocumentRegistry.empty()));
-      final var later = item(persisted(message(content)), documents);
+      final var early = item(message(content), NO_DOCUMENTS);
+      final var later = item(persisted(message(content)), agentContext);
 
       assertThat(described(later)).isEqualTo(described(early)).hasSize(3);
     }
@@ -1026,7 +1033,7 @@ class AgentInstanceHistoryMapperTest {
                   TextContent.textContent("done"),
                   DocumentReferenceContent.from(otherDocument),
                   ObjectContent.objectContent(Map.of("file", document))),
-              documents);
+              agentContext);
 
       assertThat(item.content()).hasSize(5);
       assertThat(texts(item.content())).containsExactly("done", "`" + otherTag + "`");
@@ -1042,7 +1049,7 @@ class AgentInstanceHistoryMapperTest {
     void anObjectWithoutDocumentsIsReportedAsItIs() {
       final var value = Map.of("status", 200, "items", List.of("a", "b"));
 
-      final var item = item(message(ObjectContent.objectContent(value)), documents);
+      final var item = item(message(ObjectContent.objectContent(value)), agentContext);
 
       assertThat(item.content())
           .singleElement()
@@ -1056,7 +1063,7 @@ class AgentInstanceHistoryMapperTest {
       final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
       final var externalTag = DocumentReferenceContent.from(external).toTag();
 
-      final var item = item(message(DocumentContent.documentContent(external)), documents);
+      final var item = item(message(DocumentContent.documentContent(external)), agentContext);
 
       assertThat(texts(item.content())).containsExactly("`" + externalTag + "`");
       assertThat(item.content()).hasSize(2);
@@ -1070,9 +1077,9 @@ class AgentInstanceHistoryMapperTest {
       final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
       final var inlineTag = DocumentReferenceContent.from(inline).toTag();
 
-      final var bare = item(message(DocumentContent.documentContent(inline)), documents);
+      final var bare = item(message(DocumentContent.documentContent(inline)), agentContext);
       final var nested =
-          item(message(ObjectContent.objectContent(Map.of("file", inline))), documents);
+          item(message(ObjectContent.objectContent(Map.of("file", inline))), agentContext);
 
       assertThat(texts(bare.content())).containsExactly("`" + inlineTag + "`");
       assertThat(bare.content()).hasSize(1);
@@ -1089,7 +1096,7 @@ class AgentInstanceHistoryMapperTest {
               message(
                   DocumentReferenceContent.from(document),
                   ObjectContent.objectContent(Map.of("file", otherDocument))),
-              documents);
+              agentContext);
 
       assertThat(item.toolCalls())
           .singleElement()
@@ -1098,7 +1105,7 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void withoutTheDocumentsFeatureAToolResultIsReportedAsStored() {
-      final var legacy = HistoryDocuments.withoutDocumentFlow(false);
+      final var legacy = AgentContext.empty();
 
       final var bare = item(message(DocumentContent.documentContent(document)), legacy);
       final var nested =

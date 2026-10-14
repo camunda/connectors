@@ -112,8 +112,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class CamundaAgentInstanceClientTest {
 
-  private static final HistoryDocuments NO_DOCUMENTS =
-      new HistoryDocuments(DocumentRegistry.empty());
+  private static final AgentContext NO_DOCUMENTS =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
   private static final AgenticAiConnectorsConfigurationProperties.RetriesProperties
       RETRIES_CONFIGURATION =
@@ -871,8 +871,7 @@ class CamundaAgentInstanceClientTest {
           List.of(
               ToolDefinition.builder().name("getWeather").description("d").build(),
               new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition());
-      final var configuration =
-          configuration("Be nice.", tools).withFeatures(AgentContext.newInstanceFeatures());
+      final var configuration = configuration("Be nice.", tools);
 
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
@@ -1508,8 +1507,8 @@ class CamundaAgentInstanceClientTest {
                                   .fileName("other.txt")
                                   .build()),
                       DocumentSource.userMessage(null))));
-      final var early = new HistoryDocuments(earlyRegistry);
-      final var later = new HistoryDocuments(laterRegistry);
+      final var early = NO_DOCUMENTS.withDocumentRegistry(earlyRegistry);
+      final var later = NO_DOCUMENTS.withDocumentRegistry(laterRegistry);
 
       final var runtimeResult =
           ToolCallResultContent.builder()

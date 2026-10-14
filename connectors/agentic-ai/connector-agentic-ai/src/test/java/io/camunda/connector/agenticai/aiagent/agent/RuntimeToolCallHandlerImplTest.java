@@ -79,17 +79,15 @@ class RuntimeToolCallHandlerImplTest {
 
   private static final AgentConfiguration WITH_MEMORY =
       new AgentConfiguration(
-              TEST_CHAT_MODEL,
-              TEST_SYSTEM_PROMPT,
-              null,
-              new MemoryConfiguration(null, 10),
-              null,
-              null,
-              null)
-          .withFeatures(AgentContext.newInstanceFeatures());
+          TEST_CHAT_MODEL,
+          TEST_SYSTEM_PROMPT,
+          null,
+          new MemoryConfiguration(null, 10),
+          null,
+          null,
+          null);
   private static final AgentConfiguration WITHOUT_MEMORY =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withFeatures(AgentContext.newInstanceFeatures());
+      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
   private static final AgentContext NEW_INSTANCE =
       AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
@@ -145,7 +143,7 @@ class RuntimeToolCallHandlerImplTest {
       Set<String> features, ToolCall... calls) {
     final var featureSet = new LinkedHashSet<>(features);
     return AgentConversation.rehydrate(
-            WITHOUT_MEMORY.withToolDefinitions(List.of(WEATHER)).withFeatures(featureSet),
+            WITHOUT_MEMORY.withToolDefinitions(List.of(WEATHER)),
             AgentContext.builder().state(AgentState.READY).features(featureSet).build(),
             TurnReconstructor.reconstruct(List.of()),
             null,
@@ -155,9 +153,7 @@ class RuntimeToolCallHandlerImplTest {
 
   private AgentConversation conversation(AgentConfiguration configuration, ToolCall... calls) {
     return AgentConversation.rehydrate(
-            configuration
-                .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER))
-                .withFeatures(AgentContext.newInstanceFeatures()),
+            configuration.withToolDefinitions(List.of(UPLOAD, SEND, WEATHER)),
             AgentContext.builder()
                 .state(AgentState.READY)
                 .features(AgentContext.newInstanceFeatures())

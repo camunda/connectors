@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -53,8 +54,9 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
-   * @param documents the documents the history shows for the messages (see {@link
-   *     HistoryDocuments})
+   * @param agentContext the persisted state of the agent: its features decide what the history
+   *     shows (the documents of the messages, the runtime tools), its document registry is what the
+   *     document tags are expanded with
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -67,7 +69,7 @@ public interface AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      HistoryDocuments documents);
+      AgentContext agentContext);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
@@ -76,8 +78,9 @@ public interface AgentInstanceClient {
    * is {@code null}.
    *
    * @param producedAt when the assistant response was produced
-   * @param documents the documents the history shows for the messages (see {@link
-   *     HistoryDocuments})
+   * @param agentContext the persisted state of the agent: its features decide what the history
+   *     shows (the documents of the messages, the runtime tools), its document registry is what the
+   *     document tags are expanded with
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -89,15 +92,16 @@ public interface AgentInstanceClient {
       AgentConversationTurn turn,
       OffsetDateTime producedAt,
       AgentInstanceUpdateStatus status,
-      HistoryDocuments documents);
+      AgentContext agentContext);
 
   /**
    * Appends one tool call result per entry in {@code toolCallResults} to the conversation history,
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
-   * @param documents the documents the history shows for the messages (see {@link
-   *     HistoryDocuments})
+   * @param agentContext the persisted state of the agent: its features decide what the history
+   *     shows (the documents of the messages, the runtime tools), its document registry is what the
+   *     document tags are expanded with
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -108,5 +112,5 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
-      HistoryDocuments documents);
+      AgentContext agentContext);
 }

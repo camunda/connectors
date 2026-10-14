@@ -258,7 +258,6 @@ class AgentResponseHandlerDocumentsTest {
       List<ToolDefinition> toolDefinitions) {
     final var config =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-            .withFeatures(AgentContext.newInstanceFeatures())
             .withToolDefinitions(toolDefinitions);
     final var context =
         AgentContext.builder()

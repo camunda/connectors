@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
@@ -28,6 +29,9 @@ class AgentInstanceToolMapperTest {
           List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE)));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
   private final AgentInstanceToolMapper mapper =
       new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
 
@@ -41,7 +45,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool), true);
+    final var mapped = mapper.mapTools(List.of(tool), NEW_INSTANCE);
 
     assertThat(mapped)
         .singleElement()
@@ -57,7 +61,8 @@ class AgentInstanceToolMapperTest {
   void runtimeToolHasNoElementId() {
     final var mapped =
         mapper.mapTools(
-            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()), true);
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()),
+            NEW_INSTANCE);
 
     assertThat(mapped)
         .singleElement()
@@ -75,7 +80,8 @@ class AgentInstanceToolMapperTest {
 
     final var mapped =
         mapper.mapTools(
-            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()), false);
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()),
+            AgentContext.empty());
 
     assertThat(mapped)
         .singleElement()
@@ -94,7 +100,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool), true);
+    final var mapped = mapper.mapTools(List.of(tool), NEW_INSTANCE);
 
     assertThat(mapped)
         .singleElement()

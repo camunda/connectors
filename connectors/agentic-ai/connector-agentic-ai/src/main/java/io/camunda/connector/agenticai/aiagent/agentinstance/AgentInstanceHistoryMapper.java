@@ -18,6 +18,7 @@ import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -88,24 +89,26 @@ public class AgentInstanceHistoryMapper {
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
    *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
    *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
+   * @param agentContext the persisted state of the agent: its features decide how the messages are
+   *     shown, its document registry is what document tags are expanded with
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message,
       Map<String, ToolCall> toolCallsById,
       OffsetDateTime turnIngestionTimestamp,
-      HistoryDocuments documents) {
+      AgentContext agentContext) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  userContentBlocks(userMessage.content(), documents),
+                  userContentBlocks(userMessage.content(), agentContext),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
-              .map(result -> toolResultHistoryItem(result, toolCallsById, documents))
+              .map(result -> toolResultHistoryItem(result, toolCallsById, agentContext))
               .toList();
       default ->
           throw new IllegalArgumentException(
@@ -117,17 +120,17 @@ public class AgentInstanceHistoryMapper {
   private InputHistoryItem toolResultHistoryItem(
       ToolCallResultContent result,
       Map<String, ToolCall> toolCallsById,
-      HistoryDocuments documents) {
+      AgentContext agentContext) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        toolResultContent(result.content(), documents),
+        toolResultContent(result.content(), agentContext),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
-                .elementId(elementIdFor(result.elementId(), result.name(), documents))
+                .elementId(elementIdFor(result.elementId(), result.name(), agentContext))
                 .arguments(argumentsForResult(result, toolCallsById))),
         requireCompletedAt(result),
         AgentInstanceHistoryItemIds.forToolCallResult(result));
@@ -169,12 +172,12 @@ public class AgentInstanceHistoryMapper {
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(
-      AssistantMessage assistantMessage, HistoryDocuments documents) {
-    return contentBlocks(assistantMessage.content(), documents);
+      AssistantMessage assistantMessage, AgentContext agentContext) {
+    return contentBlocks(assistantMessage.content(), agentContext);
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
-      AssistantMessage assistantMessage, HistoryDocuments documents) {
+      AssistantMessage assistantMessage, AgentContext agentContext) {
     final List<ToolCall> toolCalls = assistantMessage.toolCalls();
     if (toolCalls == null || toolCalls.isEmpty()) {
       return null;
@@ -185,7 +188,7 @@ public class AgentInstanceHistoryMapper {
                 new AgentInstanceHistoryToolCall()
                     .toolCallId(toolCall.id())
                     .toolName(toolCall.name())
-                    .elementId(elementIdFor(null, toolCall.name(), documents))
+                    .elementId(elementIdFor(null, toolCall.name(), agentContext))
                     .arguments(argumentsOf(toolCall)))
         .toList();
   }
@@ -202,7 +205,7 @@ public class AgentInstanceHistoryMapper {
    * a runtime tool has no BPMN element: its element id is {@code null}.
    */
   private @Nullable String elementIdFor(
-      @Nullable String elementId, @Nullable String toolName, HistoryDocuments documents) {
+      @Nullable String elementId, @Nullable String toolName, AgentContext agentContext) {
     if (elementId != null) {
       return elementId;
     }
@@ -210,7 +213,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
-    if (documents.runtimeTools() && runtimeToolRegistry.toolNames().contains(toolName)) {
+    if (agentContext.supportsRuntimeTools() && runtimeToolRegistry.toolNames().contains(toolName)) {
       return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
@@ -233,22 +236,22 @@ public class AgentInstanceHistoryMapper {
    * document, as the registry knows it; text is reported as it is, also when it holds a tag.
    */
   private List<AgentInstanceHistoryContent> userContentBlocks(
-      List<Content> contents, HistoryDocuments documents) {
-    if (!documents.documentFlow()) {
-      return contentBlocks(contents, documents);
+      List<Content> contents, AgentContext agentContext) {
+    if (!agentContext.supportsDocuments()) {
+      return contentBlocks(contents, agentContext);
     }
 
+    final var registry = agentContext.documentRegistry();
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
-        final var expanded =
-            documentExpander.expandContent(List.of(reference), documents.documents());
+        final var expanded = documentExpander.expandContent(List.of(reference), registry);
         blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
         expanded.stream()
             .skip(1)
-            .forEach(document -> blocks.add(toHistoryContent(document, documents)));
+            .forEach(document -> blocks.add(toHistoryContent(document, agentContext)));
       } else {
-        blocks.add(toHistoryContent(content, documents));
+        blocks.add(toHistoryContent(content, agentContext));
       }
     }
     return List.copyOf(blocks);
@@ -261,11 +264,12 @@ public class AgentInstanceHistoryMapper {
    * object. A document that is not a Camunda or an external one has its tag only.
    */
   private List<AgentInstanceHistoryContent> toolResultContent(
-      List<Content> contents, HistoryDocuments documents) {
-    if (!documents.documentFlow()) {
-      return contentBlocks(contents, documents);
+      List<Content> contents, AgentContext agentContext) {
+    if (!agentContext.supportsDocuments()) {
+      return contentBlocks(contents, agentContext);
     }
 
+    final var registry = agentContext.documentRegistry();
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       switch (content) {
@@ -278,9 +282,9 @@ public class AgentInstanceHistoryMapper {
             addDocument(
                 blocks,
                 reference,
-                documentExpander.findDocument(documents.documents(), reference.id()).orElse(null));
+                documentExpander.findDocument(registry, reference.id()).orElse(null));
         case ObjectContent objectContent -> addObject(blocks, objectContent);
-        default -> blocks.add(toHistoryContent(content, documents));
+        default -> blocks.add(toHistoryContent(content, agentContext));
       }
     }
     return List.copyOf(blocks);
@@ -321,19 +325,18 @@ public class AgentInstanceHistoryMapper {
   }
 
   private List<AgentInstanceHistoryContent> contentBlocks(
-      List<Content> contents, HistoryDocuments documents) {
-    return contents.stream().map(content -> toHistoryContent(content, documents)).toList();
+      List<Content> contents, AgentContext agentContext) {
+    return contents.stream().map(content -> toHistoryContent(content, agentContext)).toList();
   }
 
-  private AgentInstanceHistoryContent toHistoryContent(
-      Content content, HistoryDocuments documents) {
+  private AgentInstanceHistoryContent toHistoryContent(Content content, AgentContext agentContext) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
       case DocumentReferenceContent reference ->
           AgentInstanceHistoryContent.text(
-              documents.documentFlow() ? inlineCode(reference.toTag()) : reference.toTag());
+              agentContext.supportsDocuments() ? inlineCode(reference.toTag()) : reference.toTag());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };

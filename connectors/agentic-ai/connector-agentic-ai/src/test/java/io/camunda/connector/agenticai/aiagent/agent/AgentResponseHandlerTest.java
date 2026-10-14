@@ -135,7 +135,6 @@ class AgentResponseHandlerTest {
     final var assistantMessage = assistantMessage("uploading", List.of(toolCall));
     final var config =
         new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-            .withFeatures(AgentContext.newInstanceFeatures())
             .withToolDefinitions(
                 List.of(
                     io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition.builder()

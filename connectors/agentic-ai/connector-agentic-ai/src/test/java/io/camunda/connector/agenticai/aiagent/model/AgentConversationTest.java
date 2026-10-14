@@ -56,7 +56,6 @@ class AgentConversationTest {
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
-          .withFeatures(AgentContext.newInstanceFeatures())
           .withToolDefinitions(TOOL_DEFINITIONS);
 
   private static final SystemMessage SYSTEM_MESSAGE = systemMessage("sys");
@@ -752,14 +751,13 @@ class AgentConversationTest {
       var conv =
           AgentConversation.rehydrate(
                   new AgentConfiguration(
-                          TEST_CHAT_MODEL,
-                          TEST_SYSTEM_PROMPT,
-                          null,
-                          new MemoryConfiguration(null, windowSize),
-                          null,
-                          null,
-                          null)
-                      .withFeatures(AgentContext.newInstanceFeatures()),
+                      TEST_CHAT_MODEL,
+                      TEST_SYSTEM_PROMPT,
+                      null,
+                      new MemoryConfiguration(null, windowSize),
+                      null,
+                      null,
+                      null),
                   BASE_CONTEXT,
                   TurnReconstructor.reconstruct(List.of()),
                   SYSTEM_MESSAGE,
