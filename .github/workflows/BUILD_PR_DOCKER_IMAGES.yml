@@ -39,14 +39,14 @@ jobs:
         ))
       )
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         continue-on-error: true # cache failures should not fail the build
         with:
           path: ~/.m2/repository
@@ -54,7 +54,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
@@ -87,7 +87,7 @@ jobs:
       # common-ancestor path is the repo root, preserving the apps/.../target/ layout the
       # publish job expects.
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: pr-docker-build-jars
           path: |
