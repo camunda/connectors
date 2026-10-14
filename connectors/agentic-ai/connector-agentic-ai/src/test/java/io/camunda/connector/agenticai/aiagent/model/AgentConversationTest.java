@@ -39,7 +39,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -726,26 +725,9 @@ class AgentConversationTest {
     assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
   }
 
-  private static DocumentReferenceContent reference(String id, DocumentDelivery delivery) {
-    return new DocumentReferenceContent(id, null, null, null, "user_message", null, null, delivery);
-  }
-
   @Test
-  void
-      documentIdsWithContent_collectsTheReferencesWithTheDeliveryContentOfTheWindowedUserMessagesOnly() {
-    var loaded = reference("doc-1", DocumentDelivery.CONTENT);
-    var referenced = reference("doc-2", DocumentDelivery.REFERENCE);
-    var conv =
-        rehydrate(
-            List.of(), List.of(UserMessage.builder().content(List.of(loaded, referenced)).build()));
-
-    assertThat(conv.documentIdsWithContent()).containsExactly("doc-1");
-  }
-
-  @Test
-  void documentIdsWithContent_leavesOutADocumentWhoseMessageWasEvicted() {
-    var loaded = reference("doc-1", DocumentDelivery.CONTENT);
-    var userMessage = UserMessage.builder().content(List.of(loaded)).build();
+  void windowedMessages_leavesOutAMessageThatWasEvicted() {
+    var userMessage = userMessage("hi");
 
     for (var windowSize : List.of(3, 2)) {
       var conv =
@@ -765,8 +747,7 @@ class AgentConversationTest {
               .ingest(assistantMessage("one"), AgentMetrics.empty());
 
       // the window holds the system message, the user message and the assistant message
-      assertThat(conv.documentIdsWithContent())
-          .isEqualTo(windowSize == 3 ? Set.of("doc-1") : Set.of());
+      assertThat(conv.windowedMessages().contains(userMessage)).isEqualTo(windowSize == 3);
     }
   }
 

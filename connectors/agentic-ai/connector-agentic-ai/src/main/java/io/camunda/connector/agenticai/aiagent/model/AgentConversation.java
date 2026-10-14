@@ -19,20 +19,14 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * <p>{@link #currentTurn} is always non-null: it is created as a pending turn at construction time
  * and completed by {@link #ingest}.
  */
-public final class AgentConversation implements RuntimeToolConversation {
+public final class AgentConversation {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentConversation.class);
 
@@ -311,7 +305,6 @@ public final class AgentConversation implements RuntimeToolConversation {
   }
 
   /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
-  @Override
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return agentInstanceKey;
   }
@@ -330,39 +323,16 @@ public final class AgentConversation implements RuntimeToolConversation {
    * Returns the document registry of the current agent context, which includes the documents that
    * entered the conversation with this invocation's input.
    */
-  @Override
   public DocumentRegistry documentRegistry() {
     return currentContext.documentRegistry();
   }
 
   /**
-   * Returns the ids of the documents whose content the model reads in the windowed conversation:
-   * the documents of the references with the delivery {@code content} in the windowed user
-   * messages.
+   * Returns the messages the model reads as of now: {@link #allMessages()} within the context
+   * window of the {@link #configuration()}.
    */
-  @Override
-  public Set<String> documentIdsWithContent() {
-    return documentIdsWithContent(
-        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
-  }
-
-  /**
-   * Returns the ids of the documents whose content the model reads in the given messages: the
-   * documents of the references with the delivery {@code content} in the user messages.
-   */
-  public static Set<String> documentIdsWithContent(List<Message> messages) {
-    final var ids = new LinkedHashSet<String>();
-    for (final var message : messages) {
-      if (message instanceof UserMessage userMessage) {
-        for (final var content : userMessage.content()) {
-          if (content instanceof DocumentReferenceContent reference
-              && reference.delivery() == DocumentDelivery.CONTENT) {
-            ids.add(reference.id());
-          }
-        }
-      }
-    }
-    return Set.copyOf(ids);
+  public List<Message> windowedMessages() {
+    return MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize());
   }
 
   /** Returns the documents selected for the final response so far, by key. */
@@ -456,7 +426,6 @@ public final class AgentConversation implements RuntimeToolConversation {
    * the current turn's {@link AgentConversationTurn#configurationFingerprint()} differs from the
    * turn preceding it — once the current turn has been ingested.
    */
-  @Override
   public AgentContext toAgentContext() {
     var withMetrics = currentContext.withMetrics(totalMetrics());
     var metadata = currentContext.metadata();

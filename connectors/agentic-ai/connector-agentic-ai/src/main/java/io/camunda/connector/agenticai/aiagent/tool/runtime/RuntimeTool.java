@@ -35,12 +35,13 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
  *   <li>The {@link DocumentParameterSchema document parameters} of the definition, the schema nodes
  *       with the document format, are checked: an unknown document answers the call with an error
  *       result and the tool does not run. The tool receives the id of each document, also when the
- *       model passed the {@code <doc />} tag of the document; it looks the document up in {@link
- *       RuntimeToolConversation#documentRegistry()}. A union parameter (text or a document, a
- *       schema node with {@code anyOf} or {@code oneOf} alternatives of which one is a document
- *       schema) receives the id when the model passed exactly one {@code <doc />} tag, and any
- *       other value as the model passed it; a tool cannot tell a bare id the model wrote as text
- *       from the id of a tag.
+ *       model passed the {@code <doc />} tag of the document; it looks the document up in the
+ *       {@link AgentContext#documentRegistry() registry} of the {@link
+ *       RuntimeToolConversation#agentContext() agent context}. A union parameter (text or a
+ *       document, a schema node with {@code anyOf} or {@code oneOf} alternatives of which one is a
+ *       document schema) receives the id when the model passed exactly one {@code <doc />} tag, and
+ *       any other value as the model passed it; a tool cannot tell a bare id the model wrote as
+ *       text from the id of a tag.
  *   <li>{@link #call} runs. A {@link RuntimeToolException} or an {@link RuntimeToolResult#error
  *       error result} answers the call with an error the model can act on; any other exception
  *       propagates and fails the job.
@@ -81,7 +82,7 @@ public interface RuntimeTool {
    *
    * @param call the call of the model; a document parameter holds the id of its document
    * @param executionContext the invocation of the agent; the features of the agent instance are not
-   *     part of it, read them from {@link RuntimeToolConversation#toAgentContext()}
+   *     part of it, read them from {@link RuntimeToolConversation#agentContext()}
    * @param conversation the conversation of the agent as of the call
    */
   RuntimeToolResult call(

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.document;
+package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
 import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandler;
 import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolCallHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -33,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentLinkParameters;
@@ -459,8 +462,13 @@ class GetDocumentToolTest {
   @Test
   void answersAnIdWithoutARegistryEntryWithAnError() {
     final var call = new RuntimeToolCall("1", GetDocumentTool.NAME, Map.of("id", "doc-2"));
+    final var conversation = conversation(List.of(), List.of());
     final var result =
-        tool.call(call, withConfiguration(CONFIGURATION), conversation(List.of(), List.of()));
+        tool.call(
+            call,
+            withConfiguration(CONFIGURATION),
+            new RuntimeToolConversation(
+                conversation.toAgentContext(), conversation.windowedMessages()));
 
     assertThat(result.error()).isTrue();
     assertThat(result.content()).isEqualTo("Parameter 'id' must be the id of a known document.");

@@ -76,7 +76,7 @@ public final class SaveNoteTool implements RuntimeTool {
     if (note.text().equals("reject")) {
       throw new RuntimeToolException("This note is not allowed.");
     }
-    final var count = notesOf(conversation.toAgentContext().properties()).size() + 1;
+    final var count = notesOf(conversation.agentContext().properties()).size() + 1;
     return RuntimeToolResult.success("Saved note #" + count)
         .withContextUpdate(
             agentContext -> {

@@ -15,12 +15,10 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Reje
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
-import io.camunda.connector.agenticai.aiagent.document.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.LegacyDocumentReferenceXmlTag;
@@ -39,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
@@ -475,7 +474,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         messages.add(turn.assistantMessage());
       }
     }
-    return AgentConversation.documentIdsWithContent(
+    return MessageUtil.documentIdsWithContent(
         MessageWindowFilter.apply(messages, configuration.contextWindowSize()));
   }
 

@@ -7,33 +7,29 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import java.util.Set;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
  * What a runtime tool can read about the conversation of the agent while it runs, as of the call.
  * The view is read-only: a tool changes the agent state through the {@link
  * RuntimeToolResult#withContextUpdate context updates} of its result.
+ *
+ * @param agentContext the agent context, including the changes the earlier calls made. Its {@link
+ *     AgentContext#properties() properties} are the free-form state of the agent.
+ * @param messages the messages the model reads as of the call: the system message, if any, and the
+ *     turns within the context window, the current turn included
  */
-public interface RuntimeToolConversation {
+public record RuntimeToolConversation(AgentContext agentContext, List<Message> messages) {
 
-  /** The documents the agent knows. */
-  DocumentRegistry documentRegistry();
-
-  /**
-   * The ids of the documents whose content is part of the conversation the model reads, as opposed
-   * to documents the model sees as a reference only.
-   */
-  Set<String> documentIdsWithContent();
+  public RuntimeToolConversation {
+    messages = List.copyOf(messages);
+  }
 
   /** The key of the agent instance, or {@code null} if there is none yet. */
-  @Nullable AgentInstanceKey agentInstanceKey();
-
-  /**
-   * The agent context, including the changes the earlier calls made. Its {@link
-   * AgentContext#properties() properties} are the free-form state of the agent.
-   */
-  AgentContext toAgentContext();
+  public @Nullable AgentInstanceKey agentInstanceKey() {
+    return AgentInstanceKey.from(agentContext.metadata());
+  }
 }

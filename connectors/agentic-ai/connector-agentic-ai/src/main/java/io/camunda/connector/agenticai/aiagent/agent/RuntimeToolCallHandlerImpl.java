@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
@@ -128,7 +129,8 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
       return tool.call(
           new RuntimeToolCall(toolCall.id(), toolCall.name(), toolArguments),
           executionContext,
-          conversation);
+          new RuntimeToolConversation(
+              conversation.toAgentContext(), conversation.windowedMessages()));
     } catch (RuntimeToolException e) {
       LOGGER.debug("Runtime tool '{}' rejected the call '{}'", toolCall.name(), toolCall.id(), e);
       return RuntimeToolResult.error(e.getMessage());

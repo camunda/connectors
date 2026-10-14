@@ -4,11 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.document;
+package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
-import static io.camunda.connector.agenticai.aiagent.document.OrderedMaps.ordered;
+import static io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.OrderedMaps.ordered;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
@@ -110,7 +111,7 @@ public final class ReturnDocumentTool implements RuntimeTool {
       AgentExecutionContext executionContext,
       RuntimeToolConversation conversation) {
     final var arguments = call.argumentsAs(Arguments.class, objectMapper);
-    final var documents = conversation.documentRegistry();
+    final var documents = conversation.agentContext().documentRegistry();
     if (arguments.key() == null || !KEY_PATTERN.matcher(arguments.key()).matches()) {
       return RuntimeToolResult.error(
           "Parameter '%s' must match [A-Za-z_][A-Za-z0-9_-]*: it starts with a letter or an"

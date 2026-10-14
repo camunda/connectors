@@ -4,13 +4,16 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.document;
+package io.camunda.connector.agenticai.aiagent.tool.runtime.builtin;
 
-import static io.camunda.connector.agenticai.aiagent.document.OrderedMaps.ordered;
+import static io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.OrderedMaps.ordered;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.BuiltInToolNames;
@@ -91,14 +94,14 @@ public final class GetDocumentTool implements RuntimeTool {
       AgentExecutionContext executionContext,
       RuntimeToolConversation conversation) {
     final var id = call.argumentsAs(Arguments.class, objectMapper).id();
-    final var documents = conversation.documentRegistry();
+    final var documents = conversation.agentContext().documentRegistry();
     final var entry = id == null ? null : documents.findById(id).orElse(null);
     if (entry == null) {
       return RuntimeToolResult.error(
           "Parameter '%s' must be the id of a known document.".formatted(PARAMETER_ID));
     }
 
-    if (conversation.documentIdsWithContent().contains(entry.id())) {
+    if (MessageUtil.documentIdsWithContent(conversation.messages()).contains(entry.id())) {
       return RuntimeToolResult.success(
           "Document %s is already in the conversation.".formatted(entry.id()));
     }

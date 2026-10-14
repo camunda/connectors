@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -38,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryIm
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.SaveNoteTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -608,8 +608,8 @@ class RuntimeToolCallHandlerImplTest {
             "acme_reading",
             (call, executionContext, conv) -> {
               seen.add(executionContext);
-              seen.add(conv.documentRegistry().entries());
-              seen.add(conv.toAgentContext().features());
+              seen.add(conv.agentContext().documentRegistry().entries());
+              seen.add(conv.agentContext().features());
               return RuntimeToolResult.success("read");
             });
     final var call = new ToolCall("r1", "acme_reading", Map.of());
