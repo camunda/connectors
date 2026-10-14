@@ -1,0 +1,146 @@
+---
+architecture_md: 1
+component: camunda/connectors/connectors/agentic-ai
+system: { id: connectors, map: "camunda/connectors/SYSTEM.md" }
+lifecycle: production
+kind: [library]
+summary: AI Agent connectors (Task and Sub-process) that run LLM tool-calling loops in BPMN, with MCP and A2A gateway tools, conversation memory and chat model providers.
+team: { name: connectors-agentic-ai, contact: unknown }
+intake: { how: issue, template: FEATURE_REQUEST.md }
+owns:
+  - AI Agent Task and AI Agent Sub-process connectors and their shared orchestration core
+  - Agent state machine, conversation memory and conversation store SPI
+  - Tool resolution, fromAi() extraction and ad-hoc tool schema generation
+  - Chat model provider integrations (LangChain4j and native providers)
+  - MCP and A2A gateway tool integrations
+  - AI Agent real-provider (CPT) test registry (connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt) and, as maintainer, its CI scripts in .github/ai-agent-cpt (CODEOWNERS review: connectors-core)
+does_not_own:
+  - { concept: "SDK, runtime, job-worker execution", owner: camunda/connectors }
+  - { concept: Ad-hoc sub-process and engine tool-call semantics, owner: camunda/camunda }
+  - { concept: Other AWS Bedrock and vector database connectors' generic AWS base, owner: camunda/connectors/connectors/aws }
+depends_on:
+  - id: sdk
+    component: camunda/connectors
+    kind: library
+    contract: "connector-sdk/core; job completion handled in the SDK (ADR 002)"
+    architecture: ARCHITECTURE.md
+    versions: Same repo and version
+    workaround_policy: never
+  - id: camunda-client
+    component: camunda/camunda
+    kind: library
+    contract: "camunda-client-java for ad-hoc sub-process activation and agent instance API"
+    versions: "Tracks version.camunda in parent/pom.xml"
+    workaround_policy: never
+  - id: langchain4j
+    component: LangChain4j
+    kind: external
+    contract: "Chat model abstraction, confined to aiagent/chatmodel/provider/langchain4j"
+    workaround_policy: never
+  - id: llm-providers
+    component: "LLM provider APIs (OpenAI, Anthropic, Bedrock, Azure, Google, Mistral, and others)"
+    kind: external
+    contract: "HTTP APIs via LangChain4j or native providers"
+    workaround_policy: never
+  - id: mcp-a2a
+    component: "MCP servers and A2A agents"
+    kind: external
+    contract: "MCP client and A2A protocol clients"
+    workaround_policy: never
+consumers:
+  - { who: "Process modelers", via: "AI Agent element templates (element-templates/)", promise: "Templates versioned; migration of running instances limited per ai-agent.md §17" }
+  - { who: "Custom extension authors", via: "SPIs: chat model provider, SystemPromptContributor, ConversationStore, gateway tool", promise: "Breaking changes listed in docs/breaking-changes.md" }
+exposes:
+  - { contract: "AI Agent Task and Sub-process connector types", spec: "element-templates/", policy: "Versioned templates; v1 deprecation marker" }
+  - { contract: "Extension SPIs", spec: docs/reference/ai-agent.md#25-extension-points, policy: "Spring beans implementing the SPI; breaking changes recorded" }
+constraints:
+  - { id: C1, name: "Framework-agnostic core (LangChain4j only in provider package)", hard: true, ref: AGENTS.md }
+  - { id: C2, name: "E2E tests for engine/BPMN wiring changes", hard: true, ref: AGENTS.md }
+  - { id: C3, name: "Real-provider CPT run authorised per PR head SHA", hard: false, ref: AGENTS.md }
+  - { id: C4, name: "Conversation store write-ahead and concurrency invariants", hard: true, ref: docs/reference/ai-agent.md }
+  - { id: C5, name: "ADR before implementation for significant decisions", hard: false, ref: docs/adr }
+decisions: docs/adr
+
+---
+
+# Architecture — camunda/connectors/connectors/agentic-ai
+
+Draft from the repository; not reviewed by its team. The module's deep reference lives in
+[AGENTS.md](AGENTS.md) and [docs/reference/ai-agent.md](docs/reference/ai-agent.md); this file only
+states boundaries and links.
+
+## 1. Purpose
+Lets BPMN processes run LLM agents that call tools, modelled either as a service task or as an ad-hoc
+sub-process (recommended). Core platform: [root ARCHITECTURE.md](../../ARCHITECTURE.md); part of the [Camunda Connectors system](../../SYSTEM.md).
+
+## 2. Ownership boundary
+**Owns:** see `owns` above. Also CODEOWNERS-assigned: `connectors/embeddings-vector-database`,
+`connectors/aws/aws-bedrock-{codeinterpreter,knowledgebase,agentcore-runtime,agentcore-long-term-memory}`
+and `connectors-e2e-test/connectors-e2e-test-agentic-ai`; TODO(confirm) whether those get their own files or are covered here.
+Cross-team: this team maintains the CPT CI scripts in `.github/ai-agent-cpt`, but CODEOWNERS assigns
+all of `.github/` to connectors-core, which reviews changes there.
+
+**Does not own (route here instead):**
+| If you need… | It belongs to | How to ask |
+|---|---|---|
+| SDK or runtime change | connectors-core | Issue in this repo |
+| Engine behaviour of ad-hoc sub-processes | `camunda/camunda` | TODO(confirm) |
+
+## 3. Structure
+Maven module `connector-agentic-ai`, packages under `io.camunda.connector.agenticai`:
+`aiagent` (agent, model, memory, chatmodel providers, `langchain4j` converters), `adhoctoolsschema`,
+`mcp`, `a2a`, `autoconfigure`, `common`. Two flavors share `BaseAgentRequestHandler`:
+`AgentTaskV2Function` and `AgentSubProcessV2Function` are the current entry points;
+`AgentTaskV1Function` and `AgentSubProcessV1Function` are deprecated backward-compatibility shims for
+existing v1 process models. Interfaces sit in the package root with a single
+`*Impl` alongside, wired as Spring beans.
+
+## 4. Binding decisions
+[docs/adr](docs/adr/): 001 replace MCP client framework, 002 consolidate job worker into SDK,
+003 conversation storage SPI redesign. Architectural invariants: [§24](docs/reference/ai-agent.md#24-architectural-invariants).
+
+## 5. Planning constraints
+### C1 — Framework neutrality
+- **Question:** Does any new code outside `chatmodel/provider/langchain4j` import `dev.langchain4j.*` or leak framework types into domain model?
+- **Hard:** yes
+- **Detail:** [AGENTS.md](AGENTS.md)
+
+### C2 — Test level
+- **Question:** Does correctness depend on engine/BPMN wiring (needs E2E) or is it a pure transformation (unit)?
+- **Hard:** yes
+- **Detail:** [AGENTS.md](AGENTS.md)
+
+### C3 — Real-provider tests
+- **Question:** Does the change touch provider behaviour requiring a CPT row and an authorised run on the head SHA?
+- **Hard:** no
+- **Detail:** [AGENTS.md](AGENTS.md)
+
+### C4 — Concurrency and memory
+- **Question:** Does the change affect job supersession, store-ahead-of-Zeebe ordering or partial tool results?
+- **Hard:** yes
+- **Detail:** [ai-agent.md §10](docs/reference/ai-agent.md#10-concurrency-challenges--race-conditions)
+
+### C5 — Public extension compatibility
+- **Question:** Does it change an SPI or process-variable data model? Record in breaking-changes and check running-instance migration.
+- **Hard:** no
+- **Detail:** [docs/breaking-changes.md](docs/breaking-changes.md)
+
+## 6. Data and persistence
+Conversation memory is pluggable via `ConversationStore`: in-process (process variables), Camunda documents, and AWS AgentCore memory ([aws-agentcore-memory.md](docs/reference/aws-agentcore-memory.md)); agent context is kept in process variables. See [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory--storage).
+
+## 7. Cross-cutting qualities
+Credentials via secrets; MCP and A2A calls to external endpoints. TODO(confirm) security, data-residency and observability expectations beyond the agent instance status/metrics API.
+
+## 8. Delivery
+As the root ([Delivery](../../ARCHITECTURE.md#8-delivery)). Element templates are versioned; v1 task templates carry a deprecation marker.
+
+## 9. Testing expectations
+Unit tests, E2E under `connectors-e2e-test/connectors-e2e-test-agentic-ai`, and real-LLM CPT coverage driven by the registry in the agentic-ai E2E module's test resources (`ai-agent-cpt/registry.json`), validated by `.github/ai-agent-cpt` scripts. See [AGENTS.md](AGENTS.md) §Working in this module.
+
+## 10. Planning conventions
+ADRs in `docs/adr/` written before implementation and immutable once merged; keep `AGENTS.md` and `docs/reference/` updated with changes.
+
+## 11. Glossary
+- **AHSP:** ad-hoc sub-process hosting agent tools.
+- **Gateway tool:** tool that fronts a remote capability (MCP server, A2A agent).
+- **CPT:** real-provider test run of the agent against live LLMs.
