@@ -36,9 +36,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.document.AgentContextDocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -103,10 +101,6 @@ class AgentTaskRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
-
-  @Spy
-  private DocumentRegistryStorage documentRegistryStorage =
-      new AgentContextDocumentRegistryStorage();
 
   @Spy
   private DocumentExpander documentExpander =

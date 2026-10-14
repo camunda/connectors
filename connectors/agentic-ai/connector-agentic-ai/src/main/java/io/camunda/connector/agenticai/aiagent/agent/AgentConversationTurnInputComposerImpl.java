@@ -169,7 +169,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       if (documentFlow) {
         final var documentContentMessage =
             composeDocumentContentMessage(
-                getDocumentTags(DocumentRegistry.of(agentContext.documents()), toolCallResults),
+                getDocumentTags(agentContext.documentRegistry(), toolCallResults),
                 toolDocumentContent(
                     agentContext,
                     configuration,

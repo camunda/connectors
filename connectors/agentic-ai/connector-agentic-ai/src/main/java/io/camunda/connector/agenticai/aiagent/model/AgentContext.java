@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -121,6 +122,16 @@ public record AgentContext(
   /** The features of an agent instance that is created now. */
   public static LinkedHashSet<String> newInstanceFeatures() {
     return new LinkedHashSet<>(List.of(FEATURE_RUNTIME_TOOLS, FEATURE_DOCUMENTS));
+  }
+
+  /** Returns the registry of the documents the agent knows, empty if none was persisted yet. */
+  public DocumentRegistry documentRegistry() {
+    return DocumentRegistry.of(documents);
+  }
+
+  /** Returns the agent context carrying the given registry. */
+  public AgentContext withDocumentRegistry(DocumentRegistry registry) {
+    return withDocuments(registry.entries());
   }
 
   public AgentContext withProperty(String key, Object value) {

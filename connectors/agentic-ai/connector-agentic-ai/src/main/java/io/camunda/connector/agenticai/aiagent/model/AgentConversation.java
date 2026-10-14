@@ -332,7 +332,7 @@ public final class AgentConversation implements RuntimeToolConversation {
    */
   @Override
   public DocumentRegistry documentRegistry() {
-    return DocumentRegistry.of(currentContext.documents());
+    return currentContext.documentRegistry();
   }
 
   /**

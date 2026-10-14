@@ -50,11 +50,9 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
-import io.camunda.connector.agenticai.aiagent.document.AgentContextDocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTag;
 import io.camunda.connector.agenticai.aiagent.document.GetDocumentTool;
@@ -168,10 +166,6 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
-
-  @Spy
-  private DocumentRegistryStorage documentRegistryStorage =
-      new AgentContextDocumentRegistryStorage();
 
   @Spy
   private DocumentExpander documentExpander =

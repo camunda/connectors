@@ -50,9 +50,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
-import io.camunda.connector.agenticai.aiagent.document.AgentContextDocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.GetDocumentTool;
 import io.camunda.connector.agenticai.aiagent.document.ReturnDocumentTool;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
@@ -334,12 +332,6 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentRegistryStorage aiAgentDocumentRegistryStorage() {
-    return new AgentContextDocumentRegistryStorage();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public RuntimeToolCallHandler aiAgentRuntimeToolCallHandler(
       RuntimeToolRegistry runtimeToolRegistry) {
     return new RuntimeToolCallHandlerImpl(runtimeToolRegistry);
@@ -379,7 +371,6 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage,
       RuntimeToolCallHandler runtimeToolCallHandler,
       DocumentExpander documentExpander) {
     return new AgentTaskRequestHandler(
@@ -390,7 +381,6 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage,
         runtimeToolCallHandler,
         documentExpander);
   }
@@ -427,7 +417,6 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage,
       RuntimeToolCallHandler runtimeToolCallHandler,
       DocumentExpander documentExpander) {
     return new AgentSubProcessRequestHandler(
@@ -438,7 +427,6 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        documentRegistryStorage,
         runtimeToolCallHandler,
         documentExpander);
   }

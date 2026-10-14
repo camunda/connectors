@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryStorage;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -72,7 +71,6 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
-  private final DocumentRegistryStorage documentRegistryStorage;
   private final RuntimeToolCallHandler runtimeToolCallHandler;
   private final DocumentExpander documentExpander;
 
@@ -84,7 +82,6 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      DocumentRegistryStorage documentRegistryStorage,
       RuntimeToolCallHandler runtimeToolCallHandler,
       DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
@@ -94,7 +91,6 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
-    this.documentRegistryStorage = documentRegistryStorage;
     this.runtimeToolCallHandler = runtimeToolCallHandler;
     this.documentExpander = documentExpander;
   }
@@ -190,14 +186,14 @@ public abstract class BaseAgentRequestHandler<
    */
   private AgentContext registerDocuments(
       AgentContext agentContext, List<IngestedDocument> newDocuments) {
-    return documentRegistryStorage.store(
-        agentContext, documentRegistryStorage.load(agentContext).withDocuments(newDocuments));
+    return agentContext.withDocumentRegistry(
+        agentContext.documentRegistry().withDocuments(newDocuments));
   }
 
   /** The documents the history shows for the agent context, before this turn registers any. */
   private HistoryDocuments historyDocuments(AgentContext agentContext) {
     return agentContext.supportsDocuments()
-        ? new HistoryDocuments(documentRegistryStorage.load(agentContext))
+        ? new HistoryDocuments(agentContext.documentRegistry())
         : HistoryDocuments.withoutDocumentFlow(agentContext.supportsRuntimeTools());
   }
 
