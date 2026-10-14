@@ -26,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
@@ -335,7 +334,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
+      List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
       HistoryDocuments documents) {
     if (agentInstanceKey == null) {
@@ -343,10 +342,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       return;
     }
 
-    final var syntheticMessage =
-        ToolCallResultMessage.builder()
-            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
-            .build();
+    final var syntheticMessage = ToolCallResultMessage.builder().results(toolCallResults).build();
     final var toolCallsById = previousTurn.toolCallsById();
     final var iteration = previousTurn.iterationKey() + 1;
 

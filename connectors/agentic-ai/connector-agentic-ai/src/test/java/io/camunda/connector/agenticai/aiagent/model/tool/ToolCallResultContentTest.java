@@ -102,25 +102,6 @@ class ToolCallResultContentTest {
       assertThat(result.properties()).isEqualTo(Map.of("custom", "value"));
       assertThat(result.content()).containsExactly(TextContent.textContent("Found 3 items"));
     }
-
-    @Test
-    void usesTheContentBlocksOfAResultAsItsContent() {
-      final var blocks =
-          List.<Content>of(
-              TextContent.textContent("Loaded the document."),
-              new DocumentReferenceContent(
-                  "doc-1", null, null, null, null, null, null, DocumentDelivery.REFERENCE),
-              TextContent.textContent("Its content follows in the next message."));
-      final var toolCallResult =
-          ToolCallResult.builder()
-              .id("call-1")
-              .name("c8__get_document")
-              .contentBlocks(blocks)
-              .build();
-
-      assertThat(toolCallResult.content()).isNull();
-      assertThat(ToolCallResultContent.from(toolCallResult).content()).isEqualTo(blocks);
-    }
   }
 
   @Nested

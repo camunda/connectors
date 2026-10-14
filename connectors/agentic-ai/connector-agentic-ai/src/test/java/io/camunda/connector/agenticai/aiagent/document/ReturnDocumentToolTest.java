@@ -22,8 +22,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
@@ -62,6 +63,11 @@ class ReturnDocumentToolTest {
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
   private static final AgentContext WITH_DOCUMENTS =
       AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
+  private static String text(ToolCallResultContent result) {
+    assertThat(result.content()).singleElement().isInstanceOf(TextContent.class);
+    return ((TextContent) result.content().getFirst()).text();
+  }
 
   @Test
   void definitionDescribesOneDocumentPerCallUnderAKey() {
@@ -106,7 +112,7 @@ class ReturnDocumentToolTest {
             call("1", Map.of("key", "summary", "document", summaryId, "description", "Short")));
 
     assertThat(split.runtimeResults())
-        .extracting(ToolCallResult::content)
+        .extracting(r -> text(r))
         .containsExactly("Returned the document under the key 'summary'.");
     assertThat(split.conversation().responseDocuments())
         .containsExactly(Map.entry("summary", new ResponseDocumentSelection(summaryId, "Short")));
@@ -154,7 +160,7 @@ class ReturnDocumentToolTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content())
+                assertThat(text(result))
                     .isEqualTo(
                         "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
     assertThat(split.conversation().responseDocuments()).isEmpty();
@@ -166,7 +172,7 @@ class ReturnDocumentToolTest {
     final var split = run(CONFIGURATION, call("1", Map.of("key", "k", "document", tag)));
 
     assertThat(split.runtimeResults())
-        .extracting(ToolCallResult::content)
+        .extracting(r -> text(r))
         .containsExactly("Returned the document under the key 'k'.");
     assertThat(split.conversation().responseDocuments())
         .containsExactly(Map.entry("k", new ResponseDocumentSelection(reportId, null)));
@@ -181,7 +187,7 @@ class ReturnDocumentToolTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content().toString())
+                assertThat(text(result))
                     .startsWith("Parameter 'document' must be the exact id of a known document")
                     .contains("got '" + tag + "'"));
     assertThat(split.conversation().responseDocuments()).isEmpty();
@@ -196,7 +202,7 @@ class ReturnDocumentToolTest {
           .singleElement()
           .satisfies(
               result ->
-                  assertThat(result.content().toString())
+                  assertThat(text(result))
                       .startsWith("Parameter 'key' must match [A-Za-z_][A-Za-z0-9_-]*"));
       assertThat(split.conversation().responseDocuments()).isEmpty();
     }
@@ -221,7 +227,7 @@ class ReturnDocumentToolTest {
       final var split = run(CONFIGURATION, call("1", arguments));
 
       assertThat(split.runtimeResults()).singleElement();
-      assertThat(split.runtimeResults().get(0).content().toString()).contains("Parameter");
+      assertThat(text(split.runtimeResults().get(0))).contains("Parameter");
       assertThat(split.conversation().responseDocuments()).isEmpty();
     }
   }
@@ -237,11 +243,13 @@ class ReturnDocumentToolTest {
 
     assertThat(split.conversation().responseDocuments())
         .containsExactly(Map.entry("report", new ResponseDocumentSelection(reportId, null)));
-    assertThat(split.runtimeResults()).extracting(ToolCallResult::id).containsExactly("r1", "r2");
+    assertThat(split.runtimeResults())
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("r1", "r2");
     assertThat(split.remainingCalls()).extracting(ToolCall::id).containsExactly("t1");
-    assertThat(split.runtimeResults().get(0).content())
+    assertThat(text(split.runtimeResults().get(0)))
         .isEqualTo("Returned the document under the key 'report'.");
-    assertThat(split.runtimeResults().get(1).content().toString())
+    assertThat(text(split.runtimeResults().get(1)))
         .startsWith(
             "Parameter 'document' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
   }

@@ -233,10 +233,10 @@ class ToolResultDocumentRenderingTest {
                 List.of(new IngestedDocument(loaded, DocumentSource.userMessage("m-1"))));
     final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:55+02:00");
     final var answer =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("abcdef")
             .name("c8__get_document")
-            .contentBlocks(
+            .content(
                 List.of(
                     TextContent.textContent("Loaded the document."),
                     DocumentReferenceContent.from(
@@ -284,9 +284,7 @@ class ToolResultDocumentRenderingTest {
 
     final var early =
         mapper.inputHistoryItems(
-            ToolCallResultMessage.builder()
-                .results(List.of(ToolCallResultContent.from(answer)))
-                .build(),
+            ToolCallResultMessage.builder().results(List.of(answer)).build(),
             toolCallsById,
             completedAt,
             historyDocuments);

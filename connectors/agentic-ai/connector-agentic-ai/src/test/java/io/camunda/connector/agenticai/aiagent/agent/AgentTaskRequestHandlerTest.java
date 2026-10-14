@@ -182,9 +182,9 @@ class AgentTaskRequestHandlerTest {
             result -> {
               assertThat(result.id()).isEqualTo("call-1");
               assertThat(result.content())
-                  .asString()
-                  .startsWith(
-                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
+                  .containsExactly(
+                      TextContent.textContent(
+                          "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
             });
     verify(agentInstanceClient)
         .applyTurnCompletion(

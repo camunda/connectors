@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
@@ -58,7 +58,7 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
     }
 
     final var completedAt = OffsetDateTime.now();
-    final var runtimeResults = new ArrayList<ToolCallResult>();
+    final var runtimeResults = new ArrayList<ToolCallResultContent>();
     final var remainingCalls = new ArrayList<ToolCall>();
     var workingConversation = conversation;
     for (final var toolCall : toolCalls) {
@@ -83,11 +83,13 @@ public class RuntimeToolCallHandlerImpl implements RuntimeToolCallHandler {
 
       final var blocks = result.contentBlocks();
       runtimeResults.add(
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id(toolCall.id())
               .name(toolCall.name())
-              .content(blocks == null ? result.content() : null)
-              .contentBlocks(blocks == null ? List.of() : blocks)
+              .content(
+                  blocks == null
+                      ? ToolCallResultContent.contentFromObject(result.content())
+                      : blocks)
               .completedAt(completedAt)
               .properties(result.properties())
               .build());

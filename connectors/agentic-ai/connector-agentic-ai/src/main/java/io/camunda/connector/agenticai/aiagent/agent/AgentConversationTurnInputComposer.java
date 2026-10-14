@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -37,5 +37,5 @@ public interface AgentConversationTurnInputComposer {
    * @return the message, or {@code null} if no result loads a document known to the registry
    */
   @Nullable UserMessage composeDocumentContentMessage(
-      DocumentRegistry registry, List<ToolCallResult> results);
+      DocumentRegistry registry, List<ToolCallResultContent> results);
 }

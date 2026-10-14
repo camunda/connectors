@@ -26,9 +26,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
@@ -166,6 +168,11 @@ class RuntimeToolCallHandlerImplTest {
 
   private static final ToolCall WEATHER_CALL = new ToolCall("w", "getWeather", Map.of());
 
+  private static String text(ToolCallResultContent result) {
+    assertThat(result.content()).singleElement().isInstanceOf(TextContent.class);
+    return ((TextContent) result.content().getFirst()).text();
+  }
+
   @Test
   void leavesEveryCallToTheProcessWhenNoRuntimeToolIsRegistered() {
     final var split =
@@ -188,7 +195,7 @@ class RuntimeToolCallHandlerImplTest {
             result -> {
               assertThat(result.id()).isEqualTo("n1");
               assertThat(result.name()).isEqualTo("c8__save_note");
-              assertThat(result.content()).isEqualTo("Saved note #1");
+              assertThat(text(result)).isEqualTo("Saved note #1");
               assertThat(result.completedAt()).isNotNull();
             });
   }
@@ -215,7 +222,7 @@ class RuntimeToolCallHandlerImplTest {
         handler.handle(conversation(WITH_MEMORY, first, second), List.of(first, second));
 
     assertThat(split.runtimeResults())
-        .extracting(ToolCallResult::content)
+        .extracting(r -> text(r))
         .containsExactly("Saved note #1", "Saved note #2");
     assertThat(SaveNoteTool.notesOf(split.conversation().toAgentContext().properties()))
         .containsExactly("a", "b");
@@ -233,7 +240,9 @@ class RuntimeToolCallHandlerImplTest {
             List.of(first, WEATHER_CALL, second, other));
 
     assertThat(split.answersAllCalls()).isFalse();
-    assertThat(split.runtimeResults()).extracting(ToolCallResult::id).containsExactly("n1", "n2");
+    assertThat(split.runtimeResults())
+        .extracting(ToolCallResultContent::id)
+        .containsExactly("n1", "n2");
     assertThat(split.remainingCalls()).containsExactly(WEATHER_CALL, other);
   }
 
@@ -260,7 +269,7 @@ class RuntimeToolCallHandlerImplTest {
 
     assertThat(split.runtimeResults())
         .singleElement()
-        .satisfies(result -> assertThat(result.content()).isEqualTo("The note must not be blank."));
+        .satisfies(result -> assertThat(text(result)).isEqualTo("The note must not be blank."));
     assertThat(split.conversation().toAgentContext().properties()).isEmpty();
   }
 
@@ -272,7 +281,7 @@ class RuntimeToolCallHandlerImplTest {
 
     assertThat(split.runtimeResults())
         .singleElement()
-        .satisfies(result -> assertThat(result.content()).isEqualTo("This note is not allowed."));
+        .satisfies(result -> assertThat(text(result)).isEqualTo("This note is not allowed."));
   }
 
   @Test
@@ -292,8 +301,7 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content().toString())
-                    .startsWith("Invalid arguments for tool 'c8__limited':"));
+                assertThat(text(result)).startsWith("Invalid arguments for tool 'c8__limited':"));
   }
 
   @Test
@@ -328,7 +336,7 @@ class RuntimeToolCallHandlerImplTest {
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.runtimeResults()).extracting(ToolCallResult::content).containsExactly("read");
+    assertThat(split.runtimeResults()).extracting(r -> text(r)).containsExactly("read");
     assertThat(received).containsExactly(reportId, null);
   }
 
@@ -350,7 +358,7 @@ class RuntimeToolCallHandlerImplTest {
 
     final var split = handlerOf(tool).handle(conversation(WITH_MEMORY, call), List.of(call));
 
-    assertThat(split.runtimeResults()).extracting(ToolCallResult::content).containsExactly("read");
+    assertThat(split.runtimeResults()).extracting(r -> text(r)).containsExactly("read");
     assertThat(received).containsExactly(Map.of("file", reportId, "other", "kept"));
   }
 
@@ -374,7 +382,7 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content())
+                assertThat(text(result))
                     .isEqualTo(
                         "Parameter 'file' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
   }
@@ -402,7 +410,7 @@ class RuntimeToolCallHandlerImplTest {
                 List.of(tagCall, bareIdCall, textCall));
 
     assertThat(split.runtimeResults())
-        .extracting(ToolCallResult::content)
+        .extracting(r -> text(r))
         .containsExactly("sent", "sent", "sent");
     assertThat(received).containsExactly(reportId, reportId, "hello");
   }
@@ -427,7 +435,7 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content())
+                assertThat(text(result))
                     .isEqualTo(
                         "Parameter 'body' holds a <doc /> tag with the id 'bogus'. That is not a known document. Pass the tag of a document exactly as you read it, or pass other text."));
   }
@@ -463,7 +471,7 @@ class RuntimeToolCallHandlerImplTest {
         .satisfies(
             result -> {
               assertThat(result.id()).isEqualTo("s2");
-              assertThat(result.content())
+              assertThat(text(result))
                   .isEqualTo(
                       "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document. Pass the tag of a document exactly as you read it, or pass other text.");
             });
@@ -499,7 +507,7 @@ class RuntimeToolCallHandlerImplTest {
         .singleElement()
         .satisfies(
             result ->
-                assertThat(result.content())
+                assertThat(text(result))
                     .isEqualTo(
                         "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'nope'."));
   }
@@ -534,7 +542,7 @@ class RuntimeToolCallHandlerImplTest {
     assertThat(split.answersAllCalls()).isTrue();
     assertThat(split.runtimeResults())
         .singleElement()
-        .satisfies(result -> assertThat(result.content()).isEqualTo("echo"));
+        .satisfies(result -> assertThat(text(result)).isEqualTo("echo"));
     assertThat(handlerOf(ECHO_TOOL).availableToolDefinitions(conversation))
         .extracting(ToolDefinition::name)
         .containsExactly("acme_echo");
@@ -583,7 +591,7 @@ class RuntimeToolCallHandlerImplTest {
     assertThat(with.answersAllCalls()).isTrue();
     assertThat(with.runtimeResults())
         .singleElement()
-        .satisfies(result -> assertThat(result.content()).isEqualTo("featured"));
+        .satisfies(result -> assertThat(text(result)).isEqualTo("featured"));
   }
 
   @Test
@@ -636,9 +644,11 @@ class RuntimeToolCallHandlerImplTest {
         .satisfies(
             result ->
                 assertThat(result.content())
+                    .singleElement()
                     .isInstanceOfSatisfying(
-                        Document.class,
-                        document -> {
+                        DocumentContent.class,
+                        documentContent -> {
+                          final var document = documentContent.document();
                           assertThat(document.metadata().getFileName()).isEqualTo("created.txt");
                           assertThat(new String(document.asByteArray(), StandardCharsets.UTF_8))
                               .isEqualTo("created");

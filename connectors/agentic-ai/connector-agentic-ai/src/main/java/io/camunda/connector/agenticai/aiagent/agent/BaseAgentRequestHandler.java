@@ -217,7 +217,7 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.applyToolCallResults(
         executionContext,
         AgentInstanceKey.from(agentContext.metadata()),
-        arrivedResults,
+        arrivedResults.stream().map(ToolCallResultContent::from).toList(),
         previousConversation.turns().getLast(),
         documents);
   }
@@ -350,10 +350,7 @@ public abstract class BaseAgentRequestHandler<
                 workingConversation.documentRegistry(), split.runtimeResults());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
-                ToolCallResultMessage.builder()
-                    .results(
-                        split.runtimeResults().stream().map(ToolCallResultContent::from).toList())
-                    .build(),
+                ToolCallResultMessage.builder().results(split.runtimeResults()).build(),
                 documentContentMessage == null ? List.of() : List.of(documentContentMessage));
         // the previous turn is the one whose tool calls these results answer
         agentInstanceClient.applyTurnStart(

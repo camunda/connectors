@@ -23,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -276,7 +276,7 @@ public final class AgentConversation implements RuntimeToolConversation {
    * answered itself while the other calls of the same assistant message go to the process. The
    * results are merged with the process results when the next turn input is composed.
    */
-  public AgentConversation withPendingRuntimeToolCallResults(List<ToolCallResult> results) {
+  public AgentConversation withPendingRuntimeToolCallResults(List<ToolCallResultContent> results) {
     return new AgentConversation(
         configuration,
         currentContext.withPendingRuntimeToolCallResults(results),
@@ -291,7 +291,7 @@ public final class AgentConversation implements RuntimeToolConversation {
    * Returns the results of tool calls the agent answered itself that still wait for the process
    * results of the same assistant message.
    */
-  public List<ToolCallResult> pendingRuntimeToolCallResults() {
+  public List<ToolCallResultContent> pendingRuntimeToolCallResults() {
     return currentContext.pendingRuntimeToolCallResults();
   }
 

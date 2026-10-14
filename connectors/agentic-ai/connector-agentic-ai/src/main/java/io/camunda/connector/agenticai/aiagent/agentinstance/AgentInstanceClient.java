@@ -10,7 +10,7 @@ import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.OffsetDateTime;
@@ -106,7 +106,7 @@ public interface AgentInstanceClient {
   void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
+      List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
       HistoryDocuments documents);
 }

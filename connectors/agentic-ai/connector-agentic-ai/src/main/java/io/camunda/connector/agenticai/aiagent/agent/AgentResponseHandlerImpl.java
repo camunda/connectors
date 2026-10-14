@@ -24,7 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
@@ -67,7 +67,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     // calls the agent answered itself (pending runtime results) never reach the process
     final var runtimeAnsweredIds =
         conversation.pendingRuntimeToolCallResults().stream()
-            .map(ToolCallResult::id)
+            .map(ToolCallResultContent::id)
             .collect(Collectors.toSet());
     final var rawToolCalls =
         Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of()).stream()

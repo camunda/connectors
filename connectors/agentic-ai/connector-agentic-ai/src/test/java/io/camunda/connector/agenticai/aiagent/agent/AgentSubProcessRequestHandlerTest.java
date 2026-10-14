@@ -91,6 +91,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -494,7 +495,8 @@ class AgentSubProcessRequestHandlerTest {
 
     // and: the arrived result is reported as-is
     @SuppressWarnings("unchecked")
-    final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    final ArgumentCaptor<List<ToolCallResultContent>> resultsCaptor =
+        ArgumentCaptor.forClass(List.class);
     final var documentsCaptor = ArgumentCaptor.forClass(HistoryDocuments.class);
     verify(agentInstanceClient)
         .applyToolCallResults(
@@ -503,7 +505,7 @@ class AgentSubProcessRequestHandlerTest {
             resultsCaptor.capture(),
             any(),
             documentsCaptor.capture());
-    assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
+    assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
     assertThat(documentsCaptor.getValue().documents().entries()).containsExactly(knownEntry);
   }
 
@@ -1144,9 +1146,9 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(result.name()).isEqualTo("upload");
               assertThat(result.completedAt()).isNotNull();
               assertThat(result.content())
-                  .asString()
-                  .isEqualTo(
-                      "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'.");
+                  .containsExactly(
+                      TextContent.textContent(
+                          "Parameter 'doc' must be the exact id of a known document (the id attribute of its <doc /> tag) or that tag itself, got 'bogus'."));
             });
 
     // the stored assistant message keeps both calls, no results are stored yet
@@ -1240,7 +1242,8 @@ class AgentSubProcessRequestHandlerTest {
             result -> {
               assertThat(result.id()).isEqualTo("call-1");
               assertThat(result.content())
-                  .isEqualTo("Returned the document under the key 'report'.");
+                  .containsExactly(
+                      TextContent.textContent("Returned the document under the key 'report'."));
             });
   }
 
@@ -1312,10 +1315,10 @@ class AgentSubProcessRequestHandlerTest {
   @Test
   void clearsThePendingRuntimeResultsOnceTheComposerConsumedThem() {
     final var pending =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-1")
             .name("upload")
-            .content("rejected")
+            .content(List.of(TextContent.textContent("rejected")))
             .completedAt(OffsetDateTime.now())
             .build();
     mockSystemPrompt();
@@ -1336,10 +1339,10 @@ class AgentSubProcessRequestHandlerTest {
   @Test
   void keepsThePendingRuntimeResultsWhileTheProcessResultsAreStillMissing() {
     final var pending =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-1")
             .name("upload")
-            .content("rejected")
+            .content(List.of(TextContent.textContent("rejected")))
             .completedAt(OffsetDateTime.now())
             .build();
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -1605,7 +1608,7 @@ class AgentSubProcessRequestHandlerTest {
               final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
               final var runtimeAnsweredIds =
                   conversation.pendingRuntimeToolCallResults().stream()
-                      .map(ToolCallResult::id)
+                      .map(ToolCallResultContent::id)
                       .collect(Collectors.toSet());
               final var toolCalls =
                   assistantMessage.toolCalls() == null

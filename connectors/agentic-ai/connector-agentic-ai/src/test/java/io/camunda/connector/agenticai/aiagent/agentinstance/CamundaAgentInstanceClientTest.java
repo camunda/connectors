@@ -1083,10 +1083,11 @@ class CamundaAgentInstanceClientTest {
       final var runtimeCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
       final var processCompletedAt = OffsetDateTime.parse("2026-07-02T09:59:50Z");
       final var runtimeResult =
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id("runtime")
               .name("c8__return_document")
-              .content("Returned the document under the key 'report'.")
+              .content(
+                  List.of(TextContent.textContent("Returned the document under the key 'report'.")))
               .completedAt(runtimeCompletedAt)
               .build();
       final var processResult =
@@ -1102,7 +1103,7 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(runtimeResult), processResult))
+                      .results(List.of(runtimeResult, processResult))
                       .build()),
               null,
               AgentMetrics.empty(),
@@ -1340,7 +1341,9 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           null,
-          List.of(ToolCallResult.builder().id("a").name("getWeather").build()),
+          List.of(
+              ToolCallResultContent.from(
+                  ToolCallResult.builder().id("a").name("getWeather").build())),
           previousTurn,
           NO_DOCUMENTS);
 
@@ -1377,7 +1380,7 @@ class CamundaAgentInstanceClientTest {
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-          List.of(arrivedResult),
+          List.of(ToolCallResultContent.from(arrivedResult)),
           previousTurn,
           NO_DOCUMENTS);
 
@@ -1403,10 +1406,11 @@ class CamundaAgentInstanceClientTest {
       final var configuration = configuration();
       final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
       final var runtimeResult =
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id("runtime")
               .name("c8__return_document")
-              .content("Returned the document under the key 'report'.")
+              .content(
+                  List.of(TextContent.textContent("Returned the document under the key 'report'.")))
               .completedAt(completedAt)
               .build();
       final var realResult =
@@ -1442,7 +1446,7 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(runtimeResult), realResult))
+                      .results(List.of(runtimeResult, realResult))
                       .build()),
               null,
               AgentMetrics.empty(),
@@ -1508,10 +1512,11 @@ class CamundaAgentInstanceClientTest {
       final var later = new HistoryDocuments(laterRegistry);
 
       final var runtimeResult =
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id("runtime")
               .name("c8__return_document")
-              .content("Returned the document under the key 'report'.")
+              .content(
+                  List.of(TextContent.textContent("Returned the document under the key 'report'.")))
               .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
               .build();
       final var assistantTurn =
@@ -1532,10 +1537,7 @@ class CamundaAgentInstanceClientTest {
       final var nextTurn =
           new AgentConversationTurn(
               2,
-              List.of(
-                  ToolCallResultMessage.builder()
-                      .results(List.of(ToolCallResultContent.from(runtimeResult)))
-                      .build()),
+              List.of(ToolCallResultMessage.builder().results(List.of(runtimeResult)).build()),
               null,
               AgentMetrics.empty(),
               configuration.fingerprint());
@@ -1590,7 +1592,9 @@ class CamundaAgentInstanceClientTest {
                   client.applyToolCallResults(
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-                      List.of(ToolCallResult.builder().id("orphan").name("getWeather").build()),
+                      List.of(
+                          ToolCallResultContent.from(
+                              ToolCallResult.builder().id("orphan").name("getWeather").build())),
                       previousTurn,
                       NO_DOCUMENTS))
           .isInstanceOf(IllegalArgumentException.class)
@@ -1701,11 +1705,12 @@ class CamundaAgentInstanceClientTest {
                       TestAgentExecutionContext.withLimits(),
                       AgentInstanceKey.of(AGENT_INSTANCE_KEY),
                       List.of(
-                          ToolCallResult.builder()
-                              .id("a")
-                              .name("getWeather")
-                              .completedAt(TURN_INGESTION_TIMESTAMP)
-                              .build()),
+                          ToolCallResultContent.from(
+                              ToolCallResult.builder()
+                                  .id("a")
+                                  .name("getWeather")
+                                  .completedAt(TURN_INGESTION_TIMESTAMP)
+                                  .build())),
                       previousTurn,
                       NO_DOCUMENTS))
           .isInstanceOfSatisfying(

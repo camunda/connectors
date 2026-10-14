@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import java.util.List;
@@ -60,7 +60,7 @@ public interface RuntimeToolCallHandler {
    */
   record RuntimeToolCallSplit(
       AgentConversation conversation,
-      List<ToolCallResult> runtimeResults,
+      List<ToolCallResultContent> runtimeResults,
       List<ToolCall> remainingCalls) {
     public RuntimeToolCallSplit {
       runtimeResults = List.copyOf(runtimeResults);

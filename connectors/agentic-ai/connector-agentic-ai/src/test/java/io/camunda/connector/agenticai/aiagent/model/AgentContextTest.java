@@ -17,7 +17,9 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -259,17 +261,21 @@ class AgentContextTest {
   @Test
   void pendingRuntimeToolCallResultsAreSerializedAndDeserialized() throws JsonProcessingException {
     final var textResult =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-1")
             .name("c8__return_document")
-            .content("Returned the document under the key 'report'.")
+            .content(
+                List.of(TextContent.textContent("Returned the document under the key 'report'.")))
             .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
             .build();
     final var structuredResult =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("call-2")
             .name("load_skill")
-            .content(Map.of("skill", "pdf", "files", List.of("a.md", "b.md")))
+            .content(
+                List.of(
+                    ObjectContent.objectContent(
+                        Map.of("skill", "pdf", "files", List.of("a.md", "b.md")))))
             .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.456+02:00"))
             .build();
     final var context =

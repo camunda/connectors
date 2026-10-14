@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
@@ -46,7 +46,8 @@ public record AgentContext(
         LinkedHashMap<String, ResponseDocumentSelection> responseDocuments,
     // results the agent answered itself for tool calls of the last assistant message whose other
     // calls were handed to the process; merged into the next turn input, then cleared
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<ToolCallResult> pendingRuntimeToolCallResults,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        List<ToolCallResultContent> pendingRuntimeToolCallResults,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with; a LinkedHashSet because the
     // record builder copies a Set into an immutable set of unspecified iteration order

@@ -657,15 +657,15 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
   }
 
-  private static final ToolCallResult RUNTIME_RESULT =
-      ToolCallResult.builder()
+  private static final ToolCallResultContent RUNTIME_RESULT =
+      ToolCallResultContent.builder()
           .id("abcdef")
           .name("getWeather")
-          .content("answered by the agent")
+          .content(List.of(textContent("answered by the agent")))
           .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
           .build();
 
-  private static AgentContext contextWithPending(ToolCallResult... pending) {
+  private static AgentContext contextWithPending(ToolCallResultContent... pending) {
     return CTX_WITH_CONVERSATION.withPendingRuntimeToolCallResults(List.of(pending));
   }
 
@@ -697,11 +697,32 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(resultsOf(result).getFirst().completedAt()).isEqualTo(RUNTIME_RESULT.completedAt());
   }
 
-  private static ToolCallResult contentResult(String id, String documentId) {
-    return ToolCallResult.builder()
+  @Test
+  void pendingRuntimeResult_thatIsADocumentIsPersistedAsItsReferenceLikeAProcessResult() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var pending = RUNTIME_RESULT.withContent(List.of(DocumentContent.documentContent(document)));
+    var input =
+        AgentInput.from(
+            new UserPromptConfiguration("user input", List.of()),
+            List.of(TOOL_CALL_RESULTS.get(1)));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
+
+    var result = composer.compose(CONFIG, contextWithPending(pending), history, input);
+
+    assertThat(resultsOf(result).getFirst().content())
+        .containsExactly(DocumentReferenceContent.from(document));
+    assertThat(((CompositionResult.NextTurn) result).documents())
+        .extracting(ingested -> DocumentHandle.idFor(ingested.document()))
+        .containsExactly(DocumentHandle.idFor(document));
+  }
+
+  private static ToolCallResultContent contentResult(String id, String documentId) {
+    return ToolCallResultContent.builder()
         .id(id)
         .name(GetDocumentTool.NAME)
-        .content("Loaded document " + documentId + ".")
+        .content(List.of(textContent("Loaded document " + documentId + ".")))
         .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
         .properties(Map.of(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT, documentId))
         .build();
@@ -761,10 +782,10 @@ class AgentConversationTurnInputComposerImplTest {
     var otherTool = contentResult("c1", id).withName("getWeather");
     var unknownDocument = contentResult("c2", "not-registered");
     var answered =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("c3")
             .name(GetDocumentTool.NAME)
-            .content("Document " + id + " is already in the conversation.")
+            .content(List.of(textContent("Document " + id + " is already in the conversation.")))
             .build();
 
     assertThat(
@@ -820,10 +841,10 @@ class AgentConversationTurnInputComposerImplTest {
                 document, "first.txt", "text/plain", "user_message", DocumentDelivery.REFERENCE),
             textContent("Its content follows in the next message."));
     var pending =
-        ToolCallResult.builder()
+        ToolCallResultContent.builder()
             .id("abcdef")
             .name(GetDocumentTool.NAME)
-            .contentBlocks(blocks)
+            .content(blocks)
             .completedAt(java.time.OffsetDateTime.parse("2026-10-05T10:00:00Z"))
             .properties(
                 Map.of(

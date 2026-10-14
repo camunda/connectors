@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
@@ -605,10 +604,11 @@ class AgentContextSchemaMigrationTest {
     void pendingRuntimeToolCallResultsSurviveTheRoundTripOfTheVersionedDeserialization()
         throws Exception {
       final var pending =
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id("call-1")
               .name("c8__return_document")
-              .content("Returned the document under the key 'report'.")
+              .content(
+                  List.of(TextContent.textContent("Returned the document under the key 'report'.")))
               .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
               .build();
       final var context =
@@ -617,9 +617,7 @@ class AgentContextSchemaMigrationTest {
                   InProcessConversationContext.builder("conv")
                       .messages(
                           List.of(
-                              ToolCallResultMessage.builder()
-                                  .results(List.of(ToolCallResultContent.from(pending)))
-                                  .build()))
+                              ToolCallResultMessage.builder().results(List.of(pending)).build()))
                       .build())
               .pendingRuntimeToolCallResults(List.of(pending))
               .build();
@@ -635,9 +633,8 @@ class AgentContextSchemaMigrationTest {
     }
 
     @Test
-    void
-        pendingRuntimeToolCallResultsWithContentBlocksKeepTheirBlocksThroughTheVersionedDeserialization()
-            throws Exception {
+    void pendingRuntimeToolCallResultsKeepTheirTypedBlocksThroughTheVersionedDeserialization()
+        throws Exception {
       final var blocks =
           List.<Content>of(
               TextContent.textContent("Loaded the document."),
@@ -652,10 +649,10 @@ class AgentContextSchemaMigrationTest {
                   DocumentDelivery.REFERENCE),
               TextContent.textContent("Its content follows in the next message."));
       final var pending =
-          ToolCallResult.builder()
+          ToolCallResultContent.builder()
               .id("call-1")
               .name("c8__get_document")
-              .contentBlocks(blocks)
+              .content(blocks)
               .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
               .build();
       final var context =
@@ -664,9 +661,7 @@ class AgentContextSchemaMigrationTest {
                   InProcessConversationContext.builder("conv")
                       .messages(
                           List.of(
-                              ToolCallResultMessage.builder()
-                                  .results(List.of(ToolCallResultContent.from(pending)))
-                                  .build()))
+                              ToolCallResultMessage.builder().results(List.of(pending)).build()))
                       .build())
               .pendingRuntimeToolCallResults(List.of(pending))
               .build();
@@ -678,9 +673,8 @@ class AgentContextSchemaMigrationTest {
           .singleElement()
           .satisfies(
               result -> {
-                assertThat(result.content()).isNull();
-                assertThat(result.contentBlocks()).isEqualTo(blocks);
-                assertThat(ToolCallResultContent.from(result).content()).isEqualTo(blocks);
+                assertThat(result.content()).isEqualTo(blocks);
+                assertThat(result.content().get(1)).isInstanceOf(DocumentReferenceContent.class);
               });
       assertThat(bound.conversation())
           .isInstanceOfSatisfying(

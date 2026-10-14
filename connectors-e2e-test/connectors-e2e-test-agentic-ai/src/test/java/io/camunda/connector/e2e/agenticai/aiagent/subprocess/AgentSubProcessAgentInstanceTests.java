@@ -30,7 +30,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.HistoryDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
@@ -80,7 +80,7 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
             argThat(
-                (List<ToolCallResult> results) ->
+                (List<ToolCallResultContent> results) ->
                     results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
             any(AgentConversationTurn.class),
             any(HistoryDocuments.class));

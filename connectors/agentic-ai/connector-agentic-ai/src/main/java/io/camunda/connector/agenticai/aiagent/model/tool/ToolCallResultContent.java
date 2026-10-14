@@ -67,18 +67,16 @@ public record ToolCallResultContent(
 
   /**
    * Forward normalization: lifts a live {@link ToolCallResult}'s untyped {@code content} into the
-   * structured {@link Content} list, preserving every other field verbatim. The {@link
-   * ToolCallResult#contentBlocks() content blocks} of a result, when it has any, are its content.
+   * structured {@link Content} list, preserving every other field verbatim.
    */
   public static ToolCallResultContent from(ToolCallResult result) {
-    final var blocks = result.contentBlocks();
     return builder()
         .id(result.id())
         .name(result.name())
         .elementId(result.elementId())
         .completedAt(result.completedAt())
         .properties(result.properties())
-        .content(blocks.isEmpty() ? contentFromObject(result.content()) : blocks)
+        .content(contentFromObject(result.content()))
         .build();
   }
 
@@ -110,7 +108,7 @@ public record ToolCallResultContent(
    * arises later once provider-specific chat model implementations emit structured content
    * directly.
    */
-  static List<Content> contentFromObject(@Nullable Object content) {
+  public static List<Content> contentFromObject(@Nullable Object content) {
     return switch (content) {
       case null -> List.of();
       case String s -> s.isBlank() ? List.of() : List.of(TextContent.textContent(s));

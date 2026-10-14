@@ -30,9 +30,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
@@ -151,7 +152,11 @@ class AgentResponseHandlerDocumentsTest {
     final var runtimeCall = new ToolCall("call-1", ReturnDocumentTool.NAME, Map.of());
     final var realCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
     final var runtimeResult =
-        ToolCallResult.builder().id("call-1").name(ReturnDocumentTool.NAME).content("ok").build();
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name(ReturnDocumentTool.NAME)
+            .content(List.of(TextContent.textContent("ok")))
+            .build();
 
     final var response =
         responseHandler.createResponse(

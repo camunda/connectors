@@ -143,17 +143,19 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         return new CompositionResult.Deferred(resolution.arrivedResults());
       }
 
-      final var toolCallResults = resolution.results();
+      final var resolvedResults = resolution.results();
+      final var toolCallResults =
+          resolvedResults.stream().map(ResolvedToolCallResult::content).toList();
       final var composedResultMessage =
           ToolCallResultMessage.builder()
-              .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
+              .results(toolCallResults)
               .metadata(defaultMessageMetadata())
               .build();
       final ToolCallResultMessage toolCallResultMessage;
       if (documentFlow) {
         // the documents of the results are shown as their tags inside the tool results
         ingestToolCallResultDocuments(
-            toolCallResults, composedResultMessage.id(), ingestedDocuments);
+            resolvedResults, composedResultMessage.id(), ingestedDocuments);
         // a document that is a whole result is persisted as its reference, like the other documents
         toolCallResultMessage =
             composedResultMessage.withResults(
@@ -172,13 +174,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                     agentContext,
                     configuration,
                     previousConversation,
-                    toolCallResults,
+                    resolvedResults,
                     toolCallResultMessage.id()));
         if (documentContentMessage != null) {
           messages.add(documentContentMessage);
         }
       } else {
-        final var documentMessage = createLegacyDocumentMessageForToolResults(toolCallResults);
+        final var documentMessage = createLegacyDocumentMessageForToolResults(resolvedResults);
         if (documentMessage != null) {
           messages.add(documentMessage);
         }
@@ -275,7 +277,26 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * @param complete whether every tool call has a result (or was cancelled via interrupt)
    */
   private record ToolCallResultsResolution(
-      List<ToolCallResult> results, List<ToolCallResult> arrivedResults, boolean complete) {}
+      List<ResolvedToolCallResult> results,
+      List<ToolCallResult> arrivedResults,
+      boolean complete) {}
+
+  /**
+   * A tool call result as it is part of the tool result message. The result of a process tool also
+   * carries the result as the process returned it, from which its documents are extracted; the
+   * result the agent answered itself is typed already.
+   */
+  private record ResolvedToolCallResult(
+      ToolCallResultContent content, @Nullable ToolCallResult processResult) {
+
+    static ResolvedToolCallResult ofProcess(ToolCallResult result) {
+      return new ResolvedToolCallResult(ToolCallResultContent.from(result), result);
+    }
+
+    static ResolvedToolCallResult ofRuntime(ToolCallResultContent result) {
+      return new ResolvedToolCallResult(result, null);
+    }
+  }
 
   private ToolCallResultsResolution resolveOrderedToolCallResults(
       AgentContext agentContext,
@@ -290,19 +311,19 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // answered by the agent when the tool calls were issued; never gateway-transformed
     final var runtimeToolCallResultsById =
         agentContext.pendingRuntimeToolCallResults().stream()
-            .collect(Collectors.toMap(ToolCallResult::id, Function.identity(), (a, b) -> a));
+            .collect(Collectors.toMap(ToolCallResultContent::id, Function.identity(), (a, b) -> a));
 
     final var missingToolCalls = new ArrayList<ToolCall>();
-    final var orderedToolCallResults = new ArrayList<ToolCallResult>();
+    final var orderedToolCallResults = new ArrayList<ResolvedToolCallResult>();
     final var arrivedToolCallResults = new ArrayList<ToolCallResult>();
     toolCalls.forEach(
         toolCall -> {
           final var runtimeResult = runtimeToolCallResultsById.get(toolCall.id());
           final var result = toolCallResultsById.get(toolCall.id());
           if (runtimeResult != null) {
-            orderedToolCallResults.add(runtimeResult);
+            orderedToolCallResults.add(ResolvedToolCallResult.ofRuntime(runtimeResult));
           } else if (result != null) {
-            orderedToolCallResults.add(result);
+            orderedToolCallResults.add(ResolvedToolCallResult.ofProcess(result));
             arrivedToolCallResults.add(result);
           } else {
             missingToolCalls.add(toolCall);
@@ -310,8 +331,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               LOGGER.debug(
                   "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
               orderedToolCallResults.add(
-                  ToolCallResult.forCancelledToolCall(
-                      toolCall.id(), toolCall.name(), OffsetDateTime.now()));
+                  ResolvedToolCallResult.ofProcess(
+                      ToolCallResult.forCancelledToolCall(
+                          toolCall.id(), toolCall.name(), OffsetDateTime.now())));
             }
           }
         });
@@ -331,12 +353,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   @Override
   public @Nullable UserMessage composeDocumentContentMessage(
-      DocumentRegistry registry, List<ToolCallResult> results) {
+      DocumentRegistry registry, List<ToolCallResultContent> results) {
     return composeDocumentContentMessage(getDocumentTags(registry, results), List.of());
   }
 
   /** The tags with content of the documents that the results of c8__get_document returned. */
-  private List<Content> getDocumentTags(DocumentRegistry registry, List<ToolCallResult> results) {
+  private List<Content> getDocumentTags(
+      DocumentRegistry registry, List<ToolCallResultContent> results) {
     return results.stream()
         .filter(result -> GetDocumentTool.NAME.equals(result.name()))
         .map(result -> result.properties().get(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT))
@@ -359,7 +382,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       AgentContext agentContext,
       AgentConfiguration configuration,
       PreviousConversation previousConversation,
-      List<ToolCallResult> results,
+      List<ResolvedToolCallResult> results,
       MessageId toolCallResultMessageId) {
     final var contentToolNames =
         agentContext.toolDefinitions().stream()
@@ -373,6 +396,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var handledDocumentIds =
         new HashSet<>(documentIdsWithContent(configuration, previousConversation));
     results.stream()
+        .map(ResolvedToolCallResult::content)
         .filter(result -> GetDocumentTool.NAME.equals(result.name()))
         .map(result -> result.properties().get(ToolCallResult.PROPERTY_DOCUMENT_ID_WITH_CONTENT))
         .filter(String.class::isInstance)
@@ -380,7 +404,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         .forEach(handledDocumentIds::add);
 
     final var content = new ArrayList<Content>();
-    for (var group : documentExtractor.extractDocuments(results)) {
+    for (var group : extractDocuments(results)) {
       if (!contentToolNames.contains(group.toolCallName())) {
         continue;
       }
@@ -469,11 +493,24 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                 : "Pass its id to a tool that processes it.");
   }
 
+  /** The documents of the results in the order of the results, grouped by tool call. */
+  private List<ToolCallResultDocumentExtractor.ToolCallDocuments> extractDocuments(
+      List<ResolvedToolCallResult> results) {
+    return results.stream()
+        .flatMap(
+            result ->
+                (result.processResult() != null
+                        ? documentExtractor.extractDocuments(List.of(result.processResult()))
+                        : documentExtractor.extractDocuments(result.content()))
+                    .stream())
+        .toList();
+  }
+
   private void ingestToolCallResultDocuments(
-      List<ToolCallResult> results,
+      List<ResolvedToolCallResult> results,
       MessageId toolCallResultMessageId,
       List<IngestedDocument> ingestedDocuments) {
-    for (var group : documentExtractor.extractDocuments(results)) {
+    for (var group : extractDocuments(results)) {
       final var source =
           DocumentSource.toolCall(
               group.toolCallName(), group.toolCallId(), toolCallResultMessageId.toString());
@@ -482,8 +519,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private @Nullable UserMessage createLegacyDocumentMessageForToolResults(
-      List<ToolCallResult> results) {
-    final var toolCallDocuments = documentExtractor.extractDocuments(results);
+      List<ResolvedToolCallResult> results) {
+    final var toolCallDocuments = extractDocuments(results);
     if (toolCallDocuments.isEmpty()) {
       return null;
     }
