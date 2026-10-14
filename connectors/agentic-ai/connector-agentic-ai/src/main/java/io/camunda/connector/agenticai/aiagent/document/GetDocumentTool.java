@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.document.OrderedMaps.ordered;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -22,10 +24,7 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversati
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
 import io.camunda.connector.api.document.Document;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -65,16 +64,6 @@ public final class GetDocumentTool implements RuntimeTool {
                   PARAMETER_ID, DocumentParameterSchema.documentSchema("The document to load.")),
               "required",
               List.of(PARAMETER_ID)));
-
-  // An insertion-ordered map built through the canonical constructor of the record, see
-  // ReturnDocumentTool
-  private static Map<String, Object> ordered(Object... keysAndValues) {
-    final var map = new LinkedHashMap<String, Object>();
-    for (int i = 0; i < keysAndValues.length; i += 2) {
-      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
-    }
-    return Collections.unmodifiableMap(map);
-  }
 
   /** The arguments of a call: the id of the document to load. */
   record Arguments(@Nullable String id) {}

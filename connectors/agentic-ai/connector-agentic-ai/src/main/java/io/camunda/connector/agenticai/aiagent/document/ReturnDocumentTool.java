@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.document.OrderedMaps.ordered;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -16,10 +18,8 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolConversation;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolResult;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -83,17 +83,6 @@ public final class ReturnDocumentTool implements RuntimeTool {
                       "An optional short description of the document.")),
               "required",
               List.of(PARAMETER_KEY, PARAMETER_DOCUMENT)));
-
-  // An insertion-ordered map built through the canonical constructor of the record: the definition
-  // is part of the configuration fingerprint and of the request sent to the model, which need the
-  // same bytes in every JVM (the record builder copies maps into an immutable map of salted order).
-  private static Map<String, Object> ordered(Object... keysAndValues) {
-    final var map = new LinkedHashMap<String, Object>();
-    for (int i = 0; i < keysAndValues.length; i += 2) {
-      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
-    }
-    return Collections.unmodifiableMap(map);
-  }
 
   /** The arguments of a call: the key, the id of the document and its description. */
   record Arguments(@Nullable String key, @Nullable String document, @Nullable String description) {}
