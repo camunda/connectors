@@ -131,7 +131,7 @@ High-frequency traps (detail behind each link):
   (`documents` implies it) it has no runtime tools (`c8__return_document`, `c8__get_document`) and no tool
   element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
-  `docs/design/ai-agent-document-flow.md` §4.
+  `docs/design/ai-agent-document-flow.md` §2.13.
 - **The document delivery is `reference` by default**: for an instance with the `documents` feature the model sees a
   `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
   document of a type outside the allowlist or above the size limit before returning its content. Documents are persisted
@@ -144,7 +144,7 @@ High-frequency traps (detail behind each link):
   templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity
   extension property `io.camunda.agenticai.documents.delivery` = `content` (`ToolDefinition.documentDelivery`) set the
   delivery `content`, so the agent adds the content of the document to the request through the same guard; a rejected document stays a reference with a note,
-  never an error. `docs/design/ai-agent-document-flow.md` "Execution model", §3.14 and §3.15.
+  never an error. `docs/design/ai-agent-document-flow.md` §2.3 and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -369,7 +369,7 @@ Before claiming a change is complete:
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
 tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
 a Spring bean. Where to start (SPI + reference implementation per type): `ai-agent.md` §25 (gateway
-tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §9).
+tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §2.7).
 
 ## Element templates
 

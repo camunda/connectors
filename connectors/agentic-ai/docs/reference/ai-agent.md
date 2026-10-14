@@ -287,7 +287,7 @@ current features when its context is created at its first job (`AgentInitializer
 (`AgentContext.FEATURE_DOCUMENTS`, `AgentContext.supportsDocuments()`); `documents` implies `runtimeTools`
 (`AgentContext.supportsRuntimeTools()`). A context that exists without `features` belongs to an instance
 created before the features and never gets features added later, so its behavior stays as it was created.
-Everything the features gate is described in the document flow design notes (section 4); in short, an
+The reasons are in the [document flow design record](../design/ai-agent-document-flow.md) (section 2.13); in short, an
 instance without `runtimeTools` has no runtime tool and no tool element checked against runtime tool names, and
 an instance without `documents` keeps documents as stored content with the older tag format, has no
 document registry and no document parameters. The request handler copies the features to `AgentConfiguration.features()`, which is how the
@@ -305,7 +305,7 @@ response settings that shape the turn. Authoritative definition:
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
 a final response to emit (text, JSON, the full assistant message, or the response documents the agent
-returns with its built-in `c8__return_document` tool, by key, see the document flow design notes). Authoritative definition:
+returns with its built-in `c8__return_document` tool, by key, see the [document flow design record](../design/ai-agent-document-flow.md)). Authoritative definition:
 [`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
@@ -462,7 +462,7 @@ also expands the document references of its user messages (`DocumentReferenceCon
 with the delivery `reference` or `content`) with the document registry
 (`DocumentExpander`): the stored messages hold the document reference only, and the snapshot holds its tag text
 followed, for a reference with the delivery `content`, by the document content for the documents whose content the model asked for with `c8__get_document` or the agent added
-for it (the delivery `content`, see the document flow design notes, sections 3.15 and 4.1). For an agent instance without the `documents`
+for it (the delivery `content`, see the [document flow design record](../design/ai-agent-document-flow.md), section 2.3). For an agent instance without the `documents`
 feature the window expands nothing and adds no note; it marks the documents of the tool results to be
 rendered as their document reference (`LegacyDocumentRendering`).
 
@@ -655,8 +655,8 @@ A tool activity with the extension property `io.camunda.agenticai.documents.deli
 (`AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION`) gets the `documentDelivery` `CONTENT`: the agent adds the
 content of the documents the tool returns to the request instead of leaving them as references. The field is
 part of the stored tool definition and of the configuration fingerprint when set, and the model providers do not
-get it. Any other value, or no property, leaves it absent (the delivery `reference`). See the document flow design notes,
-section 3.15.
+get it. Any other value, or no property, leaves it absent (the delivery `reference`). See the [document flow design record](../design/ai-agent-document-flow.md),
+section 2.3.
 
 ### Connector (Task) Flavor
 
@@ -714,7 +714,7 @@ The type array form `schema: {"type": ["string", "document"]}` is rewritten to t
 hint: the model passes a document as its `<doc />` tag exactly as it reads it, and the tool receives the
 Camunda document reference. Every other value is passed as it is: a plain string, also one that equals the id of a known
 document, text with a tag inside it, a number or an object. A tag with an unknown id is answered with an error that says the tag is not a known document, and the tool does not run. For `anyOf: [string, document]` the model provider gets
-`{"type": "string", "description": "..."}` with the hint. See the document flow design notes, sections 3.2, 3.3 and 3.7.
+`{"type": "string", "description": "..."}` with the hint. See the [document flow design record](../design/ai-agent-document-flow.md), sections 2.5 and 2.6.
 
 ---
 
@@ -869,7 +869,7 @@ if (!resolution.complete()) {
 
 The method correlates and gateway (MCP/A2A) transforms the available results, merges them with the
 results the agent answered itself for the same assistant message
-(`AgentContext.pendingRuntimeToolCallResults`, see the document flow design notes), then checks each
+(`AgentContext.pendingRuntimeToolCallResults`, see the [document flow design record](../design/ai-agent-document-flow.md), section 2.8), then checks each
 tool call from the last assistant message against them
 (`ToolCallResultsResolution(results, arrivedResults, complete)`):
 - If all present: `complete` is `true`; `compose` builds the `ToolCallResultMessage` from `results`,
@@ -1722,7 +1722,7 @@ is fixed, and neither has a document type; nothing of theirs is resolved.
 The document delivery of the documents a tool returns (`ToolDefinition.documentDelivery`) is set by the extension property
 `io.camunda.agenticai.documents.delivery` on ad-hoc tool elements only. A handler that sets `documentDelivery` on the definitions
 it returns opts its tools in, matched by the name of the (transformed) tool call result. The MCP and A2A handlers set none, so
-their documents keep the delivery `reference`. See the document flow design notes, sections 3.3 and 3.15.
+their documents keep the delivery `reference`. See the [document flow design record](../design/ai-agent-document-flow.md), sections 2.3 and 2.12.
 
 ### Agent Context Properties
 
@@ -1735,21 +1735,71 @@ These are used during discovery checking and tool call result transformation.
 
 ### Document Extraction from Tool Call Results
 
-Documents are reference-only in the conversation of an agent instance with the `documents` feature: the model
-sees a `<doc .../>` tag, not the content. Tool call results may contain Camunda `Document` instances — at the
-root, nested in maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A
-artifacts). The agent extracts those documents and registers them in the document registry of the
-`agentContext`; the tool result shows each document as its tag, and no follow-up message is added unless the
-tool has the delivery `content` (below). The content of a document enters the conversation when the model calls the
-built-in `c8__get_document` tool with the document id, or when the agent adds it to the request (the delivery `content`,
-below): the whole document is added if its content type is on the allowlist (text-based types, PDF,
-PNG/JPEG/GIF/WebP) and it is within the size limit (256 KB for text-based types, 10 MB for PDF and images);
-otherwise the call is answered with an error tool result that tells the model to pass the id to a tool that
-processes the document. A successful call is followed by a user message with a document reference with the
-delivery `content`; the tag text and the content are added
-from the registry when the conversation is windowed. Passing a document id (or its `<doc />` tag) to a tool parameter declared with
-`fromAi(..., "document")` never adds content: the tool receives the full Camunda document reference. The same holds
-for a parameter that takes text or a document, when the model passes a tag.
+Documents are references in the conversation of an agent instance with the `documents` feature: the model sees a
+`<doc .../>` tag, not the content. Tool call results may contain Camunda `Document` instances — at the root, nested in
+maps/lists, or embedded inside typed gateway responses (e.g. `McpDocumentContent`, A2A artifacts). The agent extracts
+those documents and registers them in the document registry of the `agentContext`; the tool result shows each document
+as its tag, and no follow-up message is added unless the tool has the delivery `content` (below). Design rationale:
+[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md).
+
+**The tag.** `<doc id="..." fileName="..." contentType="..." size="..." source="..." toolName="..." toolCallId="..." />`,
+attributes in that order, XML-escaped, blank or unknown attributes omitted. `fileName` is the Camunda metadata file
+name, the external reference `name` or the inline `name`; it is omitted when it equals the id. `contentType` comes from
+the Camunda metadata or the `contentType` of an inline reference and is omitted for external documents (their metadata is
+available only after a download). `size` is the number of bytes, present for a Camunda document whose reference
+metadata carries one; it is never looked up by reading the document. `toolName` and `toolCallId` are present for the
+documents of a tool result, `source="user_message"` or `source="event"` for the others. The id of the message that
+introduced a document, a store id, a content hash and a URL are never part of the tag. A document that is a whole tool
+result, and a document nested in the object of a result, shows the short tag without `source`, `toolName` and
+`toolCallId`. The id is stable per document (`DocumentHandle.idFor`).
+
+**Loading content: `c8__get_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
+tool receives the id). It loads the whole document, no ranges. The tool answers without loading in these cases:
+
+| Check | Answer |
+|-------|--------|
+| the document is already in the windowed conversation (a reference with the delivery `content` in a windowed user message) | success, `Document <id> is already in the conversation.`; loadable again after that message left the window |
+| the content type is outside the allowlist | error, `The document is of type X which cannot be loaded into the conversation; pass its tag to a tool that processes it.` |
+| the size exceeds the limit of the type | error, `The document is N KB, too large to load into the conversation (limit L KB); pass its tag to a tool that processes it.` |
+| the size cannot be read | a `RuntimeToolException`, `The document could not be read to check its size: ...`; the model can retry |
+
+Otherwise the result is the text `Loaded the document.`, a reference block of the document (the tag the model saw, the
+delivery `reference`) and the text `Its content follows in the next message.`, and the tool asks the agent to add the
+content (`RuntimeToolResult.withDocumentContent`). Every answer is plain text with no incident; the model retries or goes
+another way. The composer then follows the tool result message with a user message with the preamble `System message,
+not written by the user: the content of the documents loaded for the tool results above follows.` and a reference with
+the delivery `content` per document. Its metadata `toolCallDocuments` makes it leave the context window together with
+its tool results (`MessageWindowFilter`). The tag text and the content are added from the registry when the
+conversation is windowed. Passing the tag of a document to a tool parameter declared with `fromAi(..., "document")`
+never adds content: the tool receives the full Camunda document reference. The same holds for a parameter that takes
+text or a document, when the model passes a tag.
+
+**The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks. The allowlist is
+text-based types (`text/*`, `application/json`, `xml`, `yaml`, `x-yaml`, `csv`, `x-ndjson`, `javascript`, `sql`, `toml`
+and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf` and the images PNG, JPEG, GIF and WebP; parameters of a
+type and its case are ignored. The limit is 256 KB for text-based types and 10 MB for PDF and images, read from the
+`size` of the reference metadata and, without one, by reading at most one byte more than the limit. A document of unknown
+type (an external document, or a Camunda document without a content type) is treated as text with the stricter limit.
+The allowlist is provider-independent: a provider without support for a listed type, a PDF for example, fails at the
+model call.
+
+**Returning documents: `c8__return_document`.** The model calls it once per document with `key` (required, matching
+`[A-Za-z_][A-Za-z0-9_-]*`), `document` (required, the tag of a known document) and `description` (optional). A valid call
+is answered `Returned the document under the key 'k'.` and puts the document into `AgentContext.responseDocuments`
+(`key -> ResponseDocumentSelection{document, description?}`, insertion ordered); a key that is already used is replaced in
+place and keeps its position. An invalid key is answered with an error that states the pattern, and an error answer
+changes nothing. The selections stay in the context for the lifetime of the agent instance, so every final response
+(a response without tool calls) carries all of them as `responseDocuments`, for example after a user feedback turn. There
+is no tool to remove a key. A sub-process agent exposes them as `agent.responseDocuments.<key>.document`.
+
+**Evicted documents.** When the window hides documents, `DocumentExpander.windowDecorator` appends a transient user
+message to the snapshot (never persisted, never part of `allMessages()`): the preamble `Documents from earlier messages
+that are no longer part of this conversation context. They are still available by tag:` and a reference with the delivery
+`reference` for each such document. A registry document is visible when its id appears in a windowed user message or tool
+result as a document, as a reference or as a document nested in object content, or when the message that introduced it
+(`DocumentSource.messageId`) is windowed; text is never read, so a tag a user or the model typed does not make a document
+visible. The note is skipped when the windowed messages end with an assistant message (a continuation round). A document
+the note lists can be passed to a tool or loaded with `c8__get_document`.
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content has at most 1 MiB (`DocumentRegistryEntry.MAX_INLINE_CONTENT_LENGTH`,
@@ -1758,18 +1808,33 @@ counted in characters of the base64 or text content). A larger one fails the job
 response documents, which together can exceed the message size limit of the broker; the message
 names the document, its size and the limit and asks to return the file as a Camunda document instead.
 
-The delivery `content` is opt-in and adds the content without a `c8__get_document` call, through the same guard
-(`DocumentContentGuard`) and the same marker: for the documents of the user prompt, with the dropdown *Document
-delivery* (`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`, v2 templates only), and for the documents a tool returns, with
-the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool activity. The documents of
-a tool go into the follow-up user message of the tool results (preamble `System message, not written by the user: the content of the documents loaded for the tool results above follows.`).
-A document that the guard rejects stays a reference and the model gets a note that tells why no content was added;
-the delivery `content` never fails the run. Documents of events stay references, and so do those of the MCP and A2A gateway
-tools (a gateway handler can opt its tools in through `ToolDefinition.documentDelivery`). See
-[ADR-004](../adr/004-document-handling-in-tool-call-results.md) and the document flow design notes, sections
-"Execution model", 3.14 and 4.1. An agent instance without the `documents` feature gets the message in the form
-of ADR-004: the tag in the older attribute format (`LegacyDocumentReferenceXmlTag`) followed by the
-`DocumentContent`, without a registry.
+**The delivery `content`.** It is opt-in and adds the content without a `c8__get_document` call, through the same guard
+and the same persisted form: for the documents of the user prompt, with the dropdown *Document delivery*
+(`data.userPrompt.documentDelivery`, choices `reference` (default) and `content`, v2 templates only), and for the
+documents a tool returns, with the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool
+activity. The documents of a tool go into the follow-up user message of the tool results (same preamble as above). A
+document whose content is already in the conversation is not added twice. A document that the guard rejects stays a
+reference and the model gets a note, `Document <id> was not loaded automatically: it <problem>. <advice>`, where the
+advice is `Pass its tag to a tool that processes it.` or, for a read failure, `c8__get_document can try to load it
+again.`; the delivery `content` never fails the run. Documents of events stay references, and so do those of the MCP and
+A2A gateway tools (a gateway handler can opt its tools in through `ToolDefinition.documentDelivery`). See
+[ADR-004](../adr/004-document-handling-in-tool-call-results.md).
+
+**Instances without the `documents` feature.** An agent instance created before the feature (no `features` in its
+`agentContext`) keeps the document handling of Camunda 8.10:
+
+- A user prompt document is a bare `DocumentContent`. The documents of tool results and events go into a synthetic
+  user message with a preamble, then per document the tag in the older attribute format
+  (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
+  and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
+- `documents`, `responseDocuments` stay empty and `AgentResponse` has no `responseDocuments`; the window expands nothing
+  and adds no note, and a `Document` in a tool result renders as its reference JSON.
+- There are no runtime tools, no mixed-batch handling and no tool name check (§25.4), and document ids of tool calls are
+  not resolved: a `fromAi(..., "document")` parameter reaches the process as the plain string the model sent.
+- The history reports the messages as stored.
+- The schema of a tool and the provider rewrite of the document format apply to every instance.
+
+`LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` after
 the `ToolCallResultMessage` is built. For each result it asks the registry which handler manages
@@ -1934,7 +1999,7 @@ lease-fenced `update()` mechanism).
   tool call is an invariant violation and fails the turn.
 - The `arguments` of a tool call, in the `ASSISTANT` item and in the `TOOL_RESULT` items, are shown as the model
   sent them: a document parameter (a string schema node with the format `camunda-document-id`, see the document
-  flow design notes) holds the id of the document, or its `<doc />` tag when the model passed the tag. The tag of a document
+  flow design record) holds the id of the document, or its `<doc />` tag when the model passed the tag. The tag of a document
   reference or of a document of a tool result is shown in backticks, and a text is reported as it is, also when it holds a
   tag; the persisted messages and the text the model reads are not changed. An agent instance without the `documents` feature has no registry and
   reports texts as they are (`HistoryDocuments.documentFlow()` is `false`).
@@ -1947,7 +2012,7 @@ lease-fenced `update()` mechanism).
   placeholder block.
 
 **Tool calls answered by the agent itself.** Calls answered locally (runtime tools such as the built-in
-`c8__return_document` and `c8__get_document`, calls rejected for an unknown document id; see the document flow design notes)
+`c8__return_document` and `c8__get_document`, calls rejected for an unknown document id; see the [document flow design record](../design/ai-agent-document-flow.md), section 2.8)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, runtime or not. Their `TOOL_RESULT` items are written with the
 `applyTurnStart` of the synthetic round of the same job when the agent answered every call. When real
@@ -2182,7 +2247,7 @@ handler. A built-in tool is a runtime tool the connector ships. Reference
 implementations: `ReturnDocumentTool` (`c8__return_document`) and `GetDocumentTool` (`c8__get_document`), both in
 `aiagent/document` (the facility itself is in `aiagent/tool/runtime`), wired in `AgenticAiConnectorsAutoConfiguration` (`aiAgentReturnDocumentRuntimeTool`,
 `aiAgentGetDocumentRuntimeTool`). The full API, the research behind
-it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai-agent-document-flow.md).
+it and the error semantics are in the [document flow design record](../design/ai-agent-document-flow.md) (section 2.7).
 
 1. Build the tool with `RuntimeTool.builder("name")`: `description`, `inputSchema` (a `Map` or the
    `RuntimeToolSchema` helper; declare a document parameter with `RuntimeToolSchema.document` or a string schema with the
@@ -2211,7 +2276,7 @@ it and the error semantics are in [`ai-agent-document-flow.md` §9](../design/ai
 5. The framework offers the tool while `isAvailable(AgentExecutionContext, AgentContext)` holds, resolves declared document
    parameters before the handler runs, answers the call without activating a BPMN element, reports the tool
    and its calls to agent instance history without an element id, and handles mixed batches with real calls
-   (design notes). Test it through `RuntimeToolCallHandlerImpl` (see `RuntimeToolCallHandlerImplTest`
+   (design record, section 2.8). Test it through `RuntimeToolCallHandlerImpl` (see `RuntimeToolCallHandlerImplTest`
    with the test-only `SaveNoteTool`).
 
 #### Writing a custom runtime tool

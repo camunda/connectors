@@ -77,7 +77,7 @@ A document inside a tool result always renders as its `<doc id=... />` tag
 when it loads the document with `c8__get_document`: they travel in the user message that follows the tool
 results, after the same tag, so the tool result is never sent together with a second copy. An agent instance
 without the `documents` feature renders the document reference JSON instead (see
-[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md) §4.2).
+[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md) §2.13).
 
 ### Token usage
 
