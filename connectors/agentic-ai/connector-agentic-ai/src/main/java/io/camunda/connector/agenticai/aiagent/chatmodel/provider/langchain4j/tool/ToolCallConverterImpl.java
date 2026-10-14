@@ -14,7 +14,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
@@ -38,11 +37,9 @@ import org.jspecify.annotations.Nullable;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
-  private final ModelFacingJson modelFacingJson;
 
   public ToolCallConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-    this.modelFacingJson = new ModelFacingJson(objectMapper);
   }
 
   @Override
@@ -90,7 +87,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
    * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
    *
    * <p>If the result is not a string, it will be serialized to a JSON string using the connectors
-   * ObjectMapper. Document instances in the content tree are rendered as {@code <doc/>} tags.
+   * ObjectMapper. Document instances in the content tree are serialized as document references.
    */
   @Override
   public ToolExecutionResultMessage asToolExecutionResultMessage(
@@ -120,8 +117,8 @@ public class ToolCallConverterImpl implements ToolCallConverter {
       return switch (content) {
         case TextContent t -> t.text();
         case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
-        case ObjectContent o -> modelFacingJson.write(o.content());
-        case DocumentContent d -> modelFacingJson.write(d.document());
+        case ObjectContent o -> objectMapper.writeValueAsString(o.content());
+        case DocumentContent d -> objectMapper.writeValueAsString(d.document());
         case ReasoningContent ignored ->
             throw new IllegalArgumentException(
                 "Reasoning content is not expected in tool call results");

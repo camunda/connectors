@@ -14,7 +14,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.genai.types.FunctionCall;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -23,12 +22,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -40,17 +36,6 @@ class GeminiContentConverterTest {
 
   private final GeminiContentConverter converter =
       new GeminiContentConverter(TestObjectMapperSupplier.INSTANCE);
-
-  private static final DocumentFactoryImpl DOCUMENT_FACTORY =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-
-  private static Document camundaDocument() {
-    return DOCUMENT_FACTORY.create(
-        DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-            .contentType("application/pdf")
-            .fileName("report.pdf")
-            .build());
-  }
 
   private static Document mockDocument(String contentType, byte[] bytes) {
     final var document = mock(Document.class);
@@ -311,22 +296,6 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void rendersNestedCamundaDocumentAsTagWithoutAnyReferenceField() {
-      final var doc = camundaDocument();
-
-      final var parts =
-          converter.toFunctionResponseParts(
-              List.of(new ObjectContent(Map.of("attachments", List.of(doc)), null)));
-
-      final var output = parts.get(0).functionResponse().orElseThrow().response().orElseThrow();
-      assertThat((String) output.get("output"))
-          .isEqualTo(
-              "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
-                  .formatted(DocumentHandle.idFor(doc)))
-          .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
-    }
-
-    @Test
     void mapsObjectContentToFunctionResponsePartAsJsonString() {
       // serialized to a JSON string via the connector's own ObjectMapper rather than handed to
       // the SDK as a raw object graph - the SDK's own (unconfigured) Jackson mapper has no
@@ -341,10 +310,10 @@ class GeminiContentConverterTest {
     }
 
     @Test
-    void mapsDocumentContentToFunctionResponsePartWithTag() {
+    void mapsDocumentContentToFunctionResponsePartWithJsonReference() {
       // never embedded natively here, regardless of content type - the composer's synthetic
       // <doc/> fallback message already delivers the actual bytes for tool results, so this
-      // renders the same <doc/> tag ObjectContent would, avoiding a double-send. Still wrapped
+      // renders the same JSON reference ObjectContent would, avoiding a double-send. Still wrapped
       // in a functionResponse (not a bare text Part): a document-only tool result must close out
       // the preceding functionCall like any other result content.
       final var doc = mockDocument("image/jpeg", "ABC".getBytes(StandardCharsets.UTF_8));
@@ -356,7 +325,8 @@ class GeminiContentConverterTest {
       final var response = parts.get(0).functionResponse().orElseThrow();
       assertThat(response.response().orElseThrow().get("output"))
           .isEqualTo(
-              "<doc id=\"%s\" fileName=\"document\" />".formatted(DocumentHandle.idFor(doc)));
+              "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                  + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test

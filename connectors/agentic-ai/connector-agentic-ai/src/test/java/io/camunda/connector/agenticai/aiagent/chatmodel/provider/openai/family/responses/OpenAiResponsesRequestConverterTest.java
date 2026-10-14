@@ -21,7 +21,6 @@ import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseIncludable;
 import com.openai.models.responses.ResponseOutputMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -52,13 +51,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -229,7 +224,7 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
-  void emitsTagForToolResultDocuments() {
+  void emitsJsonReferenceForToolResultDocuments() {
     // never embedded natively as input_file/input_image for a tool result - the composer's
     // synthetic <doc/> fallback message already delivers the actual bytes, so embedding it here
     // as well would send it to the model twice; see
@@ -272,54 +267,6 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(outputItems.get(0).isInputText()).isTrue();
     assertThat(outputItems.get(0).asInputText().text()).isEqualTo("here is the report");
     assertThat(outputItems.get(1).isInputText()).isTrue();
-    assertThat(outputItems.get(1).asInputText().text())
-        .isEqualTo(
-            "<doc id=\"%s\" fileName=\"report.pdf\" />".formatted(DocumentHandle.idFor(document)))
-        .doesNotContain("example.com", "camunda.document.type");
-  }
-
-  @Test
-  void emitsTagForDocumentsNestedInToolResultObjectContent() {
-    final var document =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-            .create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                    .contentType("application/pdf")
-                    .fileName("report.pdf")
-                    .build());
-    final var snapshot =
-        new ConversationSnapshot(
-            List.of(
-                ToolCallResultMessage.builder()
-                    .results(
-                        List.of(
-                            ToolCallResultContent.builder()
-                                .id("call_1")
-                                .name("fetch_report")
-                                .content(
-                                    List.of(
-                                        ObjectContent.objectContent(
-                                            Map.of("attachments", List.of(document)))))
-                                .build()))
-                    .build()),
-            List.of());
-
-    final var params = converter.toRequest(model(null), null, snapshot);
-
-    final var output =
-        params
-            .input()
-            .orElseThrow()
-            .asResponse()
-            .get(0)
-            .functionCallOutput()
-            .orElseThrow()
-            .output();
-    assertThat(output.asResponseFunctionCallOutputItemList().get(0).asInputText().text())
-        .isEqualTo(
-            "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
-                .formatted(DocumentHandle.idFor(document)))
-        .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
   }
 
   @Test

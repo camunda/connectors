@@ -37,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -289,8 +288,6 @@ public class OpenAiCompletionsRequestConverter {
                 return contentConverter.writeAsJson(obj.content());
               } else if (c instanceof DocumentContent doc) {
                 return contentConverter.writeAsJson(doc.document());
-              } else if (c instanceof DocumentReferenceContent reference) {
-                throw reference.notExpandedFailure();
               } else {
                 return contentConverter.writeAsJson(c);
               }

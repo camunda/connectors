@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.EvictedDocumentsNote;
-import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentRendering;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -398,11 +397,9 @@ public final class AgentConversation {
    * included, are then expanded to their tag text and, for the references with the delivery {@code
    * content}, the document read from the registry of the {@link AgentContext#documents() context}
    * (see {@link DocumentExpander}); every other document stays a tag. A document reference in a
-   * windowed tool result is expanded to the document of the registry, which the providers render as
-   * its tag. For an agent instance without the feature, the documents of the tool results are
-   * marked to be rendered as their document reference (see {@link LegacyDocumentRendering}) and the
-   * messages are otherwise left as they are. {@link #allMessages()} and the stored conversation are
-   * not affected.
+   * windowed tool result is expanded to its tag text, and a document nested in an object of a
+   * windowed message to its tag. For an agent instance without the feature, the windowed messages
+   * are left as they are. {@link #allMessages()} and the stored conversation are not affected.
    */
   public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
@@ -412,7 +409,7 @@ public final class AgentConversation {
       var withNote = EvictedDocumentsNote.appendTo(windowed, registry);
       messages = documentExpander.expandMessages(withNote, registry);
     } else {
-      messages = LegacyDocumentRendering.apply(windowed);
+      messages = windowed;
     }
     return new ConversationSnapshot(
         messages,

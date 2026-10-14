@@ -12,7 +12,6 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockCon
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -86,10 +85,10 @@ public class BedrockConverseContentConverter {
 
   private static final HexFormat HEX_FORMAT = HexFormat.of();
 
-  private final ModelFacingJson modelFacingJson;
+  private final ObjectMapper objectMapper;
 
   public BedrockConverseContentConverter(ObjectMapper objectMapper) {
-    this.modelFacingJson = new ModelFacingJson(objectMapper);
+    this.objectMapper = objectMapper;
   }
 
   public List<ContentBlock> toContentBlocks(List<Content> content) {
@@ -257,7 +256,7 @@ public class BedrockConverseContentConverter {
    * for the conversion policy shared with the other Bedrock Converse converters.
    */
   private software.amazon.awssdk.core.document.Document toBedrockDocument(@Nullable Object value) {
-    return BedrockConverseDocuments.toAwsDocument(value, modelFacingJson.mapper());
+    return BedrockConverseDocuments.toAwsDocument(value, objectMapper);
   }
 
   /**
@@ -283,7 +282,7 @@ public class BedrockConverseContentConverter {
 
   private String writeAsJson(@Nullable Object value) {
     try {
-      return modelFacingJson.write(value);
+      return objectMapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize content to JSON", e);
     }

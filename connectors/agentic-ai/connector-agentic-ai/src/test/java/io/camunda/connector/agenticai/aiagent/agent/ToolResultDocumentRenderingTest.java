@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInput;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -57,9 +56,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The model gets the same tool result bytes for a document whether the result is stored as the raw
+ * The model gets the tag of a document in a tool result, whether the result is stored as the raw
  * document or as its reference: the composed messages are windowed through the registry and every
- * provider converter renders the result of the window like the result of the raw form.
+ * provider converter renders the result of the window with the tags.
  */
 class ToolResultDocumentRenderingTest {
 
@@ -103,7 +102,7 @@ class ToolResultDocumentRenderingTest {
   }
 
   @Test
-  void everyProviderRendersTheWindowedToolResultsLikeTheRawDocuments() {
+  void everyProviderRendersTheDocumentsOfTheWindowedToolResultsAsTags() {
     final var bare = document("bare", "bare.pdf", "application/pdf");
     final var nested = document("nested", "nested.txt", "text/plain");
     final var results =
@@ -147,16 +146,17 @@ class ToolResultDocumentRenderingTest {
             .findFirst()
             .orElseThrow();
 
-    // the providers never see a reference: the windowed result holds the document again
+    // the providers never see a reference: the windowed result holds the tag of the document
     assertThat(windowed.results().get(0).content())
-        .singleElement()
-        .isInstanceOf(DocumentContent.class);
+        .containsExactly(TextContent.textContent(DocumentReferenceContent.from(bare).toTag()));
+    assertThat(windowed.results().get(1).content())
+        .containsExactly(
+            ObjectContent.objectContent(
+                Map.of("status", 200, "file", DocumentReferenceContent.from(nested).toTag())));
 
-    final var raw = results.stream().map(ToolCallResultContent::from).toList();
-    for (int i = 0; i < raw.size(); i++) {
+    for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";
       final var rendered = renderedByEveryProvider(windowed.results().get(i).content());
-      assertThat(rendered).isEqualTo(renderedByEveryProvider(raw.get(i).content()));
       // the document is in the request as a tag, not as its reference
       assertThat(rendered)
           .allSatisfy(text -> assertThat(text).contains(fileName).doesNotContain("storeId"));

@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -288,17 +287,8 @@ class DocumentExpanderTest {
     return ((ToolCallResultMessage) message).results().getFirst().content();
   }
 
-  private String renderedByAProvider(Content content) throws Exception {
-    final var modelFacingJson = new ModelFacingJson(TestObjectMapperSupplier.INSTANCE);
-    return switch (content) {
-      case DocumentContent documentContent -> modelFacingJson.write(documentContent.document());
-      case TextContent textContent -> textContent.text();
-      default -> throw new IllegalArgumentException(content.toString());
-    };
-  }
-
   @Test
-  void expandsAReferenceInAToolResultToTheDocumentOfTheRegistry() {
+  void expandsAReferenceInAToolResultToItsTagText() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
     final var reference = DocumentReferenceContent.from(document);
@@ -312,29 +302,30 @@ class DocumentExpanderTest {
     final var content = resultContent(expanded.getFirst());
     assertThat(content).hasSize(2);
     assertThat(content.get(0)).isEqualTo(textContent("before"));
-    assertRebuiltDocumentIs(content.get(1), document);
+    assertThat(content.get(1)).isEqualTo(tagOf(reference));
   }
 
   @Test
-  void aReferenceInAToolResultIsRenderedAsTheTagTheModelSawForTheStoredDocument() throws Exception {
+  void aReferenceInAToolResultBecomesTheShortTagOfTheDocumentOfTheRegistry() {
     final var document = camundaDocument("hello");
     final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
     final var reference = DocumentReferenceContent.from(document);
+    final var entryReference = reference(registry, 0, DocumentDelivery.REFERENCE);
 
     final var expanded =
         resultContent(
-            expander.expandMessages(List.of(toolResultMessage(reference)), registry).getFirst());
+            expander
+                .expandMessages(List.of(toolResultMessage(entryReference)), registry)
+                .getFirst());
     final var withoutRegistry =
         resultContent(
             expander
                 .expandMessages(List.of(toolResultMessage(reference)), DocumentRegistry.empty())
                 .getFirst());
 
-    final var tagOfTheStoredDocument =
-        renderedByAProvider(DocumentContent.documentContent(document));
-    assertThat(tagOfTheStoredDocument).isEqualTo(reference.toTag());
-    assertThat(renderedByAProvider(expanded.getFirst())).isEqualTo(tagOfTheStoredDocument);
-    assertThat(renderedByAProvider(withoutRegistry.getFirst())).isEqualTo(tagOfTheStoredDocument);
+    assertThat(entryReference.toTag()).contains("toolName").contains("toolCallId");
+    assertThat(expanded).containsExactly(tagOf(reference));
+    assertThat(withoutRegistry).containsExactly(tagOf(reference));
   }
 
   @Test
@@ -380,8 +371,8 @@ class DocumentExpanderTest {
                         .withDelivery(DocumentDelivery.CONTENT))),
             registry);
 
-    assertThat(resultContent(expanded.getFirst())).hasSize(1);
-    assertRebuiltDocumentIs(resultContent(expanded.getFirst()).getFirst(), document);
+    assertThat(resultContent(expanded.getFirst()))
+        .containsExactly(tagOf(DocumentReferenceContent.from(document)));
   }
 
   @Test
@@ -393,9 +384,61 @@ class DocumentExpanderTest {
             toolResultMessage(
                 textContent("text"),
                 DocumentContent.documentContent(document),
-                ObjectContent.objectContent(Map.of("file", document))));
+                ObjectContent.objectContent(Map.of("status", 200))));
 
     assertThat(expander.expandMessages(messages, registry)).isSameAs(messages);
+  }
+
+  @Test
+  void replacesADocumentNestedInAnObjectOfAToolResultByItsTag() {
+    final var document = camundaDocument("hello");
+    final var registry = registryOf(document, DocumentSource.toolCall("fetch", "call-1", "m-1"));
+    final var metadata = Map.<String, Object>of("key", "value");
+    final var message =
+        toolResultMessage(
+            new ObjectContent(
+                Map.of("status", 200, "files", List.of(Map.of("file", document))), metadata));
+
+    final var expanded = expander.expandMessages(List.of(message), registry);
+
+    assertThat(resultContent(expanded.getFirst()))
+        .containsExactly(
+            new ObjectContent(
+                Map.of(
+                    "status",
+                    200,
+                    "files",
+                    List.of(Map.of("file", DocumentReferenceContent.from(document).toTag()))),
+                metadata));
+    assertThat(resultContent(message).getFirst())
+        .isInstanceOfSatisfying(
+            ObjectContent.class,
+            stored ->
+                assertThat(((Map<?, ?>) stored.content()).get("files"))
+                    .isEqualTo(List.of(Map.of("file", document))));
+  }
+
+  @Test
+  void replacesADocumentNestedInAnObjectOfAUserMessageByItsTag() {
+    final var document = camundaDocument("hello");
+
+    final var expanded =
+        expander.expandMessages(
+            List.of(userMessage(ObjectContent.objectContent(Map.of("file", document)))),
+            DocumentRegistry.empty());
+
+    assertThat(((UserMessage) expanded.getFirst()).content())
+        .containsExactly(
+            ObjectContent.objectContent(
+                Map.of("file", DocumentReferenceContent.from(document).toTag())));
+  }
+
+  @Test
+  void leavesTheObjectsOfTheHistoryContentAlone() {
+    final var content =
+        List.<Content>of(ObjectContent.objectContent(Map.of("file", camundaDocument("hello"))));
+
+    assertThat(expand(content, DocumentRegistry.empty())).isSameAs(content);
   }
 
   @Test

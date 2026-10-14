@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
@@ -19,12 +18,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -35,17 +31,6 @@ class OpenAiContentConverterTest {
 
   private final OpenAiContentConverter converter =
       new OpenAiContentConverter(TestObjectMapperSupplier.INSTANCE);
-
-  private static final DocumentFactoryImpl DOCUMENT_FACTORY =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-
-  private static Document camundaDocument() {
-    return DOCUMENT_FACTORY.create(
-        DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-            .contentType("application/pdf")
-            .fileName("report.pdf")
-            .build());
-  }
 
   private static Document mockDocument(String contentType, String base64) {
     final var document = mock(Document.class);
@@ -201,25 +186,6 @@ class OpenAiContentConverterTest {
 
       assertThat(items).hasSize(1);
       assertThat(items.get(0).isInputText()).isTrue();
-    }
-
-    @Test
-    void rendersNestedCamundaDocumentAsTagWithoutAnyReferenceField() {
-      final var doc = camundaDocument();
-
-      final var text =
-          converter
-              .toResponsesToolResultOutputItems(
-                  List.of(new ObjectContent(Map.of("attachments", List.of(doc)), null)))
-              .get(0)
-              .asInputText()
-              .text();
-
-      assertThat(text)
-          .isEqualTo(
-              "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
-                  .formatted(DocumentHandle.idFor(doc)))
-          .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
     }
 
     @Test

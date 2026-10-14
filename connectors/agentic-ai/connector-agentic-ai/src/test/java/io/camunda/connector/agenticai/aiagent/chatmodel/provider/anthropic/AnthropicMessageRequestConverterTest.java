@@ -15,14 +15,12 @@ import com.anthropic.models.messages.MessageParam;
 import com.anthropic.models.messages.ThinkingConfigAdaptive;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -45,11 +43,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -136,51 +130,6 @@ class AnthropicMessageRequestConverterTest {
   private static JsonNode requestBodyAsJson(
       com.anthropic.models.messages.MessageCreateParams params) {
     return ObjectMappers.jsonMapper().valueToTree(params._body());
-  }
-
-  @Test
-  void emitsTagForDocumentsNestedInToolResultObjectContent() {
-    final var document =
-        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-            .create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                    .contentType("application/pdf")
-                    .fileName("report.pdf")
-                    .build());
-    final var snapshot =
-        new ConversationSnapshot(
-            List.of(
-                ToolCallResultMessage.builder()
-                    .results(
-                        List.of(
-                            ToolCallResultContent.builder()
-                                .id("call_1")
-                                .name("fetch_report")
-                                .content(
-                                    List.of(
-                                        ObjectContent.objectContent(
-                                            Map.of("attachments", List.of(document)))))
-                                .build()))
-                    .build()),
-            List.of());
-
-    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
-
-    final var text =
-        requestBodyAsJson(params)
-            .path("messages")
-            .get(0)
-            .path("content")
-            .get(0)
-            .path("content")
-            .get(0)
-            .path("text")
-            .asText();
-    assertThat(text)
-        .isEqualTo(
-            "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
-                .formatted(DocumentHandle.idFor(document)))
-        .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
   }
 
   @Test

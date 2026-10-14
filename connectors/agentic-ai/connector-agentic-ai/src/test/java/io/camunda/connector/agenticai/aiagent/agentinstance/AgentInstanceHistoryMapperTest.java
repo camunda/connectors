@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
@@ -957,14 +956,19 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void theTagInAnObjectIsNotWrappedInBackticksAndEqualsWhatTheModelSees() throws Exception {
-      final var item =
-          item(message(ObjectContent.objectContent(Map.of("file", document))), agentContext);
+      final var message = message(ObjectContent.objectContent(Map.of("file", document)));
+      final var item = item(message, agentContext);
 
       final var reported =
           ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
       assertThat(reported).isEqualTo(Map.of("file", tag));
-      assertThat(new ModelFacingJson(objectMapper).write(Map.of("file", document)))
-          .isEqualTo(objectMapper.writeValueAsString(reported));
+      final var modelFacing =
+          (ToolCallResultMessage)
+              new DocumentExpander(objectMapper)
+                  .expandMessages(List.of(message), DocumentRegistry.empty())
+                  .getFirst();
+      assertThat(modelFacing.results().getFirst().content())
+          .containsExactly(ObjectContent.objectContent(reported));
     }
 
     @Test

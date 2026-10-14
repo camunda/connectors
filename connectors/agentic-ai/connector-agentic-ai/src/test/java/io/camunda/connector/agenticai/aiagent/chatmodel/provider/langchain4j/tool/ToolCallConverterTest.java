@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -20,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -173,17 +173,19 @@ class ToolCallConverterTest {
     }
 
     @Test
-    void rendersDocumentsAsTagsInResults() throws JSONException {
+    void serializesDocumentsAsReferencesInResults() throws JSONException {
       final var doc1 = createDocument("Hello, world!", "text/plain", "test.txt");
       final var doc2 = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
-      final var doc3 =
-          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null);
+      final var doc1Ref = (CamundaDocumentReference) doc1.reference();
+      final var doc2Ref = (CamundaDocumentReference) doc2.reference();
 
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
       content.put("document1", doc1);
       content.put("document2", doc2);
-      content.put("document3", doc3);
+      content.put(
+          "document3",
+          new ExternalDocument("https://example.com/report.pdf", "Quarterly Report", url -> null));
 
       final var toolCallResultContent =
           ToolCallResultContent.builder()
@@ -202,15 +204,38 @@ class ToolCallConverterTest {
           """
           {
             "hello": "world",
-            "document1": "<doc id=\\"%s\\" fileName=\\"test.txt\\" contentType=\\"text/plain\\" />",
-            "document2": "<doc id=\\"%s\\" fileName=\\"test.pdf\\" contentType=\\"application/pdf\\" />",
-            "document3": "<doc id=\\"%s\\" fileName=\\"Quarterly Report\\" />"
+            "document1": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "text/plain",
+                "fileName": "test.txt"
+              }
+            },
+            "document2": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "%s",
+              "contentHash": "%s",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "test.pdf"
+              }
+            },
+            "document3": {
+              "camunda.document.type": "external",
+              "url": "https://example.com/report.pdf",
+              "name": "Quarterly Report"
+            }
           }
           """
               .formatted(
-                  DocumentHandle.idFor(doc1),
-                  DocumentHandle.idFor(doc2),
-                  DocumentHandle.idFor(doc3)),
+                  doc1Ref.getDocumentId(),
+                  doc1Ref.getContentHash(),
+                  doc2Ref.getDocumentId(),
+                  doc2Ref.getContentHash()),
           resultMessage.text(),
           true);
     }

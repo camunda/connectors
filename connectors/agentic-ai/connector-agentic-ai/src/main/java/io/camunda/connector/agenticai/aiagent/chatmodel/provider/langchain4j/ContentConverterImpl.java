@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -22,12 +21,12 @@ import org.jspecify.annotations.Nullable;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
-  private final ModelFacingJson modelFacingJson;
+  private final ObjectMapper objectMapper;
 
   public ContentConverterImpl(
       ObjectMapper objectMapper, DocumentToContentConverter documentToContentConverter) {
     this.documentToContentConverter = documentToContentConverter;
-    this.modelFacingJson = new ModelFacingJson(objectMapper);
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -61,6 +60,6 @@ public class ContentConverterImpl implements ContentConverter {
       return stringContent;
     }
 
-    return modelFacingJson.write(content);
+    return objectMapper.writeValueAsString(content);
   }
 }

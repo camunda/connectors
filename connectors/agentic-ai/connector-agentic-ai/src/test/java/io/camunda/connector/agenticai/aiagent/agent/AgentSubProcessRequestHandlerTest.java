@@ -1033,11 +1033,9 @@ class AgentSubProcessRequestHandlerTest {
                           assertThat(result.content().get(0))
                               .isEqualTo(TextContent.textContent("Loaded the document."));
                           assertThat(result.content().get(1))
-                              .isInstanceOfSatisfying(
-                                  DocumentContent.class,
-                                  loaded ->
-                                      assertThat(DocumentHandle.idFor(loaded.document()))
-                                          .isEqualTo(documentId));
+                              .isEqualTo(
+                                  TextContent.textContent(
+                                      DocumentReferenceContent.from(document).toTag()));
                           assertThat(result.content().get(2))
                               .isEqualTo(
                                   TextContent.textContent(

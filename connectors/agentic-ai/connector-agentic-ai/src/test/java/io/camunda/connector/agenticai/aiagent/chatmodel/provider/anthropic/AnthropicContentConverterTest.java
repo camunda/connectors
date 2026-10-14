@@ -6,14 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.document.DocumentHandle.idFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.models.messages.Base64ImageSource;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -22,12 +20,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -38,17 +33,6 @@ class AnthropicContentConverterTest {
 
   private final AnthropicContentConverter converter =
       new AnthropicContentConverter(TestObjectMapperSupplier.INSTANCE);
-
-  private static final DocumentFactoryImpl DOCUMENT_FACTORY =
-      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-
-  private static Document camundaDocument() {
-    return DOCUMENT_FACTORY.create(
-        DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-            .contentType("application/pdf")
-            .fileName("report.pdf")
-            .build());
-  }
 
   private static Document mockDocument(String contentType, String base64) {
     final var document = mock(Document.class);
@@ -280,7 +264,7 @@ class AnthropicContentConverterTest {
     void mapsDocumentContentToTextBlockReference() {
       // never embedded natively here, regardless of content type - the composer's synthetic
       // <doc/> fallback message already delivers the actual bytes for tool results, so this
-      // renders the same <doc/> tag ObjectContent would, avoiding a double-send
+      // renders the same JSON reference ObjectContent would, avoiding a double-send
       final var doc = mockDocument("image/jpeg", "QUJD");
 
       final var blocks = converter.toToolResultBlocks(List.of(new DocumentContent(doc, null)));
@@ -288,27 +272,9 @@ class AnthropicContentConverterTest {
       assertThat(blocks).hasSize(1);
       assertThat(blocks.get(0).isText()).isTrue();
       assertThat(blocks.get(0).text().orElseThrow().text())
-          .isEqualTo("<doc id=\"%s\" fileName=\"document\" />".formatted(idFor(doc)));
-    }
-
-    @Test
-    void rendersNestedCamundaDocumentAsTagWithoutAnyReferenceField() {
-      final var doc = camundaDocument();
-
-      final var text =
-          converter
-              .toToolResultBlocks(
-                  List.of(new ObjectContent(Map.of("attachments", List.of(doc)), null)))
-              .get(0)
-              .text()
-              .orElseThrow()
-              .text();
-
-      assertThat(text)
           .isEqualTo(
-              "{\"attachments\":[\"<doc id=\\\"%s\\\" fileName=\\\"report.pdf\\\" contentType=\\\"application/pdf\\\" />\"]}"
-                  .formatted(DocumentHandle.idFor(doc)))
-          .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
+              "{\"url\":\"https://example.com/document\",\"name\":\"document\","
+                  + "\"camunda.document.type\":\"external\"}");
     }
 
     @Test

@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -32,11 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -288,44 +283,6 @@ class BedrockConverseRequestConverterTest {
       final var toolResult = toolResultMessage.content().get(0).toolResult();
       assertThat(toolResult.toolUseId()).isEqualTo("id");
       assertThat(toolResult.content().get(0).text()).isEqualTo("result");
-    }
-
-    @Test
-    void emitsTagForDocumentsNestedInToolResultObjectContent() {
-      final var document =
-          new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
-              .create(
-                  DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                      .contentType("application/pdf")
-                      .fileName("report.pdf")
-                      .build());
-      final var snapshot =
-          new ConversationSnapshot(
-              List.of(
-                  ToolCallResultMessage.builder()
-                      .results(
-                          List.of(
-                              ToolCallResultContent.builder()
-                                  .id("call_1")
-                                  .name("fetch_report")
-                                  .content(
-                                      List.of(
-                                          ObjectContent.objectContent(
-                                              Map.of("attachments", List.of(document)))))
-                                  .build()))
-                      .build()),
-              List.of());
-
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
-
-      final var json =
-          request.messages().get(0).content().get(0).toolResult().content().get(0).json();
-      final var tag = json.asMap().get("attachments").asList().get(0).asString();
-      assertThat(tag)
-          .isEqualTo(
-              "<doc id=\"%s\" fileName=\"report.pdf\" contentType=\"application/pdf\" />"
-                  .formatted(DocumentHandle.idFor(document)))
-          .doesNotContain("storeId", "contentHash", "documentId", "camunda.document.type");
     }
 
     @Test

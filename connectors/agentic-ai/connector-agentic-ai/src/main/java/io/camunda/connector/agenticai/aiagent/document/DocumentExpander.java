@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -45,10 +46,11 @@ import org.slf4j.LoggerFactory;
  * document the registry does not know, or whose reference cannot be read, leaves the tag text
  * alone. A tag a user typed into a prompt is text and stays text.
  *
- * <p>In a tool result a reference becomes the document read from the registry, which the providers
- * render as the tag of the document inside the result, or the tag text when the registry cannot
- * supply the document. The delivery of such a reference is not read: the providers show a document
- * of a tool result as its tag only.
+ * <p>In a tool result a reference becomes the tag text of the document read from the registry, or
+ * the tag text of the reference when the registry cannot supply the document. The delivery of such
+ * a reference is not read: the model gets a document of a tool result as its tag only. A document
+ * nested in an object is replaced by its tag in the object, in a tool result as well as in a user
+ * message.
  *
  * <p>The result depends only on the messages and the registry, never on time or call order, so it
  * is stable across requests (prompt caching). Nothing that is stored is changed.
@@ -73,8 +75,8 @@ public final class DocumentExpander {
   }
 
   /**
-   * An object with every document at any depth replaced by its tag, as the model providers render
-   * it, and the documents that were replaced, in order of appearance.
+   * An object with every document at any depth replaced by its tag, as the model reads it, and the
+   * documents that were replaced, in order of appearance.
    *
    * @param tree the object as plain JSON values (maps, lists, strings, numbers)
    * @param documents the documents the tags stand for, one entry per occurrence
@@ -82,9 +84,9 @@ public final class DocumentExpander {
   public record TaggedObject(Object tree, List<Document> documents) {}
 
   /**
-   * Renders the object the way the model providers do, a {@link Document} at any depth as its tag
-   * (see {@link DocumentReferenceContent#toTag()}), and returns the rendered tree with the
-   * documents it replaced.
+   * Renders the object the way the model reads it, a {@link Document} at any depth as its tag (see
+   * {@link DocumentReferenceContent#toTag()}), and returns the rendered tree with the documents it
+   * replaced.
    */
   public TaggedObject renderWithTags(Object value) {
     final var documents = new ArrayList<Document>();
@@ -110,8 +112,9 @@ public final class DocumentExpander {
   /**
    * Returns the messages expanded for the model: in a user message the tag text of every document
    * reference, followed by the document for the references with the delivery {@code content}; in a
-   * tool result the document of every reference, or its tag text when the registry has no readable
-   * document.
+   * tool result the tag text of every reference, the tag of the document of the registry or the one
+   * of the reference when the registry has no readable document. In both, a document nested in an
+   * object is replaced by its tag.
    */
   public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
     final var expanded = new ArrayList<Message>(messages.size());
@@ -145,13 +148,18 @@ public final class DocumentExpander {
     return expand(content, registry, false);
   }
 
-  private List<Content> expand(
-      List<Content> content, DocumentRegistry registry, boolean onlyDeliveryContent) {
+  private List<Content> expand(List<Content> content, DocumentRegistry registry, boolean forModel) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
       final var current = content.get(i);
       final var next = i + 1 < content.size() ? content.get(i + 1) : null;
+      if (forModel && current instanceof ObjectContent objectContent) {
+        final var rendered = renderObject(objectContent);
+        expanded.add(rendered);
+        changed |= rendered != objectContent;
+        continue;
+      }
       if (!(current instanceof DocumentReferenceContent reference)) {
         expanded.add(current);
         continue;
@@ -159,8 +167,7 @@ public final class DocumentExpander {
 
       expanded.add(new TextContent(reference.toTag(), reference.metadata()));
       changed = true;
-      final var withContent =
-          !onlyDeliveryContent || reference.delivery() == DocumentDelivery.CONTENT;
+      final var withContent = !forModel || reference.delivery() == DocumentDelivery.CONTENT;
       if (withContent
           && !(next instanceof DocumentContent following
               && isDocumentWithId(following.document(), reference.id()))) {
@@ -193,18 +200,31 @@ public final class DocumentExpander {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (final var current : content) {
-      if (current instanceof DocumentReferenceContent reference) {
-        final var document = rehydrate(registry, reference.id());
-        expanded.add(
-            document != null
-                ? new DocumentContent(document, reference.metadata())
-                : new TextContent(reference.toTag(), reference.metadata()));
-        changed = true;
-      } else {
-        expanded.add(current);
+      switch (current) {
+        case DocumentReferenceContent reference -> {
+          final var document = rehydrate(registry, reference.id());
+          // the short tag of the document, without source, tool name and tool call id
+          final var tag = document != null ? DocumentReferenceContent.from(document) : reference;
+          expanded.add(new TextContent(tag.toTag(), reference.metadata()));
+          changed = true;
+        }
+        case ObjectContent objectContent -> {
+          final var rendered = renderObject(objectContent);
+          expanded.add(rendered);
+          changed |= rendered != objectContent;
+        }
+        default -> expanded.add(current);
       }
     }
     return changed ? List.copyOf(expanded) : content;
+  }
+
+  /** The object with its documents replaced by their tags, or the same object when it has none. */
+  private ObjectContent renderObject(ObjectContent objectContent) {
+    final var tagged = renderWithTags(objectContent.content());
+    return tagged.documents().isEmpty()
+        ? objectContent
+        : new ObjectContent(tagged.tree(), objectContent.metadata());
   }
 
   private static boolean isDocumentWithId(Document document, String id) {

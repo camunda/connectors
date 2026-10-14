@@ -16,9 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.ModelFacingJson;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.ReferenceRenderedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -285,17 +283,11 @@ class LegacyDocumentConversationTest {
     final var content = (ObjectContent) toolResult.results().getFirst().content().getFirst();
     final var originalContent = (ObjectContent) original.results().getFirst().content().getFirst();
 
-    // the model-facing text of the tool result is the JSON the object mapper writes for the content
-    final var modelFacingJson = new ModelFacingJson(objectMapper);
-    assertThat(modelFacingJson.write(content.content()))
+    // the tool result keeps its documents, which the object mapper writes as their reference
+    assertThat(objectMapper.writeValueAsString(content.content()))
         .isEqualTo(objectMapper.writeValueAsString(originalContent.content()))
         .contains("\"documentId\":\"22222222-2222-4222-8222-222222222222\"")
         .doesNotContain("<doc");
-    assertThat(((Map<?, ?>) content.content()).values())
-        .anyMatch(ReferenceRenderedDocument.class::isInstance);
-    // the stored messages hold the documents as they were read
-    assertThat(((Map<?, ?>) originalContent.content()).values())
-        .noneMatch(ReferenceRenderedDocument.class::isInstance);
   }
 
   @Test
