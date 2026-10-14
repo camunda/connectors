@@ -12,6 +12,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class BoxErrors {
 
@@ -33,9 +36,11 @@ public final class BoxErrors {
   }
 
   static String errorCode(ResponseInfo response) {
-    return response.getCode() != null && !response.getCode().isBlank()
-        ? response.getCode()
-        : DEFAULT_ERROR_CODE;
+    if (response.getCode() != null && !response.getCode().isBlank()) {
+      return response.getCode();
+    }
+    String authError = authenticateParam(response, "error");
+    return authError != null ? authError : DEFAULT_ERROR_CODE;
   }
 
   static String describe(ResponseInfo response) {
@@ -54,13 +59,45 @@ public final class BoxErrors {
     if (!contextMessages.isEmpty()) {
       message.append(" - ").append(String.join("; ", contextMessages));
     }
-    if (detail == null && contextMessages.isEmpty() && response.getRawBody() != null) {
-      message.append(": ").append(response.getRawBody());
+    if (detail == null && contextMessages.isEmpty()) {
+      String rawBody = response.getRawBody();
+      String fallback =
+          rawBody != null && !rawBody.isBlank()
+              ? rawBody
+              : authenticateParam(response, "error_description");
+      if (fallback != null) {
+        message.append(": ").append(fallback);
+      }
     }
-    if (response.getRequestId() != null) {
-      message.append(" [Request ID: ").append(response.getRequestId()).append("]");
+    String requestId = response.getRequestId();
+    if (requestId == null || requestId.isBlank()) {
+      requestId = header(response, "box-request-id");
+    }
+    if (requestId != null && !requestId.isBlank()) {
+      message.append(" [Request ID: ").append(requestId).append("]");
     }
     return message.toString();
+  }
+
+  private static String header(ResponseInfo response, String name) {
+    if (response.getHeaders() == null) {
+      return null;
+    }
+    return response.getHeaders().entrySet().stream()
+        .filter(e -> e.getKey() != null && e.getKey().equalsIgnoreCase(name))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(null);
+  }
+
+  /** Reads a parameter such as error="invalid_token" from the WWW-Authenticate header. */
+  private static String authenticateParam(ResponseInfo response, String param) {
+    String header = header(response, "www-authenticate");
+    if (header == null) {
+      return null;
+    }
+    Matcher matcher = Pattern.compile("(?:^|[\\s,])" + param + "=\"([^\"]*)\"").matcher(header);
+    return matcher.find() && !matcher.group(1).isBlank() ? matcher.group(1) : null;
   }
 
   private static List<String> contextMessages(JsonNode contextInfo) {

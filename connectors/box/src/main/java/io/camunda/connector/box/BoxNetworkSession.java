@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.box;
 
+import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
 import com.box.sdkgen.networking.boxnetworkclient.BoxNetworkClient;
 import com.box.sdkgen.networking.fetchoptions.FetchOptions;
 import com.box.sdkgen.networking.fetchresponse.FetchResponse;
@@ -128,8 +129,9 @@ final class BoxNetworkSession {
   }
 
   /**
-   * Skips retries for requests streaming a body and releases the discarded response whenever a
-   * retry happens or the delegate fails: the SDK keeps looping without closing binary content.
+   * Skips retries for requests streaming a body or rejected with a 401 under a developer token, and
+   * releases the discarded response whenever a retry happens or the delegate fails: the SDK keeps
+   * looping without closing binary content.
    */
   static final class StreamSafeRetryStrategy implements RetryStrategy {
     private final RetryStrategy delegate;
@@ -141,6 +143,10 @@ final class BoxNetworkSession {
     @Override
     public boolean shouldRetry(FetchOptions options, FetchResponse response, int attempt) {
       if (options.fileStream != null || options.multipartData != null) {
+        return false;
+      }
+      // a developer token cannot be refreshed, retrying would only hide the 401 behind an SDK error
+      if (response.getStatus() == 401 && options.getAuth() instanceof BoxDeveloperTokenAuth) {
         return false;
       }
       boolean retry;

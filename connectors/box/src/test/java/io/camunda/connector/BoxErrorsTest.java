@@ -83,4 +83,45 @@ public class BoxErrorsTest {
     var original = new IllegalStateException("boom");
     assertThat(BoxErrors.translate(original)).isSameAs(original);
   }
+
+  @Test
+  void usesHeadersWhenTheBodyIsEmpty() {
+    var response =
+        new ResponseInfo(
+            401,
+            Map.of(
+                "www-authenticate",
+                "Bearer realm=\"Service\", error=\"invalid_token\", error_description=\"The access token provided is invalid.\"",
+                "box-request-id",
+                "req-1"));
+    response.rawBody = "";
+    var error =
+        new BoxAPIError(
+            "Status 401",
+            new RequestInfo("GET", "https://api.box.com", Map.of(), Map.of()),
+            response);
+
+    var result = (ConnectorException) BoxErrors.translate(error);
+
+    assertThat(result.getErrorCode()).isEqualTo("invalid_token");
+    assertThat(result.getMessage())
+        .isEqualTo(
+            "Box API error (HTTP 401): The access token provided is invalid. [Request ID: req-1]");
+  }
+
+  @Test
+  void omitsSeparatorForEmptyBodyWithoutHeaders() {
+    var response = new ResponseInfo(401, Map.of());
+    response.rawBody = "";
+    var error =
+        new BoxAPIError(
+            "Status 401",
+            new RequestInfo("GET", "https://api.box.com", Map.of(), Map.of()),
+            response);
+
+    var result = (ConnectorException) BoxErrors.translate(error);
+
+    assertThat(result.getErrorCode()).isEqualTo("BOX_API_ERROR");
+    assertThat(result.getMessage()).isEqualTo("Box API error (HTTP 401)");
+  }
 }

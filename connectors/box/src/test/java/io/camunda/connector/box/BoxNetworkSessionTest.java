@@ -128,6 +128,17 @@ public class BoxNetworkSessionTest {
   }
 
   @Test
+  void doesNotRefreshADeveloperTokenOnA401() {
+    var strategy = new BoxNetworkSession.StreamSafeRetryStrategy(alwaysRetry());
+    var options =
+        new FetchOptions.Builder("https://api.box.com/2.0/files/1", "GET")
+            .auth(new BoxDeveloperTokenAuth("invalid"))
+            .build();
+
+    assertThat(strategy.shouldRetry(options, new FetchResponse(401, Map.of()), 1)).isFalse();
+  }
+
+  @Test
   void closesDiscardedContentWhenRetrying() {
     var closed = new AtomicBoolean();
     var response = new FetchResponse(503, Map.of());
