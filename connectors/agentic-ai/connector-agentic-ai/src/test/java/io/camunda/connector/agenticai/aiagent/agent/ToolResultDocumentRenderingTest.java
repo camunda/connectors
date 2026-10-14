@@ -145,7 +145,7 @@ class ToolResultDocumentRenderingTest {
             null,
             nextTurn.messages());
     final var windowed =
-        conversation.window(100, expander).messages().stream()
+        conversation.window(100, expander.windowDecorator(conversation)).messages().stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .findFirst()

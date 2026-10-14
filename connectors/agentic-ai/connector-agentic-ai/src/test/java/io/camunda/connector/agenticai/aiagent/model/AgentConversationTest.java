@@ -181,7 +181,7 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
   }
@@ -216,7 +216,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("hi")));
 
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
 
     assertThat(snapshot.toolDefinitions()).hasSize(1);
     assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
@@ -267,7 +267,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("hi")));
 
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
 
     assertThat(snapshot.toolDefinitions().getFirst().inputSchema())
         .isEqualTo(
@@ -345,7 +345,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed = conv.window(2, DOCUMENT_EXPANDER).messages();
+    var windowed = conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window, so the note names the document
@@ -365,7 +365,7 @@ class AgentConversationTest {
     assertThat(allBefore).noneMatch(m -> m == windowed.getLast());
 
     // a window that keeps the document message needs no note
-    assertThat(conv.window(20, DOCUMENT_EXPANDER).messages())
+    assertThat(conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
         .hasSameSizeAs(conv.allMessages())
         .noneMatch(
             m ->
@@ -396,7 +396,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed = conv.window(20, DOCUMENT_EXPANDER).messages();
+    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -444,7 +444,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed = conv.window(20, DOCUMENT_EXPANDER).messages();
+    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -490,7 +490,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed = conv.window(3, DOCUMENT_EXPANDER).messages();
+    var windowed = conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
 
     assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
     assertThat(windowed)
@@ -782,9 +782,10 @@ class AgentConversationTest {
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(conv.window(3, DOCUMENT_EXPANDER).messages())
+    assertThat(conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
         .containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(conv.window(2, DOCUMENT_EXPANDER).messages()).containsExactly(SYSTEM_MESSAGE);
+    assertThat(conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
+        .containsExactly(SYSTEM_MESSAGE);
   }
 
   @Test

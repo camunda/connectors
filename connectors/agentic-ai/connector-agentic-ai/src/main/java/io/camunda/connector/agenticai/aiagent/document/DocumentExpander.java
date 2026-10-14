@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
+import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -31,6 +32,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +109,20 @@ public final class DocumentExpander {
   /** The document of the registry entry with the given id; empty when unknown or unreadable. */
   public Optional<Document> findDocument(DocumentRegistry registry, String id) {
     return Optional.ofNullable(rehydrate(registry, id));
+  }
+
+  /**
+   * The decorator for the windowed messages of the conversation. For an agent instance with the
+   * documents feature it appends the transient note on the registry documents that are no longer
+   * visible in them (see {@link EvictedDocumentsNote}) and expands the result as {@link
+   * #expandMessages} does; for one without, the messages are left as they are.
+   */
+  public UnaryOperator<List<Message>> windowDecorator(AgentConversation conversation) {
+    if (!conversation.supportsDocuments()) {
+      return UnaryOperator.identity();
+    }
+    final var registry = conversation.documentRegistry();
+    return windowed -> expandMessages(EvictedDocumentsNote.appendTo(windowed, registry), registry);
   }
 
   /**

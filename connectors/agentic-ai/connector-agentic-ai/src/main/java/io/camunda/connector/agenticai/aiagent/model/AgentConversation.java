@@ -7,9 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
-import io.camunda.connector.agenticai.aiagent.document.EvictedDocumentsNote;
 import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -365,29 +363,16 @@ public final class AgentConversation {
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the available runtime
    * tools.
    *
-   * <p>For an agent instance with the {@link AgentContext#FEATURE_DOCUMENTS documents feature}, the
-   * stored windowed messages are checked first: when registry documents are not visible in them, a
-   * transient user message listing them as document references is appended (see {@link
-   * EvictedDocumentsNote}). The document references of the windowed user messages, the note
-   * included, are then expanded to their tag text and, for the references with the delivery {@code
-   * content}, the document read from the registry of the {@link AgentContext#documents() context}
-   * (see {@link DocumentExpander}); every other document stays a tag. A document reference in a
-   * windowed tool result is expanded to its tag text, and a document nested in an object of a
-   * windowed message to its tag. For an agent instance without the feature, the windowed messages
-   * are left as they are. {@link #allMessages()} and the stored conversation are not affected.
+   * <p>The decorator is applied to the windowed messages, and what it returns is sent to the LLM;
+   * {@link #allMessages()} and the stored conversation are not affected.
+   *
+   * @param decorator turns the windowed messages into the messages of the snapshot; the identity
+   *     leaves them as they are
    */
-  public ConversationSnapshot window(int size, DocumentExpander documentExpander) {
+  public ConversationSnapshot window(int size, UnaryOperator<List<Message>> decorator) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    final List<Message> messages;
-    if (supportsDocuments()) {
-      var registry = documentRegistry();
-      var withNote = EvictedDocumentsNote.appendTo(windowed, registry);
-      messages = documentExpander.expandMessages(withNote, registry);
-    } else {
-      messages = windowed;
-    }
     return new ConversationSnapshot(
-        messages,
+        decorator.apply(windowed),
         DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));
   }
 

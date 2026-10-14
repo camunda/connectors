@@ -230,7 +230,10 @@ class LegacyDocumentConversationTest {
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
-    final var snapshot = conversation.window(100, new DocumentExpander(objectMapper)).messages();
+    final var snapshot =
+        conversation
+            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+            .messages();
 
     // no tag is inserted or rewritten, no note about evicted documents is appended: the window
     // holds the stored messages and the new input as they are
@@ -270,7 +273,10 @@ class LegacyDocumentConversationTest {
             null,
             List.of(TestMessagesFixture.userMessage("Next")));
 
-    final var snapshot = conversation.window(100, new DocumentExpander(objectMapper)).messages();
+    final var snapshot =
+        conversation
+            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+            .messages();
 
     final var toolResult =
         snapshot.stream()

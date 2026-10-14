@@ -121,8 +121,10 @@ class DocumentBlocksModelFacingTest {
             .conversation(InProcessConversationContext.builder("conv").build())
             .build()
             .withDocuments(registry.entries());
-    return AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer))
-        .window(100, new DocumentExpander(OBJECT_MAPPER))
+    final var conversation =
+        AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
+    return conversation
+        .window(100, new DocumentExpander(OBJECT_MAPPER).windowDecorator(conversation))
         .messages();
   }
 

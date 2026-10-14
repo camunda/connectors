@@ -321,7 +321,9 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn().iterationKey());
 
       final var windowedSnapshot =
-          workingConversation.window(agentConfiguration.contextWindowSize(), documentExpander);
+          workingConversation.window(
+              agentConfiguration.contextWindowSize(),
+              documentExpander.windowDecorator(workingConversation));
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       workingConversation =
