@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.v2;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration.CUSTOM_ID;
 
+import io.camunda.connector.agenticai.aiagent.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -53,7 +54,7 @@ public record CustomProviderConfiguration(
             feel = FeelMode.required,
             optional = true)
         Map<String, Object> parameters)
-    implements ProviderConfiguration {
+    implements ProviderConfiguration, CustomChatModelConfiguration {
 
   @TemplateProperty(ignore = true)
   public static final String CUSTOM_ID = "custom";
