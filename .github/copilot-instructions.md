@@ -193,3 +193,14 @@ The CLI does not pin revisions or enforce the recorded hashes, so a reinstall or
 the current upstream content; review the resulting diff. Commit `skills-lock.json` and
 `.agents/skills/` together. After adding a skill, make sure the
 `.claude/skills/<name>` symlink exists.
+
+**Exception — `spm`-managed skills:** skills declared in `ai.json` (e.g. `product-context`) are
+managed by `spm`, not `npx skills`. Only
+`ai.json` and `ai.lock` are committed; `spm` materializes the skills into the git-ignored `.spm/` and
+`.agents/skills/spm-managed-skills/` directories, so no `.claude/skills` symlink is needed.
+
+```bash
+spm install   # materialize skills from ai.lock (run after cloning)
+spm update    # re-resolve to latest commits (updates ai.lock)
+spm status    # show which declared skills are materialized
+```

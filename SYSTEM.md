@@ -13,7 +13,7 @@ components:
   - { component: camunda/connectors/connectors/agentic-ai, role: connector }
   - { component: camunda/connectors/connectors/idp-extraction, role: connector }
 rules:
-  - { id: DR1, rule: "connector may depend on platform (SDK and generator annotations with provided scope, commons); platform libraries (SDK, runtime, commons, generator) never depend on a connector", enforced_by: "Maven reactor (a cycle fails the build); no explicit check that the SDK stays connector-free (gap)" }
+  - { id: DR1, rule: "connector may depend on platform (connector-core with provided scope; connector-validation, generator annotations and commons at compile scope); platform libraries (SDK, runtime, commons, generator) never depend on a connector", enforced_by: "Maven reactor (a cycle fails the build); no explicit check that the SDK stays connector-free (gap)" }
   - { id: DR2, rule: "Among production (shipped) modules, only the bundles in apps/ depend on both the runtime and connectors; E2E test modules (connectors-e2e-test/) may compose them freely. Known exception: connectors/agentic-ai/connector-agentic-ai depends on connector-runtime-{core,spring}", enforced_by: "none yet (gap)" }
   - { id: DR3, rule: "Connectors share code only through base modules (aws-base, http-base, google-base, microsoft/common), not through each other. Known exception: connector-agentic-ai depends on connector-webhook for webhook authorization and HMAC signature utilities", enforced_by: "none yet (gap)" }
 depends_on_systems: [orchestration-cluster]
@@ -76,7 +76,9 @@ code into a base module.
 
 ## 5. Conventions
 Connectors are discovered through `ServiceLoader` and carry `@OutboundConnector`/`@InboundConnector`
-plus `@ElementTemplate`; templates are generated, never hand-edited (ADR-0001). Multi-operation
+plus `@ElementTemplate`; exception: `connector-agentic-ai` registers its connectors as Spring beans via
+`AgenticAiConnectorsAutoConfiguration` (`META-INF/spring/...AutoConfiguration.imports`), with no
+`META-INF/services` file; templates are generated, never hand-edited (ADR-0001). Multi-operation
 connectors use `@Operation` (ADR-0002). Secrets as `{{secrets.NAME}}`, resolved centrally (ADR-0007).
 Licence split: Apache 2.0 for SDK, runtime, HTTP REST connector and generator; Camunda Self-Managed
 Free Edition for most connectors. Details: [AGENTS.md](AGENTS.md), [docs/adr](docs/adr/README.md).
