@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration.validation;
 
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.InMemoryMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import org.jspecify.annotations.Nullable;
 
 public class McpClientConfigurationValidator
     implements ConstraintValidator<ValidMcpClientConfiguration, McpClientConfiguration> {
@@ -27,6 +29,24 @@ public class McpClientConfigurationValidator
       }
     }
 
+    if (config.type() != null
+        && config.transport() instanceof InMemoryMcpClientTransportConfiguration inMemory) {
+      final var beanName = inMemory.serverBeanName();
+      final var className = inMemory.serverClassName();
+      if ((beanName == null) == (className == null)
+          || !hasText(beanName != null ? beanName : className)) {
+        cxt.disableDefaultConstraintViolation();
+        cxt.buildConstraintViolationWithTemplate(
+                "Exactly one of 'server-bean-name' and 'server-class-name' must be set (and not blank), the other must be unset, for an IN_MEMORY MCP client")
+            .addConstraintViolation();
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  private static boolean hasText(@Nullable String value) {
+    return value != null && !value.isBlank();
   }
 }

@@ -91,7 +91,7 @@ sequenceDiagram
 - Type: `io.camunda.agenticai:mcpclient:1`
 - Uses pre-configured MCP connections on the runtime (via Spring properties)
 - Client lifecycle managed by `McpClientRegistry`
-- Supports STDIO and HTTP/SSE transports
+- Supports STDIO, HTTP/SSE and IN_MEMORY transports
 
 **MCP Remote Client** (`McpRemoteClientFunction`):
 - Type: `io.camunda.agenticai:mcpremoteclient:1`
@@ -402,6 +402,23 @@ McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 - **STDIO**: `StdioClientTransport(ServerParameters.builder(command).args(args).build())`
 - **Streamable HTTP**: `HttpClientStreamableHttpTransport.builder(url)` with custom headers supplier
 - **SSE**: `HttpClientSseClientTransport.builder(url)` with custom headers supplier
+- **IN_MEMORY**: `InMemoryMcpTransport` — connects the client to an MCP SDK server in the same JVM; no process or
+  network connection (runtime clients only, see below)
+
+### IN_MEMORY clients
+
+An `IN_MEMORY` client exposes Java code of the connector runtime as an MCP server. The server is an
+`InMemoryMcpServer` Spring bean (`name()`, `version()`, `tools()` returning `SyncToolSpecification`s). For each client,
+`McpSdkClientFactory` builds an MCP SDK sync server around the bean's tools and connects it to the client through
+`InMemoryMcpTransport`. Closing the client also closes its server.
+
+The bean is referenced via `in-memory` — exactly one of the following must be set and non-blank:
+- `server-bean-name` — name of a bean implementing `InMemoryMcpServer`
+- `server-class-name` — fully qualified class name; there must be exactly one bean of that class
+
+The reference is resolved eagerly when the client registry is created, so a missing or ambiguous bean fails startup.
+`initializationTimeout` and `toolExecutionTimeout` apply as for other runtime clients. The SPI is tied to the MCP SDK
+(`mcpsdk`) client framework.
 
 ### McpRemoteClientTransportConfiguration (sealed interface)
 
@@ -508,7 +525,7 @@ camunda.connector.agenticai.mcp.client:
   clients:
     my-server:
       enabled: true
-      type: STDIO | HTTP | SSE
+      type: STDIO | HTTP | SSE | IN_MEMORY
       stdio:
         command: "npx"
         args: ["-y", "@modelcontextprotocol/server-filesystem"]
@@ -520,6 +537,8 @@ camunda.connector.agenticai.mcp.client:
           type: NONE | BASIC | BEARER | OAUTH
           ...
         timeout: PT30S
+      in-memory:
+        server-bean-name: "myMcpServer"   # or: server-class-name: "com.acme.MyMcpServer"
       initializationTimeout: PT30S
       toolExecutionTimeout: PT30S
       reconnectInterval: PT5S
