@@ -9,9 +9,6 @@ package io.camunda.connector.agenticai.autoconfigure;
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
 
-import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolHandler;
-import io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt.A2aSystemPromptContributor;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
@@ -24,6 +21,9 @@ import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandle
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.integration.systemprompt.A2aSystemPromptContributor;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
