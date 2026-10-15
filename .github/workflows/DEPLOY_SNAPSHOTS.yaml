@@ -140,14 +140,10 @@ jobs:
       # Match Maven deployment credentials by server id rather than repository origin.
       - name: Build Artifacts
         if: github.event_name != 'push' || steps.snapshot-gate.outputs.fresh != 'true'
-<<<<<<< HEAD
-        run: ./mvnw -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: ./mvnw -B compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-=======
-        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests -Dconnectors.fatjar.attach=false
->>>>>>> f22a032 (ci: send Artifactory credentials on Maven deploys (#9471))
 
       # The Docker images below are built from the local target/ jars, so they still need a build.
       - name: Build Artifacts without deploying
