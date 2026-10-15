@@ -1,0 +1,168 @@
+# Split the agentic AI module into libraries, connectors and integrations
+
+* Deciders: Agentic AI Team
+* Date: Oct 15, 2026
+
+## Status
+
+**Accepted**.
+
+## Context and Problem Statement
+
+The agentic AI connectors shipped as a single Maven module, `connector-agentic-ai`. It contained the
+AI Agent connectors, the ad-hoc tools schema connector, the MCP client connectors, the A2A client
+connectors, every chat model provider, the conversation stores, and the glue that lets the AI Agent
+call MCP and A2A as gateway tools.
+
+Several needs pull these parts apart:
+
+* The MCP and A2A client connectors are standalone connectors. They must evolve on their own
+  schedule, for example to adopt the A2A 1.0 protocol and its authentication schemes, without
+  touching the AI Agent.
+* Custom extensions (conversation stores, chat model factories, gateway tools) compile against the
+  whole connector today. They have no smaller, stable API to depend on.
+* Chat model providers and the LangChain4j integration are candidates for their own modules later.
+  That needs a home for the provider SPI and the agent model that does not include the agent
+  implementation.
+* Module boundaries existed only by convention, and the convention had already eroded: the A2A
+  client built its results from the AI Agent's message content model, and the MCP and A2A client
+  connectors referenced constants from the tools schema resolver.
+
+Should the module stay as one, or be split, and along which lines?
+
+## Decision Drivers
+
+* **Independent evolution**: client connectors change without rebuilding or re-releasing the agent
+  internals they do not use.
+* **Stable extension API**: custom extensions depend on a small set of SPI and model types, not on
+  the connector implementation.
+* **No behavior change**: job types, element template IDs and content, Spring property names, JSON
+  shapes of process variables and stored conversation data stay identical. The default bundle keeps
+  registering the same connectors.
+* **Enforced boundaries**: a dependency in the wrong direction fails the build instead of a review.
+* **Room for provider modules**: a future provider or LangChain4j module depends on the API, not on
+  the AI Agent connector.
+
+## Considered Options
+
+1. Keep one module and enforce package boundaries with architecture tests only.
+2. One module per connector, with all shared code (model, SPI and agent implementation) in a single
+   core library.
+3. Layered libraries for the shared code, one module per connector, and separate integration modules
+   that connect the MCP and A2A clients to the AI Agent.
+
+## Decision Outcome
+
+Chosen option: **Option 3 — layered libraries, connector modules and integration modules**, because
+it is the only option that lets the client connectors depend on nothing agent-specific while the AI
+Agent still uses them as gateway tools, and it gives extensions a small API to compile against.
+
+The decision comprises:
+
+* **D1 — Ten modules with a fixed dependency direction.**
+
+  | Module                          | Kind        | Depends on (agentic AI modules)          |
+  | ------------------------------- | ----------- | ---------------------------------------- |
+  | `agentic-ai-common`             | library     | none                                     |
+  | `aiagent-model`                 | library     | common                                   |
+  | `aiagent-api`                   | library     | model, common                            |
+  | `aiagent-tools-schema`          | library     | api, model, common                       |
+  | `connector-ad-hoc-tools-schema` | connector   | tools-schema                             |
+  | `connector-mcp`                 | connector   | common                                   |
+  | `aiagent-mcp-integration`       | integration | connector-mcp, api, model, common        |
+  | `connector-a2a`                 | connector   | common                                   |
+  | `aiagent-a2a-integration`       | integration | connector-a2a, api, model, common        |
+  | `connector-aiagent`             | connector   | tools-schema, api, model, common         |
+
+* **D2 — Client connectors know nothing about the AI Agent.** The MCP and A2A client connectors
+  depend on the common library only. The code that turns them into AI Agent gateway tools lives in
+  integration modules. Integration modules never depend on the AI Agent connector, and the AI Agent
+  connector never depends on the clients or integrations. It discovers gateway tool handlers as
+  beans contributed through the API.
+
+* **D3 — The model is exactly what the API needs.** `aiagent-api` holds the extension points: the
+  gateway tool SPI, the gateway tool definition resolver SPI, system prompt contributors, the chat
+  model SPI and the conversation storage SPI. `aiagent-model` holds exactly the types these SPIs
+  reference, so the API is self-contained. The name `aiagent-core` is reserved for a future library
+  holding the agent loop itself.
+
+* **D4 — Generic interfaces in the model, element template types in the connector.** Configuration
+  that the API exposes is modeled as plain interfaces (memory configuration, conversation store
+  configuration, custom chat model configuration). The records annotated for element template
+  generation implement them and stay in the connector, so the model carries no template layout.
+
+* **D5 — Conversation context subtypes are discovered, not listed.** The persisted conversation
+  context is polymorphic. Its subtypes are contributed through a `java.util.ServiceLoader` provider
+  instead of a closed list on the base type, so the base type can live in the model while the
+  implementations live in the connector or in an extension. Registering subtypes on each
+  `ObjectMapper` was rejected because the runtime has several mappers that Spring customizers do not
+  reach. Subtypes registered on a mapper keep working.
+
+* **D6 — A2A results carry their own part types.** A2A messages and artifacts use A2A-owned part
+  records instead of the AI Agent's message content model. Their JSON shape is identical to before.
+
+* **D7 — Each module owns its runtime wiring.** Every module registers its own auto-configuration,
+  configuration properties, element templates and icons. Every auto-configuration keeps the global
+  `camunda.connector.agenticai.enabled` flag and its existing feature flags.
+
+* **D8 — Packages stay where they are.** Java packages are not realigned with module names, so most
+  imports in extensions keep working. As a result some packages span several modules (for example the
+  request model package holds both model interfaces and connector records). Boundaries are enforced
+  by the Maven dependencies and an architecture test.
+
+* **D9 — The AI Agent connector module is renamed.** After the split it holds only the AI Agent, so
+  its artifact is `connector-aiagent`.
+
+### Non-goals
+
+* The A2A 1.0 protocol upgrade.
+* Separate modules for chat model providers or LangChain4j.
+* Realigning packages with module names.
+
+### Positive Consequences
+
+* MCP and A2A client connectors build and evolve without the agent, its LLM SDKs or its stores.
+* Extensions can compile against `aiagent-api` and `aiagent-model` only.
+* A dependency in the wrong direction fails compilation.
+* Provider and LangChain4j modules have a clear place to attach.
+
+### Negative Consequences
+
+* Ten modules instead of one: more poms, more bundle and e2e wiring to maintain.
+* Extensions must switch the artifact to `connector-aiagent` and update imports for the classes whose
+  packages changed. The details are in the [breaking changes](../breaking-changes.md).
+* Split packages are confusing, and they would block the Java module system.
+* Element templates moved to the modules of their connectors, so their repository paths changed.
+* The AI Agent connector keeps test-scope dependencies on the MCP and A2A modules so that its
+  full-context auto-configuration tests and the architecture test see all classes.
+* The common library carries the HTTP client dependencies needed for proxy support, so the client
+  connectors inherit them.
+
+## Follow-up
+
+* A dedicated architecture test module with module-level layering rules and further code rules
+  (SDK containment, provider isolation, Spring conventions). It is planned separately.
+* Resolve the split packages, then add an architecture rule that prevents new ones.
+* Extract chat model providers and LangChain4j into their own modules when needed.
+
+## Pros and Cons of the Options
+
+### Option 1: Keep one module, enforce boundaries with architecture tests
+
+* Good, because it needs no build changes.
+* Bad, because the client connectors still ship with the agent and all its dependencies.
+* Bad, because extensions still compile against the whole connector.
+
+### Option 2: One module per connector, one shared core library
+
+* Good, because each connector is separate.
+* Bad, because the client connectors would depend on the core library to be usable as gateway
+  tools, which pulls in the agent model and implementation.
+* Bad, because the core library mixes the extension API with its implementation.
+
+### Option 3: Layered libraries, connectors and integrations (chosen)
+
+* Good, because the client connectors depend on the common library only.
+* Good, because extensions get a small, self-contained API.
+* Good, because the layering prepares provider and LangChain4j modules.
+* Bad, because it adds the most modules and build wiring.

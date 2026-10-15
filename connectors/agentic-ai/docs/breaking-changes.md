@@ -12,6 +12,105 @@ This list is curated: it covers the obvious extension points (SPIs and replaceab
 most common code changes, not every moved class or changed signature. Compile your extension against
 the new version to find the rest.
 
+## Camunda 8.10 to 8.11
+
+Summary of what changes for a custom extension. Details follow in the linked sections.
+
+| Area                            | Affects                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
+
+### Module split
+
+The agentic AI connectors are split into several Maven modules
+([ADR 015](adr/015-split-agentic-ai-into-modules.md)). Job types, element templates, configuration
+properties and persisted data are unchanged.
+
+#### Artifacts
+
+The `connector-agentic-ai` artifact is replaced by the following artifacts (group
+`io.camunda.connector`):
+
+| Artifact                        | Contents                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `connector-aiagent`             | AI Agent connectors, chat model providers, conversation stores            |
+| `aiagent-api`                   | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
+| `aiagent-model`                 | Agent model used by the extension points                                  |
+| `aiagent-tools-schema`          | Ad-hoc tools schema resolution                                            |
+| `connector-ad-hoc-tools-schema` | Ad-hoc tools schema connector                                             |
+| `connector-mcp`                 | MCP client connectors                                                     |
+| `aiagent-mcp-integration`       | MCP client as AI Agent gateway tool                                       |
+| `connector-a2a`                 | A2A client connectors                                                     |
+| `aiagent-a2a-integration`       | A2A client as AI Agent gateway tool                                       |
+| `agentic-ai-common`             | Shared utilities and HTTP support                                         |
+
+An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
+brings the API, model, tools schema and common libraries. An extension that only implements an
+extension point can depend on `aiagent-api` alone. The MCP and A2A modules are separate
+dependencies.
+
+#### Moved and renamed classes
+
+| 8.10 (`io.camunda.connector.agenticai`)                                      | 8.11 (`io.camunda.connector.agenticai`)        |
+| ---------------------------------------------------------------------------- | ---------------------------------------------- |
+| `adhoctoolsschema.schema.AdHocToolsSchemaResolver(Impl)`, `AdHocToolSchemaGenerator(Impl)`, `AdHocToolSchemaGenerationException` | `tools.schema.*` |
+| `adhoctoolsschema.processdefinition.*`                                       | `tools.schema.processdefinition.*`             |
+| `adhoctoolsschema.model.AdHocToolsSchemaRequest`, `AdHocToolsSchemaResponse` | `tools.schema.model.*`                         |
+| `a2a.client.agentic.tool.*`                                                  | `a2a.integration.*`                            |
+| `mcp.discovery.*`                                                            | `mcp.integration.*`                            |
+| `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.util.JacksonExceptionMessageExtractor` |
+| `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.configuration.RetriesProperties`       |
+| `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |
+| `AgenticAiConnectorsConfigurationProperties.ToolsProperties`                 | `tools.schema.configuration.ToolsSchemaProperties` |
+| `a2a.client.common.convert.A2aPartToContentConverter(Impl)`                  | `a2a.client.common.convert.A2aPartConverter(Impl)` |
+
+`AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties. The gateway tool
+definition resolver SPI (`adhoctoolsschema.schema.GatewayToolDefinitionResolver`) and the ad-hoc tool
+element records (`adhoctoolsschema.model.AdHocToolElement*`) keep their packages.
+
+A2A messages and artifacts (`A2aMessage.contents()`, `A2aArtifact.contents()`) hold `A2aPart`
+records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart`) instead of the AI Agent message content
+types. The serialized JSON is unchanged.
+
+#### Memory and custom provider configuration
+
+- `aiagent.model.request.MemoryConfiguration` is an interface. The element template record is
+  `MemoryTemplateConfiguration`.
+- `aiagent.model.request.MemoryStorageConfiguration` is renamed to
+  `MemoryStorageTemplateConfiguration`. Its nested records keep their names.
+- New interfaces `ConversationStoreConfiguration` and `CustomConversationStoreConfiguration` in
+  `aiagent.model.request`. `MemoryConfiguration.storage()` returns a `ConversationStoreConfiguration`.
+  A custom store reads its parameters through `CustomConversationStoreConfiguration` instead of
+  casting to the template record.
+- New interface `aiagent.chatmodel.CustomChatModelConfiguration`, implemented by
+  `CustomProviderConfiguration`. A custom `ChatModelFactory` can match and read its configuration
+  through the interface.
+
+#### Conversation context subtypes
+
+`ConversationContext` subtypes are discovered with `java.util.ServiceLoader`. Annotate the custom
+context with `@JsonTypeName`, list it in an implementation of
+`aiagent.memory.conversation.ConversationContextSubtypes`, and register that implementation in
+`META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`.
+Registering the subtype on the runtime's `ObjectMapper` beans, as described for 8.10, still works.
+
+#### Auto-configuration
+
+`AgenticAiConnectorsAutoConfiguration` keeps only the AI Agent beans. The other beans moved to
+auto-configurations of their own modules:
+
+| Beans                                                        | Auto-configuration                         |
+| ------------------------------------------------------------ | ------------------------------------------ |
+| HTTP proxy support                                           | `AgenticAiCommonAutoConfiguration`         |
+| Tools schema resolution, process definition lookup           | `AgenticAiToolsSchemaAutoConfiguration`    |
+| Ad-hoc tools schema connector                                | `AdHocToolsSchemaConnectorAutoConfiguration` |
+| MCP client connectors                                        | `McpClientAutoConfiguration`               |
+| MCP gateway tool integration                                 | `McpDiscoveryConfiguration`                |
+| A2A client connectors                                        | `A2aClientAutoConfiguration`               |
+| A2A gateway tool integration                                 | `A2aClientAgenticToolConfiguration`        |
+
+Bean names, conditions and property names are unchanged.
+
 ## Camunda 8.9 to 8.10
 
 Summary of what changes for a custom extension. Details follow in the linked sections.

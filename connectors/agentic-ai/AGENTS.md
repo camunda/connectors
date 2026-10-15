@@ -29,6 +29,29 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
 
+## Modules
+
+The module is split into Maven modules with a fixed dependency direction
+([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md)):
+
+| Module                          | Contents                                                        | Depends on (agentic AI modules)   |
+|---------------------------------|-----------------------------------------------------------------|-----------------------------------|
+| `agentic-ai-common`             | Shared utilities, HTTP proxy support, common properties         | none                              |
+| `aiagent-model`                 | Agent model referenced by the extension points                  | common                            |
+| `aiagent-api`                   | Extension points (gateway tools, chat model, storage, prompts)  | model, common                     |
+| `aiagent-tools-schema`          | Ad-hoc tools schema resolution                                  | api, model, common                |
+| `connector-ad-hoc-tools-schema` | Ad-hoc tools schema connector                                   | tools-schema                      |
+| `connector-mcp`                 | MCP client connectors                                           | common                            |
+| `aiagent-mcp-integration`       | MCP client as AI Agent gateway tool                             | connector-mcp, api, model, common |
+| `connector-a2a`                 | A2A client connectors                                           | common                            |
+| `aiagent-a2a-integration`       | A2A client as AI Agent gateway tool                             | connector-a2a, api, model, common |
+| `connector-aiagent`             | AI Agent connectors, providers, stores, agent instance client   | tools-schema, api, model, common  |
+
+Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
+or integrations (only in test scope). Some Java packages span several modules (for example
+`aiagent.model.request`). Each module has its own auto-configuration, element templates and icons.
+Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
+
 ## Start here, navigation
 
 > **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
@@ -293,12 +316,13 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 - Fix null-safety errors by handling the null. Never suppress them.
 - `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
 - For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
-- After adding a new package, run `connector-aiagent/bin/generate-package-info.groovy` to fill in any
-  missing `package-info.java` (it's idempotent and scans every package under `src/main/java`, so it also
-  catches pre-existing gaps, not just the one you added):
+- After adding a new package, run `connector-aiagent/bin/generate-package-info.groovy` in the module
+  that got the package to fill in any missing `package-info.java` (it's idempotent and scans every
+  package under that module's `src/main/java`, so it also catches pre-existing gaps, not just the one
+  you added):
   ```bash
-  cd connectors/agentic-ai/connector-aiagent
-  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/bin/generate-package-info.groovy"
+  cd connectors/agentic-ai/<module>
+  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/../connector-aiagent/bin/generate-package-info.groovy"
   ```
   Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
   commit the generated file(s).

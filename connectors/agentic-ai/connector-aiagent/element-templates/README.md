@@ -3,7 +3,8 @@
 This directory contains the [element templates](https://docs.camunda.io/docs/components/modeler/desktop-modeler/element-templates/about-templates/)
 for the Agentic AI connectors shipped with Camunda.
 
-The latest template of each connector lives directly in this folder. Older revisions
+The latest template of each AI Agent connector lives directly in this folder. The MCP, A2A and ad-hoc
+tools schema templates live in the `element-templates` folders of their own modules. Older revisions
 that are still compatible with previous Camunda minor versions are kept in
 [`versioned/`](./versioned/).
 
