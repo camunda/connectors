@@ -282,6 +282,27 @@ def test_the_fix_agent_is_dispatchable_and_what_now_bounds_it():
     assert 'connectors:${BASE_REF}:${SURFACE}' in FIX
 
 
+def test_two_agents_cannot_race_for_one_dispatch_key():
+    """A dispatch is now startable by hand, so the agent holds its own lock.
+
+    Triage serialised per branch and read the in-flight keys before dispatching,
+    and the central one still does -- but neither covers a workflow_dispatch a
+    person makes, which this change makes possible. Two agents on the same key
+    both find no open PR in `Publish validated patch` and both create one, after
+    which every later run for that key fails on "multiple open PRs use dispatch
+    label" until someone closes one by hand. Cancelling is not the answer either:
+    the active agent may be mid-patch.
+    """
+    fix_job = _jobs(FIX)["fix"]
+    assert "concurrency:" in fix_job, "a dispatched agent must serialise on its key"
+    assert "group: alwaysgreen-fix-${{ inputs.dispatch_key" in fix_job, (
+        "the group must be the dispatch key, or two surfaces block each other"
+    )
+    assert "cancel-in-progress: false" in fix_job, (
+        "the loser waits; killing an agent mid-patch loses the fix"
+    )
+
+
 def test_executable_tooling_is_pinned_and_not_caller_selectable():
     assert "tooling_ref" not in FIX
     assert FIX.count("ref: main") >= 2

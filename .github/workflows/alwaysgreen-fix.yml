@@ -178,6 +178,18 @@ jobs:
     # workflow_dispatch is now how the central triage starts this agent, so it is
     # no longer excluded. The Vault flag resolved in `gate` remains the kill switch.
     if: ${{ github.ref_protected && needs.gate.outputs.dispatch == 'true' }}
+    # The deleted local triage serialised per branch and took an in-flight read
+    # before dispatching; the central one still does both. Neither covers a
+    # workflow_dispatch made by hand, which this change makes possible for the
+    # first time -- and two agents on one key both see no open PR in `Publish
+    # validated patch`, both create one, and every later run for that key then
+    # dies on "multiple open PRs use dispatch label". That state needs a human to
+    # undo, so the lock belongs here as well, where it holds whatever started the
+    # run. Not cancel-in-progress: the loser must wait for the agent that is
+    # already mid-patch, not kill it.
+    concurrency:
+      group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
