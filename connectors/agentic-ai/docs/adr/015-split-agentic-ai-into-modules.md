@@ -61,18 +61,20 @@ The decision comprises:
 
 * **D1 — Ten modules with a fixed dependency direction.**
 
-  | Module                          | Kind        | Depends on (agentic AI modules)          |
-  | ------------------------------- | ----------- | ---------------------------------------- |
-  | `agentic-ai-common`             | library     | none                                     |
-  | `aiagent-model`                 | library     | common                                   |
-  | `aiagent-api`                   | library     | model, common                            |
-  | `aiagent-tools-schema`          | library     | api, model, common                       |
-  | `connector-ad-hoc-tools-schema` | connector   | tools-schema                             |
-  | `connector-mcp`                 | connector   | common                                   |
-  | `aiagent-mcp-integration`       | integration | connector-mcp, api, model, common        |
-  | `connector-a2a`                 | connector   | common                                   |
-  | `aiagent-a2a-integration`       | integration | connector-a2a, api, model, common        |
-  | `connector-aiagent`             | connector   | tools-schema, api, model, common         |
+  | Module                          | Kind        | Package root                         | Depends on (agentic AI modules)   |
+  | ------------------------------- | ----------- | ------------------------------------ | --------------------------------- |
+  | `agentic-ai-common`             | library     | `common`                             | none                              |
+  | `aiagent-model`                 | library     | `aiagent.model`                      | common                            |
+  | `aiagent-api`                   | library     | `aiagent.api`                        | model, common                     |
+  | `aiagent-tools-schema`          | library     | `tools.schema`                       | api, model, common                |
+  | `connector-ad-hoc-tools-schema` | connector   | `adhoctoolsschema`                   | tools-schema                      |
+  | `connector-mcp`                 | connector   | `mcp.client`                         | common                            |
+  | `aiagent-mcp-integration`       | integration | `mcp.integration`                    | connector-mcp, api, model, common |
+  | `connector-a2a`                 | connector   | `a2a.client`                         | common                            |
+  | `aiagent-a2a-integration`       | integration | `a2a.integration`                    | connector-a2a, api, model, common |
+  | `connector-aiagent`             | connector   | `aiagent` (except `model` and `api`) | tools-schema, api, model, common  |
+
+  Package roots are relative to `io.camunda.connector.agenticai`.
 
 * **D2 — Client connectors know nothing about the AI Agent.** The MCP and A2A client connectors
   depend on the common library only. The code that turns them into AI Agent gateway tools lives in
@@ -105,10 +107,12 @@ The decision comprises:
   configuration properties, element templates and icons. Every auto-configuration keeps the global
   `camunda.connector.agenticai.enabled` flag and its existing feature flags.
 
-* **D8 — Packages stay where they are.** Java packages are not realigned with module names, so most
-  imports in extensions keep working. As a result some packages span several modules (for example the
-  request model package holds both model interfaces and connector records). Boundaries are enforced
-  by the Maven dependencies and an architecture test.
+* **D8 — Each module owns its packages.** Every module has its own package root (see D1), and no
+  package spans two modules. The package of a class tells which module it belongs to and whether it
+  is an extension point, a model type or an implementation. Boundaries are enforced by the Maven
+  dependencies and by architecture tests that can describe the layering by package alone. Keeping
+  the existing packages to spare extensions an import change was rejected: it leaves packages split
+  across modules, which hides module membership and blocks the Java module system.
 
 * **D9 — The AI Agent connector module is renamed.** After the split it holds only the AI Agent, so
   its artifact is `connector-aiagent`.
@@ -117,7 +121,6 @@ The decision comprises:
 
 * The A2A 1.0 protocol upgrade.
 * Separate modules for chat model providers or LangChain4j.
-* Realigning packages with module names.
 
 ### Positive Consequences
 
@@ -125,22 +128,23 @@ The decision comprises:
 * Extensions can compile against `aiagent-api` and `aiagent-model` only.
 * A dependency in the wrong direction fails compilation.
 * Provider and LangChain4j modules have a clear place to attach.
+* Packages show module membership; extension points live under `aiagent.api` and model types under
+  `aiagent.model`.
 
 ### Negative Consequences
 
 * Ten modules instead of one: more poms, more bundle and e2e wiring to maintain.
-* Extensions must switch the artifact to `connector-aiagent` and update imports for the classes whose
-  packages changed. The details are in the [breaking changes](../breaking-changes.md).
-* Split packages are confusing, and they would block the Java module system.
+* Extensions must switch the artifact to `connector-aiagent` and update their imports, since most
+  extension point and model types changed packages. The details are in the
+  [breaking changes](../breaking-changes.md).
 * Element templates moved to the modules of their connectors, so their repository paths changed.
-* The AI Agent connector keeps test-scope dependencies on the MCP and A2A modules so that its
-  full-context auto-configuration tests and the architecture test see all classes.
+* The AI Agent connector keeps test-scope dependencies on the MCP and A2A modules so that the
+  architecture test sees all classes.
 
 ## Follow-up
 
 * A dedicated architecture test module with module-level layering rules and further code rules
   (SDK containment, provider isolation, Spring conventions). It is planned separately.
-* Resolve the split packages, then add an architecture rule that prevents new ones.
 * Extract chat model providers and LangChain4j into their own modules when needed.
 
 ## Pros and Cons of the Options

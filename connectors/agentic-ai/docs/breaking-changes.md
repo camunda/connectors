@@ -22,27 +22,27 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 
 ### Module split
 
-The agentic AI connectors are split into several Maven modules
-([ADR 015](adr/015-split-agentic-ai-into-modules.md)). Job types, element templates, configuration
-properties and persisted data are unchanged.
+The agentic AI connectors are split into several Maven modules, and each module owns its Java
+packages ([ADR 015](adr/015-split-agentic-ai-into-modules.md)). Job types, element templates,
+configuration properties and persisted data are unchanged.
 
 #### Artifacts
 
 The `connector-agentic-ai` artifact is replaced by the following artifacts (group
 `io.camunda.connector`):
 
-| Artifact                        | Contents                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------- |
-| `connector-aiagent`             | AI Agent connectors, chat model providers, conversation stores            |
-| `aiagent-api`                   | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
-| `aiagent-model`                 | Agent model used by the extension points                                  |
-| `aiagent-tools-schema`          | Ad-hoc tools schema resolution                                            |
-| `connector-ad-hoc-tools-schema` | Ad-hoc tools schema connector                                             |
-| `connector-mcp`                 | MCP client connectors                                                     |
-| `aiagent-mcp-integration`       | MCP client as AI Agent gateway tool                                       |
-| `connector-a2a`                 | A2A client connectors                                                     |
-| `aiagent-a2a-integration`       | A2A client as AI Agent gateway tool                                       |
-| `agentic-ai-common`             | Shared utilities and HTTP support                                         |
+| Artifact | Package root | Contents |
+| ------------------------------- | --- | ------------------------------------------------------------------------- |
+| `connector-aiagent` | `aiagent` (except `model`, `api`) | AI Agent connectors, chat model providers, conversation stores |
+| `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
+| `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
+| `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
+| `connector-mcp` | `mcp.client` | MCP client connectors |
+| `aiagent-mcp-integration` | `mcp.integration` | MCP client as AI Agent gateway tool |
+| `connector-a2a` | `a2a.client` | A2A client connectors |
+| `aiagent-a2a-integration` | `a2a.integration` | A2A client as AI Agent gateway tool |
+| `agentic-ai-common` | `common` | Shared utilities and HTTP support |
 
 An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
 brings the API, model, tools schema and common libraries. An extension that only implements an
