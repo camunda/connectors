@@ -7,17 +7,21 @@
 package io.camunda.connector.agenticai.mcp.integration.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientAutoConfiguration;
 import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolHandler;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@AutoConfiguration(after = McpClientAutoConfiguration.class)
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.mcp.discovery.enabled",
+    value = {
+      "camunda.connector.agenticai.enabled",
+      "camunda.connector.agenticai.mcp.discovery.enabled"
+    },
     matchIfMissing = true)
 public class McpDiscoveryConfiguration {
   @Bean

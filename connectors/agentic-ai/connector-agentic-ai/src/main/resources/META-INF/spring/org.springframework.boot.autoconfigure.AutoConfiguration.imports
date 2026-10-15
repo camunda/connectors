@@ -1,1 +1,8 @@
+io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration
+io.camunda.connector.agenticai.tools.schema.configuration.AgenticAiToolsSchemaAutoConfiguration
+io.camunda.connector.agenticai.adhoctoolsschema.configuration.AdHocToolsSchemaConnectorAutoConfiguration
+io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration
+io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration
+io.camunda.connector.agenticai.mcp.client.configuration.McpClientAutoConfiguration
+io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration
 io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfiguration

@@ -1196,14 +1196,24 @@ For A2A error codes, see [a2a.md §15](a2a.md#15-error-codes).
 
 ## 16. Spring Auto-Configuration
 
-### AgenticAiConnectorsAutoConfiguration
+### Auto-configurations
 
-Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default.
+The agentic AI connectors are wired by several Spring Boot auto-configurations, all registered in `AutoConfiguration.imports` and each activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default. `@AutoConfiguration(after = ...)` orders them as listed:
 
-Imports:
+| Auto-configuration                             | After                                                          | Provides                                                                                  |
+|------------------------------------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `AgenticAiCommonAutoConfiguration`             | —                                                              | `AgenticAiHttpProxySupport`, `AgenticAiHttpProperties`                                    |
+| `AgenticAiToolsSchemaAutoConfiguration`        | common                                                         | Ad-hoc tool schema generation and process definition tool element resolution              |
+| `AdHocToolsSchemaConnectorAutoConfiguration`   | tools schema                                                   | `AdHocToolsSchemaFunction` (`ad-hoc-tools-schema-resolver.enabled`)                       |
+| `A2aClientAutoConfiguration`                   | common                                                         | A2A client connector configurations (see [a2a.md §14](a2a.md#14-spring-configuration))    |
+| `A2aClientAgenticToolConfiguration`            | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
+| `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
+| `McpDiscoveryConfiguration`                    | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema, A2A and MCP integrations                 | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries) |
+
+`AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
-- `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
-- `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
+- `AgenticAiNativeProvidersConfiguration` — native provider `ChatModelFactory` beans
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported LangChain4j configuration.
 
@@ -1327,7 +1337,7 @@ instance itself, so its key is invariant.
 - `gemini.GeminiChatModelFactory` / `gemini.GeminiChatModel.execute()` → Drives the Google GenAI Java SDK's streaming `generateContentStream` directly, for `GeminiChatModelConfiguration`
 
 ### Configuration
-- `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
+- `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions of the AI Agent (see §16 for the other auto-configurations)
 - `ConnectorConfigurationOverrides` (connector-runtime-core) → Type/timeout overrides via env vars
 
 ### Class Diagram

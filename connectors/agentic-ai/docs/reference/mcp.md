@@ -471,7 +471,14 @@ This handles MCP resources that return binary data (images, files) by storing th
 
 ## 14. Spring Configuration
 
+### McpClientAutoConfiguration
+
+Auto-configuration for the MCP client connectors, ordered after `AgenticAiCommonAutoConfiguration`.
+Imports `McpClientConfiguration` and `McpRemoteClientConfiguration`.
+
 ### McpDiscoveryConfiguration
+
+Auto-configuration ordered after `McpClientAutoConfiguration`.
 
 **Condition**: `camunda.connector.agenticai.mcp.discovery.enabled` (default: **true**)
 

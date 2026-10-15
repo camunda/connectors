@@ -372,9 +372,15 @@ Result correlation
 
 ## 14. Spring Configuration
 
+### A2aClientAutoConfiguration
+
+Auto-configuration for the A2A client connectors, ordered after `AgenticAiCommonAutoConfiguration`.
+Imports `A2aClientOutboundConnectorConfiguration`, `A2aClientPollingConfiguration` and
+`A2aClientWebhookConfiguration`; each of them imports `A2aClientCommonConfiguration`.
+
 ### A2aClientCommonConfiguration
 
-Always active when A2A is enabled. Registers: `A2aPartConverter`, `A2aSdkObjectConverter`,
+Active when at least one of the outbound, polling or webhook configurations is enabled. Registers: `A2aPartConverter`, `A2aSdkObjectConverter`,
 `A2aAgentCardFetcher`, `A2aSdkClientFactory`
 
 Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default: `true`)
@@ -387,6 +393,8 @@ Registers: `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aMe
 `A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
 
 ### A2aClientAgenticToolConfiguration
+
+Auto-configuration ordered after `A2aClientAutoConfiguration`. Does not depend on the A2A client beans.
 
 **Condition**: `camunda.connector.agenticai.a2a.client.agentic.tool.enabled` (default: **true**)
 
