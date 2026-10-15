@@ -7,13 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
 import java.util.List;

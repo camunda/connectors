@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
+import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;

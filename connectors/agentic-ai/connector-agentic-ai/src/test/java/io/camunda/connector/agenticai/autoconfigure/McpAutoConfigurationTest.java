@@ -17,8 +17,8 @@ import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHe
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
-import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
+import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolHandler;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;

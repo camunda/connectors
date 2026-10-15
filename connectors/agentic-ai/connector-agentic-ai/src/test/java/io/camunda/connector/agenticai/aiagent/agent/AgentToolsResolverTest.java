@@ -11,14 +11,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
 import java.util.List;

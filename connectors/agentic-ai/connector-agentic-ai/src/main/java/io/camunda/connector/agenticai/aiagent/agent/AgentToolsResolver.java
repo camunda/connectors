@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 
 public interface AgentToolsResolver {
   /** Loads tool definitions for the given execution context. */

@@ -107,7 +107,7 @@ sequenceDiagram
 
 ## 3. Package Structure
 
-See `io.camunda.connector.agenticai.mcp` — split into `client` (connectors, handlers, execution, framework, model) and `discovery` (gateway tool integration) sub-packages.
+See `io.camunda.connector.agenticai.mcp` — split into `client` (connectors, handlers, execution, framework, model) and `integration` (gateway tool integration) sub-packages.
 
 ---
 

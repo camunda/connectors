@@ -82,7 +82,7 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 ## 4. Package Structure
 
-See `io.camunda.connector.agenticai.a2a.client` — organized into `agentic/tool`, `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages.
+See `io.camunda.connector.agenticai.a2a.client` — organized into `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages. The AI Agent tool integration lives in `io.camunda.connector.agenticai.a2a.integration`.
 
 ---
 

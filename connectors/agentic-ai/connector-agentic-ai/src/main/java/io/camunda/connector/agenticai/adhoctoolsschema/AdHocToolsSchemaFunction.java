@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
+import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaRequest;
+import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
+import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;

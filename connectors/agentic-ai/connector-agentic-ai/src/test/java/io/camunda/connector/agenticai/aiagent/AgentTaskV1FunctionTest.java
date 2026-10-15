@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskRequestData;
@@ -26,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProvider
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;
+import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.junit.jupiter.api.BeforeEach;
