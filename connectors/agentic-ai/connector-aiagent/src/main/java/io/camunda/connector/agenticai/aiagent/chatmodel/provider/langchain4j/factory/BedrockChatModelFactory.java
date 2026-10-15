@@ -18,10 +18,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;

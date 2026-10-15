@@ -30,6 +30,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
@@ -48,10 +52,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;

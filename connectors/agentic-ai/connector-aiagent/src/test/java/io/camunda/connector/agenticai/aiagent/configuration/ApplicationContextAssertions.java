@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.autoconfigure;
+package io.camunda.connector.agenticai.aiagent.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;

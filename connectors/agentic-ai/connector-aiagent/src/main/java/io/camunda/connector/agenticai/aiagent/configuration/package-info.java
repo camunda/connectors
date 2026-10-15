@@ -5,6 +5,6 @@
  * except in compliance with the proprietary license.
  */
 @NullMarked
-package io.camunda.connector.agenticai.autoconfigure;
+package io.camunda.connector.agenticai.aiagent.configuration;
 
 import org.jspecify.annotations.NullMarked;

@@ -16,8 +16,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

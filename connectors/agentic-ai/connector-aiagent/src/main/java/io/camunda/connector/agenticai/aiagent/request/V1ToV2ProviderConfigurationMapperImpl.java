@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.request;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
 
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration;
@@ -43,7 +44,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;

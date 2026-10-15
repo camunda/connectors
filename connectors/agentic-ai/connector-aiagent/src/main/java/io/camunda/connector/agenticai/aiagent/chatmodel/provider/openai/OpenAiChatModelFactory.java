@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
@@ -31,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;

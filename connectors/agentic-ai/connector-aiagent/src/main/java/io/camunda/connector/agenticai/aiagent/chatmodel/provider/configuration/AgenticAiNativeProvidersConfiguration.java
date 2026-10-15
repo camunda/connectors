@@ -40,9 +40,9 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
