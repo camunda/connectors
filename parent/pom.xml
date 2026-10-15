@@ -41,6 +41,10 @@
   </licenses>
 
   <properties>
+    <!-- overrides the 0.8.0 managed by camunda-release-parent. Maven 3.10 writes local-repository files into
+         the Central staging directory, and only 0.12.0+ removes them before bundling; with older versions
+         Central rejects the bundle with "Bundle has content that does NOT have a .pom file" -->
+    <plugin.version.central-publishing>0.12.0</plugin.version.central-publishing>
     <!-- Java version for everything except Connector SDK -->
     <version.java>21</version.java>
     <!-- Java version for Connector SDK -->
