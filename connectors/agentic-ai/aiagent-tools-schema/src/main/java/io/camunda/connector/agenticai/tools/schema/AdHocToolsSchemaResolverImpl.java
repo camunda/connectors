@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;

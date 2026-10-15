@@ -58,6 +58,14 @@ dependencies.
 | `adhoctoolsschema.model.AdHocToolsSchemaRequest`, `AdHocToolsSchemaResponse` | `tools.schema.model.*`                         |
 | `a2a.client.agentic.tool.*`                                                  | `a2a.integration.*`                            |
 | `mcp.discovery.*`                                                            | `mcp.integration.*`                            |
+| `aiagent.tool`: `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionUpdates`, `GatewayToolDiscoveryInitiationResult`, `GatewayToolDiscoveryResult`; `adhoctoolsschema.schema`: `GatewayToolDefinitionResolver`, `TypePropertyBasedGatewayToolDefinitionResolver` | `aiagent.api.tool.*` |
+| `aiagent.chatmodel`: `ChatModel`, `ChatModelFactory`, `ChatRequest`, `ChatResult`, `ChatModelRejectedException`, `ContentFilteredException`, `ContextWindowExceededException`, `GuardrailInterventionException` | `aiagent.api.chatmodel.*` |
+| `aiagent.memory.conversation`: `ConversationStore`, `ConversationSession`, `ConversationLoadResult`, `ConversationStoreRequest`; `aiagent.memory`: `ConversationSnapshot` | `aiagent.api.conversation.*` |
+| `aiagent.systemprompt`: `SystemPromptContributor`                            | `aiagent.api.systemprompt.*`                   |
+| `aiagent.agent`: `ContentTreeDocumentWalker`                                 | `aiagent.api.document.*`                       |
+| `aiagent.chatmodel`: `ChatModelConfiguration`                                | `aiagent.model.chatmodel.*`                    |
+| `aiagent.memory.conversation`: `ConversationContext`, `ConversationContextSubtypes`, `ConversationContextTypeResolverBuilder` | `aiagent.model.conversation.*` |
+| `adhoctoolsschema.model`: `AdHocToolElement`, `AdHocToolElementParameter`    | `aiagent.model.tool.*`                         |
 | `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.util.JacksonExceptionMessageExtractor` |
 | `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.configuration.RetriesProperties`       |
 | `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |
@@ -67,9 +75,7 @@ dependencies.
 | `common.AgenticAiHttpProxySupport.azureProxyOptions`                         | `aiagent.proxy.azure.AzureHttpProxySupport.proxyOptions`, a separate bean |
 | `common.AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl`                 | Google GenAI base URL helper of the Gemini provider (`aiagent.chatmodel.provider.gemini`) |
 
-`AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties. The gateway tool
-definition resolver SPI (`adhoctoolsschema.schema.GatewayToolDefinitionResolver`) and the ad-hoc tool
-element records (`adhoctoolsschema.model.AdHocToolElement*`) keep their packages.
+`AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties.
 
 A2A messages and artifacts (`A2aMessage.contents()`, `A2aArtifact.contents()`) hold `A2aPart`
 records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart`) instead of the AI Agent message content
@@ -85,7 +91,7 @@ types. The serialized JSON is unchanged.
   `aiagent.model.request`. `MemoryConfiguration.storage()` returns a `ConversationStoreConfiguration`.
   A custom store reads its parameters through `CustomConversationStoreConfiguration` instead of
   casting to the template record.
-- New interface `aiagent.chatmodel.CustomChatModelConfiguration`, implemented by
+- New interface `aiagent.model.chatmodel.CustomChatModelConfiguration`, implemented by
   `CustomProviderConfiguration`. A custom `ChatModelFactory` can match and read its configuration
   through the interface.
 
@@ -93,8 +99,8 @@ types. The serialized JSON is unchanged.
 
 `ConversationContext` subtypes are discovered with `java.util.ServiceLoader`. Annotate the custom
 context with `@JsonTypeName`, list it in an implementation of
-`aiagent.memory.conversation.ConversationContextSubtypes`, and register that implementation in
-`META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`.
+`aiagent.model.conversation.ConversationContextSubtypes`, and register that implementation in
+`META-INF/services/io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContextSubtypes`.
 Registering the subtype on the runtime's `ObjectMapper` beans, as described for 8.10, still works.
 
 #### Auto-configuration

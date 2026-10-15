@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.tools.schema;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

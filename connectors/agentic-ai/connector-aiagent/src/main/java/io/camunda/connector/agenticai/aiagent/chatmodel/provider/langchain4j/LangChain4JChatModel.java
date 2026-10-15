@@ -15,10 +15,10 @@ import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -42,9 +42,9 @@ import org.slf4j.LoggerFactory;
  * LangChain4j types, drives one {@code chat()} call, times it, and converts the response back.
  *
  * <p>The LangChain4j framework does not support pause/continuation semantics, so {@link
- * #execute(io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest)} always returns a {@link
- * ChatResult.Completed} — the continuation loop in {@code BaseAgentRequestHandler} therefore runs
- * exactly once on this path, matching the single-shot call.
+ * #execute(io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest)} always returns a
+ * {@link ChatResult.Completed} — the continuation loop in {@code BaseAgentRequestHandler} therefore
+ * runs exactly once on this path, matching the single-shot call.
  */
 public class LangChain4JChatModel implements ChatModel {
 
@@ -73,7 +73,8 @@ public class LangChain4JChatModel implements ChatModel {
   }
 
   @Override
-  public ChatResult execute(io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest request) {
+  public ChatResult execute(
+      io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest request) {
     final var executionContext = request.executionContext();
     final var snapshot = request.snapshot();
 

@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family;
 
 import com.openai.client.OpenAIClient;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 
 /**

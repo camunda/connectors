@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.tools.schema.processdefinition;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 

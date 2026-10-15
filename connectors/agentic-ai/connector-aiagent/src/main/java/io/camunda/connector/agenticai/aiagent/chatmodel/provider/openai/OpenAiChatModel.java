@@ -10,11 +10,11 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.openai.client.OpenAIClient;
 import com.openai.errors.BadRequestException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.api.error.ConnectorException;

@@ -430,7 +430,7 @@ turn, not read from history. This provides backward compatibility with existing 
 without a data migration, and is now also the cross-validation source for `iterationKey` drift
 detection described above.
 
-`ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
+`ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
@@ -487,7 +487,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well. A broken provider or subtype (for example one without `@JsonTypeName`) is logged at ERROR level and skipped, and deserializing an unregistered type id fails with an `InvalidTypeIdException` listing the known type ids
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well. A broken provider or subtype (for example one without `@JsonTypeName`) is logged at ERROR level and skipped, and deserializing an unregistered type id fails with an `InvalidTypeIdException` listing the known type ids
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
@@ -973,7 +973,7 @@ Events create their payload in `toolCallResult`:
 
 ### The `ChatModel` provider SPI (ADR 009)
 
-`ChatModel` (`aiagent/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
+`ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
 the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
 `conversation.window(configuration.contextWindowSize())`). `ChatResult` is a sealed `Completed |
@@ -985,7 +985,7 @@ Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` 
 A `ChatModel` instance serves a single agent request across all of its continuation rounds and is
 resolved and closed per request (try-with-resources) via `ChatModelRegistry`, so a provider may hold
 per-invocation resources without a shared singleton lifecycle. A `ChatModelFactory`
-(`aiagent/chatmodel/ChatModelFactory.java`) exposes `supports(ChatModelConfiguration)` and
+(`aiagent/api/chatmodel/ChatModelFactory.java`) exposes `supports(ChatModelConfiguration)` and
 `create(ChatModelConfiguration)`.
 
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a

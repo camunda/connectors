@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.tools.schema.processdefinition.feel;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
 import java.util.List;
 
 /**
