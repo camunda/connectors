@@ -15,17 +15,17 @@ import io.a2a.spec.FilePart;
 import io.a2a.spec.FileWithBytes;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aDataPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 
-class A2aPartToContentConverterTest {
+class A2aPartConverterTest {
 
-  private final A2aPartToContentConverterImpl converter = new A2aPartToContentConverterImpl();
+  private final A2aPartConverterImpl converter = new A2aPartConverterImpl();
 
   @ParameterizedTest
   @NullAndEmptySource
@@ -34,13 +34,13 @@ class A2aPartToContentConverterTest {
   }
 
   @Test
-  void convertTextPartToTextContent() {
+  void convertTextPartToA2aTextPart() {
     TextPart textPart = new TextPart("Hello, world!");
 
     var result = converter.convert(textPart);
 
-    assertThat(result).isInstanceOf(TextContent.class);
-    assertThat(((TextContent) result).text()).isEqualTo("Hello, world!");
+    assertThat(result).isInstanceOf(A2aTextPart.class);
+    assertThat(((A2aTextPart) result).text()).isEqualTo("Hello, world!");
     assertThat(result.metadata()).isNull();
   }
 
@@ -54,20 +54,20 @@ class A2aPartToContentConverterTest {
     assertThat(result)
         .satisfiesExactly(
             content -> {
-              assertThat(content).isInstanceOf(TextContent.class);
+              assertThat(content).isInstanceOf(A2aTextPart.class);
               assertThat(content.metadata()).isEqualTo(metadata);
             });
   }
 
   @Test
-  void convertDataPartToObjectContent() {
+  void convertDataPartToA2aDataPart() {
     Map<String, Object> data = Map.of("field1", "value1", "field2", 123);
     DataPart dataPart = new DataPart(data);
 
     var result = converter.convert(dataPart);
 
-    assertThat(result).isInstanceOf(ObjectContent.class);
-    assertThat(((ObjectContent) result).content()).isEqualTo(data);
+    assertThat(result).isInstanceOf(A2aDataPart.class);
+    assertThat(((A2aDataPart) result).content()).isEqualTo(data);
     assertThat(result.metadata()).isNull();
   }
 
@@ -82,7 +82,7 @@ class A2aPartToContentConverterTest {
     assertThat(result)
         .satisfiesExactly(
             content -> {
-              assertThat(content).isInstanceOf(ObjectContent.class);
+              assertThat(content).isInstanceOf(A2aDataPart.class);
               assertThat(content.metadata()).isEqualTo(metadata);
             });
   }
@@ -99,16 +99,16 @@ class A2aPartToContentConverterTest {
     assertThat(result)
         .satisfiesExactly(
             first -> {
-              assertThat(first).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) first).text()).isEqualTo("First text");
+              assertThat(first).isInstanceOf(A2aTextPart.class);
+              assertThat(((A2aTextPart) first).text()).isEqualTo("First text");
             },
             second -> {
-              assertThat(second).isInstanceOf(ObjectContent.class);
-              assertThat(((ObjectContent) second).content()).isEqualTo(data);
+              assertThat(second).isInstanceOf(A2aDataPart.class);
+              assertThat(((A2aDataPart) second).content()).isEqualTo(data);
             },
             third -> {
-              assertThat(third).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) third).text()).isEqualTo("Second text");
+              assertThat(third).isInstanceOf(A2aTextPart.class);
+              assertThat(((A2aTextPart) third).text()).isEqualTo("Second text");
             });
   }
 

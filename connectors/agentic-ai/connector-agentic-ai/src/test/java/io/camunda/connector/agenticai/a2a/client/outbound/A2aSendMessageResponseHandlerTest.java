@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart.textPart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
@@ -69,7 +69,7 @@ class A2aSendMessageResponseHandlerTest {
               .messageId("msg-123")
               .contextId("ctx-456")
               .role(A2aMessage.Role.AGENT)
-              .contents(List.of(textContent("Hello from agent")))
+              .contents(List.of(textPart("Hello from agent")))
               .build();
       when(sdkObjectConverter.convert(message)).thenReturn(expectedMessage);
 

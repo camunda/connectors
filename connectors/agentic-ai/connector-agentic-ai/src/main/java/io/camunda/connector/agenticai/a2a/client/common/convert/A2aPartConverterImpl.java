@@ -9,17 +9,17 @@ package io.camunda.connector.agenticai.a2a.client.common.convert;
 import io.a2a.spec.DataPart;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aDataPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 
-public class A2aPartToContentConverterImpl implements A2aPartToContentConverter {
+public class A2aPartConverterImpl implements A2aPartConverter {
 
   @Override
-  public Content convert(Part<?> part) {
+  public A2aPart convert(Part<?> part) {
     return switch (part) {
-      case TextPart textPart -> new TextContent(textPart.getText(), textPart.getMetadata());
-      case DataPart dataPart -> new ObjectContent(dataPart.getData(), dataPart.getMetadata());
+      case TextPart textPart -> new A2aTextPart(textPart.getText(), textPart.getMetadata());
+      case DataPart dataPart -> new A2aDataPart(dataPart.getData(), dataPart.getMetadata());
       default ->
           throw new RuntimeException("Only text and data parts are supported in the response yet.");
     };

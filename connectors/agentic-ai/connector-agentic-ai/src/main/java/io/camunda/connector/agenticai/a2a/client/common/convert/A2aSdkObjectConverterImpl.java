@@ -11,22 +11,22 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.List;
 
 public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
 
-  private final A2aPartToContentConverter partToContentConverter;
+  private final A2aPartConverter partConverter;
 
-  public A2aSdkObjectConverterImpl(A2aPartToContentConverter partToContentConverter) {
-    this.partToContentConverter = partToContentConverter;
+  public A2aSdkObjectConverterImpl(A2aPartConverter partConverter) {
+    this.partConverter = partConverter;
   }
 
   @Override
   public A2aMessage convert(Message message) {
-    List<Content> contents = partToContentConverter.convert(message.getParts());
+    List<A2aPart> contents = partConverter.convert(message.getParts());
     return A2aMessage.builder()
         .role(
             message.getRole() == Message.Role.AGENT ? A2aMessage.Role.AGENT : A2aMessage.Role.USER)
@@ -70,7 +70,7 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
                     .name(artifact.name())
                     .description(artifact.description())
                     .metadata(artifact.metadata())
-                    .contents(partToContentConverter.convert(artifact.parts()))
+                    .contents(partConverter.convert(artifact.parts()))
                     .build())
         .toList();
   }

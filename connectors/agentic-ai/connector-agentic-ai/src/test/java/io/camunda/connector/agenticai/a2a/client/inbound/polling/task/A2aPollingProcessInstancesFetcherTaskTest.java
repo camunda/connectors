@@ -22,7 +22,7 @@ import static org.mockito.Mockito.withSettings;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
@@ -64,7 +64,7 @@ class A2aPollingProcessInstancesFetcherTaskTest {
   @Captor private ArgumentCaptor<A2aPollingTask> pollingTaskCaptor;
 
   private final A2aSdkObjectConverter objectConverter =
-      new A2aSdkObjectConverterImpl(new A2aPartToContentConverterImpl());
+      new A2aSdkObjectConverterImpl(new A2aPartConverterImpl());
   private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
   private A2aPollingProcessInstancesFetcherTask fetcherTask;

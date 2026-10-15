@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.inbound.polling.task;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart.textPart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,7 +31,7 @@ import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
@@ -82,7 +82,7 @@ class A2aPollingTaskTest {
           .role(A2aMessage.Role.AGENT)
           .contextId("ctx-123")
           .messageId("msg-123")
-          .contents(List.of(textContent("A message")))
+          .contents(List.of(textPart("A message")))
           .build();
 
   private static final A2aTask WORKING_TASK =
@@ -105,7 +105,7 @@ class A2aPollingTaskTest {
               List.of(
                   A2aArtifact.builder()
                       .artifactId("artifact-123")
-                      .contents(List.of(textContent("Hello, world")))
+                      .contents(List.of(textPart("Hello, world")))
                       .build()));
 
   private static final Message A2A_MESSAGE =
@@ -144,7 +144,7 @@ class A2aPollingTaskTest {
   @Mock private A2aSdkClient client;
 
   private final A2aSdkObjectConverter objectConverter =
-      new A2aSdkObjectConverterImpl(new A2aPartToContentConverterImpl());
+      new A2aSdkObjectConverterImpl(new A2aPartConverterImpl());
 
   @Mock private AgentCard agentCard;
 

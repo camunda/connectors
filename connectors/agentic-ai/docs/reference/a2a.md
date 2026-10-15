@@ -154,7 +154,7 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
      ToolCallResult content
 7. LLM receives the response and decides next action based on task state
 8. A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
-   Camunda Documents from DocumentContent entries: A2aMessage.contents at the root, plus
+   Camunda Documents from A2aDocumentPart entries: A2aMessage.contents at the root, plus
    A2aTask.artifacts and (recursively) A2aTask.history. Documents flow into the synthetic
    document UserMessage produced by ToolCallResultDocumentExtractor (see ai-agent.md §19
    "Document Extraction from Tool Call Results").
@@ -174,13 +174,13 @@ A2aResult (sealed interface, discriminated by "kind")
 │   └── name, description, skills: List<AgentSkill>
 └── A2aSendMessageResult (sealed sub-interface)
     ├── A2aMessage (kind: "message")
-    │   └── role, messageId, contextId, taskId, contents: List<Content>
+    │   └── role, messageId, contextId, taskId, contents: List<A2aPart>
     └── A2aTask (kind: "task")
         ├── id, contextId
         ├── status: A2aTaskStatus
         │   └── state: TaskState, message: A2aMessage, timestamp
         ├── artifacts: List<A2aArtifact>
-        │   └── artifactId, name, description, contents
+        │   └── artifactId, name, description, contents: List<A2aPart>
         └── history: List<A2aMessage>
 ```
 
@@ -282,12 +282,12 @@ forced shutdown.
 ### SDK → Domain
 
 **`A2aSdkObjectConverter` / `A2aSdkObjectConverterImpl`**: Converts A2A SDK types to Camunda domain types:
-- `convert(Message)` → `A2aMessage` (maps parts via `A2aPartToContentConverter`)
+- `convert(Message)` → `A2aMessage` (maps parts via `A2aPartConverter`)
 - `convert(Task)` → `A2aTask` (maps status, artifacts, history)
 
-**`A2aPartToContentConverter` / `A2aPartToContentConverterImpl`**: Converts SDK `Part` → Camunda `Content`:
-- `TextPart` → `TextContent`
-- `DataPart` → `ObjectContent`
+**`A2aPartConverter` / `A2aPartConverterImpl`**: Converts SDK `Part` → `A2aPart`:
+- `TextPart` → `A2aTextPart`
+- `DataPart` → `A2aDataPart`
 - Other parts: `RuntimeException` (not yet supported)
 
 ### Domain → SDK
@@ -374,7 +374,7 @@ Result correlation
 
 ### A2aClientCommonConfiguration
 
-Always active when A2A is enabled. Registers: `A2aPartToContentConverter`, `A2aSdkObjectConverter`,
+Always active when A2A is enabled. Registers: `A2aPartConverter`, `A2aSdkObjectConverter`,
 `A2aAgentCardFetcher`, `A2aSdkClientFactory`
 
 Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default: `true`)

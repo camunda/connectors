@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest.A2aRequestData;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
@@ -33,7 +34,6 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOp
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aToolOperationConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +115,7 @@ class A2aClientRequestHandlerTest {
                       A2aArtifact.builder()
                           .artifactId("artifact-1")
                           .name("artifact1")
-                          .contents(List.of(TextContent.textContent("ok")))
+                          .contents(List.of(A2aTextPart.textPart("ok")))
                           .build()))
               .build();
       when(messageSender.sendMessage(agentCard, operation)).thenReturn(expectedSendResult);
@@ -180,7 +180,7 @@ class A2aClientRequestHandlerTest {
               .role(A2aMessage.Role.AGENT)
               .messageId("message-1")
               .contextId("context-1")
-              .contents(List.of(TextContent.textContent("ok")))
+              .contents(List.of(A2aTextPart.textPart("ok")))
               .build();
       when(messageSender.sendMessage(eq(agentCard), any())).thenReturn(expectedSendResult);
 
@@ -235,7 +235,7 @@ class A2aClientRequestHandlerTest {
               .role(A2aMessage.Role.AGENT)
               .messageId("message-2")
               .contextId("ctx-123")
-              .contents(List.of(TextContent.textContent("response")))
+              .contents(List.of(A2aTextPart.textPart("response")))
               .build();
       when(messageSender.sendMessage(eq(agentCard), any())).thenReturn(expectedSendResult);
 

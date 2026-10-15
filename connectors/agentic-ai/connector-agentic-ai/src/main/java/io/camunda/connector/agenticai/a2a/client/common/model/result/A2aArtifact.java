@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.a2a.client.common.model.result;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,7 @@ public record A2aArtifact(
     String artifactId,
     @Nullable String name,
     @Nullable String description,
-    List<Content> contents,
+    List<A2aPart> contents,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata) {
 
   public static A2aArtifactBuilder builder() {

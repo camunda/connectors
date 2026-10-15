@@ -1,0 +1,28 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.a2a.client.common.model.result;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
+import org.jspecify.annotations.Nullable;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record A2aDataPart(
+    Object content,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
+    implements A2aPart {
+  public A2aDataPart {
+    if (content == null) {
+      throw new IllegalArgumentException("Content cannot be null");
+    }
+  }
+
+  public static A2aDataPart dataPart(Object content) {
+    return new A2aDataPart(content, null);
+  }
+}

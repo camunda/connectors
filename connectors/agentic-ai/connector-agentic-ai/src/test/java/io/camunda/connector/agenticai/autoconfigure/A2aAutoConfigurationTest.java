@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolDefi
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt.A2aSystemPromptContributor;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
@@ -32,7 +32,7 @@ public class A2aAutoConfigurationTest {
 
   private static final List<Class<?>> A2A_COMMON_BEANS =
       List.of(
-          A2aPartToContentConverter.class,
+          A2aPartConverter.class,
           A2aSdkObjectConverter.class,
           A2aAgentCardFetcher.class,
           A2aSdkClientFactory.class);
