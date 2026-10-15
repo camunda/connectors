@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.common.GatewayToolConstants;
 import java.util.List;
 
 /**
@@ -20,7 +21,7 @@ import java.util.List;
  * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler}.
  */
 public interface GatewayToolDefinitionResolver {
-  String GATEWAY_TYPE_EXTENSION = "io.camunda.agenticai.gateway.type";
+  String GATEWAY_TYPE_EXTENSION = GatewayToolConstants.GATEWAY_TYPE_EXTENSION;
 
   List<GatewayToolDefinition> resolveGatewayToolDefinitions(List<AdHocToolElement> elements);
 }

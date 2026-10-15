@@ -292,8 +292,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
                                   FieldError::getRejectedValue,
                                   FieldError::getDefaultMessage)
                               .containsExactly(
-                                  "camunda.connector.agenticai",
-                                  "tools.processDefinition.cache.maximumSize",
+                                  "camunda.connector.agenticai.tools",
+                                  "processDefinition.cache.maximumSize",
                                   -10L,
                                   "must be greater than or equal to 0");
                         }));

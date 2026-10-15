@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiatio
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.common.util.CollectionUtils;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
+import io.camunda.connector.agenticai.mcp.client.McpClientConstants;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
@@ -44,7 +45,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientGatewayToolHandler.class);
 
-  public static final String GATEWAY_TYPE = "mcpClient";
+  public static final String GATEWAY_TYPE = McpClientConstants.GATEWAY_TYPE;
   public static final String PROPERTY_MCP_CLIENTS = "mcpClients";
   public static final String MCP_TOOLS_DISCOVERY_PREFIX = MCP_PREFIX + "toolsList_";
 

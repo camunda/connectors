@@ -65,10 +65,12 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.configuration.AgenticAiHttpProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
+import io.camunda.connector.agenticai.tools.schema.configuration.ToolsSchemaProperties;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -89,7 +91,11 @@ import org.springframework.context.annotation.Scope;
 
 @Configuration
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
-@EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
+@EnableConfigurationProperties({
+  AgenticAiConnectorsConfigurationProperties.class,
+  AgenticAiHttpProperties.class,
+  ToolsSchemaProperties.class
+})
 @Import({
   AgenticAiLangChain4JFrameworkConfiguration.class,
   AgenticAiNativeProvidersConfiguration.class,
@@ -106,12 +112,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgenticAiHttpProxySupport agenticAiHttpProxySupport(
-      AgenticAiConnectorsConfigurationProperties configuration) {
+      AgenticAiHttpProperties httpProperties) {
     // IMPORTANT: the proxy configuration needs to be configured to support
     // CONNECTOR_HTTP(S)_PLAIN_* proxy vars as JDK clients are not able to connect to proxies
     // running on HTTPS
     final ProxyConfiguration proxyConfiguration =
-        configuration.http().proxySupport().enabled()
+        httpProperties.proxySupport().enabled()
             ? EnvironmentProxyConfiguration.withPlainProxySupport()
             : ProxyConfiguration.NONE;
 
@@ -141,17 +147,17 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
-      AgenticAiConnectorsConfigurationProperties configuration,
+      ToolsSchemaProperties toolsSchemaProperties,
       PhysicalTenantClientSelector clientSelector,
       AdHocToolElementParameterExtractor parameterExtractor) {
     final var processDefinitionClient =
         new ProcessDefinitionClient(
-            clientSelector, configuration.tools().processDefinition().retries());
+            clientSelector, toolsSchemaProperties.processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             processDefinitionClient, parameterExtractor);
 
-    final var cacheConfiguration = configuration.tools().processDefinition().cache();
+    final var cacheConfiguration = toolsSchemaProperties.processDefinition().cache();
     if (cacheConfiguration.enabled()) {
       return new CachingProcessDefinitionAdHocToolElementsResolver(
           resolver,

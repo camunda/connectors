@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
+import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;

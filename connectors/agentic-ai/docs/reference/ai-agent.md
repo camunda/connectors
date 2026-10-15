@@ -1230,8 +1230,10 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 Configurable under the `camunda.connector.agenticai.*` prefix, in three main areas: process-definition
 fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), and the chat-model
 API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
-[`AgenticAiConnectorsConfigurationProperties`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java);
-each property carries its own `@DefaultValue`.
+[`ToolsSchemaProperties`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
+(`tools.*`) and
+[`AgenticAiConnectorsConfigurationProperties`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java)
+(`aiagent.*`); each property carries its own `@DefaultValue`.
 
 ---
 
@@ -1524,7 +1526,7 @@ Gateway elements are identified via BPMN **extension properties**. The element t
 ```
 extensionProperties = {
   @ExtensionProperty(
-    name = "io.camunda.agenticai.gateway.type",   // GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION
+    name = "io.camunda.agenticai.gateway.type",   // GatewayToolConstants.GATEWAY_TYPE_EXTENSION
     value = "mcpClient",                            // or "a2aClient"
     condition = @PropertyCondition(property = "data.connectorMode.type", equals = "aiAgentTool"))
 }

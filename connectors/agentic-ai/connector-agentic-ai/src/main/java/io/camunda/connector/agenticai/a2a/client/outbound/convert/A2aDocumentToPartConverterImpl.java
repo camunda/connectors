@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound.convert;
 
-import static io.camunda.connector.agenticai.aiagent.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.common.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
