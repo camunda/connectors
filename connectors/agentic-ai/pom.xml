@@ -29,8 +29,70 @@
     </license>
   </licenses>
 
+  <properties>
+    <version.record-builder>53</version.record-builder>
+    <version.errorprone>2.50.0</version.errorprone>
+    <version.nullaway>0.14.2</version.nullaway>
+  </properties>
+
   <modules>
+    <module>agentic-ai-common</module>
     <module>connector-agentic-ai</module>
   </modules>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${version.spring-boot}</version>
+              </path>
+              <path>
+                <groupId>io.soabase.record-builder</groupId>
+                <artifactId>record-builder-processor</artifactId>
+                <version>${version.record-builder}</version>
+              </path>
+              <path>
+                <groupId>com.uber.nullaway</groupId>
+                <artifactId>nullaway</artifactId>
+                <version>${version.nullaway}</version>
+              </path>
+              <path>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_core</artifactId>
+                <version>${version.errorprone}</version>
+                <classifier>with-dependencies</classifier>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+          <executions>
+            <execution>
+              <id>default-compile</id>
+              <configuration>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-XDshould-stop.ifError=FLOW</arg>
+                  <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+                  <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true</arg>
+                </compilerArgs>
+              </configuration>
+            </execution>
+            <execution>
+              <id>default-testCompile</id>
+              <configuration>
+                <compilerArgs/>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
 </project>

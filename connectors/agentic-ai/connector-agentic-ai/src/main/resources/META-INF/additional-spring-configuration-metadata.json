@@ -1,12 +1,6 @@
 {
   "properties": [
     {
-      "name": "camunda.connector.agenticai.enabled",
-      "type": "java.lang.Boolean",
-      "description": "Whether to enable the Agentic AI integration.",
-      "defaultValue": "true"
-    },
-    {
       "name": "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the AI Agent outbound connector.",
