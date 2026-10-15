@@ -223,16 +223,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <version>${version.okhttp}</version>
     </dependency>
 
-    <!-- Native MCP Java SDK -->
-    <dependency>
-      <groupId>io.modelcontextprotocol.sdk</groupId>
-      <artifactId>mcp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.annotation</groupId>
-      <artifactId>jakarta.annotation-api</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-identity</artifactId>
@@ -392,6 +382,18 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <!-- Test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-mcp</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>aiagent-mcp-integration</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
       <scope>test</scope>
     </dependency>
@@ -471,9 +473,12 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             <id>analyze-dependencies</id>
             <configuration>
               <ignoredDependencies>
-                <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
-                <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
-                <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+                <!-- needed on the compile classpath for the RecordBuilder annotation processor to
+                     resolve the @AgenticAiRecord meta-annotation; no bytecode reference remains -->
+                <ignoredDependency>io.soabase.record-builder:record-builder-core</ignoredDependency>
+                <!-- main code references ConfigurableBeanFactory only through an inlined constant, so
+                     no bytecode reference to spring-beans remains -->
+                <ignoredDependency>org.springframework:spring-beans</ignoredDependency>
                 <!-- guava is compile-scoped for javac's benefit only (see the dependency
                      declaration above): main code never imports it, so the analyzer would
                      otherwise flag it as a non-test scoped test-only dependency. -->
@@ -515,28 +520,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <file>
                   <templateId>io.camunda.connectors.agenticai.ai-agent-task.v2</templateId>
                   <templateFileName>agenticai-ai-agent-task.v2.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>true</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-            </connector>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientFunction</connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.mcp.client.v0</templateId>
-                  <templateFileName>agenticai-mcp-client-outbound-connector.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>true</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-            </connector>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction</connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.mcp.remoteclient.v0</templateId>
-                  <templateFileName>agenticai-mcp-remote-client-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

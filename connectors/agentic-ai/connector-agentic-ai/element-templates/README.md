@@ -68,15 +68,16 @@ Backend IDs and labels come from the generated dropdowns. Edit preset defaults i
 
 ## MCP Client connectors
 
-Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
+Clients for the [Model Context Protocol](https://modelcontextprotocol.io/). The templates live in the
+`connector-mcp` module (`connector-mcp/element-templates/`).
 See the [MCP Client connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client/).
 
 | Connector         | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| MCP Client        | 8.9 | 3 | [`agenticai-mcp-client-outbound-connector.json`](./agenticai-mcp-client-outbound-connector.json) |
-| MCP Client        | 8.8 | 0 | [`versioned/agenticai-mcp-client-outbound-connector-0.json`](./versioned/agenticai-mcp-client-outbound-connector-0.json) |
-| MCP Remote Client | 8.9 | 3 | [`agenticai-mcp-remote-client-outbound-connector.json`](./agenticai-mcp-remote-client-outbound-connector.json) |
-| MCP Remote Client | 8.8 | 0 | [`versioned/agenticai-mcp-remote-client-outbound-connector-0.json`](./versioned/agenticai-mcp-remote-client-outbound-connector-0.json) |
+| MCP Client        | 8.9 | 3 | `agenticai-mcp-client-outbound-connector.json` |
+| MCP Client        | 8.8 | 0 | `versioned/agenticai-mcp-client-outbound-connector-0.json` |
+| MCP Remote Client | 8.9 | 3 | `agenticai-mcp-remote-client-outbound-connector.json` |
+| MCP Remote Client | 8.8 | 0 | `versioned/agenticai-mcp-remote-client-outbound-connector-0.json` |
 
 ## A2A connectors
 
