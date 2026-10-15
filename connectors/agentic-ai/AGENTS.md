@@ -48,8 +48,8 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-aiagent`             | AI Agent connectors, providers, stores, agent instance client   | tools-schema, api, model, common  |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations (only in test scope). Some Java packages span several modules (for example
-`aiagent.model.request`). Each module has its own auto-configuration, element templates and icons.
+or integrations (only in test scope). No Java package spans several modules. Each module has its own
+auto-configuration, element templates and icons.
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ## Start here, navigation

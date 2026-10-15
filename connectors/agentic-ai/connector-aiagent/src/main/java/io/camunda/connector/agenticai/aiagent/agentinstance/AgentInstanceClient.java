@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;

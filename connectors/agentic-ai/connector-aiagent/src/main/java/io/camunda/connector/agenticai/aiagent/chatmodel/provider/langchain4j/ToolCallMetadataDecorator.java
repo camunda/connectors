@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
-import io.camunda.connector.agenticai.aiagent.model.request.v1.GoogleVertexAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import java.util.Map;
 
 /**

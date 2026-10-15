@@ -16,7 +16,7 @@ import com.openai.models.responses.ResponseStreamEvent;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import java.time.Duration;
 import org.slf4j.Logger;

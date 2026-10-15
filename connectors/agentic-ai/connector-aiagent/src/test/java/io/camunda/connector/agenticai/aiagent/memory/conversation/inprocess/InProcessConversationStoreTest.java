@@ -36,7 +36,7 @@ class InProcessConversationStoreTest {
   @Test
   void storeTypeIsAlignedWithConfiguration() {
     final var configuration =
-        new io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration
+        new io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration
             .InProcessMemoryStorageConfiguration();
     assertThat(store.type()).isEqualTo(configuration.storeType()).isEqualTo("in-process");
   }

@@ -19,7 +19,7 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AuthenticationUtil;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
