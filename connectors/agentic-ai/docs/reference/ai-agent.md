@@ -278,7 +278,7 @@ process variable (Sub-process) or via `agent.context` (Task). It holds the lifec
 resolved tools, a pointer to the stored conversation, cumulative metrics, and the metadata used to
 detect process migration. Serialized as JSON, it is passed into every job activation and written back
 on every completion. Authoritative definition:
-[`AgentContext.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
+[`AgentContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
 ### AgentExecutionContext (the transient request context)
 
@@ -286,7 +286,7 @@ The transient per-invocation request context, assembled fresh for each job activ
 persisted. It carries the job metadata, the inbound `AgentContext` and tool-call results, the LLM
 provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
-[`AgentExecutionContext.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
+[`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 
 ### AgentResponse (the output)
 
