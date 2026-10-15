@@ -32,7 +32,11 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = OpenAiChatModelConfiguration.OPENAI_ID, label = "OpenAI")
+@TemplateSubType(
+    id = OpenAiChatModelConfiguration.OPENAI_ID,
+    label = "OpenAI",
+    description = "GPT models via OpenAI, Microsoft Foundry, or an OpenAI-compatible endpoint.",
+    keywords = {"OpenAI", "GPT"})
 public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection openai)
     implements ProviderConfiguration {
 

@@ -54,7 +54,7 @@ public record A2aWebhookProperties(
             label = "HMAC authentication",
             group = "authentication",
             description =
-                "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+                "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
             defaultValue = "disabled",
             type = PropertyType.Dropdown)
         HMACSwitchCustomerChoice shouldValidateHmac,

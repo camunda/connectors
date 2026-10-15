@@ -70,7 +70,7 @@ public class CsvConnector implements OutboundConnectorProvider {
           @TemplateProperty(
               label = "Record mapping",
               tooltip =
-                  "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
+                  "<a href=\"https://docs.camunda.io/docs/8.10/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
               feel = FeelMode.required)
           Function<Map<String, Object>, Object> mapper) {
     var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.Object);

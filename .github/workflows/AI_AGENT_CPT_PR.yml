@@ -37,13 +37,13 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Check for agentic-ai changes
         id: changes
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             ai:
@@ -81,7 +81,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.label.name == 'ai-agent-model-e2e-test'
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # build the PR's actual code, not the synthetic merge ref
           ref: ${{ github.event.pull_request.head.sha }}
@@ -90,7 +91,7 @@ jobs:
       - name: Import build secrets
         if: needs.setup.outputs.ai == 'true'
         id: build-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -104,7 +105,7 @@ jobs:
       - name: Import registry secret
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
         id: registry-secret
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -117,7 +118,7 @@ jobs:
       - name: Import OpenAI secret
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'openai')
         id: openai-secret
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -130,7 +131,7 @@ jobs:
       - name: Import Vertex secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'vertex')
         id: vertex-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -145,7 +146,7 @@ jobs:
       - name: Import Bedrock document provider secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-documents')
         id: bedrock-document-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -159,7 +160,7 @@ jobs:
       - name: Import Bedrock provider secrets
         if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-provider')
         id: bedrock-provider-secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -172,7 +173,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
             secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         if: needs.setup.outputs.ai == 'true'
         with:
           distribution: temurin
@@ -180,7 +181,7 @@ jobs:
 
       - name: Create settings.xml
         if: needs.setup.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -193,14 +194,14 @@ jobs:
 
       - name: Restore Maven cache
         if: needs.setup.outputs.ai == 'true'
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.setup.outputs.ai == 'true'
         with:
           node-version: '24'
@@ -244,13 +245,13 @@ jobs:
 
       - name: Set up Docker Build
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       # Needed to pull default-bundle's own base image (reg.mini.dev/1212/openjre-base) during
       # the build below, even though the built image is never pushed anywhere.
       - name: Login to Minimus
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -261,7 +262,7 @@ jobs:
       # here, and no orphan PR-tagged images left behind anywhere.
       - name: Build default-bundle image
         if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/default-bundle/
           load: true
@@ -339,6 +340,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+          job_name: "run-ai-agent-cpt/${{ matrix.id }}"
   summarize-ai-agent-cpt:
     name: Summarize AI Agent CPT results
     needs: [setup, run-ai-agent-cpt]

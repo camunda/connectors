@@ -58,7 +58,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
       "SOAP 1.1",
       "SOAP 1.2"
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/soap/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/components/connectors/protocol/soap/",
     propertyGroups = {
       @PropertyGroup(id = "connection", label = "Connection"),
       @PropertyGroup(id = "authentication", label = "Authentication"),

@@ -205,7 +205,7 @@ jobs:
 
       - name: Post new streak alert to Slack (notifies medic)
         if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts == ''
-        uses: slackapi/slack-github-action@v4.0.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           method: chat.postMessage
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -217,7 +217,7 @@ jobs:
 
       - name: Update existing streak alert in Slack (silent edit)
         if: steps.streak.outputs.is_streak == 'true' && steps.find-message.outputs.existing_ts != ''
-        uses: slackapi/slack-github-action@v4.0.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           method: chat.update
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -230,7 +230,7 @@ jobs:
 
       - name: Mark streak as resolved in Slack (silent edit)
         if: steps.streak.outputs.latest_success == 'true' && steps.find-message.outputs.existing_ts != ''
-        uses: slackapi/slack-github-action@v4.0.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           method: chat.update
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -498,10 +498,11 @@ jobs:
           # job is not a pipeline failure, and treating it as one would have triage
           # re-triaging its own noise.
           #
-          # "AI Agent E2E Tests" is excluded here too, mirroring classify.py's
-          # IGNORED_JOB_PREFIXES. This gate reads raw job conclusions and knows nothing
-          # about that list, so without this a run whose only failure is that job still
-          # sets any_failed=true, still gets handed to triage, and triage's "Post Slack
+          # The current "AI Agent bundle E2E" name and legacy "AI Agent E2E Tests" name
+          # are excluded here too, mirroring classify.py's IGNORED_JOB_PREFIXES. This
+          # gate reads raw job conclusions and knows nothing about that list, so without
+          # these exclusions a run whose only failure is that job still sets
+          # any_failed=true, still gets handed to triage, and triage's "Post Slack
           # summary" step is unconditional -- it would post an empty-plan "nothing to
           # dispatch" message for a job nobody wants triage to look at in the first
           # place.
@@ -511,6 +512,7 @@ jobs:
             | .name
             | select(startswith("AlwaysGreen ") | not)
             | select(startswith("AI Agent E2E Tests") | not)
+            | select(startswith("AI Agent bundle E2E") | not)
           ' <<<"$jobs_json")
 
           any_failed=false

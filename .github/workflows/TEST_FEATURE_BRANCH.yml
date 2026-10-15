@@ -31,7 +31,8 @@ jobs:
 
     runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -65,19 +66,19 @@ jobs:
 
       # Restore cache (distinct key for internal vs external to avoid mixing artifacts)
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
 
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
 
@@ -88,7 +89,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -105,7 +106,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -168,34 +169,28 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: apps/bundle/default-bundle/Dockerfile
 
-      - name: Check element templates for forbidden links to /next/ documentation
-        run: |
-          chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
-          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
-          if grep -q "/next/" connectors-element-template-links.txt; then
-            echo "❌ Forbidden link to '/next/' documentation found!"
-            exit 1
-          fi
+      - name: Check element templates and Java sources for unversioned or /next/ documentation links
+        run: ./.github/workflows/scripts/check_element_template_docs_links.sh
         shell: bash
 
       - name: Validate element templates
@@ -203,11 +198,21 @@ jobs:
           ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
           ./element-template-generator/validator/target/appassembler/bin/element-template-validator
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-javadoc:
 
     runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -234,14 +239,14 @@ jobs:
           fi
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
@@ -249,7 +254,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -266,7 +271,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -289,11 +294,21 @@ jobs:
       - name: Check Javadoc
         run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-format:
 
     runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -320,14 +335,14 @@ jobs:
           fi
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
@@ -335,7 +350,7 @@ jobs:
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -352,7 +367,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -375,11 +390,21 @@ jobs:
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   check-versioned-element-templates:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -398,3 +423,13 @@ jobs:
           chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
           ./.github/workflows/scripts/check_versioned_element_templates.sh
         shell: bash
+
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}

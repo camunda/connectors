@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "content", label = "Compose email")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/sendgrid/",
     icon = "icon.svg")
 public class SendGridFunction implements OutboundConnectorFunction {
 

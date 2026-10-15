@@ -355,7 +355,7 @@ class DocumentToolCallResultsIT {
   /** AWS Bedrock, v2 (native Converse API); Anthropic models via cross-region inference. */
   static ProviderConfig bedrockV2(String model) {
     return new ProviderConfig(
-        "bedrock-v2/" + model,
+        "bedrock-converse-v2/" + model,
         RealLlmProviderGroup.BEDROCK,
         List.of("AWS_BEDROCK_ACCESS_KEY", "AWS_BEDROCK_SECRET_KEY"),
         AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,

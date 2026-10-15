@@ -34,8 +34,9 @@ jobs:
     steps:
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
     - id: sanitize
-      uses: camunda/infra-global-github-actions/sanitize-branch-name@main
+      uses: camunda/infra-global-github-actions/sanitize-branch-name@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
       with:
         branch: ${{ env.BRANCH_NAME }}
         max_length: '15'
@@ -81,7 +82,7 @@ jobs:
     #########################################################################
     # Create a preview environment
     - name: Deploy Preview Environment for ${{ matrix.product_context }}
-      uses: camunda/infra-global-github-actions/preview-env/create@main
+      uses: camunda/infra-global-github-actions/preview-env/create@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
       with:
         revision: ${{ env.BRANCH_NAME }}
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
@@ -91,12 +92,23 @@ jobs:
         argocd_server: argocd.int.camunda.com
         argocd_wait_for_sync_timeout: "7200" # waits up to 120 minutes
         github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Observe build status
+      if: always()
+      continue-on-error: true
+      uses: ./.github/actions/observe-build-status
+      with:
+        build_status: ${{ job.status }}
+        secret_vault_address: ${{ secrets.VAULT_ADDR }}
+        secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+        secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+        job_name: "deploy-preview/${{ matrix.product_context }}"
   conflicts:
     if: always() && github.event_name == 'pull_request' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
     runs-on: ubuntu-26.04
     steps:
     - name: Check PR for merge conflicts
-      uses: camunda/infra-global-github-actions/preview-env/conflicts@main
+      uses: camunda/infra-global-github-actions/preview-env/conflicts@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
       with:
         pull-request-id: ${{ github.event.pull_request.number }}
   clean:
@@ -112,4 +124,4 @@ jobs:
     runs-on: ubuntu-26.04
     needs: [deploy-preview]
     steps:
-    - uses: camunda/infra-global-github-actions/preview-env/comment@main
+    - uses: camunda/infra-global-github-actions/preview-env/comment@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
