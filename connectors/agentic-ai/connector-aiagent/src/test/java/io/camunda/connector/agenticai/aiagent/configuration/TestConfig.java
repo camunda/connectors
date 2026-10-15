@@ -10,11 +10,7 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration;
-import io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientAutoConfiguration;
-import io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.agenticai.tools.schema.configuration.AgenticAiToolsSchemaAutoConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -27,18 +23,11 @@ import org.springframework.context.annotation.Bean;
 
 class TestConfig {
 
-  /**
-   * All auto-configurations of the agentic AI connectors, as registered via {@code
-   * AutoConfiguration.imports}.
-   */
+  /** The auto-configurations the AI Agent connector builds on, plus its own. */
   static final AutoConfigurations ALL_AUTO_CONFIGURATIONS =
       AutoConfigurations.of(
           AgenticAiCommonAutoConfiguration.class,
           AgenticAiToolsSchemaAutoConfiguration.class,
-          A2aClientAutoConfiguration.class,
-          A2aClientAgenticToolConfiguration.class,
-          McpClientAutoConfiguration.class,
-          McpDiscoveryConfiguration.class,
           AgenticAiConnectorsAutoConfiguration.class);
 
   @Bean

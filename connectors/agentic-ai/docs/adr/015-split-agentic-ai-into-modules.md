@@ -110,9 +110,12 @@ The decision comprises:
 * **D8 — Each module owns its packages.** Every module has its own package root (see D1), and no
   package spans two modules. The package of a class tells which module it belongs to and whether it
   is an extension point, a model type or an implementation. Boundaries are enforced by the Maven
-  dependencies and by architecture tests that can describe the layering by package alone. Keeping
-  the existing packages to spare extensions an import change was rejected: it leaves packages split
-  across modules, which hides module membership and blocks the Java module system.
+  dependencies and by the architecture tests in `agentic-ai-archunit-tests`, a test-only module that
+  is not deployed and has the production classes of all modules on its class path. Its rules describe
+  the layering by package root, check that each package root is loaded from the module owning it, and
+  check that every package is `@NullMarked`.
+  Keeping the existing packages to spare extensions an import change was rejected: it leaves
+  packages split across modules, which hides module membership and blocks the Java module system.
 
 * **D9 — The AI Agent connector module is renamed.** After the split it holds only the AI Agent, so
   its artifact is `connector-aiagent`.
@@ -138,13 +141,9 @@ The decision comprises:
   extension point and model types changed packages. The details are in the
   [breaking changes](../breaking-changes.md).
 * Element templates moved to the modules of their connectors, so their repository paths changed.
-* The AI Agent connector keeps test-scope dependencies on the MCP and A2A modules so that the
-  architecture test sees all classes.
 
 ## Follow-up
 
-* A dedicated architecture test module with module-level layering rules and further code rules
-  (SDK containment, provider isolation, Spring conventions). It is planned separately.
 * Extract chat model providers and LangChain4j into their own modules when needed.
 
 ## Pros and Cons of the Options

@@ -1571,7 +1571,7 @@ tomcat-embed-*/tomcat-annotations-api dependencyManagement entries, and this enf
               <artifactId>central-publishing-maven-plugin</artifactId>
               <extensions>true</extensions>
               <configuration>
-                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator</excludeArtifacts>
+                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application,element-template-validator,agentic-ai-archunit-tests</excludeArtifacts>
               </configuration>
             </plugin>
           </plugins>

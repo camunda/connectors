@@ -46,12 +46,33 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
+| `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations (only in test scope). Package roots are relative to `io.camunda.connector.agenticai`;
+or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
+
+### Architecture tests
+
+`agentic-ai-archunit-tests` holds the ArchUnit rules (`archunit-junit5`) for the production classes of
+all modules, in package `io.camunda.connector.agenticai.archunit`:
+
+- `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
+- `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
+  and every module contains only classes of its own package root.
+- `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
+- `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
+
+`AgenticAiModules` maps modules to package roots. When you add a module, a package root or a
+dependency between modules, update it and the layer rules. Run the rules after installing the modules
+(they read the module jars from the local Maven repository):
+
+```bash
+./mvnw clean install -DskipTests -f connectors/agentic-ai/pom.xml
+./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests
+```
 
 ## Start here, navigation
 
