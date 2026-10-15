@@ -47,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -54,6 +55,7 @@ import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigura
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -110,7 +112,7 @@ class OpenAiChatModelFactoryTest {
                 OpenAiResponsesStreamAssembler.accumulating()),
             new FoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
-                    httpProxySupport,
+                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
             oAuthClientCredentialsTokenResolver);
   }

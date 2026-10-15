@@ -26,11 +26,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -61,7 +61,7 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
 import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntimeAuthSchemeProvider;
 
 /**
- * A real, non-mocked {@link AgenticAiHttpProxySupport} (backed by {@link ProxyConfiguration#NONE})
+ * A real, non-mocked {@link AwsSdkHttpProxySupport} (backed by {@link ProxyConfiguration#NONE})
  * builds a real Netty HTTP client builder, and only the top-level {@link
  * BedrockRuntimeAsyncClient#builder()} factory method is static-mocked so the spy can assert
  * exactly which builder methods were called, while still letting {@code build()} run for real via
@@ -89,7 +89,7 @@ class BedrockConverseChatModelFactoryTest {
       SdkEventLoopGroup.builder().numberOfThreads(1).build();
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
-  private final AgenticAiHttpProxySupport proxySupport = proxySupportSpy(proxyConfiguration);
+  private final AwsSdkHttpProxySupport proxySupport = proxySupportSpy(proxyConfiguration);
 
   private final ChatModelProperties config =
       new ChatModelProperties(
@@ -109,14 +109,14 @@ class BedrockConverseChatModelFactoryTest {
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
 
-  private static AgenticAiHttpProxySupport proxySupportSpy(ProxyConfiguration proxyConfiguration) {
-    final var proxySupportSpy = spy(new AgenticAiHttpProxySupport(proxyConfiguration));
+  private static AwsSdkHttpProxySupport proxySupportSpy(ProxyConfiguration proxyConfiguration) {
+    final var proxySupportSpy = spy(new AwsSdkHttpProxySupport(proxyConfiguration));
     doAnswer(
             invocation ->
                 ((NettyNioAsyncHttpClient.Builder) invocation.callRealMethod())
                     .eventLoopGroup(SHARED_EVENT_LOOP_GROUP))
         .when(proxySupportSpy)
-        .createAwsAsyncHttpClientBuilder(any());
+        .asyncHttpClientBuilder(any());
     return proxySupportSpy;
   }
 
@@ -224,7 +224,7 @@ class BedrockConverseChatModelFactoryTest {
         bedrockConfig(defaultCredentialsAuth(), endpoint),
         (clientBuilder) -> {
           verify(clientBuilder).endpointOverride(URI.create(endpoint));
-          verify(proxySupport).createAwsAsyncHttpClientBuilder(URI.create(endpoint));
+          verify(proxySupport).asyncHttpClientBuilder(URI.create(endpoint));
         });
   }
 
@@ -234,7 +234,7 @@ class BedrockConverseChatModelFactoryTest {
         bedrockConfig(defaultCredentialsAuth(), null),
         (clientBuilder) -> {
           verify(clientBuilder, never()).endpointOverride(any());
-          verify(proxySupport).createAwsAsyncHttpClientBuilder(null);
+          verify(proxySupport).asyncHttpClientBuilder(null);
         });
   }
 

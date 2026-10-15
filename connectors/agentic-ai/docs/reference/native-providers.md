@@ -123,7 +123,7 @@ call sits silent on the socket for the whole generation (issue #7193). `BedrockC
 reassembles the AWS EventStream event sequence into a `ConverseResponse`, so the response converter
 sees the same type either way. This is why the module pulls in
 `software.amazon.awssdk:netty-nio-client` and a Netty client builder
-(`ChatModelHttpProxySupport.createAwsAsyncHttpClientBuilder`) alongside the synchronous
+(`AwsSdkHttpProxySupport.asyncHttpClientBuilder`) alongside the synchronous
 Apache-based builder its other AWS SDK usage keeps.
 
 ### Residual capture
@@ -567,8 +567,7 @@ the client each turn never forces a fresh Entra ID token request as long as the 
 reused. The scope is deliberately not part of the cache key: azure-identity caches tokens per
 requested scope on the credential itself.
 
-`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
-.azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
+`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AzureHttpProxySupport.proxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
 exchange with `login.microsoftonline.com` goes through the same proxy as the model API calls rather
 than bypassing it. Managed identity is deliberately excluded: its token request targets the
 link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via

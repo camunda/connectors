@@ -306,7 +306,7 @@ class GeminiChatModelFactoryTest {
 
     // no endpoint override configured: the base URL is left for the SDK to derive itself at
     // build time (its own per-region formula, e.g. for "us"/"eu" multi-region hosts, is not
-    // byte-identical to AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl, which is why that
+    // byte-identical to GeminiEndpoints.defaultGoogleGenAiBaseUrl, which is why that
     // function is never used to pin the base URL here)
     verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
     assertThat(httpOptionsCaptor.getValue().baseUrl()).isEmpty();

@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
@@ -38,17 +38,17 @@ public class BedrockChatModelFactory
   private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelFactory.class);
 
   private final ChatModelProperties config;
-  private final AgenticAiHttpProxySupport proxySupport;
+  private final AwsSdkHttpProxySupport awsHttpProxySupport;
 
   public BedrockChatModelFactory(
       ChatModelProperties config,
-      AgenticAiHttpProxySupport proxySupport,
+      AwsSdkHttpProxySupport awsHttpProxySupport,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     super(chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
     this.config = config;
-    this.proxySupport = proxySupport;
+    this.awsHttpProxySupport = awsHttpProxySupport;
   }
 
   @Override
@@ -98,8 +98,8 @@ public class BedrockChatModelFactory
     // covers infrastructure availability (DNS / firewall / proxy), not model latency. See issue
     // #7193.
     bedrockClientBuilder.httpClientBuilder(
-        proxySupport
-            .createAwsHttpClientBuilder(endpointOverride)
+        awsHttpProxySupport
+            .httpClientBuilder(endpointOverride)
             .connectionTimeout(CONNECT_TIMEOUT)
             .socketTimeout(apiTimeout));
 

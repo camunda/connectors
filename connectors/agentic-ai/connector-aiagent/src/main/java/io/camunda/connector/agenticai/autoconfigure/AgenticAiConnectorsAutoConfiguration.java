@@ -42,6 +42,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
@@ -142,6 +144,20 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public AwsSdkHttpProxySupport aiAgentAwsSdkHttpProxySupport(
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new AwsSdkHttpProxySupport(httpProxySupport.getProxyConfiguration());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AzureHttpProxySupport aiAgentAzureHttpProxySupport(
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new AzureHttpProxySupport(httpProxySupport.getProxyConfiguration());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public InProcessConversationStore aiAgentInProcessConversationStore() {
     return new InProcessConversationStore();
   }
@@ -167,9 +183,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
-      AwsAgentCoreConversationMapper conversationMapper, AgenticAiHttpProxySupport proxySupport) {
+      AwsAgentCoreConversationMapper conversationMapper,
+      AwsSdkHttpProxySupport awsSdkHttpProxySupport) {
     return new AwsAgentCoreConversationStore(
-        new DefaultBedrockAgentCoreClientFactory(proxySupport), conversationMapper);
+        new DefaultBedrockAgentCoreClientFactory(awsSdkHttpProxySupport), conversationMapper);
   }
 
   @Bean

@@ -36,7 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderCo
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -75,8 +75,8 @@ class BedrockChatModelFactoryTest {
       new BedrockModelParameters(10, 1.0, 0.8);
 
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
-  private final AgenticAiHttpProxySupport proxySupport =
-      spy(new AgenticAiHttpProxySupport(proxyConfiguration));
+  private final AwsSdkHttpProxySupport proxySupport =
+      spy(new AwsSdkHttpProxySupport(proxyConfiguration));
 
   private final BedrockChatModelFactory factory =
       new BedrockChatModelFactory(
@@ -368,7 +368,7 @@ class BedrockChatModelFactoryTest {
       assertThat(((CloseableChatModelDelegate) chatModel).resource())
           .isSameAs(clientResultCaptor.getResult());
 
-      verify(proxySupport).createAwsHttpClientBuilder(expectedEndpointOverride);
+      verify(proxySupport).httpClientBuilder(expectedEndpointOverride);
       builderAssertions.accept(builders);
     }
   }

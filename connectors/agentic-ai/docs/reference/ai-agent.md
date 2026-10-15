@@ -1209,7 +1209,7 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `A2aClientAgenticToolConfiguration`            | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
 | `McpDiscoveryConfiguration`                    | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
-| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema, A2A and MCP integrations                 | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries) |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema, A2A and MCP integrations                 | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
 
 `AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans

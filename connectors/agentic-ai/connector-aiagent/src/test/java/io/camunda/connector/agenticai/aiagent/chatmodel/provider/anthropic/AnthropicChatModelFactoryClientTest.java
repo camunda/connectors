@@ -49,6 +49,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEn
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -456,7 +457,7 @@ class AnthropicChatModelFactoryClientTest {
         httpProxySupport,
         new FoundryCredentialResolver(
             new EntraIdTokenCredentialFactory(
-                httpProxySupport,
+                new AzureHttpProxySupport(ProxyConfiguration.NONE),
                 new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
         backend,
         null);

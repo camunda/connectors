@@ -17,8 +17,8 @@ import static org.mockito.Mockito.when;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.HttpClientOptions;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -28,11 +28,11 @@ import org.mockito.ArgumentCaptor;
 
 class EntraIdTokenCredentialFactoryTest {
 
-  private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
+  private final AzureHttpProxySupport azureHttpProxySupport = mock(AzureHttpProxySupport.class);
 
   private final EntraIdTokenCredentialFactory factory =
       new EntraIdTokenCredentialFactory(
-          httpProxySupport, new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
+          azureHttpProxySupport, new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalClientCredentialsConfig() {
@@ -74,12 +74,12 @@ class EntraIdTokenCredentialFactoryTest {
   void appliesConfiguredProxyToClientCredentialsTokenExchange() {
     final var proxyOptions =
         new ProxyOptions(ProxyOptions.Type.HTTP, new InetSocketAddress("proxy.example.com", 8080));
-    when(httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS))
+    when(azureHttpProxySupport.proxyOptions(ProxyConfiguration.SCHEME_HTTPS))
         .thenReturn(Optional.of(proxyOptions));
 
     factory.clientCredentials("tenant-id", "client-id", "client-secret", null, null);
 
-    verify(httpProxySupport).azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS);
+    verify(azureHttpProxySupport).proxyOptions(ProxyConfiguration.SCHEME_HTTPS);
   }
 
   @Test
@@ -88,7 +88,7 @@ class EntraIdTokenCredentialFactoryTest {
     // neither of which is reachable via an internet-facing egress proxy.
     factory.managedIdentity(null, null);
 
-    verifyNoInteractions(httpProxySupport);
+    verifyNoInteractions(azureHttpProxySupport);
   }
 
   @Test
@@ -140,7 +140,7 @@ class EntraIdTokenCredentialFactoryTest {
   void doesNotRouteATimedManagedIdentityTokenExchangeThroughTheProxy() {
     factory.managedIdentity(null, Duration.ofSeconds(5));
 
-    verifyNoInteractions(httpProxySupport);
+    verifyNoInteractions(azureHttpProxySupport);
   }
 
   @Test

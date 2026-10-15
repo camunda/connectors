@@ -135,8 +135,6 @@ The decision comprises:
 * Element templates moved to the modules of their connectors, so their repository paths changed.
 * The AI Agent connector keeps test-scope dependencies on the MCP and A2A modules so that its
   full-context auto-configuration tests and the architecture test see all classes.
-* The common library carries the HTTP client dependencies needed for proxy support, so the client
-  connectors inherit them.
 
 ## Follow-up
 

@@ -16,8 +16,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.net.URI;
 import java.util.List;
 import org.slf4j.Logger;
@@ -45,19 +45,19 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
   private static final String BEARER_AUTH_SCHEME = "httpBearerAuth";
 
   private final ChatModelProperties config;
-  private final AgenticAiHttpProxySupport httpProxySupport;
+  private final AwsSdkHttpProxySupport awsHttpProxySupport;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
   public BedrockConverseChatModelFactory(
       ChatModelProperties config,
-      AgenticAiHttpProxySupport httpProxySupport,
+      AwsSdkHttpProxySupport awsHttpProxySupport,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
     this.config = config;
-    this.httpProxySupport = httpProxySupport;
+    this.awsHttpProxySupport = awsHttpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.objectMapper = objectMapper;
@@ -107,8 +107,8 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
     // the API-call timeout onto it keeps a long-running model call from being killed by socket
     // inactivity partway through generation.
     builder.httpClientBuilder(
-        httpProxySupport
-            .createAwsAsyncHttpClientBuilder(endpointOverride)
+        awsHttpProxySupport
+            .asyncHttpClientBuilder(endpointOverride)
             .connectionTimeout(CONNECT_TIMEOUT)
             .readTimeout(apiTimeout));
 
