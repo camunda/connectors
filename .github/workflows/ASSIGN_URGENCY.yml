@@ -1,0 +1,14 @@
+name: ASSIGN_URGENCY
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled, reopened, transferred]
+
+jobs:
+  urgency:
+    name: Assign urgency from severity and likelihood
+    uses: camunda/camunda/.github/workflows/assign-urgency-to-issue.yml@main
+    with:
+      issue_number: ${{ github.event.issue.number }}
+      repo: ${{ github.event.repository.name }}
+    secrets: inherit

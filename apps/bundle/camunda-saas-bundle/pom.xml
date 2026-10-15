@@ -193,6 +193,7 @@
             </goals>
             <configuration>
               <classifier>with-dependencies</classifier>
+              <attach>${connectors.fatjar.attach}</attach>
               <mainClass>
                 io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication
               </mainClass>

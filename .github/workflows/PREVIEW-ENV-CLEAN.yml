@@ -27,11 +27,12 @@ jobs:
       group: ${{ github.workflow }}-${{ inputs.pull-request }}
     runs-on: ubuntu-latest
     steps:
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Generate a GitHub token
       id: github-token
-      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
       with:
         github-app-id-vault-key: GITHUB_PREVIEW_ENVIRONMENTS_APP_ID
         github-app-id-vault-path: secret/data/products/connectors/ci/common
@@ -42,10 +43,20 @@ jobs:
         vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID}}
         vault-url: ${{ secrets.VAULT_ADDR }}
 
-    - uses: camunda/infra-global-github-actions/preview-env/clean@main
+    - uses: camunda/infra-global-github-actions/preview-env/clean@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
       with:
         labels: deploy-preview
         pull-request: ${{ inputs.pull-request }}
         token: ${{ steps.github-token.outputs.token }}
         ttl: 21d
         warning-ttl: 14d
+
+    - name: Observe build status
+      if: always()
+      continue-on-error: true
+      uses: ./.github/actions/observe-build-status
+      with:
+        build_status: ${{ job.status }}
+        secret_vault_address: ${{ secrets.VAULT_ADDR }}
+        secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+        secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}

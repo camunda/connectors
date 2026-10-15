@@ -21,11 +21,13 @@ jobs:
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -40,21 +42,21 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -84,10 +86,10 @@ jobs:
         run: ls -lh apps/bundle/camunda-saas-bundle/target/
 
       - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Harbor
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
@@ -126,7 +128,7 @@ jobs:
           echo "should-push=true" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -137,7 +139,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/default-bundle/
           provenance: false
@@ -148,13 +150,22 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: apps/bundle/camunda-saas-bundle/
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   trigger-sm-e2e:
     name: Trigger SM E2E tests
     needs: [ build-image ]
@@ -267,13 +278,13 @@ jobs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -330,21 +341,20 @@ jobs:
       # fire for the one event that supplies a PR to comment on.
       status: ${{ steps.job-status.outputs.status }}
     steps:
-      # The waiter's deadline has to be measured on the same clock as this
-      # job's `timeout-minutes`, which starts here -- not when the waiter
-      # step happens to begin. Checkout, Vault/token generation and the
-      # dispatch are all unbounded, so deriving the deadline from the
-      # waiter's own start would make "deadline < job timeout" an assumption
-      # about how long they take rather than a guarantee.
+      # Measure the waiter's deadline near the start of the job, not when the
+      # waiter happens to begin. The mandatory build monitor runs first; the
+      # remaining checkout, Vault/token generation and dispatch time is still
+      # included in the waiter's 75-minute budget.
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Record job start
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -431,210 +441,46 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
           CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
-        run: |
-          set -euo pipefail
-          echo "Waiting for downstream E2E workflow run in camunda/c8-cross-component-e2e-tests for correlation id: $CORRELATION_ID"
+          # The token above expires one hour after it is minted. This pass
+          # stops before that and hands off to the two steps below.
+          HANDOFF_AFTER_MIN: '55'
+        run: .github/workflows/scripts/wait_for_saas_downstream.sh
 
-          TARGET_REPO="camunda/c8-cross-component-e2e-tests"
-          WORKFLOW_FILE="playwright_saas_pr_trigger_connectors.yml"
+      - name: Refresh GitHub App Token (for the second wait pass)
+        id: github-token-refresh
+        if: steps.wait-downstream.outputs.handoff == 'true'
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors,c8-cross-component-e2e-tests
 
-          # Bound the wait by wall clock rather than by a tick count. A tick
-          # is not a fixed cost: a poll whose `gh_api_with_retry` exhausts its
-          # backoff burns up to 62s on top of the 30s tick. So a tick count
-          # sized to the budget below -- 100 ticks for 50min -- would say
-          # nothing about how long the step actually runs: ~50min at best,
-          # ~153min at worst. (These figures describe the budget this job
-          # uses today, not the tick loop that used to be here.) Only an
-          # absolute deadline keeps the loop -- not the runner -- the thing
-          # that ends the wait, which is what lets the timeout path below
-          # report a reason.
-          #
-          # Size this off the runs the budget can actually bind on: the ones
-          # still in progress when it expires, which are overwhelmingly the
-          # long green ones. The all-runs distribution (median ~18min, p90
-          # ~33min, p95 ~38min) is dragged down by fast failures, whose median
-          # is ~6min and which can never reach any budget -- sizing off it
-          # under-states what a passing run costs. Over the 129 green
-          # downstream runs between 2026-09-03 and 2026-09-21 the median is
-          # ~20min, p90 ~33min and p95 ~44min, so 50min left 98.4% of them
-          # room to finish. The suite has since grown (run 36708779676 passed
-          # after ~57min and was reported as a timeout), so the budget is 75min.
-          # Raise it if that suite grows, and keep the
-          # job-level `timeout-minutes` above it.
-          #
-          # Anchored to the job's start, not this step's, so the 10min of
-          # headroom below the job timeout cannot be eaten by a slow checkout
-          # or a hanging Vault call. The preamble normally costs seconds; if
-          # it ever costs more, the wait shortens instead of the runner
-          # killing the loop before it can report a timeout.
-          WAIT_DEADLINE=$(( ${JOB_STARTED_AT:-$(date +%s)} + 75 * 60 ))
-
-          # Never sleep past the deadline: both the loop condition and the
-          # retry backoff are only re-checked between sleeps, so an unguarded
-          # sleep is exactly how the overshoot creeps back in.
-          deadline_sleep() {
-            local want="$1" remaining
-            remaining=$(( WAIT_DEADLINE - $(date +%s) ))
-            if (( remaining <= 0 )); then
-              return 0
-            fi
-            if (( remaining > want )); then
-              remaining="$want"
-            fi
-            sleep "$remaining"
-          }
-
-          gh_api_with_retry() {
-            local endpoint="$1"
-            local max_attempts="${2:-6}"
-            local sleep_s="${3:-2}"
-            local attempt=1
-            local out
-
-            while true; do
-              if out="$(gh api "$endpoint" 2>&1)"; then
-                printf '%s' "$out"
-                return 0
-              fi
-
-              # Rate limiting is matched by message, not by status code. GitHub
-              # serves the primary limit as 403 and the secondary limit as 403
-              # or 429, and a plain 403 is the permanent case this function
-              # exists to separate out (a bad token, a repo the App cannot
-              # see). Matching `HTTP 403` wholesale would poll a dead token to
-              # the deadline instead of failing fast, so only the rate-limit
-              # wording -- and 429, which is never anything else -- is treated
-              # as transient. `abuse detection` is the same family: GitHub's
-              # older wording for the secondary limit, served as 403 and
-              # self-clearing, so it retries for the same reason.
-              if echo "$out" | grep -Eqi 'HTTP 429|rate limit|abuse detection|HTTP 500|HTTP 502|HTTP 503|HTTP 504|TLS handshake timeout|timeout|temporarily unavailable|connection reset by peer|EOF|tls: failed to verify certificate|x509: certificate|stream error|GOAWAY|broken pipe|no such host|connection refused'; then
-                if (( attempt >= max_attempts )); then
-                  echo "gh api failed after ${attempt}/${max_attempts} attempts for $endpoint" >&2
-                  echo "$out" >&2
-                  return 1
-                fi
-                echo "Transient gh/api error (attempt ${attempt}/${max_attempts}) for $endpoint:" >&2
-                echo "$out" >&2
-                deadline_sleep "$sleep_s"
-                # Do not start another attempt past the deadline. Once the
-                # clamped sleep has run the budget out, a further `gh api`
-                # could stall -- and a stalled call is the one thing a
-                # deadline cannot bound, which would hand the kill back to
-                # the runner and lose the timeout report.
-                if (( $(date +%s) >= WAIT_DEADLINE )); then
-                  echo "Deadline reached while retrying $endpoint; abandoning this poll." >&2
-                  return 1
-                fi
-                attempt=$((attempt + 1))
-                sleep_s=$((sleep_s * 2))
-                continue
-              fi
-
-              # Exit code 2 marks a permanent error (bad token, renamed workflow
-              # file) so the caller fails fast instead of polling to the timeout,
-              # and is distinguishable from the retry-exhausted 1 above -- which
-              # must NOT end the wait, since a transient blip that outlasts the
-              # backoff is exactly what the next tick is for.
-              echo "Non-retryable gh/api error for $endpoint:" >&2
-              echo "$out" >&2
-              return 2
-            done
-          }
-
-          RUN_ID=""
-
-          while (( $(date +%s) < WAIT_DEADLINE )); do
-            if [[ -z "$RUN_ID" ]]; then
-              # Capture the API call separately from the jq parse. Piping it
-              # straight into jq under `set -o pipefail` made a retry-exhausted
-              # transient blip abort the whole step, so a 30s GitHub hiccup
-              # failed the merge-queue gate instead of being retried on the
-              # next tick. Only a permanent error (exit 2) aborts now.
-              RUNS_JSON="" RC=0
-              RUNS_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/workflows/$WORKFLOW_FILE/runs?event=repository_dispatch&per_page=50")" || RC=$?
-              if (( RC == 2 )); then
-                exit 1
-              elif (( RC != 0 )); then
-                echo "Could not list downstream runs on this poll; retrying on the next tick." >&2
-                deadline_sleep 30
-                continue
-              fi
-
-              RUN_ID=$(
-                jq -r --arg c "$CORRELATION_ID" '
-                    .workflow_runs
-                    | map(select(.display_title != null and (.display_title | contains($c))))
-                    | sort_by(.created_at)
-                    | last
-                    | .id // empty
-                  ' <<<"$RUNS_JSON"
-              )
-
-              if [[ -z "$RUN_ID" ]]; then
-                echo "No downstream run found yet for correlation id. Sleeping..."
-                deadline_sleep 30
-                continue
-              fi
-
-              echo "Locked onto downstream run id: $RUN_ID"
-              echo "downstream_run_url=https://github.com/$TARGET_REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
-
-              # Re-check before falling through to the status request below.
-              # Every other iteration reaches it with the loop's own deadline
-              # check immediately behind it, but this one has an unbounded
-              # `gh api` in between: the run-list call can start inside the
-              # budget and return outside it. Starting a fresh unbounded call
-              # on a spent budget is what hands the kill back to the runner --
-              # a hang there only has the 10min of job-timeout headroom to
-              # land in, and past that the job dies as `cancelled` with no
-              # timeout report. The run url is already written above, so the
-              # report still carries the link.
-              if (( $(date +%s) >= WAIT_DEADLINE )); then
-                echo "Deadline reached while locking onto run $RUN_ID; reporting the timeout instead of starting another poll." >&2
-                break
-              fi
-            fi
-
-            RUN_JSON="" RC=0
-            RUN_JSON="$(gh_api_with_retry "/repos/$TARGET_REPO/actions/runs/$RUN_ID")" || RC=$?
-            if (( RC == 2 )); then
-              exit 1
-            elif (( RC != 0 )); then
-              echo "Could not read downstream run $RUN_ID on this poll; retrying on the next tick." >&2
-              deadline_sleep 30
-              continue
-            fi
-
-            STATUS="$(jq -r .status <<<"$RUN_JSON")"
-            CONCLUSION="$(jq -r .conclusion <<<"$RUN_JSON")"
-            echo "Workflow run $RUN_ID status: $STATUS ($CONCLUSION)"
-
-            if [[ "$STATUS" == "completed" ]]; then
-              if [[ "$CONCLUSION" == "success" ]]; then
-                echo "Downstream workflow succeeded!"
-                exit 0
-              else
-                echo "Downstream workflow failed: $CONCLUSION"
-                exit 1
-              fi
-            fi
-
-            deadline_sleep 30
-          done
-
-          echo "Timed out waiting for downstream workflow to complete."
-          exit 1
+      - name: Keep waiting for downstream workflow to finish
+        id: wait-downstream-2
+        if: steps.wait-downstream.outputs.handoff == 'true'
+        env:
+          GH_TOKEN: ${{ steps.github-token-refresh.outputs.token }}
+          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
+          RUN_ID: ${{ steps.wait-downstream.outputs.run_id }}
+        run: .github/workflows/scripts/wait_for_saas_downstream.sh
 
       - name: Add SaaS downstream workflow link to Job Summary
         if: always()
         run: |
-          if [ -n "${{ steps.wait-downstream.outputs.downstream_run_url }}" ]; then
+          if [ -n "${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}" ]; then
             {
               echo "### SaaS Downstream Workflow Run"
               echo ""
               echo "**Correlation ID:** \`${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}\`"
               echo ""
-              echo "[Open the triggered SaaS E2E workflow run in camunda/c8-cross-component-e2e-tests](${{ steps.wait-downstream.outputs.downstream_run_url }})"
+              echo "[Open the triggered SaaS E2E workflow run in camunda/c8-cross-component-e2e-tests](${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }})"
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
@@ -648,9 +494,9 @@ jobs:
       # category from the downstream report itself.
       - name: Write SaaS downstream context for AlwaysGreen triage
         id: saas-context
-        if: always() && steps.wait-downstream.outputs.downstream_run_url != ''
+        if: always() && (steps.wait-downstream.outputs.downstream_run_url != '' || steps.wait-downstream-2.outputs.downstream_run_url != '')
         env:
-          DOWNSTREAM_RUN_URL: ${{ steps.wait-downstream.outputs.downstream_run_url }}
+          DOWNSTREAM_RUN_URL: ${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}
         run: |
           set -euo pipefail
           jq -n \
@@ -662,7 +508,7 @@ jobs:
 
       - name: Upload SaaS downstream context artifact
         if: always() && steps.saas-context.outcome == 'success'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: alwaysgreen-saas-category
           path: ${{ runner.temp }}/alwaysgreen-saas-category.json
@@ -678,9 +524,9 @@ jobs:
         # when that is false -- so without it this step is skipped on the only
         # path it exists for, and the timeout the loop reports lands with no
         # guidance attached.
-        if: always() && steps.wait-downstream.outcome == 'failure'
+        if: always() && (steps.wait-downstream.outcome == 'failure' || steps.wait-downstream-2.outcome == 'failure')
         run: |
-          DOWNSTREAM_URL="${{ steps.wait-downstream.outputs.downstream_run_url }}"
+          DOWNSTREAM_URL="${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}"
           COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
           {
             echo ""
@@ -699,6 +545,15 @@ jobs:
         if: always()
         run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
   # which fires at three consecutive failures and says nothing about a single one.
@@ -723,13 +578,13 @@ jobs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -769,11 +624,13 @@ jobs:
     timeout-minutes: 20
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check for agentic-ai changes
         id: changes
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             ai:
@@ -783,7 +640,7 @@ jobs:
       - name: Import Secrets
         if: steps.changes.outputs.ai == 'true'
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -798,7 +655,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin
@@ -806,7 +663,7 @@ jobs:
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
@@ -814,7 +671,7 @@ jobs:
 
       - name: Create settings.xml
         if: steps.changes.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           servers: |
@@ -827,7 +684,7 @@ jobs:
 
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -869,6 +726,15 @@ jobs:
             -Pit-real-llm \
             --batch-mode
 
+      - name: Observe build status
+        if: ${{ always() && steps.changes.outputs.ai == 'true' }}
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x
   # instead of a per-branch `if:` that only this copy of the file ever received.

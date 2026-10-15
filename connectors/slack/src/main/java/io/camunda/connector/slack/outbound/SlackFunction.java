@@ -55,7 +55,7 @@ import io.camunda.connector.slack.outbound.model.SlackTokenConfiguration;
     icon = "icon.svg")
 @OutboundConnector(
     name = "Slack Outbound",
-    inputVariables = {"slackCredential", "token", "method", "data"},
+    inputVariables = {"slackCredential", "token", "baseUrl", "method", "data"},
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 

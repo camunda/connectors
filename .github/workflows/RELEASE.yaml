@@ -42,13 +42,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
@@ -79,7 +79,7 @@ jobs:
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
       mavenCacheKey: ${{ steps.maven-cache-key.outputs.value }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
@@ -88,7 +88,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
-        uses: camunda/infra-global-github-actions/previous-version@main
+        uses: camunda/infra-global-github-actions/previous-version@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
@@ -103,7 +103,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
@@ -115,7 +115,7 @@ jobs:
         run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
@@ -151,7 +151,7 @@ jobs:
             secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           # Two mirrors, because the HeroDevs NES repo is not served by the CI Nexus cache:
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
@@ -210,7 +210,7 @@ jobs:
 
       - name: Generate a GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
@@ -244,7 +244,7 @@ jobs:
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload repository
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: repository
           path: .
@@ -281,7 +281,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
           fetch-depth: 0
@@ -318,7 +318,7 @@ jobs:
 
       - name: Create pull request to main branch
         if: steps.version_check.outputs.is_first_minor == 'true'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/version-bump-docs-links
@@ -341,12 +341,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
 
       - name: Download repository
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
@@ -354,14 +355,14 @@ jobs:
         run: chmod +x ./mvnw
 
       - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -380,13 +381,13 @@ jobs:
 
       - name: Import GPG key
         id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v7
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
         with:
           githubServer: false
           # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
@@ -412,7 +413,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "nexus-mirror", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
           key: ${{ needs.setup.outputs.mavenCacheKey }}
@@ -447,6 +448,15 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
@@ -477,18 +487,19 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
 
       - name: Download repository
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -501,28 +512,28 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
         with:
           platforms: 'arm64,arm'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       - name: Login to Minimus
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: reg.mini.dev
           username: minimus
           password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       - name: Build and Push Docker Image tag ${{ inputs.version }} - ${{ matrix.name }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: ${{ matrix.context }}
           push: true
@@ -542,7 +553,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - ${{ matrix.name }}
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: ${{ matrix.context }}
           push: true
@@ -552,7 +563,7 @@ jobs:
 
       - name: Push README to Dockerhub - ${{ matrix.name }}
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' && matrix.readme != '' }}
-        uses: christian-korneck/update-container-description-action@v1
+        uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8 # v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
@@ -562,6 +573,16 @@ jobs:
           readme_file: ${{ matrix.readme }}
           short_description: ${{ matrix.short_description }}
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
+          job_name: "docker-release/${{ matrix.name }}"
   bundle-and-build-changelog:
     needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
@@ -573,8 +594,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
       - name: Download repository
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: repository
 
@@ -586,7 +608,7 @@ jobs:
 
       - name: Build Changelog
         id: changelog
-        uses: Requarks/changelog-action@v1
+        uses: Requarks/changelog-action@b78a3354a01f4a1affb484b9264b506a815c46b1 # v1
         with:
           token: ${{ github.token }}
           fromTag: ${{ inputs.version }}
@@ -596,7 +618,7 @@ jobs:
           excludeScopes: deps
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           make_latest: ${{ (inputs.latest && needs.setup.outputs.tagType == 'NORMAL') && 'true' || 'false' }}
@@ -608,6 +630,15 @@ jobs:
             connectors-bundle-templates-${{ inputs.version }}.tar.gz
             connectors-bundle-templates-${{ inputs.version }}.zip
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   helm-deploy:
     needs: [ setup, e2e-tests, docker-release ]
     if: |
@@ -651,12 +682,13 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81  # start-build-monitor-1.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.version }}
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v4.0.0
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -688,6 +720,15 @@ jobs:
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
 
+      - name: Observe build status
+        if: always()
+        continue-on-error: true
+        uses: ./.github/actions/observe-build-status
+        with:
+          build_status: ${{ job.status }}
+          secret_vault_address: ${{ secrets.VAULT_ADDR }}
+          secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
   notify-prs-released:
     name: Notify PRs that they have been released
     needs:
