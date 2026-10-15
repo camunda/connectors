@@ -5,6 +5,8 @@ runs LLM tool-calling loops inside BPMN processes. It ships in two flavors, an A
 service task) and an AI Agent Sub-process (on an ad-hoc sub-process), plus supporting infrastructure
 for tool calling, conversation memory, gateway tools (MCP, A2A), and event handling.
 
+Product context: part of the connectors system ([SYSTEM.md](../../SYSTEM.md)); boundaries and constraints in [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## How to use this document
 
 This file is a router and operating-rules layer. It is not the architecture reference. It orients an
@@ -35,39 +37,42 @@ Deep architecture lives in the reference docs, linked instead of copied:
 
 | Working on…                                                              | Read                                                                                    |
 |--------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop)                                     |
-| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [§4](docs/reference/ai-agent.md#4-agent-state-machine)                                  |
-| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [§5](docs/reference/ai-agent.md#5-data-model)                                           |
-| Conversation memory, storage backends, write-ahead store contract        | [§6](docs/reference/ai-agent.md#6-conversation-memory)                                  |
-| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [§7](docs/reference/ai-agent.md#7-tool-resolution)                                      |
-| Job completion / ad-hoc sub-process directives                           | [§8](docs/reference/ai-agent.md#8-job-completion)                                       |
-| Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-tool-completion)                                      |
-| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency)                                        |
+| The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop--distributed-execution-model)                                     |
+| Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [§4](docs/reference/ai-agent.md#4-agent-state-machine--initialization)                                  |
+| Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [§5](docs/reference/ai-agent.md#5-data-model--agent-context)                                           |
+| Conversation memory, storage backends, write-ahead store contract        | [§6](docs/reference/ai-agent.md#6-conversation-memory--storage)                                  |
+| Tool resolution, FEEL `fromAi()` extraction, JSON-schema generation      | [§7](docs/reference/ai-agent.md#7-tool-resolution--ad-hoc-sub-process-integration)                                      |
+| Job completion / ad-hoc sub-process directives                           | [§8](docs/reference/ai-agent.md#8-job-completion--the-heart-of-the-distributed-loop)                                       |
+| Tool completion, partial results, no-op completion                       | [§9](docs/reference/ai-agent.md#9-what-happens-when-tools-complete)                                      |
+| Concurrency & race conditions (supersession, store-ahead-of-Zeebe)       | [§10](docs/reference/ai-agent.md#10-concurrency-challenges--race-conditions)                                        |
 | Event handling (sub-process only)                                        | [§11](docs/reference/ai-agent.md#11-event-handling)                                     |
-| Chat model provider SPI & LangChain4j converter chain                    | [§12](docs/reference/ai-agent.md#12-framework-abstraction)                              |
+| Chat model provider SPI & LangChain4j converter chain                    | [§12](docs/reference/ai-agent.md#12-chat-model-provider-spi--langchain4j-converter-chain)                              |
 | System prompt composition / contributors                                 | [§13](docs/reference/ai-agent.md#13-system-prompt-composition)                          |
 | Response handling (text / JSON / full message)                           | [§14](docs/reference/ai-agent.md#14-response-handling)                                  |
 | Error codes                                                              | [§15](docs/reference/ai-agent.md#15-error-codes)                                        |
 | Spring auto-configuration, feature toggles, config defaults              | [§16](docs/reference/ai-agent.md#16-spring-auto-configuration)                          |
-| Process instance migration (what's allowed / blocked)                    | [§17](docs/reference/ai-agent.md#17-migration)                                          |
-| Code paths & class diagram                                               | [§18](docs/reference/ai-agent.md#18-code-paths)                                         |
+| Process instance migration (what's allowed / blocked)                    | [§17](docs/reference/ai-agent.md#17-process-instance-migration)                                          |
+| Code paths & class diagram                                               | [§18](docs/reference/ai-agent.md#18-key-code-paths-reference)                                         |
 | Gateway tool pattern (the MCP/A2A extensibility mechanism)               | [§19](docs/reference/ai-agent.md#19-gateway-tool-pattern)                               |
 | MCP integration                                                          | [§20](docs/reference/ai-agent.md#20-mcp-integration), [`mcp.md`](docs/reference/mcp.md) |
 | A2A integration                                                          | [§21](docs/reference/ai-agent.md#21-a2a-integration), [`a2a.md`](docs/reference/a2a.md) |
-| Example BPMN processes & configurations                                  | [§22](docs/reference/ai-agent.md#22-examples), [`examples/`](examples/)                 |
+| Example BPMN processes & configurations                                  | [§22](docs/reference/ai-agent.md#22-examples-directory-reference), [`examples/`](examples/)                 |
 | Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
 | **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
-| **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
+| **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-points)                                |
 | Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](docs/reference/native-providers.md)                             |
 
 ## Mental model
 
 Two flavors share one orchestration core (`BaseAgentRequestHandler`):
 
-- **AI Agent Task** (`AgentTaskV1Function`): a service-task connector whose tool-calling loop is modeled
+- **AI Agent Task** (`AgentTaskV2Function`): a service-task connector whose tool-calling loop is modeled
   explicitly in BPMN.
-- **AI Agent Sub-process** (`AgentSubProcessV1Function`): a job worker on an ad-hoc sub-process (AHSP) whose
+- **AI Agent Sub-process** (`AgentSubProcessV2Function`): a job worker on an ad-hoc sub-process (AHSP) whose
   loop is implicit (engine-driven) and supports events. This is the recommended flavor.
+
+`AgentTaskV1Function` and `AgentSubProcessV1Function` are deprecated backward-compatibility shims for
+existing v1 process models; add new behaviour to the V2 entry points.
 
 The loop (sub-process flavor): each job initializes the agent, loads memory, adds input (user prompt or
 tool results plus events), calls the LLM, stores memory, and completes; tool calls activate AHSP
@@ -80,8 +85,8 @@ Full flavor comparison (tool source, config-per-iteration, completion) and the l
 ## Glossary
 
 These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
-[§5](docs/reference/ai-agent.md#5-data-model) for the data-model types (`AgentContext`,
-`AgentExecutionContext`) and [§6](docs/reference/ai-agent.md#6-conversation-memory) for the
+[§5](docs/reference/ai-agent.md#5-data-model--agent-context) for the data-model types (`AgentContext`,
+`AgentExecutionContext`) and [§6](docs/reference/ai-agent.md#6-conversation-memory--storage) for the
 conversation and turn types (everything else below).
 
 | Term                                  | One-line meaning                                                                                                         |
@@ -142,13 +147,13 @@ suite will enforce (epic #7537):
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
-  [§12](docs/reference/ai-agent.md#12-framework-abstraction).
+  [§12](docs/reference/ai-agent.md#12-chat-model-provider-spi--langchain4j-converter-chain).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
   `*Impl`. Wire impls as Spring beans, depend on the interface.
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
-  [§25](docs/reference/ai-agent.md#25-extension-playbooks).
+  [§25](docs/reference/ai-agent.md#25-extension-points).
 
 ## Working in this module
 
@@ -416,8 +421,8 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 
 | File                                        | Purpose                                    |
 |---------------------------------------------|--------------------------------------------|
-| `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
-| `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
+| `AgentTaskV2Function.java`                  | Connector (Task) entry point               |
+| `AgentSubProcessV2Function.java`            | Job worker (Sub-process) entry point       |
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
 | `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
 
