@@ -102,6 +102,10 @@ public record SlackRequest<T extends SlackRequestData>(
     this(null, token, null, data);
   }
 
+  public SlackRequest(String token, String baseUrl, T data) {
+    this(null, token, baseUrl, data);
+  }
+
   @Override
   public String token() {
     return slackCredential != null ? slackCredential.token() : token;
