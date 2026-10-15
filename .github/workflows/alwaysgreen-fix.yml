@@ -141,7 +141,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$BASE_REF" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *) echo "::error::unsupported base_ref '$BASE_REF'"; exit 1 ;;
           esac
           case "$SURFACE" in
@@ -226,8 +226,8 @@ jobs:
               exit 1
             }
           # main carries the next unreleased minor; stable/X.Y carries X.Y. Bump this
-          # when main moves to 8.11.
-          if [ "$BASE_REF" = "main" ]; then version=8.10; else version="${BASE_REF#stable/}"; fi
+          # together with "main" in helm-git-refs.json when main moves to 8.12.
+          if [ "$BASE_REF" = "main" ]; then version=8.11; else version="${BASE_REF#stable/}"; fi
           # The e2e suite directory. SM specs live under an SM- prefix, SaaS specs under
           # the bare version, and pages/ mirrors tests/ exactly.
           if [ "$SURFACE" = "sm-smoke-e2e" ]; then suite="SM-${version}"; else suite="${version}"; fi

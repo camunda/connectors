@@ -186,9 +186,9 @@ jobs:
           # dispatch key — reopening the double-dispatch race the group exists to
           # close. Rejecting outright keeps group and key in agreement by construction.
           case "$INPUT_BASE_REF" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *)
-              echo "::error::base_ref must be one of main, stable/8.7, stable/8.8, stable/8.9 — got '$INPUT_BASE_REF'"
+              echo "::error::base_ref must be one of main, stable/8.7, stable/8.8, stable/8.9, stable/8.10 — got '$INPUT_BASE_REF'"
               exit 1
               ;;
           esac

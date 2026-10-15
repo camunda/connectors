@@ -412,7 +412,7 @@ jobs:
           IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
         run: |
           # Use the image tag as the generation name to match filter patterns
-          # e.g., "8.10.0-main-run12345678-a1" matches "**-main-run**-a**"
+          # e.g., "8.11.0-main-run12345678-a1" matches "**-main-run**-a**"
           GEN_NAME="${IMAGE_TAG}"
 
           curl -X POST \
@@ -426,7 +426,7 @@ jobs:
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "gen_name": "'"${GEN_NAME}"'",
-                      "c8Version": "8.10",
+                      "c8Version": "8.11",
                       "zeebeVersion": "SNAPSHOT",
                       "operateVersion": "SNAPSHOT",
                       "tasklistVersion": "SNAPSHOT",

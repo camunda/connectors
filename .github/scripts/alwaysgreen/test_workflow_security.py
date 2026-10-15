@@ -52,7 +52,7 @@ def _run_validate_inputs(tmp_path: Path, **overrides: str):
         "SURFACE": "sm-smoke-e2e",
         "DISPATCH_KEY": "connectors:main:sm-smoke-e2e",
         "TEST_SPECS": (
-            '[{"file":"tests/SM-8.10/smoke-tests.spec.ts",'
+            '[{"file":"tests/SM-8.11/smoke-tests.spec.ts",'
             '"test_name":"login","error":"expected value","project":"chromium",'
             '"attempts":3,"deterministic":true,'
             '"statuses":["failed","failed","failed"]}]'
