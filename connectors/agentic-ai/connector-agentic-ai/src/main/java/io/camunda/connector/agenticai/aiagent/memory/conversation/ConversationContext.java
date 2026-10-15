@@ -6,11 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import com.fasterxml.jackson.databind.annotation.JsonTypeResolver;
 
 /**
  * Storage cursor for a conversation. Contains all data needed to locate and load the conversation
@@ -20,13 +17,11 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
  * the pointer in the write-ahead with pointer-based visibility contract — see {@link
  * ConversationStore}. Implementations must be serializable and self-contained: they must not rely
  * on external state that could change between turns.
+ *
+ * <p>Subtypes are contributed through {@link ConversationContextSubtypes}.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({
-  @JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process"),
-  @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document"),
-  @JsonSubTypes.Type(value = AwsAgentCoreConversationContext.class, name = "aws-agentcore")
-})
+@JsonTypeResolver(ConversationContextTypeResolverBuilder.class)
 public interface ConversationContext {
   String conversationId();
 }

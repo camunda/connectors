@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -36,6 +37,7 @@ import org.jspecify.annotations.Nullable;
  * @param systemMessage System message that cannot be stored in AgentCore but needs to persist.
  */
 @AgenticAiRecord
+@JsonTypeName("aws-agentcore")
 @JsonDeserialize(
     builder =
         AwsAgentCoreConversationContext.AwsAgentCoreConversationContextJacksonProxyBuilder.class)
