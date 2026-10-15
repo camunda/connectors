@@ -40,6 +40,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -75,7 +77,7 @@ public class AgenticAiNativeProvidersConfiguration {
   @ConditionalOnMissingBean
   public BedrockConverseChatModelFactory aiAgentBedrockConverseChatModelFactory(
       AgenticAiConnectorsConfigurationProperties configuration,
-      AgenticAiHttpProxySupport httpProxySupport,
+      AwsSdkHttpProxySupport awsSdkHttpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new BedrockConverseContentConverter(objectMapper);
     final var requestConverter =
@@ -83,7 +85,7 @@ public class AgenticAiNativeProvidersConfiguration {
     final var responseConverter = new BedrockConverseResponseConverter();
     return new BedrockConverseChatModelFactory(
         configuration.aiagent().chatModel(),
-        httpProxySupport,
+        awsSdkHttpProxySupport,
         requestConverter,
         responseConverter,
         objectMapper);
@@ -93,9 +95,9 @@ public class AgenticAiNativeProvidersConfiguration {
   @ConditionalOnMissingBean
   public EntraIdTokenCredentialFactory aiAgentEntraIdTokenCredentialFactory(
       AgenticAiConnectorsConfigurationProperties configuration,
-      AgenticAiHttpProxySupport httpProxySupport) {
+      AzureHttpProxySupport azureHttpProxySupport) {
     return new EntraIdTokenCredentialFactory(
-        httpProxySupport, configuration.aiagent().chatModel().azure().credentialCache());
+        azureHttpProxySupport, configuration.aiagent().chatModel().azure().credentialCache());
   }
 
   @Bean

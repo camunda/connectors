@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.fac
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.OpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -70,13 +71,13 @@ public class AgenticAiLangChain4JChatModelConfiguration {
   @ConditionalOnMissingBean
   public BedrockChatModelFactory langChain4JBedrockChatModelFactory(
       AgenticAiConnectorsConfigurationProperties config,
-      AgenticAiHttpProxySupport httpProxySupport,
+      AwsSdkHttpProxySupport awsSdkHttpProxySupport,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
     return new BedrockChatModelFactory(
         config.aiagent().chatModel(),
-        httpProxySupport,
+        awsSdkHttpProxySupport,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter);

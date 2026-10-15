@@ -81,6 +81,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomAnthropicProviderConfig.CustomAnthropicChatModelFactory;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomAzureOpenAiProviderConfig.CustomAzureOpenAiChatModelFactory;
@@ -115,6 +117,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
           AgenticAiHttpProxySupport.class,
+          AwsSdkHttpProxySupport.class,
+          AzureHttpProxySupport.class,
           AdHocToolElementParameterExtractor.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
@@ -592,7 +596,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         CustomBedrockChatModelFactory() {
           super(
               mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(AgenticAiHttpProxySupport.class),
+              mock(AwsSdkHttpProxySupport.class),
               mock(ChatMessageConverter.class),
               mock(ToolSpecificationConverter.class),
               mock(JsonSchemaConverter.class));

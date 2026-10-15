@@ -182,7 +182,7 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       case GeminiApiBackend ignored -> URI.create(DEFAULT_GEMINI_API_BASE_URL).getHost();
       case GeminiVertexAiBackend vertexAiBackend ->
           URI.create(
-                  AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl(
+                  GeminiEndpoints.defaultGoogleGenAiBaseUrl(
                       vertexAiBackend.googleVertexAi().region()))
               .getHost();
     };

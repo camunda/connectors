@@ -31,12 +31,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEn
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +82,7 @@ class AnthropicChatModelFactoryTest {
             oAuthClientCredentialsTokenResolver,
             new FoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
-                    httpProxySupport,
+                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
                     new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
   }
 

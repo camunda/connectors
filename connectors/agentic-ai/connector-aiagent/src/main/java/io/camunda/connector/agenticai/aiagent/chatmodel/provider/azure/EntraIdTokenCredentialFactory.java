@@ -14,8 +14,8 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.time.Duration;
@@ -38,9 +38,9 @@ import org.jspecify.annotations.Nullable;
  * client secret is never stored in plain text as a map key.
  *
  * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
- * through the configured HTTP proxy ({@link AgenticAiHttpProxySupport}), so a Foundry deployment
- * that requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the
- * token exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
+ * through the configured HTTP proxy ({@link AzureHttpProxySupport}), so a Foundry deployment that
+ * requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the token
+ * exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
  * Duration)}.
  *
  * <p>The caller's configured request timeout reaches the token exchange as well as the model call
@@ -53,11 +53,11 @@ import org.jspecify.annotations.Nullable;
 public class EntraIdTokenCredentialFactory {
 
   private final Cache<String, TokenCredential> cache;
-  private final AgenticAiHttpProxySupport httpProxySupport;
+  private final AzureHttpProxySupport azureHttpProxySupport;
 
   public EntraIdTokenCredentialFactory(
-      AgenticAiHttpProxySupport httpProxySupport, CredentialCacheProperties properties) {
-    this.httpProxySupport = httpProxySupport;
+      AzureHttpProxySupport azureHttpProxySupport, CredentialCacheProperties properties) {
+    this.azureHttpProxySupport = azureHttpProxySupport;
     final long maximumSize = properties.enabled() ? properties.maximumSize() : 0;
     this.cache =
         Caffeine.newBuilder()
@@ -82,7 +82,7 @@ public class EntraIdTokenCredentialFactory {
         key,
         k ->
             buildClientSecretCredential(
-                httpProxySupport, tenantId, clientId, clientSecret, authorityHost, timeout));
+                azureHttpProxySupport, tenantId, clientId, clientSecret, authorityHost, timeout));
   }
 
   /**
@@ -96,7 +96,7 @@ public class EntraIdTokenCredentialFactory {
   }
 
   private static TokenCredential buildClientSecretCredential(
-      AgenticAiHttpProxySupport httpProxySupport,
+      AzureHttpProxySupport azureHttpProxySupport,
       String tenantId,
       String clientId,
       String clientSecret,
@@ -111,7 +111,7 @@ public class EntraIdTokenCredentialFactory {
       clientSecretCredentialBuilder.authorityHost(authorityHost);
     }
     httpClientFor(
-            httpProxySupport.azureProxyOptions(ProxyConfiguration.SCHEME_HTTPS).orElse(null),
+            azureHttpProxySupport.proxyOptions(ProxyConfiguration.SCHEME_HTTPS).orElse(null),
             timeout)
         .ifPresent(clientSecretCredentialBuilder::httpClient);
     return clientSecretCredentialBuilder.build();

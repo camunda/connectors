@@ -39,6 +39,7 @@ class ModuleBoundariesTest {
   private static final String AUTOCONFIGURE = ROOT + ".autoconfigure..";
   private static final String AGENT = ROOT + ".aiagent.agent..";
   private static final String CHAT_MODEL_PROVIDER = ROOT + ".aiagent.chatmodel.provider..";
+  private static final String PROXY = ROOT + ".aiagent.proxy..";
   private static final String CONVERSATION_INPROCESS =
       ROOT + ".aiagent.memory.conversation.inprocess..";
   private static final String CONVERSATION_DOCUMENT =
@@ -87,6 +88,19 @@ class ModuleBoundariesTest {
         .should()
         .onlyDependOnClassesThat(outsideAgenticAiOr(MCP_CLIENT, COMMON))
         .because("the MCP client connector depends only on the common library")
+        .check(classes);
+  }
+
+  @Test
+  void proxySupportDependsOnlyOnCommon() {
+    classes()
+        .that()
+        .resideInAPackage(PROXY)
+        .should()
+        .onlyDependOnClassesThat(outsideAgenticAiOr(PROXY, COMMON))
+        .because(
+            "the HTTP proxy support is shared by the chat model providers and conversation stores"
+                + " and must move along with them when they are extracted into their own modules")
         .check(classes);
   }
 
