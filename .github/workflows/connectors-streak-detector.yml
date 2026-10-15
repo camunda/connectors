@@ -675,11 +675,6 @@ jobs:
             echo "slack_channel=${channel}"
           } | tee -a "$GITHUB_OUTPUT"
 
-  # github.run_id inside triage is this listener's run, not the failing one, so the
-  # failing run travels as an explicit input. Everything downstream of triage's
-  # "Resolve target run" step already handles that -- it reads
-  # `${INPUT_RUN_ID:-$CALLER_RUN_ID}` -- the input just was not declared on the
-  # workflow_call path.
   # Hands the failing run to the central AlwaysGreen triage in
   # camunda/c8-cross-component-e2e-tests, which classifies it there. Triage used to
   # live in this repository; it now lives once, for every consumer.
@@ -688,11 +683,19 @@ jobs:
   # A dispatch rather than `uses:`: that repository is internal and this one is
   # public, so GitHub refuses to resolve a workflow across that boundary.
   #
-  # NOTE: this repository's fix agent is NOT started by that triage. It is
-  # workflow_call-only on purpose -- test_workflow_security.py asserts that nothing
-  # privileged here can be started from outside -- so classification and reporting
-  # move, and automated fixing does not. camunda/connectors#9511 is where that
-  # trade-off is being decided.
+  # github.run_id inside triage is triage's own run, not the failing one, so the
+  # failing run travels as an explicit `run_id` field in the payload below, which
+  # triage reads as `client_payload.run_id || inputs.run_id`.
+  #
+  # NOTE: that triage DOES start this repository's fix agent, by dispatching
+  # alwaysgreen-fix.yml -- the same cross-boundary reason applies to it, so it
+  # cannot be reached with `uses:` either. The rule that nothing privileged here
+  # could be started from outside was given up deliberately to make that possible;
+  # what bounds the agent now is asserted by
+  # test_the_fix_agent_is_dispatchable_and_what_now_bounds_it in
+  # test_workflow_security.py: protected refs only, the Vault kill switch, an
+  # allowlisted base_ref and surface, a dispatch key that must be this pipeline's
+  # own, and no `pull-requests: write`.
   triage:
     name: Hand the failure to the central AlwaysGreen triage
     needs: scan-run
