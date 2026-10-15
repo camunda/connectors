@@ -13,14 +13,14 @@ import static io.camunda.connector.agenticai.common.util.ObjectMapperConstants.S
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aDocumentPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -292,14 +292,13 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
     collectDocumentsFromContents(artifact.contents(), documents);
   }
 
-  private void collectDocumentsFromContents(List<Content> contents, List<Document> documents) {
+  private void collectDocumentsFromContents(List<A2aPart> contents, List<Document> documents) {
     if (contents == null) {
       return;
     }
-    for (Content content : contents) {
-      if (content instanceof DocumentContent documentContent
-          && documentContent.document() != null) {
-        documents.add(documentContent.document());
+    for (A2aPart part : contents) {
+      if (part instanceof A2aDocumentPart documentPart && documentPart.document() != null) {
+        documents.add(documentPart.document());
       }
     }
   }

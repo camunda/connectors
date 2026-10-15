@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.convert;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart.textPart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -19,8 +19,8 @@ import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -36,13 +36,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class A2aSdkObjectConverterTest {
 
-  @Mock private A2aPartToContentConverter partsToContentConverter;
+  @Mock private A2aPartConverter partConverter;
 
   private A2aSdkObjectConverterImpl converter;
 
   @BeforeEach
   void setUp() {
-    converter = new A2aSdkObjectConverterImpl(partsToContentConverter);
+    converter = new A2aSdkObjectConverterImpl(partConverter);
   }
 
   @Nested
@@ -50,7 +50,7 @@ class A2aSdkObjectConverterTest {
 
     @Test
     void shouldConvertMessageWithBasicFields() {
-      List<Content> contents = List.of(textContent("Hello from agent"));
+      List<A2aPart> contents = List.of(textPart("Hello from agent"));
       Message message =
           new Message.Builder()
               .messageId("msg-123")
@@ -59,7 +59,7 @@ class A2aSdkObjectConverterTest {
               .parts(List.of(new TextPart("Hello from agent")))
               .build();
 
-      when(partsToContentConverter.convert(message.getParts())).thenReturn(contents);
+      when(partConverter.convert(message.getParts())).thenReturn(contents);
 
       A2aMessage result = converter.convert(message);
 
@@ -71,7 +71,7 @@ class A2aSdkObjectConverterTest {
 
     @Test
     void shouldIncludeAllMessageFields() {
-      List<Content> contents = List.of(textContent("text"));
+      List<A2aPart> contents = List.of(textPart("text"));
       Message message =
           new Message.Builder()
               .messageId("msg-1")
@@ -83,7 +83,7 @@ class A2aSdkObjectConverterTest {
               .parts(List.of(new TextPart("text")))
               .build();
 
-      when(partsToContentConverter.convert(message.getParts())).thenReturn(contents);
+      when(partConverter.convert(message.getParts())).thenReturn(contents);
 
       A2aMessage result = converter.convert(message);
 
@@ -141,7 +141,7 @@ class A2aSdkObjectConverterTest {
     @Test
     void shouldConvertTaskArtifacts() {
       Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-      List<Content> contents = List.of(textContent("artifact content"));
+      List<A2aPart> contents = List.of(textPart("artifact content"));
 
       Artifact artifact = mock(Artifact.class);
       when(artifact.artifactId()).thenReturn("art-1");
@@ -151,7 +151,7 @@ class A2aSdkObjectConverterTest {
       when(artifact.parts()).thenReturn(List.of(new TextPart("artifact content")));
       when(task.getArtifacts()).thenReturn(List.of(artifact));
 
-      when(partsToContentConverter.convert(artifact.parts())).thenReturn(contents);
+      when(partConverter.convert(artifact.parts())).thenReturn(contents);
 
       A2aTask result = converter.convert(task);
 
@@ -174,9 +174,9 @@ class A2aSdkObjectConverterTest {
       Artifact artifact2 = createArtifact("art-2", "file2.txt");
       when(task.getArtifacts()).thenReturn(List.of(artifact1, artifact2));
 
-      List<Content> contents = List.of(textContent("content"));
-      when(partsToContentConverter.convert(artifact1.parts())).thenReturn(contents);
-      when(partsToContentConverter.convert(artifact2.parts())).thenReturn(contents);
+      List<A2aPart> contents = List.of(textPart("content"));
+      when(partConverter.convert(artifact1.parts())).thenReturn(contents);
+      when(partConverter.convert(artifact2.parts())).thenReturn(contents);
 
       A2aTask result = converter.convert(task);
 
@@ -190,7 +190,7 @@ class A2aSdkObjectConverterTest {
       Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
       TaskStatus status = task.getStatus();
 
-      List<Content> messageContents = List.of(textContent("Status update"));
+      List<A2aPart> messageContents = List.of(textPart("Status update"));
 
       Message statusMessage =
           new Message.Builder()
@@ -201,7 +201,7 @@ class A2aSdkObjectConverterTest {
               .build();
 
       when(status.message()).thenReturn(statusMessage);
-      when(partsToContentConverter.convert(statusMessage.getParts())).thenReturn(messageContents);
+      when(partConverter.convert(statusMessage.getParts())).thenReturn(messageContents);
 
       A2aTask result = converter.convert(task);
 
@@ -224,8 +224,8 @@ class A2aSdkObjectConverterTest {
             .parts(List.of(new TextPart("History one")))
             .build();
 
-    List<Content> convertedContent = List.of(textContent("History one"));
-    when(partsToContentConverter.convert(historyMessage.getParts())).thenReturn(convertedContent);
+    List<A2aPart> convertedContent = List.of(textPart("History one"));
+    when(partConverter.convert(historyMessage.getParts())).thenReturn(convertedContent);
     when(task.getHistory()).thenReturn(List.of(historyMessage));
 
     A2aTask result = converter.convert(task);
@@ -263,8 +263,8 @@ class A2aSdkObjectConverterTest {
             .metadata(Map.of("type", "text"))
             .build();
 
-    when(partsToContentConverter.convert(m1.getParts())).thenReturn(List.of(textContent("First")));
-    when(partsToContentConverter.convert(m2.getParts())).thenReturn(List.of(textContent("Second")));
+    when(partConverter.convert(m1.getParts())).thenReturn(List.of(textPart("First")));
+    when(partConverter.convert(m2.getParts())).thenReturn(List.of(textPart("Second")));
     when(task.getHistory()).thenReturn(List.of(m1, m2));
 
     A2aTask result = converter.convert(task);
@@ -276,7 +276,7 @@ class A2aSdkObjectConverterTest {
               assertThat(message.contextId()).isEqualTo("ctx-h");
               assertThat(message.taskId()).isEqualTo("task-h-multi");
               assertThat(message.role()).isEqualTo(A2aMessage.Role.USER);
-              assertThat(message.contents()).isEqualTo(List.of(textContent("First")));
+              assertThat(message.contents()).isEqualTo(List.of(textPart("First")));
             },
             message -> {
               assertThat(message.messageId()).isEqualTo("hist-2");
@@ -284,7 +284,7 @@ class A2aSdkObjectConverterTest {
               assertThat(message.taskId()).isEqualTo("task-h-multi");
               assertThat(message.role()).isEqualTo(A2aMessage.Role.AGENT);
               assertThat(message.metadata()).containsEntry("type", "text");
-              assertThat(message.contents()).isEqualTo(List.of(textContent("Second")));
+              assertThat(message.contents()).isEqualTo(List.of(textPart("Second")));
             });
   }
 

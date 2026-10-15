@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ public record A2aMessage(
     @Nullable String taskId,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> referenceTaskIds,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    List<Content> contents)
+    List<A2aPart> contents)
     implements A2aSendMessageResult {
 
   public static final String MESSAGE = "message";

@@ -22,6 +22,7 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
@@ -29,7 +30,6 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMes
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -420,7 +420,7 @@ class A2aMessageSenderTest {
         .messageId(messageId)
         .role(A2aMessage.Role.AGENT)
         .contextId("ctx-123")
-        .contents(List.of(new TextContent("content", null)))
+        .contents(List.of(new A2aTextPart("content", null)))
         .build();
   }
 

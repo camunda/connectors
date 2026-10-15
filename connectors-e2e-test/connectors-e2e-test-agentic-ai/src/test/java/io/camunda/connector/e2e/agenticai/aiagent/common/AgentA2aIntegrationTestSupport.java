@@ -30,7 +30,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
@@ -57,7 +57,7 @@ public class AgentA2aIntegrationTestSupport {
           .role(A2aMessage.Role.AGENT)
           .messageId("msg-123")
           .contextId("ctx-123")
-          .contents(List.of(TextContent.textContent("Hotel room booked successfully!")))
+          .contents(List.of(A2aTextPart.textPart("Hotel room booked successfully!")))
           .build();
 
   private final A2aTask weatherAgentResponse =
@@ -74,7 +74,7 @@ public class AgentA2aIntegrationTestSupport {
                   A2aArtifact.builder()
                       .artifactId("art-001")
                       .name("WeatherInfo")
-                      .contents(List.of(TextContent.textContent("It's sunny in London!")))
+                      .contents(List.of(A2aTextPart.textPart("It's sunny in London!")))
                       .build()))
           .history(
               List.of(
@@ -83,7 +83,7 @@ public class AgentA2aIntegrationTestSupport {
                       .messageId("msg-001")
                       .contextId("ctx-001")
                       .taskId("task-001")
-                      .contents(List.of(TextContent.textContent("What's the weather in London?")))
+                      .contents(List.of(A2aTextPart.textPart("What's the weather in London?")))
                       .build()))
           .build();
 
@@ -101,7 +101,7 @@ public class AgentA2aIntegrationTestSupport {
                   A2aArtifact.builder()
                       .artifactId("art-001")
                       .name("ExchangeRate")
-                      .contents(List.of(TextContent.textContent("1 USD = 0.85 EUR")))
+                      .contents(List.of(A2aTextPart.textPart("1 USD = 0.85 EUR")))
                       .build()))
           .history(
               List.of(
@@ -111,8 +111,7 @@ public class AgentA2aIntegrationTestSupport {
                       .contextId("ctx-001")
                       .taskId("task-001")
                       .contents(
-                          List.of(
-                              TextContent.textContent("What's the exchange rate for USD to EUR?")))
+                          List.of(A2aTextPart.textPart("What's the exchange rate for USD to EUR?")))
                       .build()))
           .build();
 

@@ -21,12 +21,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aDocumentPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -409,7 +409,7 @@ class A2aGatewayToolHandlerTest {
           List.of(
               A2aArtifact.builder()
                   .artifactId("artifact-1")
-                  .contents(List.of(TextContent.textContent("Agent response as task")))
+                  .contents(List.of(A2aTextPart.textPart("Agent response as task")))
                   .build());
       var a2aTask =
           A2aTask.builder()
@@ -423,7 +423,7 @@ class A2aGatewayToolHandlerTest {
               .role(A2aMessage.Role.AGENT)
               .messageId("message-1")
               .contextId("context-1")
-              .contents(List.of(TextContent.textContent("Agent response as message")))
+              .contents(List.of(A2aTextPart.textPart("Agent response as message")))
               .build();
       var toolCallResults =
           List.of(
@@ -464,7 +464,7 @@ class A2aGatewayToolHandlerTest {
               .role(A2aMessage.Role.AGENT)
               .messageId("message-1")
               .contextId("context-1")
-              .contents(List.of(TextContent.textContent("Agent response as message")))
+              .contents(List.of(A2aTextPart.textPart("Agent response as message")))
               .build();
       var completedAt = OffsetDateTime.parse("2026-07-02T10:00:00Z");
       var toolCallResult =
@@ -523,8 +523,7 @@ class A2aGatewayToolHandlerTest {
               A2aMessage.class,
               message -> {
                 assertThat(message.role()).isEqualTo(A2aMessage.Role.AGENT);
-                assertThat(message.contents())
-                    .containsExactly(TextContent.textContent("Agent reply"));
+                assertThat(message.contents()).containsExactly(A2aTextPart.textPart("Agent reply"));
               });
     }
   }
@@ -542,8 +541,7 @@ class A2aGatewayToolHandlerTest {
               .contextId("ctx-1")
               .contents(
                   List.of(
-                      TextContent.textContent("description"),
-                      DocumentContent.documentContent(document)))
+                      A2aTextPart.textPart("description"), A2aDocumentPart.documentPart(document)))
               .build();
       var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", message);
 
@@ -560,14 +558,14 @@ class A2aGatewayToolHandlerTest {
       var artifact =
           A2aArtifact.builder()
               .artifactId("art-1")
-              .contents(List.of(DocumentContent.documentContent(artifactDoc)))
+              .contents(List.of(A2aDocumentPart.documentPart(artifactDoc)))
               .build();
       var historyMessage =
           A2aMessage.builder()
               .role(A2aMessage.Role.AGENT)
               .messageId("msg-1")
               .contextId("ctx-1")
-              .contents(List.of(DocumentContent.documentContent(historyDoc)))
+              .contents(List.of(A2aDocumentPart.documentPart(historyDoc)))
               .build();
       var task =
           A2aTask.builder()
@@ -601,7 +599,7 @@ class A2aGatewayToolHandlerTest {
               .role(A2aMessage.Role.AGENT)
               .messageId("msg-1")
               .contextId("ctx-1")
-              .contents(List.of(TextContent.textContent("only text")))
+              .contents(List.of(A2aTextPart.textPart("only text")))
               .build();
       var toolCallResult = createToolCallResultWithContent("call1", "A2A_a2a1", message);
 
