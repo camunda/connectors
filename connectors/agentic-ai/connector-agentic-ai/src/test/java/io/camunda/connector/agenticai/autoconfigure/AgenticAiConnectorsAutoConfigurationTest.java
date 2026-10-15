@@ -170,7 +170,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
-          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class);
+          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
 
   @Test
   void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {
@@ -479,7 +479,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
     void userProvidedFactoryBeanOverridesDefault(FactoryOverrideCase override) {
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class, override.configurationClass())
-          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
+          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS)
           .run(
               context -> {
                 final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
@@ -710,7 +710,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
     void userProvidedFactoryBeanOverridesDefault(NativeFactoryOverrideCase override) {
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class, override.configurationClass())
-          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class)
+          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS)
           .run(
               context -> {
                 final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());

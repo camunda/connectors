@@ -7,19 +7,23 @@
 package io.camunda.connector.agenticai.a2a.integration.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration;
 import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.integration.systemprompt.A2aSystemPromptContributor;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@AutoConfiguration(after = A2aClientAutoConfiguration.class)
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.a2a.client.agentic.tool.enabled",
+    value = {
+      "camunda.connector.agenticai.enabled",
+      "camunda.connector.agenticai.a2a.client.agentic.tool.enabled"
+    },
     matchIfMissing = true)
 @EnableConfigurationProperties(A2aClientAgenticToolConfigurationProperties.class)
 public class A2aClientAgenticToolConfiguration {

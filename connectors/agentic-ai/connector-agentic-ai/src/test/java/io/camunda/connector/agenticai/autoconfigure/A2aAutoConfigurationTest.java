@@ -59,7 +59,7 @@ public class A2aAutoConfigurationTest {
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
-          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class);
+          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
 
   @Test
   void enablesAllA2aIntegrationByDefault() {

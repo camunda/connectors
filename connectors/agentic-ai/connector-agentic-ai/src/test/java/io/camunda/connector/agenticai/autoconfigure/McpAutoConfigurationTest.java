@@ -44,7 +44,7 @@ public class McpAutoConfigurationTest {
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
-          .withUserConfiguration(AgenticAiConnectorsAutoConfiguration.class);
+          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
 
   @Test
   void enablesMcpDiscoveryByDefault() {

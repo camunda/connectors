@@ -7,12 +7,6 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aClientPollingConfiguration;
-import io.camunda.connector.agenticai.a2a.client.inbound.webhook.configuration.A2aClientWebhookConfiguration;
-import io.camunda.connector.agenticai.a2a.client.outbound.configuration.A2aClientOutboundConnectorConfiguration;
-import io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration;
-import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
@@ -55,129 +49,39 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
-import io.camunda.connector.agenticai.common.configuration.AgenticAiHttpProperties;
+import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
-import io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration;
-import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
-import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGeneratorImpl;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolverImpl;
-import io.camunda.connector.agenticai.tools.schema.configuration.ToolsSchemaProperties;
-import io.camunda.connector.agenticai.tools.schema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.tools.schema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.tools.schema.configuration.AgenticAiToolsSchemaAutoConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
-import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionClient;
-import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
-import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractorImpl;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
-import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
-@Configuration
+@AutoConfiguration(
+    after = {AgenticAiCommonAutoConfiguration.class, AgenticAiToolsSchemaAutoConfiguration.class},
+    afterName = {
+      "io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration",
+      "io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration"
+    })
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
-@EnableConfigurationProperties({
-  AgenticAiConnectorsConfigurationProperties.class,
-  AgenticAiHttpProperties.class,
-  ToolsSchemaProperties.class
-})
+@EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
 @Import({
   AgenticAiLangChain4JFrameworkConfiguration.class,
-  AgenticAiNativeProvidersConfiguration.class,
-  McpDiscoveryConfiguration.class,
-  McpClientConfiguration.class,
-  McpRemoteClientConfiguration.class,
-  A2aClientOutboundConnectorConfiguration.class,
-  A2aClientAgenticToolConfiguration.class,
-  A2aClientPollingConfiguration.class,
-  A2aClientWebhookConfiguration.class
+  AgenticAiNativeProvidersConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AgenticAiHttpProxySupport agenticAiHttpProxySupport(
-      AgenticAiHttpProperties httpProperties) {
-    // IMPORTANT: the proxy configuration needs to be configured to support
-    // CONNECTOR_HTTP(S)_PLAIN_* proxy vars as JDK clients are not able to connect to proxies
-    // running on HTTPS
-    final ProxyConfiguration proxyConfiguration =
-        httpProperties.proxySupport().enabled()
-            ? EnvironmentProxyConfiguration.withPlainProxySupport()
-            : ProxyConfiguration.NONE;
-
-    return new AgenticAiHttpProxySupport(proxyConfiguration);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AdHocToolElementParameterExtractor aiAgentAdHocToolElementParameterExtractor() {
-    return new AdHocToolElementParameterExtractorImpl(new TaggedParameterExtractor());
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AdHocToolSchemaGenerator aiAgentAdHocToolSchemaGenerator() {
-    return new AdHocToolSchemaGeneratorImpl();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public AdHocToolsSchemaResolver aiAgentAdHocToolDefinitionResolver(
-      List<GatewayToolDefinitionResolver> gatewayToolDefinitionResolvers,
-      AdHocToolSchemaGenerator schemaGenerator) {
-    return new AdHocToolsSchemaResolverImpl(gatewayToolDefinitionResolvers, schemaGenerator);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ProcessDefinitionAdHocToolElementsResolver aiAgentProcessDefinitionToolElementsResolver(
-      ToolsSchemaProperties toolsSchemaProperties,
-      PhysicalTenantClientSelector clientSelector,
-      AdHocToolElementParameterExtractor parameterExtractor) {
-    final var processDefinitionClient =
-        new ProcessDefinitionClient(
-            clientSelector, toolsSchemaProperties.processDefinition().retries());
-    final var resolver =
-        new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            processDefinitionClient, parameterExtractor);
-
-    final var cacheConfiguration = toolsSchemaProperties.processDefinition().cache();
-    if (cacheConfiguration.enabled()) {
-      return new CachingProcessDefinitionAdHocToolElementsResolver(
-          resolver,
-          new CachingProcessDefinitionAdHocToolElementsResolver.CacheConfiguration(
-              cacheConfiguration.maximumSize(), cacheConfiguration.expireAfterWrite()));
-    }
-
-    return resolver;
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @ConditionalOnBooleanProperty(
-      value = "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled",
-      matchIfMissing = true)
-  public AdHocToolsSchemaFunction aiAgentAdHocToolsSchemaFunction(
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AdHocToolsSchemaResolver toolsSchemaResolver) {
-    return new AdHocToolsSchemaFunction(toolElementsResolver, toolsSchemaResolver);
-  }
 
   @Bean
   @ConditionalOnMissingBean
