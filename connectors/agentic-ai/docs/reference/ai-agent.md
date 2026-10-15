@@ -487,7 +487,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype on the connector runtime's `ObjectMapper` beans (e.g., via a Spring `BeanPostProcessor` calling `registerSubtypes()` on every `ObjectMapper` bean)
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
@@ -1995,5 +1995,7 @@ Reference implementation: `A2aSystemPromptContributor`.
 Implement `ConversationStore`, `ConversationSession`, and `ConversationContext`, following the
 write-ahead, pointer-based storage contract in [§6](#6-conversation-memory) (invariant I5).
 `ConversationStoreRegistryImpl` selects the store by `type()`. Reference implementation: the in-process
-store (`InProcessConversationStore` and its session/context). For a custom store outside this module,
+store (`InProcessConversationStore` and its session/context). Context subtypes are discovered via
+`ServiceLoader`: annotate the context with `@JsonTypeName` and list it in a `ConversationContextSubtypes`
+implementation (see `BuiltInConversationContextSubtypes`). For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -16,6 +17,7 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 @AgenticAiRecord
+@JsonTypeName("camunda-document")
 @JsonDeserialize(
     builder =
         CamundaDocumentConversationContext.CamundaDocumentConversationContextJacksonProxyBuilder

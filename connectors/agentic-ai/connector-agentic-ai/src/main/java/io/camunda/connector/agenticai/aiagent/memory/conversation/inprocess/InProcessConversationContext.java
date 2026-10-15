@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
@@ -14,6 +15,7 @@ import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.List;
 
 @AgenticAiRecord
+@JsonTypeName("in-process")
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
 public record InProcessConversationContext(String conversationId, List<Message> messages)
