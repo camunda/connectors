@@ -1,4 +1,5 @@
-# description: Fix agent for AlwaysGreen failures, called by alwaysgreen-triage.yml.
+# description: Fix agent for AlwaysGreen failures. Triage runs in
+#              camunda/c8-cross-component-e2e-tests; this is started by workflow_call.
 #              Runs Claude Code without GitHub credentials, validates its patch, then
 #              opens a PR with a repository-specific token.
 # type: CI
@@ -912,12 +913,14 @@ jobs:
             # the tested commit -- that holds for a clean "pr-author" match only, and is
             # false for a "backport-original" (names the original PR's author, not the bot
             # merge) and for the "pr-author" fallback (a candidate whose merge never
-            # matched). See Blame in .github/scripts/alwaysgreen/classify.py.
+            # matched). See Blame in camunda/c8-cross-component-e2e-tests,
+            # scripts/alwaysgreen/classify.py.
             [ -z "$BLAME_AUTHOR" ] || [ "$blame_relevant" != "true" ] \
               || echo "- Candidate breaking-change author: @${BLAME_AUTHOR} -- the agent" \
                       "judged the PR attributed to this run's commit related to the" \
                       "failure. That attribution is heuristic (see \`Blame\` in" \
-                      ".github/scripts/alwaysgreen/classify.py); it is not a confirmed" \
+                      "\`classify.py\` in camunda/c8-cross-component-e2e-tests); it is not a" \
+                      "confirmed" \
                       "cause."
             echo
             echo "<!-- alwaysgreen-fixed"

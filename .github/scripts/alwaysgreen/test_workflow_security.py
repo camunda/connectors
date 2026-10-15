@@ -11,7 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
 FIX = (ROOT / ".github/workflows/alwaysgreen-fix.yml").read_text()
-TRIAGE = (ROOT / ".github/workflows/alwaysgreen-triage.yml").read_text()
+# Triage no longer lives here -- it runs in camunda/c8-cross-component-e2e-tests for
+# every consumer. The assertions below that named it went with it; the ones about the
+# FIX agent stay, and matter more than before: it is now the only privileged AlwaysGreen
+# workflow in this repository.
 WATCHER = (ROOT / ".github/workflows/connectors-streak-detector.yml").read_text()
 FEATURE_TEST = (ROOT / ".github/workflows/TEST_FEATURE_BRANCH.yml").read_text()
 LICENSE_CHECK = (ROOT / ".github/workflows/CHECK_LICENSES.yml").read_text()
@@ -239,10 +242,13 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
 
 
 def test_privileged_workflows_are_not_directly_dispatchable():
+    # Unchanged in intent, and load-bearing: the agent runs Claude Code with tokens,
+    # so a workflow_dispatch would let anyone who can push start it with hand-written
+    # test_specs, evidence and blame. Removing local triage does not relax this --
+    # see camunda/connectors#9511, which proposes relaxing it deliberately and is
+    # held open precisely because this test says no.
     assert "workflow_dispatch:" not in FIX
-    assert "workflow_dispatch:" not in TRIAGE
     assert "workflow_call:" in FIX
-    assert "workflow_call:" in TRIAGE
 
 
 def test_fix_requires_a_protected_non_manual_caller_and_enabled_mode():
@@ -251,22 +257,30 @@ def test_fix_requires_a_protected_non_manual_caller_and_enabled_mode():
     assert "needs.gate.outputs.dispatch == 'true'" in FIX
     assert "needs.gate.outputs.active == 'true'" not in FIX
     assert "pull-requests: write" not in FIX
-    assert "pull-requests: write" not in TRIAGE
 
 
 def test_executable_tooling_is_pinned_and_not_caller_selectable():
-    assert "tooling_ref" not in TRIAGE
-    assert "gh workflow run" not in TRIAGE
-    assert TRIAGE.count("ref: main") >= 1
+    assert "tooling_ref" not in FIX
     assert FIX.count("ref: main") >= 2
 
 
 def test_manual_watcher_replay_is_classification_only():
+    """A hand-started replay must never dispatch an agent.
+
+    The expression is unchanged; it now reaches the central triage as a `dry_run`
+    field in the dispatch payload rather than as a `with:` input, so it is asserted
+    on the env var that carries it. The property is the same one: anybody who can
+    press "Run workflow" gets classification and reporting, never a fix agent.
+    """
     assert "github.ref_protected &&" in WATCHER
     assert (
-        "dry_run: ${{ github.event_name == 'workflow_dispatch' || "
+        "DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || "
         "inputs.dry_run || false }}"
     ) in WATCHER
+    # And that it actually travels: an env var the payload never reads would pass the
+    # assertion above while dispatching a live run.
+    assert '--argjson dry_run "${DRY_RUN:-false}"' in WATCHER
+    assert "dry_run: $dry_run" in WATCHER
 
 
 def test_model_has_no_github_credential_or_shell_tool():
