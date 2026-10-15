@@ -10,13 +10,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,9 +33,22 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 class A2aSendMessageResultSerializationTest {
 
-  private final ObjectMapper objectMapper = TestObjectMapperSupplier.getInstance();
+  private final ObjectMapper objectMapper = createObjectMapper();
   private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
   private final DocumentFactory documentFactory = new DocumentFactoryImpl(documentStore);
+
+  private static ObjectMapper createObjectMapper() {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
 
   @BeforeEach
   void setUp() {
