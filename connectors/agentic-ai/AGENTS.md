@@ -64,6 +64,11 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   and every module contains only classes of its own package root.
 - `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
 - `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
+- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
+  except `azure`, `authentication` and `configuration`) do not depend on each other, except for the allowed
+  dependencies listed in the test (today: Mistral on OpenAI).
+- `VendorSdkArchTest`: each vendor SDK (OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
+  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
 
 `AgenticAiModules` maps modules to package roots. When you add a module, a package root or a
 dependency between modules, update it and the layer rules. Run the rules after installing the modules
