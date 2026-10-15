@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema;
 
-import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,6 +15,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefi
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,6 +52,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class AdHocToolsSchemaFunctionIntegrationTest {
@@ -345,6 +347,17 @@ class AdHocToolsSchemaFunctionIntegrationTest {
               assertThat(e.getErrorCode()).isEqualTo("AD_HOC_TOOL_SCHEMA_INVALID");
               assertThat(e.getMessage()).isEqualTo("I can't generate this schema");
             });
+  }
+
+  private static PhysicalTenantClientSelector singleTenant(CamundaClient client) {
+    final var selector =
+        mock(
+            PhysicalTenantClientSelector.class,
+            withSettings().strictness(Strictness.LENIENT).name("singleTenantClientSelector"));
+    when(selector.servesSinglePhysicalTenant()).thenReturn(true);
+    when(selector.forJob(any())).thenReturn(client);
+    when(selector.forPhysicalTenant(any())).thenReturn(client);
+    return selector;
   }
 
   private OutboundConnectorContext outboundConnectorContext(

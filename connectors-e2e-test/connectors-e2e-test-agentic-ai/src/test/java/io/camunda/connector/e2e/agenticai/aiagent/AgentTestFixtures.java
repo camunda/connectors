@@ -38,7 +38,7 @@ public interface AgentTestFixtures {
       "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-ai-agent-subprocess.v2.json";
 
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
+      "../../connectors/agentic-ai/connector-ad-hoc-tools-schema/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
   String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_ELEMENT_ID = "AI_Agent";

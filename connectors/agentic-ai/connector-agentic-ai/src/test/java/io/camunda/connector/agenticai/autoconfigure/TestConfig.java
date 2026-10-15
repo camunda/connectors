@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration;
 import io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration;
-import io.camunda.connector.agenticai.adhoctoolsschema.configuration.AdHocToolsSchemaConnectorAutoConfiguration;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientAutoConfiguration;
 import io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration;
@@ -36,7 +35,6 @@ class TestConfig {
       AutoConfigurations.of(
           AgenticAiCommonAutoConfiguration.class,
           AgenticAiToolsSchemaAutoConfiguration.class,
-          AdHocToolsSchemaConnectorAutoConfiguration.class,
           A2aClientAutoConfiguration.class,
           A2aClientAgenticToolConfiguration.class,
           McpClientAutoConfiguration.class,

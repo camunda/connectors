@@ -65,6 +65,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>aiagent-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>aiagent-tools-schema</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -90,14 +95,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>zeebe-bpmn-model</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>zeebe-feel-tagged-parameters</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -383,15 +380,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>jspecify</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.camunda.bpm.model</groupId>
-      <artifactId>camunda-xml-model</artifactId>
-    </dependency>
 
-    <dependency>
-      <groupId>org.camunda.feel</groupId>
-      <artifactId>feel-engine</artifactId>
-    </dependency>
 
     <!-- Compile scope: javac (running with -XDaddTypeAnnotationsToSymbol=true) needs Guava's
          class files to complete the google-genai SDK types it's transitively pulled in from. -->
@@ -507,17 +496,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
         </dependencies>
         <configuration>
           <connectors>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction</connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.adhoctoolsschema.v1</templateId>
-                  <templateFileName>agenticai-adhoctoolsschema-outbound-connector.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>true</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-            </connector>
             <connector>
               <connectorClass>io.camunda.connector.agenticai.aiagent.AgentTaskV1Function</connectorClass>
               <files>

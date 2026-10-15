@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
@@ -120,7 +119,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
           ProcessDefinitionAdHocToolElementsResolver.class,
-          AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,
           AgentToolsResolver.class,
           AgentInitializer.class,
@@ -227,20 +225,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
                   .doesNotHaveBean(AgentSubProcessRequestHandler.class)
                   .doesNotHaveBean(AgentSubProcessV1Function.class)
                   .doesNotHaveBean(AgentSubProcessV2Function.class);
-            });
-  }
-
-  @Test
-  void whenAdHocToolsSchemaConnectorDisabled_thenNoAdHocToolsSchemaFunctionIsCreated() {
-    contextRunner
-        .withPropertyValues(
-            "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream().filter(notAnyOf(AdHocToolsSchemaFunction.class)).toList());
-              assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class);
             });
   }
 

@@ -1,5 +1,3 @@
-io.camunda.connector.agenticai.tools.schema.configuration.AgenticAiToolsSchemaAutoConfiguration
-io.camunda.connector.agenticai.adhoctoolsschema.configuration.AdHocToolsSchemaConnectorAutoConfiguration
 io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration
 io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration
 io.camunda.connector.agenticai.mcp.client.configuration.McpClientAutoConfiguration
