@@ -82,7 +82,8 @@ completion.
 
 **Decision.** The model sees `<doc id=".." fileName=".." contentType=".." size=".." source|toolName+toolCallId />` and
 nothing else. The id is a stable id derived from the document; store id, content hash, URL and message ids never reach
-the model, in tool results, in tool arguments or in notes.
+the model, in tool results, in tool arguments or in notes. The one exception is a `Document` that a runtime tool returns
+in an all-runtime batch (section 4).
 
 **Alternatives.**
 
@@ -107,9 +108,10 @@ fail when the provider cannot render the type, and the model usually only needs 
 costs a few dozen tokens, so a conversation can carry any number of documents.
 
 **Why `c8__get_document` is a tool the model calls.** The model knows whether it needs to read a document. The tool
-loads the whole document (no ranges) and rejects, with a tool result the model can act on and without an incident, a
-document that is already in the window, of a type outside the allowlist or above the size limit. The answer tells the
-model to pass the tag of such a document to a tool that processes it, for example a sandbox.
+loads the whole document (no ranges). It answers a document that is already in the window with a note instead of adding
+it again, and rejects, with a tool result the model can act on and without an incident, a document of a type outside the
+allowlist or above the size limit. The rejection tells the model to pass the tag of such a document to a tool that
+processes it, for example a sandbox.
 
 **Why the delivery `content` exists.** A process that knows the model needs the content (a prompt that always comes with
 a short PDF, a tool that returns a text file) would otherwise pay one model round trip per document. The delivery
@@ -119,8 +121,9 @@ a gateway handler can set the delivery on the definitions it creates. A delivery
 be additive.
 
 **Relation between the two.** The delivery `content` calls the same `DocumentContentGuard` as `c8__get_document` and
-produces the same persisted form, a follow-up user message with a reference block with the delivery `content` that
-leaves the window together with its tool results. A runtime tool asks the agent for the same behavior with
+produces the same persisted form, a reference block with the delivery `content`: in a follow-up user message that leaves
+the window together with its tool results (documents of tool results and of runtime tools), or in the user prompt
+message itself (documents of the prompt). A runtime tool asks the agent for the same behavior with
 `RuntimeToolResult.withDocumentContent`; `c8__get_document` is one such tool. A document whose content is in the window
 is never added twice. When the guard rejects a document in an opt-in, the run does not fail: the document stays a
 reference and a note tells the model that no content was added and why, because the model could not have read the
@@ -165,7 +168,7 @@ word that equals an id must never turn into a document by accident; a bare id is
 for a plain document parameter. Unions are a later slice of the delivery plan, but the shape of the tag is fixed now so
 that nothing has to change when they ship.
 
-**Trade-offs accepted.** A model that sends a bare id gets an error and retries once. The error is only the problem
+**Trade-offs accepted.** A model that sends a bare id gets an error it can act on. The error is only the problem
 sentences, one per invalid value, without a list of known documents: the model has read the tags in its conversation (and
 in the evicted-documents note), so the sentence only needs to say what was wrong. For a union parameter, a runtime tool
 cannot tell a bare id the model wrote as text from the id of a tag, because it receives the id of a tag and any other
@@ -218,11 +221,12 @@ changes only through context updates, because an agent runs one job after the ot
 
 **Errors.** Expected failures are `RuntimeToolResult.error` or `RuntimeToolException`, answered as text the model reads.
 Any other exception propagates and fails the job: a runtime tool is code of the connector or of the operator, and an
-unexpected exception must not turn into text the model acts on. Other frameworks hand every exception to the model by
-default; this is a deliberate difference.
+unexpected exception must not turn into text the model acts on.
 
 **Dogfooding.** The built-in tools live in `tool/runtime/builtin` and use only this API: no special handling exists in
-the handler, the composer or the registry. A built-in can be replaced by a bean of the same name.
+the handler, the composer or the registry. A built-in can be replaced by a bean with its bean name
+(`aiAgentGetDocumentRuntimeTool`, `aiAgentReturnDocumentRuntimeTool`); a bean with another bean name that has the tool
+name of a built-in fails the startup, as tool names are unique.
 
 **Names.** A tool element of the process must not have the name of a registered runtime tool, whether the tool is
 available or not: such an element would be indistinguishable to the model and lose against the runtime tool silently,
@@ -235,16 +239,15 @@ agent instance, never on state a tool call changes. The built-ins are available 
 feature. They are offered to every such instance and cannot be switched off; whether they should become configurable
 is open (section 4).
 
-**Other frameworks.** LangChain4j, Spring AI, the MCP Java SDK, the Anthropic tool runner and the OpenAI Agents SDK
-pair a definition with an executor, bind JSON arguments to a type and pass a read-only context. The runtime tool SPI
-follows that shape. It differs in three places that follow from the agent: state goes through persisted context
-updates, an unexpected exception fails the job, and document parameters are declared in the schema and checked by the
-framework before the tool runs.
+**Shape.** The SPI pairs a definition with an executor, binds JSON arguments to a type and passes a read-only context,
+the shape tool APIs of LLM frameworks commonly have. It differs in three places that follow from the agent: state goes
+through persisted context updates, an unexpected exception fails the job instead of becoming text the model acts on,
+and document parameters are declared in the schema and checked by the framework before the tool runs.
 
 ### 2.8 Mixed batches defer the runtime calls
 
 **Decision.** When the model issues runtime calls and process calls in one message, only the process calls go to the
-process. An all-runtime batch is answered in the same job (a synthetic round, which counts against `maxModelCalls`). In
+process. An all-runtime batch is answered in the same job (a runtime tool round, which counts against `maxModelCalls`). In
 a mixed batch the runtime calls, and the rejection answers for invalid document parameters, are answered when the next
 turn is composed, merged with the process results in call order. An interrupted turn still answers them. Their
 context updates, such as the response documents of `c8__return_document`, are applied at that point, and the history
@@ -256,11 +259,11 @@ shows their results with the turn start of that job.
   persisted field of pending results in `agentContext`, a consumption rule so they reach exactly one turn, and a
   separate history write. The answers are a function of the conversation, so they can be computed again instead of
   persisted.
-- *Run every runtime call in its own synthetic round and the process calls afterwards.* It costs one model call per
+- *Run every runtime call in its own runtime tool round and the process calls afterwards.* It costs one model call per
   mixed batch and changes what the model sees mid-batch.
 - *Make the model split batches.* Not controllable.
 
-**Why deferral.** The real calls are valid work the model asked for, and running them without an extra model call
+**Why deferral.** The process calls are valid work the model asked for, and running them without an extra model call
 keeps a mixed batch at one round. The runtime calls are cheap, deterministic functions of the conversation, so
 answering them one job later costs nothing the model can observe, and no state has to survive a job boundary.
 
@@ -273,7 +276,7 @@ availability of a tool must not change within one turn is the mitigation; the al
 classification, was rejected as the state it needs to carry is exactly what this design avoids.
 
 **Accepted consequence.** The model receives the results of runtime calls in a mixed batch only with the next request.
-A real call that never completes holds that request back, as it holds back every other result of the batch. Response
+A process call that never completes holds that request back, as it holds back every other result of the batch. Response
 documents of a mixed batch are applied when the next turn is composed.
 
 ### 2.9 The expander renders text; native tool-result documents later
@@ -369,12 +372,13 @@ instance at once.
 schema of its tools after a process migration still carries the hint that asks for a document it has no tag for. The
 legacy path is a second code path in the composer, the window, the history mapper and the response handler, gated on
 `AgentContext.supports(..)` and pinned by a golden conversation of Camunda 8.10. A split of the composer into a legacy
-composer and a document composer was measured and rejected because it adds lines; the document handling stays inside
+composer and a document composer was considered and rejected; the document handling stays inside
 `AgentConversationTurnInputComposerImpl`.
 
-**Downgrade.** An older connector runtime ignores the new fields and drops them on its next write, and reads a
-persisted reference block as unknown content. An instance an upgraded runtime reads after that has neither features nor
-registry and is handled as an instance without the feature.
+**Downgrade.** A rollback is not supported. A runtime of the earlier version ignores the new context fields and drops
+them on its next write, and cannot read a conversation that holds a persisted reference block (an unknown content
+type). An instance that an upgraded runtime reads after such a write has neither features nor registry and is handled as
+an instance without the feature.
 
 ### 2.14 The configuration fingerprint
 
@@ -423,11 +427,10 @@ test-only stateful tool, the history mapper, the fingerprint and the persistence
 Camunda 8.10 pins the behavior of instances without the feature. End-to-end tests run against a WireMock model, with a
 placeholder transformer that lets scripted tool calls name the ids of documents the store generated. The sub-process
 flavor runs the detailed matrices: the round trip with each conversation store, unknown tags, eviction, loading by type
-and size, the delivery `content` for prompts and tools, union parameters, mixed batches with an early report in the
-history, and a history audit that reads the history back through the query API and checks that every model-visible
+and size, the delivery `content` for prompts and tools, union parameters, mixed batches, and a history audit that reads the history back through the query API and checks that every model-visible
 message is covered. The task flavor keeps the round trip, one mixed-batch wiring scenario and the user prompt document
-tests, plus tests of instances without the feature. A global assertion checks every recorded model request for store
-ids, content hashes and the document type marker. Not covered end to end are real-provider document tests, which need
+tests, plus tests of instances without the feature. A shared assertion, which most document flow tests run,
+checks every recorded model request for store ids, content hashes and the document format in tool schemas. Not covered end to end are real-provider document tests, which need
 paid model calls, a gateway handler with document parameters (the unit tests cover it) and the wire format of a
 document with content on Bedrock (converter unit tests only, because the event-stream response bodies cannot carry the
 id placeholders).
@@ -471,7 +474,8 @@ id placeholders).
   change tool selection for agents that never meant to use documents, and occupies two tool names. A response option or
   a per-agent allow and deny list of runtime tools is open, and future runtime tools multiply the effects.
 - A runtime tool that returns a `Document` as its content gets the document registered and shown as a tag when its
-  call is answered in a mixed batch; in an all-runtime batch the document is neither registered nor shown as a tag.
+  call is answered in a mixed batch; in an all-runtime batch the document is neither registered nor shown as a tag, and
+  the model reads the Camunda document reference JSON of the document, with its store id and content hash.
 
 **History**
 

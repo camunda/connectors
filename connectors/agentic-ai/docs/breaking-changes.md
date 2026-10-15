@@ -33,8 +33,9 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 - `compose(configuration, agentContext, previousConversation, agentInput)` gains a fifth parameter,
   `RuntimeToolCallSplit deferredCalls` (`RuntimeToolCallHandler.RuntimeToolCallSplit`): the calls of the last assistant
   message that the agent answers itself. The composer answers them, in call order, when the tool call results of the turn
-  are composed. An implementation that does not answer calls itself passes
-  `RuntimeToolCallSplit.allRemaining(List.of())` where it delegates.
+  are composed. An implementation that delegates to `AgentConversationTurnInputComposerImpl` passes on the split it
+  received: a split that lists no answered call makes the composer wait for results of the process that never arrive. An
+  implementation that has no runtime tools can pass `RuntimeToolCallSplit.allRemaining(List.of())`.
 - New abstract method `composeDocumentContentMessage(DocumentRegistry, List<RuntimeToolCallAnswer>)`: the message that
   carries the content of the documents the answers of the agent itself name. Return `null` if you add no content.
 - `CompositionResult.NextTurn` gains the components `documents` (the documents that entered the conversation, registered by
@@ -99,9 +100,10 @@ have the format of their document parameters removed for the model provider.
 
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builders: `AgentContext` (`documents`, `responseDocuments`, `features`), `AgentResponse` and `AgentSubProcessResponse`
-  (`responseDocuments`), `ToolDefinition` (`documentDelivery`; the three-argument constructor remains),
-  `AgentInput.UserPrompt` (`documentDelivery`) and `PromptConfiguration.UserPromptConfiguration` (`documentDelivery`; the
-  two-argument constructor remains).
+  (`responseDocuments`) and `ToolDefinition` (`documentDelivery`; the three-argument constructor remains).
+  `AgentInput.UserPrompt` has no builder: its constructor takes the `documentDelivery` as a third argument
+  (`DocumentDelivery.REFERENCE` for the earlier behavior). `PromptConfiguration.UserPromptConfiguration` gains
+  `documentDelivery` too; the two-argument constructor remains.
 - The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
   request is built.
@@ -124,8 +126,8 @@ have the format of their document parameters removed for the model provider.
   contain `documentReference` content blocks. There is no schema version bump, and a missing field binds to its empty
   value, so state written by 8.10 loads unchanged.
 - Rolling back to 8.10 after 8.11 wrote conversation state is not supported: an 8.10 runtime fails to read a conversation
-  that contains a `documentReference` block (an unknown content type), and it drops the new context fields on its next
-  write.
+  that contains a `documentReference` block (an unknown content type), and it ignores the new context fields and drops
+  them on its next write.
 - Do not rely on the JSON shape of these fields in external systems.
 
 ## Camunda 8.9 to 8.10

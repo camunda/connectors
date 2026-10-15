@@ -313,8 +313,9 @@ registration of an id wins and a known id is never replaced. Because it rides in
 conversation store and the context window. A Camunda document entry is about 400 bytes; the bound is the broker message
 size of the job completion (4 MB), which matters together with the in-process store or inline documents (see "Document
 Extraction from Tool Call Results" in §19). `AgentContext.responseDocuments` holds the documents selected with
-`c8__return_document`, by key. An older connector runtime ignores `features`, `documents` and `responseDocuments` and
-drops them on its next write.
+`c8__return_document`, by key. An 8.10 connector runtime ignores `features`, `documents` and `responseDocuments` and
+drops them on its next write, and cannot read a conversation that holds a document reference block (the content type is
+unknown to it); a rollback after the new fields were written is not supported.
 
 ### AgentExecutionContext (the transient request context)
 
@@ -382,8 +383,9 @@ instance with the `documents` feature: the document id, the attributes of its `<
 renders the tag the model sees. A document that is a whole tool result is persisted as such a block without a source
 (`ToolCallResultContent.withDocumentReferences`). The conversation window expands it before a request is built
 (`DocumentExpander`, see §6): in a user message to the tag text and, with the delivery `content`, the document
-content; in a tool result to the tag text of the document. A provider converter that is handed one fails with an
-`IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes when the same
+content; in a tool result to the tag text of the document. The provider content converters are not meant to be handed
+one: they fail with an `IllegalStateException`, except the Gemini converter of tool results, which writes any content it
+has no case for as JSON. The delivery is stored on each block, so earlier messages keep their bytes when the same
 document gets another delivery later (prompt caching).
 
 **Backward compatibility (Camunda 8.9):** before `ToolCallResultContent` existed, a persisted tool
@@ -831,7 +833,7 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `AgentSubProcessRequestHandler.buildResponse()` from `conversation.currentTurn().hasInterruptedToolCallResults()`, which inspects the current turn's input messages for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Determined in `AgentSubProcessRequestHandler.buildResponse()` from `conversation.hasInterruptedToolCallResultsInInvocation()`, which inspects the input messages of every turn of this invocation (the first round and the rounds that follow it in the same job) for any `ToolCallResult` carrying the `PROPERTY_INTERRUPTED` flag.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
@@ -1096,7 +1098,7 @@ and renders each via `createEventMessage`.
   - The `cancelRemainingInstances` flag is set to `true` on the completion command
   - Active tool instances are terminated by Zeebe
 - Example message sequence: `[Tool A cancelled, Tool B result, Event message]`
-- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `AgentSubProcessRequestHandler.buildResponse()` (via `AgentConversationTurn.hasInterruptedToolCallResults()`)
+- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `AgentSubProcessRequestHandler.buildResponse()` (via `AgentConversation.hasInterruptedToolCallResultsInInvocation()`, which reads the turns of the invocation)
 
 ### Event Payload
 
@@ -1434,7 +1436,7 @@ instance itself, so its key is invariant.
 - `BaseAgentRequestHandler.proceed()` → `do { chatModel.execute() → ChatModelRejectedException handling → ingest → … } while (continued)` — the turn-based continuation loop ([§12](#12-framework-abstraction)); a batch the agent answers completely itself opens another round (`nextRuntimeToolRound`)
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `TurnReconstructor.reconstruct()` → Rebuilds turns + system message from the stored flat message list
-- `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `AgentInput`
+- `AgentConversationTurnInputComposerImpl.compose()` → Turn input assembly (tool results, events, user prompt) → `CompositionResult`
 - `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults()` → Tool result matching & missing detection, merged with the answers of the agent itself
 - `RuntimeToolCallHandlerImpl.split()` → Decides per tool call whether the agent answers it (runtime tool, invalid document parameter) or the process does; `RuntimeToolCallSplit.answer()` runs the tools
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
@@ -2095,7 +2097,7 @@ lease-fenced `update()` mechanism).
 `c8__return_document` and `c8__get_document`, calls rejected for an invalid document parameter; see the [document flow design record](../design/ai-agent-document-flow.md), section 2.8)
 appear in history like any other tool call. The `ASSISTANT` item lists every call the model issued and its metrics count
 every one of them in `toolCalls`, runtime or not. Their `TOOL_RESULT` items are written with the
-`applyTurnStart` that carries them: the one of the synthetic round of the same job when the agent answered every
+`applyTurnStart` that carries them: the one of the runtime tool round of the same job when the agent answered every
 call, or, in a mixed batch, the one of the job that composes the next turn from the process results and the answers,
 with the turn start. They use the tool-call id as `historyItemId`, no `elementId` (there is no BPMN element), the runtime
 `completedAt` and the originating arguments, like every other result; an error result is plain text content, the history
@@ -2287,7 +2289,7 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
   discriminator's `defaultValue`.
 - **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
-  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
+  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model)) or on
   `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
   `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
@@ -2325,8 +2327,10 @@ tool the connector ships. The SPI is the interface `RuntimeTool` in `aiagent/too
 `GetDocumentTool` (`c8__get_document`) and `ReturnDocumentTool` (`c8__return_document`), are in
 `aiagent/tool/runtime/builtin`, use only this SPI and get no special handling anywhere. They are wired in
 `AgenticAiConnectorsAutoConfiguration` as the beans `aiAgentGetDocumentRuntimeTool` and
-`aiAgentReturnDocumentRuntimeTool` (`@ConditionalOnMissingBean(name = ...)`, so a bean of the same name replaces one).
-The rationale and the comparison with other frameworks are in the
+`aiAgentReturnDocumentRuntimeTool` (`@ConditionalOnMissingBean(name = ...)`: a bean with the bean name of a built-in tool
+replaces it; a bean with another bean name that has the name of a built-in tool fails the startup, as tool names are
+unique).
+The rationale is in the
 [document flow design record](../design/ai-agent-document-flow.md), section 2.7.
 
 ```java
