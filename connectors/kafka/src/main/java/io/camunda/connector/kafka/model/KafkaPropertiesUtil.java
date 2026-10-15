@@ -113,7 +113,9 @@ public final class KafkaPropertiesUtil {
       authProps.put(
           SaslConfigs.SASL_JAAS_CONFIG,
           String.format(
-              SASL_JAAS_CONFIG_VALUE, authentication.username(), authentication.password()));
+              SASL_JAAS_CONFIG_VALUE,
+              escapeJaasOptionValue(authentication.username()),
+              escapeJaasOptionValue(authentication.password())));
       authProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SECURITY_PROTOCOL_VALUE);
       authProps.put(SaslConfigs.SASL_MECHANISM, SASL_MECHANISM_VALUE);
     } else {
@@ -121,5 +123,14 @@ public final class KafkaPropertiesUtil {
           new RuntimeException("Username / password pair is required"));
     }
     return authProps;
+  }
+
+  private static String escapeJaasOptionValue(String value) {
+    return value
+        .replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t");
   }
 }
