@@ -35,7 +35,10 @@ name: AlwaysGreen Merge Queue Watch
 
 on:
   workflow_run:
-    workflows: ["Merge queue Helm test"]
+    # "SaaS E2E result" is judged for the streak only. The SaaS stage no longer runs
+    # inside the pipeline run, so its failures reach the streak through that run, and
+    # triage is invoked from it directly (see SAAS_E2E_RESULT.yaml).
+    workflows: ["Merge queue Helm test", "SaaS E2E result"]
     types:
       - completed
   # Manual replay for the triage half, mirroring the central triage's own dispatch
@@ -59,6 +62,7 @@ env:
   STREAK_THRESHOLD: '3'
   LOOKBACK_RUNS: '10'
   PARENT_WORKFLOW_FILE: 'MERGE_QUEUE_HELM_TEST.yaml'
+  SAAS_RESULT_WORKFLOW_FILE: 'SAAS_E2E_RESULT.yaml'
   # Marker embedded in the Slack message text so later runs can find and update
   # their own message. Base-ref scoped so main / stable/* streaks don't collide.
   STREAK_MARKER_ACTIVE: 'Merge queue Helm test streak (active)'
@@ -83,25 +87,64 @@ jobs:
     # GitHub cancelled all but one of them -- observed, three of five replays cancelled
     # with no job run at all. The scan must never be dropped that way.
     concurrency:
-      group: streak-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+      # A SaaS result run executes on the default branch, so its head_branch says
+      # nothing about the branch it reports on; that branch is in the run name.
+      group: >-
+        streak-${{ github.workflow }}-${{
+          github.event.workflow_run.name != 'SaaS E2E result' && github.event.workflow_run.head_branch ||
+          contains(github.event.workflow_run.display_title, ' stable/8.7 ') && 'stable/8.7' ||
+          contains(github.event.workflow_run.display_title, ' stable/8.8 ') && 'stable/8.8' ||
+          contains(github.event.workflow_run.display_title, ' stable/8.9 ') && 'stable/8.9' ||
+          contains(github.event.workflow_run.display_title, ' stable/8.10 ') && 'stable/8.10' ||
+          'main' }}
       cancel-in-progress: false
     # Only protected-branch push runs accumulate streaks; success runs can
-    # resolve an existing live message.
+    # resolve an existing live message. A SaaS result run is let through here and
+    # filtered by the first step, because its branch and event are in its run name.
     if: >-
-      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.name == 'SaaS E2E result' ||
+      (github.event.workflow_run.event == 'push' &&
       (github.event.workflow_run.head_branch == 'main' ||
-      startsWith(github.event.workflow_run.head_branch, 'stable/'))
+      startsWith(github.event.workflow_run.head_branch, 'stable/')))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       actions: read
       contents: read
     steps:
+      - name: Resolve the pipeline run this event reports on
+        id: ctx
+        env:
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          relevant=true
+          base_ref="${HEAD_BRANCH}"
+          if [ "$RUN_NAME" = "SaaS E2E result" ]; then
+            # Run name: `saas-e2e-result <base_ref> <event> <sha>`.
+            read -r _ base_ref event _ <<<"$RUN_TITLE"
+            if [ "${event:-}" != "push" ]; then relevant=false; fi
+            case "$base_ref" in
+              main|stable/*) ;;
+              *) relevant=false ;;
+            esac
+          fi
+          {
+            echo "relevant=${relevant}"
+            echo "base_ref=${base_ref}"
+            echo "saas_result=$([ "$RUN_NAME" = "SaaS E2E result" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Detect failure streak on this base branch
         id: streak
+        if: steps.ctx.outputs.relevant == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_REF: ${{ github.event.workflow_run.head_branch }}
+          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+          SAAS_RESULT: ${{ steps.ctx.outputs.saas_result }}
         run: |
           set -euo pipefail
           # Count leading consecutive non-green push runs on this branch.
@@ -110,15 +153,29 @@ jobs:
             --workflow "${PARENT_WORKFLOW_FILE}" \
             --branch "${BASE_REF}" \
             --limit "${LOOKBACK_RUNS}" \
-            --json conclusion,status,event,createdAt 2>/dev/null || echo '[]')
-          STREAK=$(jq '
-            [ .[] | select(.status == "completed") | select(.event == "push") ]
+            --json conclusion,status,event,createdAt,headSha 2>/dev/null || echo '[]')
+          # The SaaS stage reports through its own run, so a pipeline run whose SaaS
+          # result failed is non-green even when the pipeline run itself is green.
+          SAAS_JSON=$(gh run list \
+            --repo "${GITHUB_REPOSITORY}" \
+            --workflow "${SAAS_RESULT_WORKFLOW_FILE}" \
+            --limit 50 \
+            --json conclusion,status,displayTitle 2>/dev/null || echo '[]')
+          STREAK=$(jq --argjson saas "$SAAS_JSON" --arg base "$BASE_REF" '
+            ($saas
+              | map(select(.status == "completed")
+                    | select(.conclusion != "success")
+                    | .displayTitle | split(" ")
+                    | select(length >= 4 and .[1] == $base and .[2] == "push")
+                    | .[3])) as $saas_failed
+            | [ .[] | select(.status == "completed") | select(.event == "push") ]
             | sort_by(.createdAt) | reverse
             | (reduce .[] as $r ({count:0, broken:false};
                 if .broken then .
                 elif ($r.conclusion == "failure"
                       or $r.conclusion == "timed_out"
-                      or $r.conclusion == "cancelled") then
+                      or $r.conclusion == "cancelled"
+                      or ($saas_failed | index($r.headSha))) then
                   .count = (.count + 1)
                 else .broken = true end))
             | .count
@@ -126,7 +183,13 @@ jobs:
           STREAK=${STREAK:-0}
           LATEST_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
           IS_STREAK=$([[ ${STREAK} -ge ${STREAK_THRESHOLD} ]] && echo true || echo false)
-          LATEST_SUCCESS=$([[ "${LATEST_CONCLUSION}" == "success" ]] && echo true || echo false)
+          # A SaaS result run cannot say whether the pipeline run was green, so there
+          # the streak itself is the answer.
+          if [[ "${SAAS_RESULT}" == "true" ]]; then
+            LATEST_SUCCESS=$([[ ${STREAK} -eq 0 ]] && echo true || echo false)
+          else
+            LATEST_SUCCESS=$([[ "${LATEST_CONCLUSION}" == "success" ]] && echo true || echo false)
+          fi
           {
             echo "streak_count=${STREAK}"
             echo "base_ref=${BASE_REF}"
@@ -276,6 +339,9 @@ jobs:
   # one. Serialisation belongs to triage, which declares its own per-base_ref group.
   scan-run:
     name: Scan the finished run
+    # A SaaS result run triages itself (SAAS_E2E_RESULT.yaml); only the streak job above
+    # looks at it.
+    if: github.event.workflow_run.name != 'SaaS E2E result'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
