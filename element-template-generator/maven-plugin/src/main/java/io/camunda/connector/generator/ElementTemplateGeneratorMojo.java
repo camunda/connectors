@@ -62,7 +62,8 @@ import org.apache.maven.project.MavenProject;
 @Mojo(
     name = "generate-templates",
     defaultPhase = LifecyclePhase.PROCESS_CLASSES,
-    requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+    requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+    threadSafe = true)
 public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private static final ObjectMapper objectMapper =
@@ -139,9 +140,9 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       throw new MojoFailureException("Failed to load classpath: " + e.getMessage(), e);
     }
 
+    ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
     try (URLClassLoader classLoader =
-        new URLClassLoader(
-            classpathUrls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader())) {
+        new URLClassLoader(classpathUrls.toArray(new URL[0]), originalContextClassLoader)) {
 
       // ensures that resources and classes from the project are loaded by the classloader
       Thread.currentThread().setContextClassLoader(classLoader);
@@ -173,6 +174,8 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           e);
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
+    } finally {
+      Thread.currentThread().setContextClassLoader(originalContextClassLoader);
     }
   }
 
