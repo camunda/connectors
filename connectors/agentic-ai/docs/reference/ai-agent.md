@@ -487,7 +487,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well. A broken provider or subtype (for example one without `@JsonTypeName`) is logged at ERROR level and skipped, and deserializing an unregistered type id fails with an `InvalidTypeIdException` listing the known type ids
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
@@ -2009,5 +2009,6 @@ write-ahead, pointer-based storage contract in [§6](#6-conversation-memory) (in
 `ConversationStoreRegistryImpl` selects the store by `type()`. Reference implementation: the in-process
 store (`InProcessConversationStore` and its session/context). Context subtypes are discovered via
 `ServiceLoader`: annotate the context with `@JsonTypeName` and list it in a `ConversationContextSubtypes`
-implementation (see `BuiltInConversationContextSubtypes`). For a custom store outside this module,
+implementation (see `BuiltInConversationContextSubtypes`). A broken provider entry is logged at ERROR
+level and skipped; it never disables the other subtypes. For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
