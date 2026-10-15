@@ -223,7 +223,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-agentic-ai</artifactId>
+        <artifactId>connector-aiagent</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

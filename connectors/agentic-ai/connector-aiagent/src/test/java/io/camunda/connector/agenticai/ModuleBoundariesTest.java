@@ -21,9 +21,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Enforces the package-level boundaries between the feature areas of this module: the shared
- * library ({@code common}), the MCP and A2A client connectors, their AI Agent integrations, and the
- * AI Agent connector itself.
+ * Enforces the package-level boundaries between the agentic AI modules on the test classpath: the
+ * shared library ({@code common}), the MCP and A2A client connectors, their AI Agent integrations,
+ * and the AI Agent connector itself.
  */
 class ModuleBoundariesTest {
 

@@ -292,7 +292,7 @@ response settings that shape the turn. Authoritative definition:
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
 a final response to emit (text, JSON, or the full assistant message). Authoritative definition:
-[`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
+[`AgentResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
 
@@ -300,11 +300,11 @@ The job-worker completion directive: wraps the `AgentResponse` and tells the run
 the ad-hoc sub-process job (whether the completion condition is fulfilled, whether to cancel
 still-running tool instances, and which variables to set). Implements `AdHocSubProcessConnectorResponse`.
 Authoritative definition:
-[`AgentSubProcessConnectorResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/AgentSubProcessConnectorResponse.java).
+[`AgentSubProcessConnectorResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/AgentSubProcessConnectorResponse.java).
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
-Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
+Definition: [`ToolCallProcessVariable.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
 Arguments are **flattened to the top level** so BPMN expressions can access them directly as
 `toolCall.myParameter` rather than `toolCall.arguments.myParameter`. The `_meta` object holds the tool
 call ID and name.
@@ -491,7 +491,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
-See the [`CustomMemoryStorageConfiguration`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
+See the [`CustomMemoryStorageConfiguration`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
 ### Storage Contract
 
@@ -1159,7 +1159,7 @@ On tool call iteration (tool calls present):
 ### AgentErrorCodes
 
 The codes are defined in
-[`AgentErrorCodes`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
+[`AgentErrorCodes`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
 and thrown as `ConnectorException(errorCode, message)`. To find a code's current throw site, search the
 codebase for its constant. `Value` is the externally visible error code (what BPMN error handling keys
 on).
@@ -1242,7 +1242,7 @@ fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*
 API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 [`ToolsSchemaProperties`](../../aiagent-tools-schema/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
 (`tools.*`) and
-[`AgenticAiConnectorsConfigurationProperties`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java)
+[`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
 
 ---
@@ -1885,7 +1885,7 @@ Only the LangChain4j adapter package may depend on LangChain4j.
   [§12](#12-framework-abstraction)). Keeping LangChain4j behind the SPI means it can be replaced or
   extended per provider without touching orchestration, memory, or the data model.
 - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
-  connector-agentic-ai/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
+  connector-aiagent/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
 
 ### I2. Domain types never leak framework types
 

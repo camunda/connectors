@@ -42,7 +42,7 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   /** Last Camunda 8.8 compatible element template */
   private static final String LAST_8_8_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/versioned/agenticai-aiagent-job-worker-5.json";
+      "../../connectors/agentic-ai/connector-aiagent/element-templates/versioned/agenticai-aiagent-job-worker-5.json";
 
   private static final String CUSTOM_RESULT_VARIABLE = "myAgentResult";
 

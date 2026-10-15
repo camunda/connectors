@@ -91,7 +91,7 @@ The two sub-packages ship as separate Maven modules:
 - `aiagent-a2a-integration` holds `a2a.integration` (the gateway tool handler, resolver, tool call identifier, system
   prompt contributor and `A2aClientAgenticToolConfiguration`, plus the `a2a/tool-input-schema.json` and
   `a2a/a2a-system-prompt.md` resources). It depends on `connector-a2a`, `aiagent-api`, `aiagent-model` and
-  `agentic-ai-common`, not on `connector-agentic-ai`.
+  `agentic-ai-common`, not on `connector-aiagent`.
 
 ---
 

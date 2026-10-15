@@ -114,7 +114,7 @@ The two sub-packages ship as separate Maven modules:
 - `connector-mcp` holds `mcp.client` (the MCP Client and MCP Remote Client connectors, their element templates and
   Spring auto-configuration). It depends on `agentic-ai-common` only.
 - `aiagent-mcp-integration` holds `mcp.integration` (the gateway tool handler and `McpDiscoveryConfiguration`). It
-  depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and `agentic-ai-common`, not on `connector-agentic-ai`.
+  depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and `agentic-ai-common`, not on `connector-aiagent`.
 
 ---
 
