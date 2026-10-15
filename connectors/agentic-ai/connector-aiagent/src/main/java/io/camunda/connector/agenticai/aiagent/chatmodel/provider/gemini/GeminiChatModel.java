@@ -22,7 +22,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;

@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

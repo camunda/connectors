@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import org.jspecify.annotations.Nullable;
 
 /**

@@ -23,10 +23,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.c
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralConnection;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralEffort;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.MistralChatModelConfiguration.MistralParameters;
+import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralConnection;
+import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
+import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Locale;

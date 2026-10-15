@@ -42,10 +42,10 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.D
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
-import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
+import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;

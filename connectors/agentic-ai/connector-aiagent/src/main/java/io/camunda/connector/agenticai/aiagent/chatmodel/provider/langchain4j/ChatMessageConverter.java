@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.request.v1.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import java.util.List;
 
 public interface ChatMessageConverter {

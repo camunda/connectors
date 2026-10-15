@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
 
 import com.anthropic.core.JsonObject;
 import com.anthropic.core.JsonValue;

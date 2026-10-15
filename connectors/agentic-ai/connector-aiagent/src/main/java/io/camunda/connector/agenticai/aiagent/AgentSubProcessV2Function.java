@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
-import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV2Request;
+import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 

@@ -292,7 +292,7 @@ response settings that shape the turn. Authoritative definition:
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
 a final response to emit (text, JSON, or the full assistant message). Authoritative definition:
-[`AgentResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
+[`AgentResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
 
@@ -304,7 +304,7 @@ Authoritative definition:
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
-Definition: [`ToolCallProcessVariable.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
+Definition: [`ToolCallProcessVariable.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tool/ToolCallProcessVariable.java).
 Arguments are **flattened to the top level** so BPMN expressions can access them directly as
 `toolCall.myParameter` rather than `toolCall.arguments.myParameter`. The `_meta` object holds the tool
 call ID and name.
@@ -387,7 +387,7 @@ The in-process working representation of a conversation is the immutable `AgentC
 aggregate (see [ADR 007](../adr/007-agent-conversation-turn-aggregate.md)). It is built once per
 invocation and transformed through copy-on-write methods.
 
-`AgentConversation` (package `...aiagent.model`):
+`AgentConversation` (package `...aiagent.conversation`):
 - Holds an optional `SystemMessage` (`null` when the composed system prompt is blank), a list of
   previous `AgentConversationTurn`s, the pending current turn, the durable base `AgentContext`, and the
   static `AgentConfiguration`.
@@ -411,7 +411,7 @@ invocation and transformed through copy-on-write methods.
   over the reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
   (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
 
-`AgentConversationTurn` (record, `...aiagent.model`) is one LLM call:
+`AgentConversationTurn` (record, `...aiagent.conversation`) is one LLM call:
 `(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,
 AgentMetrics metrics)`. `iterationKey` is 1-based across the agent lifetime; the turn is pending
 while `assistantMessage == null`.
@@ -422,7 +422,7 @@ present. The reconstructed turn count is used as a fallback when it's absent (co
 before this field was introduced) and, when a stored key is present, to cross-validate against it:
 a mismatch is logged as a warning (reconstruction drift), not thrown.
 
-`TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
+`TurnReconstructor.reconstruct(messages)` (`...aiagent.conversation`) rebuilds the turn list and the
 optional system message from the persisted flat message list: the leading `SystemMessage` (if any)
 is split off, and the remaining body is grouped by `AssistantMessage` boundaries. All reconstructed
 turns carry `AgentMetrics.empty()` — per-invocation metrics are computed live from the current
@@ -491,7 +491,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
-See the [`CustomMemoryStorageConfiguration`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
+See the [`CustomMemoryStorageConfiguration`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
 ### Storage Contract
 
@@ -997,7 +997,7 @@ The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockPr
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
 `ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `model/request/v2`), which is the extension point for both built-in native providers and
+in `request/v2`), which is the extension point for both built-in native providers and
 user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
@@ -1956,9 +1956,9 @@ implemented by the base class. Reference: `AnthropicChatModelFactory`
 **v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
 `ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
 `AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
+`AnthropicChatModelConfiguration` (`request/v2`); the other native providers under
 `aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
+through to `CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid
 only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
 agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
 understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound

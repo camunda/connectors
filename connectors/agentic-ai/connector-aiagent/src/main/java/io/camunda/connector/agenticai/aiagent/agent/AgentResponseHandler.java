@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 
 /**
  * Handles the creation of an agent response based on the configuration and the returned assistant

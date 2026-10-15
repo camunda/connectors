@@ -139,7 +139,7 @@ AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkP
 
 `DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
 containing a document can ever hit. `DocumentHandle.idFor(Document)`
-(`aiagent/model/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
+(`aiagent/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
 verbatim, or a SHA-256 prefix of the external URL / inline content.
 
 ### Reasoning
@@ -527,7 +527,7 @@ final wrapping into its vendor SDK's credential type, since those types are vend
 ### Authentication model
 
 `FoundryAuthentication` (`ApiKeyAuthentication` | `ClientCredentialsAuthentication` |
-`ManagedIdentityAuthentication`) is one sealed interface in `model.request.v2`, bound per provider at
+`ManagedIdentityAuthentication`) is one sealed interface in `request.v2`, bound per provider at
 `provider.<provider>.backend.foundry.authentication.*`. `ManagedIdentityAuthentication` is blocked on
 SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
 tenant.

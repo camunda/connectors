@@ -66,6 +66,15 @@ dependencies.
 | `aiagent.chatmodel`: `ChatModelConfiguration`                                | `aiagent.model.chatmodel.*`                    |
 | `aiagent.memory.conversation`: `ConversationContext`, `ConversationContextSubtypes`, `ConversationContextTypeResolverBuilder` | `aiagent.model.conversation.*` |
 | `adhoctoolsschema.model`: `AdHocToolElement`, `AdHocToolElementParameter`    | `aiagent.model.tool.*`                         |
+| `aiagent.model.request`: `AgentSubProcessRequestData`, `AgentSubProcessResponseConfiguration`, `AgentSubProcessV1Request`, `AgentSubProcessV2Request`, `AgentTaskRequestData`, `AgentTaskResponseConfiguration`, `AgentTaskV1Request`, `AgentTaskV2Request`, `MemoryStorageTemplateConfiguration`, `MemoryTemplateConfiguration`, `ToolsConfiguration`, `V1ToV2ProviderConfigurationMapper(Impl)` | `aiagent.request.*` |
+| `aiagent.model.request.v1.*`                                                 | `aiagent.request.v1.*`                         |
+| `aiagent.model.request.v1.shared.*`                                          | `aiagent.request.v1.shared.*`                  |
+| `aiagent.model.request.v2.*`                                                 | `aiagent.request.v2.*`                         |
+| `aiagent.model`: `AgentConversation`, `AgentConversationTurn`, `TurnReconstructor`, `PreviousConversation`, `AgentInput` | `aiagent.conversation.*` |
+| `aiagent.model`: `AgentResponse`, `AgentSubProcessResponse`, `AgentTaskExecutionContext`, `AgentSubProcessExecutionContext` | `aiagent.agent.*` |
+| `aiagent.model.document.DocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
+| `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
+| `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
 | `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.util.JacksonExceptionMessageExtractor` |
 | `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.configuration.RetriesProperties`       |
 | `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |

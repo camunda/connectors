@@ -14,11 +14,11 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationSerializer;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.model.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.io.IOException;
 import java.io.InputStream;
