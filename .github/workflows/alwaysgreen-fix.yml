@@ -145,6 +145,16 @@ jobs:
   # interrupted — cancel it.
   gate:
     name: Check feature flag
+    # Same group as `fix` below, so the Vault read happens INSIDE the lock rather
+    # than before it. With the gate outside, a second dispatch could resolve
+    # `dispatch=true`, then sit behind a 90-minute agent and start on an approval
+    # nobody could withdraw any more -- the flag is the kill switch, and
+    # "`disabled` also stops queued agents" has to keep meaning that. Sharing the
+    # group costs nothing: the gate holds it for seconds, and the two jobs are
+    # ordered by `needs`, so they never contend with each other.
+    concurrency:
+      group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -186,7 +196,8 @@ jobs:
     # dies on "multiple open PRs use dispatch label". That state needs a human to
     # undo, so the lock belongs here as well, where it holds whatever started the
     # run. Not cancel-in-progress: the loser must wait for the agent that is
-    # already mid-patch, not kill it.
+    # already mid-patch, not kill it. `gate` shares this group so the flag is
+    # read after the wait, not before it.
     concurrency:
       group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
       cancel-in-progress: false
