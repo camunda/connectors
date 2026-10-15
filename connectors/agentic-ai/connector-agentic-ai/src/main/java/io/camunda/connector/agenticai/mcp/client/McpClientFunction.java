@@ -8,11 +8,10 @@ package io.camunda.connector.agenticai.mcp.client;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration.AI_AGENT_TOOL_ID;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.common.GatewayToolConstants;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
-import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -47,8 +46,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     },
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(
-          name = GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION,
-          value = McpClientGatewayToolHandler.GATEWAY_TYPE,
+          name = GatewayToolConstants.GATEWAY_TYPE_EXTENSION,
+          value = McpClientConstants.GATEWAY_TYPE,
           condition =
               @TemplateProperty.PropertyCondition(
                   property = "data.connectorMode.type",

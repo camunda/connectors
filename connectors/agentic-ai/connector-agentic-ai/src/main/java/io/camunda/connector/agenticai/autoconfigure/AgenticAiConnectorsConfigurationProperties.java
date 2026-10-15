@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.autoconfigure;
 
+import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
@@ -17,13 +18,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid @DefaultValue ToolsProperties tools,
-    @Valid @DefaultValue AiAgentProperties aiagent,
-    @Valid @DefaultValue HttpProperties http) {
-
-  public record RetriesProperties(
-      @DefaultValue("4") @PositiveOrZero Integer maxRetries,
-      @DefaultValue("PT1S") Duration initialRetryDelay) {}
+    @Valid @DefaultValue AiAgentProperties aiagent) {
 
   public record AiAgentProperties(
       @Valid @DefaultValue ChatModelProperties chatModel,
@@ -35,7 +30,8 @@ public record AgenticAiConnectorsConfigurationProperties(
        */
       @DefaultValue("true") boolean rewriteV1ProviderConfigToV2) {
 
-    public record AgentInstanceProperties(@Valid @DefaultValue RetriesProperties retries) {}
+    public record AgentInstanceProperties(
+        @Valid @DefaultValue @NestedConfigurationProperty RetriesProperties retries) {}
   }
 
   public record ChatModelProperties(
@@ -47,25 +43,6 @@ public record AgenticAiConnectorsConfigurationProperties(
           @DefaultValue("true") boolean enabled,
           @DefaultValue("100") @PositiveOrZero Long maximumSize,
           @DefaultValue("PT10M") Duration expireAfterAccess) {}
-    }
-  }
-
-  public record HttpProperties(@Valid @DefaultValue ProxySupportProperties proxySupport) {
-    public record ProxySupportProperties(@DefaultValue("true") boolean enabled) {}
-  }
-
-  public record ToolsProperties(
-      @Valid @DefaultValue @NestedConfigurationProperty
-          ProcessDefinitionProperties processDefinition) {
-
-    public record ProcessDefinitionProperties(
-        @Valid @DefaultValue RetriesProperties retries,
-        @Valid @DefaultValue CacheProperties cache) {
-
-      public record CacheProperties(
-          @DefaultValue("true") boolean enabled,
-          @DefaultValue("100") @PositiveOrZero Long maximumSize,
-          @DefaultValue("PT10M") Duration expireAfterWrite) {}
     }
   }
 }
