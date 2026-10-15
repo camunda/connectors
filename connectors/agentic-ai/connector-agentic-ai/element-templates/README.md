@@ -93,12 +93,13 @@ See the [A2A Client connector documentation](https://docs.camunda.io/docs/next/c
 
 ## Ad-hoc tools schema connector
 
-Resolves the tools available in an ad-hoc sub-process.
+Resolves the tools available in an ad-hoc sub-process. The template lives in the
+`connector-ad-hoc-tools-schema` module (`connector-ad-hoc-tools-schema/element-templates/`).
 See the [Ad-hoc tools schema resolver documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/).
 
 | Connector           | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| Ad-hoc tools schema | 8.8 | 2 | [`agenticai-adhoctoolsschema-outbound-connector.json`](./agenticai-adhoctoolsschema-outbound-connector.json) |
+| Ad-hoc tools schema | 8.8 | 2 | `agenticai-adhoctoolsschema-outbound-connector.json` |
 
 ## Maintaining this index
 

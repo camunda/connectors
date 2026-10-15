@@ -40,6 +40,8 @@
     <module>agentic-ai-common</module>
     <module>aiagent-model</module>
     <module>aiagent-api</module>
+    <module>aiagent-tools-schema</module>
+    <module>connector-ad-hoc-tools-schema</module>
     <module>connector-agentic-ai</module>
   </modules>
 
