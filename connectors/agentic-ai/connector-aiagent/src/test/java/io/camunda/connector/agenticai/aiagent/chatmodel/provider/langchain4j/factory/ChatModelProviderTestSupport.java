@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;

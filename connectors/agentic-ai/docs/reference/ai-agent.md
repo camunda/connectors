@@ -1242,7 +1242,7 @@ fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*
 API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 [`ToolsSchemaProperties`](../../aiagent-tools-schema/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
 (`tools.*`) and
-[`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java)
+[`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
 
 ---

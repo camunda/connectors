@@ -36,7 +36,7 @@ class ModuleBoundariesTest {
   private static final String MCP = ROOT + ".mcp..";
   private static final String MCP_CLIENT = ROOT + ".mcp.client..";
   private static final String MCP_INTEGRATION = ROOT + ".mcp.integration..";
-  private static final String AUTOCONFIGURE = ROOT + ".autoconfigure..";
+  private static final String AUTOCONFIGURE = ROOT + ".aiagent.configuration..";
   private static final String AGENT = ROOT + ".aiagent.agent..";
   private static final String CHAT_MODEL_PROVIDER = ROOT + ".aiagent.chatmodel.provider..";
   private static final String PROXY = ROOT + ".aiagent.proxy..";

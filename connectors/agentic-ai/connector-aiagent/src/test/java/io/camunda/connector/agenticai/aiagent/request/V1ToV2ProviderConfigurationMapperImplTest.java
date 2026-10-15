@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
@@ -69,8 +71,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

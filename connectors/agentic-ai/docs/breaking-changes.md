@@ -76,6 +76,8 @@ dependencies.
 | `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
 | `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
 | `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.util.JacksonExceptionMessageExtractor` |
+| `autoconfigure`: `AgenticAiConnectorsAutoConfiguration`, `AgenticAiConnectorsConfigurationProperties` | `aiagent.configuration.*` |
+| `mcp.McpClientErrorCodes`                                                    | `mcp.client.McpClientErrorCodes`               |
 | `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.configuration.RetriesProperties`       |
 | `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |
 | `AgenticAiConnectorsConfigurationProperties.ToolsProperties`                 | `tools.schema.configuration.ToolsSchemaProperties` |

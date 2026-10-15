@@ -16,10 +16,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModelDelegate;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

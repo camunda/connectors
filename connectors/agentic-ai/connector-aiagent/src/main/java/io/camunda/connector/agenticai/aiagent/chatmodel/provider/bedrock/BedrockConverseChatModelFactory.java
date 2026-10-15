@@ -12,12 +12,12 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatMode
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import java.net.URI;
 import java.util.List;
 import org.slf4j.Logger;
