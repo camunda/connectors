@@ -42,6 +42,8 @@
     <module>aiagent-api</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
+    <module>connector-mcp</module>
+    <module>aiagent-mcp-integration</module>
     <module>connector-agentic-ai</module>
   </modules>
 

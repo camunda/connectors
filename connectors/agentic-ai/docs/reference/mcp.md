@@ -109,6 +109,13 @@ sequenceDiagram
 
 See `io.camunda.connector.agenticai.mcp` — split into `client` (connectors, handlers, execution, framework, model) and `integration` (gateway tool integration) sub-packages.
 
+The two sub-packages ship as separate Maven modules:
+
+- `connector-mcp` holds `mcp.client` (the MCP Client and MCP Remote Client connectors, their element templates and
+  Spring auto-configuration). It depends on `agentic-ai-common` only.
+- `aiagent-mcp-integration` holds `mcp.integration` (the gateway tool handler and `McpDiscoveryConfiguration`). It
+  depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and `agentic-ai-common`, not on `connector-agentic-ai`.
+
 ---
 
 <a id="4-mcp-client-architecture"></a>
