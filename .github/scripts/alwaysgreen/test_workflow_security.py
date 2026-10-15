@@ -256,23 +256,42 @@ def test_the_fix_agent_is_dispatchable_and_what_now_bounds_it():
     cannot be started cannot fix anything.
 
     So the boundary moves rather than disappearing, and this asserts where it moved
-    to. What an attacker with push access gains is the ability to START the agent;
-    what they still cannot do is choose a branch it will touch, run it while the
-    kill switch is off, feed it another pipeline's dispatch key, or have it open a PR
-    with write permissions it does not have.
+    to. What someone who can dispatch gains is the ability to START the agent on a
+    protected ref; what they still cannot do is aim it at an arbitrary branch, run
+    it while the kill switch is off, or feed it another pipeline's dispatch key.
+
+    Two things this does NOT claim, because both would be false:
+
+    * It does not claim the run cannot open a pull request. `Publish validated
+      patch` pushes and opens PRs with a quality-assurance-ci App token minted from
+      Vault, not with GITHUB_TOKEN, so the absent `pull-requests: write` below
+      bounds GITHUB_TOKEN alone. A dispatch can therefore reach App-backed
+      publishing -- of a patch that passed the validation steps, onto a branch the
+      allowlists chose, but publishing nonetheless. That capability is part of what
+      an authorization review of this trade has to weigh.
+    * It does not claim `github.ref_protected` stops a determined push-access
+      actor. The guards live in this file, and a branch-local copy of it can drop
+      them. They bound the workflow as written; only ref-scoped credentials (a
+      GitHub Environment, or a Vault policy bound to the ref) would bound the
+      actor.
 
     If any assertion below is ever removed, the trade made here stops holding.
     """
     assert "workflow_dispatch:" in FIX, "the central triage has no other way in"
     assert "workflow_call:" in FIX, "the in-repo caller must keep working"
 
-    # Protected refs only: a dispatch cannot aim the agent at an arbitrary branch.
-    assert "github.ref_protected" in FIX
+    # Protected refs only, on BOTH jobs: `gate` reads Vault, so guarding only the
+    # job that runs the agent would still expose the AppRole on an unprotected ref.
+    # Checked per job -- a file-wide substring passes when just one of them has it.
+    jobs = _jobs(FIX)
+    for job in ("gate", "fix"):
+        assert "github.ref_protected" in jobs[job], f"{job} must be ref-guarded"
     # The Vault kill switch still gates every run, dispatched or called.
     assert "needs.gate.outputs.dispatch == 'true'" in FIX
     # `active` is the weaker of the two gate outputs and must not be what guards this.
     assert "needs.gate.outputs.active == 'true'" not in FIX
-    # The agent still cannot write to pull requests.
+    # GITHUB_TOKEN cannot write to pull requests. The publish App token is the
+    # separate authority described above; this says nothing about it.
     assert "pull-requests: write" not in FIX
     # Inputs are still validated against allowlists rather than trusted.
     assert 'case "$BASE_REF" in' in FIX

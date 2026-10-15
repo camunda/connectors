@@ -169,6 +169,14 @@ jobs:
   # interrupted — cancel it.
   gate:
     name: Check feature flag
+    # Same guard as `fix`. This job reads Vault, so without it a dispatch on an
+    # unprotected ref would still hand the AppRole credentials to a step before
+    # anything checked the ref -- `fix` being skipped afterwards is too late.
+    # It bounds an unmodified workflow only: someone with push access can edit
+    # this file on their own branch and remove the guard, and only ref-scoped
+    # credentials (a GitHub Environment, or a Vault policy bound to the ref) would
+    # stop that. See the security test for what this does and does not cover.
+    if: ${{ github.ref_protected }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
