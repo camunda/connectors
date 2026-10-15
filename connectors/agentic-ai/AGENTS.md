@@ -34,21 +34,22 @@ Deep architecture lives in the reference docs, linked instead of copied:
 The module is split into Maven modules with a fixed dependency direction
 ([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md)):
 
-| Module                          | Contents                                                        | Depends on (agentic AI modules)   |
-|---------------------------------|-----------------------------------------------------------------|-----------------------------------|
-| `agentic-ai-common`             | Shared utilities, HTTP proxy support, common properties         | none                              |
-| `aiagent-model`                 | Agent model referenced by the extension points                  | common                            |
-| `aiagent-api`                   | Extension points (gateway tools, chat model, storage, prompts)  | model, common                     |
-| `aiagent-tools-schema`          | Ad-hoc tools schema resolution                                  | api, model, common                |
-| `connector-ad-hoc-tools-schema` | Ad-hoc tools schema connector                                   | tools-schema                      |
-| `connector-mcp`                 | MCP client connectors                                           | common                            |
-| `aiagent-mcp-integration`       | MCP client as AI Agent gateway tool                             | connector-mcp, api, model, common |
-| `connector-a2a`                 | A2A client connectors                                           | common                            |
-| `aiagent-a2a-integration`       | A2A client as AI Agent gateway tool                             | connector-a2a, api, model, common |
-| `connector-aiagent`             | AI Agent connectors, providers, stores, agent instance client   | tools-schema, api, model, common  |
+| Module                          | Package root                         | Contents                                                       | Depends on (agentic AI modules)   |
+|---------------------------------|--------------------------------------|----------------------------------------------------------------|-----------------------------------|
+| `agentic-ai-common`             | `common`                             | Shared utilities, HTTP proxy support, common properties        | none                              |
+| `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
+| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
+| `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
+| `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
+| `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
+| `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
+| `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
+| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations (only in test scope). No Java package spans several modules. Each module has its own
+or integrations (only in test scope). Package roots are relative to `io.camunda.connector.agenticai`;
+put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
