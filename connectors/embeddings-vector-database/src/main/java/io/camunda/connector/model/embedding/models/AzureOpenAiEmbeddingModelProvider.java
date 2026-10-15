@@ -141,6 +141,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
     record AzureApiKeyAuthentication(
         @NotBlank
             @TemplateProperty(
+                secret = true,
                 group = "embeddingModel",
                 label = "API key",
                 type = TemplateProperty.PropertyType.String,
@@ -168,6 +169,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
             String clientId,
         @NotBlank
             @TemplateProperty(
+                secret = true,
                 group = "embeddingModel",
                 label = "Client secret",
                 description = "Secret of a Microsoft Entra application",

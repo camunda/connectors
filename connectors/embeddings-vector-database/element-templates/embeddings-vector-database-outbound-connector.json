@@ -242,7 +242,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
     "label" : "Client ID",
@@ -302,7 +303,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
     "label" : "Tenant ID",
@@ -2283,7 +2285,8 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.clientId",
       "label" : "Client ID",
@@ -2319,7 +2322,8 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.tenantId",
       "label" : "Tenant ID",
