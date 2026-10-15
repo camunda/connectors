@@ -314,34 +314,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
-    # Must stay above `wait-downstream`'s own 75min deadline. When this fires
-    # first the runner kills the step mid-poll, the job lands as `cancelled`,
-    # and the loop's timeout path never runs -- so the failure surfaces with
-    # no reason attached. Keep the loop as the timeout mechanism and this as
-    # the backstop for what a deadline cannot bound: a single `gh api` call
-    # that hangs indefinitely rather than returning an error to retry.
-    timeout-minutes: 85
+    # Dispatch only. The downstream run reports back through a `saas-e2e-result`
+    # repository_dispatch handled by SAAS_E2E_RESULT.yaml, so no runner waits for it.
+    timeout-minutes: 10
     continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
-    outputs:
-      # Whether this job failed, stated explicitly. On merge_group the job carries
-      # continue-on-error, and GitHub does not document what needs.<job>.result then
-      # reports to a dependent job — so a gate built on that alone could silently never
-      # fire for the one event that supplies a PR to comment on.
-      status: ${{ steps.job-status.outputs.status }}
     steps:
-      # The waiter's deadline has to be measured on the same clock as this
-      # job's `timeout-minutes`, which starts here -- not when the waiter
-      # step happens to begin. Checkout, Vault/token generation and the
-      # dispatch are all unbounded, so deriving the deadline from the
-      # waiter's own start would make "deadline < job timeout" an assumption
-      # about how long they take rather than a guarantee.
-      - name: Record job start
-        run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
@@ -400,203 +378,67 @@ jobs:
           GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
           CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
           IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
+          EVENT_NAME: ${{ github.event_name }}
+          # merge_group carries the target in `base_ref` (refs/heads/<branch>); on push
+          # the pipeline's own branch is the target.
+          BASE_REF: ${{ github.event.merge_group.base_ref || github.ref_name }}
+          PR_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           # Use the image tag as the generation name to match filter patterns
           # e.g., "8.11.0-main-run12345678-a1" matches "**-main-run**-a**"
           GEN_NAME="${IMAGE_TAG}"
+          BASE_REF="${BASE_REF#refs/heads/}"
 
-          curl -X POST \
+          # `report_result` opts this run into the `saas-e2e-result` callback. Older
+          # copies of this pipeline on stable branches do not send it and keep waiting
+          # for the downstream run themselves.
+          PAYLOAD=$(jq -n \
+            --arg correlation_id "$CORRELATION_ID" \
+            --arg source_repo "${{ github.repository }}" \
+            --arg source_sha "${{ github.sha }}" \
+            --arg gen_name "$GEN_NAME" \
+            --arg connectors_version "$IMAGE_TAG" \
+            --arg event_name "$EVENT_NAME" \
+            --arg base_ref "$BASE_REF" \
+            --arg pr_ref "$PR_REF" \
+            --arg source_run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              event_type: "run-saas-generation-smoke-connectors",
+              client_payload: {
+                correlation_id: $correlation_id,
+                source_repo: $source_repo,
+                source_sha: $source_sha,
+                gen_name: $gen_name,
+                c8Version: "8.11",
+                zeebeVersion: "SNAPSHOT",
+                operateVersion: "SNAPSHOT",
+                tasklistVersion: "SNAPSHOT",
+                connectorsVersion: $connectors_version,
+                optimizeVersion: "SNAPSHOT",
+                report_result: true,
+                event_name: $event_name,
+                base_ref: $base_ref,
+                pr_ref: $pr_ref,
+                source_run_url: $source_run_url
+              }
+            }')
+
+          curl --fail-with-body -sS -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             https://api.github.com/repos/camunda/c8-cross-component-e2e-tests/dispatches \
-            -d '{
-                  "event_type": "run-saas-generation-smoke-connectors",
-                  "client_payload": {
-                      "correlation_id": "'"$CORRELATION_ID"'",
-                      "source_repo": "${{ github.repository }}",
-                      "source_sha": "${{ github.sha }}",
-                      "gen_name": "'"${GEN_NAME}"'",
-                      "c8Version": "8.11",
-                      "zeebeVersion": "SNAPSHOT",
-                      "operateVersion": "SNAPSHOT",
-                      "tasklistVersion": "SNAPSHOT",
-                      "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "SNAPSHOT"
-                  }
-                }'
+            -d "$PAYLOAD"
 
-      - name: Wait for downstream workflow to finish
-        id: wait-downstream
+      - name: Add SaaS dispatch note to Job Summary
         if: steps.check-downstream.outputs.enabled == 'true'
-        env:
-          GH_TOKEN: ${{ steps.github-token.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
-          # The token above expires one hour after it is minted. This pass
-          # stops before that and hands off to the two steps below.
-          HANDOFF_AFTER_MIN: '55'
-        run: .github/workflows/scripts/wait_for_saas_downstream.sh
-
-      - name: Refresh GitHub App Token (for the second wait pass)
-        id: github-token-refresh
-        if: steps.wait-downstream.outputs.handoff == 'true'
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
-        with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: connectors,c8-cross-component-e2e-tests
-
-      - name: Keep waiting for downstream workflow to finish
-        id: wait-downstream-2
-        if: steps.wait-downstream.outputs.handoff == 'true'
-        env:
-          GH_TOKEN: ${{ steps.github-token-refresh.outputs.token }}
-          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
-          RUN_ID: ${{ steps.wait-downstream.outputs.run_id }}
-        run: .github/workflows/scripts/wait_for_saas_downstream.sh
-
-      - name: Add SaaS downstream workflow link to Job Summary
-        if: always()
         run: |
-          if [ -n "${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}" ]; then
-            {
-              echo "### SaaS Downstream Workflow Run"
-              echo ""
-              echo "**Correlation ID:** \`${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}\`"
-              echo ""
-              echo "[Open the triggered SaaS E2E workflow run in camunda/c8-cross-component-e2e-tests](${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }})"
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No downstream workflow run URL found." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      # AlwaysGreen triage runs in this repository but the SaaS evidence lives on the
-      # downstream run in c8-cross-component-e2e-tests, and a job summary is not
-      # machine-readable. This artifact is the only channel that carries the link
-      # across; without it triage classifies every SaaS failure as saas-infra and
-      # dispatches nothing. Deliberately just the link: triage recomputes the
-      # category from the downstream report itself.
-      - name: Write SaaS downstream context for AlwaysGreen triage
-        id: saas-context
-        if: always() && (steps.wait-downstream.outputs.downstream_run_url != '' || steps.wait-downstream-2.outputs.downstream_run_url != '')
-        env:
-          DOWNSTREAM_RUN_URL: ${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}
-        run: |
-          set -euo pipefail
-          jq -n \
-            --arg stage "${{ github.job }}" \
-            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --arg downstream_run_url "${DOWNSTREAM_RUN_URL}" \
-            '{stage: $stage, run_url: $run_url, downstream_run_url: $downstream_run_url}' \
-            > "${RUNNER_TEMP}/alwaysgreen-saas-category.json"
-
-      - name: Upload SaaS downstream context artifact
-        if: always() && steps.saas-context.outcome == 'success'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: alwaysgreen-saas-category
-          path: ${{ runner.temp }}/alwaysgreen-saas-category.json
-          retention-days: 14
-          # Artifacts are immutable and a re-run reuses the run id, so without this the
-          # second attempt fails to upload and triage reads the first attempt's stale
-          # downstream link — pointing the fix agent at the wrong evidence.
-          overwrite: true
-
-      - name: Add debugging guidance on failure
-        # `always() &&` is load-bearing: an `if` with no status-check function
-        # gets an implicit `success()`, and the waiter having failed is exactly
-        # when that is false -- so without it this step is skipped on the only
-        # path it exists for, and the timeout the loop reports lands with no
-        # guidance attached.
-        if: always() && (steps.wait-downstream.outcome == 'failure' || steps.wait-downstream-2.outcome == 'failure')
-        run: |
-          DOWNSTREAM_URL="${{ steps.wait-downstream-2.outputs.downstream_run_url || steps.wait-downstream.outputs.downstream_run_url }}"
-          COOKBOOK_URL="https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md"
           {
+            echo "### SaaS E2E dispatched"
             echo ""
-            echo "### Debugging the SaaS E2E Failure"
+            echo "**Correlation ID:** \`${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}\`"
             echo ""
-            if [ -n "$DOWNSTREAM_URL" ]; then
-              echo "**Downstream run:** [$DOWNSTREAM_URL]($DOWNSTREAM_URL)"
-              echo ""
-            fi
-            echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
+            echo "The result is reported by the \`SaaS E2E result\` workflow when the downstream run finishes."
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # Last step in the job, so job.status here reflects everything above it.
-      - name: Record job status
-        id: job-status
-        if: always()
-        run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
-
-  # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
-  # Slack message and no PR comment at all — only the streak detector's aggregate,
-  # which fires at three consecutive failures and says nothing about a single one.
-  saas-e2e-debug-summary:
-    name: AlwaysGreen failure feedback (SaaS E2E)
-    needs: trigger-saas-e2e
-    # Two signals for one condition. `result` covers push, where the job fails
-    # normally; the explicit output covers merge_group, where continue-on-error may
-    # present the failure to dependents as a success. merge_group is the only trigger
-    # that supplies a PR, so relying on `result` alone risks the PR comment never
-    # being posted at all.
-    if: >-
-      always() && (needs.trigger-saas-e2e.result == 'failure' ||
-      needs.trigger-saas-e2e.outputs.status == 'failure')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
-    permissions:
-      pull-requests: write
-      contents: read
-    outputs:
-      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
-      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24"
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
-        with:
-          github-app-id-vault-key: GITHUB_APP_ID
-          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          github-app-private-key-vault-key: GITHUB_APP_SECRET
-          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
-          vault-auth-method: approle
-          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
-          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
-          vault-url: ${{ secrets.VAULT_ADDR }}
-          owner: camunda
-          repositories: connectors
-      - name: Post AlwaysGreen failure feedback
-        id: feedback
-        continue-on-error: true
-        uses: ./.github/actions/post-failure-feedback
-        with:
-          failure_category: unknown
-          stage: saas-e2e
-          owner_team: "@camunda/connectors"
-          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          status: failure
-          evidence: "SaaS E2E tests failed. The downstream run in c8-cross-component-e2e-tests is linked from the Trigger SaaS E2E tests job summary."
-          pr: ${{ github.event.merge_group.head_ref }}
-          # merge_group is the only trigger here that supplies a PR, and a
-          # draft cannot enter a merge queue — so state the answer instead of
-          # paying for a lookup that would also need pull-requests: read.
-          pr_is_draft: "false"
-          slack_channel: "C0AK0AVKRL0"
-          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          github_token: ${{ steps.app-token.outputs.token }}
-
   run-ai-agent-cpt:
     name: AI Agent bundle E2E (CPT)
     runs-on: ubuntu-latest
