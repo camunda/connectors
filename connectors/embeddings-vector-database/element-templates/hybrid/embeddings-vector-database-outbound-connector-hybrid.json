@@ -771,7 +771,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.googleVertexAi.modelName",
     "label" : "Model name",
@@ -1263,7 +1264,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.aiSearch.authentication.clientId",
     "label" : "Client ID",
@@ -1323,7 +1325,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.aiSearch.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1495,7 +1498,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.clientId",
     "label" : "Client ID",
@@ -1555,7 +1559,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.tenantId",
     "label" : "Tenant ID",
@@ -2241,7 +2246,8 @@
         "name" : "apiKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda.connectors:embeddings-azure-openai-credential:1",
@@ -2393,7 +2399,8 @@
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda.connectors:embeddings-bedrock-credential:1",
@@ -2412,7 +2419,8 @@
         "name" : "accessKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "secretKey",
       "label" : "Secret key",
@@ -2425,7 +2433,8 @@
         "name" : "secretKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda.connectors:embeddings-azure-ai-search-credential:1",
@@ -2466,7 +2475,8 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.clientId",
       "label" : "Client ID",
@@ -2502,7 +2512,8 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.tenantId",
       "label" : "Tenant ID",
@@ -2576,7 +2587,8 @@
         "equals" : "apiKey",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.clientId",
       "label" : "Client ID",
@@ -2612,7 +2624,8 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "authentication.tenantId",
       "label" : "Tenant ID",
@@ -2664,7 +2677,8 @@
         "name" : "accessKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     }, {
       "id" : "secretKey",
       "label" : "Secret key",
@@ -2677,7 +2691,8 @@
         "name" : "secretKey",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda.connectors:embeddings-opensearch-credential:1",
@@ -2709,7 +2724,8 @@
         "name" : "password",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   }, {
     "id" : "io.camunda.connectors:embeddings-elasticsearch-credential:1",
@@ -2741,7 +2757,8 @@
         "name" : "password",
         "type" : "property"
       },
-      "type" : "String"
+      "type" : "String",
+      "secret" : true
     } ]
   } ],
   "icon" : {

@@ -24,6 +24,7 @@ public record ElasticsearchCredential(
         String userName,
     @NotBlank
         @TemplateProperty(
+            secret = true,
             group = "authentication",
             label = "Password",
             description = "Elasticsearch password")

@@ -18,6 +18,7 @@ import jakarta.validation.constraints.NotBlank;
 public record BedrockEmbeddingCredential(
     @NotBlank
         @TemplateProperty(
+            secret = true,
             group = "authentication",
             label = "Access key",
             description =
@@ -25,6 +26,7 @@ public record BedrockEmbeddingCredential(
         String accessKey,
     @NotBlank
         @TemplateProperty(
+            secret = true,
             group = "authentication",
             label = "Secret key",
             description = "Provide a secret key associated with the access key")

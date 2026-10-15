@@ -153,6 +153,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
     record ServiceAccountCredentialsAuthentication(
         @NotBlank
             @TemplateProperty(
+                secret = true,
                 group = "embeddingModel",
                 label = "JSON key of the service account",
                 description = "This is the key of the service account in JSON format.",

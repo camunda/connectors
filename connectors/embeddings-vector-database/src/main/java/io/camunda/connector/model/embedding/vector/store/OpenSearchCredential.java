@@ -24,6 +24,7 @@ public record OpenSearchCredential(
         String userName,
     @NotBlank
         @TemplateProperty(
+            secret = true,
             group = "authentication",
             label = "Password",
             description = "OpenSearch password")

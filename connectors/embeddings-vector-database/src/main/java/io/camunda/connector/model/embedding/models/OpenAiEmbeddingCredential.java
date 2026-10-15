@@ -19,6 +19,7 @@ import jakarta.validation.constraints.NotBlank;
 public record OpenAiEmbeddingCredential(
     @NotBlank
         @TemplateProperty(
+            secret = true,
             group = "authentication",
             label = "OpenAI API key",
             type = TemplateProperty.PropertyType.String,
