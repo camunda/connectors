@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 public record AgentSubProcessRequestData(
     @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
     @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
-    @Valid @Nullable MemoryConfiguration memory,
+    @Valid @Nullable MemoryTemplateConfiguration memory,
     @Valid @Nullable LimitsConfiguration limits,
     @Valid @Nullable EventHandlingConfiguration events,
     @Valid @Nullable AgentSubProcessResponseConfiguration response) {}

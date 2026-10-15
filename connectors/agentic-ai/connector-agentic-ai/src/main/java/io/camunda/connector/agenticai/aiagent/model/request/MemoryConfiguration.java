@@ -6,28 +6,16 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import io.camunda.connector.generator.java.annotation.NestedProperties;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import org.jspecify.annotations.Nullable;
 
-public record MemoryConfiguration(
-    @Valid @NestedProperties(group = "memory") @Nullable MemoryStorageConfiguration storage,
-    // TODO support more advanced eviction policies (token window)
-    @TemplateProperty(
-            group = "memory",
-            label = "Context window size",
-            description =
-                "Maximum number of recent conversation messages which are passed to the model.",
-            tooltip =
-                "Use this to limit the number of messages which are sent to the model. The agent will only send "
-                    + "the most recent messages up to the configured limit to the LLM. Older messages will be kept "
-                    + "in the conversation store, but not sent to the model. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
-                    + "for details.",
-            type = TemplateProperty.PropertyType.Number,
-            defaultValue = "20",
-            defaultValueType = TemplateProperty.DefaultValueType.Number)
-        @Min(3)
-        @Nullable Integer contextWindowSize) {}
+/**
+ * Conversation memory settings of an agent: where the conversation is stored and how much of it.
+ */
+public interface MemoryConfiguration {
+
+  /** The conversation store configuration, or {@code null} to use the default store. */
+  @Nullable ConversationStoreConfiguration storage();
+
+  /** Maximum number of recent conversation messages which are passed to the model. */
+  @Nullable Integer contextWindowSize();
+}

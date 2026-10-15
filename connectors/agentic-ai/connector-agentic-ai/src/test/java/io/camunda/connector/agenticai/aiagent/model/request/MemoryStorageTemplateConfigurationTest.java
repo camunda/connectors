@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CustomMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.CustomMemoryStorageConfiguration;
 import org.junit.jupiter.api.Test;
 
-class MemoryStorageConfigurationTest {
+class MemoryStorageTemplateConfigurationTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -26,8 +26,8 @@ class MemoryStorageConfigurationTest {
         }
         """;
 
-    final MemoryStorageConfiguration parsed =
-        mapper.readValue(json, MemoryStorageConfiguration.class);
+    final MemoryStorageTemplateConfiguration parsed =
+        mapper.readValue(json, MemoryStorageTemplateConfiguration.class);
 
     assertThat(parsed).isInstanceOf(CustomMemoryStorageConfiguration.class);
     final CustomMemoryStorageConfiguration custom = (CustomMemoryStorageConfiguration) parsed;
@@ -46,8 +46,8 @@ class MemoryStorageConfigurationTest {
         }
         """;
 
-    final MemoryStorageConfiguration parsed =
-        mapper.readValue(json, MemoryStorageConfiguration.class);
+    final MemoryStorageTemplateConfiguration parsed =
+        mapper.readValue(json, MemoryStorageTemplateConfiguration.class);
 
     final CustomMemoryStorageConfiguration custom = (CustomMemoryStorageConfiguration) parsed;
     assertThat(custom.parameters()).containsEntry("endpoint", "https://acme.example.com");

@@ -18,9 +18,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryTemplateConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.time.Duration;
@@ -135,8 +136,9 @@ class ConversationStoreRegistryTest {
             "No conversation store registered for storage configuration type: in-process");
   }
 
-  private MemoryConfiguration memoryConfiguration(MemoryStorageConfiguration storageConfig) {
-    return new MemoryConfiguration(storageConfig, 10);
+  private MemoryConfiguration memoryConfiguration(
+      MemoryStorageTemplateConfiguration storageConfig) {
+    return new MemoryTemplateConfiguration(storageConfig, 10);
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
