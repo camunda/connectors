@@ -19,7 +19,7 @@ depends_on:
   - id: sdk
     component: camunda/connectors
     kind: library
-    contract: "connector-sdk/core, validation (scope provided)"
+    contract: "connector-sdk/core (scope provided), connector-sdk/validation (compile scope)"
     architecture: ARCHITECTURE.md
     versions: Same repo and version
     workaround_policy: never
@@ -115,7 +115,7 @@ Known exception: `agentic-ai/connector-agentic-ai` depends on `webhook` (authori
 None owned. Connectors call external systems; files go through `Document` and `DocumentCreationRequest`.
 
 ## 7. Cross-cutting qualities
-Secrets as `{{secrets.NAME}}`; `ConnectorsObjectMapperSupplier.getCopy()` for JSON; errors via `ConnectorException` / `ConnectorRetryException` / `BpmnError`; Jakarta validation on inputs. AWS SDK v1 allowed only in `aws-sns` for signature verification.
+Secrets as `{{secrets.NAME}}`; `ConnectorsObjectMapperSupplier.getCopy()` for JSON; errors via `ConnectorException` / `ConnectorRetryException` / `BpmnError`; Jakarta validation on inputs. AWS SDK v1 allowed only in `aws-sns` for webhook signature verification (`SnsMessageManager`) and subscription confirmation (`SnsSubscriptionConfirmation#confirmSubscription`).
 
 ## 8. Delivery
 Same trains as the root ([Delivery](../ARCHITECTURE.md#8-delivery)). Bug fixes: ask whether a `backport stable/X.Y` is needed.

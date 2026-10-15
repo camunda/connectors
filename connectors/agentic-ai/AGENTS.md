@@ -66,10 +66,13 @@ Deep architecture lives in the reference docs, linked instead of copied:
 
 Two flavors share one orchestration core (`BaseAgentRequestHandler`):
 
-- **AI Agent Task** (`AgentTaskV1Function`): a service-task connector whose tool-calling loop is modeled
+- **AI Agent Task** (`AgentTaskV2Function`): a service-task connector whose tool-calling loop is modeled
   explicitly in BPMN.
-- **AI Agent Sub-process** (`AgentSubProcessV1Function`): a job worker on an ad-hoc sub-process (AHSP) whose
+- **AI Agent Sub-process** (`AgentSubProcessV2Function`): a job worker on an ad-hoc sub-process (AHSP) whose
   loop is implicit (engine-driven) and supports events. This is the recommended flavor.
+
+`AgentTaskV1Function` and `AgentSubProcessV1Function` are deprecated backward-compatibility shims for
+existing v1 process models; add new behaviour to the V2 entry points.
 
 The loop (sub-process flavor): each job initializes the agent, loads memory, adds input (user prompt or
 tool results plus events), calls the LLM, stores memory, and completes; tool calls activate AHSP
@@ -418,8 +421,8 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 
 | File                                        | Purpose                                    |
 |---------------------------------------------|--------------------------------------------|
-| `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
-| `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
+| `AgentTaskV2Function.java`                  | Connector (Task) entry point               |
+| `AgentSubProcessV2Function.java`            | Job worker (Sub-process) entry point       |
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
 | `AgenticAiConnectorsAutoConfiguration.java` | Spring Boot wiring                         |
 

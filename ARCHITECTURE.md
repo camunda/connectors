@@ -18,13 +18,13 @@ owns:
 does_not_own:
   - { concept: "Individual out-of-the-box connectors (except http, webhook, soap)", owner: camunda/connectors/connectors }
   - { concept: "AI Agent, MCP and A2A connectors", owner: camunda/connectors/connectors/agentic-ai }
-  - { concept: "Zeebe client, job workers and engine behaviour", owner: camunda/camunda }
+  - { concept: "Zeebe client, job-worker API semantics and engine behaviour", owner: camunda/camunda }
   - { concept: Element template schema and Modeler rendering, owner: camunda/element-templates-json-schema }
 depends_on:
   - id: camunda-client
     component: camunda/camunda
     kind: library
-    contract: "camunda-client-java and camunda-spring-boot-starter (Zeebe job workers, deployment, REST API)"
+    contract: "camunda-client-java and camunda-spring-boot-starter (job-worker API, deployment, REST API; this repo owns how connector workers are executed)"
     versions: "Tracks version.camunda in parent/pom.xml (8.11.0-SNAPSHOT on main)"
     workaround_policy: never
   - id: spring-boot
@@ -88,7 +88,7 @@ used by connector authors and by Camunda deployments (SaaS, Self-Managed). Part 
 |---|---|
 | `connector-sdk/{core,validation,test}` | Public SDK (Java 17): contracts, bean validation, test harness |
 | `connector-runtime/connector-runtime-core` | Framework-independent runtime: discovery, job handling, inbound management, secrets |
-| `connector-runtime/connector-runtime-spring`, `spring-boot-starter-camunda-connectors` | Spring wiring; the starter is the recommended embedding |
+| `connector-runtime/connector-runtime-spring`, `connector-runtime/spring-boot-starter-camunda-connectors` | Spring wiring; the starter is the recommended embedding |
 | `connector-runtime/{connector-feel,jackson-datatype-*}` | FEEL and Jackson support |
 | `connector-runtime/connector-runtime-test` | Runtime test support |
 | `connector-commons/*` | Shared utilities: object mapper, HTTP client, host-IP validator, test utils |
