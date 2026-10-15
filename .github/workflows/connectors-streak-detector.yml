@@ -532,28 +532,16 @@ jobs:
           # Mirrors the list alwaysgreen-triage.yml and alwaysgreen-fix.yml accept; all
           # three are widened together or a dispatch hard-errors on arrival.
           #
-          # stable/8.10 is deliberately absent, and it costs real coverage to leave it
-          # out: 10 runs and 15 failing jobs over the last 100, a fifth of all failures,
-          # every one reaching this listener via merge_group since its own copy of the
-          # pipeline still carries `push: branches: [main]`.
-          #
-          # It stays out because of a race the dedupe layers cannot see.
-          # alwaysgreen-fix.yml maps main to the 8.10 suite as well -- main is
-          # 8.11.0-SNAPSHOT and the e2e repository has no tests/8.11 -- so main and
-          # stable/8.10 resolve to the SAME spec paths while carrying DIFFERENT dispatch
-          # keys. The key lock and the in-flight check are both keyed by the dispatch
-          # key, and triage's concurrency group by base_ref, so none of them sees the
-          # collision; the spec-path claim only starts guarding once the first agent has
-          # opened its PR, which is 15-60 minutes after dispatch. Two failures inside
-          # that window put two agents on the same files.
-          #
-          # Closing it means keying the in-flight lock by the resolved suite rather than
-          # by the base ref, which is a change to the key format and belongs on its own.
-          # Until then an unsupported ref is reported rather than swallowed, so the gap
-          # is visible in the summary instead of looking like a green run.
+          # Every supported ref must resolve to its own e2e suite. alwaysgreen-fix.yml
+          # maps main to the next unreleased minor and stable/X.Y to X.Y; if two refs ever
+          # resolve to the same suite again (main lagging a branch cut), they share spec
+          # paths while carrying different dispatch keys. The key lock, the in-flight
+          # check and triage's concurrency group are all keyed by ref, so none of them
+          # would see two agents editing the same files. Drop the lagging ref from the
+          # three lists until main moves on.
           base_ref_supported=true
           case "$base_ref" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *) base_ref_supported=false ;;
           esac
 

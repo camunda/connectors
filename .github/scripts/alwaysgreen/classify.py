@@ -127,9 +127,8 @@ SURFACE_CI_INFRA = "ci-infra"
 #: that is the normal shape of an org-endpoint 5xx, not a corner case -- so dispatching
 #: it would put several agents on one shared file with nothing serialising them.
 #:
-#: It stays reported-only until a claim exists that spans base refs. Same root cause as
-#: stable/8.10's exclusion in connectors-streak-detector.yml: remits that overlap while
-#: keys do not.
+#: It stays reported-only until a claim exists that spans base refs: remits that overlap
+#: while keys do not.
 #:
 #: SURFACE_SAAS_INFRA stays out for a different reason: a missing report, or one with no
 #: failing spec, is no evidence at all.
