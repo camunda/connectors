@@ -317,11 +317,11 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 - Fix null-safety errors by handling the null. Never suppress them.
 - `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
 - For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
-- After adding a new package, run `connector-agentic-ai/bin/generate-package-info.groovy` to fill in any
+- After adding a new package, run `connector-aiagent/bin/generate-package-info.groovy` to fill in any
   missing `package-info.java` (it's idempotent and scans every package under `src/main/java`, so it also
   catches pre-existing gaps, not just the one you added):
   ```bash
-  cd connectors/agentic-ai/connector-agentic-ai
+  cd connectors/agentic-ai/connector-aiagent
   mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/bin/generate-package-info.groovy"
   ```
   Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
@@ -356,14 +356,14 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-agentic-ai/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
+template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
 phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
 When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
-[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md) following these rules:
+[`connector-aiagent/element-templates/README.md`](connector-aiagent/element-templates/README.md) following these rules:
 
 1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
    template (e.g. `^8.10`).
@@ -484,7 +484,7 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   packages, persisted data, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API
   and a migration hint. The public docs link to it.
-- **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
+- **`connector-aiagent/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.

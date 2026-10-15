@@ -48,7 +48,7 @@
     <module>aiagent-mcp-integration</module>
     <module>connector-a2a</module>
     <module>aiagent-a2a-integration</module>
-    <module>connector-agentic-ai</module>
+    <module>connector-aiagent</module>
   </modules>
 
   <build>

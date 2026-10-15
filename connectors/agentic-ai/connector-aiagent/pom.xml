@@ -11,9 +11,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>connector-agentic-ai</artifactId>
-  <name>connector-agentic-ai</name>
-  <description>Agentic AI connector</description>
+  <artifactId>connector-aiagent</artifactId>
+  <name>connector-aiagent</name>
+  <description>AI Agent connector</description>
   <inceptionYear>2025</inceptionYear>
   <packaging>jar</packaging>
 
