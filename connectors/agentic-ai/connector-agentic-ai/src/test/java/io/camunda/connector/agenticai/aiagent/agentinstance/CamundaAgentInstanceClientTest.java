@@ -1400,7 +1400,7 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
-    void shouldReportARuntimeResultEarlyUnderTheSameItemAsTheMergedTurnStartOfTheNextJob() {
+    void shouldWriteTheResultOfARuntimeToolAsTheSameItemInEveryWriteThatCarriesIt() {
       givenUpdateCommand();
       final var configuration = configuration();
       final var completedAt = OffsetDateTime.parse("2026-07-02T09:59:40Z");
@@ -1412,7 +1412,7 @@ class CamundaAgentInstanceClientTest {
                   List.of(TextContent.textContent("Returned the document under the key 'report'.")))
               .completedAt(completedAt)
               .build();
-      final var realResult =
+      final var processResult =
           ToolCallResultContent.builder()
               .id("real")
               .name("getWeather")
@@ -1445,20 +1445,20 @@ class CamundaAgentInstanceClientTest {
               2,
               List.of(
                   ToolCallResultMessage.builder()
-                      .results(List.of(runtimeResult, realResult))
+                      .results(List.of(runtimeResult, processResult))
                       .build()),
               null,
               AgentMetrics.empty(),
               configuration.fingerprint());
 
-      // first job: the runtime result is reported right after the assistant turn
+      // one write carries the result of the runtime tool on its own
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(runtimeResult),
           assistantTurn,
           NO_DOCUMENTS);
-      // next job: the merged results are reported with the turn start
+      // the other write carries it together with the result of the process, with the turn start
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
           configuration,
@@ -1469,14 +1469,14 @@ class CamundaAgentInstanceClientTest {
           NO_DOCUMENTS);
 
       verify(updateCommandStep4, times(2)).history(historyCaptor.capture());
-      final var early = historyCaptor.getAllValues().get(0).getFirst();
+      final var alone = historyCaptor.getAllValues().get(0).getFirst();
       final var merged = historyCaptor.getAllValues().get(1).getFirst();
       // everything the engine's dedup by history item id would otherwise have to pick between
       // is identical, so it is irrelevant which of the two writes it keeps
-      assertThat(early.getHistoryItemId()).isEqualTo("runtime");
-      assertThat(early.getLoopIteration()).isEqualTo(2);
-      assertThat(early.getProducedAt()).isEqualTo(completedAt);
-      assertThat(merged).usingRecursiveComparison().isEqualTo(early);
+      assertThat(alone.getHistoryItemId()).isEqualTo("runtime");
+      assertThat(alone.getLoopIteration()).isEqualTo(2);
+      assertThat(alone.getProducedAt()).isEqualTo(completedAt);
+      assertThat(merged).usingRecursiveComparison().isEqualTo(alone);
     }
 
     @Test
@@ -1491,14 +1491,14 @@ class CamundaAgentInstanceClientTest {
                       .fileName("report.txt")
                       .build());
       final var documentId = DocumentHandle.idFor(document);
-      final var earlyRegistry =
+      final var firstRegistry =
           DocumentRegistry.empty()
               .withDocuments(
                   List.of(
                       new IngestedDocument(
                           document, DocumentSource.toolCall("Download", "download", null))));
       final var laterRegistry =
-          earlyRegistry.withDocuments(
+          firstRegistry.withDocuments(
               List.of(
                   new IngestedDocument(
                       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
@@ -1507,7 +1507,7 @@ class CamundaAgentInstanceClientTest {
                                   .fileName("other.txt")
                                   .build()),
                       DocumentSource.userMessage(null))));
-      final var early = NO_DOCUMENTS.withDocumentRegistry(earlyRegistry);
+      final var first = NO_DOCUMENTS.withDocumentRegistry(firstRegistry);
       final var later = NO_DOCUMENTS.withDocumentRegistry(laterRegistry);
 
       final var runtimeResult =
@@ -1548,13 +1548,13 @@ class CamundaAgentInstanceClientTest {
           assistantTurn,
           OffsetDateTime.parse("2026-07-02T09:59:30Z"),
           AgentInstanceUpdateStatus.TOOL_CALLING,
-          early);
+          first);
       client.applyToolCallResults(
           TestAgentExecutionContext.withLimits(),
           key,
           List.of(runtimeResult),
           assistantTurn,
-          early);
+          first);
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
           configuration,
@@ -1566,14 +1566,14 @@ class CamundaAgentInstanceClientTest {
 
       verify(updateCommandStep4, times(3)).history(historyCaptor.capture());
       final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
-      final var earlyResult = historyCaptor.getAllValues().get(1).getFirst();
+      final var firstResult = historyCaptor.getAllValues().get(1).getFirst();
       final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
       final var expectedArguments = Map.of("key", "report", "document", documentId);
       assertThat(assistantItem.getToolCalls().getFirst().getArguments())
           .isEqualTo(expectedArguments);
-      assertThat(earlyResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);
+      assertThat(firstResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);
       // the engine keeps the first write of a history item id, the later write is identical
-      assertThat(mergedResult).usingRecursiveComparison().isEqualTo(earlyResult);
+      assertThat(mergedResult).usingRecursiveComparison().isEqualTo(firstResult);
     }
 
     @Test

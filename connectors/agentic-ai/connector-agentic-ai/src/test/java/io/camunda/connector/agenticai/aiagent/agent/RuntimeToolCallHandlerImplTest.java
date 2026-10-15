@@ -490,7 +490,7 @@ class RuntimeToolCallHandlerImplTest {
   }
 
   @Test
-  void passesACallWithKnownDocumentsToTheProcess() {
+  void passesACallWithTheTagsOfKnownDocumentsToTheProcess() {
     final var call = new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
 
     final var split = handler.handle(conversation(WITH_MEMORY, call), List.of(call));

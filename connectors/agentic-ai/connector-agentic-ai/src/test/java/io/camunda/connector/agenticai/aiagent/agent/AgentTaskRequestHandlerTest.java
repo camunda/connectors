@@ -128,7 +128,7 @@ class AgentTaskRequestHandlerTest {
   }
 
   @Test
-  void handsOnlyTheValidCallsOfABatchWithAnUnknownDocumentIdToTheProcess() {
+  void handsOnlyTheValidCallsOfABatchWithAnInvalidDocumentParameterToTheProcess() {
     final var contextWithUploadTool =
         INITIAL_AGENT_CONTEXT.withToolDefinitions(
             Stream.concat(

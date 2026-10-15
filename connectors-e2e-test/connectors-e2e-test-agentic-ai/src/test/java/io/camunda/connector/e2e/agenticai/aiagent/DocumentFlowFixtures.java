@@ -199,7 +199,10 @@ public final class DocumentFlowFixtures {
         ToolCall.of(SLOW_TOOL_CALL_ID, "Slow_Tool", "{}"));
   }
 
-  /** One assistant message with an upload of an unknown document id and a real {@code Ping}. */
+  /**
+   * One assistant message with an upload with the tag of an unknown document and a {@code Ping}
+   * call.
+   */
   public static Turn unknownUploadWithPingTurn() {
     return Turn.toolCalls(
         "I will upload the document and check that the tools work.",

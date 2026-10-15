@@ -241,7 +241,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
    */
   @ParameterizedTest(name = "{0}")
   @ValueSource(strings = {"test.txt", "test.pdf"})
-  void loadsAFetchedDocumentOnceAndPassesItsIdToATool(String file) throws Exception {
+  void loadsAFetchedDocumentOnceAndPassesItsTagToATool(String file) throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), file),
         getDocumentTurn(GET_CALL_ID, documentId(0)),
@@ -274,7 +274,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
    * content reaches the model, and the tool still receives the real bytes.
    */
   @Test
-  void rejectsALargeDocumentAndStillPassesItsIdToATool() throws Exception {
+  void rejectsALargeDocumentAndStillPassesItsTagToATool() throws Exception {
     final var largeFile = stubLargeTextFile();
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl(), LARGE_FILE),
@@ -398,9 +398,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
                 .hasResponseText(FINAL_TEXT));
   }
 
-  /** The id of a document that is not known is answered by the framework, not by the tool. */
+  /**
+   * The tag of a document that is not known is answered by the framework, not by the tool, with a
+   * sentence that names the invalid parameter only.
+   */
   @Test
-  void answersGetDocumentOfAnUnknownIdWithTheKnownDocuments() throws Exception {
+  void answersGetDocumentOfAnUnknownTagByNamingTheInvalidParameterOnly() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), getDocumentTurn("no-such-document"), finalTurn());
 
@@ -422,7 +425,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   @Test
-  void unknownDocumentIdIsAnsweredInTheLoopAndTheModelRetries() throws Exception {
+  void unknownDocumentTagIsAnsweredInTheLoopAndTheModelRetries() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
         uploadTurn("no-such-document"),
@@ -434,7 +437,8 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
     assertThat(recorded.modelCallCount()).isEqualTo(4);
 
-    // second request: after the download. third request: the bad id is answered without any tool
+    // second request: after the download. third request: the unknown tag is answered without any
+    // tool
     // run, so no process step sits between the second and the third model call
 
     final var errorResult = recorded.requests().get(2).messages().getLast();
@@ -444,7 +448,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
         .isEqualTo(
             "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
 
-    // the retry with the valid id is the only upload
+    // the retry with the tag of the downloaded document is the only upload
     final var retryResult = recorded.lastRequest().messages().getLast();
     assertThat(retryResult.role()).isEqualTo("tool");
     assertThat(retryResult.content()).contains("200");
@@ -600,11 +604,12 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The call with the unknown document id gets its error result, the valid call of the same batch
+   * The call with the unknown document tag gets its error result, the valid call of the same batch
    * runs, and the model corrects the tag with one more call.
    */
   @Test
-  void mixedBatchWithAnUnknownDocumentIdRunsTheValidCallAndAnswersTheInvalidOne() throws Exception {
+  void mixedBatchWithAnUnknownDocumentTagRunsTheValidCallAndAnswersTheInvalidOne()
+      throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
         unknownUploadWithPingTurn(),
@@ -626,7 +631,7 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
             "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got '<doc id=\"no-such-document\" />'.");
     assertThat(results.get(1).content()).contains("pong");
 
-    // only the retry with the valid id uploads
+    // only the retry with the tag of the downloaded document uploads
     assertThat(uploadCount()).isEqualTo(1);
     assertUploaded(servedFile(DOWNLOADED_FILE));
 

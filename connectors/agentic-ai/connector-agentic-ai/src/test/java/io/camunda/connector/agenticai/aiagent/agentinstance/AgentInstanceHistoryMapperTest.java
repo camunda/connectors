@@ -260,7 +260,9 @@ class AgentInstanceHistoryMapperTest {
             .name("getWeather")
             .elementId("getWeather")
             .content(
-                List.of(TextContent.textContent("Unknown id. Known documents:\n<doc id=\"a\" />")))
+                List.of(
+                    TextContent.textContent(
+                        "Parameter 'id' must be the <doc /> tag of a known document, got '<doc id=\"a\" />'.")))
             .completedAt(TURN_INGESTION_TIMESTAMP)
             .build();
 
@@ -276,7 +278,8 @@ class AgentInstanceHistoryMapperTest {
         .satisfies(
             item ->
                 assertThat(texts(item.content()))
-                    .containsExactly("Unknown id. Known documents:\n<doc id=\"a\" />"));
+                    .containsExactly(
+                        "Parameter 'id' must be the <doc /> tag of a known document, got '<doc id=\"a\" />'."));
   }
 
   @Test
@@ -495,7 +498,7 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void showsTheArgumentsAsGivenWithoutKnownDocuments() {
+    void showsTheArgumentsAsGivenForAnAgentWithoutDocuments() {
       final var withoutRegistry = NO_DOCUMENTS;
 
       assertThat(

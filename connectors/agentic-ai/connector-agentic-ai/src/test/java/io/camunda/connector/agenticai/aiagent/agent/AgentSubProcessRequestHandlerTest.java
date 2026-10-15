@@ -865,7 +865,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void answersAToolCallWithAnUnknownDocumentIdLocallyAndCallsTheModelAgainInTheSameJob() {
+  void answersAToolCallWithAnInvalidDocumentParameterLocallyAndCallsTheModelAgainInTheSameJob() {
     final var document = createDocument("report data", "report.txt");
     final var documentId = DocumentHandle.idFor(document);
     mockSystemPrompt();
@@ -1103,7 +1103,7 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void handsOnlyTheValidCallsOfABatchWithAnUnknownDocumentIdToTheProcess() {
+  void handsOnlyTheValidCallsOfABatchWithAnInvalidDocumentParameterToTheProcess() {
     final var document = createDocument("report data", "report.txt");
     mockSystemPrompt();
     mockProceedWithDocument(document);
@@ -1128,7 +1128,7 @@ class AgentSubProcessRequestHandlerTest {
         .singleElement()
         .satisfies(activation -> assertThat(activation.elementId()).isEqualTo("getWeather"));
 
-    // the call with the unknown document id is answered when the process results arrive
+    // the call with the invalid document parameter is answered when the process results arrive
     verify(responseHandler).createResponse(any(AgentConversation.class), eq(List.of(otherCall)));
 
     // the stored assistant message keeps both calls, no results are stored yet

@@ -77,7 +77,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
    * Model-visible messages the history does not report, identified by the start of their text. The
    * evicted-documents note is built per request from the registry and sent to the model, but is
    * never part of the stored conversation, so no history item exists for it (gap documented in
-   * docs/design/ai-agent-document-flow.md, "History auditability").
+   * docs/design/ai-agent-document-flow.md, sections 2.10 and 4).
    */
   private static final List<String> KNOWN_UNREPORTED = List.of(EvictedDocumentsNote.PREAMBLE);
 
@@ -194,11 +194,11 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The answer to an unknown document id is one text with the problem. The history shows that text
+   * The answer to an unknown document tag is one text with the problem. The history shows that text
    * and no document.
    */
   @Test
-  void everyModelVisibleMessageOfAnUnknownDocumentIdAnswerIsInTheHistory() throws Exception {
+  void everyModelVisibleMessageOfAnUnknownDocumentTagAnswerIsInTheHistory() throws Exception {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()), uploadTurn("no-such-document"), finalTurn());
 

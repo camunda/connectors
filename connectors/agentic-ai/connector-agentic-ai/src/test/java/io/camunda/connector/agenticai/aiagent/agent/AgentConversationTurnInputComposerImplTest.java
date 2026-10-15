@@ -724,7 +724,8 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void deferredRuntimeCallAnswer_thatIsADocumentIsPersistedAsItsReferenceLikeAProcessResult() {
     var document = createDocument("first", "text/plain", "first.txt");
-    var pending = RUNTIME_RESULT.withContent(List.of(DocumentContent.documentContent(document)));
+    var runtimeResult =
+        RUNTIME_RESULT.withContent(List.of(DocumentContent.documentContent(document)));
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -733,7 +734,8 @@ class AgentConversationTurnInputComposerImplTest {
         TurnReconstructor.reconstruct(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)));
 
-    var result = composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input, deferred(pending));
+    var result =
+        composer.compose(CONFIG, CTX_WITH_CONVERSATION, history, input, deferred(runtimeResult));
 
     assertThat(resultsOf(result).getFirst().content())
         .containsExactly(DocumentReferenceContent.from(document));
@@ -864,7 +866,7 @@ class AgentConversationTurnInputComposerImplTest {
             documentReference(
                 document, "first.txt", "text/plain", "user_message", DocumentDelivery.REFERENCE),
             textContent("Its content follows in the next message."));
-    var pending =
+    var runtimeResult =
         ToolCallResultContent.builder()
             .id("abcdef")
             .name("acme_load")
@@ -887,7 +889,7 @@ class AgentConversationTurnInputComposerImplTest {
             history,
             input,
             deferredAnswers(
-                new RuntimeToolCallAnswer(pending, List.of(DocumentHandle.idFor(document)))));
+                new RuntimeToolCallAnswer(runtimeResult, List.of(DocumentHandle.idFor(document)))));
 
     assertThat(resultsOf(result).getFirst().content()).isEqualTo(blocks);
     assertThat(((CompositionResult.NextTurn) result).messages()).hasSize(2);

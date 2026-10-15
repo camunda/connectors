@@ -226,7 +226,7 @@ class RuntimeToolDocumentContentTest {
             .id("call-1")
             .name(GetDocumentTool.NAME)
             .content("Loaded the document.")
-            .properties(Map.of("documentIdWithContent", reportId))
+            .properties(Map.of("document", reportId))
             .build();
     final var loadCall = new ToolCall("call-1", "process_tool", Map.of("id", reportId));
     final var previous =
