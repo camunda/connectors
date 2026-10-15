@@ -111,8 +111,9 @@ jobs:
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
+      # Match Maven deployment credentials by server id rather than repository origin.
       - name: Build Artifacts
-        run: ./mvnw -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: ./mvnw -B compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
