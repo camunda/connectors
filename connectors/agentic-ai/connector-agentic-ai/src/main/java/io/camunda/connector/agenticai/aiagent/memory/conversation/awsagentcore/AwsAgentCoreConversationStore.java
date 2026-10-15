@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import java.util.Optional;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 

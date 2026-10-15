@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

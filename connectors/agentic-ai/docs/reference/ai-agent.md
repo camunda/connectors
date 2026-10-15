@@ -491,7 +491,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
-See the [`CustomMemoryStorageConfiguration`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
+See the [`CustomMemoryStorageConfiguration`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
 ### Storage Contract
 

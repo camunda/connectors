@@ -31,8 +31,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -92,7 +93,7 @@ class AwsAgentCoreConversationStoreTest {
             "us-east-1", null, authentication, MEMORY_ID, ACTOR_ID);
     lenient()
         .when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryConfiguration(config, 20)));
+        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(config, 20)));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
     var conversationMapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
@@ -113,7 +114,7 @@ class AwsAgentCoreConversationStoreTest {
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
     when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryConfiguration(null, 20)));
+        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(null, 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -127,7 +128,7 @@ class AwsAgentCoreConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20)));
+                new MemoryTemplateConfiguration(new InProcessMemoryStorageConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -789,7 +790,7 @@ class AwsAgentCoreConversationStoreTest {
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), "different-memory-id", ACTOR_ID);
     when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
+        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =
@@ -824,7 +825,7 @@ class AwsAgentCoreConversationStoreTest {
         new AwsAgentCoreMemoryStorageConfiguration(
             "us-east-1", null, config.authentication(), MEMORY_ID, "different-actor-id");
     when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
+        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(changedConfig, 20)));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
     var changedStore =

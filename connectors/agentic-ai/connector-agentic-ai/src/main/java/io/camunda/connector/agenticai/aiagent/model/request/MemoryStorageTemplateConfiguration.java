@@ -30,16 +30,16 @@ import org.jspecify.annotations.Nullable;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = MemoryStorageConfiguration.InProcessMemoryStorageConfiguration.class,
+      value = MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration.class,
       name = InProcessConversationStore.TYPE),
   @JsonSubTypes.Type(
-      value = MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration.class,
+      value = MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration.class,
       name = CamundaDocumentConversationStore.TYPE),
   @JsonSubTypes.Type(
-      value = MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration.class,
+      value = MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration.class,
       name = AwsAgentCoreConversationStore.TYPE),
   @JsonSubTypes.Type(
-      value = MemoryStorageConfiguration.CustomMemoryStorageConfiguration.class,
+      value = MemoryStorageTemplateConfiguration.CustomMemoryStorageConfiguration.class,
       name = "custom")
 })
 @TemplateDiscriminatorProperty(
@@ -48,18 +48,16 @@ import org.jspecify.annotations.Nullable;
     name = "type",
     description = "Specify how to store the conversation memory.",
     defaultValue = InProcessConversationStore.TYPE)
-public sealed interface MemoryStorageConfiguration
-    permits MemoryStorageConfiguration.InProcessMemoryStorageConfiguration,
-        MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration,
-        MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration,
-        MemoryStorageConfiguration.CustomMemoryStorageConfiguration {
-
-  String storeType();
+public sealed interface MemoryStorageTemplateConfiguration extends ConversationStoreConfiguration
+    permits MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration,
+        MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration,
+        MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration,
+        MemoryStorageTemplateConfiguration.CustomMemoryStorageConfiguration {
 
   @TemplateSubType(
       id = InProcessConversationStore.TYPE,
       label = "In Process (part of agent context)")
-  record InProcessMemoryStorageConfiguration() implements MemoryStorageConfiguration {
+  record InProcessMemoryStorageConfiguration() implements MemoryStorageTemplateConfiguration {
     @Override
     public String storeType() {
       return InProcessConversationStore.TYPE;
@@ -85,7 +83,7 @@ public sealed interface MemoryStorageConfiguration
               feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, Object> customProperties)
-      implements MemoryStorageConfiguration {
+      implements MemoryStorageTemplateConfiguration {
     @Override
     public String storeType() {
       return CamundaDocumentConversationStore.TYPE;
@@ -130,7 +128,7 @@ public sealed interface MemoryStorageConfiguration
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String actorId)
-      implements MemoryStorageConfiguration {
+      implements MemoryStorageTemplateConfiguration {
     @Override
     public String storeType() {
       return AwsAgentCoreConversationStore.TYPE;
@@ -210,7 +208,7 @@ public sealed interface MemoryStorageConfiguration
               feel = FeelMode.required,
               optional = true)
           Map<String, Object> parameters)
-      implements MemoryStorageConfiguration {
+      implements MemoryStorageTemplateConfiguration, CustomConversationStoreConfiguration {
     public CustomMemoryStorageConfiguration(
         String storeType, @Nullable Map<String, Object> parameters) {
       this.storeType = storeType;

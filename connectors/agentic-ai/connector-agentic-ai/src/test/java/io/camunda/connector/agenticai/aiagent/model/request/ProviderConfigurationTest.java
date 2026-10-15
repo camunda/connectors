@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.AnthropicProviderConfiguration.AnthropicModel;

@@ -32,8 +32,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryTemplateConfiguration;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -93,7 +94,7 @@ class CamundaDocumentConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryConfiguration(
+                new MemoryTemplateConfiguration(
                     new CamundaDocumentMemoryStorageConfiguration(
                         Duration.ofHours(1), Map.of("customKey", "customValue")),
                     20)));
@@ -183,7 +184,7 @@ class CamundaDocumentConversationStoreTest {
   void throwsExceptionForMissingConfiguration() {
     final var agentContext = AgentContext.empty();
     when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryConfiguration(null, 20)));
+        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(null, 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
@@ -197,8 +198,9 @@ class CamundaDocumentConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryConfiguration(
-                    new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20)));
+                new MemoryTemplateConfiguration(
+                    new MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration(),
+                    20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

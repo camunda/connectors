@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import java.net.URI;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
