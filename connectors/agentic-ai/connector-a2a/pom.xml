@@ -56,6 +56,7 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -152,6 +153,26 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
