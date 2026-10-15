@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayTool
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolHandler;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -29,8 +28,7 @@ class A2aGatewayToolDefinitionResolverTest {
             withA2aClientProperty(createElement("a2a-task-1", "A2A Task 1")),
             withA2aClientProperty(createElement("a2a-task-2", "A2A Task 2")),
             createElement("other-task", "Other task"),
-            withGatewayType(
-                createElement("mcp-task", "MCP Task"), McpClientGatewayToolHandler.GATEWAY_TYPE),
+            withGatewayType(createElement("mcp-task", "MCP Task"), "mcpClient"),
             withGatewayType(
                 createElement("other-gateway-task", "Other Gateway Task"), "someOtherGateway"),
             withA2aClientProperty(
