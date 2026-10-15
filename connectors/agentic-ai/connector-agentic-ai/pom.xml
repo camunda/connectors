@@ -18,9 +18,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.groovy>6.0.0</version.groovy>
-    <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
-    <version.a2asdk>0.3.3.Final</version.a2asdk>
     <version.anthropic-java>2.73.0</version.anthropic-java>
     <version.openai-java>4.82.0</version.openai-java>
     <version.archunit>1.4.1</version.archunit>
@@ -107,11 +104,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-webhook</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -292,47 +284,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
 
     <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-common</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-spec</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-http-client</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-grpc</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-jsonrpc</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-
-    <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
@@ -361,11 +312,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
 
     <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-api</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>org.jspecify</groupId>
       <artifactId>jspecify</artifactId>
     </dependency>
@@ -389,6 +335,18 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>aiagent-mcp-integration</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-a2a</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>aiagent-a2a-integration</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -525,60 +483,9 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction
-              </connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-outbound-connector.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>true</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-            </connector>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable
-              </connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-polling-inbound-connector-intermediate.json</templateFileName>
-                </file>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.receive.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-polling-inbound-connector-receive.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>false</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-              <features>
-                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
-                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
-              </features>
-            </connector>
-            <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.inbound.webhook.A2aClientWebhookExecutable</connectorClass>
-              <files>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-webhook-inbound-connector-intermediate.json</templateFileName>
-                </file>
-                <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.client.webhook.receive.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-webhook-inbound-connector-receive.json</templateFileName>
-                </file>
-              </files>
-              <generateHybridTemplates>false</generateHybridTemplates>
-              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
-              <features>
-                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
-                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
-              </features>
-            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-          <includeDependencies>io.camunda.connector:connector-webhook,io.camunda.connector:aiagent-model</includeDependencies>
+          <includeDependencies>io.camunda.connector:aiagent-model</includeDependencies>
         </configuration>
       </plugin>
       <plugin>
@@ -946,102 +853,6 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
 ${project.basedir}/element-templates/agenticai-ai-agent-subprocess.v2.json=${project.basedir}/element-template-overrides/ai-agent-subprocess.v2.migrates-from.json
 ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json=${project.basedir}/element-template-overrides/ai-agent-subprocess.v2-hybrid.migrates-from.json
                   </value>
-                </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>transform-a2a-polling-inbound-connector-intermediate-template</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-a2a-polling-connector-template.groovy</script>
-              </scripts>
-              <properties>
-                <property>
-                  <name>sourceFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-intermediate.json
-                  </value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-intermediate.json
-                  </value>
-                </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>transform-a2a-polling-inbound-connector-receive-template</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-a2a-polling-connector-template.groovy</script>
-              </scripts>
-              <properties>
-                <property>
-                  <name>sourceFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-receive.json
-                  </value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>
-                    ${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-receive.json
-                  </value>
-                </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>transform-a2a-webhook-inbound-connector-intermediate-template</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-a2a-webhook-connector-template.groovy</script>
-              </scripts>
-              <properties>
-                <property>
-                  <name>sourceFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-webhook-inbound-connector-intermediate.json</value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-webhook-inbound-connector-intermediate.json</value>
-                </property>
-              </properties>
-            </configuration>
-          </execution>
-          <execution>
-            <id>transform-a2a-webhook-inbound-connector-receive-template</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${project.basedir}/bin/transform-a2a-webhook-connector-template.groovy</script>
-              </scripts>
-              <properties>
-                <property>
-                  <name>sourceFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-webhook-inbound-connector-receive.json</value>
-                </property>
-                <property>
-                  <name>outputFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-webhook-inbound-connector-receive.json</value>
                 </property>
               </properties>
             </configuration>

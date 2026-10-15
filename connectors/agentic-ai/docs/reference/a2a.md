@@ -84,6 +84,15 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 See `io.camunda.connector.agenticai.a2a.client` — organized into `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages. The AI Agent tool integration lives in `io.camunda.connector.agenticai.a2a.integration`.
 
+The two sub-packages ship as separate Maven modules:
+
+- `connector-a2a` holds `a2a.client` (the A2A Client outbound, polling and webhook connectors, their element templates
+  and Spring auto-configuration). It depends on `agentic-ai-common` only.
+- `aiagent-a2a-integration` holds `a2a.integration` (the gateway tool handler, resolver, tool call identifier, system
+  prompt contributor and `A2aClientAgenticToolConfiguration`, plus the `a2a/tool-input-schema.json` and
+  `a2a/a2a-system-prompt.md` resources). It depends on `connector-a2a`, `aiagent-api`, `aiagent-model` and
+  `agentic-ai-common`, not on `connector-agentic-ai`.
+
 ---
 
 <a id="5-tool-name-convention"></a>

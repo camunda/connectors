@@ -243,6 +243,16 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-a2a</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>aiagent-a2a-integration</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-azure-blobstorage</artifactId>
         <version>${project.version}</version>
       </dependency>

@@ -81,16 +81,17 @@ See the [MCP Client connector documentation](https://docs.camunda.io/docs/next/c
 
 ## A2A connectors
 
-Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
+Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/). The templates live in the
+`connector-a2a` module (`connector-a2a/element-templates/`).
 See the [A2A Client connector documentation](https://docs.camunda.io/docs/next/components/early-access/alpha/a2a-client/).
 
 | Connector                                     | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
-| A2A Client (outbound)                         | 8.9 | 0 | [`agenticai-a2a-client-outbound-connector.json`](./agenticai-a2a-client-outbound-connector.json) |
-| A2A Client Polling — Intermediate Catch Event | 8.9 | 0 | [`agenticai-a2a-client-polling-inbound-connector-intermediate.json`](./agenticai-a2a-client-polling-inbound-connector-intermediate.json) |
-| A2A Client Polling — Receive Task             | 8.9 | 0 | [`agenticai-a2a-client-polling-inbound-connector-receive.json`](./agenticai-a2a-client-polling-inbound-connector-receive.json) |
-| A2A Client Webhook — Intermediate Catch Event | 8.9 | 1 | [`agenticai-a2a-client-webhook-inbound-connector-intermediate.json`](./agenticai-a2a-client-webhook-inbound-connector-intermediate.json) |
-| A2A Client Webhook — Receive Task             | 8.9 | 1 | [`agenticai-a2a-client-webhook-inbound-connector-receive.json`](./agenticai-a2a-client-webhook-inbound-connector-receive.json) |
+| A2A Client (outbound)                         | 8.9 | 0 | `agenticai-a2a-client-outbound-connector.json` |
+| A2A Client Polling — Intermediate Catch Event | 8.9 | 0 | `agenticai-a2a-client-polling-inbound-connector-intermediate.json` |
+| A2A Client Polling — Receive Task             | 8.9 | 0 | `agenticai-a2a-client-polling-inbound-connector-receive.json` |
+| A2A Client Webhook — Intermediate Catch Event | 8.9 | 1 | `agenticai-a2a-client-webhook-inbound-connector-intermediate.json` |
+| A2A Client Webhook — Receive Task             | 8.9 | 1 | `agenticai-a2a-client-webhook-inbound-connector-receive.json` |
 
 ## Ad-hoc tools schema connector
 
