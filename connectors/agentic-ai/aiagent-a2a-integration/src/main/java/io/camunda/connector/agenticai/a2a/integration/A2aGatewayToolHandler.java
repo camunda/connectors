@@ -20,14 +20,14 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMess
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.common.util.CollectionUtils;
 import io.camunda.connector.api.document.Document;
 import java.io.IOException;

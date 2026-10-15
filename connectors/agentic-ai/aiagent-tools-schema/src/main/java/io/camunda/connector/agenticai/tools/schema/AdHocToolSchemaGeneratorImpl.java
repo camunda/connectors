@@ -13,8 +13,8 @@ import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_STRING;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

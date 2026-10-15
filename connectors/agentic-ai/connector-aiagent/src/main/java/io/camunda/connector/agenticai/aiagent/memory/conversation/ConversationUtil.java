@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 

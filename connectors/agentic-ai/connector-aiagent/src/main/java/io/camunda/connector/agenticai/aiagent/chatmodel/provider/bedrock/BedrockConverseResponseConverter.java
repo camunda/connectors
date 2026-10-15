@@ -9,12 +9,12 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException.PartialResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;

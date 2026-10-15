@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import java.util.List;
 

@@ -11,11 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRejectedException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;

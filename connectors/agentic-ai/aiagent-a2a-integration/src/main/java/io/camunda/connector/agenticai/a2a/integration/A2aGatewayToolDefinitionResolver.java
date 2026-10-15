@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.integration;
 
 import io.camunda.connector.agenticai.a2a.client.common.A2aConstants;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
 
 public class A2aGatewayToolDefinitionResolver
     extends TypePropertyBasedGatewayToolDefinitionResolver {

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
@@ -24,8 +25,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>For each result, the extractor walks the {@code content()} tree using {@link
  * ContentTreeDocumentWalker} by default. When a result belongs to a {@link
- * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler} that overrides {@link
- * io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler#extractDocuments(ToolCallResult)
+ * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler} that overrides {@link
+ * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler#extractDocuments(ToolCallResult)
  * extractDocuments}, the handler's typed extraction is used instead — gateway handlers contribute
  * extraction for the results they manage; the generic walker handles everything else.
  */

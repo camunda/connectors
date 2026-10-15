@@ -6,6 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolCallTransformer;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;

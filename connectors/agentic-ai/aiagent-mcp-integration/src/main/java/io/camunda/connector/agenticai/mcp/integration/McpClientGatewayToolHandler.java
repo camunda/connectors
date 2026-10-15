@@ -10,14 +10,14 @@ import static io.camunda.connector.agenticai.mcp.integration.McpToolCallIdentifi
 import static io.camunda.connector.agenticai.mcp.integration.McpToolCallIdentifier.MCP_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.common.util.CollectionUtils;
 import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
 import io.camunda.connector.agenticai.mcp.client.McpClientConstants;

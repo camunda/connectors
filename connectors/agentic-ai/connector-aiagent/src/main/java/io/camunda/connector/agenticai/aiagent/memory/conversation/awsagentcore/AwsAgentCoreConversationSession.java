@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationLoadResult;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSession;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;

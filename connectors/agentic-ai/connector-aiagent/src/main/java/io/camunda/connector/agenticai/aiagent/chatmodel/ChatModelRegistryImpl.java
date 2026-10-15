@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import java.util.List;
 import java.util.stream.Collectors;
 

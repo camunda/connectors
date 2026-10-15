@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.a2a.integration.systemprompt;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 
+import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;

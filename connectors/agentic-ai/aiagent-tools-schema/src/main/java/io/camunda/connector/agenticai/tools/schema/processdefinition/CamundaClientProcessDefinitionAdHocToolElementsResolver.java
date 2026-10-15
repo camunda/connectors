@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.tools.schema.processdefinition;
 import static io.camunda.connector.agenticai.common.util.BpmnUtils.getElementDocumentation;
 import static io.camunda.connector.agenticai.common.util.BpmnUtils.getExtensionProperties;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.zeebe.model.bpmn.Bpmn;

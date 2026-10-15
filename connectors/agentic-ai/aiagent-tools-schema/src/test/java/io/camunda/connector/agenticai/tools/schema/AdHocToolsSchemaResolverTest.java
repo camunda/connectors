@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.tools.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.api.tool.TypePropertyBasedGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

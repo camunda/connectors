@@ -6,4 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
+import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+
 public record TestConversationContext(String conversationId) implements ConversationContext {}

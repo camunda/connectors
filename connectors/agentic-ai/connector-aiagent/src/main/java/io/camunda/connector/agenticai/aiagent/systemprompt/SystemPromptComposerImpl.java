@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.systemprompt;
 
+import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import java.util.ArrayList;

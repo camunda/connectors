@@ -7,10 +7,10 @@
 package io.camunda.connector.agenticai.a2a.integration;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.A2A_GATEWAY_TYPE;
-import static io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;
+import static io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

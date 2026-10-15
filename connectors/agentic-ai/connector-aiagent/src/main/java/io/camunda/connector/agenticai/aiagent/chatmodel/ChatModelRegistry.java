@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel;
 
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+
 /** Resolves the {@link ChatModel} responsible for a given {@link ChatModelConfiguration}. */
 public interface ChatModelRegistry {
 
