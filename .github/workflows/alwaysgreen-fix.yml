@@ -216,9 +216,9 @@ jobs:
           # derived from these same two values, so the check would be tautological.
           # The point is unchanged -- camunda/camunda's agent opens PRs into the same
           # e2e repository, and only this pipeline's own keys may run here.
-          if [ -n "${RAW_DISPATCH_KEY}" ] \
-             && [ "$RAW_DISPATCH_KEY" != "connectors:${BASE_REF}:${SURFACE}" ]; then
-            echo "::error::dispatch_key '$RAW_DISPATCH_KEY' is not this pipeline's key for ${BASE_REF}/${SURFACE}"
+          if [ -n "${RAW_DISPATCH_KEY:-}" ] \
+             && [ "${RAW_DISPATCH_KEY}" != "connectors:${BASE_REF}:${SURFACE}" ]; then
+            echo "::error::dispatch_key '${RAW_DISPATCH_KEY}' is not this pipeline's key for ${BASE_REF}/${SURFACE}"
             exit 1
           fi
 

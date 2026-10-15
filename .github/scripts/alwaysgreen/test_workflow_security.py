@@ -54,6 +54,9 @@ def _run_validate_inputs(tmp_path: Path, **overrides: str):
         "BASE_REF": "main",
         "SURFACE": "sm-smoke-e2e",
         "DISPATCH_KEY": "connectors:main:sm-smoke-e2e",
+        # The raw input, which a dispatch omits and a workflow_call supplies. Left
+        # unset here deliberately in one test below, to prove the guard tolerates it.
+        "RAW_DISPATCH_KEY": "connectors:main:sm-smoke-e2e",
         "TEST_SPECS": (
             '[{"file":"tests/SM-8.11/smoke-tests.spec.ts",'
             '"test_name":"login","error":"expected value","project":"chromium",'
@@ -241,22 +244,42 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
     assert "--add-reviewer octocat" not in gh_calls
 
 
-def test_privileged_workflows_are_not_directly_dispatchable():
-    # Unchanged in intent, and load-bearing: the agent runs Claude Code with tokens,
-    # so a workflow_dispatch would let anyone who can push start it with hand-written
-    # test_specs, evidence and blame. Removing local triage does not relax this --
-    # see camunda/connectors#9511, which proposes relaxing it deliberately and is
-    # held open precisely because this test says no.
-    assert "workflow_dispatch:" not in FIX
-    assert "workflow_call:" in FIX
+def test_the_fix_agent_is_dispatchable_and_what_now_bounds_it():
+    """The one control this change deliberately trades, and what replaced it.
 
+    This file used to assert `"workflow_dispatch:" not in FIX`: nothing privileged
+    here could be started from outside at all. That was the stronger rule, and it is
+    being given up on purpose -- triage now runs in
+    camunda/c8-cross-component-e2e-tests for every consumer, that repository is
+    internal while this one is public, and GitHub refuses `uses:` across that
+    boundary. A dispatch is the only way left to start the agent, and an agent that
+    cannot be started cannot fix anything.
 
-def test_fix_requires_a_protected_non_manual_caller_and_enabled_mode():
+    So the boundary moves rather than disappearing, and this asserts where it moved
+    to. What an attacker with push access gains is the ability to START the agent;
+    what they still cannot do is choose a branch it will touch, run it while the
+    kill switch is off, feed it another pipeline's dispatch key, or have it open a PR
+    with write permissions it does not have.
+
+    If any assertion below is ever removed, the trade made here stops holding.
+    """
+    assert "workflow_dispatch:" in FIX, "the central triage has no other way in"
+    assert "workflow_call:" in FIX, "the in-repo caller must keep working"
+
+    # Protected refs only: a dispatch cannot aim the agent at an arbitrary branch.
     assert "github.ref_protected" in FIX
-    assert "github.event_name != 'workflow_dispatch'" in FIX
+    # The Vault kill switch still gates every run, dispatched or called.
     assert "needs.gate.outputs.dispatch == 'true'" in FIX
+    # `active` is the weaker of the two gate outputs and must not be what guards this.
     assert "needs.gate.outputs.active == 'true'" not in FIX
+    # The agent still cannot write to pull requests.
     assert "pull-requests: write" not in FIX
+    # Inputs are still validated against allowlists rather than trusted.
+    assert 'case "$BASE_REF" in' in FIX
+    assert 'case "$SURFACE" in' in FIX
+    # And a key belonging to another pipeline is still refused; the dedicated tests
+    # above exercise both halves of that guard against the real script.
+    assert 'connectors:${BASE_REF}:${SURFACE}' in FIX
 
 
 def test_executable_tooling_is_pinned_and_not_caller_selectable():
@@ -436,3 +459,18 @@ def test_input_validator_accepts_production_objects_and_bot_authors(tmp_path):
 def test_input_validator_accepts_empty_optional_inputs(tmp_path):
     result = _run_validate_inputs(tmp_path, EVIDENCE="", BLAME="", SLACK="")
     assert result.returncode == 0, result.stderr
+
+
+def test_the_key_guard_tolerates_a_dispatch_that_omits_it(tmp_path):
+    # A dispatched run sends no dispatch_key -- it is derived. The guard must skip
+    # rather than fail on the unset variable, which `set -u` would otherwise make
+    # fatal, killing every dispatched agent on its first step.
+    result = _run_validate_inputs(tmp_path, RAW_DISPATCH_KEY="")
+    assert result.returncode == 0, result.stderr
+
+
+def test_the_key_guard_still_rejects_another_pipelines_key(tmp_path):
+    # The point of the guard, unchanged: camunda/camunda's agent opens PRs into the
+    # same e2e repository, and only this pipeline's own keys may run here.
+    result = _run_validate_inputs(tmp_path, RAW_DISPATCH_KEY="camunda:main:sm-smoke-e2e")
+    assert result.returncode != 0
