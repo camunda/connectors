@@ -124,6 +124,30 @@ on:
         required: false
         default: '{}'
         type: string
+# One reservation for the WHOLE run, not one per job.
+#
+# Two agents on the same key both see no open PR in `Publish validated patch`,
+# both create one, and every later run for that key then dies on "multiple open
+# PRs use dispatch label" until a human closes one. Triage used to be the only
+# thing standing in the way -- it serialises per branch and reads the in-flight
+# keys before dispatching, and the central triage in
+# camunda/c8-cross-component-e2e-tests still does both -- but neither reaches a
+# workflow_dispatch made by hand, which this workflow now accepts.
+#
+# At workflow level rather than per job: a job-level group is released
+# between `gate` and `fix`, and another run's gate can take it in that gap,
+# leaving an already-gated `fix` pending where a third dispatch evicts it. One
+# run-wide reservation has no such gap, and it also puts the Vault read inside
+# the lock -- a run that waited an agent's full 90 minutes must not start on an
+# approval banked before the wait, because the flag is the kill switch and
+# `disabled` is supposed to stop queued agents too.
+#
+# Not cancel-in-progress: the loser waits for the agent that is already
+# mid-patch rather than killing it.
+concurrency:
+  group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read
@@ -145,16 +169,6 @@ jobs:
   # interrupted — cancel it.
   gate:
     name: Check feature flag
-    # Same group as `fix` below, so the Vault read happens INSIDE the lock rather
-    # than before it. With the gate outside, a second dispatch could resolve
-    # `dispatch=true`, then sit behind a 90-minute agent and start on an approval
-    # nobody could withdraw any more -- the flag is the kill switch, and
-    # "`disabled` also stops queued agents" has to keep meaning that. Sharing the
-    # group costs nothing: the gate holds it for seconds, and the two jobs are
-    # ordered by `needs`, so they never contend with each other.
-    concurrency:
-      group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -188,19 +202,6 @@ jobs:
     # workflow_dispatch is now how the central triage starts this agent, so it is
     # no longer excluded. The Vault flag resolved in `gate` remains the kill switch.
     if: ${{ github.ref_protected && needs.gate.outputs.dispatch == 'true' }}
-    # The deleted local triage serialised per branch and took an in-flight read
-    # before dispatching; the central one still does both. Neither covers a
-    # workflow_dispatch made by hand, which this change makes possible for the
-    # first time -- and two agents on one key both see no open PR in `Publish
-    # validated patch`, both create one, and every later run for that key then
-    # dies on "multiple open PRs use dispatch label". That state needs a human to
-    # undo, so the lock belongs here as well, where it holds whatever started the
-    # run. Not cancel-in-progress: the loser must wait for the agent that is
-    # already mid-patch, not kill it. `gate` shares this group so the flag is
-    # read after the wait, not before it.
-    concurrency:
-      group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 90
 

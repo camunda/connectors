@@ -283,7 +283,7 @@ def test_the_fix_agent_is_dispatchable_and_what_now_bounds_it():
 
 
 def test_two_agents_cannot_race_for_one_dispatch_key():
-    """A dispatch is now startable by hand, so the agent holds its own lock.
+    """A dispatch is now startable by hand, so the run holds a lock on its key.
 
     Triage serialised per branch and read the in-flight keys before dispatching,
     and the central one still does -- but neither covers a workflow_dispatch a
@@ -292,35 +292,25 @@ def test_two_agents_cannot_race_for_one_dispatch_key():
     which every later run for that key fails on "multiple open PRs use dispatch
     label" until someone closes one by hand. Cancelling is not the answer either:
     the active agent may be mid-patch.
+
+    The reservation is WORKFLOW level, and the assertions below say so. A
+    job-level group is released between `gate` and `fix`, and another run's gate
+    can take it in that gap -- which leaves an already-gated `fix` pending,
+    where a third dispatch evicts it. It also keeps the Vault read inside the
+    lock: a run that waited an agent's full 90 minutes must not start on an
+    approval banked before the wait, since `disabled` is meant to stop queued
+    agents too.
     """
-    jobs = _jobs(FIX)
-    fix_job = jobs["fix"]
-    assert "concurrency:" in fix_job, "a dispatched agent must serialise on its key"
-    assert "group: alwaysgreen-fix-${{ inputs.dispatch_key" in fix_job, (
-        "the group must be the dispatch key, or two surfaces block each other"
-    )
-    assert "cancel-in-progress: false" in fix_job, (
+    head = FIX[: FIX.index("\njobs:\n")]
+    assert "\nconcurrency:\n" in head, "the whole run must serialise on its key"
+    assert (
+        "group: alwaysgreen-fix-${{ inputs.dispatch_key" in head
+    ), "the group must be the dispatch key, or two surfaces block each other"
+    assert "cancel-in-progress: false" in head, (
         "the loser waits; killing an agent mid-patch loses the fix"
     )
-
-
-def test_the_kill_switch_is_read_inside_the_queue_not_before_it():
-    """A queued agent must not start on an approval nobody can withdraw.
-
-    The wait introduced by the lock above is up to the agent's 90-minute
-    timeout, and the Vault flag is the kill switch: `gate` resolving
-    `dispatch=true` before the wait would let a run that was disabled, or
-    switched to dry-run, while it sat in the queue start anyway on a stale
-    answer. Putting `gate` in the same concurrency group moves the read inside
-    the lock, so it happens after the previous agent released it -- the same
-    reason the sibling agent in camunda/c8-cross-component-e2e-tests re-resolves
-    its open-PR list after its `serialize` gate instead of before.
-    """
-    jobs = _jobs(FIX)
-    group = "group: alwaysgreen-fix-${{ inputs.dispatch_key"
-    assert group in jobs["gate"], "the Vault read must sit inside the per-key lock"
-    assert group in jobs["fix"], "both jobs must share one group or the lock leaks"
-    assert "cancel-in-progress: false" in jobs["gate"]
+    # Job-level groups are what reintroduces the gap between `gate` and `fix`.
+    assert "    concurrency:" not in FIX, "the lock belongs to the run, not a job"
 
 
 def test_executable_tooling_is_pinned_and_not_caller_selectable():
