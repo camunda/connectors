@@ -4,18 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.autoconfigure;
+package io.camunda.connector.agenticai.a2a.integration.configuration;
 
-import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
-import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.Mockito.mock;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
-import io.camunda.connector.agenticai.a2a.client.inbound.webhook.A2aClientWebhookExecutable;
+import io.camunda.connector.agenticai.a2a.client.configuration.A2aClientAutoConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
@@ -24,11 +24,18 @@ import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToP
 import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.integration.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.integration.systemprompt.A2aSystemPromptContributor;
+import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 
-public class A2aAutoConfigurationTest {
+class A2aClientAgenticToolConfigurationTest {
 
   private static final List<Class<?>> A2A_COMMON_BEANS =
       List.of(
@@ -51,26 +58,18 @@ public class A2aAutoConfigurationTest {
           A2aGatewayToolHandler.class,
           A2aSystemPromptContributor.class);
 
-  private static final List<Class<?>> A2A_POLLING_BEANS =
-      List.of(A2aClientPollingExecutable.class, A2aPollingExecutorService.class);
-
-  private static final List<Class<?>> A2A_WEBHOOK_BEANS = List.of(A2aClientWebhookExecutable.class);
-
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
-          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
+          .withConfiguration(
+              AutoConfigurations.of(
+                  AgenticAiCommonAutoConfiguration.class,
+                  A2aClientAutoConfiguration.class,
+                  A2aClientAgenticToolConfiguration.class));
 
   @Test
-  void enablesAllA2aIntegrationByDefault() {
-    contextRunner.run(
-        context -> {
-          assertHasAllBeansOf(context, A2A_COMMON_BEANS);
-          assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
-          assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS);
-          assertHasAllBeansOf(context, A2A_POLLING_BEANS);
-          assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
-        });
+  void enablesA2aAgentToolByDefault() {
+    contextRunner.run(context -> assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS));
   }
 
   @Test
@@ -86,33 +85,39 @@ public class A2aAutoConfigurationTest {
   }
 
   @Test
-  void disablesA2aOutboundClientIfConfigured() {
+  void keepsA2aAgentToolIfOutboundClientIsDisabled() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.a2a.client.outbound.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
-              assertHasAllBeansOf(context, A2A_COMMON_BEANS);
-              assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS);
-              assertHasAllBeansOf(context, A2A_POLLING_BEANS);
-              assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
-            });
+        .run(context -> assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS));
   }
 
-  @Test
-  void doesNotContainAnyA2aIntegrationsIfAllDisabled() {
-    contextRunner
-        .withPropertyValues(
-            "camunda.connector.agenticai.a2a.client.outbound.enabled=false",
-            "camunda.connector.agenticai.a2a.client.agentic.tool.enabled=false",
-            "camunda.connector.agenticai.a2a.client.polling.enabled=false",
-            "camunda.connector.agenticai.a2a.client.webhook.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, A2A_AGENT_TOOL_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, A2A_COMMON_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, A2A_POLLING_BEANS);
-            });
+  private static void assertHasAllBeansOf(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(beans.stream().map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass)));
+  }
+
+  private static void assertDoesNotHaveAnyBeansOf(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(
+        beans.stream().map(beanClass -> () -> assertThat(context).doesNotHaveBean(beanClass)));
+  }
+
+  static class TestConfig {
+
+    @Bean
+    @ConnectorsObjectMapper
+    public ObjectMapper objectMapper() {
+      return new ObjectMapper();
+    }
+
+    @Bean
+    public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+      return mock(OAuthClientCredentialsTokenResolver.class);
+    }
+
+    @Bean
+    public DocumentFactory documentFactory() {
+      return mock(DocumentFactory.class);
+    }
   }
 }

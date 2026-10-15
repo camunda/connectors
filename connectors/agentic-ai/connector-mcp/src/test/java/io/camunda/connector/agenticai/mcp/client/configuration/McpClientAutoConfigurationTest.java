@@ -4,26 +4,35 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.autoconfigure;
+package io.camunda.connector.agenticai.mcp.client.configuration;
 
-import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
-import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
-import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOfAtLeastOnce;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.Mockito.mock;
 
-import io.camunda.connector.agenticai.mcp.client.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
+import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
+import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
-import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.mcp.integration.McpClientGatewayToolHandler;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 
-public class McpAutoConfigurationTest {
+class McpClientAutoConfigurationTest {
 
   // this will need to be updated in case we support different frameworks
   private static final List<Class<?>> SHARED_MCP_CLIENT_BEANS =
@@ -44,27 +53,9 @@ public class McpAutoConfigurationTest {
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
-          .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
-
-  @Test
-  void enablesMcpDiscoveryByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
-          assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
-        });
-  }
-
-  @Test
-  void disablesMcpDiscoveryIfConfigured() {
-    contextRunner
-        .withPropertyValues("camunda.connector.agenticai.mcp.discovery.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
-            });
-  }
+          .withConfiguration(
+              AutoConfigurations.of(
+                  AgenticAiCommonAutoConfiguration.class, McpClientAutoConfiguration.class));
 
   @Test
   void enablesRemoteMcpClientIntegrationByDefault() {
@@ -140,5 +131,44 @@ public class McpAutoConfigurationTest {
               assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
             });
+  }
+
+  private static void assertHasAllBeansOf(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(beans.stream().map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass)));
+  }
+
+  private static void assertHasAllBeansOfAtLeastOnce(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(
+        beans.stream()
+            .map(
+                beanClass ->
+                    () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
+  }
+
+  private static void assertDoesNotHaveAnyBeansOf(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(
+        beans.stream().map(beanClass -> () -> assertThat(context).doesNotHaveBean(beanClass)));
+  }
+
+  static class TestConfig {
+
+    @Bean
+    @ConnectorsObjectMapper
+    public ObjectMapper objectMapper() {
+      return new ObjectMapper();
+    }
+
+    @Bean
+    public OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver() {
+      return mock(OAuthClientCredentialsTokenResolver.class);
+    }
+
+    @Bean
+    public DocumentFactory documentFactory() {
+      return mock(DocumentFactory.class);
+    }
   }
 }
