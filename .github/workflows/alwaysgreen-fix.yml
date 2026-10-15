@@ -403,20 +403,69 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.read-token.outputs.token }}
           BASE_REF: ${{ inputs.base_ref }}
+          # The repositories the read token above is installed for. Everything else
+          # in the manifest is public and is cloned unauthenticated, as before.
+          TOKEN_REPOS: connectors,c8-cross-component-e2e-tests
         run: |
           set -euo pipefail
           mkdir -p agent-workspace
+
+          # The workspace is described by .github/workspace-templates/alwaysgreen.yaml
+          # -- the same manifest every other AlwaysGreen consumer builds from. They
+          # hand it to workspace-cli; this workflow reads it directly instead, because
+          # workspace-cli is a private module and installing it requires a global git
+          # URL rewrite carrying a token. test_workflow_security.py forbids that
+          # outright, and rightly: this workflow revokes its read token before the
+          # model runs, and a credential written into the global git config would
+          # outlive that revocation for the agent to find. Reading the manifest here
+          # keeps the single source of truth without touching the credential model.
+          python3 - .github/workspace-templates/alwaysgreen.yaml > /tmp/ws-repos.tsv <<'PY'
+          import sys
+
+          entries, cur = [], None
+          for raw in open(sys.argv[1]):
+              line = raw.strip()
+              if line.startswith('- url:'):
+                  if cur:
+                      entries.append(cur)
+                  cur = {'url': line.split(':', 1)[1].strip()}
+              elif cur is not None and line.startswith('path:'):
+                  cur['path'] = line.split(':', 1)[1].strip()
+              elif cur is not None and line.startswith('default_branch:'):
+                  cur['branch'] = line.split(':', 1)[1].strip()
+              elif line and not line.startswith(('-', '#')) and ':' in line and not raw.startswith(' '):
+                  # A new top-level key ends the repos block.
+                  if cur:
+                      entries.append(cur)
+                      cur = None
+          if cur:
+              entries.append(cur)
+
+          missing = [e for e in entries if not e.get('path') or not e.get('branch')]
+          if missing or not entries:
+              sys.exit(f'manifest unusable: {missing or "no repos parsed"}')
+          for e in entries:
+              print(f"{e['url']}\t{e['path']}\t{e['branch']}")
+          PY
+
+          echo "Workspace from manifest:"
+          cat /tmp/ws-repos.tsv
+
           auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)
-          git -c http.extraHeader="Authorization: Basic ${auth}" \
-            clone --depth 1 --branch "$BASE_REF" \
-            https://github.com/camunda/connectors.git agent-workspace/connectors
-          git -c http.extraHeader="Authorization: Basic ${auth}" \
-            clone --depth 1 https://github.com/camunda/c8-cross-component-e2e-tests.git \
-            agent-workspace/c8-cross-component-e2e-tests
-          git clone --quiet --depth 1 https://github.com/camunda/camunda-platform-helm.git \
-            agent-workspace/camunda-platform-helm
-          git clone --quiet --depth 1 https://github.com/camunda/camunda-docs.git \
-            agent-workspace/camunda-docs
+          while IFS=$'\t' read -r url path branch; do
+            # connectors is the branch-scoped entry: a stable/8.x failure has to be
+            # read and fixed on that branch, so its manifest default is overridden
+            # with the ref that failed. The others have no release branches.
+            if [ "$path" = "connectors" ]; then branch="$BASE_REF"; fi
+            name="${url##*/}"; name="${name%.git}"
+            if printf '%s' ",$TOKEN_REPOS," | grep -q ",$name,"; then
+              git -c http.extraHeader="Authorization: Basic ${auth}" \
+                clone --depth 1 --branch "$branch" "$url" "agent-workspace/$path"
+            else
+              git clone --quiet --depth 1 --branch "$branch" "$url" "agent-workspace/$path"
+            fi
+          done < /tmp/ws-repos.tsv
+
           cp docs/alwaysgreen/FIX-AGENT.md agent-workspace/FIX-AGENT.md
           find agent-workspace -type d -name .git -prune -exec chmod -R a-w {} +
 
