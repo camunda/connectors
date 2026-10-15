@@ -1,0 +1,88 @@
+{
+  "groups": [
+    {
+      "name": "camunda.connector.managed-code",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Optional managed-code deployment reconciliation workload."
+    }
+  ],
+  "properties": [
+    {
+      "name": "camunda.connector.managed-code.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether managed-code deployment reconciliation is enabled.",
+      "defaultValue": false
+    },
+    {
+      "name": "camunda.connector.managed-code.provider",
+      "type": "java.lang.String",
+      "description": "Deployment provider selection. The built-in deterministic provider requires the explicit value 'fake'."
+    },
+    {
+      "name": "camunda.connector.managed-code.worker",
+      "type": "java.lang.String",
+      "description": "Logical identity used when leasing managed-script definitions.",
+      "defaultValue": "managed-code-runtime"
+    },
+    {
+      "name": "camunda.connector.managed-code.interval",
+      "type": "java.time.Duration",
+      "description": "Delay between reconciliation ticks.",
+      "defaultValue": "5s"
+    },
+    {
+      "name": "camunda.connector.managed-code.initial-delay",
+      "type": "java.time.Duration",
+      "description": "Delay before the first reconciliation tick.",
+      "defaultValue": "0s"
+    },
+    {
+      "name": "camunda.connector.managed-code.lease-duration",
+      "type": "java.time.Duration",
+      "description": "Lease duration requested from the control plane and renewed while provider work is running.",
+      "defaultValue": "2m"
+    },
+    {
+      "name": "camunda.connector.managed-code.batch-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of deployments acquired per physical tenant and tick.",
+      "defaultValue": 20
+    },
+    {
+      "name": "camunda.connector.managed-code.concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of physical tenants reconciled concurrently.",
+      "defaultValue": 4
+    },
+    {
+      "name": "camunda.connector.managed-code.queue-capacity",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of queued physical-tenant reconciliation tasks.",
+      "defaultValue": 64
+    },
+    {
+      "name": "camunda.connector.managed-code.shutdown-timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum time to wait for in-flight reconciliation during shutdown.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.local-execution-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to execute fake-provider managed scripts in local Node.js or Python subprocesses. This trusted-development-only mode is not a sandbox.",
+      "defaultValue": false
+    },
+    {
+      "name": "camunda.connector.managed-code.execution-timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum duration of one trusted local script invocation.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.invocation-concurrency",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of managed-script invocation jobs activated concurrently per Camunda client.",
+      "defaultValue": 4
+    }
+  ]
+}
