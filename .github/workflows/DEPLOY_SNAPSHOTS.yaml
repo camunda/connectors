@@ -149,9 +149,10 @@ jobs:
             echo "fresh=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Match Maven deployment credentials by server id rather than repository origin.
       - name: Build Artifacts
         if: github.event_name != 'push' || steps.snapshot-gate.outputs.fresh != 'true'
-        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests -Dconnectors.fatjar.attach=false
+        run: ./mvnw -B -U compile generate-sources source:jar javadoc:jar deploy -Dmaven.repository.credentialScope=id -DskipTests -Dconnectors.fatjar.attach=false
 
       # The Docker images below are built from the local target/ jars, so they still need a build.
       - name: Build Artifacts without deploying
