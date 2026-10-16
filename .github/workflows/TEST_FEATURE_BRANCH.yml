@@ -1,16 +1,33 @@
 name: Test branch
 
 on:
+<<<<<<< HEAD
+=======
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  # Feature branches are covered by pull_request (and merge_group for main);
+  # running on push too would test every PR commit twice. Push only covers
+  # long-lived branches whose merges are not tested by merge_group.
+>>>>>>> 7c4924a (ci: stop running Test branch twice per PR commit (#9467))
   push:
     branches:
-      - '**'
-      - '!main'
-      - '!gh-readonly-queue/**'
+      - 'stable/**'
+      - 'alpha/**'
+      - 'release-*'
   merge_group:
     branches: [ main, 'stable/**' ]
 
+<<<<<<< HEAD
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
 # letting push and pull_request events cancel each other.
+=======
+# Cancel stale runs of the same type (push-on-push, PR-on-PR). Merge-queue runs
+# are keyed on the merge group's head ref so entries queued behind others
+# don't collide into the same group and get cancelled.
+>>>>>>> 7c4924a (ci: stop running Test branch twice per PR commit (#9467))
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
