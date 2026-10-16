@@ -1,27 +1,52 @@
+#!/usr/bin/env python3
 """Tests for the streak job in connectors-streak-detector.yml.
 
 Runs the workflow's own step scripts against a stubbed `gh`, so the assertions follow
-the YAML rather than a copy of it.
+the YAML rather than a copy of it. Standard library only, like the other CI scripts.
 """
-
-from __future__ import annotations
 
 import json
 import os
+import pathlib
+import re
 import subprocess
+import tempfile
 import textwrap
-from pathlib import Path
+import unittest
 
-import yaml
-
-WORKFLOW = Path(__file__).resolve().parents[1] / "connectors-streak-detector.yml"
+WORKFLOW = pathlib.Path(__file__).resolve().parents[1] / "connectors-streak-detector.yml"
 REPO = "camunda/connectors"
 SHA = "a" * 40
 CONNECTORS_MEDIC = "<connectors-medic>"
 
-_WF = yaml.safe_load(WORKFLOW.read_text())
-_STEPS = {s.get("id"): s["run"] for s in _WF["jobs"]["detect-streak"]["steps"] if s.get("id")}
-_ENV = {k: str(v) for k, v in _WF["env"].items()}
+
+def workflow_env(text: str) -> dict:
+    block = re.search(r"^env:\n((?:[ #].*\n|\n)*)", text, re.M).group(1)
+    return {
+        m.group(1): m.group(2).strip("'\"")
+        for m in re.finditer(r"^  ([A-Z_]+): (.+)$", block, re.M)
+    }
+
+
+def step_script(text: str, step_id: str) -> str:
+    """The `run: |` block of the step with the given id."""
+    lines = text.splitlines()
+    start = lines.index(f"        id: {step_id}")
+    run = next(
+        i for i in range(start, len(lines)) if lines[i].strip() == "run: |"
+    )
+    assert not any(l.lstrip().startswith("- name:") for l in lines[start:run]), step_id
+    indent = len(lines[run]) - len(lines[run].lstrip())
+    body = []
+    for line in lines[run + 1:]:
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break
+        body.append(line)
+    return textwrap.dedent("\n".join(body))
+
+
+_TEXT = WORKFLOW.read_text()
+ENV = workflow_env(_TEXT)
 
 GH_STUB = textwrap.dedent(
     r"""
@@ -85,90 +110,82 @@ def failed_job(name: str) -> dict:
     return {"name": name, "conclusion": "failure"}
 
 
-def run_step(tmp_path: Path, step: str, fixture: dict, env: dict) -> dict:
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir(exist_ok=True)
-    gh = bin_dir / "gh"
-    gh.write_text(GH_STUB)
-    gh.chmod(0o755)
-    fixture_file = tmp_path / "fixture.json"
-    fixture_file.write_text(json.dumps(fixture))
-    output = tmp_path / f"{step}.out"
-    output.write_text("")
-    result = subprocess.run(
-        ["bash", "-c", _STEPS[step]],
-        env={
-            **os.environ,
-            **_ENV,
-            **env,
-            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
-            "GH_FIXTURE": str(fixture_file),
-            "GITHUB_OUTPUT": str(output),
-            "GITHUB_REPOSITORY": REPO,
-            "GH_TOKEN": "unused",
-            "CONNECTORS_MEDIC": CONNECTORS_MEDIC,
-        },
-        text=True,
-        capture_output=True,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    return dict(line.split("=", 1) for line in output.read_text().splitlines() if "=" in line)
+class StreakDetectorTest(unittest.TestCase):
 
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = pathlib.Path(tmp.name)
+        gh = self.tmp / "gh"
+        gh.write_text(GH_STUB)
+        gh.chmod(0o755)
 
-def detect(tmp_path: Path, fixture: dict) -> dict:
-    out = run_step(tmp_path, "streak", fixture, {"BASE_REF": "main"})
-    if out["is_streak"] == "true":
-        medics = run_step(
-            tmp_path,
-            "medics",
-            fixture,
-            {"FAIL_RUN_ID": out["fail_run_id"], "FAIL_KIND": out["fail_kind"]},
+    def run_step(self, step_id: str, fixture: dict, env: dict) -> dict:
+        fixture_file = self.tmp / "fixture.json"
+        fixture_file.write_text(json.dumps(fixture))
+        output = self.tmp / f"{step_id}.out"
+        output.write_text("")
+        result = subprocess.run(
+            ["bash", "-c", step_script(_TEXT, step_id)],
+            env={
+                **os.environ,
+                **ENV,
+                **env,
+                "PATH": f"{self.tmp}{os.pathsep}{os.environ['PATH']}",
+                "GH_FIXTURE": str(fixture_file),
+                "GITHUB_OUTPUT": str(output),
+                "GITHUB_REPOSITORY": REPO,
+                "GH_TOKEN": "unused",
+                "CONNECTORS_MEDIC": CONNECTORS_MEDIC,
+            },
+            text=True,
+            capture_output=True,
         )
-        out["pings"] = medics["pings"]
-    return out
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return dict(l.split("=", 1) for l in output.read_text().splitlines() if "=" in l)
 
+    def detect(self, fixture: dict) -> dict:
+        out = self.run_step("streak", fixture, {"BASE_REF": "main"})
+        if out["is_streak"] == "true":
+            medics = self.run_step(
+                "medics",
+                fixture,
+                {"FAIL_RUN_ID": out["fail_run_id"], "FAIL_KIND": out["fail_kind"]},
+            )
+            out["pings"] = medics["pings"]
+        return out
 
-def test_saas_only_failures_point_at_the_failing_callback(tmp_path: Path):
-    # Three green pipeline runs whose SaaS callbacks failed; the event that raises the
-    # streak can be the green parent, which carries no failed jobs.
-    parents = (101, 102, 103)
-    out = detect(
-        tmp_path,
-        {
+    def test_saas_only_failures_point_at_the_failing_callback(self):
+        # Three green pipeline runs whose SaaS callbacks failed; the event that raises
+        # the streak can be the green parent, which carries no failed jobs.
+        parents = (101, 102, 103)
+        out = self.detect({
             "pipeline": [pipeline_run(i, "success") for i in parents],
             "saas": [saas_result(i, "failure", i + 400) for i in parents],
             "jobs": {str(i): [dispatched_trigger()] for i in parents},
-        },
-    )
+        })
 
-    assert out["is_streak"] == "true"
-    assert out["streak_count"] == "3"
-    assert out["fail_kind"] == "saas"
-    assert out["fail_run_id"] == "503"
-    assert out["fail_run_url"] == f"https://github.com/{REPO}/actions/runs/503"
-    assert out["pings"] == _ENV["MEDIC_TEST_AUTOMATION"]
+        self.assertEqual(out["is_streak"], "true")
+        self.assertEqual(out["streak_count"], "3")
+        self.assertEqual(out["fail_kind"], "saas")
+        self.assertEqual(out["fail_run_id"], "503")
+        self.assertEqual(out["fail_run_url"], f"https://github.com/{REPO}/actions/runs/503")
+        self.assertEqual(out["pings"], ENV["MEDIC_TEST_AUTOMATION"])
 
-
-def test_pipeline_failures_point_at_the_newest_failing_run(tmp_path: Path):
-    out = detect(
-        tmp_path,
-        {
+    def test_pipeline_failures_point_at_the_newest_failing_run(self):
+        out = self.detect({
             "pipeline": [pipeline_run(i, "failure") for i in (101, 102, 103)],
             "saas": [],
             "jobs": {"103": [failed_job("Build connectors image")]},
-        },
-    )
+        })
 
-    assert out["fail_kind"] == "pipeline"
-    assert out["fail_run_id"] == "103"
-    assert out["fail_run_url"] == f"https://github.com/{REPO}/actions/runs/103"
-    assert out["pings"] == CONNECTORS_MEDIC
+        self.assertEqual(out["fail_kind"], "pipeline")
+        self.assertEqual(out["fail_run_id"], "103")
+        self.assertEqual(out["fail_run_url"], f"https://github.com/{REPO}/actions/runs/103")
+        self.assertEqual(out["pings"], CONNECTORS_MEDIC)
 
-
-def test_pending_run_is_skipped_when_choosing_the_failing_run(tmp_path: Path):
-    out = detect(
-        tmp_path,
-        {
+    def test_pending_run_is_skipped_when_choosing_the_failing_run(self):
+        out = self.detect({
             "pipeline": [
                 pipeline_run(100, "failure"),
                 pipeline_run(101, "success"),
@@ -181,19 +198,15 @@ def test_pending_run_is_skipped_when_choosing_the_failing_run(tmp_path: Path):
                 "102": [failed_job("Helm chart setup")],
                 "103": [dispatched_trigger()],
             },
-        },
-    )
+        })
 
-    assert out["streak_count"] == "3"
-    assert out["fail_kind"] == "pipeline"
-    assert out["fail_run_id"] == "102"
-    assert out["pings"] == _ENV["MEDIC_DISTRO"]
+        self.assertEqual(out["streak_count"], "3")
+        self.assertEqual(out["fail_kind"], "pipeline")
+        self.assertEqual(out["fail_run_id"], "102")
+        self.assertEqual(out["pings"], ENV["MEDIC_DISTRO"])
 
-
-def test_green_run_after_failures_resolves(tmp_path: Path):
-    out = detect(
-        tmp_path,
-        {
+    def test_green_run_after_failures_resolves(self):
+        out = self.detect({
             "pipeline": [
                 pipeline_run(101, "failure"),
                 pipeline_run(102, "failure"),
@@ -201,8 +214,11 @@ def test_green_run_after_failures_resolves(tmp_path: Path):
             ],
             "saas": [saas_result(103, "success", 503)],
             "jobs": {"103": [dispatched_trigger()]},
-        },
-    )
+        })
 
-    assert out["is_streak"] == "false"
-    assert out["latest_success"] == "true"
+        self.assertEqual(out["is_streak"], "false")
+        self.assertEqual(out["latest_success"], "true")
+
+
+if __name__ == "__main__":
+    unittest.main()
