@@ -44,11 +44,12 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-mcp-integration` | `mcp.integration` | MCP client as AI Agent gateway tool |
 | `connector-a2a` | `a2a.client` | A2A client connectors |
 | `aiagent-a2a-integration` | `a2a.integration` | A2A client as AI Agent gateway tool |
-| `agentic-ai-common` | `common` | Shared utilities and HTTP support |
+| `agentic-ai-common` | `common` | Shared helpers and HTTP support |
 | `agentic-ai-bundle` | – | All of the above (`pom` packaging, depend on it with `<type>pom</type>`) |
 
 An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
-brings the API, model, tools schema and common libraries. An extension that only implements an
+brings the API, model, tools schema and common libraries. It does not bring the Ad-hoc tools schema
+connector. Add `connector-ad-hoc-tools-schema`, or use the bundle, when processes use that connector. An extension that only implements an
 extension point can depend on `aiagent-api` alone. The MCP and A2A modules are separate
 dependencies. A custom runtime that runs all agentic AI connectors, like the previous
 `connector-agentic-ai` dependency did, depends on the bundle:
@@ -79,7 +80,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `aiagent.systemprompt`: `SystemPromptContributor`                            | `aiagent.api.systemprompt.*`                   |
 | `aiagent.agent`: `ContentTreeDocumentWalker`                                 | `aiagent.api.document.*`                       |
 | `aiagent.chatmodel`: `ChatModelConfiguration`                                | `aiagent.model.chatmodel.*`                    |
-| `aiagent.memory.conversation`: `ConversationContext`, `ConversationContextSubtypes`, `ConversationContextTypeResolverBuilder` | `aiagent.model.conversation.*` |
+| `aiagent.memory.conversation`: `ConversationContext`, `ConversationContextTypeResolverBuilder` | `aiagent.model.conversation.*` |
 | `adhoctoolsschema.model`: `AdHocToolElement`, `AdHocToolElementParameter`    | `aiagent.model.tool.*`                         |
 | `aiagent.model.request`: `AgentSubProcessRequestData`, `AgentSubProcessResponseConfiguration`, `AgentSubProcessV1Request`, `AgentSubProcessV2Request`, `AgentTaskRequestData`, `AgentTaskResponseConfiguration`, `AgentTaskV1Request`, `AgentTaskV2Request`, `MemoryStorageTemplateConfiguration`, `MemoryTemplateConfiguration`, `ToolsConfiguration`, `V1ToV2ProviderConfigurationMapper(Impl)` | `aiagent.request.*` |
 | `aiagent.model.request.v1.*`                                                 | `aiagent.request.v1.*`                         |
@@ -151,8 +152,13 @@ auto-configurations of their own modules:
 | A2A client connectors                                        | `A2aClientAutoConfiguration`               |
 | A2A gateway tool integration                                 | `A2aClientAgenticToolAutoConfiguration`    |
 
-Bean names, conditions and property names are unchanged. To exclude an auto-configuration by name,
+Bean names, conditions and property names are unchanged, except for the
+[MCP gateway tool property](#mcp-gateway-tool-property). To exclude an auto-configuration by name,
 for example with `spring.autoconfigure.exclude`, use the new class names.
+
+The beans of the outbound connector functions of the MCP Client, MCP Remote Client, A2A Client and
+ad-hoc tools schema connectors are prototype-scoped, like the AI Agent functions. A custom bean that
+replaces one of them must be prototype-scoped too.
 
 ### MCP gateway tool property
 
@@ -163,8 +169,9 @@ A2A Client connector:
 | --------------------------------------------------- | ------------------------------------------------------------- |
 | `camunda.connector.agenticai.mcp.discovery.enabled` | `camunda.connector.agenticai.mcp.client.agentic.tool.enabled` |
 
-The old property has no effect. A runtime that sets it to `false` must set the new property instead,
-otherwise the AI Agent discovers and calls MCP Client tools again.
+The old property is a deprecated alias and will be removed in a future release. Setting either
+property to `false` disables the MCP Client connectors as AI Agent tools. The runtime logs a warning
+at startup while the old property is set. Replace it with the new property.
 
 ### Server URL validation
 

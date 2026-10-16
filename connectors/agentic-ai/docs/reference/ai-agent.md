@@ -1209,7 +1209,11 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `A2aClientAgenticToolAutoConfiguration`        | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
 | `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
-| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema, A2A and MCP integrations                 | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+
+The AI Agent does not reference the MCP and A2A integrations. It collects every `GatewayToolHandler`
+and `SystemPromptContributor` bean through list injection, so the order of the integration
+auto-configurations does not matter.
 
 `AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
@@ -1870,9 +1874,10 @@ completes; the duplicate row persists until `historyItemId`-based dedup lands (c
 ## 24. Architectural Invariants
 
 These are the boundaries that keep the module maintainable and framework-pluggable. They hold today
-and **must not be broken** by changes. They are documented here as the single source of truth; a
-planned ArchUnit suite (epic [#7537](https://github.com/camunda/connectors/issues/7537)) will encode
-them so violations fail the build. Until then, enforcement is by review, so respect them deliberately.
+and **must not be broken** by changes. They are documented here as the single source of truth. The
+ArchUnit rules in `agentic-ai-archunit-tests` encode I1 to I3, so violations fail the build (see the
+module's `AGENTS.md`, section "Architecture tests"). I4 and I5 are behavioral contracts: review and
+the tests of the stores and SPIs enforce them.
 
 ### I1. The agent core is framework-agnostic
 
