@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel;
 
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
@@ -13,7 +13,7 @@ import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
-public final class ChatModelProviderSupport {
+public final class ChatModelTimeouts {
 
   /**
    * TCP connect timeout applied to every chat model HTTP client. Kept short and constant — a
@@ -23,7 +23,7 @@ public final class ChatModelProviderSupport {
    */
   public static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
 
-  private ChatModelProviderSupport() {}
+  private ChatModelTimeouts() {}
 
   public static Duration deriveTimeoutSetting(
       String timeoutType,

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
 
 import com.anthropic.bedrock.backends.BedrockMantleBackend;
 import com.anthropic.client.AnthropicClient;
@@ -15,7 +15,6 @@ import com.anthropic.core.http.ProxyAuthenticator;
 import com.anthropic.foundry.backends.FoundryBackend;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth.OAuthBearerTokenInterceptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;

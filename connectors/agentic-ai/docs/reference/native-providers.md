@@ -44,8 +44,7 @@ additively per-key onto the SDK request builder (`AnthropicMessageRequestConvert
 `AnthropicChatModelFactory` adds an `OAuthBearerTokenInterceptor` (`com.anthropic.core.http.Interceptor`,
 a supported public hook) via `builder.addInterceptor(...)`: it wraps the transport `HttpClient` and rewrites
 each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolved per request from
-the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
-(`provider/authentication/oauth/`).
+the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses.
 
 `AnthropicFoundryBackend` (Microsoft Foundry) delegates to the Anthropic Java SDK's own
 `com.anthropic.foundry.backends.FoundryBackend`, which normalizes the base URL (appending `/anthropic`
