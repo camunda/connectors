@@ -29,7 +29,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpoint
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;

@@ -19,7 +19,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
-import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
+import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.time.Duration;

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 

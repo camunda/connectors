@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.request.v1;
 
 import static io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OPENAI_ID;
 
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;

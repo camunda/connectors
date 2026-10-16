@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_DESCRIPTION;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_PROPERTIES;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_REQUIRED;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_TYPE;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_OBJECT;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_STRING;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_REQUIRED;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_STRING;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;

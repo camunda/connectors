@@ -82,19 +82,26 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `adhoctoolsschema.model`: `AdHocToolElement`, `AdHocToolElementParameter`    | `aiagent.model.tool.*`                         |
 | `aiagent.model.request`: `AgentSubProcessRequestData`, `AgentSubProcessResponseConfiguration`, `AgentSubProcessV1Request`, `AgentSubProcessV2Request`, `AgentTaskRequestData`, `AgentTaskResponseConfiguration`, `AgentTaskV1Request`, `AgentTaskV2Request`, `MemoryStorageTemplateConfiguration`, `MemoryTemplateConfiguration`, `ToolsConfiguration`, `V1ToV2ProviderConfigurationMapper(Impl)` | `aiagent.request.*` |
 | `aiagent.model.request.v1.*`                                                 | `aiagent.request.v1.*`                         |
-| `aiagent.model.request.v1.shared.*`                                          | `aiagent.request.v1.shared.*`                  |
+| `aiagent.model.request.v1.shared.TimeoutConfiguration`                       | `aiagent.request.shared.TimeoutConfiguration`  |
+| `aiagent.model.request.v1.shared.HttpUrl`                                    | `common.validation.HttpUrl`                    |
 | `aiagent.model.request.v2.*`                                                 | `aiagent.request.v2.*`                         |
 | `aiagent.model`: `AgentConversation`, `AgentConversationTurn`, `TurnReconstructor`, `PreviousConversation`, `AgentInput` | `aiagent.conversation.*` |
 | `aiagent.model`: `AgentResponse`, `AgentSubProcessResponse`, `AgentTaskExecutionContext`, `AgentSubProcessExecutionContext` | `aiagent.agent.*` |
 | `aiagent.model.document.DocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
 | `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
 | `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
-| `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.util.JacksonExceptionMessageExtractor` |
+| `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.json.JacksonExceptionMessageExtractor` |
 | `autoconfigure`: `AgenticAiConnectorsAutoConfiguration`, `AgenticAiConnectorsConfigurationProperties` | `aiagent.configuration.*` |
 | `mcp.McpClientErrorCodes`                                                    | `mcp.client.McpClientErrorCodes`               |
-| `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.configuration.RetriesProperties`       |
+| `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.retry.RetriesProperties`               |
 | `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |
 | `AgenticAiConnectorsConfigurationProperties.ToolsProperties`                 | `tools.schema.configuration.ToolsSchemaProperties` |
+| `common.AgenticAiRecord`                                                     | `common.annotation.AgenticAiRecord`            |
+| `common.AgenticAiHttpProxySupport`                                           | `common.http.AgenticAiHttpProxySupport`        |
+| `common.JsonSchemaConstants`                                                 | `common.jsonschema.JsonSchemaConstants`        |
+| `common.util`: `ObjectMapperConstants`, `FeelOffsetDateTimeParser`, `FeelOffsetDateTimeSerializer`, `FeelOffsetDateTimeDeserializer` | `common.json.*`                                |
+| `common.util.retry.*`                                                        | `common.retry.*`                               |
+| `common.util.BpmnUtils`                                                      | `tools.schema.processdefinition.BpmnUtils`     |
 | `a2a.client.common.convert.A2aPartToContentConverter(Impl)`                  | `a2a.client.common.convert.A2aPartConverter(Impl)` |
 | `common.AgenticAiHttpProxySupport` AWS SDK methods (`createAwsHttpClientBuilder`, `createAwsAsyncHttpClientBuilder`) | `aiagent.proxy.aws.AwsSdkHttpProxySupport` (`httpClientBuilder`, `asyncHttpClientBuilder`), a separate bean |
 | `common.AgenticAiHttpProxySupport.azureProxyOptions`                         | `aiagent.proxy.azure.AzureHttpProxySupport.proxyOptions`, a separate bean |

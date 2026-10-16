@@ -36,7 +36,7 @@ The module is split into Maven modules with a fixed dependency direction
 
 | Module                          | Package root                         | Contents                                                       | Depends on (agentic AI modules)   |
 |---------------------------------|--------------------------------------|----------------------------------------------------------------|-----------------------------------|
-| `agentic-ai-common`             | `common`                             | Shared utilities, HTTP proxy support, common properties        | none                              |
+| `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                              |
 | `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
 | `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |

@@ -13,8 +13,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.request.ConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.CustomConversationStoreConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
+import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
