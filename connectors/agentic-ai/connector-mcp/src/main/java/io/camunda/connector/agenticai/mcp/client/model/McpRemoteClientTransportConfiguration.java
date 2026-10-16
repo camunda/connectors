@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -68,6 +69,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             @NotBlank
+            @HttpUrl
             String url,
         @TemplateProperty(
                 group = "transport",
@@ -109,6 +111,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             @NotBlank
+            @HttpUrl
             String url,
         @TemplateProperty(
                 group = "transport",

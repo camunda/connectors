@@ -82,6 +82,14 @@ class McpClientConfigurationValidatorTest {
                 .formatted(configuration.type()));
   }
 
+  @ParameterizedTest
+  @MethodSource("nonHttpUrlConfigurations")
+  void validationFailsWhenRemoteTransportUrlIsNotAnHttpUrl(McpClientConfiguration configuration) {
+    assertThat(validator.validate(configuration))
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactly("Must be an HTTP or HTTPS URL");
+  }
+
   static Stream<McpClientConfiguration> validConfigurations() {
     return Stream.of(
         createConfiguration(McpClientType.STDIO, STDIO_CONFIGURATION, null, null),
@@ -118,6 +126,28 @@ class McpClientConfigurationValidatorTest {
         createConfiguration(McpClientType.HTTP, STDIO_CONFIGURATION, null, SSE_CONFIGURATION),
         createConfiguration(
             McpClientType.SSE, STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, null));
+  }
+
+  static Stream<McpClientConfiguration> nonHttpUrlConfigurations() {
+    return Stream.of(
+        createConfiguration(
+            McpClientType.HTTP,
+            null,
+            new StreamableHttpMcpClientTransportConfiguration(
+                "localhost:1234/mcp",
+                Collections.emptyMap(),
+                NO_AUTHENTICATION,
+                Duration.ofSeconds(5)),
+            null),
+        createConfiguration(
+            McpClientType.SSE,
+            null,
+            null,
+            new SseHttpMcpClientTransportConfiguration(
+                "ftp://localhost:1234/sse",
+                Collections.emptyMap(),
+                NO_AUTHENTICATION,
+                Duration.ofSeconds(5))));
   }
 
   private static McpClientConfiguration createConfiguration(

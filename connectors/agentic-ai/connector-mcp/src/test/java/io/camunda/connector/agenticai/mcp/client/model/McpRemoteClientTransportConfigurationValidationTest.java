@@ -153,6 +153,32 @@ class McpRemoteClientTransportConfigurationValidationTest {
         .anyMatch(message -> message.contains("must not be blank") || message.contains("blank"));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"localhost:8080/mcp", "ftp://localhost/mcp", "file:///tmp/mcp"})
+  void validationFailsWhenStreamableHttpUrlIsNotAnHttpUrl(String url) {
+    final var config =
+        new StreamableHttpMcpRemoteClientTransportConfiguration(
+            new StreamableHttpMcpRemoteClientConnection(
+                new NoAuthentication(), url, Map.of(), Duration.ofSeconds(30)));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactly("Must be an HTTP or HTTPS URL");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"localhost:8080/sse", "ftp://localhost/sse", "file:///tmp/sse"})
+  void validationFailsWhenSseUrlIsNotAnHttpUrl(String url) {
+    final var config =
+        new SseHttpMcpRemoteClientTransportConfiguration(
+            new SseHttpMcpRemoteClientConnection(
+                new NoAuthentication(), url, Map.of(), Duration.ofSeconds(30)));
+
+    assertThat(validator.validate(config))
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactly("Must be an HTTP or HTTPS URL");
+  }
+
   @Test
   void validationFailsWhenStreamableHttpConnectionIsNull() {
     final var config = new StreamableHttpMcpRemoteClientTransportConfiguration(null);

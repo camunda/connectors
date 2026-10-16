@@ -20,6 +20,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | ------------------------------- | ----------------------------------------------------------------------- |
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
+| [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
 
 ### Module split
 
@@ -164,6 +165,18 @@ A2A Client connector:
 
 The old property has no effect. A runtime that sets it to `false` must set the new property instead,
 otherwise the AI Agent discovers and calls MCP Client tools again.
+
+### Server URL validation
+
+The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpUrl`):
+
+- The `url` of the MCP Remote Client connector (Streamable HTTP and SSE).
+- The `http.url` and `sse.url` of MCP clients configured in the runtime properties
+  (`camunda.connector.agenticai.mcp.client.clients`).
+- The A2A server URL of the A2A Client connectors.
+
+A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
+client in its properties does not start.
 
 ## Camunda 8.9 to 8.10
 
