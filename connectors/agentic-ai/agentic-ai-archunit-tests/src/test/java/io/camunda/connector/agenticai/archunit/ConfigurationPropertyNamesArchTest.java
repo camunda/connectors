@@ -33,8 +33,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Enforces the naming of the configuration properties: they use canonical kebab-case, the only
- * spelling Spring Boot's relaxed binding resolves reliably from every property source.
+ * Enforces the naming of the configuration properties: they share one namespace and use canonical
+ * kebab-case, the only spelling Spring Boot's relaxed binding resolves reliably from every property
+ * source.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class ConfigurationPropertyNamesArchTest {
@@ -46,6 +47,8 @@ class ConfigurationPropertyNamesArchTest {
   private static final String CONDITIONAL_ON_BOOLEAN_PROPERTY =
       "org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty";
   private static final String VALUE = "org.springframework.beans.factory.annotation.Value";
+
+  private static final String PROPERTIES_NAMESPACE = "camunda.connector.agenticai";
 
   /**
    * Lowercase letters, digits, dots and hyphens, as for the property keys in Camunda's monorepo.
@@ -67,6 +70,37 @@ class ConfigurationPropertyNamesArchTest {
                       attributes(
                           javaClass.getAnnotations(), CONFIGURATION_PROPERTIES, "prefix", "value")))
           .because("relaxed binding resolves only kebab-case prefixes from every property source");
+
+  @ArchTest
+  static final ArchRule CONFIGURATION_PROPERTIES_PREFIXES_USE_THE_AGENTIC_AI_NAMESPACE =
+      classes()
+          .that()
+          .areAnnotatedWith(CONFIGURATION_PROPERTIES)
+          .should(
+              new ArchCondition<JavaClass>(
+                  "use the prefix " + PROPERTIES_NAMESPACE + " or one below it") {
+                @Override
+                public void check(final JavaClass javaClass, final ConditionEvents events) {
+                  for (final String prefix :
+                      attributes(
+                          javaClass.getAnnotations(),
+                          CONFIGURATION_PROPERTIES,
+                          "prefix",
+                          "value")) {
+                    if (!prefix.equals(PROPERTIES_NAMESPACE)
+                        && !prefix.startsWith(PROPERTIES_NAMESPACE + ".")) {
+                      events.add(
+                          SimpleConditionEvent.violated(
+                              javaClass,
+                              javaClass.getFullName()
+                                  + " uses the @ConfigurationProperties prefix '"
+                                  + prefix
+                                  + "'"));
+                    }
+                  }
+                }
+              })
+          .because("the agentic AI configuration properties share one namespace");
 
   @ArchTest
   static final ArchRule PROPERTY_CONDITIONS_ON_CLASSES_USE_KEBAB_CASE_KEYS =
