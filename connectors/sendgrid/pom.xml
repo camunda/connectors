@@ -45,6 +45,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${version.sendGrid-http-client}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${version.httpclient}</version>
+    </dependency>
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-annotations</artifactId>
     </dependency>

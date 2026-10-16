@@ -10,12 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class AgentV2ElementTemplateTest {
@@ -146,6 +148,29 @@ class AgentV2ElementTemplateTest {
         .isEqualTo("Only on select plans.");
     assertThat(preset(template, "type_bedrock").get("provider.type").asText()).isEqualTo("bedrock");
     assertThat(preset(template, "type_custom").get("provider.type").asText()).isEqualTo("custom");
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "agenticai-ai-agent-task.v2.json,ai-agent-task.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1",
+    "hybrid/agenticai-ai-agent-task.v2-hybrid.json,ai-agent-task.v2-hybrid.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1-hybrid",
+    "agenticai-ai-agent-subprocess.v2.json,ai-agent-subprocess.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1",
+    "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json,ai-agent-subprocess.v2-hybrid.migrates-from.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid"
+  })
+  void migratesFromRecipe(String file, String recipeFile, String sourceTemplateId)
+      throws IOException {
+    final var recipe =
+        (ObjectNode)
+            ConnectorsObjectMapperSupplier.getCopy()
+                .readTree(Path.of("element-template-overrides", recipeFile).toFile());
+    assertThat(recipe.has("$schema")).isTrue();
+    recipe.remove("$schema");
+    final var migratesFrom = template(file).path("metadata").path("migratesFrom");
+    assertThat(migratesFrom).isEqualTo(recipe);
+    assertThat(migratesFrom.has("$schema")).isFalse();
+    assertThat(migratesFrom.get("sources")).hasSize(1);
+    assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
+        .isEqualTo(sourceTemplateId);
   }
 
   private static JsonNode preset(JsonNode template, String id) {

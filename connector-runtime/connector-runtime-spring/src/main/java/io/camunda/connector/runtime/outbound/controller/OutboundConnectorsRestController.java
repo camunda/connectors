@@ -111,9 +111,9 @@ public class OutboundConnectorsRestController {
    * @param physicalTenantIds when non-empty, restricts the aggregate to jobs executed for one of
    *     these physical tenants (engines) — a distinct dimension from the logical {@code tenantId}
    *     exposed elsewhere on this API. Omitted or empty sums across every physical tenant, matching
-   *     the pre-existing (unfiltered) behavior of this endpoint. Note that the {@code worker}
-   *     section is omitted from a filtered response: those counters are recorded by the Camunda
-   *     client itself, which does not tag them by physical tenant.
+   *     the pre-existing (unfiltered) behavior of this endpoint. The {@code worker} section is
+   *     scoped the same way, through the {@code physicalTenantId} tag the Camunda client puts on
+   *     its own worker counters, and is present (zeros if nothing was recorded) in every response.
    */
   @GetMapping("/metrics")
   public List<OutboundConnectorMetrics> getMetrics(
