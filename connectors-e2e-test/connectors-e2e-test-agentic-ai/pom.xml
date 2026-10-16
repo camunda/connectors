@@ -17,7 +17,9 @@
 
   <modules>
     <module>connectors-e2e-test-agentic-ai-base</module>
+    <module>connectors-e2e-test-agentic-ai-aiagent-base</module>
     <module>connectors-e2e-test-agentic-ai-aiagent</module>
+    <module>connectors-e2e-test-agentic-ai-real-llm</module>
     <module>connectors-e2e-test-agentic-ai-mcp</module>
     <module>connectors-e2e-test-agentic-ai-a2a</module>
   </modules>

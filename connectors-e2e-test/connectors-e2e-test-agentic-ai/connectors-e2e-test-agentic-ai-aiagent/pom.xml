@@ -15,46 +15,6 @@
   <artifactId>connectors-e2e-test-agentic-ai-aiagent</artifactId>
   <packaging>jar</packaging>
 
-  <profiles>
-    <profile>
-      <id>it-real-llm</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <skipTests>true</skipTests>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${plugin.version.maven-surefire-plugin}</version>
-            <configuration>
-              <includes>
-                <include>**/*E2ETestIT.java</include>
-                <include>**/DocumentToolCallResultsIT.java</include>
-              </includes>
-              <systemPropertyVariables>
-                <!-- Surfaces the connectors container log; scoped to this suite by pointing at a
-                     file logback does not pick up on its own. -->
-                <logback.configurationFile>${project.basedir}/src/test/resources/logback-real-llm.xml</logback.configurationFile>
-              </systemPropertyVariables>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
   <!-- The AI Agent tests also cover the ad-hoc tools schema connector and the MCP and A2A gateway
        tools, so they need every agentic AI connector and integration. -->
@@ -103,18 +63,8 @@
     <!-- Test -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connectors-e2e-test-agentic-ai-base</artifactId>
+      <artifactId>connectors-e2e-test-agentic-ai-aiagent-base</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
