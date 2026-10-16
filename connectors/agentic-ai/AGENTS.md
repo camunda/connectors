@@ -265,16 +265,19 @@ see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
 LLM stubs). Each e2e module depends only on the connector modules it tests:
 
-| E2E module                               | Tests                                                                                  |
-|------------------------------------------|----------------------------------------------------------------------------------------|
-| `connectors-e2e-test-agentic-ai-base`    | None. Shared test support (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`) in `src/main`  |
-| `connectors-e2e-test-agentic-ai-aiagent` | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools, real-LLM CPT  |
-| `connectors-e2e-test-agentic-ai-mcp`     | MCP client connectors, including the authentication tests                              |
-| `connectors-e2e-test-agentic-ai-a2a`     | A2A client connectors                                                                  |
+| E2E module                                    | Tests                                                                                                 |
+|-----------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store) |
+| `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`AgentTestFixtures`, the `assertj` package)         |
+| `connectors-e2e-test-agentic-ai-aiagent`      | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools                               |
+| `connectors-e2e-test-agentic-ai-real-llm`     | AI Agent against real LLM providers (CPT), with the AI Agent connector only                           |
+| `connectors-e2e-test-agentic-ai-mcp`          | MCP client connectors, including the authentication tests                                             |
+| `connectors-e2e-test-agentic-ai-a2a`          | A2A client connectors                                                                                 |
 
-Keep the base module free of agentic AI connector dependencies, so that the MCP and A2A e2e modules
-run a runtime with only their own connector. For AI Agent tests, extend `BaseAgentSubProcessTest`
-(sub-process flavor) or `BaseAgentTaskTest` (task flavor).
+Keep the base module free of agentic AI connector dependencies, and the AI Agent base module free of
+other agentic AI connectors, so that each e2e module runs a runtime with only the connectors it tests.
+For AI Agent tests, extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task
+flavor).
 
 ```bash
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent -Dtest=<TestClassName>
@@ -286,11 +289,11 @@ Maven builds only the aggregator and runs no tests.
 #### Real-LLM CPT coverage
 
 Real-provider / real-LLM acceptance coverage for this module lives in
-`connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/` and is intentionally split in two dimensions:
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/` and is intentionally split in two dimensions:
 
 1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
    maintainer applies the `ai-agent-model-e2e-test` label. The registry in
-   `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/src/test/resources/ai-agent-cpt/registry.json`
+   `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json`
    defines the bundle test leg and the native-provider
    capability-group legs. The workflow validates that registry and uses its generated matrix.
    Credential profile names are selected by the registry, while their Vault and environment wiring
@@ -336,7 +339,7 @@ when no provider row is selected.
 export RUN_NATIVE_LLM_E2E=true
 export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -Pit-real-llm \
   -Dgroups=core-smoke
 ```
@@ -353,14 +356,14 @@ JUnit groups.
 export RUN_NATIVE_LLM_E2E=true
 export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -Pit-real-llm \
   -Dit.test=RealProviderStructuredOutputE2ETestIT
 ```
 
 For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
 Set the same environment variables in **Run configuration → Environment variables**, keep the working
-directory at the repository root, and use the `connectors-e2e-test-agentic-ai-aiagent` module classpath. Check
+directory at the repository root, and use the `connectors-e2e-test-agentic-ai-real-llm` module classpath. Check
 the test output for skipped parameterized invocations before treating a green IDE run as full provider
 coverage.
 
@@ -378,7 +381,7 @@ available can run. For example, select only the OpenAI rows:
 export RUN_NATIVE_LLM_E2E=true
 export REAL_LLM_PROVIDER_GROUP=openai
 export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -Pit-real-llm -Dgroups=document-tool-results
 ```
 
