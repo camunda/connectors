@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
@@ -37,8 +38,8 @@ public record McpClientConfigurationProperties(
       @DefaultValue("true") boolean enabled,
       @NotNull(message = "MCP client type must not be null") McpClientType type,
       @Nullable StdioMcpClientTransportConfiguration stdio,
-      @Nullable StreamableHttpMcpClientTransportConfiguration http,
-      @Nullable SseHttpMcpClientTransportConfiguration sse,
+      @Valid @Nullable StreamableHttpMcpClientTransportConfiguration http,
+      @Valid @Nullable SseHttpMcpClientTransportConfiguration sse,
       @Nullable Duration initializationTimeout,
       @Nullable Duration toolExecutionTimeout,
       @Nullable Duration reconnectInterval)
@@ -127,14 +128,14 @@ public record McpClientConfigurationProperties(
       implements McpClientTransportConfiguration {}
 
   public record StreamableHttpMcpClientTransportConfiguration(
-      @NotBlank String url,
+      @NotBlank @HttpUrl String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
       Duration timeout)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 
   public record SseHttpMcpClientTransportConfiguration(
-      @NotBlank String url,
+      @NotBlank @HttpUrl String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
       Duration timeout)

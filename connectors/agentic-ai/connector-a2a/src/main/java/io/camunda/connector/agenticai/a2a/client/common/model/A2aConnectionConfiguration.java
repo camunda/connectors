@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.model;
 
+import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record A2aConnectionConfiguration(
     @NotBlank
+        @HttpUrl
         @FEEL
         @TemplateProperty(
             group = "connection",

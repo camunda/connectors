@@ -416,13 +416,13 @@ McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 Discriminated by `type` property:
 
 **`StreamableHttpMcpRemoteClientTransportConfiguration`** (`type = "http"`):
-- `http.url` — URL ending with `/mcp`
+- `http.url` — HTTP or HTTPS URL, typically ending with `/mcp`
 - `http.headers` — static headers map
 - `http.authentication` — `Authentication` sealed interface
 - `http.timeout` — ISO-8601 Duration
 
 **`SseHttpMcpRemoteClientTransportConfiguration`** (`type = "sse"`):
-- `sse.url` — URL ending with `/sse`
+- `sse.url` — HTTP or HTTPS URL, typically ending with `/sse`
 - `sse.headers`, `sse.authentication`, `sse.timeout`
 
 ### Authentication (sealed interface)
