@@ -69,6 +69,16 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   dependencies listed in the test (today: Mistral on OpenAI).
 - `VendorSdkArchTest`: each vendor SDK (OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
   LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+- `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
+  `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
+  in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
+  resolves to an `@AutoConfiguration` class.
+- `ConfigurationPropertyNamesArchTest`: property keys in `@ConfigurationProperties` prefixes,
+  `@ConditionalOnProperty`, `@ConditionalOnBooleanProperty` and `@Value` placeholders are kebab-case.
+- `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
+- `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
+- `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
+  `ConversationContext` implementation is annotated with `@JsonTypeName`.
 
 `AgenticAiModules` maps modules to package roots. When you add a module, a package root or a
 dependency between modules, update it and the layer rules. Run the rules after installing the modules
