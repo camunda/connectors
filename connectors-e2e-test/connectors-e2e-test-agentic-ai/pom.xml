@@ -82,8 +82,9 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-agentic-ai</artifactId>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>agentic-ai-bundle</artifactId>
+      <type>pom</type>
       <version>${project.version}</version>
     </dependency>
     <dependency>

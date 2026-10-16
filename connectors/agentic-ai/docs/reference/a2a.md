@@ -82,7 +82,16 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 ## 4. Package Structure
 
-See `io.camunda.connector.agenticai.a2a.client` — organized into `agentic/tool`, `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages.
+See `io.camunda.connector.agenticai.a2a.client` — organized into `common`, `outbound`, `inbound/polling`, and `inbound/webhook` sub-packages. The AI Agent tool integration lives in `io.camunda.connector.agenticai.a2a.integration`.
+
+The two sub-packages ship as separate Maven modules:
+
+- `connector-a2a` holds `a2a.client` (the A2A Client outbound, polling and webhook connectors, their element templates
+  and Spring auto-configuration). It depends on `agentic-ai-common` only.
+- `aiagent-a2a-integration` holds `a2a.integration` (the gateway tool handler, resolver, tool call identifier, system
+  prompt contributor and `A2aClientAgenticToolAutoConfiguration`, plus the `a2a/tool-input-schema.json` and
+  `a2a/a2a-system-prompt.md` resources). It depends on `connector-a2a`, `aiagent-api`, `aiagent-model` and
+  `agentic-ai-common`, not on `connector-aiagent`.
 
 ---
 
@@ -154,7 +163,7 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
      ToolCallResult content
 7. LLM receives the response and decides next action based on task state
 8. A2aGatewayToolHandler.extractDocuments() walks the typed A2aSendMessageResult and collects
-   Camunda Documents from DocumentContent entries: A2aMessage.contents at the root, plus
+   Camunda Documents from A2aDocumentPart entries: A2aMessage.contents at the root, plus
    A2aTask.artifacts and (recursively) A2aTask.history. Documents flow into the synthetic
    document UserMessage produced by ToolCallResultDocumentExtractor (see ai-agent.md §19
    "Document Extraction from Tool Call Results").
@@ -174,13 +183,13 @@ A2aResult (sealed interface, discriminated by "kind")
 │   └── name, description, skills: List<AgentSkill>
 └── A2aSendMessageResult (sealed sub-interface)
     ├── A2aMessage (kind: "message")
-    │   └── role, messageId, contextId, taskId, contents: List<Content>
+    │   └── role, messageId, contextId, taskId, contents: List<A2aPart>
     └── A2aTask (kind: "task")
         ├── id, contextId
         ├── status: A2aTaskStatus
         │   └── state: TaskState, message: A2aMessage, timestamp
         ├── artifacts: List<A2aArtifact>
-        │   └── artifactId, name, description, contents
+        │   └── artifactId, name, description, contents: List<A2aPart>
         └── history: List<A2aMessage>
 ```
 
@@ -282,12 +291,12 @@ forced shutdown.
 ### SDK → Domain
 
 **`A2aSdkObjectConverter` / `A2aSdkObjectConverterImpl`**: Converts A2A SDK types to Camunda domain types:
-- `convert(Message)` → `A2aMessage` (maps parts via `A2aPartToContentConverter`)
+- `convert(Message)` → `A2aMessage` (maps parts via `A2aPartConverter`)
 - `convert(Task)` → `A2aTask` (maps status, artifacts, history)
 
-**`A2aPartToContentConverter` / `A2aPartToContentConverterImpl`**: Converts SDK `Part` → Camunda `Content`:
-- `TextPart` → `TextContent`
-- `DataPart` → `ObjectContent`
+**`A2aPartConverter` / `A2aPartConverterImpl`**: Converts SDK `Part` → `A2aPart`:
+- `TextPart` → `A2aTextPart`
+- `DataPart` → `A2aDataPart`
 - Other parts: `RuntimeException` (not yet supported)
 
 ### Domain → SDK
@@ -372,9 +381,15 @@ Result correlation
 
 ## 14. Spring Configuration
 
+### A2aClientAutoConfiguration
+
+Auto-configuration for the A2A client connectors, ordered after `AgenticAiCommonAutoConfiguration`.
+Imports `A2aClientOutboundConnectorConfiguration`, `A2aClientPollingConfiguration` and
+`A2aClientWebhookConfiguration`; each of them imports `A2aClientCommonConfiguration`.
+
 ### A2aClientCommonConfiguration
 
-Always active when A2A is enabled. Registers: `A2aPartToContentConverter`, `A2aSdkObjectConverter`,
+Active when at least one of the outbound, polling or webhook configurations is enabled. Registers: `A2aPartConverter`, `A2aSdkObjectConverter`,
 `A2aAgentCardFetcher`, `A2aSdkClientFactory`
 
 Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default: `true`)
@@ -386,7 +401,9 @@ Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default:
 Registers: `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aMessageSender`,
 `A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
 
-### A2aClientAgenticToolConfiguration
+### A2aClientAgenticToolAutoConfiguration
+
+Auto-configuration ordered after `A2aClientAutoConfiguration`. Does not depend on the A2A client beans.
 
 **Condition**: `camunda.connector.agenticai.a2a.client.agentic.tool.enabled` (default: **true**)
 
@@ -445,4 +462,4 @@ From `A2aErrorCodes`:
 | `A2aAgentCardFetcherImpl.java`               | Fetches agent cards from remote servers                       |
 | `a2a/tool-input-schema.json`                 | Fixed tool input schema for all A2A tools                     |
 | `a2a/a2a-system-prompt.md`                   | A2A protocol instructions for LLM                             |
-| `A2aClientAgenticToolConfiguration.java`     | Spring config for A2A gateway beans                           |
+| `A2aClientAgenticToolAutoConfiguration.java` | Spring config for A2A gateway beans                           |

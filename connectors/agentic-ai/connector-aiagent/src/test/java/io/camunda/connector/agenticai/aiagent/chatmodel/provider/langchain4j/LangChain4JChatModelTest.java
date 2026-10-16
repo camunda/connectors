@@ -1,0 +1,384 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
+
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import ch.qos.logback.classic.Level;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.exception.ModelNotFoundException;
+import dev.langchain4j.exception.UnresolvedModelServerException;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
+import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class LangChain4JChatModelTest {
+
+  private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
+  private static final String USER_PROMPT = "Write a haiku about the sea.";
+  private static final String RESPONSE_TEXT =
+      "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
+
+  private static final List<Message> INPUT_MESSAGES =
+      List.of(systemMessage(SYSTEM_PROMPT), userMessage(USER_PROMPT));
+
+  private static final List<ChatMessage> L4J_MESSAGES =
+      List.of(
+          dev.langchain4j.data.message.SystemMessage.systemMessage(SYSTEM_PROMPT),
+          dev.langchain4j.data.message.UserMessage.userMessage(USER_PROMPT));
+
+  private static final AssistantMessage ASSISTANT_MESSAGE = assistantMessage(RESPONSE_TEXT);
+
+  private static final List<ToolDefinition> TOOL_DEFINITIONS =
+      List.of(
+          ToolDefinition.builder().name("GetTime").description("Returns the current time").build());
+
+  private static final List<ToolSpecification> L4J_TOOL_SPECIFICATIONS =
+      List.of(
+          ToolSpecification.builder()
+              .name("GetTime")
+              .description("Returns the current time")
+              .build());
+
+  private static final ConversationSnapshot SNAPSHOT =
+      new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
+
+  private static final ProviderConfiguration PROVIDER_CONFIGURATION =
+      new AnthropicProviderConfiguration(null);
+
+  @Mock private ChatMessageConverter chatMessageConverter;
+  @Mock private ToolSpecificationConverter toolSpecificationConverter;
+  @Mock private JsonSchemaConverter jsonSchemaConverter;
+
+  @Mock private CloseableChatModel chatModel;
+  @Mock private ChatResponse chatResponse;
+
+  @Captor private ArgumentCaptor<dev.langchain4j.model.chat.request.ChatRequest> chatRequestCaptor;
+
+  private LangChain4JChatModel api;
+
+  @BeforeEach
+  void setUp() {
+    lenient()
+        .when(toolSpecificationConverter.asToolSpecifications(TOOL_DEFINITIONS))
+        .thenReturn(L4J_TOOL_SPECIFICATIONS);
+
+    lenient().when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
+    lenient().when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
+    lenient()
+        .when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+        .thenReturn(ASSISTANT_MESSAGE);
+
+    api =
+        new LangChain4JChatModel(
+            chatModel,
+            PROVIDER_CONFIGURATION,
+            chatMessageConverter,
+            toolSpecificationConverter,
+            jsonSchemaConverter,
+            usage ->
+                usage == null
+                    ? AgentMetrics.TokenUsage.empty()
+                    : AgentMetrics.TokenUsage.empty()
+                        .withInputTokenCount(
+                            usage.inputTokenCount() == null ? 0 : usage.inputTokenCount())
+                        .withOutputTokenCount(
+                            usage.outputTokenCount() == null ? 0 : usage.outputTokenCount()));
+  }
+
+  // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
+  // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
+  private void mockChatMessageConverterMapsInputMessages() {
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+  }
+
+  @Test
+  void modelRequestContainsMessagesAndToolSpecifications() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
+    assertThat(chatRequest.toolSpecifications()).containsExactlyElementsOf(L4J_TOOL_SPECIFICATIONS);
+  }
+
+  @Test
+  void callAlwaysReturnsCompleted() {
+    mockChatMessageConverterMapsInputMessages();
+    final var result = api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage()).isEqualTo(ASSISTANT_MESSAGE);
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForContentFilteredResponse() {
+    reset(chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
+
+    final var filteredAssistantMessage =
+        AssistantMessage.builder()
+            .stopReason(new StopReason.UnknownStopReason("CONTENT_FILTER"))
+            .build();
+    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+        .thenReturn(filteredAssistantMessage);
+
+    assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e -> {
+              final var partialResult = e.partialResult();
+              assertThat(partialResult).isNotNull();
+              assertThat(partialResult.assistantMessage()).isEqualTo(filteredAssistantMessage);
+            });
+  }
+
+  @Test
+  void wrapsUnderlyingExceptionsInConnectorException() {
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+
+    final var cause = new ModelNotFoundException("Model 'dummy' was not found");
+    doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
+
+    assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo("FAILED_MODEL_CALL");
+              assertThat(ex.getMessage())
+                  .isEqualTo("Model call failed: Model 'dummy' was not found");
+              assertThat(ex.getCause()).isEqualTo(cause);
+            });
+  }
+
+  @Test
+  void usesExceptionClassIfNoMessageIncludedInException() {
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+
+    final var cause = new UnresolvedModelServerException((String) null);
+    doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
+
+    assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo("FAILED_MODEL_CALL");
+              assertThat(ex.getMessage())
+                  .isEqualTo("Model call failed: UnresolvedModelServerException");
+              assertThat(ex.getCause()).isEqualTo(cause);
+            });
+  }
+
+  @Test
+  void doesNotExplicitelyConfigureResponseFormatWhenTextFormatIsConfigured() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat()).isNull();
+  }
+
+  @Test
+  void doesNotExplicitelyConfigureResponseFormatWhenResponseConfigurationIsMissing() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(new ChatRequest(createExecutionContext(null), SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat()).isNull();
+  }
+
+  @Test
+  void doesNotExplicitelyConfigureResponseFormatWhenResponseFormatConfigurationIsMissing() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(
+        new ChatRequest(
+            createExecutionContext(new AgentTaskResponseConfiguration(null, false)), SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat()).isNull();
+  }
+
+  @Test
+  void requestsJsonResponseWhenConfigured() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(
+        new ChatRequest(
+            createExecutionContext(
+                new AgentTaskResponseConfiguration(
+                    new JsonResponseFormatConfiguration(null, null), false)),
+            SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
+    assertThat(chatRequest.responseFormat().jsonSchema()).isNull();
+  }
+
+  @Test
+  void requestsJsonResponseWithSchemaWhenConfigured() {
+    mockChatMessageConverterMapsInputMessages();
+    final Map<String, Object> schema = Map.of("type", "object", "description", "My schema");
+    final var schemaName = "Foo";
+
+    final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
+    when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
+
+    api.execute(
+        new ChatRequest(
+            createExecutionContext(
+                new AgentTaskResponseConfiguration(
+                    new JsonResponseFormatConfiguration(schema, schemaName), false)),
+            SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
+    assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
+    assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo(schemaName);
+    assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" "})
+  void usesDefaultSchemaNameIfNullOrBlank(String schemaName) {
+    mockChatMessageConverterMapsInputMessages();
+    final Map<String, Object> schema = Map.of("type", "object", "description", "My schema");
+
+    final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
+    when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
+
+    api.execute(
+        new ChatRequest(
+            createExecutionContext(
+                new AgentTaskResponseConfiguration(
+                    new JsonResponseFormatConfiguration(schema, schemaName), false)),
+            SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
+    assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
+    assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo("Response");
+    assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
+  }
+
+  @Test
+  void returnsTokenUsageFromResponse() {
+    mockChatMessageConverterMapsInputMessages();
+    final var result = api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+    assertThat(result.metrics().tokenUsage())
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty().withInputTokenCount(5).withOutputTokenCount(6));
+  }
+
+  @Test
+  void returnsEmptyTokenUsageIfMissingInResponse() {
+    mockChatMessageConverterMapsInputMessages();
+    when(chatResponse.tokenUsage()).thenReturn(null);
+
+    final var result = api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+
+    assertThat(result.metrics().tokenUsage())
+        .usingRecursiveComparison()
+        .isEqualTo(AgentMetrics.TokenUsage.empty());
+  }
+
+  @Test
+  void doesNotCloseChatModelOnCall() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT));
+    verify(chatModel, never()).close();
+  }
+
+  @Test
+  void closeClosesTheUnderlyingChatModel() {
+    api.close();
+    verify(chatModel).close();
+  }
+
+  @Test
+  void closeLogsErrorInsteadOfThrowingWhenChatModelCloseFails() {
+    doThrow(new RuntimeException("boom")).when(chatModel).close();
+
+    var events = logsOf(LangChain4JChatModel.class, api::close);
+
+    verify(chatModel).close();
+    assertThat(events)
+        .singleElement()
+        .satisfies(
+            event -> {
+              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+              assertThat(event.getFormattedMessage())
+                  .isEqualTo("Failed to close CloseableChatModel");
+            });
+  }
+
+  private AgentExecutionContext createExecutionContext() {
+    return createExecutionContext(
+        new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false));
+  }
+
+  private AgentExecutionContext createExecutionContext(
+      ResponseConfiguration responseConfiguration) {
+    final var executionContext = mock(AgentExecutionContext.class);
+    when(executionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
+
+    return executionContext;
+  }
+}

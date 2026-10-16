@@ -22,7 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDB
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessResponse;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -42,7 +42,7 @@ public class AgentSubProcessVariableScopeTests extends BaseAgentSubProcessTest {
 
   /** Last Camunda 8.8 compatible element template */
   private static final String LAST_8_8_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-agentic-ai/element-templates/versioned/agenticai-aiagent-job-worker-5.json";
+      "../../connectors/agentic-ai/connector-aiagent/element-templates/versioned/agenticai-aiagent-job-worker-5.json";
 
   private static final String CUSTOM_RESULT_VARIABLE = "myAgentResult";
 
