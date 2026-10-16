@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
-import static io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTextPart.textPart;
+import static io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart.textPart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
