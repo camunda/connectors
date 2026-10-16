@@ -266,6 +266,8 @@ jobs:
           GH_TOKEN: ${{ steps.github-token.outputs.token }}
           RUN_ID: ${{ github.run_id }}
           BASE_REF: ${{ needs.result.outputs.base_ref }}
+          # This run executes on the default branch's head, so blame the tested commit.
+          HEAD_SHA: ${{ needs.result.outputs.source_sha }}
           SLACK_TS: ${{ needs.feedback.outputs.slack_ts }}
           SLACK_CHANNEL: ${{ needs.feedback.outputs.slack_channel }}
         run: |
@@ -274,12 +276,14 @@ jobs:
             --arg repo "${GITHUB_REPOSITORY}" \
             --arg run_id "${RUN_ID}" \
             --arg base_ref "${BASE_REF}" \
+            --arg head_sha "${HEAD_SHA}" \
             --arg ts "${SLACK_TS:-}" \
             --arg channel "${SLACK_CHANNEL:-}" \
             '{event_type: "alwaysgreen-triage",
               client_payload: {source_repo: $repo,
                                run_id: $run_id,
                                base_ref: $base_ref,
+                               head_sha: $head_sha,
                                slack_ts: $ts,
                                slack_channel: $channel,
                                dry_run: false}}')
