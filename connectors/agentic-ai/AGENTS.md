@@ -81,6 +81,15 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
 - `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
   `ConversationContext` implementation is annotated with `@JsonTypeName`.
+- `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
+  `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
+- `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
+  and between the sub-packages of the A2A client and of the tools schema.
+- `RegistryEncapsulationArchTest`: concrete `ConversationStore` implementations are only used by
+  `aiagent.memory.conversation` and `aiagent.configuration`; concrete `ChatModelFactory` implementations are only
+  used by `aiagent.chatmodel` and `aiagent.configuration`.
+- `GeneralCodingRulesArchTest`: no access to the standard streams, no `java.util.logging`.
+- `NamingConventionsArchTest`: a class named `FooImpl` implements the interface `Foo`.
 
 `AgenticAiModules` maps modules to package roots. When you add a module, a package root or a
 dependency between modules, update it and the layer rules. Run the rules after installing the modules
