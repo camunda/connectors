@@ -18,25 +18,31 @@ public class EmbeddingsVectorStoreFixture {
   public static ElasticsearchVectorStore createElasticsearchVectorStore() {
     return new ElasticsearchVectorStore(
         new ElasticsearchVectorStore.Configuration(
-            "https://elastic.local:9200", "elastic", "changeme", "embeddings_idx"));
+            "https://elastic.local:9200", null, "elastic", "changeme", "embeddings_idx"));
   }
 
   public static OpenSearchVectorStore createOpenSearchVectorStore() {
     return new OpenSearchVectorStore(
         new OpenSearchVectorStore.Configuration(
-            "https://opensearch.local:9200", "opensearch", "changeme", "embeddings_idx"));
+            "https://opensearch.local:9200", null, "opensearch", "changeme", "embeddings_idx"));
   }
 
   public static AmazonManagedOpenSearchVectorStore createAmazonManagedOpenVectorStore() {
     return new AmazonManagedOpenSearchVectorStore(
         new AmazonManagedOpenSearchVectorStore.Configuration(
-            "ACCESS_KEY", "SECRET_KEY", "https://opensearch.aws", "us-east-1", "embeddings_idx"));
+            null,
+            "ACCESS_KEY",
+            "SECRET_KEY",
+            "https://opensearch.aws",
+            "us-east-1",
+            "embeddings_idx"));
   }
 
   public static AzureCosmosDbNoSqlVectorStore createAzureCosmosDbNoSqlVectorStore() {
     return new AzureCosmosDbNoSqlVectorStore(
         new AzureCosmosDbNoSqlVectorStore.Configuration(
             "https://example.documents.azure.com:443/",
+            null,
             new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
             "database-name",
             "container-name",
@@ -49,6 +55,7 @@ public class EmbeddingsVectorStoreFixture {
     return new AzureAiSearchVectorStore(
         new AzureAiSearchVectorStore.Configuration(
             "https://your-search-service.search.windows.net",
+            null,
             new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
             "searchindex"));
   }
