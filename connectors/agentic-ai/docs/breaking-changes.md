@@ -19,12 +19,13 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | Area                            | Affects                                                                 |
 | ------------------------------- | ----------------------------------------------------------------------- |
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
+| [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 
 ### Module split
 
 The agentic AI connectors are split into several Maven modules, and each module owns its Java
-packages ([ADR 015](adr/015-split-agentic-ai-into-modules.md)). Job types, element templates,
-configuration properties and persisted data are unchanged.
+packages ([ADR 015](adr/015-split-agentic-ai-into-modules.md)). The split keeps job types, element
+templates, configuration properties and persisted data.
 
 #### Artifacts
 
@@ -57,7 +58,9 @@ dependencies.
 | `adhoctoolsschema.processdefinition.*`                                       | `tools.schema.processdefinition.*`             |
 | `adhoctoolsschema.model.AdHocToolsSchemaRequest`, `AdHocToolsSchemaResponse` | `tools.schema.model.*`                         |
 | `a2a.client.agentic.tool.*`                                                  | `a2a.integration.*`                            |
+| `a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration`    | `a2a.integration.configuration.A2aClientAgenticToolAutoConfiguration` |
 | `mcp.discovery.*`                                                            | `mcp.integration.*`                            |
+| `mcp.discovery.configuration.McpDiscoveryConfiguration`                      | `mcp.integration.configuration.McpClientAgenticToolAutoConfiguration` |
 | `aiagent.tool`: `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionUpdates`, `GatewayToolDiscoveryInitiationResult`, `GatewayToolDiscoveryResult`; `adhoctoolsschema.schema`: `GatewayToolDefinitionResolver`, `TypePropertyBasedGatewayToolDefinitionResolver` | `aiagent.api.tool.*` |
 | `aiagent.chatmodel`: `ChatModel`, `ChatModelFactory`, `ChatRequest`, `ChatResult`, `ChatModelRejectedException`, `ContentFilteredException`, `ContextWindowExceededException`, `GuardrailInterventionException` | `aiagent.api.chatmodel.*` |
 | `aiagent.memory.conversation`: `ConversationStore`, `ConversationSession`, `ConversationLoadResult`, `ConversationStoreRequest`; `aiagent.memory`: `ConversationSnapshot` | `aiagent.api.conversation.*` |
@@ -125,11 +128,24 @@ auto-configurations of their own modules:
 | Tools schema resolution, process definition lookup           | `AgenticAiToolsSchemaAutoConfiguration`    |
 | Ad-hoc tools schema connector                                | `AdHocToolsSchemaConnectorAutoConfiguration` |
 | MCP client connectors                                        | `McpClientAutoConfiguration`               |
-| MCP gateway tool integration                                 | `McpDiscoveryConfiguration`                |
+| MCP gateway tool integration                                 | `McpClientAgenticToolAutoConfiguration`    |
 | A2A client connectors                                        | `A2aClientAutoConfiguration`               |
-| A2A gateway tool integration                                 | `A2aClientAgenticToolConfiguration`        |
+| A2A gateway tool integration                                 | `A2aClientAgenticToolAutoConfiguration`    |
 
-Bean names, conditions and property names are unchanged.
+Bean names, conditions and property names are unchanged. To exclude an auto-configuration by name,
+for example with `spring.autoconfigure.exclude`, use the new class names.
+
+### MCP gateway tool property
+
+The property that disables the MCP Client connectors as AI Agent tools follows the naming of the
+A2A Client connector:
+
+| 8.10                                                | 8.11                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| `camunda.connector.agenticai.mcp.discovery.enabled` | `camunda.connector.agenticai.mcp.client.agentic.tool.enabled` |
+
+The old property has no effect. A runtime that sets it to `false` must set the new property instead,
+otherwise the AI Agent discovers and calls MCP Client tools again.
 
 ## Camunda 8.9 to 8.10
 

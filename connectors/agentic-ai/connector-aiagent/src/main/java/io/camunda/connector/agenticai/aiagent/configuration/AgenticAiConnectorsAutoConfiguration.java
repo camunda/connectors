@@ -74,8 +74,8 @@ import org.springframework.context.annotation.Scope;
 @AutoConfiguration(
     after = {AgenticAiCommonAutoConfiguration.class, AgenticAiToolsSchemaAutoConfiguration.class},
     afterName = {
-      "io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolConfiguration",
-      "io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration"
+      "io.camunda.connector.agenticai.a2a.integration.configuration.A2aClientAgenticToolAutoConfiguration",
+      "io.camunda.connector.agenticai.mcp.integration.configuration.McpClientAgenticToolAutoConfiguration"
     })
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)

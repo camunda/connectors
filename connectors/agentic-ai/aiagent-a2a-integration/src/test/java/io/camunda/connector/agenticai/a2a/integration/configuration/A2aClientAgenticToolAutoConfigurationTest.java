@@ -35,7 +35,7 @@ import org.springframework.boot.test.context.assertj.AssertableApplicationContex
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 
-class A2aClientAgenticToolConfigurationTest {
+class A2aClientAgenticToolAutoConfigurationTest {
 
   private static final List<Class<?>> A2A_COMMON_BEANS =
       List.of(
@@ -65,7 +65,7 @@ class A2aClientAgenticToolConfigurationTest {
               AutoConfigurations.of(
                   AgenticAiCommonAutoConfiguration.class,
                   A2aClientAutoConfiguration.class,
-                  A2aClientAgenticToolConfiguration.class));
+                  A2aClientAgenticToolAutoConfiguration.class));
 
   @Test
   void enablesA2aAgentToolByDefault() {

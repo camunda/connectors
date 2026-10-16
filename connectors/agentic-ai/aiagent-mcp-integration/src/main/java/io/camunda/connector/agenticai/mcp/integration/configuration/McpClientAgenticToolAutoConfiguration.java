@@ -20,10 +20,10 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnBooleanProperty(
     value = {
       "camunda.connector.agenticai.enabled",
-      "camunda.connector.agenticai.mcp.discovery.enabled"
+      "camunda.connector.agenticai.mcp.client.agentic.tool.enabled"
     },
     matchIfMissing = true)
-public class McpDiscoveryConfiguration {
+public class McpClientAgenticToolAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientGatewayToolDefinitionResolver mcpClientGatewayToolDefinitionResolver() {

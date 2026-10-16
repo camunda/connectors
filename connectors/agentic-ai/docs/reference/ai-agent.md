@@ -1206,9 +1206,9 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `AgenticAiToolsSchemaAutoConfiguration`        | common                                                         | Ad-hoc tool schema generation and process definition tool element resolution              |
 | `AdHocToolsSchemaConnectorAutoConfiguration`   | tools schema                                                   | `AdHocToolsSchemaFunction` (`ad-hoc-tools-schema-resolver.enabled`)                       |
 | `A2aClientAutoConfiguration`                   | common                                                         | A2A client connector configurations (see [a2a.md §14](a2a.md#14-spring-configuration))    |
-| `A2aClientAgenticToolConfiguration`            | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
+| `A2aClientAgenticToolAutoConfiguration`        | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
-| `McpDiscoveryConfiguration`                    | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
+| `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
 | `AgenticAiConnectorsAutoConfiguration`         | common, tools schema, A2A and MCP integrations                 | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
 
 `AgenticAiConnectorsAutoConfiguration` imports:
