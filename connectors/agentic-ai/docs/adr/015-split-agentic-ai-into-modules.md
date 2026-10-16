@@ -169,6 +169,8 @@ The decision comprises:
   `ResponseFormatConfiguration` (with its nested records). Model them as interfaces in the model and
   move the annotated records to the connector. Then add an architecture rule that keeps element
   template annotations out of `aiagent-model` and `aiagent-api`.
+* Split the e2e tests in `connectors-e2e-test-agentic-ai` along the modules, so that each connector
+  and integration has its own e2e module.
 
 ## Pros and Cons of the Options
 
