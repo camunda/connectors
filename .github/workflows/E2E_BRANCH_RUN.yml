@@ -25,7 +25,7 @@ on:
         description: 'JSON map from E2E module names to runner labels'
         type: string
         required: false
-        default: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default"}'
+        default: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-default","connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent":"gcp-core-8-default"}'
 
 jobs:
 
@@ -189,9 +189,17 @@ jobs:
               -pl "$module"
           }
 
-          prepare_repository \
-            connectors-e2e-test/connectors-e2e-test-agentic-ai \
-            m2-agentic
+          # Branches with the agentic AI e2e tests split into modules prepare the AI Agent module
+          # only. Older branches have a single agentic AI e2e module at the parent path.
+          if [ -f connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/pom.xml ]; then
+            prepare_repository \
+              connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
+              m2-agentic
+          else
+            prepare_repository \
+              connectors-e2e-test/connectors-e2e-test-agentic-ai \
+              m2-agentic
+          fi
           prepare_repository \
             connectors-e2e-test/connectors-e2e-test-inbound-runtime \
             m2-inbound-runtime
@@ -266,7 +274,7 @@ jobs:
       # Older branches (e.g. stable/8.6) predate the Maven wrapper and have no ./mvnw;
       # fall back to a pinned Maven install (below) so the test run still runs there instead
       # of failing with "No such file or directory". This job's runner varies per matrix entry
-      # (e.g. gcp-core-8-default for connectors-e2e-test-agentic-ai), so the fallback installs
+      # (e.g. gcp-core-8-default for the agentic AI e2e tests), so the fallback installs
       # its own Maven rather than assuming one is pre-installed on the image.
       - name: Resolve Maven command
         id: resolve-maven
@@ -331,7 +339,7 @@ jobs:
           echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
           echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
           case "$MODULE" in
-            connectors-e2e-test-agentic-ai)
+            connectors-e2e-test-agentic-ai|connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent)
               repository_artifact=m2-repo-agentic
               ;;
             connectors-e2e-test-inbound-runtime)

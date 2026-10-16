@@ -1,3 +1,4 @@
 {
-  "connectors-e2e-test-agentic-ai": "gcp-core-8-default"
+  "connectors-e2e-test-agentic-ai": "gcp-core-8-default",
+  "connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent": "gcp-core-8-default"
 }

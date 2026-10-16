@@ -199,6 +199,15 @@ describe('this repo CODEOWNERS', () => {
     );
   });
 
+  it('a nested agentic-ai e2e module routes to the agentic-ai team', () => {
+    assert.ok(
+      ownersFor(
+        'connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-mcp',
+        rules,
+      ).includes('@camunda/connectors-agentic-ai'),
+    );
+  });
+
   it('an unlisted e2e module falls through to the default owner', () => {
     assert.deepEqual(ownersFor('connectors-e2e-test/connectors-e2e-test-soap', rules), [
       '@camunda/connectors',
