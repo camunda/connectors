@@ -217,7 +217,8 @@ The decision comprises:
   in `ModuleDependencyPolicyTest` is gone.
 * Split `agentic-ai-common` into a plain library and the Spring and HTTP support. Until then, the
   model and the API exclude the Spring and HTTP dependencies of the common library, and the build
-  fails if they come back.
+  fails if they come back. The common auto-configuration skips itself when the HTTP client is
+  missing, so a Spring application that depends only on the model or the API still starts.
 * Make each gateway tool integration depend on its client connector being enabled. Today the
   integration can stay enabled while the client connector that runs its tool calls is disabled.
 * Add an API compatibility check for `aiagent-api` and `aiagent-model` after the first release with
