@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider.authentication.oauth;
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import com.anthropic.core.http.Interceptor;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;

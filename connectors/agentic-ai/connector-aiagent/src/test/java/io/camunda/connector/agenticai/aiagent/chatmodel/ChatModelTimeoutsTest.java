@@ -4,9 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider;
+package io.camunda.connector.agenticai.aiagent.chatmodel;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.ChatModelProviderSupport.deriveTimeoutSetting;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
@@ -22,9 +22,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ChatModelProviderSupportTest {
+class ChatModelTimeoutsTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelProviderSupportTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelTimeoutsTest.class);
   private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(3);
 
   private final ChatModelProperties chatModelProperties =
