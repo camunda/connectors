@@ -82,7 +82,7 @@ jobs:
           python3 .github/ai-agent-cpt/validate_registry_test.py
           python3 .github/ai-agent-cpt/test_summarize_results.py
           MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
-            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json)"
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/src/test/resources/ai-agent-cpt/registry.json)"
           printf '%s' "$MATRIX" |
             python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
           printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
@@ -329,7 +329,7 @@ jobs:
         run: |
           # Auto-register the reporter for exactly the current tests selected by this registry row.
           # Maven copies this transient service descriptor before Failsafe starts.
-          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/META-INF/services"
+          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/src/test/resources/META-INF/services"
           mkdir -p "$REPORTER_SERVICES"
           printf '%s\n' \
             'io.camunda.connector.e2e.agenticai.e2e.CptReportExtension' \
@@ -337,7 +337,7 @@ jobs:
 
           ARGS=(
             ./mvnw verify
-            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent
             -Pit-real-llm
             --batch-mode
             "-Dcpt.report.directory=$CPT_REPORT_DIRECTORY"
@@ -403,7 +403,7 @@ jobs:
           CPT_SUMMARY_FILE: ${{ runner.temp }}/ai-agent-cpt-summary.md
         run: |
           python3 .github/ai-agent-cpt/summarize_results.py aggregate \
-            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/src/test/resources/ai-agent-cpt/registry.json \
             --results "$CPT_RESULTS_DIRECTORY" \
             --output "$CPT_SUMMARY_FILE"
           cat "$CPT_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
