@@ -114,12 +114,13 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Build and test (format and javadoc run in parallel jobs)
-      # The build above regenerates all element template JSON files as part of
+      # Build, test and check Javadoc (format runs in a parallel job)
+      # The build regenerates all element template JSON files as part of
       # the `process-classes` phase (element-template-generator-maven-plugin),
       # writing them back into each connector's element-templates/ source dir.
+      # Javadoc runs in the same invocation so it reuses the compiled reactor.
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C '-P!autoFormat'
+        run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
 
       # Fail if the regenerated templates differ from what's committed. This is a
       # diff check only — CI never commits or modifies files. Versioned snapshots
@@ -194,6 +195,7 @@ jobs:
           ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
           ./element-template-generator/validator/target/appassembler/bin/element-template-validator
 
+<<<<<<< HEAD
   check-javadoc:
 
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
@@ -275,6 +277,8 @@ jobs:
       - name: Check Javadoc
         run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
+=======
+>>>>>>> 65475bad (ci: speed up check-format and check-javadoc jobs (#9510))
   check-format:
 
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
@@ -350,11 +354,11 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
-
+      # Invoke the goals directly instead of `validate -PcheckFormat`: running a
+      # lifecycle phase makes Maven resolve every build plugin, so the
+      # reactor-built element-template-generator plugin would have to be installed first.
       - name: Check Format
-        run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
+        run: ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
 
   check-versioned-element-templates:
 
