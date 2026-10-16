@@ -34,6 +34,22 @@
       <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>agentic-ai-common</artifactId>
       <version>${project.version}</version>
+      <!-- the model and the API only use the plain helpers of the common library; extensions must not
+           get Spring or the HTTP client through them -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>http-client</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
@@ -57,4 +73,36 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>ban-spring-and-http-client</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <message>The AI Agent API is used by extensions and must not depend on Spring or the HTTP client.</message>
+                  <excludes>
+                    <exclude>org.springframework:*:*:*:compile</exclude>
+                    <exclude>org.springframework:*:*:*:runtime</exclude>
+                    <exclude>org.springframework.boot:*:*:*:compile</exclude>
+                    <exclude>org.springframework.boot:*:*:*:runtime</exclude>
+                    <exclude>io.camunda.connector:http-client:*:*:compile</exclude>
+                    <exclude>io.camunda.connector:http-client:*:*:runtime</exclude>
+                  </excludes>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
