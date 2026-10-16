@@ -1493,11 +1493,9 @@ classDiagram
 ```
 
 ### E2E Tests
-- `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/` — Full integration tests
-- `BaseAgentSubProcessTest` — Job worker test base
-- `BaseAgentTaskTest` — Connector test base
-- `AgentSubProcessFeedbackLoopTests` — Feedback loop tests
-- `AgentSubProcessToolCallingTests` — Tool calling tests
+
+The e2e modules, their test base classes and how to run them are described in the
+[e2e tests `AGENTS.md`](../../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md).
 
 ---
 
