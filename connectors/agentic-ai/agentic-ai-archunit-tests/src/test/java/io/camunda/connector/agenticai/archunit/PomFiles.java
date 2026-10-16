@@ -6,10 +6,8 @@
  */
 package io.camunda.connector.agenticai.archunit;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,10 +33,6 @@ final class PomFiles {
   /** The pom of the module in the given directory next to the architecture tests. */
   static Document modulePom(final String directory) throws IOException, SAXException {
     return parse(moduleBaseDir().resolveSibling(directory).resolve("pom.xml"));
-  }
-
-  static Document parse(final String pomXml) throws IOException, SAXException {
-    return parse(new ByteArrayInputStream(pomXml.getBytes(StandardCharsets.UTF_8)));
   }
 
   static Element root(final Document pom) {
