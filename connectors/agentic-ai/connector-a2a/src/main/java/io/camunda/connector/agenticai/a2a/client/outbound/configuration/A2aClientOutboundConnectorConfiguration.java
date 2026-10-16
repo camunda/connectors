@@ -21,11 +21,13 @@ import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponse
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverterImpl;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 @Configuration
 @ConditionalOnBooleanProperty(
@@ -67,6 +69,7 @@ public class A2aClientOutboundConnectorConfiguration {
   }
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   public A2aClientOutboundConnectorFunction a2aClientOutboundConnectorFunction(
       A2aClientRequestHandler handler) {

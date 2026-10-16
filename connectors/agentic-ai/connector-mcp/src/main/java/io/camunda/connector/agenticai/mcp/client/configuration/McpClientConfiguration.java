@@ -16,12 +16,14 @@ import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandler
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 /**
  * Configuration for MCP clients configured on the runtime. As this is not supported in SaaS (yet)
@@ -39,6 +41,7 @@ public class McpClientConfiguration {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientConfiguration.class);
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   public McpClientFunction mcpClientFunction(McpClientHandler mcpClientHandler) {
     return new McpClientFunction(mcpClientHandler);

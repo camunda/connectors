@@ -14,12 +14,14 @@ import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpR
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 /** Configuration for remote MCP clients configured within the process. */
 @Configuration
@@ -31,6 +33,7 @@ import org.springframework.context.annotation.Import;
 public class McpRemoteClientConfiguration {
 
   @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @ConditionalOnMissingBean
   public McpRemoteClientFunction mcpRemoteClientFunction(McpRemoteClientHandler handler) {
     return new McpRemoteClientFunction(handler);
