@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model.chatmodel;
 
 /**
- * Neutral, connector-agnostic descriptor a {@link ChatModelFactory} inspects to decide whether it
- * can serve a request and to build a {@link ChatModel}.
+ * Neutral, connector-agnostic descriptor a {@code ChatModelFactory} inspects to decide whether it
+ * can serve a request and to build a {@code ChatModel}.
  */
 public interface ChatModelConfiguration {
 

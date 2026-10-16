@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonTypeResolver;
  * from the external store (e.g., a document reference, version number, or branch pointer).
  *
  * <p>This is persisted as part of the {@code agentContext} process variable in Zeebe and acts as
- * the pointer in the write-ahead with pointer-based visibility contract — see {@link
+ * the pointer in the write-ahead with pointer-based visibility contract — see {@code
  * ConversationStore}. Implementations must be serializable and self-contained: they must not rely
  * on external state that could change between turns.
  *
