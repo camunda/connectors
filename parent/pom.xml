@@ -162,7 +162,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20260930-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.77.0</version.google-genai>
+    <version.google-genai>1.78.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -194,7 +194,7 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
-    <version.box-sdk>10.19.0</version.box-sdk>
+    <version.box-sdk>10.20.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override (kafka-clients) — remove once kafka-clients ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
@@ -225,7 +225,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <version.langchain4j>1.22.0</version.langchain4j>
-    <version.mcp-sdk>2.0.1</version.mcp-sdk>
+    <version.mcp-sdk>2.1.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
 
