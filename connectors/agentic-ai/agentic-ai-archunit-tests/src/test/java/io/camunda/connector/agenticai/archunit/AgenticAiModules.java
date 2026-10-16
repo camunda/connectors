@@ -20,19 +20,33 @@ import java.util.regex.Pattern;
  * class was loaded from.
  */
 enum AgenticAiModules {
-  COMMON("agentic-ai-common", "Common", under("common")),
-  MODEL("aiagent-model", "Model", under("aiagent.model")),
-  API("aiagent-api", "Api", under("aiagent.api")),
-  TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", under("tools.schema")),
-  AD_HOC_CONNECTOR("connector-ad-hoc-tools-schema", "AdHocConnector", under("adhoctoolsschema")),
-  MCP_CLIENT("connector-mcp", "McpClient", under("mcp.client")),
-  MCP_INTEGRATION("aiagent-mcp-integration", "McpIntegration", under("mcp.integration")),
-  A2A_CLIENT("connector-a2a", "A2aClient", under("a2a.client")),
-  A2A_INTEGRATION("aiagent-a2a-integration", "A2aIntegration", under("a2a.integration")),
+  COMMON("agentic-ai-common", "Common", Kind.LIBRARY, under("common")),
+  MODEL("aiagent-model", "Model", Kind.LIBRARY, under("aiagent.model")),
+  API("aiagent-api", "Api", Kind.LIBRARY, under("aiagent.api")),
+  TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
+  AD_HOC_CONNECTOR(
+      "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),
+  MCP_CLIENT("connector-mcp", "McpClient", Kind.CONNECTOR, under("mcp.client")),
+  MCP_INTEGRATION(
+      "aiagent-mcp-integration", "McpIntegration", Kind.INTEGRATION, under("mcp.integration")),
+  A2A_CLIENT("connector-a2a", "A2aClient", Kind.CONNECTOR, under("a2a.client")),
+  A2A_INTEGRATION(
+      "aiagent-a2a-integration", "A2aIntegration", Kind.INTEGRATION, under("a2a.integration")),
   AI_AGENT(
       "connector-aiagent",
       "AiAgent",
+      Kind.CONNECTOR,
       under("aiagent").and(resideOutsideOfPackages(pkg("aiagent.model.."), pkg("aiagent.api.."))));
+
+  /** What a module is: shared code, a connector of its own, or the glue between two connectors. */
+  enum Kind {
+    /** Shared code without a connector of its own. */
+    LIBRARY,
+    /** A connector, shipped in the agentic AI bundle. */
+    CONNECTOR,
+    /** The glue that lets the AI Agent connector use another connector as a gateway tool. */
+    INTEGRATION
+  }
 
   static final String ROOT = "io.camunda.connector.agenticai";
 
@@ -42,12 +56,17 @@ enum AgenticAiModules {
 
   private final String artifactId;
   private final String layerName;
+  private final Kind kind;
   private final DescribedPredicate<JavaClass> root;
 
   AgenticAiModules(
-      final String artifactId, final String layerName, final DescribedPredicate<JavaClass> root) {
+      final String artifactId,
+      final String layerName,
+      final Kind kind,
+      final DescribedPredicate<JavaClass> root) {
     this.artifactId = artifactId;
     this.layerName = layerName;
+    this.kind = kind;
     this.root = root;
   }
 
@@ -57,6 +76,10 @@ enum AgenticAiModules {
 
   String layerName() {
     return layerName;
+  }
+
+  Kind kind() {
+    return kind;
   }
 
   /** Matches the classes in the package root this module owns. */

@@ -23,6 +23,7 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.util.ArrayList;
@@ -58,103 +59,98 @@ class ConfigurationPropertyNamesArchTest {
   /** A {@code ${key:default}} placeholder; group 1 is the key. */
   private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^:}]+)[^}]*}");
 
-  @ArchTest
-  static final ArchRule CONFIGURATION_PROPERTIES_PREFIXES_USE_KEBAB_CASE =
-      classes()
-          .that()
-          .areAnnotatedWith(CONFIGURATION_PROPERTIES)
-          .should(
-              haveKebabCaseKeys(
-                  "use kebab-case in the @ConfigurationProperties prefix",
-                  (JavaClass javaClass) ->
-                      attributes(
-                          javaClass.getAnnotations(), CONFIGURATION_PROPERTIES, "prefix", "value")))
-          .because("relaxed binding resolves only kebab-case prefixes from every property source");
+  private static final String SILENT_PROPERTY_CONDITION_MISMATCH =
+      "a key that is not kebab-case silently matches no property and falls back to"
+          + " matchIfMissing";
+  private static final String KEBAB_CASE_ONLY_RESOLVES =
+      "relaxed binding resolves only kebab-case keys from every property source";
 
   @ArchTest
-  static final ArchRule CONFIGURATION_PROPERTIES_PREFIXES_USE_THE_AGENTIC_AI_NAMESPACE =
-      classes()
-          .that()
-          .areAnnotatedWith(CONFIGURATION_PROPERTIES)
-          .should(
-              new ArchCondition<JavaClass>(
-                  "use the prefix " + PROPERTIES_NAMESPACE + " or one below it") {
-                @Override
-                public void check(final JavaClass javaClass, final ConditionEvents events) {
-                  for (final String prefix :
-                      attributes(
-                          javaClass.getAnnotations(),
-                          CONFIGURATION_PROPERTIES,
-                          "prefix",
-                          "value")) {
-                    if (!prefix.equals(PROPERTIES_NAMESPACE)
-                        && !prefix.startsWith(PROPERTIES_NAMESPACE + ".")) {
-                      events.add(
-                          SimpleConditionEvent.violated(
-                              javaClass,
-                              javaClass.getFullName()
-                                  + " uses the @ConfigurationProperties prefix '"
-                                  + prefix
-                                  + "'"));
-                    }
-                  }
-                }
-              })
-          .because("the agentic AI configuration properties share one namespace");
+  static final ArchRule
+      CONFIGURATION_PROPERTIES_PREFIXES_USE_KEBAB_CASE_IN_THE_AGENTIC_AI_NAMESPACE =
+          classes()
+              .that()
+              .areAnnotatedWith(CONFIGURATION_PROPERTIES)
+              .should(
+                  haveKebabCaseKeys(
+                      "use kebab-case in the @ConfigurationProperties prefix",
+                      (JavaClass javaClass) -> prefixes(javaClass)))
+              .andShould(useThePrefixNamespace())
+              .because(
+                  "the agentic AI configuration properties share one namespace, and relaxed binding"
+                      + " resolves only kebab-case prefixes from every property source");
 
   @ArchTest
-  static final ArchRule PROPERTY_CONDITIONS_ON_CLASSES_USE_KEBAB_CASE_KEYS =
-      classes()
-          .that()
-          .areAnnotatedWith(CONDITIONAL_ON_PROPERTY)
-          .or()
-          .areAnnotatedWith(CONDITIONAL_ON_BOOLEAN_PROPERTY)
-          .should(
-              haveKebabCaseKeys(
-                  "use kebab-case in the keys of the property conditions",
-                  (JavaClass javaClass) -> conditionKeys(javaClass.getAnnotations())))
-          .because(
-              "a key that is not kebab-case silently matches no property and falls back to"
-                  + " matchIfMissing");
+  static final ArchRule PROPERTY_CONDITIONS_USE_KEBAB_CASE_KEYS =
+      CompositeArchRule.of(
+              classes()
+                  .that()
+                  .areAnnotatedWith(CONDITIONAL_ON_PROPERTY)
+                  .or()
+                  .areAnnotatedWith(CONDITIONAL_ON_BOOLEAN_PROPERTY)
+                  .should(
+                      haveKebabCaseKeys(
+                          "use kebab-case in the keys of the property conditions",
+                          (JavaClass javaClass) -> conditionKeys(javaClass.getAnnotations())))
+                  .because(SILENT_PROPERTY_CONDITION_MISMATCH))
+          .and(
+              methods()
+                  .that()
+                  .areAnnotatedWith(CONDITIONAL_ON_PROPERTY)
+                  .or()
+                  .areAnnotatedWith(CONDITIONAL_ON_BOOLEAN_PROPERTY)
+                  .should(
+                      haveKebabCaseKeys(
+                          "use kebab-case in the keys of the property conditions",
+                          (JavaMethod method) -> conditionKeys(method.getAnnotations())))
+                  .because(SILENT_PROPERTY_CONDITION_MISMATCH));
 
   @ArchTest
-  static final ArchRule PROPERTY_CONDITIONS_ON_METHODS_USE_KEBAB_CASE_KEYS =
-      methods()
-          .that()
-          .areAnnotatedWith(CONDITIONAL_ON_PROPERTY)
-          .or()
-          .areAnnotatedWith(CONDITIONAL_ON_BOOLEAN_PROPERTY)
-          .should(
-              haveKebabCaseKeys(
-                  "use kebab-case in the keys of the property conditions",
-                  (JavaMethod method) -> conditionKeys(method.getAnnotations())))
-          .because(
-              "a key that is not kebab-case silently matches no property and falls back to"
-                  + " matchIfMissing");
+  static final ArchRule VALUE_PLACEHOLDERS_USE_KEBAB_CASE_KEYS =
+      CompositeArchRule.of(
+              fields()
+                  .should(
+                      haveKebabCaseKeys(
+                          "use kebab-case in the @Value placeholders",
+                          (JavaField field) -> placeholderKeys(field.getAnnotations())))
+                  .because(KEBAB_CASE_ONLY_RESOLVES))
+          .and(
+              codeUnits()
+                  .should(
+                      haveKebabCaseKeys(
+                          "use kebab-case in the @Value placeholders of their parameters",
+                          (JavaCodeUnit codeUnit) -> {
+                            final List<String> keys = new ArrayList<>();
+                            for (final JavaParameter parameter : codeUnit.getParameters()) {
+                              keys.addAll(placeholderKeys(parameter.getAnnotations()));
+                            }
+                            return keys;
+                          }))
+                  .because(KEBAB_CASE_ONLY_RESOLVES));
 
-  @ArchTest
-  static final ArchRule VALUE_PLACEHOLDERS_ON_FIELDS_USE_KEBAB_CASE_KEYS =
-      fields()
-          .should(
-              haveKebabCaseKeys(
-                  "use kebab-case in the @Value placeholders",
-                  (JavaField field) -> placeholderKeys(field.getAnnotations())))
-          .because("relaxed binding resolves only kebab-case keys from every property source");
+  private static List<String> prefixes(final JavaClass javaClass) {
+    return attributes(javaClass.getAnnotations(), CONFIGURATION_PROPERTIES, "prefix", "value");
+  }
 
-  @ArchTest
-  static final ArchRule VALUE_PLACEHOLDERS_ON_PARAMETERS_USE_KEBAB_CASE_KEYS =
-      codeUnits()
-          .should(
-              haveKebabCaseKeys(
-                  "use kebab-case in the @Value placeholders of their parameters",
-                  (JavaCodeUnit codeUnit) -> {
-                    final List<String> keys = new ArrayList<>();
-                    for (final JavaParameter parameter : codeUnit.getParameters()) {
-                      keys.addAll(placeholderKeys(parameter.getAnnotations()));
-                    }
-                    return keys;
-                  }))
-          .because("relaxed binding resolves only kebab-case keys from every property source");
+  private static ArchCondition<JavaClass> useThePrefixNamespace() {
+    return new ArchCondition<>("use the prefix " + PROPERTIES_NAMESPACE + " or one below it") {
+      @Override
+      public void check(final JavaClass javaClass, final ConditionEvents events) {
+        for (final String prefix : prefixes(javaClass)) {
+          if (!prefix.equals(PROPERTIES_NAMESPACE)
+              && !prefix.startsWith(PROPERTIES_NAMESPACE + ".")) {
+            events.add(
+                SimpleConditionEvent.violated(
+                    javaClass,
+                    javaClass.getFullName()
+                        + " uses the @ConfigurationProperties prefix '"
+                        + prefix
+                        + "'"));
+          }
+        }
+      }
+    };
+  }
 
   private static List<String> attributes(
       final Collection<? extends JavaAnnotation<?>> annotations,

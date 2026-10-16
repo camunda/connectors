@@ -11,6 +11,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
+import java.util.List;
 
 /**
  * Enforces that each vendor SDK is only used by the packages that integrate it: the chat model
@@ -37,88 +39,98 @@ class VendorSdkArchTest {
   private static final String A2A_CLIENT = AgenticAiModules.pkg("a2a.client..");
   private static final String MCP_CLIENT_FRAMEWORK = AgenticAiModules.pkg("mcp.client.framework..");
 
-  @ArchTest
-  static final ArchRule ANTHROPIC_SDK_IS_ONLY_USED_BY_THE_ANTHROPIC_PROVIDER =
-      onlyUsedBy(
-          "com.anthropic..",
-          "the Anthropic provider can be extracted into its own module",
-          ANTHROPIC);
+  private static final List<VendorSdk> VENDOR_SDKS =
+      List.of(
+          new VendorSdk(
+              "Anthropic SDK",
+              "com.anthropic..",
+              "the Anthropic provider can be extracted into its own module",
+              ANTHROPIC),
+          new VendorSdk(
+              "OpenAI SDK",
+              "com.openai..",
+              "the OpenAI-compatible providers can be extracted into their own modules",
+              OPENAI,
+              MISTRAL),
+          new VendorSdk(
+              "Gemini SDK",
+              "com.google.genai..",
+              "the Gemini providers can be extracted into their own modules",
+              GEMINI,
+              LANGCHAIN4J),
+          new VendorSdk(
+              "AWS Bedrock runtime SDK",
+              "software.amazon.awssdk.services.bedrockruntime..",
+              "the Bedrock providers can be extracted into their own modules",
+              BEDROCK,
+              LANGCHAIN4J),
+          new VendorSdk(
+              "AWS AgentCore SDK",
+              "software.amazon.awssdk.services.bedrockagentcore..",
+              "the AWS AgentCore conversation store can be extracted into its own module",
+              AWS_AGENTCORE_MEMORY),
+          new VendorSdk(
+              "AWS HTTP client SDK",
+              "software.amazon.awssdk.http..",
+              "the AWS HTTP client setup is part of the proxy support and the Bedrock providers",
+              PROXY,
+              BEDROCK,
+              LANGCHAIN4J),
+          new VendorSdk(
+              "Azure HTTP SDK",
+              "com.azure.core.http..",
+              "the Azure HTTP client setup is part of the proxy support and the Azure credentials",
+              PROXY,
+              AZURE,
+              LANGCHAIN4J),
+          new VendorSdk(
+              "LangChain4j",
+              "dev.langchain4j..",
+              "the LangChain4j provider can be extracted into its own module",
+              LANGCHAIN4J),
+          new VendorSdk(
+              "A2A SDK",
+              "io.a2a..",
+              "the A2A client can be extracted into its own module",
+              A2A_CLIENT),
+          new VendorSdk(
+              "MCP SDK",
+              "io.modelcontextprotocol..",
+              "the MCP client can be extracted into its own module",
+              MCP_CLIENT_FRAMEWORK));
 
+  /** One rule per vendor SDK, each failing with a message that names the SDK. */
   @ArchTest
-  static final ArchRule OPENAI_SDK_IS_ONLY_USED_BY_THE_OPENAI_COMPATIBLE_PROVIDERS =
-      onlyUsedBy(
-          "com.openai..",
-          "the OpenAI-compatible providers can be extracted into their own modules",
-          OPENAI,
-          MISTRAL);
+  static final ArchRule VENDOR_SDKS_ARE_ONLY_USED_BY_THEIR_INTEGRATION_PACKAGES = vendorSdkRules();
 
-  @ArchTest
-  static final ArchRule GEMINI_SDK_IS_ONLY_USED_BY_THE_GEMINI_PROVIDERS =
-      onlyUsedBy(
-          "com.google.genai..",
-          "the Gemini providers can be extracted into their own modules",
-          GEMINI,
-          LANGCHAIN4J);
+  private static ArchRule vendorSdkRules() {
+    CompositeArchRule rules = null;
+    for (final VendorSdk vendorSdk : VENDOR_SDKS) {
+      rules = rules == null ? CompositeArchRule.of(vendorSdk.rule()) : rules.and(vendorSdk.rule());
+    }
+    return rules;
+  }
 
-  @ArchTest
-  static final ArchRule BEDROCK_RUNTIME_SDK_IS_ONLY_USED_BY_THE_BEDROCK_PROVIDERS =
-      onlyUsedBy(
-          "software.amazon.awssdk.services.bedrockruntime..",
-          "the Bedrock providers can be extracted into their own modules",
-          BEDROCK,
-          LANGCHAIN4J);
+  /**
+   * A vendor SDK, the packages that may use it, and why only those packages may.
+   *
+   * @param name the name of the SDK in the failure message
+   * @param sdkPackage the package of the SDK
+   * @param reason why the SDK is confined to the allowed packages
+   * @param allowedPackages the packages that may depend on the SDK
+   */
+  private record VendorSdk(
+      String name, String sdkPackage, String reason, String... allowedPackages) {
 
-  @ArchTest
-  static final ArchRule BEDROCK_AGENTCORE_SDK_IS_ONLY_USED_BY_THE_AGENTCORE_CONVERSATION_STORE =
-      onlyUsedBy(
-          "software.amazon.awssdk.services.bedrockagentcore..",
-          "the AWS AgentCore conversation store can be extracted into its own module",
-          AWS_AGENTCORE_MEMORY);
-
-  @ArchTest
-  static final ArchRule AWS_HTTP_CLIENT_SDK_IS_ONLY_USED_BY_PROXY_SUPPORT_AND_BEDROCK =
-      onlyUsedBy(
-          "software.amazon.awssdk.http..",
-          "the AWS HTTP client setup is part of the proxy support and the Bedrock providers",
-          PROXY,
-          BEDROCK,
-          LANGCHAIN4J);
-
-  @ArchTest
-  static final ArchRule AZURE_HTTP_SDK_IS_ONLY_USED_BY_PROXY_SUPPORT_AND_AZURE_CONSUMERS =
-      onlyUsedBy(
-          "com.azure.core.http..",
-          "the Azure HTTP client setup is part of the proxy support and the Azure credentials",
-          PROXY,
-          AZURE,
-          LANGCHAIN4J);
-
-  @ArchTest
-  static final ArchRule LANGCHAIN4J_IS_ONLY_USED_BY_THE_LANGCHAIN4J_PROVIDER =
-      onlyUsedBy(
-          "dev.langchain4j..",
-          "the LangChain4j provider can be extracted into its own module",
-          LANGCHAIN4J);
-
-  @ArchTest
-  static final ArchRule A2A_SDK_IS_ONLY_USED_BY_THE_A2A_CLIENT =
-      onlyUsedBy("io.a2a..", "the A2A client can be extracted into its own module", A2A_CLIENT);
-
-  @ArchTest
-  static final ArchRule MCP_SDK_IS_ONLY_USED_BY_THE_MCP_CLIENT_FRAMEWORK =
-      onlyUsedBy(
-          "io.modelcontextprotocol..",
-          "the MCP client can be extracted into its own module",
-          MCP_CLIENT_FRAMEWORK);
-
-  private static ArchRule onlyUsedBy(
-      final String sdkPackage, final String because, final String... allowedPackages) {
-    return noClasses()
-        .that()
-        .resideOutsideOfPackages(allowedPackages)
-        .should()
-        .dependOnClassesThat()
-        .resideInAPackage(sdkPackage)
-        .because(because);
+    ArchRule rule() {
+      return noClasses()
+          .that()
+          .resideOutsideOfPackages(allowedPackages)
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(sdkPackage)
+          .as(name + " is only used by " + String.join(", ", allowedPackages))
+          .because(reason);
+    }
   }
 }
