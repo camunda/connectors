@@ -266,7 +266,7 @@ public class OutboundConnectorRuntimeConfiguration {
    */
   private static String readPhysicalTenantIdIfAvailable(CamundaClient camundaClient) {
     try {
-      return camundaClient.getConfiguration().getPhysicalTenantId();
+      return PhysicalTenantClients.configuredPhysicalTenantId(camundaClient);
     } catch (RuntimeException e) {
       return null;
     }
@@ -522,7 +522,7 @@ public class OutboundConnectorRuntimeConfiguration {
    */
   private static String resolvePhysicalTenantIdOrDefault(CamundaClient camundaClient) {
     try {
-      var physicalTenantId = camundaClient.getConfiguration().getPhysicalTenantId();
+      var physicalTenantId = PhysicalTenantClients.configuredPhysicalTenantId(camundaClient);
       return physicalTenantId != null ? physicalTenantId : "default";
     } catch (RuntimeException e) {
       return "default";
