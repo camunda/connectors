@@ -26,19 +26,19 @@ import org.assertj.core.api.ThrowingConsumer;
 
 public interface AgentTestFixtures {
   String AI_AGENT_TASK_V1_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-aiagent-outbound-connector.json";
+      "../../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-aiagent-outbound-connector.json";
 
   String AI_AGENT_TASK_V2_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-ai-agent-task.v2.json";
+      "../../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-ai-agent-task.v2.json";
 
   String AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-aiagent-job-worker.json";
+      "../../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-aiagent-job-worker.json";
 
   String AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-ai-agent-subprocess.v2.json";
+      "../../../connectors/agentic-ai/connector-aiagent/element-templates/agenticai-ai-agent-subprocess.v2.json";
 
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/connector-ad-hoc-tools-schema/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
+      "../../../connectors/agentic-ai/connector-ad-hoc-tools-schema/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
   String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_ELEMENT_ID = "AI_Agent";
