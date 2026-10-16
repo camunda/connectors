@@ -50,11 +50,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations. Dependency policy ([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md), D10): libraries
-(`common`, `model`, `api`, `tools-schema`) depend on libraries only. A connector depends on libraries and on
-the connector SDK and runtime, never on another connector. An integration depends on libraries and on the one
-connector it makes usable as a gateway tool. No module depends on a connector outside Agentic AI, except for
-the named exceptions in `ModuleDependencyPolicyTest`. Package roots are relative to `io.camunda.connector.agenticai`;
+or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
@@ -104,8 +100,6 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
   `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
   integration modules.
-- `ModuleDependencyPolicyTest` (plain JUnit): the direct production dependencies in each module pom follow
-  the dependency policy below.
 
 `AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
 a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
@@ -113,7 +107,7 @@ integration also goes into `agentic-ai-bundle`. Run only the architecture tests 
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
-  '-Dtest=*ArchTest,ModuleInventoryTest,ModuleDependencyPolicyTest' -Dsurefire.failIfNoSpecifiedTests=false
+  '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 `-am` builds the modules the tests read from their current sources. Keep `-f connectors/agentic-ai/pom.xml`:

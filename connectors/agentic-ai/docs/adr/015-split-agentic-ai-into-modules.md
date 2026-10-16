@@ -135,15 +135,7 @@ The decision comprises:
   connector and gateway tool integration. Runtimes that ship all agentic AI connectors, such as the
   default bundle, depend on it instead of listing the modules.
 
-* **D10 — Dependencies follow the kind of the module.** A library depends on libraries only. A
-  connector depends on libraries and on the connector SDK and runtime, never on another connector.
-  A gateway tool integration depends on libraries and on the one client connector it makes usable.
-  No module depends on a connector outside Agentic AI, except for named exceptions. The package based
-  architecture rules cannot see such dependencies, so a test over the poms checks the policy.
-  Allowing connectors to depend on each other was rejected: it would bring back the coupling the
-  split removes, and the build of one connector would pull in the others.
-
-* **D11 — A gateway tool integration does not need its client connector on the same runtime.**
+* **D10 — A gateway tool integration does not need its client connector on the same runtime.**
   The integration runs where the AI Agent runs. It resolves the tool definitions and maps the tool
   calls and their results. The tool calls run as elements of the ad-hoc sub-process, so the client
   connector executes them on any runtime that serves its job type. A runtime can therefore enable an
@@ -244,8 +236,8 @@ The decision comprises:
   gets the webhook connector and its registration, and the A2A template generation includes its
   classes. The webhook connector is maintained by another team. Ask them to extract the authorization
   and HMAC API with its model types into a library without connector registration, switch the A2A
-  client to it, and drop the webhook entry of the template generation. Done when the named exception
-  in `ModuleDependencyPolicyTest` is gone.
+  client to it, and drop the webhook entry of the template generation. Done when `connector-a2a` no
+  longer depends on `connector-webhook`.
 * Split `agentic-ai-common` into a plain library and the Spring and HTTP support. Until then, the
   model and the API exclude the Spring and HTTP dependencies of the common library, and the build
   fails if they come back. The common auto-configuration skips itself when the HTTP client is
