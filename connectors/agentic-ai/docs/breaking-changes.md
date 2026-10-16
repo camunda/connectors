@@ -103,7 +103,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 `AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties.
 
 A2A messages and artifacts (`A2aMessage.contents()`, `A2aArtifact.contents()`) hold `A2aPart`
-records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart`) instead of the AI Agent message content
+records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart` in `a2a.client.common.model.part`) instead of the AI Agent message content
 types. The serialized JSON is unchanged.
 
 #### Memory and custom provider configuration

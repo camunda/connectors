@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDataPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDocumentPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;

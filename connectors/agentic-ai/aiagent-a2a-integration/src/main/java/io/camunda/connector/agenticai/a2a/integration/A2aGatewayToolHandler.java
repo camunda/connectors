@@ -12,10 +12,10 @@ import static io.camunda.connector.agenticai.common.util.ObjectMapperConstants.S
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDocumentPart;
+import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aDocumentPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
