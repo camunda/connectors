@@ -11,7 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
 FIX = (ROOT / ".github/workflows/alwaysgreen-fix.yml").read_text()
-TRIAGE = (ROOT / ".github/workflows/alwaysgreen-triage.yml").read_text()
+# Triage no longer lives here -- it runs in camunda/c8-cross-component-e2e-tests for
+# every consumer. The assertions below that named it went with it; the ones about the
+# FIX agent stay, and matter more than before: it is now the only privileged AlwaysGreen
+# workflow in this repository.
 WATCHER = (ROOT / ".github/workflows/connectors-streak-detector.yml").read_text()
 FEATURE_TEST = (ROOT / ".github/workflows/TEST_FEATURE_BRANCH.yml").read_text()
 LICENSE_CHECK = (ROOT / ".github/workflows/CHECK_LICENSES.yml").read_text()
@@ -51,6 +54,9 @@ def _run_validate_inputs(tmp_path: Path, **overrides: str):
         "BASE_REF": "main",
         "SURFACE": "sm-smoke-e2e",
         "DISPATCH_KEY": "connectors:main:sm-smoke-e2e",
+        # The raw input, which a dispatch omits and a workflow_call supplies. Left
+        # unset here deliberately in one test below, to prove the guard tolerates it.
+        "RAW_DISPATCH_KEY": "connectors:main:sm-smoke-e2e",
         "TEST_SPECS": (
             '[{"file":"tests/SM-8.11/smoke-tests.spec.ts",'
             '"test_name":"login","error":"expected value","project":"chromium",'
@@ -238,35 +244,116 @@ def test_publish_defangs_mentions_the_agent_wrote_itself(tmp_path):
     assert "--add-reviewer octocat" not in gh_calls
 
 
-def test_privileged_workflows_are_not_directly_dispatchable():
-    assert "workflow_dispatch:" not in FIX
-    assert "workflow_dispatch:" not in TRIAGE
-    assert "workflow_call:" in FIX
-    assert "workflow_call:" in TRIAGE
+def test_the_fix_agent_is_dispatchable_and_what_now_bounds_it():
+    """The one control this change deliberately trades, and what replaced it.
 
+    This file used to assert `"workflow_dispatch:" not in FIX`: nothing privileged
+    here could be started from outside at all. That was the stronger rule, and it is
+    being given up on purpose -- triage now runs in
+    camunda/c8-cross-component-e2e-tests for every consumer, that repository is
+    internal while this one is public, and GitHub refuses `uses:` across that
+    boundary. A dispatch is the only way left to start the agent, and an agent that
+    cannot be started cannot fix anything.
 
-def test_fix_requires_a_protected_non_manual_caller_and_enabled_mode():
-    assert "github.ref_protected" in FIX
-    assert "github.event_name != 'workflow_dispatch'" in FIX
+    So the boundary moves rather than disappearing, and this asserts where it moved
+    to. What someone who can dispatch gains is the ability to START the agent on a
+    protected ref; what they still cannot do is aim it at an arbitrary branch, run
+    it while the kill switch is off, or feed it another pipeline's dispatch key.
+
+    Two things this does NOT claim, because both would be false:
+
+    * It does not claim the run cannot open a pull request. `Publish validated
+      patch` pushes and opens PRs with a quality-assurance-ci App token minted from
+      Vault, not with GITHUB_TOKEN, so the absent `pull-requests: write` below
+      bounds GITHUB_TOKEN alone. A dispatch can therefore reach App-backed
+      publishing -- of a patch that passed the validation steps, onto a branch the
+      allowlists chose, but publishing nonetheless. That capability is part of what
+      an authorization review of this trade has to weigh.
+    * It does not claim `github.ref_protected` stops a determined push-access
+      actor. The guards live in this file, and a branch-local copy of it can drop
+      them. They bound the workflow as written; only ref-scoped credentials (a
+      GitHub Environment, or a Vault policy bound to the ref) would bound the
+      actor.
+
+    If any assertion below is ever removed, the trade made here stops holding.
+    """
+    assert "workflow_dispatch:" in FIX, "the central triage has no other way in"
+    assert "workflow_call:" in FIX, "the in-repo caller must keep working"
+
+    # Protected refs only, on BOTH jobs: `gate` reads Vault, so guarding only the
+    # job that runs the agent would still expose the AppRole on an unprotected ref.
+    # Checked per job -- a file-wide substring passes when just one of them has it.
+    jobs = _jobs(FIX)
+    for job in ("gate", "fix"):
+        assert "github.ref_protected" in jobs[job], f"{job} must be ref-guarded"
+    # The Vault kill switch still gates every run, dispatched or called.
     assert "needs.gate.outputs.dispatch == 'true'" in FIX
+    # `active` is the weaker of the two gate outputs and must not be what guards this.
     assert "needs.gate.outputs.active == 'true'" not in FIX
+    # GITHUB_TOKEN cannot write to pull requests. The publish App token is the
+    # separate authority described above; this says nothing about it.
     assert "pull-requests: write" not in FIX
-    assert "pull-requests: write" not in TRIAGE
+    # Inputs are still validated against allowlists rather than trusted.
+    assert 'case "$BASE_REF" in' in FIX
+    assert 'case "$SURFACE" in' in FIX
+    # And a key belonging to another pipeline is still refused; the dedicated tests
+    # above exercise both halves of that guard against the real script.
+    assert 'connectors:${BASE_REF}:${SURFACE}' in FIX
+
+
+def test_two_agents_cannot_race_for_one_dispatch_key():
+    """A dispatch is now startable by hand, so the run holds a lock on its key.
+
+    Triage serialised per branch and read the in-flight keys before dispatching,
+    and the central one still does -- but neither covers a workflow_dispatch a
+    person makes, which this change makes possible. Two agents on the same key
+    both find no open PR in `Publish validated patch` and both create one, after
+    which every later run for that key fails on "multiple open PRs use dispatch
+    label" until someone closes one by hand. Cancelling is not the answer either:
+    the active agent may be mid-patch.
+
+    The reservation is WORKFLOW level, and the assertions below say so. A
+    job-level group is released between `gate` and `fix`, and another run's gate
+    can take it in that gap -- which leaves an already-gated `fix` pending,
+    where a third dispatch evicts it. It also keeps the Vault read inside the
+    lock: a run that waited an agent's full 90 minutes must not start on an
+    approval banked before the wait, since `disabled` is meant to stop queued
+    agents too.
+    """
+    head = FIX[: FIX.index("\njobs:\n")]
+    assert "\nconcurrency:\n" in head, "the whole run must serialise on its key"
+    assert (
+        "group: alwaysgreen-fix-${{ inputs.dispatch_key" in head
+    ), "the group must be the dispatch key, or two surfaces block each other"
+    assert "cancel-in-progress: false" in head, (
+        "the loser waits; killing an agent mid-patch loses the fix"
+    )
+    # Job-level groups are what reintroduces the gap between `gate` and `fix`.
+    assert "    concurrency:" not in FIX, "the lock belongs to the run, not a job"
 
 
 def test_executable_tooling_is_pinned_and_not_caller_selectable():
-    assert "tooling_ref" not in TRIAGE
-    assert "gh workflow run" not in TRIAGE
-    assert TRIAGE.count("ref: main") >= 1
+    assert "tooling_ref" not in FIX
     assert FIX.count("ref: main") >= 2
 
 
 def test_manual_watcher_replay_is_classification_only():
+    """A hand-started replay must never dispatch an agent.
+
+    The expression is unchanged; it now reaches the central triage as a `dry_run`
+    field in the dispatch payload rather than as a `with:` input, so it is asserted
+    on the env var that carries it. The property is the same one: anybody who can
+    press "Run workflow" gets classification and reporting, never a fix agent.
+    """
     assert "github.ref_protected &&" in WATCHER
     assert (
-        "dry_run: ${{ github.event_name == 'workflow_dispatch' || "
+        "DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || "
         "inputs.dry_run || false }}"
     ) in WATCHER
+    # And that it actually travels: an env var the payload never reads would pass the
+    # assertion above while dispatching a live run.
+    assert '--argjson dry_run "${DRY_RUN:-false}"' in WATCHER
+    assert "dry_run: $dry_run" in WATCHER
 
 
 def test_model_has_no_github_credential_or_shell_tool():
@@ -422,3 +509,18 @@ def test_input_validator_accepts_production_objects_and_bot_authors(tmp_path):
 def test_input_validator_accepts_empty_optional_inputs(tmp_path):
     result = _run_validate_inputs(tmp_path, EVIDENCE="", BLAME="", SLACK="")
     assert result.returncode == 0, result.stderr
+
+
+def test_the_key_guard_tolerates_a_dispatch_that_omits_it(tmp_path):
+    # A dispatched run sends no dispatch_key -- it is derived. The guard must skip
+    # rather than fail on the unset variable, which `set -u` would otherwise make
+    # fatal, killing every dispatched agent on its first step.
+    result = _run_validate_inputs(tmp_path, RAW_DISPATCH_KEY="")
+    assert result.returncode == 0, result.stderr
+
+
+def test_the_key_guard_still_rejects_another_pipelines_key(tmp_path):
+    # The point of the guard, unchanged: camunda/camunda's agent opens PRs into the
+    # same e2e repository, and only this pipeline's own keys may run here.
+    result = _run_validate_inputs(tmp_path, RAW_DISPATCH_KEY="camunda:main:sm-smoke-e2e")
+    assert result.returncode != 0

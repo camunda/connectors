@@ -1,10 +1,18 @@
-# description: Fix agent for AlwaysGreen failures, called by alwaysgreen-triage.yml.
+# description: Fix agent for AlwaysGreen failures. Triage runs in
+#              camunda/c8-cross-component-e2e-tests; this is started by workflow_call.
 #              Runs Claude Code without GitHub credentials, validates its patch, then
 #              opens a PR with a repository-specific token.
 # type: CI
 # owner: @camunda/test-automation-team
 ---
 name: AlwaysGreen Fix Agent
+
+# The dispatch key has to be readable from OUTSIDE this run: triage parses it back out
+# of the run name to learn which keys already have an agent in flight, and without that
+# it cannot tell a second failure on the same surface from one already being worked on.
+# A job-level `name:` is not enough -- `gh run list --json name` reports the RUN name.
+run-name: >-
+  AlwaysGreen fix [${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}]
 
 on:
   workflow_call:
@@ -67,6 +75,79 @@ on:
       CONNECTORS_SLACK_BOT_TOKEN:
         required: false
 
+  # Started by the central AlwaysGreen triage in
+  # camunda/c8-cross-component-e2e-tests, which cannot use `uses:` here: GitHub
+  # refuses to resolve a workflow from an internal repository into a public one.
+  # The inputs mirror what that dispatch sends, except dispatch_key -- it is derivable
+  # from base_ref and surface, and requiring a dispatcher to know one consumer's key
+  # format is exactly the coupling this removes.
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: 'Branch to fix against (main, stable/8.x)'
+        required: true
+        type: string
+      surface:
+        description: 'Failing surface (sm-smoke-e2e, saas-smoke-e2e)'
+        required: true
+        type: string
+      test_specs:
+        description: 'JSON array of failing specs with retry history'
+        required: true
+        type: string
+      fingerprints:
+        description: 'JSON array of fingerprints this agent must claim in the PR coverage block'
+        required: true
+        type: string
+      evidence:
+        description: 'JSON {run_url, repo} of the run holding the evidence (downstream run for SaaS)'
+        required: false
+        default: '{}'
+        type: string
+      failing_run_url:
+        description: 'The AlwaysGreen run that failed'
+        required: false
+        default: ''
+        type: string
+      triage_run_url:
+        description: 'Triage run that dispatched this'
+        required: false
+        default: ''
+        type: string
+      blame:
+        description: 'JSON {reviewer, author, pr} for the breaking change'
+        required: false
+        default: '{}'
+        type: string
+      slack:
+        description: 'JSON {ts, channel} for the thread reply'
+        required: false
+        default: '{}'
+        type: string
+# One reservation for the WHOLE run, not one per job.
+#
+# Two agents on the same key both see no open PR in `Publish validated patch`,
+# both create one, and every later run for that key then dies on "multiple open
+# PRs use dispatch label" until a human closes one. Triage used to be the only
+# thing standing in the way -- it serialises per branch and reads the in-flight
+# keys before dispatching, and the central triage in
+# camunda/c8-cross-component-e2e-tests still does both -- but neither reaches a
+# workflow_dispatch made by hand, which this workflow now accepts.
+#
+# At workflow level rather than per job: a job-level group is released
+# between `gate` and `fix`, and another run's gate can take it in that gap,
+# leaving an already-gated `fix` pending where a third dispatch evicts it. One
+# run-wide reservation has no such gap, and it also puts the Vault read inside
+# the lock -- a run that waited an agent's full 90 minutes must not start on an
+# approval banked before the wait, because the flag is the kill switch and
+# `disabled` is supposed to stop queued agents too.
+#
+# Not cancel-in-progress: the loser waits for the agent that is already
+# mid-patch rather than killing it.
+concurrency:
+  group: alwaysgreen-fix-${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read
@@ -88,6 +169,14 @@ jobs:
   # interrupted — cancel it.
   gate:
     name: Check feature flag
+    # Same guard as `fix`. This job reads Vault, so without it a dispatch on an
+    # unprotected ref would still hand the AppRole credentials to a step before
+    # anything checked the ref -- `fix` being skipped afterwards is too late.
+    # It bounds an unmodified workflow only: someone with push access can edit
+    # this file on their own branch and remove the guard, and only ref-scoped
+    # credentials (a GitHub Environment, or a Vault policy bound to the ref) would
+    # stop that. See the security test for what this does and does not cover.
+    if: ${{ github.ref_protected }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -116,9 +205,11 @@ jobs:
           echo "::notice::AlwaysGreen fix agent is disabled by the Vault feature flag."
 
   fix:
-    name: "AlwaysGreen fix [${{ inputs.dispatch_key }}]"
+    name: "AlwaysGreen fix [${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}]"
     needs: gate
-    if: ${{ github.ref_protected && github.event_name != 'workflow_dispatch' && needs.gate.outputs.dispatch == 'true' }}
+    # workflow_dispatch is now how the central triage starts this agent, so it is
+    # no longer excluded. The Vault flag resolved in `gate` remains the kill switch.
+    if: ${{ github.ref_protected && needs.gate.outputs.dispatch == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -130,7 +221,9 @@ jobs:
         env:
           BASE_REF: ${{ inputs.base_ref }}
           SURFACE: ${{ inputs.surface }}
-          DISPATCH_KEY: ${{ inputs.dispatch_key }}
+          DISPATCH_KEY: ${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
+          # The raw input, so the guard below still validates a caller that sent one.
+          RAW_DISPATCH_KEY: ${{ inputs.dispatch_key }}
           TEST_SPECS: ${{ inputs.test_specs }}
           FINGERPRINTS: ${{ inputs.fingerprints }}
           EVIDENCE: ${{ inputs.evidence }}
@@ -151,8 +244,13 @@ jobs:
 
           # The key is namespaced because camunda/camunda's agent opens PRs into the
           # same e2e repository; only this repository's own keys may be dispatched here.
-          if [ "$DISPATCH_KEY" != "connectors:${BASE_REF}:${SURFACE}" ]; then
-            echo "::error::dispatch_key '$DISPATCH_KEY' is not this pipeline's key for ${BASE_REF}/${SURFACE}"
+          # Only when one was SUPPLIED: a dispatch omits it and DISPATCH_KEY is then
+          # derived from these same two values, so the check would be tautological.
+          # The point is unchanged -- camunda/camunda's agent opens PRs into the same
+          # e2e repository, and only this pipeline's own keys may run here.
+          if [ -n "${RAW_DISPATCH_KEY:-}" ] \
+             && [ "${RAW_DISPATCH_KEY}" != "connectors:${BASE_REF}:${SURFACE}" ]; then
+            echo "::error::dispatch_key '${RAW_DISPATCH_KEY}' is not this pipeline's key for ${BASE_REF}/${SURFACE}"
             exit 1
           fi
 
@@ -799,7 +897,7 @@ jobs:
           TRIAGE_RUN_URL: ${{ inputs.triage_run_url }}
           BLAME_AUTHOR: ${{ steps.ctx.outputs.blame_author }}
           BLAME_REVIEWER: ${{ steps.ctx.outputs.blame_reviewer }}
-          KEY_LABEL: ag-key:${{ inputs.dispatch_key }}
+          KEY_LABEL: ag-key:${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}
           # Keyed on `found`, not on the login, so no sentinel value reaches `gh` as a handle.
           MEDIC_LOGIN: ${{ steps.medic.outputs.found == 'true' && steps.medic.outputs.login || '' }}
           MEDIC_NAME: ${{ steps.medic.outputs.full_name }}
@@ -912,12 +1010,14 @@ jobs:
             # the tested commit -- that holds for a clean "pr-author" match only, and is
             # false for a "backport-original" (names the original PR's author, not the bot
             # merge) and for the "pr-author" fallback (a candidate whose merge never
-            # matched). See Blame in .github/scripts/alwaysgreen/classify.py.
+            # matched). See Blame in camunda/c8-cross-component-e2e-tests,
+            # scripts/alwaysgreen/classify.py.
             [ -z "$BLAME_AUTHOR" ] || [ "$blame_relevant" != "true" ] \
               || echo "- Candidate breaking-change author: @${BLAME_AUTHOR} -- the agent" \
                       "judged the PR attributed to this run's commit related to the" \
                       "failure. That attribution is heuristic (see \`Blame\` in" \
-                      ".github/scripts/alwaysgreen/classify.py); it is not a confirmed" \
+                      "\`classify.py\` in camunda/c8-cross-component-e2e-tests); it is not a" \
+                      "confirmed" \
                       "cause."
             echo
             echo "<!-- alwaysgreen-fixed"
@@ -1063,4 +1163,4 @@ jobs:
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_role_id: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secret_id: ${{ secrets.VAULT_SECRET_ID }}
-          job_name: "alwaysgreen-fix/${{ inputs.dispatch_key }}"
+          job_name: "alwaysgreen-fix/${{ inputs.dispatch_key || format('connectors:{0}:{1}', inputs.base_ref, inputs.surface) }}"
