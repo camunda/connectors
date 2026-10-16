@@ -122,8 +122,12 @@ The decision comprises:
   Keeping the existing packages to spare extensions an import change was rejected: it leaves
   packages split across modules, which hides module membership and blocks the Java module system.
 
-* **D9 — The AI Agent connector module is renamed.** After the split it holds only the AI Agent, so
-  its artifact is `connector-aiagent`.
+* **D9 — One group, a bundle, and a renamed AI Agent artifact.** All artifacts use the group
+  `io.camunda.connector.agenticai`, which keeps generic names such as `aiagent-api` apart from the
+  other connectors. After the split the AI Agent module holds only the AI Agent, so its artifact is
+  `connector-aiagent`. The `agentic-ai-bundle` artifact (`pom` packaging) depends on every
+  connector and gateway tool integration. Runtimes that ship all agentic AI connectors, such as the
+  default bundle, depend on it instead of listing the modules.
 
 ### Non-goals
 
@@ -141,8 +145,10 @@ The decision comprises:
 
 ### Negative Consequences
 
-* Ten modules instead of one: more poms, more bundle and e2e wiring to maintain.
-* Extensions must switch the artifact to `connector-aiagent` and update their imports, since most
+* Ten modules instead of one: more poms to maintain. Runtimes depend on `agentic-ai-bundle`, so the
+  module layout does not leak into them.
+* Extensions must switch to the group `io.camunda.connector.agenticai` and the artifact
+  `connector-aiagent` (or `agentic-ai-bundle`), and update their imports, since most
   extension point and model types changed packages. The details are in the
   [breaking changes](../breaking-changes.md).
 * Element templates moved to the modules of their connectors, so their repository paths changed.

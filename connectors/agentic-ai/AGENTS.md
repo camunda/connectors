@@ -46,12 +46,15 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
+| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
+All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
+bundles, the e2e tests) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there.
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ### Architecture tests

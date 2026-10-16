@@ -11,6 +11,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
+  <groupId>io.camunda.connector.agenticai</groupId>
   <artifactId>connector-agentic-ai-parent</artifactId>
   <name>connector-agentic-ai-parent</name>
   <description>Agentic AI connectors</description>
@@ -50,6 +51,7 @@
     <module>connector-a2a</module>
     <module>aiagent-a2a-integration</module>
     <module>connector-aiagent</module>
+    <module>agentic-ai-bundle</module>
     <module>agentic-ai-archunit-tests</module>
   </modules>
 

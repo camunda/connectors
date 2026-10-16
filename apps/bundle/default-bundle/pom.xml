@@ -268,33 +268,9 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-aiagent</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-ad-hoc-tools-schema</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-mcp</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>aiagent-mcp-integration</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-a2a</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>aiagent-a2a-integration</artifactId>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>agentic-ai-bundle</artifactId>
+      <type>pom</type>
       <scope>runtime</scope>
     </dependency>
     <dependency>
