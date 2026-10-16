@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-WORKFLOW = Path(__file__).resolve().parents[2] / "workflows/connectors-streak-detector.yml"
+WORKFLOW = Path(__file__).resolve().parents[1] / "connectors-streak-detector.yml"
 REPO = "camunda/connectors"
 SHA = "a" * 40
 CONNECTORS_MEDIC = "<connectors-medic>"

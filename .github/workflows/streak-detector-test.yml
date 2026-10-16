@@ -1,0 +1,44 @@
+# description: Unit tests for the streak job in connectors-streak-detector.yml. The job
+# only runs from the copy on the default branch, so these tests are the only check a
+# change to it gets before merge.
+# type: CI
+# owner: @camunda/connectors
+---
+name: Streak detector test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/connectors-streak-detector.yml'
+      - '.github/workflows/scripts/test_streak_detector.py'
+      - '.github/workflows/streak-detector-test.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/connectors-streak-detector.yml'
+      - '.github/workflows/scripts/test_streak_detector.py'
+      - '.github/workflows/streak-detector-test.yml'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.14'
+      - name: Install dependencies
+        run: pip install --quiet pytest pyyaml
+      - name: Run tests
+        run: pytest --verbose --color=yes --tb=short .github/workflows/scripts/test_streak_detector.py
