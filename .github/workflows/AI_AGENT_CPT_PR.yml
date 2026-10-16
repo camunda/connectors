@@ -1,7 +1,7 @@
 name: AI Agent CPT Tests (PR)
 
-# Runs real-LLM AI Agent E2E coverage on a PR before it reaches the merge queue, gated by the
-# `ai-agent-model-e2e-test` label so it isn't triggered accidentally.
+# Classifies PR changes for real-LLM AI Agent E2E coverage before the merge queue. Paid tests remain
+# gated by the `ai-agent-model-e2e-test` label so they aren't triggered accidentally.
 #
 # This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
 # feeds unrelated SM/SaaS E2E triggers.
@@ -12,55 +12,87 @@ name: AI Agent CPT Tests (PR)
 # The image-backed E2E class and in-process provider capability groups are separate matrix legs.
 on:
   pull_request:
-    types: [ labeled ]
+    types: [ opened, reopened, synchronize, labeled ]
 
-# Scoped to the PR and label so an unrelated label event cannot cancel an authorized run.
+# Target-label and non-label events share a key so a push cancels stale authorized work.
+# Other label events remain isolated and cannot cancel it.
 concurrency:
-  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.action == 'labeled' && github.event.label.name != 'ai-agent-model-e2e-test' && format('label-{0}', github.event.label.name) || 'current-head' }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  # Required by dorny/paths-filter on the `pull_request` event - it calls the GitHub REST API
-  # to list changed files and fails outright without this scope.
-  pull-requests: read
 
 jobs:
   setup:
     name: Validate AI Agent CPT registry
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
-      ai: ${{ steps.changes.outputs.ai }}
+      ai: ${{ steps.impact.outputs.affected }}
+      authorized: ${{ steps.impact.outputs.authorized }}
+      state: ${{ steps.impact.outputs.state }}
       matrix: ${{ steps.registry.outputs.matrix }}
     if: |
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Check for agentic-ai changes
-        id: changes
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
-        with:
-          filters: |
-            ai:
-              - 'connectors/agentic-ai/**'
-              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
-              - '.github/ai-agent-cpt/**'
-              - '.github/workflows/AI_AGENT_CPT_PR.yml'
-              - '.github/workflows/package.json'
+      - name: Classify AI Agent CPT impact
+        id: impact
+        env:
+          AI_AGENT_CPT_EVENT_ACTION: ${{ github.event.action }}
+          AI_AGENT_CPT_EVENT_LABEL: ${{ github.event.label.name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ || ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The pull request base/head SHA is not a full commit SHA."
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            echo "::error::The checked-out commit does not match the event head SHA."
+            exit 1
+          fi
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+          git diff --name-only --no-renames -z "$BASE_SHA...$HEAD_SHA" -- |
+            python3 .github/ai-agent-cpt/classify_impact.py
+      - name: Require classification outputs
+        env:
+          AFFECTED: ${{ steps.impact.outputs.affected }}
+          AUTHORIZED: ${{ steps.impact.outputs.authorized }}
+          STATE: ${{ steps.impact.outputs.state }}
+        run: |
+          set -euo pipefail
+          python3 .github/ai-agent-cpt/classify_impact.py validate-outputs \
+            --affected "$AFFECTED" \
+            --authorized "$AUTHORIZED" \
+            --state "$STATE"
       - name: Validate registry
         id: registry
         run: |
           set -euo pipefail
+          python3 .github/ai-agent-cpt/test_classify_impact.py
           python3 .github/ai-agent-cpt/validate_registry_test.py
           python3 .github/ai-agent-cpt/test_summarize_results.py
           MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
             --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json)"
-          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
+          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
+      - name: Require rendered matrix output
+        env:
+          MATRIX: ${{ steps.registry.outputs.matrix }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
 
   run-ai-agent-cpt:
     name: ${{ matrix.name }}
@@ -71,15 +103,17 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix:
+        # Successful setup validates a non-empty matrix. The fallback only keeps evaluation valid
+        # when setup is intentionally skipped for a fork, or has already failed.
         include: ${{ fromJSON(needs.setup.outputs.matrix || '[]') }}
     # Fork PRs get no secrets from `pull_request` by design (never widen this to
     # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
     # account to unvetted fork code before review).
     if: |
       needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true' &&
       github.event.pull_request.state != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.label.name == 'ai-agent-model-e2e-test'
+      github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -342,7 +376,11 @@ jobs:
   summarize-ai-agent-cpt:
     name: Summarize AI Agent CPT results
     needs: [setup, run-ai-agent-cpt]
-    if: always() && !cancelled() && needs.setup.outputs.ai == 'true'
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
