@@ -1493,7 +1493,7 @@ classDiagram
 ```
 
 ### E2E Tests
-- `connectors-e2e-test/connectors-e2e-test-agentic-ai/` — Full integration tests
+- `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/` — Full integration tests
 - `BaseAgentSubProcessTest` — Job worker test base
 - `BaseAgentTaskTest` — Connector test base
 - `AgentSubProcessFeedbackLoopTests` — Feedback loop tests
