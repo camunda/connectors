@@ -18,6 +18,7 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.util.Set;
@@ -32,17 +33,19 @@ class PolymorphicJsonArchTest {
   private static final String CONVERSATION_CONTEXT =
       AgenticAiModules.pkg("aiagent.model.conversation.ConversationContext");
 
-  @ArchTest
-  static final ArchRule CLASSES_DO_NOT_USE_CLASS_BASED_TYPE_IDS =
-      classes()
-          .should(notUseClassBasedTypeIds())
-          .because("class names in JSON couple the persisted data to the Java package structure");
+  private static final String CLASS_NAMES_COUPLE_DATA_TO_PACKAGES =
+      "class names in JSON couple the persisted data to the Java package structure";
 
   @ArchTest
-  static final ArchRule MEMBERS_DO_NOT_USE_CLASS_BASED_TYPE_IDS =
-      members()
-          .should(notUseClassBasedTypeIds())
-          .because("class names in JSON couple the persisted data to the Java package structure");
+  static final ArchRule CLASSES_AND_MEMBERS_DO_NOT_USE_CLASS_BASED_TYPE_IDS =
+      CompositeArchRule.of(
+              classes()
+                  .should(notUseClassBasedTypeIds())
+                  .because(CLASS_NAMES_COUPLE_DATA_TO_PACKAGES))
+          .and(
+              members()
+                  .should(notUseClassBasedTypeIds())
+                  .because(CLASS_NAMES_COUPLE_DATA_TO_PACKAGES));
 
   @ArchTest
   static final ArchRule CONVERSATION_CONTEXT_IMPLEMENTATIONS_HAVE_A_TYPE_NAME =

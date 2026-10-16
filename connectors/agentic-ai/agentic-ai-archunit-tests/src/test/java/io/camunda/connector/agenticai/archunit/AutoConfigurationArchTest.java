@@ -46,22 +46,17 @@ class AutoConfigurationArchTest {
           "are annotated with @AutoConfiguration", javaClass -> isAutoConfiguration(javaClass));
 
   @ArchTest
-  static final ArchRule AUTO_CONFIGURATIONS_RESIDE_IN_CONFIGURATION_PACKAGES =
+  static final ArchRule AUTO_CONFIGURATIONS_FOLLOW_THE_PACKAGE_AND_NAMING_CONVENTION =
       classes()
           .that(AUTO_CONFIGURATIONS)
           .should()
           .resideInAPackage("..configuration")
-          .because("every module keeps its Spring wiring in a configuration package");
-
-  @ArchTest
-  static final ArchRule AUTO_CONFIGURATIONS_ARE_NAMED_AUTO_CONFIGURATION =
-      classes()
-          .that(AUTO_CONFIGURATIONS)
-          .should()
+          .andShould()
           .haveSimpleNameEndingWith("AutoConfiguration")
           .because(
-              "the name tells auto-configurations, which users can exclude, from imported"
-                  + " configuration classes");
+              "every module keeps its Spring wiring in a configuration package, and the name tells"
+                  + " auto-configurations, which users can exclude, from imported configuration"
+                  + " classes");
 
   @ArchTest
   static final ArchRule AUTO_CONFIGURATIONS_CAN_BE_SWITCHED_OFF_AS_A_WHOLE =
