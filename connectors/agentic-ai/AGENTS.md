@@ -103,13 +103,17 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 
 `AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
 a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
-integration also goes into `agentic-ai-bundle`. Run the rules after installing the modules
-(they read the module jars from the local Maven repository):
+integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
 
 ```bash
-./mvnw clean install -DskipTests -f connectors/agentic-ai/pom.xml
-./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests
+./mvnw test -f connectors/agentic-ai/pom.xml \
+  '-Dtest=*ArchTest,ModuleInventoryTest,ModuleDependencyPolicyTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
+
+This builds all modules of `connectors/agentic-ai` in one reactor, so the rules check the current
+sources. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs them too. Do not run the
+`agentic-ai-archunit-tests` module alone with `-pl`: it reads the jars of the other modules from the
+local Maven repository, so it checks the last install and not your changes.
 
 ## Start here, navigation
 
