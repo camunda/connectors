@@ -190,7 +190,7 @@ limitations under the License.</license.inlineheader>
          version the other doesn't have, breaking dependency resolution. -->
     <version.bouncycastle-pkix>1.86</version.bouncycastle-pkix>
     <version.bouncycastle-prov>1.86</version.bouncycastle-prov>
-    <version.box-sdk>5.18.0</version.box-sdk>
+    <version.box-sdk>5.19.0</version.box-sdk>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override — remove once box-java-sdk ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
@@ -221,7 +221,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
     <version.langchain4j>1.22.0</version.langchain4j>
-    <version.mcp-sdk>2.0.1</version.mcp-sdk>
+    <version.mcp-sdk>2.1.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
 
@@ -1187,7 +1187,7 @@ See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                    (see version.zstd-jni). -->
               <requireProperty>
                 <property>version.box-sdk</property>
-                <regex>^5\.18\.0$</regex>
+                <regex>^5\.19\.0$</regex>
                 <regexMessage>
 version.box-sdk was changed! Check if the zstd-jni CVE-2026-87823/87824/87825/87877 override can
 be removed. If the new box-java-sdk version ships zstd-jni &gt;= 1.5.7-14, remove the
