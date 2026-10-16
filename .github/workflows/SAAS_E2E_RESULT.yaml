@@ -95,7 +95,7 @@ jobs:
               ;;
           esac
           case "$BASE_REF" in
-            main|stable/8.7|stable/8.8|stable/8.9) base_ref_supported=true ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) base_ref_supported=true ;;
             *) base_ref_supported=false ;;
           esac
 
@@ -217,9 +217,9 @@ jobs:
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
 
-  # This run IS the failing run, so triage needs no run_id: it classifies `result`'s
-  # failure and reads the artifact uploaded above from this same run. Its head_sha is
-  # the default branch's head, though, so the tested commit is passed for attribution.
+  # This run IS the failing run, so it is handed to the central triage in
+  # camunda/c8-cross-component-e2e-tests the same way connectors-streak-detector.yml
+  # hands over a pipeline run, which skips SaaS result runs for that reason.
   triage:
     name: AlwaysGreen triage and fix dispatch
     needs: [ result, feedback ]
@@ -228,14 +228,63 @@ jobs:
       github.ref_protected &&
       needs.result.outputs.failed == 'true' &&
       needs.result.outputs.base_ref_supported == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
-      actions: read
-      pull-requests: read
-    uses: ./.github/workflows/alwaysgreen-triage.yml
-    secrets: inherit
-    with:
-      base_ref: ${{ needs.result.outputs.base_ref }}
-      head_sha: ${{ needs.result.outputs.source_sha }}
-      parent_slack_ts: ${{ needs.feedback.outputs.slack_ts }}
-      parent_slack_channel: ${{ needs.feedback.outputs.slack_channel }}
+    steps:
+      - name: Generate a token that may dispatch to the triage repository
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: c8-cross-component-e2e-tests
+
+      # A disabled receiver accepts the dispatch and runs nothing.
+      - name: Refuse to dispatch at a disabled receiver
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          state=$(gh api repos/camunda/c8-cross-component-e2e-tests/actions/workflows/alwaysgreen-triage.yml \
+            --jq '.state' 2>/dev/null || echo "unknown")
+          if [ "$state" != "active" ]; then
+            echo "::error::the AlwaysGreen triage receiver is '${state}', so this failure would go untriaged"
+            exit 1
+          fi
+
+      - name: Hand the failure to the central triage
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE_REF: ${{ needs.result.outputs.base_ref }}
+          SLACK_TS: ${{ needs.feedback.outputs.slack_ts }}
+          SLACK_CHANNEL: ${{ needs.feedback.outputs.slack_channel }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -nc \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg run_id "${RUN_ID}" \
+            --arg base_ref "${BASE_REF}" \
+            --arg ts "${SLACK_TS:-}" \
+            --arg channel "${SLACK_CHANNEL:-}" \
+            '{event_type: "alwaysgreen-triage",
+              client_payload: {source_repo: $repo,
+                               run_id: $run_id,
+                               base_ref: $base_ref,
+                               slack_ts: $ts,
+                               slack_channel: $channel,
+                               dry_run: false}}')
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/camunda/c8-cross-component-e2e-tests/dispatches \
+            --input - <<<"$payload"
+          echo "Handed run ${RUN_ID} to the central triage." >> "$GITHUB_STEP_SUMMARY"
