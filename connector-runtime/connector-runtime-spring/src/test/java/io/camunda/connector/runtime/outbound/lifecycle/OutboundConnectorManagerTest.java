@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -129,7 +130,8 @@ class OutboundConnectorManagerTest {
 
     manager.onStart(client, "engine-a");
 
-    verify(jobWorkerManager, times(2)).createJobWorker(any(), any(), any());
+    // the client name is handed on so the client tags its worker metrics like the connector metrics
+    verify(jobWorkerManager, times(2)).createJobWorker(any(), any(), any(), eq("engine-a"));
   }
 
   @Test
@@ -150,6 +152,29 @@ class OutboundConnectorManagerTest {
 
     // no exception thrown proves resolution correctly fell back to "engine-b" and found the map
     // entries
+  }
+
+  @Test
+  void onStart_normalizesTheConfiguredPhysicalTenantIdLikeTheCamundaClientDoes() {
+    var jobWorkerManager = mock(JobWorkerManager.class);
+    var connectorFactory = mock(OutboundConnectorFactory.class);
+    when(connectorFactory.getActiveConfigurations()).thenReturn(Set.of());
+    var manager =
+        managerWith(
+            jobWorkerManager,
+            connectorFactory,
+            Map.of(
+                "tenant-a", mock(DocumentFactory.class), "engine-c", mock(DocumentFactory.class)),
+            Map.of(
+                "tenant-a",
+                mock(SecretFilterFactory.class),
+                "engine-c",
+                mock(SecretFilterFactory.class)));
+
+    // trimmed, so it matches the physicalTenantId tag the client puts on its worker metrics
+    manager.onStart(clientWithPhysicalTenantId(" tenant-a "), "engine-a");
+    // blank counts as unset, so it falls back to the client name like the client does
+    manager.onStart(clientWithPhysicalTenantId(" "), "engine-c");
   }
 
   @Test
@@ -282,7 +307,7 @@ class OutboundConnectorManagerTest {
     manager.onStart(client, "engine-a");
 
     var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
-    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any(), any());
     JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
     assertThat(jobWorkerValue.getWithLease().value()).isTrue();
   }
@@ -307,7 +332,7 @@ class OutboundConnectorManagerTest {
     manager.onStart(client, "engine-a");
 
     var jobWorkerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
-    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any());
+    verify(jobWorkerManager).createJobWorker(any(), jobWorkerCaptor.capture(), any(), any());
     JobWorkerValue jobWorkerValue = jobWorkerCaptor.getValue().jobWorkerValue();
     assertThat(jobWorkerValue.getWithLease()).isInstanceOf(SourceAware.Empty.class);
   }
