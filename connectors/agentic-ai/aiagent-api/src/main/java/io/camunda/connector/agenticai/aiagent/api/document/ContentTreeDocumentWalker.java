@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Used as the default extraction strategy by {@link
  * io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler#extractDocuments} and as the
- * fallback in {@link ToolCallResultDocumentExtractor} for tool call results not managed by any
+ * fallback in {@code ToolCallResultDocumentExtractor} for tool call results not managed by any
  * gateway handler. Public on purpose so that gateway handler implementations whose typed content
  * wraps raw user-generated subtrees (e.g. arbitrary maps from a downstream system) can delegate to
  * it for those subtrees.

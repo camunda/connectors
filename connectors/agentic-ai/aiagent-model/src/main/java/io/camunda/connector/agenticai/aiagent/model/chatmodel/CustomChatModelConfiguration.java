@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.chatmodel;
 import java.util.Map;
 
 /**
- * Configuration of a user-supplied chat model provider. {@link #providerType()} selects the {@link
+ * Configuration of a user-supplied chat model provider. {@link #providerType()} selects the {@code
  * ChatModelFactory} that serves the request; {@link #parameters()} is opaque configuration only
  * that factory understands.
  */
