@@ -143,6 +143,14 @@ The decision comprises:
   Allowing connectors to depend on each other was rejected: it would bring back the coupling the
   split removes, and the build of one connector would pull in the others.
 
+* **D11 — A gateway tool integration does not need its client connector on the same runtime.**
+  The integration runs where the AI Agent runs. It resolves the tool definitions and maps the tool
+  calls and their results. The tool calls run as elements of the ad-hoc sub-process, so the client
+  connector executes them on any runtime that serves its job type. A runtime can therefore enable an
+  integration while its client connector is disabled, and the tool calls run on another runtime.
+  This distributed setup is supported. Making an integration depend on its client connector being
+  enabled was rejected: it would block this setup.
+
 ### Non-goals
 
 * The A2A 1.0 protocol upgrade.
@@ -179,8 +187,10 @@ The decision comprises:
   * The cycles of `aiagent.chatmodel` with `aiagent.agent`, `aiagent.configuration` and
     `aiagent.request` (see below).
 * Break the package cycles in `connector-aiagent` and `connector-mcp`. The cycles block extracting
-  the agent loop and the providers. The architecture tests allow exactly these cycles, and the list
-  must only shrink:
+  the agent loop and the providers. For each of these cycles, the architecture tests ignore the
+  dependency that closes it, and the list must only shrink. An ignored dependency also hides the
+  longer cycles that run through it, for example through `aiagent.agent`, so the tests do not catch
+  a new cycle that uses one of these dependencies:
   * `aiagent.agentinstance` and `aiagent.conversation`.
   * `aiagent.chatmodel` and `aiagent.configuration`.
   * `aiagent.chatmodel` and `aiagent.request`.
@@ -219,8 +229,6 @@ The decision comprises:
   model and the API exclude the Spring and HTTP dependencies of the common library, and the build
   fails if they come back. The common auto-configuration skips itself when the HTTP client is
   missing, so a Spring application that depends only on the model or the API still starts.
-* Make each gateway tool integration depend on its client connector being enabled. Today the
-  integration can stay enabled while the client connector that runs its tool calls is disabled.
 * Add an API compatibility check for `aiagent-api` and `aiagent-model` after the first release with
   the split, as part of the build verification harness (#7621).
 
