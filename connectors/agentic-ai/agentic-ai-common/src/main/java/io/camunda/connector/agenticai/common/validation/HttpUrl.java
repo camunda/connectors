@@ -18,11 +18,19 @@ import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+/**
+ * The annotated string is an absolute HTTP or HTTPS URL: the scheme {@code http} or {@code https}
+ * in any case, a non-empty authority (host, optionally with user info and port), and no whitespace.
+ * {@code null} is valid; combine with {@code @NotBlank} where a value is required.
+ */
 @Documented
 @Target({FIELD, PARAMETER, RECORD_COMPONENT})
 @Retention(RUNTIME)
 @Constraint(validatedBy = {})
-@Pattern(regexp = "^https?://.+", message = "Must be an HTTP or HTTPS URL")
+@Pattern(
+    regexp = "^https?://[^\\s/?#]+([/?#]\\S*)?$",
+    flags = Pattern.Flag.CASE_INSENSITIVE,
+    message = "Must be an HTTP or HTTPS URL")
 public @interface HttpUrl {
   String message() default "Must be an HTTP or HTTPS URL";
 

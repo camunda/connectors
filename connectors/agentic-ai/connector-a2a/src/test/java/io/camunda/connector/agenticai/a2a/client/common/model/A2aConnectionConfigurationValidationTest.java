@@ -31,13 +31,27 @@ class A2aConnectionConfigurationValidationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"http://localhost:8080", "https://agent.example.com/a2a"})
+  @ValueSource(
+      strings = {
+        "http://localhost:8080",
+        "https://agent.example.com/a2a",
+        "HTTPS://agent.example.com",
+        "http://user@agent.example.com:8443/a2a?tenant=a#card"
+      })
   void validationSucceedsForHttpUrl(String url) {
     assertThat(validator.validate(new A2aConnectionConfiguration(url, null))).isEmpty();
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"localhost:8080", "ftp://localhost/a2a", "file:///tmp/agent-card.json"})
+  @ValueSource(
+      strings = {
+        "localhost:8080",
+        "ftp://localhost/a2a",
+        "file:///tmp/agent-card.json",
+        "http://",
+        "https:///a2a",
+        "http://not a host"
+      })
   void validationFailsWhenUrlIsNotAnHttpUrl(String url) {
     assertThat(validator.validate(new A2aConnectionConfiguration(url, null)))
         .extracting(ConstraintViolation::getMessage)
