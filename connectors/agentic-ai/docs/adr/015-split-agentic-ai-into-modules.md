@@ -92,6 +92,8 @@ The decision comprises:
   that the API exposes is modeled as plain interfaces (memory configuration, conversation store
   configuration, custom chat model configuration). The records annotated for element template
   generation implement them and stay in the connector, so the model carries no template layout.
+  The prompt, limits, event handling and response format configurations do not follow this yet
+  (see [Follow-up](#follow-up)).
 
 * **D5 — Conversation context subtypes are discovered, not listed.** The persisted conversation
   context is polymorphic. Its subtypes are contributed through a `java.util.ServiceLoader` provider
@@ -148,6 +150,19 @@ The decision comprises:
 ## Follow-up
 
 * Extract chat model providers and LangChain4j into their own modules when needed.
+* Break the package cycles in `connector-aiagent` and `connector-mcp`, then add them to the cycle
+  checks of the architecture tests. The cycles block extracting the agent loop and the providers:
+  * `aiagent.agentinstance` and `aiagent.conversation`.
+  * `aiagent.chatmodel` and `aiagent.configuration`.
+  * `aiagent.chatmodel` and `aiagent.request`.
+  * `aiagent.configuration` and `aiagent.request`.
+  * `aiagent.memory` and `aiagent.request`.
+  * `mcp.client.configuration` and `mcp.client.framework`.
+* Apply D4 to the remaining annotated records in `aiagent.model.request`: `PromptConfiguration`
+  (with its system and user prompt records), `LimitsConfiguration`, `EventHandlingConfiguration` and
+  `ResponseFormatConfiguration` (with its nested records). Model them as interfaces in the model and
+  move the annotated records to the connector. Then add an architecture rule that keeps element
+  template annotations out of `aiagent-model` and `aiagent-api`.
 
 ## Pros and Cons of the Options
 
