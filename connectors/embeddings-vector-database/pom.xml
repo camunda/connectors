@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <version.apache-tika>3.3.2</version.apache-tika>
+    <version.apache-tika>3.3.3</version.apache-tika>
   </properties>
 
   <dependencies>
@@ -259,7 +259,7 @@
           <rules combine.children="append">
             <requireProperty>
               <property>version.apache-tika</property>
-              <regex>^3\.3\.2$</regex>
+              <regex>^3\.3\.3$</regex>
               <regexMessage>
 version.apache-tika was changed! Check if the jsoup override can be removed.
 If the new Tika version pulls jsoup &gt;= 1.23.2 (confirm with
