@@ -11,11 +11,13 @@ import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
+@ConditionalOnClass(ProxyConfiguration.class)
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiHttpProperties.class)
 public class AgenticAiCommonAutoConfiguration {
