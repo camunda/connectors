@@ -159,8 +159,10 @@ jobs:
       # Last, so the artifact is already uploaded when triage reads this run.
       - name: Fail the job when the SaaS E2E run did not pass
         if: steps.payload.outputs.failed == 'true'
+        env:
+          CONCLUSION: ${{ github.event.client_payload.conclusion }}
         run: |
-          echo "::error::SaaS E2E run concluded '${{ github.event.client_payload.conclusion }}'."
+          echo "::error::SaaS E2E run concluded '${CONCLUSION}'."
           exit 1
 
   feedback:
