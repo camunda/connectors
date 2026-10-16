@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.ServiceConfigurationError;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -83,16 +84,17 @@ class ConversationContextTypeResolverBuilderTest {
 
   static Stream<Arguments> mappers() {
     return Stream.of(
-        Arguments.of("plain ObjectMapper", (Supplier<ObjectMapper>) ObjectMapper::new),
+        Arguments.of(Named.of("plain ObjectMapper", (Supplier<ObjectMapper>) ObjectMapper::new)),
         Arguments.of(
-            "connectors ObjectMapper",
-            (Supplier<ObjectMapper>) TestObjectMapperSupplier::getInstance));
+            Named.of(
+                "connectors ObjectMapper",
+                (Supplier<ObjectMapper>) TestObjectMapperSupplier::getInstance)));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("mappers")
-  void serializesBuiltInContextsWithExpectedTypeAndRoundTrips(
-      String name, Supplier<ObjectMapper> mapperSupplier) throws Exception {
+  void serializesBuiltInContextsWithExpectedTypeAndRoundTrips(Supplier<ObjectMapper> mapperSupplier)
+      throws Exception {
     var objectMapper = mapperSupplier.get();
 
     var inProcess = InProcessConversationContext.builder("conv-1").messages(List.of()).build();
@@ -110,8 +112,8 @@ class ConversationContextTypeResolverBuilderTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("mappers")
-  void resolvesSubtypesRegisteredOnMapperAlongsideBuiltIns(
-      String name, Supplier<ObjectMapper> mapperSupplier) throws Exception {
+  void resolvesSubtypesRegisteredOnMapperAlongsideBuiltIns(Supplier<ObjectMapper> mapperSupplier)
+      throws Exception {
     var objectMapper = mapperSupplier.get();
     objectMapper.registerSubtypes(CustomConversationContext.class);
 
@@ -124,7 +126,7 @@ class ConversationContextTypeResolverBuilderTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("mappers")
-  void failsOnUnknownTypeIdListingKnownTypeIds(String name, Supplier<ObjectMapper> mapperSupplier) {
+  void failsOnUnknownTypeIdListingKnownTypeIds(Supplier<ObjectMapper> mapperSupplier) {
     var objectMapper = mapperSupplier.get();
 
     assertThatThrownBy(
