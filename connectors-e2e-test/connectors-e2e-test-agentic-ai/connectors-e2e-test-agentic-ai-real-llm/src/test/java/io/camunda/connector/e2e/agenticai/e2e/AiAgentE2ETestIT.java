@@ -74,7 +74,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * export GOOGLE_VERTEX_AI_PROJECT_ID=... GOOGLE_VERTEX_AI_REGION=... \
  *        GOOGLE_VERTEX_AI_SERVICE_ACCOUNT="$(cat sa-key.json)"   # the Vertex AI rows
  *
- * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent -Pit-real-llm
+ * ./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm -Pit-real-llm
  * }</pre>
  *
  * <p>The service account variable holds the whole key file verbatim. Each row skips itself when its

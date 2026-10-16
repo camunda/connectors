@@ -1,0 +1,43 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-e2e-test-agentic-ai</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>8.11.0-SNAPSHOT</version>
+  </parent>
+
+  <description>Shared AI Agent test support for the Agentic AI E2E Tests</description>
+  <name>Connectors E2e Test Agentic Ai AI Agent Base</name>
+  <artifactId>connectors-e2e-test-agentic-ai-aiagent-base</artifactId>
+  <packaging>jar</packaging>
+
+  <!-- The shared AI Agent test support lives in src/main, so its test libraries need compile
+       scope. It depends on the AI Agent connector only, so that e2e modules using it run no
+       other agentic AI connector unless they add it. -->
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>connector-aiagent</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-e2e-test-agentic-ai-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>

@@ -31,7 +31,7 @@
       "groups": [],
       "testClasses": "AiAgentE2ETestIT",
       "buildBundle": true,
-      "mavenProjects": "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "apps/connector-runtime-application,apps/bundle/default-bundle,connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": [
         "bundle",
         "openai",
@@ -47,7 +47,7 @@
       "groups": ["core-smoke", "structured-output", "reasoning"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["openai"],
       "ci": true
     },
@@ -64,7 +64,7 @@
       ],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["vertex"],
       "ci": true
     },
@@ -75,7 +75,7 @@
       "groups": ["core-smoke", "reasoning", "prompt-caching"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["bedrock-provider"],
       "ci": true
     },
@@ -86,7 +86,7 @@
       "groups": ["multimodal-documents", "document-tool-results"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["openai"],
       "ci": true
     },
@@ -97,7 +97,7 @@
       "groups": ["multimodal-documents", "document-tool-results"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["bedrock-provider", "bedrock-documents"],
       "ci": true
     },
@@ -108,7 +108,7 @@
       "groups": ["prompt-caching"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["openai"],
       "ci": false
     },
@@ -119,7 +119,7 @@
       "groups": ["prompt-caching"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["vertex"],
       "ci": false
     },
@@ -130,7 +130,7 @@
       "groups": ["prompt-caching"],
       "testClasses": "",
       "buildBundle": false,
-      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent",
+      "mavenProjects": "connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm",
       "credentialProfiles": ["bedrock-provider"],
       "ci": false
     }
