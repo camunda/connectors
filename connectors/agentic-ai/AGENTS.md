@@ -432,8 +432,13 @@ phase); the same script also derives the v2 AI Agent Sub-process template from t
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
-When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
-[`connector-aiagent/element-templates/README.md`](connector-aiagent/element-templates/README.md) following these rules:
+When a version is bumped, a template moves into `versioned/`, or a connector is added, also update the
+README in the `element-templates` folder of the connector module (for example
+[`connector-aiagent/element-templates/README.md`](connector-aiagent/element-templates/README.md)) following
+these rules. The index of all modules is
+[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md). It
+stays at the path the templates had before the module split because external documentation links to it,
+and the `element-templates` symlink in this directory points to it.
 
 1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
    template (e.g. `^8.10`).
@@ -443,8 +448,11 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
    version and template version, and move the previous top row's link under `versioned/`.
 4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
-5. **New connector**: add a section in the same order as the existing ones (AI Agent, MCP Client, A2A,
-   Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
+5. **New connector**: in an existing module, add a section to the README of the module with an intro
+   paragraph linking to the `docs.camunda.io` overview page. In a new module, add a README like the
+   existing ones, including the "Which template do I need?" section, and add the module to the table
+   and the sections of the index in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema).
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
@@ -554,8 +562,9 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   packages, persisted data, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API
   and a migration hint. The public docs link to it.
-- **`connector-aiagent/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
-  (maintenance rules are in the Element templates section above).
+- **`<connector module>/element-templates/README.md`** and the index
+  **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new
+  connectors (maintenance rules are in the Element templates section above).
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.
