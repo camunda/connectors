@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.common.sdk.http;
 
 import io.a2a.client.http.A2AHttpClient;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import java.net.http.HttpClient;
 
 /** Factory for creating proxy-configured {@link A2AHttpClient} instances. */

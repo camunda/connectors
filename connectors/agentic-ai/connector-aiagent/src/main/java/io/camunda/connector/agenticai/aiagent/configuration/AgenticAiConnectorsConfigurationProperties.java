@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.configuration;
 
-import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
+import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;

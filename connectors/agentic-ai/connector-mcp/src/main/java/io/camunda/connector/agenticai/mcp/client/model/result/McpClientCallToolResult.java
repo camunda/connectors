@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
 import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;

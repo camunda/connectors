@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 

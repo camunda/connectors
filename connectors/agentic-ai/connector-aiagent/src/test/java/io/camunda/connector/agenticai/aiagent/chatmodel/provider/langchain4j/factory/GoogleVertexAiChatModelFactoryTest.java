@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
@@ -43,7 +44,6 @@ import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderC
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.Duration;
 import java.util.Optional;

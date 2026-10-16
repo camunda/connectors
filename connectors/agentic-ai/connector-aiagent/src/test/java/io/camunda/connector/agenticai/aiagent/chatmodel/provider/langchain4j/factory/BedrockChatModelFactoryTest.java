@@ -31,12 +31,12 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;

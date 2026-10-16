@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
@@ -42,7 +43,6 @@ import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiCompatibleProvide
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;

@@ -18,7 +18,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import java.util.List;
 import java.util.Map;

@@ -40,7 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
@@ -54,7 +54,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpoint
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;

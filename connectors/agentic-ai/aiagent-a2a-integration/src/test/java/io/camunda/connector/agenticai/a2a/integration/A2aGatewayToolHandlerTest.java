@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.integration;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
-import static io.camunda.connector.agenticai.common.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static io.camunda.connector.agenticai.common.json.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

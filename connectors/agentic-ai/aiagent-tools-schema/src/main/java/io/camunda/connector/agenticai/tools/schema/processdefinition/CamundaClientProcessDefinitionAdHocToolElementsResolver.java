@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.tools.schema.processdefinition;
 
-import static io.camunda.connector.agenticai.common.util.BpmnUtils.getElementDocumentation;
-import static io.camunda.connector.agenticai.common.util.BpmnUtils.getExtensionProperties;
+import static io.camunda.connector.agenticai.tools.schema.processdefinition.BpmnUtils.getElementDocumentation;
+import static io.camunda.connector.agenticai.tools.schema.processdefinition.BpmnUtils.getExtensionProperties;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;

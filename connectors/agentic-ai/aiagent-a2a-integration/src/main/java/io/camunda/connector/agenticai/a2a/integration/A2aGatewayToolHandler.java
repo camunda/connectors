@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.integration;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.A2A_GATEWAY_TYPE;
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.PROPERTY_A2A_CLIENTS;
-import static io.camunda.connector.agenticai.common.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
+import static io.camunda.connector.agenticai.common.json.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

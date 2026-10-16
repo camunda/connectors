@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
-import static io.camunda.connector.agenticai.common.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
-import io.camunda.connector.agenticai.common.util.ObjectMapperConstants;
+import io.camunda.connector.agenticai.common.json.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
 import java.util.List;

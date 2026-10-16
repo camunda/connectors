@@ -28,12 +28,12 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.Clo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration.AzureOpenAiModel.AzureOpenAiModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.time.Duration;

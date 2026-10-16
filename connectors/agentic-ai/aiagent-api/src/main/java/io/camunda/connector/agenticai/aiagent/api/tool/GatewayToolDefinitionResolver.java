@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.api.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
-import io.camunda.connector.agenticai.common.GatewayToolConstants;
+import io.camunda.connector.agenticai.common.tool.GatewayToolConstants;
 import java.util.List;
 
 /**

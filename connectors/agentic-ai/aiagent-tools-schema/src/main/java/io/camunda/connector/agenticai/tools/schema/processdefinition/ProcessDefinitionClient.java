@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.tools.schema.processdefinition;
 
-import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
-import io.camunda.connector.agenticai.common.util.retry.ErrorClassifier;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.common.retry.ErrorClassifier;
+import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.jspecify.annotations.Nullable;

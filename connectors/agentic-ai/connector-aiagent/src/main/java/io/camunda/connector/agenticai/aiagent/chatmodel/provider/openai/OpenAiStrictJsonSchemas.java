@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_ADDITIONAL_PROPERTIES;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_ANYOF;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_DEFINITIONS;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_ITEMS;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_PROPERTIES;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY_TYPE;
-import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_OBJECT;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ADDITIONAL_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DEFINITIONS;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ITEMS;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_OBJECT;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

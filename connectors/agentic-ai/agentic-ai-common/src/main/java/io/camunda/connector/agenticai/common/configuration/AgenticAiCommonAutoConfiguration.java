@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.common.configuration;
 
-import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

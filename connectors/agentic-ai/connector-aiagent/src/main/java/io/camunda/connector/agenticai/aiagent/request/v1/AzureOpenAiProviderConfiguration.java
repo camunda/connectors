@@ -10,8 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProvi
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.HttpUrl;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;

@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel;
 
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import java.time.Duration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;

@@ -9,13 +9,13 @@ package io.camunda.connector.agenticai.aiagent.request;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
 
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;

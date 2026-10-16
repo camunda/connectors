@@ -28,10 +28,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.common.configuration.RetriesProperties;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.FailureReason;
-import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason;
+import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
+import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
