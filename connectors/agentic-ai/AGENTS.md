@@ -50,7 +50,11 @@ The module is split into Maven modules with a fixed dependency direction
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
+or integrations. Dependency policy ([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md), D10): libraries
+(`common`, `model`, `api`, `tools-schema`) depend on libraries only. A connector depends on libraries and on
+the connector SDK and runtime, never on another connector. An integration depends on libraries and on the one
+connector it makes usable as a gateway tool. No module depends on a connector outside Agentic AI, except for
+the named exceptions in `ModuleDependencyPolicyTest`. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
@@ -100,6 +104,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
   `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
   integration modules.
+- `ModuleDependencyPolicyTest` (plain JUnit): the direct production dependencies in each module pom follow
+  the dependency policy below.
 
 `AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
 a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
@@ -230,8 +236,9 @@ Do not break these (full statement and rationale in
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
-  `*Impl`. Wire impls as Spring beans, depend on the interface.
+  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
+  `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
+  named `FooImpl` implements the interface `Foo`; review checks the rest.
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
