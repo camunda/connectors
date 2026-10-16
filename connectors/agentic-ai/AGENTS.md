@@ -112,14 +112,14 @@ a module, a package root or a dependency between modules, update it and the laye
 integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
 
 ```bash
-./mvnw test -f connectors/agentic-ai/pom.xml \
+./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
   '-Dtest=*ArchTest,ModuleInventoryTest,ModuleDependencyPolicyTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-This builds all modules of `connectors/agentic-ai` in one reactor, so the rules check the current
-sources. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs them too. Do not run the
-`agentic-ai-archunit-tests` module alone with `-pl`: it reads the jars of the other modules from the
-local Maven repository, so it checks the last install and not your changes.
+`-am` builds the modules the tests read from their current sources. Keep `-f connectors/agentic-ai/pom.xml`:
+it limits `-am` to the modules of `connectors/agentic-ai`. Without `-am`, the `agentic-ai-archunit-tests`
+module reads the jars of the other modules from the local Maven repository, so it checks the last install
+and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs the architecture tests too.
 
 ## Start here, navigation
 
