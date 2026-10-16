@@ -191,13 +191,15 @@ The decision comprises:
   In addition, `aiagent.chatmodel`, `aiagent.agentinstance` and `aiagent.document` use the error code
   constants in `aiagent.agent.AgentErrorCodes`, while `aiagent.agent` uses these packages. The
   compiler inlines the constants, so the architecture tests do not see these dependencies, but they
-  still tie the packages together at source level.
+  still tie the packages together at source level. Done when `KNOWN_CYCLES` in `PackageCyclesArchTest`
+  is empty and the error codes of the providers, the agent instance client and the document handle
+  live outside `aiagent.agent`.
 * Apply D4 to the remaining annotated records in `aiagent.model.request`: `PromptConfiguration`
   (with its system and user prompt records), `LimitsConfiguration`, `EventHandlingConfiguration` and
   `ResponseFormatConfiguration` (with its nested records). Model them as interfaces in the model and
   move the annotated records to the connector. The architecture tests allow element template
   annotations in the library modules only for these records and for `AdHocToolsSchemaRequest`, and the
-  list must only shrink.
+  list must only shrink. Done when the allow list in `ElementTemplateAnnotationsArchTest` is empty.
 * Make the element template generation follow the module boundaries. Today the generator of
   `connector-aiagent` and of `connector-ad-hoc-tools-schema` scans the classes of its library
   dependencies (`includeDependencies`) to find the annotated records. When the annotated records live
