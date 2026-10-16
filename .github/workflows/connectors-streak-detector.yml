@@ -20,7 +20,8 @@
 #   - First successful run after a streak: chat.update flips the message to
 #     resolved. No new notification.
 #
-# Medic routing (derived from the failing job names in the triggering run):
+# Medic routing (derived from the failing job names in the newest failing run, which
+# need not be the triggering one; a SaaS-only failure routes to test automation):
 #   - Connectors image build            -> connectors medic (secret)
 #   - Helm chart setup / integration     -> distro medic
 #   - SaaS / AI Agent E2E tests          -> test-automation medic
@@ -149,7 +150,7 @@ jobs:
             --workflow "${PARENT_WORKFLOW_FILE}" \
             --branch "${BASE_REF}" \
             --limit "${LOOKBACK_RUNS}" \
-            --json databaseId,conclusion,status,event,createdAt 2>/dev/null || echo '[]')
+            --json databaseId,conclusion,status,event,createdAt,url 2>/dev/null || echo '[]')
           # The SaaS stage reports through its own run, keyed `<run_id>:<attempt>` by
           # its run name. The newest result per key wins.
           SAAS_JSON=$(gh run list \
@@ -157,12 +158,12 @@ jobs:
             --workflow "${SAAS_RESULT_WORKFLOW_FILE}" \
             --status completed \
             --limit 100 \
-            --json conclusion,displayTitle,createdAt 2>/dev/null || echo '[]')
+            --json conclusion,displayTitle,createdAt,databaseId,url 2>/dev/null || echo '[]')
           SAAS_RESULTS=$(jq '
             sort_by(.createdAt)
             | map((.displayTitle | split(" ") | .[1] // "" | split(":")) as $c
                   | select(($c | length) == 4)
-                  | {key: "\($c[1]):\($c[2])", value: .conclusion})
+                  | {key: "\($c[1]):\($c[2])", value: {conclusion, id: .databaseId, url}})
             | from_entries
           ' <<<"$SAAS_JSON")
 
@@ -178,10 +179,18 @@ jobs:
           # conclusion is the whole answer. A callback that never arrives -- the
           # downstream run was cancelled before it could report -- leaves its run
           # pending until it ages out of the lookback window.
+          #
+          # The newest failure is remembered with the run that actually carries the
+          # evidence: the pipeline run, or for a SaaS-only failure its result run. The
+          # event that fires this job can be the other, successful, one.
           statuses=()
-          while IFS=$'\t' read -r id conclusion; do
+          FAIL_ID=""; FAIL_URL=""; FAIL_KIND=""
+          note_failure() {
+            if [ -z "$FAIL_ID" ]; then FAIL_ID="$1"; FAIL_URL="$2"; FAIL_KIND="$3"; fi
+          }
+          while IFS=$'\t' read -r id conclusion url; do
             case "$conclusion" in
-              failure|timed_out|cancelled) statuses+=(failed); continue ;;
+              failure|timed_out|cancelled) statuses+=(failed); note_failure "$id" "$url" pipeline; continue ;;
             esac
             trigger=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}/jobs?filter=latest&per_page=100" \
               --jq '[.jobs[] | select(.name == "Trigger SaaS E2E tests")] | first // {}')
@@ -194,14 +203,18 @@ jobs:
               continue
             fi
             key="${id}:$(jq -r '.run_attempt' <<<"$trigger")"
-            case "$(jq -r --arg k "$key" '.[$k] // "pending"' <<<"$SAAS_RESULTS")" in
+            case "$(jq -r --arg k "$key" '.[$k].conclusion // "pending"' <<<"$SAAS_RESULTS")" in
               success) statuses+=(green) ;;
               pending) statuses+=(pending) ;;
-              *) statuses+=(failed) ;;
+              *)
+                statuses+=(failed)
+                note_failure "$(jq -r --arg k "$key" '.[$k].id' <<<"$SAAS_RESULTS")" \
+                  "$(jq -r --arg k "$key" '.[$k].url' <<<"$SAAS_RESULTS")" saas
+                ;;
             esac
           done < <(jq -r '
             [ .[] | select(.status == "completed") | select(.event == "push") ]
-            | sort_by(.createdAt) | reverse | .[] | "\(.databaseId)\t\(.conclusion)"
+            | sort_by(.createdAt) | reverse | .[] | "\(.databaseId)\t\(.conclusion)\t\(.url)"
           ' <<<"$RUNS_JSON")
 
           STREAK=0
@@ -218,6 +231,9 @@ jobs:
             echo "base_ref=${BASE_REF}"
             echo "is_streak=${IS_STREAK}"
             echo "latest_success=${LATEST_SUCCESS}"
+            echo "fail_run_id=${FAIL_ID}"
+            echo "fail_run_url=${FAIL_URL}"
+            echo "fail_kind=${FAIL_KIND}"
           } >> "$GITHUB_OUTPUT"
           echo "Streak on ${BASE_REF}: ${STREAK}/${STREAK_THRESHOLD} (newest first: ${statuses[*]:-none})"
 
@@ -226,13 +242,19 @@ jobs:
         if: steps.streak.outputs.is_streak == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PARENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          FAIL_RUN_ID: ${{ steps.streak.outputs.fail_run_id }}
+          FAIL_KIND: ${{ steps.streak.outputs.fail_kind }}
           CONNECTORS_MEDIC: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }}
         run: |
           set -euo pipefail
-          FAILED=$(gh api --paginate \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PARENT_RUN_ID}/jobs" \
-            --jq '.jobs[] | select(.conclusion == "failure") | .name' || true)
+          if [ "$FAIL_KIND" = "saas" ]; then
+            # The result run's jobs are bookkeeping; the failure is a SaaS E2E one.
+            FAILED="SaaS E2E tests"
+          else
+            FAILED=$(gh api --paginate \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${FAIL_RUN_ID}/jobs" \
+              --jq '.jobs[] | select(.conclusion == "failure") | .name' || true)
+          fi
           echo "Failed jobs:"; echo "${FAILED}"
           mentions=()
           while IFS= read -r name; do
@@ -298,7 +320,7 @@ jobs:
           payload: |
             {
               "channel": "C0AK0AVKRL0",
-              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures)\n${{ steps.medics.outputs.pings }} — please triage.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
+              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures)\n${{ steps.medics.outputs.pings }} — please triage.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ steps.streak.outputs.fail_run_url }}"
             }
 
       - name: Update existing streak alert in Slack (silent edit)
@@ -311,7 +333,7 @@ jobs:
             {
               "channel": "C0AK0AVKRL0",
               "ts": "${{ steps.find-message.outputs.existing_ts }}",
-              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures, ongoing)\n${{ steps.medics.outputs.pings }} — still triaging.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ github.event.workflow_run.html_url }}"
+              "text": ":rotating_light: ${{ steps.find-message.outputs.active_marker }} (${{ steps.streak.outputs.streak_count }} consecutive failures, ongoing)\n${{ steps.medics.outputs.pings }} — still triaging.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}> on `${{ steps.streak.outputs.base_ref }}`\nLatest failing run: ${{ steps.streak.outputs.fail_run_url }}"
             }
 
       - name: Mark streak as resolved in Slack (silent edit)
