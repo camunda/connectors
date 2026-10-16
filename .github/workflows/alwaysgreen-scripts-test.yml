@@ -56,6 +56,6 @@ jobs:
         with:
           python-version: '3.14'
       - name: Install pytest
-        run: pip install --quiet pytest
+        run: pip install --quiet pytest pyyaml
       - name: Run tests
         run: pytest --verbose --color=yes --tb=short .github/scripts/alwaysgreen
