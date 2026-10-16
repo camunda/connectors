@@ -5,6 +5,17 @@
       "type": "java.lang.Boolean",
       "description": "Whether to enable the MCP Client connectors to be used as AI Agent tools.",
       "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.mcp.discovery.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable the MCP Client connectors to be used as AI Agent tools.",
+      "defaultValue": "true",
+      "deprecation": {
+        "level": "warning",
+        "replacement": "camunda.connector.agenticai.mcp.client.agentic.tool.enabled",
+        "reason": "Renamed to follow the naming of the A2A Client connector property."
+      }
     }
   ]
 }
