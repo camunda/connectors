@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.archunit;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -22,7 +23,7 @@ import java.util.Set;
 /**
  * Enforces the independence of the chat model providers: each vendor package below the provider
  * root is a slice, and the slices do not depend on each other except for the explicitly allowed
- * edges.
+ * edges. The rest of the AI agent reaches the providers only through the chat model API.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class ChatModelProviderIndependenceArchTest {
@@ -31,11 +32,10 @@ class ChatModelProviderIndependenceArchTest {
 
   /**
    * Packages below the provider root that are not vendor slices: support shared by all providers
-   * ({@code azure}, {@code authentication}) and the Spring wiring of the providers ({@code
-   * configuration}). Classes in the provider root package itself are shared support as well.
+   * ({@code azure}) and the Spring wiring of the providers ({@code configuration}). Classes in the
+   * provider root package itself are shared support as well.
    */
-  private static final Set<String> NON_VENDOR_PACKAGES =
-      Set.of("azure", "authentication", "configuration");
+  private static final Set<String> NON_VENDOR_PACKAGES = Set.of("azure", "configuration");
 
   /** A vendor provider that is allowed to use the classes of another one. */
   private record AllowedDependency(String provider, String dependsOnProvider) {}
@@ -70,6 +70,18 @@ class ChatModelProviderIndependenceArchTest {
 
   @ArchTest
   static final ArchRule CHAT_MODEL_PROVIDERS_DO_NOT_DEPEND_ON_EACH_OTHER = providersIndependent();
+
+  @ArchTest
+  static final ArchRule THE_AI_AGENT_DOES_NOT_DEPEND_ON_THE_CHAT_MODEL_PROVIDERS =
+      noClasses()
+          .that(AgenticAiModules.AI_AGENT.root())
+          .and()
+          .resideOutsideOfPackages(
+              PROVIDER_ROOT + "..", AgenticAiModules.pkg("aiagent.configuration.."))
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(PROVIDER_ROOT + "..")
+          .because("the AI agent reaches the chat model providers only through the chat model API");
 
   private static ArchRule providersIndependent() {
     SliceRule rule =

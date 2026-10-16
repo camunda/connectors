@@ -65,9 +65,10 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
 - `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
 - `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure`, `authentication` and `configuration`) do not depend on each other, except for the allowed
-  dependencies listed in the test (today: Mistral on OpenAI).
-- `VendorSdkArchTest`: each vendor SDK (OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
+  except `azure` and `configuration`) do not depend on each other, except for the allowed
+  dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
+  and `aiagent.configuration`) does not depend on the providers.
+- `VendorSdkArchTest`: each vendor SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
   LangChain4j, A2A, MCP) is only used by the packages that integrate it.
 - `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
   `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
@@ -75,6 +76,7 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   resolves to an `@AutoConfiguration` class.
 - `ConfigurationPropertyNamesArchTest`: property keys in `@ConfigurationProperties` prefixes,
   `@ConditionalOnProperty`, `@ConditionalOnBooleanProperty` and `@Value` placeholders are kebab-case.
+  Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
 - `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
 - `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
 - `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete

@@ -38,6 +38,13 @@ class VendorSdkArchTest {
   private static final String MCP_CLIENT_FRAMEWORK = AgenticAiModules.pkg("mcp.client.framework..");
 
   @ArchTest
+  static final ArchRule ANTHROPIC_SDK_IS_ONLY_USED_BY_THE_ANTHROPIC_PROVIDER =
+      onlyUsedBy(
+          "com.anthropic..",
+          "the Anthropic provider can be extracted into its own module",
+          ANTHROPIC);
+
+  @ArchTest
   static final ArchRule OPENAI_SDK_IS_ONLY_USED_BY_THE_OPENAI_COMPATIBLE_PROVIDERS =
       onlyUsedBy(
           "com.openai..",
