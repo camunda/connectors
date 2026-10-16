@@ -1910,6 +1910,8 @@ pervasive, so follow the nearest existing pair.
 
 - **Rule**: depend on the interface (constructor injection); register the `Impl` as a Spring bean
   (typically `@ConditionalOnMissingBean` so it can be overridden). Don't inject `*Impl` directly.
+- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review
+  checks that there is a single implementation and that it is registered as an overridable bean.
 
 ### I4. Extension points are plug-in SPIs
 
