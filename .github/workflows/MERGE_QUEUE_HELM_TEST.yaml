@@ -359,32 +359,25 @@ jobs:
           GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
           CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
           IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
-          EVENT_NAME: ${{ github.event_name }}
-          # merge_group carries the target in `base_ref` (refs/heads/<branch>); on push
-          # the pipeline's own branch is the target.
-          BASE_REF: ${{ github.event.merge_group.base_ref || github.ref_name }}
-          PR_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           # Use the image tag as the generation name to match filter patterns
           # e.g., "8.11.0-main-run12345678-a1" matches "**-main-run**-a**"
           GEN_NAME="${IMAGE_TAG}"
-          BASE_REF="${BASE_REF#refs/heads/}"
 
-          # `report_result` opts this run into the `saas-e2e-result` callback. Older
-          # copies of this pipeline on stable branches do not send it and keep waiting
-          # for the downstream run themselves.
+          # The `-callback` event type opts this run into the `saas-e2e-result`
+          # callback; stable-branch copies of this pipeline send the plain type and keep
+          # waiting for the downstream run themselves. It is the event type rather than
+          # a payload flag because client_payload is capped at 10 top-level properties,
+          # all already in use. Branch, event and PR are not sent either: the result
+          # workflow reads them from this run, found through the correlation id.
           PAYLOAD=$(jq -n \
             --arg correlation_id "$CORRELATION_ID" \
             --arg source_repo "${{ github.repository }}" \
             --arg source_sha "${{ github.sha }}" \
             --arg gen_name "$GEN_NAME" \
             --arg connectors_version "$IMAGE_TAG" \
-            --arg event_name "$EVENT_NAME" \
-            --arg base_ref "$BASE_REF" \
-            --arg pr_ref "$PR_REF" \
-            --arg source_run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             '{
-              event_type: "run-saas-generation-smoke-connectors",
+              event_type: "run-saas-generation-smoke-connectors-callback",
               client_payload: {
                 correlation_id: $correlation_id,
                 source_repo: $source_repo,
@@ -395,12 +388,7 @@ jobs:
                 operateVersion: "SNAPSHOT",
                 tasklistVersion: "SNAPSHOT",
                 connectorsVersion: $connectors_version,
-                optimizeVersion: "SNAPSHOT",
-                report_result: true,
-                event_name: $event_name,
-                base_ref: $base_ref,
-                pr_ref: $pr_ref,
-                source_run_url: $source_run_url
+                optimizeVersion: "SNAPSHOT"
               }
             }')
 

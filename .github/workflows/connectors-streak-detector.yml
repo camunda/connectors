@@ -87,20 +87,14 @@ jobs:
     # GitHub cancelled all but one of them -- observed, three of five replays cancelled
     # with no job run at all. The scan must never be dropped that way.
     concurrency:
-      # A SaaS result run executes on the default branch, so its head_branch says
-      # nothing about the branch it reports on; that branch is in the run name.
-      group: >-
-        streak-${{ github.workflow }}-${{
-          github.event.workflow_run.name != 'SaaS E2E result' && github.event.workflow_run.head_branch ||
-          contains(github.event.workflow_run.display_title, ' stable/8.7 ') && 'stable/8.7' ||
-          contains(github.event.workflow_run.display_title, ' stable/8.8 ') && 'stable/8.8' ||
-          contains(github.event.workflow_run.display_title, ' stable/8.9 ') && 'stable/8.9' ||
-          contains(github.event.workflow_run.display_title, ' stable/8.10 ') && 'stable/8.10' ||
-          'main' }}
+      # A SaaS result run executes on the default branch, so it lands in main's group.
+      # That is the branch it reports on: only main's pipeline asks for the callback,
+      # and stable-branch copies still wait for their SaaS run in-pipeline.
+      group: streak-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
       cancel-in-progress: false
     # Only protected-branch push runs accumulate streaks; success runs can
     # resolve an existing live message. A SaaS result run is let through here and
-    # filtered by the first step, because its branch and event are in its run name.
+    # filtered by the first step, which looks up the pipeline run it reports on.
     if: >-
       github.event.workflow_run.name == 'SaaS E2E result' ||
       (github.event.workflow_run.event == 'push' &&
@@ -115,27 +109,31 @@ jobs:
       - name: Resolve the pipeline run this event reports on
         id: ctx
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_NAME: ${{ github.event.workflow_run.name }}
           RUN_TITLE: ${{ github.event.workflow_run.display_title }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         run: |
           set -euo pipefail
           relevant=true
           base_ref="${HEAD_BRANCH}"
           if [ "$RUN_NAME" = "SaaS E2E result" ]; then
-            # Run name: `saas-e2e-result <base_ref> <event> <sha>`.
-            read -r _ base_ref event _ <<<"$RUN_TITLE"
-            if [ "${event:-}" != "push" ]; then relevant=false; fi
-            case "$base_ref" in
-              main|stable/*) ;;
-              *) relevant=false ;;
-            esac
+            # Run name: `saas-e2e-result <repo>:<run_id>:<attempt>:<sha>`.
+            if [[ "$RUN_TITLE" =~ ^saas-e2e-result\ ${GITHUB_REPOSITORY}:([0-9]+):[0-9]+:[0-9a-f]{40}$ ]]; then
+              meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BASH_REMATCH[1]}")
+              base_ref=$(jq -r '.head_branch // ""' <<<"$meta")
+              [ "$(jq -r '.event' <<<"$meta")" = "push" ] || relevant=false
+              case "$base_ref" in
+                main|stable/*) ;;
+                *) relevant=false ;;
+              esac
+            else
+              relevant=false
+            fi
           fi
           {
             echo "relevant=${relevant}"
             echo "base_ref=${base_ref}"
-            echo "saas_result=$([ "$RUN_NAME" = "SaaS E2E result" ] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Detect failure streak on this base branch
@@ -144,59 +142,84 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_REF: ${{ steps.ctx.outputs.base_ref }}
-          SAAS_RESULT: ${{ steps.ctx.outputs.saas_result }}
         run: |
           set -euo pipefail
-          # Count leading consecutive non-green push runs on this branch.
           RUNS_JSON=$(gh run list \
             --repo "${GITHUB_REPOSITORY}" \
             --workflow "${PARENT_WORKFLOW_FILE}" \
             --branch "${BASE_REF}" \
             --limit "${LOOKBACK_RUNS}" \
-            --json conclusion,status,event,createdAt,headSha 2>/dev/null || echo '[]')
-          # The SaaS stage reports through its own run, so a pipeline run whose SaaS
-          # result failed is non-green even when the pipeline run itself is green.
+            --json databaseId,conclusion,status,event,createdAt 2>/dev/null || echo '[]')
+          # The SaaS stage reports through its own run, keyed `<run_id>:<attempt>` by
+          # its run name. The newest result per key wins.
           SAAS_JSON=$(gh run list \
             --repo "${GITHUB_REPOSITORY}" \
             --workflow "${SAAS_RESULT_WORKFLOW_FILE}" \
-            --limit 50 \
-            --json conclusion,status,displayTitle 2>/dev/null || echo '[]')
-          STREAK=$(jq --argjson saas "$SAAS_JSON" --arg base "$BASE_REF" '
-            ($saas
-              | map(select(.status == "completed")
-                    | select(.conclusion != "success")
-                    | .displayTitle | split(" ")
-                    | select(length >= 4 and .[1] == $base and .[2] == "push")
-                    | .[3])) as $saas_failed
-            | [ .[] | select(.status == "completed") | select(.event == "push") ]
-            | sort_by(.createdAt) | reverse
-            | (reduce .[] as $r ({count:0, broken:false};
-                if .broken then .
-                elif ($r.conclusion == "failure"
-                      or $r.conclusion == "timed_out"
-                      or $r.conclusion == "cancelled"
-                      or ($saas_failed | index($r.headSha))) then
-                  .count = (.count + 1)
-                else .broken = true end))
-            | .count
+            --status completed \
+            --limit 100 \
+            --json conclusion,displayTitle,createdAt 2>/dev/null || echo '[]')
+          SAAS_RESULTS=$(jq '
+            sort_by(.createdAt)
+            | map((.displayTitle | split(" ") | .[1] // "" | split(":")) as $c
+                  | select(($c | length) == 4)
+                  | {key: "\($c[1]):\($c[2])", value: .conclusion})
+            | from_entries
+          ' <<<"$SAAS_JSON")
+
+          # Each completed push run, newest first, is `failed`, `green` or `pending`.
+          # A green pipeline run is only green once its SaaS result is in: until then it
+          # is pending, and a pending run neither counts towards nor breaks the streak.
+          # Its result is the one for the attempt that ran the dispatch, which is the
+          # attempt that last ran the trigger job -- a re-run of only the failed jobs
+          # reuses it, a full re-run dispatches again and supersedes it.
+          #
+          # A trigger job that still has the waiting step (stable-branch copies, and runs
+          # from before the callback) failed the run itself, so there the run's own
+          # conclusion is the whole answer. A callback that never arrives -- the
+          # downstream run was cancelled before it could report -- leaves its run
+          # pending until it ages out of the lookback window.
+          statuses=()
+          while IFS=$'\t' read -r id conclusion; do
+            case "$conclusion" in
+              failure|timed_out|cancelled) statuses+=(failed); continue ;;
+            esac
+            trigger=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}/jobs?filter=latest&per_page=100" \
+              --jq '[.jobs[] | select(.name == "Trigger SaaS E2E tests")] | first // {}')
+            dispatched=$(jq -r '
+              ([.steps[]? | select(.name == "Trigger repository_dispatch for SaaS Connectors" and .conclusion == "success")] | length > 0)
+              and ([.steps[]? | select(.name | startswith("Wait for downstream"))] | length == 0)
+            ' <<<"$trigger")
+            if [ "$dispatched" != "true" ]; then
+              statuses+=(green)
+              continue
+            fi
+            key="${id}:$(jq -r '.run_attempt' <<<"$trigger")"
+            case "$(jq -r --arg k "$key" '.[$k] // "pending"' <<<"$SAAS_RESULTS")" in
+              success) statuses+=(green) ;;
+              pending) statuses+=(pending) ;;
+              *) statuses+=(failed) ;;
+            esac
+          done < <(jq -r '
+            [ .[] | select(.status == "completed") | select(.event == "push") ]
+            | sort_by(.createdAt) | reverse | .[] | "\(.databaseId)\t\(.conclusion)"
           ' <<<"$RUNS_JSON")
-          STREAK=${STREAK:-0}
-          LATEST_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+
+          STREAK=0
+          LATEST_SUCCESS=false
+          for st in "${statuses[@]}"; do
+            case "$st" in
+              failed) STREAK=$((STREAK + 1)) ;;
+              green) [ "$STREAK" -eq 0 ] && LATEST_SUCCESS=true; break ;;
+            esac
+          done
           IS_STREAK=$([[ ${STREAK} -ge ${STREAK_THRESHOLD} ]] && echo true || echo false)
-          # A SaaS result run cannot say whether the pipeline run was green, so there
-          # the streak itself is the answer.
-          if [[ "${SAAS_RESULT}" == "true" ]]; then
-            LATEST_SUCCESS=$([[ ${STREAK} -eq 0 ]] && echo true || echo false)
-          else
-            LATEST_SUCCESS=$([[ "${LATEST_CONCLUSION}" == "success" ]] && echo true || echo false)
-          fi
           {
             echo "streak_count=${STREAK}"
             echo "base_ref=${BASE_REF}"
             echo "is_streak=${IS_STREAK}"
             echo "latest_success=${LATEST_SUCCESS}"
           } >> "$GITHUB_OUTPUT"
-          echo "Streak on ${BASE_REF}: ${STREAK}/${STREAK_THRESHOLD} (latest run: ${LATEST_CONCLUSION})"
+          echo "Streak on ${BASE_REF}: ${STREAK}/${STREAK_THRESHOLD} (newest first: ${statuses[*]:-none})"
 
       - name: Resolve medics for this run's failed jobs
         id: medics
