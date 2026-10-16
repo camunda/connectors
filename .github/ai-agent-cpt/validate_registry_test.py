@@ -11,7 +11,7 @@ REGISTRY_PATH = (
     pathlib.Path(__file__).parents[2]
     / "connectors-e2e-test"
     / "connectors-e2e-test-agentic-ai"
-    / "connectors-e2e-test-agentic-ai-aiagent"
+    / "connectors-e2e-test-agentic-ai-real-llm"
     / "src"
     / "test"
     / "resources"
