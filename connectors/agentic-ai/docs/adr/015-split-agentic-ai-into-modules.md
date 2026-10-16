@@ -36,9 +36,9 @@ Should the module stay as one, or be split, and along which lines?
   internals they do not use.
 * **Stable extension API**: custom extensions depend on a small set of SPI and model types, not on
   the connector implementation.
-* **No behavior change**: job types, element template IDs and content, Spring property names, JSON
-  shapes of process variables and stored conversation data stay identical. The default bundle keeps
-  registering the same connectors.
+* **No behavior change**: job types, element template IDs and content, Spring property names (except
+  the MCP gateway tool switch, see D7), JSON shapes of process variables and stored conversation
+  data stay identical. The default bundle keeps registering the same connectors.
 * **Enforced boundaries**: a dependency in the wrong direction fails the build instead of a review.
 * **Room for provider modules**: a future provider or LangChain4j module depends on the API, not on
   the AI Agent connector.
@@ -105,7 +105,10 @@ The decision comprises:
 
 * **D7 — Each module owns its runtime wiring.** Every module registers its own auto-configuration,
   configuration properties, element templates and icons. Every auto-configuration keeps the global
-  `camunda.connector.agenticai.enabled` flag and its existing feature flags.
+  `camunda.connector.agenticai.enabled` flag and has a feature flag of its own. The gateway tool
+  integrations are switched by `camunda.connector.agenticai.<protocol>.client.agentic.tool.enabled`,
+  for example `camunda.connector.agenticai.mcp.client.agentic.tool.enabled`. Auto-configuration
+  class names end with `AutoConfiguration`.
 
 * **D8 — Each module owns its packages.** Every module has its own package root (see D1), and no
   package spans two modules. The package of a class tells which module it belongs to and whether it

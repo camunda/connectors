@@ -54,6 +54,16 @@ class AutoConfigurationArchTest {
           .because("every module keeps its Spring wiring in a configuration package");
 
   @ArchTest
+  static final ArchRule AUTO_CONFIGURATIONS_ARE_NAMED_AUTO_CONFIGURATION =
+      classes()
+          .that(AUTO_CONFIGURATIONS)
+          .should()
+          .haveSimpleNameEndingWith("AutoConfiguration")
+          .because(
+              "the name tells auto-configurations, which users can exclude, from imported"
+                  + " configuration classes");
+
+  @ArchTest
   static final ArchRule AUTO_CONFIGURATIONS_CAN_BE_SWITCHED_OFF_AS_A_WHOLE =
       classes()
           .that(AUTO_CONFIGURATIONS)

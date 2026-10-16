@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Bean;
     },
     matchIfMissing = true)
 @EnableConfigurationProperties(A2aClientAgenticToolConfigurationProperties.class)
-public class A2aClientAgenticToolConfiguration {
+public class A2aClientAgenticToolAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean

@@ -1,1 +1,1 @@
-io.camunda.connector.agenticai.mcp.integration.configuration.McpDiscoveryConfiguration
+io.camunda.connector.agenticai.mcp.integration.configuration.McpClientAgenticToolAutoConfiguration

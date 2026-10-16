@@ -89,7 +89,7 @@ The two sub-packages ship as separate Maven modules:
 - `connector-a2a` holds `a2a.client` (the A2A Client outbound, polling and webhook connectors, their element templates
   and Spring auto-configuration). It depends on `agentic-ai-common` only.
 - `aiagent-a2a-integration` holds `a2a.integration` (the gateway tool handler, resolver, tool call identifier, system
-  prompt contributor and `A2aClientAgenticToolConfiguration`, plus the `a2a/tool-input-schema.json` and
+  prompt contributor and `A2aClientAgenticToolAutoConfiguration`, plus the `a2a/tool-input-schema.json` and
   `a2a/a2a-system-prompt.md` resources). It depends on `connector-a2a`, `aiagent-api`, `aiagent-model` and
   `agentic-ai-common`, not on `connector-aiagent`.
 
@@ -401,7 +401,7 @@ Config: `camunda.connector.agenticai.a2a.client.transport.grpc.useTls` (default:
 Registers: `A2aDocumentToPartConverter`, `A2aSendMessageResponseHandler`, `A2aMessageSender`,
 `A2aClientRequestHandler`, `A2aClientOutboundConnectorFunction`
 
-### A2aClientAgenticToolConfiguration
+### A2aClientAgenticToolAutoConfiguration
 
 Auto-configuration ordered after `A2aClientAutoConfiguration`. Does not depend on the A2A client beans.
 
@@ -462,4 +462,4 @@ From `A2aErrorCodes`:
 | `A2aAgentCardFetcherImpl.java`               | Fetches agent cards from remote servers                       |
 | `a2a/tool-input-schema.json`                 | Fixed tool input schema for all A2A tools                     |
 | `a2a/a2a-system-prompt.md`                   | A2A protocol instructions for LLM                             |
-| `A2aClientAgenticToolConfiguration.java`     | Spring config for A2A gateway beans                           |
+| `A2aClientAgenticToolAutoConfiguration.java` | Spring config for A2A gateway beans                           |

@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 
-class McpDiscoveryConfigurationTest {
+class McpClientAgenticToolAutoConfigurationTest {
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -31,10 +31,10 @@ class McpDiscoveryConfigurationTest {
               AutoConfigurations.of(
                   AgenticAiCommonAutoConfiguration.class,
                   McpClientAutoConfiguration.class,
-                  McpDiscoveryConfiguration.class));
+                  McpClientAgenticToolAutoConfiguration.class));
 
   @Test
-  void enablesMcpDiscoveryByDefault() {
+  void enablesMcpAgentToolByDefault() {
     contextRunner.run(
         context -> {
           assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
@@ -43,9 +43,9 @@ class McpDiscoveryConfigurationTest {
   }
 
   @Test
-  void disablesMcpDiscoveryIfConfigured() {
+  void disablesMcpAgentToolIfConfigured() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.mcp.discovery.enabled=false")
+        .withPropertyValues("camunda.connector.agenticai.mcp.client.agentic.tool.enabled=false")
         .run(
             context -> {
               assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);

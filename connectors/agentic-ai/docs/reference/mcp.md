@@ -113,8 +113,9 @@ The two sub-packages ship as separate Maven modules:
 
 - `connector-mcp` holds `mcp.client` (the MCP Client and MCP Remote Client connectors, their element templates and
   Spring auto-configuration). It depends on `agentic-ai-common` only.
-- `aiagent-mcp-integration` holds `mcp.integration` (the gateway tool handler and `McpDiscoveryConfiguration`). It
-  depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and `agentic-ai-common`, not on `connector-aiagent`.
+- `aiagent-mcp-integration` holds `mcp.integration` (the gateway tool handler and
+  `McpClientAgenticToolAutoConfiguration`). It depends on `connector-mcp`, `aiagent-api`, `aiagent-model` and
+  `agentic-ai-common`, not on `connector-aiagent`.
 
 ---
 
@@ -483,11 +484,11 @@ This handles MCP resources that return binary data (images, files) by storing th
 Auto-configuration for the MCP client connectors, ordered after `AgenticAiCommonAutoConfiguration`.
 Imports `McpClientConfiguration` and `McpRemoteClientConfiguration`.
 
-### McpDiscoveryConfiguration
+### McpClientAgenticToolAutoConfiguration
 
 Auto-configuration ordered after `McpClientAutoConfiguration`.
 
-**Condition**: `camunda.connector.agenticai.mcp.discovery.enabled` (default: **true**)
+**Condition**: `camunda.connector.agenticai.mcp.client.agentic.tool.enabled` (default: **true**)
 
 Beans: `McpClientGatewayToolDefinitionResolver`, `McpClientGatewayToolHandler`
 
@@ -594,4 +595,4 @@ From `McpClientGatewayToolHandler`:
 | `McpClientDelegate.java`                       | Abstract MCP client interface                                 |
 | `McpSdkClientFactory.java`                     | Creates MCP SDK client instances                              |
 | `McpClientResultDocumentHandler.java`          | Binary content → Camunda document conversion                  |
-| `McpDiscoveryConfiguration.java`               | Spring config for MCP gateway beans                           |
+| `McpClientAgenticToolAutoConfiguration.java`   | Spring config for MCP gateway beans                           |

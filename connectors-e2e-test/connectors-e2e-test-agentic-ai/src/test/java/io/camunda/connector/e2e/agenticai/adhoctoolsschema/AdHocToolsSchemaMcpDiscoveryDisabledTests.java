@@ -24,7 +24,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
-@TestPropertySource(properties = {"camunda.connector.agenticai.mcp.discovery.enabled=false"})
+@TestPropertySource(
+    properties = {"camunda.connector.agenticai.mcp.client.agentic.tool.enabled=false"})
 public class AdHocToolsSchemaMcpDiscoveryDisabledTests extends BaseAdHocToolsSchemaTests {
 
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
