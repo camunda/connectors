@@ -29,8 +29,8 @@ templates, configuration properties and persisted data.
 
 #### Artifacts
 
-The `connector-agentic-ai` artifact is replaced by the following artifacts (group
-`io.camunda.connector`):
+The `io.camunda.connector:connector-agentic-ai` artifact is replaced by the following artifacts in the
+new group `io.camunda.connector.agenticai`:
 
 | Artifact | Package root | Contents |
 | ------------------------------- | --- | ------------------------------------------------------------------------- |
@@ -44,11 +44,22 @@ The `connector-agentic-ai` artifact is replaced by the following artifacts (grou
 | `connector-a2a` | `a2a.client` | A2A client connectors |
 | `aiagent-a2a-integration` | `a2a.integration` | A2A client as AI Agent gateway tool |
 | `agentic-ai-common` | `common` | Shared utilities and HTTP support |
+| `agentic-ai-bundle` | – | All of the above (`pom` packaging, depend on it with `<type>pom</type>`) |
 
 An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
 brings the API, model, tools schema and common libraries. An extension that only implements an
 extension point can depend on `aiagent-api` alone. The MCP and A2A modules are separate
-dependencies.
+dependencies. A custom runtime that runs all agentic AI connectors, like the previous
+`connector-agentic-ai` dependency did, depends on the bundle:
+
+```xml
+<dependency>
+  <groupId>io.camunda.connector.agenticai</groupId>
+  <artifactId>agentic-ai-bundle</artifactId>
+  <version>${version.connectors}</version>
+  <type>pom</type>
+</dependency>
+```
 
 #### Moved and renamed classes
 

@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.camunda.connector</groupId>
+    <groupId>io.camunda.connector.agenticai</groupId>
     <artifactId>connector-agentic-ai-parent</artifactId>
     <version>8.11.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
@@ -32,61 +32,61 @@
   <dependencies>
     <!-- The production classes of every Agentic AI module, analyzed by the architecture rules -->
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>agentic-ai-common</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-model</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-api</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>connector-ad-hoc-tools-schema</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>connector-mcp</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-mcp-integration</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>connector-a2a</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-a2a-integration</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>connector-aiagent</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -130,16 +130,16 @@
             <configuration>
               <ignoredUnusedDeclaredDependencies combine.children="append">
                 <!-- analyzed through the class path by the architecture rules, never referenced from test code -->
-                <dependency>io.camunda.connector:agentic-ai-common</dependency>
-                <dependency>io.camunda.connector:aiagent-model</dependency>
-                <dependency>io.camunda.connector:aiagent-api</dependency>
-                <dependency>io.camunda.connector:aiagent-tools-schema</dependency>
-                <dependency>io.camunda.connector:connector-ad-hoc-tools-schema</dependency>
-                <dependency>io.camunda.connector:connector-mcp</dependency>
-                <dependency>io.camunda.connector:aiagent-mcp-integration</dependency>
-                <dependency>io.camunda.connector:connector-a2a</dependency>
-                <dependency>io.camunda.connector:aiagent-a2a-integration</dependency>
-                <dependency>io.camunda.connector:connector-aiagent</dependency>
+                <dependency>io.camunda.connector.agenticai:agentic-ai-common</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-model</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-api</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-tools-schema</dependency>
+                <dependency>io.camunda.connector.agenticai:connector-ad-hoc-tools-schema</dependency>
+                <dependency>io.camunda.connector.agenticai:connector-mcp</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-mcp-integration</dependency>
+                <dependency>io.camunda.connector.agenticai:connector-a2a</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-a2a-integration</dependency>
+                <dependency>io.camunda.connector.agenticai:connector-aiagent</dependency>
                 <dependency>com.tngtech.archunit:archunit-junit5-engine</dependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>

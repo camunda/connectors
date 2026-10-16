@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.camunda.connector</groupId>
+    <groupId>io.camunda.connector.agenticai</groupId>
     <artifactId>connector-agentic-ai-parent</artifactId>
     <version>8.11.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
@@ -47,22 +47,22 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
 
   <dependencies>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>agentic-ai-common</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-model</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -454,7 +454,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-          <includeDependencies>io.camunda.connector:aiagent-model</includeDependencies>
+          <includeDependencies>io.camunda.connector.agenticai:aiagent-model</includeDependencies>
         </configuration>
       </plugin>
       <plugin>
