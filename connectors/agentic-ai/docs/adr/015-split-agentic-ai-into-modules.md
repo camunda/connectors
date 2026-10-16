@@ -36,9 +36,12 @@ Should the module stay as one, or be split, and along which lines?
   internals they do not use.
 * **Stable extension API**: custom extensions depend on a small set of SPI and model types, not on
   the connector implementation.
-* **No behavior change**: job types, element template IDs and content, Spring property names (except
-  the MCP gateway tool switch, see D7), JSON shapes of process variables and stored conversation
-  data stay identical. The default bundle keeps registering the same connectors.
+* **No behavior change**: job types, element template IDs and content, Spring property names, JSON
+  shapes of process variables and stored conversation data stay identical. The default bundle keeps
+  registering the same connectors. The exceptions are listed in the
+  [breaking changes](../breaking-changes.md): the renamed MCP gateway tool switch (D7), the
+  prototype scope of all outbound connector function beans, and the HTTP URL validation of the MCP
+  and A2A server URLs.
 * **Enforced boundaries**: a dependency in the wrong direction fails the build instead of a review.
 * **Room for provider modules**: a future provider or LangChain4j module depends on the API, not on
   the AI Agent connector.
@@ -106,11 +109,14 @@ The decision comprises:
   records instead of the AI Agent's message content model. Their JSON shape is identical to before.
 
 * **D7 — Each module owns its runtime wiring.** Every module registers its own auto-configuration,
-  configuration properties, element templates and icons. Every auto-configuration keeps the global
-  `camunda.connector.agenticai.enabled` flag and has a feature flag of its own. The gateway tool
-  integrations are switched by `camunda.connector.agenticai.<protocol>.client.agentic.tool.enabled`,
-  for example `camunda.connector.agenticai.mcp.client.agentic.tool.enabled`. Auto-configuration
-  class names end with `AutoConfiguration`.
+  configuration properties, element templates and icons. Every auto-configuration is switched by
+  the global `camunda.connector.agenticai.enabled` flag. Single connectors and features inside it
+  keep their own flags. The gateway tool integrations are switched by
+  `camunda.connector.agenticai.<protocol>.client.agentic.tool.enabled`, for example
+  `camunda.connector.agenticai.mcp.client.agentic.tool.enabled`. The previous MCP property stays as a
+  deprecated alias. Auto-configuration class names end with `AutoConfiguration`. The AI Agent
+  collects gateway tool handlers and system prompt contributors as lists of beans and does not
+  reference the integration modules.
 
 * **D8 — Each module owns its packages.** Every module has its own package root (see D1), and no
   package spans two modules. The package of a class tells which module it belongs to and whether it
@@ -155,22 +161,50 @@ The decision comprises:
 
 ## Follow-up
 
-* Extract chat model providers and LangChain4j into their own modules when needed.
-* Break the package cycles in `connector-aiagent` and `connector-mcp`, then add them to the cycle
-  checks of the architecture tests. The cycles block extracting the agent loop and the providers:
+* Extract the chat model providers and LangChain4j into their own modules, when a provider must be
+  released, versioned or excluded on its own. This is blocked by the provider code in
+  `connector-aiagent` that the chat model API does not cover:
+  * The providers use the error codes in `aiagent.agent.AgentErrorCodes`. Move the error codes of
+    model calls to `aiagent-api`, next to the chat model exceptions.
+  * `AgentExecutionContext` exposes the connector `JobContext` and the full agent configuration to
+    the chat model, conversation store and system prompt SPIs. Decide which parts belong to the API.
+  * The cycles of `aiagent.chatmodel` with `aiagent.agent`, `aiagent.configuration` and
+    `aiagent.request` (see below).
+* Break the package cycles in `connector-aiagent` and `connector-mcp`. The cycles block extracting
+  the agent loop and the providers. The architecture tests allow exactly these cycles, and the list
+  must only shrink:
   * `aiagent.agentinstance` and `aiagent.conversation`.
   * `aiagent.chatmodel` and `aiagent.configuration`.
   * `aiagent.chatmodel` and `aiagent.request`.
   * `aiagent.configuration` and `aiagent.request`.
   * `aiagent.memory` and `aiagent.request`.
   * `mcp.client.configuration` and `mcp.client.framework`.
+
+  In addition, `aiagent.chatmodel`, `aiagent.agentinstance` and `aiagent.document` use the error code
+  constants in `aiagent.agent.AgentErrorCodes`, while `aiagent.agent` uses these packages. The
+  compiler inlines the constants, so the architecture tests do not see these dependencies, but they
+  still tie the packages together at source level.
 * Apply D4 to the remaining annotated records in `aiagent.model.request`: `PromptConfiguration`
   (with its system and user prompt records), `LimitsConfiguration`, `EventHandlingConfiguration` and
   `ResponseFormatConfiguration` (with its nested records). Model them as interfaces in the model and
-  move the annotated records to the connector. Then add an architecture rule that keeps element
-  template annotations out of `aiagent-model` and `aiagent-api`.
+  move the annotated records to the connector. The architecture tests allow element template
+  annotations in the library modules only for these records and for `AdHocToolsSchemaRequest`, and the
+  list must only shrink.
+* Make the element template generation follow the module boundaries. Today the generator of
+  `connector-aiagent` and of `connector-ad-hoc-tools-schema` scans the classes of its library
+  dependencies (`includeDependencies`) to find the annotated records. When the annotated records live
+  in the connector modules, each connector generates its templates from its own classes only.
 * Split the e2e tests in `connectors-e2e-test-agentic-ai` along the modules, so that each connector
-  and integration has its own e2e module.
+  and integration has its own e2e module. The tests share runtime and agent fixtures, which must move
+  to a shared test library first. The split also adds checks that a runtime with only the AI Agent,
+  only the MCP connectors or only the A2A connectors starts and runs.
+* Split `agentic-ai-common` into a plain library and the Spring and HTTP support. Until then, the
+  model and the API exclude the Spring and HTTP dependencies of the common library, and the build
+  fails if they come back.
+* Make each gateway tool integration depend on its client connector being enabled. Today the
+  integration can stay enabled while the client connector that runs its tool calls is disabled.
+* Add an API compatibility check for `aiagent-api` and `aiagent-model` after the first release with
+  the split, as part of the build verification harness (#7621).
 
 ## Pros and Cons of the Options
 
