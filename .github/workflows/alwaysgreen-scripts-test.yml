@@ -14,7 +14,6 @@ on:
     paths:
       - '.github/scripts/alwaysgreen/**'
       - '.github/workflows/alwaysgreen-fix.yml'
-      - '.github/workflows/alwaysgreen-triage.yml'
       - '.github/workflows/BUILD_PR_DOCKER_IMAGES.yml'
       - '.github/workflows/CHECK_LICENSES.yml'
       - '.github/workflows/NIGHTLY_E2E.yml'
@@ -28,7 +27,6 @@ on:
     paths:
       - '.github/scripts/alwaysgreen/**'
       - '.github/workflows/alwaysgreen-fix.yml'
-      - '.github/workflows/alwaysgreen-triage.yml'
       - '.github/workflows/BUILD_PR_DOCKER_IMAGES.yml'
       - '.github/workflows/CHECK_LICENSES.yml'
       - '.github/workflows/NIGHTLY_E2E.yml'
