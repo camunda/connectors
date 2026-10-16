@@ -10,6 +10,7 @@ basename rather than by the reported path.
 Commit/PR type: 'test:' for test-only changes, 'ci:' for workflow changes,
 'fix:' for connector, runtime or bundle code.
 
-Both repos take their own default branch, so no --base flag is needed.
+Connectors fixes target the dispatched base_ref (including stable/8.x);
+c8-cross-component-e2e-tests fixes target main. The shared workflow publishes the PR.
 camunda-platform-helm and camunda-docs are read-only reference material in this
 workspace: diagnose from them, never open a PR against them.
