@@ -130,7 +130,7 @@ limitations under the License.</license.inlineheader>
     <version.aws-sdk2>2.56.0</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
-    <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
+    <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
     <version.localstack>2.0.5</version.localstack>
 
