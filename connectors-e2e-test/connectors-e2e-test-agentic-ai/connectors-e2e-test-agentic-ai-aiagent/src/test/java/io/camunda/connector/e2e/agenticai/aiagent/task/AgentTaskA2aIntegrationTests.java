@@ -68,7 +68,7 @@ public class AgentTaskA2aIntegrationTests extends BaseAgentTaskTest {
   protected Resource testProcessWithA2a;
 
   @Value(
-      "file:../../connectors/agentic-ai/aiagent-a2a-integration/src/main/resources/a2a/a2a-system-prompt.md")
+      "file:../../../connectors/agentic-ai/aiagent-a2a-integration/src/main/resources/a2a/a2a-system-prompt.md")
   private Resource a2aSystemPromptResource;
 
   @LocalServerPort private int port;
