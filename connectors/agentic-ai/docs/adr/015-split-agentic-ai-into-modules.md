@@ -208,6 +208,13 @@ The decision comprises:
   and integration has its own e2e module. The tests share runtime and agent fixtures, which must move
   to a shared test library first. The split also adds checks that a runtime with only the AI Agent,
   only the MCP connectors or only the A2A connectors starts and runs.
+* Remove the dependency of `connector-a2a` on the webhook connector. The A2A webhook uses the webhook
+  authorization and HMAC verification of `connector-webhook`, so anyone who depends on the A2A client
+  gets the webhook connector and its registration, and the A2A template generation includes its
+  classes. The webhook connector is maintained by another team. Ask them to extract the authorization
+  and HMAC API with its model types into a library without connector registration, switch the A2A
+  client to it, and drop the webhook entry of the template generation. Done when the named exception
+  in `ModuleDependencyPolicyTest` is gone.
 * Split `agentic-ai-common` into a plain library and the Spring and HTTP support. Until then, the
   model and the API exclude the Spring and HTTP dependencies of the common library, and the build
   fails if they come back.
