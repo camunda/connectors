@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.message;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -98,7 +99,7 @@ class SendMessageConnectorFunctionTenantIdTest {
 
     function.execute(context);
 
-    verify(publishStep3, never()).tenantId(anyString());
+    verify(publishStep3, never()).tenantId(any());
     verify(publishStep3).send();
   }
 
@@ -117,7 +118,7 @@ class SendMessageConnectorFunctionTenantIdTest {
 
     function.execute(context);
 
-    verify(correlateStep3, never()).tenantId(anyString());
+    verify(correlateStep3, never()).tenantId(any());
     verify(correlateStep3).send();
   }
 
