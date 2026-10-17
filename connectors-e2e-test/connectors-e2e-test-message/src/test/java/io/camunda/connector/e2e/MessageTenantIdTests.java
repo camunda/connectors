@@ -176,14 +176,36 @@ public class MessageTenantIdTests {
         .tenantId(tenantId)
         .send()
         .join();
-    return camundaClient
-        .newCreateInstanceCommand()
-        .bpmnProcessId("receiveProcess")
-        .latestVersion()
-        .variable(CORRELATION_KEY_EXPRESSION, CORRELATION_VALUE)
-        .tenantId(tenantId)
-        .send()
-        .join();
+    var receiver =
+        camundaClient
+            .newCreateInstanceCommand()
+            .bpmnProcessId("receiveProcess")
+            .latestVersion()
+            .variable(CORRELATION_KEY_EXPRESSION, CORRELATION_VALUE)
+            .tenantId(tenantId)
+            .send()
+            .join();
+    awaitSubscriptionCreated(receiver);
+    return receiver;
+  }
+
+  /** Creating the instance does not imply its message subscription is already open. */
+  private void awaitSubscriptionCreated(ProcessInstanceEvent receiver) {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(Duration.ofSeconds(15))
+        .untilAsserted(
+            () ->
+                org.assertj.core.api.Assertions.assertThat(
+                        camundaClient
+                            .newMessageSubscriptionSearchRequest()
+                            .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
+                            .send()
+                            .join()
+                            .items())
+                    .extracting(MessageSubscription::getMessageSubscriptionState)
+                    .containsExactly(MessageSubscriptionState.CREATED));
   }
 
   /** Runs the send task in the default tenant, so only the {@code tenantId} input differs. */
