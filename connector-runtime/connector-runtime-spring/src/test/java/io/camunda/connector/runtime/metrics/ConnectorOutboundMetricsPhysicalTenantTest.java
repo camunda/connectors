@@ -52,6 +52,19 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
         .increaseCompleted(ConnectorMetrics.counter(job(), physicalTenantId));
   }
 
+  /** Mirrors the tags the Camunda client puts on its own {@code camunda.client.worker.*} meters. */
+  private static void recordWorkerJobsActivated(
+      MeterRegistry registry, String physicalTenantId, int count) {
+    registry
+        .counter(
+            ConnectorMetrics.Outbound.METRIC_NAME_WORKER_JOB_ACTIVATED,
+            ConnectorMetrics.Tag.TYPE,
+            TYPE,
+            ConnectorMetrics.Tag.PHYSICAL_TENANT_ID,
+            physicalTenantId)
+        .increment(count);
+  }
+
   private static long completedFor(MeterRegistry registry, String physicalTenantId) {
     return (long)
         registry
@@ -189,21 +202,37 @@ class ConnectorOutboundMetricsPhysicalTenantTest {
   }
 
   @Test
-  void aggregatorOutbound_omitsWorkerSection_whenFiltered() {
+  void aggregatorOutbound_scopesWorkerSectionToTheFilteredPhysicalTenant() {
     var registry = new SimpleMeterRegistry();
-    recordCompletedJob(registry, "tenant-a");
+    recordWorkerJobsActivated(registry, "tenant-a", 3);
+    recordWorkerJobsActivated(registry, "tenant-b", 5);
 
-    // the camunda.client.worker.* counters carry no physical-tenant tag, so they cannot be
-    // attributed to one engine — the section is omitted rather than reported unfiltered or as 0
     assertThat(
             ConnectorMetricsAggregator.outbound(registry, TYPE, List.of("tenant-a"), "runtime-1")
-                .worker())
-        .isNull();
+                .worker()
+                .jobsActivated())
+        .isEqualTo(3);
     assertThat(
-            ConnectorMetricsAggregator.outbound(registry, null, List.of("tenant-a"), "runtime-1")
+            ConnectorMetricsAggregator.outbound(registry, null, List.of("tenant-b"), "runtime-1")
+                .worker()
+                .jobsActivated())
+        .isEqualTo(5);
+    assertThat(
+            ConnectorMetricsAggregator.outbound(registry, TYPE, null, "runtime-1")
+                .worker()
+                .jobsActivated())
+        .isEqualTo(8);
+  }
+
+  @Test
+  void aggregatorOutbound_reportsZeroWorkerSection_forAPhysicalTenantWithoutWorkerMetrics() {
+    var registry = new SimpleMeterRegistry();
+    recordWorkerJobsActivated(registry, "tenant-a", 3);
+
+    assertThat(
+            ConnectorMetricsAggregator.outbound(
+                    registry, TYPE, List.of("nonexistent-tenant"), "runtime-1")
                 .worker())
-        .isNull();
-    assertThat(ConnectorMetricsAggregator.outbound(registry, TYPE, null, "runtime-1").worker())
-        .isNotNull();
+        .isEqualTo(new OutboundConnectorMetrics.Worker(0, 0, 0));
   }
 }

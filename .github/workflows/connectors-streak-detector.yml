@@ -38,7 +38,7 @@ on:
     workflows: ["Merge queue Helm test"]
     types:
       - completed
-  # Manual replay for the triage half, mirroring alwaysgreen-triage.yml's own dispatch
+  # Manual replay for the triage half, mirroring the central triage's own dispatch
   # path. Re-runs the decision for a past pipeline run without re-running the pipeline,
   # and is the only way to exercise a workflow_run workflow, which otherwise fires only
   # for the copy on the default branch. The streak job stays out of it: its gate wants a
@@ -529,31 +529,22 @@ jobs:
               ;;
           esac
 
-          # Mirrors the list alwaysgreen-triage.yml and alwaysgreen-fix.yml accept; all
-          # three are widened together or a dispatch hard-errors on arrival.
+          # Mirrors what the central triage accepts for this repository
+          # (camunda/c8-cross-component-e2e-tests, scripts/alwaysgreen/consumers.py,
+          # `supported_base_refs`) and what alwaysgreen-fix.yml accepts. All three are
+          # widened together, or a dispatch hard-errors on arrival. The contract now
+          # spans two repositories, so no test can hold both ends.
           #
-          # stable/8.10 is deliberately absent, and it costs real coverage to leave it
-          # out: 10 runs and 15 failing jobs over the last 100, a fifth of all failures,
-          # every one reaching this listener via merge_group since its own copy of the
-          # pipeline still carries `push: branches: [main]`.
-          #
-          # It stays out because of a race the dedupe layers cannot see.
-          # alwaysgreen-fix.yml maps main to the 8.10 suite as well -- main is
-          # 8.11.0-SNAPSHOT and the e2e repository has no tests/8.11 -- so main and
-          # stable/8.10 resolve to the SAME spec paths while carrying DIFFERENT dispatch
-          # keys. The key lock and the in-flight check are both keyed by the dispatch
-          # key, and triage's concurrency group by base_ref, so none of them sees the
-          # collision; the spec-path claim only starts guarding once the first agent has
-          # opened its PR, which is 15-60 minutes after dispatch. Two failures inside
-          # that window put two agents on the same files.
-          #
-          # Closing it means keying the in-flight lock by the resolved suite rather than
-          # by the base ref, which is a change to the key format and belongs on its own.
-          # Until then an unsupported ref is reported rather than swallowed, so the gap
-          # is visible in the summary instead of looking like a green run.
+          # Every supported ref must resolve to its own e2e suite. alwaysgreen-fix.yml
+          # maps main to the next unreleased minor and stable/X.Y to X.Y; if two refs ever
+          # resolve to the same suite again (main lagging a branch cut), they share spec
+          # paths while carrying different dispatch keys. The key lock, the in-flight
+          # check and triage's concurrency group are all keyed by ref, so none of them
+          # would see two agents editing the same files. Drop the lagging ref from the
+          # three lists until main moves on.
           base_ref_supported=true
           case "$base_ref" in
-            main|stable/8.7|stable/8.8|stable/8.9) ;;
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) ;;
             *) base_ref_supported=false ;;
           esac
 
@@ -588,7 +579,7 @@ jobs:
               echo "In-pipeline triage already classified run ${RUN_ID}; skipping to avoid a duplicate."
             fi
             if [ "$base_ref_supported" != "true" ]; then
-              echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to alwaysgreen-triage.yml and alwaysgreen-fix.yml to enable it."
+              echo "::warning::AlwaysGreen triage does not accept base_ref '${base_ref}', so this run's failures are reported here only. Add the ref to supported_base_refs in camunda/c8-cross-component-e2e-tests and to alwaysgreen-fix.yml here to enable it."
             fi
           else
             echo "No failing jobs in run ${RUN_ID}."
@@ -684,33 +675,101 @@ jobs:
             echo "slack_channel=${channel}"
           } | tee -a "$GITHUB_OUTPUT"
 
-  # github.run_id inside triage is this listener's run, not the failing one, so the
-  # failing run travels as an explicit input. Everything downstream of triage's
-  # "Resolve target run" step already handles that -- it reads
-  # `${INPUT_RUN_ID:-$CALLER_RUN_ID}` -- the input just was not declared on the
-  # workflow_call path.
+  # Hands the failing run to the central AlwaysGreen triage in
+  # camunda/c8-cross-component-e2e-tests, which classifies it there. Triage used to
+  # live in this repository; it now lives once, for every consumer.
+  # See camunda/team-test-automation#163.
+  #
+  # A dispatch rather than `uses:`: that repository is internal and this one is
+  # public, so GitHub refuses to resolve a workflow across that boundary.
+  #
+  # github.run_id inside triage is triage's own run, not the failing one, so the
+  # failing run travels as an explicit `run_id` field in the payload below, which
+  # triage reads as `client_payload.run_id || inputs.run_id`.
+  #
+  # NOTE: that triage DOES start this repository's fix agent, by dispatching
+  # alwaysgreen-fix.yml -- the same cross-boundary reason applies to it, so it
+  # cannot be reached with `uses:` either. The rule that nothing privileged here
+  # could be started from outside was given up deliberately to make that possible;
+  # what bounds the agent now is asserted by
+  # test_the_fix_agent_is_dispatchable_and_what_now_bounds_it in
+  # test_workflow_security.py: protected refs only, the Vault kill switch, an
+  # allowlisted base_ref and surface, a dispatch key that must be this pipeline's
+  # own, and no `pull-requests: write`.
   triage:
-    name: AlwaysGreen triage and fix dispatch
+    name: Hand the failure to the central AlwaysGreen triage
     needs: scan-run
     if: >-
       github.ref_protected &&
       needs.scan-run.outputs.any_failed == 'true' &&
       needs.scan-run.outputs.already_triaged != 'true' &&
       needs.scan-run.outputs.base_ref_supported == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
-      actions: read
-      pull-requests: read
-    uses: ./.github/workflows/alwaysgreen-triage.yml
-    secrets: inherit
-    with:
-      run_id: ${{ needs.scan-run.outputs.run_id }}
-      # The attempt this listener judged, so discovery classifies the same jobs the gate
-      # saw rather than whatever attempt is newest when it runs. Empty on a replay.
-      run_attempt: ${{ github.event.workflow_run.run_attempt }}
-      base_ref: ${{ needs.scan-run.outputs.base_ref }}
-      # A manual replay is always classification-only. Production workflow_run events
-      # remain controlled by the Vault feature flag.
-      dry_run: ${{ github.event_name == 'workflow_dispatch' || inputs.dry_run || false }}
-      parent_slack_ts: ${{ needs.scan-run.outputs.parent_slack_ts }}
-      parent_slack_channel: ${{ needs.scan-run.outputs.parent_slack_channel }}
+    steps:
+      - name: Generate a token that may dispatch to the triage repository
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: c8-cross-component-e2e-tests
+
+      # A disabled workflow accepts a repository_dispatch and runs nothing, so the
+      # POST would succeed and the failure would simply never be triaged. Fatal
+      # rather than skipped: the dispatchers in that repository are routinely
+      # disabled by hand, and this one going the same way must not be silent.
+      - name: Refuse to dispatch at a disabled receiver
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          state=$(gh api repos/camunda/c8-cross-component-e2e-tests/actions/workflows/alwaysgreen-triage.yml \
+            --jq '.state' 2>/dev/null || echo "unknown")
+          if [ "$state" != "active" ]; then
+            echo "::error::the AlwaysGreen triage receiver is '${state}', so this failure would go untriaged"
+            exit 1
+          fi
+
+      # Deliberately NOT continue-on-error. A dispatch that fails to arrive means the
+      # failure is never triaged, which is the one outcome this system exists to
+      # prevent, so it fails the job and is visible.
+      - name: Hand the failure to the central triage
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+          RUN_ID: ${{ needs.scan-run.outputs.run_id }}
+          BASE_REF: ${{ needs.scan-run.outputs.base_ref }}
+          SLACK_TS: ${{ needs.scan-run.outputs.parent_slack_ts }}
+          SLACK_CHANNEL: ${{ needs.scan-run.outputs.parent_slack_channel }}
+          # A manual replay stays classification-only, as it was when triage ran here.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -nc \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg run_id "${RUN_ID}" \
+            --arg base_ref "${BASE_REF}" \
+            --arg ts "${SLACK_TS:-}" \
+            --arg channel "${SLACK_CHANNEL:-}" \
+            --argjson dry_run "${DRY_RUN:-false}" \
+            '{event_type: "alwaysgreen-triage",
+              client_payload: {source_repo: $repo,
+                               run_id: $run_id,
+                               base_ref: $base_ref,
+                               slack_ts: $ts,
+                               slack_channel: $channel,
+                               dry_run: $dry_run}}')
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/camunda/c8-cross-component-e2e-tests/dispatches \
+            --input - <<<"$payload"
+          echo "Handed run ${RUN_ID} to the central triage." >> "$GITHUB_STEP_SUMMARY"
