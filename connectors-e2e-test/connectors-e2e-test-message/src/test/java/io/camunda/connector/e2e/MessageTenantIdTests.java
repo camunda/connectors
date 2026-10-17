@@ -22,6 +22,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.client.api.search.enums.MessageSubscriptionState;
+import io.camunda.client.api.search.response.Incident;
 import io.camunda.client.api.search.response.MessageSubscription;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -145,7 +146,9 @@ public class MessageTenantIdTests {
     var receiverInOtherTenant = startReceiver(TENANT_B);
     var receiverInDefaultTenant = startReceiver(DEFAULT_TENANT);
 
-    runSender("correlate", TENANT_A).waitForActiveIncidents();
+    var sender = runSender("correlate", TENANT_A).waitForActiveIncidents();
+
+    assertIncidentFailedWith(sender.getProcessInstanceEvent(), "404");
 
     assertStaysActive(receiverInOtherTenant);
     assertStaysActive(receiverInDefaultTenant);
@@ -156,7 +159,9 @@ public class MessageTenantIdTests {
   void unassignedTenant_raisesIncidentInsteadOfFallingBackToDefaultTenant(String mode) {
     var receiverInDefaultTenant = startReceiver(DEFAULT_TENANT);
 
-    runSender(mode, UNASSIGNED_TENANT).waitForActiveIncidents();
+    var sender = runSender(mode, UNASSIGNED_TENANT).waitForActiveIncidents();
+
+    assertIncidentFailedWith(sender.getProcessInstanceEvent(), "403");
 
     assertStaysActive(receiverInDefaultTenant);
   }
@@ -230,6 +235,31 @@ public class MessageTenantIdTests {
             .writeToFile(new File(tempDir, "message_send.bpmn"))
             .apply(template, "sendTask", new File(tempDir, "message_send_with_template.bpmn"));
     return ZeebeTest.with(camundaClient).deploy(modelWithTemplate).createInstance();
+  }
+
+  /**
+   * The incident alone does not tell why the job failed: a missing subscription (404) and a denied
+   * tenant (403) both raise one, so the cause has to be asserted.
+   */
+  private void assertIncidentFailedWith(ProcessInstanceEvent sender, String statusCode) {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(Duration.ofSeconds(15))
+        .untilAsserted(
+            () ->
+                org.assertj.core.api.Assertions.assertThat(
+                        camundaClient
+                            .newIncidentSearchRequest()
+                            .filter(f -> f.processInstanceKey(sender.getProcessInstanceKey()))
+                            .send()
+                            .join()
+                            .items())
+                    .extracting(Incident::getErrorMessage)
+                    .anySatisfy(
+                        message ->
+                            org.assertj.core.api.Assertions.assertThat(message)
+                                .contains("code " + statusCode)));
   }
 
   private void assertStaysActive(ProcessInstanceEvent instance) {
