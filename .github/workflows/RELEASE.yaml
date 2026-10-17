@@ -88,7 +88,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
-        uses: camunda/infra-global-github-actions/previous-version@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        uses: camunda/infra-global-github-actions/previous-version@d4e0239331f434375aaa358d9003e48a19688d83 # main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
