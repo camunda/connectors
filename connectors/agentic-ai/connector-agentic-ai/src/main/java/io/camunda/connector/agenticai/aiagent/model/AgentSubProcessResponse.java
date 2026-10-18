@@ -20,7 +20,8 @@ public record AgentSubProcessResponse(
     @Nullable AgentContext context,
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
-    @Nullable Object responseJson)
+    @Nullable Object responseJson,
+    @Nullable SystemPromptProvenance systemPrompt)
     implements AgentSubProcessResponseBuilder.With {
 
   public static AgentSubProcessResponseBuilder builder() {

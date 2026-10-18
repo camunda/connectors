@@ -8,10 +8,13 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.LinkedHashMap;
 
 /** AI Agent Sub-process v2 connector (LLM-provider layer). Job worker on an ad-hoc sub-process. */
 @OutboundConnector(
@@ -64,6 +67,23 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
             request.toolCallResults(),
             request.toolElements(),
             request.provider());
-    return agentRequestHandler.handleRequest(executionContext);
+    var response = agentRequestHandler.handleRequest(executionContext);
+    if (linkedPrompt == null
+        || !(response.variables().get(AgentProcessVariables.AGENT_RESPONSE)
+            instanceof AgentSubProcessResponse agentResponse)) {
+      return response;
+    }
+    // Persist which governed resource version the engine pinned, so Operate can show it.
+    var provenance =
+        new SystemPromptProvenance(
+            "linked",
+            linkedPrompt.promptId(),
+            linkedPrompt.binding(),
+            linkedPrompt.version(),
+            data.systemPrompt().prompt());
+    var variables = new LinkedHashMap<>(response.variables());
+    variables.put(
+        AgentProcessVariables.AGENT_RESPONSE, agentResponse.withSystemPrompt(provenance));
+    return response.withVariables(variables);
   }
 }
