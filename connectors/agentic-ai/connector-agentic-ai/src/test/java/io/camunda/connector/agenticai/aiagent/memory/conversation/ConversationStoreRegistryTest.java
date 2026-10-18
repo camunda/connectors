@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
@@ -50,7 +51,8 @@ class ConversationStoreRegistryTest {
   void setUp() {
     inProcessConversationStore = new InProcessConversationStore();
     camundaDocumentConversationStore =
-        new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, singleTenant(), objectMapper);
 
     registry =
         new ConversationStoreRegistryImpl(

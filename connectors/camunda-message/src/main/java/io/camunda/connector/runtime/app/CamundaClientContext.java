@@ -7,6 +7,7 @@
 package io.camunda.connector.runtime.app;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -27,8 +28,18 @@ public class CamundaClientContext implements ApplicationContextAware {
     context = applicationContext;
   }
 
+  /**
+   * A client bound to whichever cluster the container resolves, so it is only usable by a runtime
+   * serving a single one. Prefer {@link #getPhysicalTenantClientSelector()}, which resolves the
+   * cluster a job was actually activated from.
+   */
   public static CamundaClient getCamundaClient() {
     LOG.debug("Access Zeebe Client");
     return context.getBean(CamundaClient.class);
+  }
+
+  public static PhysicalTenantClientSelector getPhysicalTenantClientSelector() {
+    LOG.debug("Access physical tenant client selector");
+    return context.getBean(PhysicalTenantClientSelector.class);
   }
 }

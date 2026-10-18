@@ -15,15 +15,17 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Authentication strategies for OpenAI's {@code custom}-backend endpoint. Unlike Anthropic, there
- * is no genuine no-auth option here: the openai-java SDK requires a credential source to build a
- * client at all, so an apparent "no auth" choice would silently send a placeholder credential
- * instead of actually sending nothing. Modeled as a sealed interface rather than a flat
- * {@code @NotBlank String apiKey} field to stay consistent with the backend-subtype wrapping
- * convention used throughout this provider's config.
+ * Authentication strategies for OpenAI's {@code custom}-backend endpoint. Unlike Anthropic, the
+ * openai-java SDK requires some credential source to build a client at all, so {@link
+ * NoAuthentication} sends a placeholder credential rather than genuinely no header; kept as its own
+ * variant so the "no auth" choice is still available for self-hosted, unauthenticated
+ * OpenAI-compatible servers.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
+  @JsonSubTypes.Type(
+      value = OpenAiCustomEndpointAuthentication.NoAuthentication.class,
+      name = "none"),
   @JsonSubTypes.Type(
       value = OpenAiCustomEndpointAuthentication.ApiKeyAuthentication.class,
       name = "apiKey"),
@@ -35,11 +37,15 @@ import jakarta.validation.constraints.NotBlank;
     label = "Authentication",
     group = "provider",
     name = "type",
-    defaultValue = "apiKey",
+    defaultValue = "none",
     description = "Authentication for the compatible API.")
 public sealed interface OpenAiCustomEndpointAuthentication
-    permits OpenAiCustomEndpointAuthentication.ApiKeyAuthentication,
+    permits OpenAiCustomEndpointAuthentication.NoAuthentication,
+        OpenAiCustomEndpointAuthentication.ApiKeyAuthentication,
         OAuthClientCredentialsAuthentication {
+
+  @TemplateSubType(id = "none", label = "None")
+  record NoAuthentication() implements OpenAiCustomEndpointAuthentication {}
 
   @TemplateSubType(id = "apiKey", label = "API key")
   record ApiKeyAuthentication(

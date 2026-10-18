@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
@@ -203,10 +204,10 @@ public class AnthropicMessageRequestConverter {
 
   /**
    * Merges the backend's headers, query parameters, and body properties onto the request. The
-   * {@code custom} backend exposes these as regular properties; the {@code anthropic-api} and
-   * {@code aws-bedrock-mantle} backends expose the same extension points as hidden properties for
-   * special scenarios not covered by the modeler UI (e.g. routing through an intermediary that
-   * requires extra headers).
+   * {@code custom} backend exposes these as regular properties; the {@code anthropic-api}, {@code
+   * aws-bedrock-mantle} and {@code foundry} backends expose the same extension points as hidden
+   * properties for special scenarios not covered by the modeler UI (e.g. routing through an
+   * intermediary that requires extra headers).
    */
   private void applyRequestCustomizations(
       MessageCreateParams.Builder builder, AnthropicConnection connection) {
@@ -230,6 +231,11 @@ public class AnthropicMessageRequestConverter {
               awsBedrockMantleBackend.awsBedrockMantle().headers(),
               awsBedrockMantleBackend.awsBedrockMantle().queryParameters(),
               awsBedrockMantleBackend.awsBedrockMantle().bodyProperties());
+      case AnthropicFoundryBackend foundryBackend ->
+          new RequestCustomizations(
+              foundryBackend.foundry().headers(),
+              foundryBackend.foundry().queryParameters(),
+              foundryBackend.foundry().bodyProperties());
       case AnthropicCustomBackend custom ->
           new RequestCustomizations(
               custom.custom().headers(),

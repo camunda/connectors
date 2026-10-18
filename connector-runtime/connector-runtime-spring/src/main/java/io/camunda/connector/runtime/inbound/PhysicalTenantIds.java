@@ -94,6 +94,29 @@ public final class PhysicalTenantIds {
   }
 
   /**
+   * The client-name-to-physical-tenant-ID association as resolved at startup, so a {@code
+   * CamundaClientLifecycleAware} consumer can find the key a given client was filed under instead
+   * of re-resolving the ID from the client an event hands it.
+   *
+   * <p>Re-resolving is not equivalent, and the difference is load-bearing. Resolution here falls
+   * back to the client name whenever the configuration cannot be read yet, so the same client can
+   * resolve to its name at startup and to a real physical tenant ID later; an event resolving the
+   * later value would miss the frozen key entirely. Worse, because that startup fallback also
+   * bypasses {@link #toMapByPhysicalTenantId}'s duplicate check, a client keyed by name at startup
+   * can later resolve onto a key another client legitimately owns — and re-resolution would hand it
+   * that other tenant's entry. Looking the key up by client name is immune to both: a client can
+   * only ever address the entry it was given at startup.
+   */
+  public static Map<String, String> buildPhysicalTenantIdByClientName(
+      CamundaClientRegistry registry, CamundaClient legacyCamundaClient) {
+    return registry.clientNames().stream()
+        .collect(
+            Collectors.toMap(
+                name -> name,
+                name -> resolvePhysicalTenantId(registry, name, legacyCamundaClient)));
+  }
+
+  /**
    * Builds a {@code Collectors.toMap} collector keyed by the resolved physical tenant ID for each
    * client name, failing clearly if two clients resolve to the same physical tenant ID (a
    * misconfiguration) rather than silently dropping one.
@@ -145,17 +168,32 @@ public final class PhysicalTenantIds {
       CamundaClient legacyCamundaClient,
       SearchQueryClient legacySearchQueryClient,
       int limit) {
-    boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
+    var searchQueryClientFactory =
+        searchQueryClientFactory(registry, legacySearchQueryClient, limit);
     return registry.clientNames().stream()
         .collect(
             toMapByPhysicalTenantId(
                 registry,
                 legacyCamundaClient,
                 name ->
-                    useOverride
-                        ? legacySearchQueryClient
-                        : new SearchQueryClientImpl(
-                            resolveClient(registry, name, legacyCamundaClient), limit)));
+                    searchQueryClientFactory.apply(
+                        resolveClient(registry, name, legacyCamundaClient))));
+  }
+
+  /**
+   * The {@link SearchQueryClient}-per-{@link CamundaClient} rule behind {@link
+   * #buildSearchQueryClientsByPhysicalTenantId}, exposed so that a {@code
+   * CamundaClientLifecycleAware} consumer rebuilding one entry for a restarted client applies the
+   * very same rule — including the single-client-only {@code legacySearchQueryClient} override,
+   * which several E2E suites rely on and which must therefore survive a client restart rather than
+   * be replaced by a real client.
+   */
+  public static Function<CamundaClient, SearchQueryClient> searchQueryClientFactory(
+      CamundaClientRegistry registry, SearchQueryClient legacySearchQueryClient, int limit) {
+    boolean useOverride = legacySearchQueryClient != null && registry.clientNames().size() <= 1;
+    return useOverride
+        ? client -> legacySearchQueryClient
+        : client -> new SearchQueryClientImpl(client, limit);
   }
 
   /**

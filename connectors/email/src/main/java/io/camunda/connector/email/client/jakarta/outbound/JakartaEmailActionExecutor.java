@@ -61,7 +61,8 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     Protocol protocol = emailRequest.data();
     Action action = protocol.getProtocolAction();
     LOG.debug("Executing action: {}", action.getClass().getSimpleName());
-    Session session = jakartaUtils.createSession(protocol.getConfiguration(), authentication);
+    Session session =
+        jakartaUtils.createSession(emailRequest.getProtocolConfiguration(), authentication);
     LOG.debug("Mail session created successfully");
     return switch (action) {
       case SmtpSendEmail smtpSendEmail -> smtpSendEmail(smtpSendEmail, authentication, session);

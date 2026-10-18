@@ -96,7 +96,10 @@ public class AnthropicMessageResponseConverter {
       if (block.isToolUse()) {
         toolCalls.add(toToolCall(block.toolUse().orElseThrow()));
       } else {
-        content.add(toContent(block));
+        final Content converted = toContent(block);
+        if (converted != null) {
+          content.add(converted);
+        }
       }
     }
 
@@ -117,9 +120,11 @@ public class AnthropicMessageResponseConverter {
         .build();
   }
 
-  private Content toContent(ContentBlock block) {
+  private @Nullable Content toContent(ContentBlock block) {
     if (block.isText()) {
-      return TextContent.textContent(block.text().orElseThrow().text());
+      // Blank text carries no information; skip it instead of failing TextContent.
+      final String text = block.text().orElseThrow().text();
+      return StringUtils.hasText(text) ? TextContent.textContent(text) : null;
     } else if (block.isThinking()) {
       return toReasoningContent(block);
     } else if (block.isRedactedThinking()) {

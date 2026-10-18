@@ -141,6 +141,45 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
+    // A blank output_text part alongside a function_call must not crash TextContent.
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "\\n\\n", "annotations": []}
+                ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+  }
+
+  @Test
   void throwsContentFilteredExceptionForRefusal() {
     assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
         .isInstanceOfSatisfying(
@@ -152,6 +191,45 @@ class OpenAiResponsesResponseConverterTest {
                   .containsExactly(TextContent.textContent("I can't help with that."));
               assertThat(assistantMessage.toolCalls()).isEmpty();
             });
+  }
+
+  @Test
+  void mapsBlankRefusalAlongsideFunctionCallToCompletedResult() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "refusal", "refusal": "\\n\\n"}
+                ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
   }
 
   private static Response responseWithRefusal() {

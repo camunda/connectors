@@ -97,9 +97,9 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
-        .hasDefinition("gpt-4o", "openai")
+        .hasDefinition("gpt-4o", "openai/completions/openai-api")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openai", 10)
+        .createdWithConfigurationItem("gpt-4o", "openai/completions/openai-api", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,
@@ -174,9 +174,9 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
         .hasStatus(AgentInstanceStatus.COMPLETED)
         .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
-        .hasDefinition("gpt-4o", "openai")
+        .hasDefinition("gpt-4o", "openai/completions/openai-api")
         .hasToolsContaining("SuperfluxProduct")
-        .createdWithConfigurationItem("gpt-4o", "openai", 10)
+        .createdWithConfigurationItem("gpt-4o", "openai/completions/openai-api", 10)
         .hasConfigurationItemsAtLeast(2)
         .hasConversationRoles(
             AgentInstanceHistoryRole.USER,

@@ -78,7 +78,10 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       JsonNode jsonNode = getJsonPayloadFromToken(verifiedJWT, objectMapper);
       return jwtProperties.permissionsExpression().apply(jsonNode);
     } catch (FeelEngineWrapperException ex) {
-      LOGGER.warn("Failed to evaluate permission expression! Reason: {}", ex.getReason(), ex);
+      // permissionsExpression is a FEEL expression, and inbound binding resolves secrets before
+      // compiling it, so ex.getReason()/getMessage() may contain a resolved secret. Log only a
+      // static message.
+      LOGGER.warn("Failed to evaluate JWT permission expression");
       return new ArrayList<>();
     }
   }

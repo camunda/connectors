@@ -51,7 +51,7 @@ class AgentSubProcessV1FunctionTest {
       new AnthropicChatModelConfiguration(
           new AnthropicChatModelConfiguration.AnthropicConnection(
               new AnthropicApiBackend(
-                  new AnthropicApi("anthropic-api-key", null, null, null, null)),
+                  new AnthropicApi(null, "anthropic-api-key", null, null, null, null)),
               new AnthropicChatModelConfiguration.AnthropicModel("claude-sonnet-4-6", null),
               null));
 

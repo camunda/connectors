@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicC
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.ANTHROPIC_API_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend.AWS_BEDROCK_MANTLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend.CUSTOM_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend.FOUNDRY_ID;
 import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -69,6 +70,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     @JsonSubTypes.Type(
         value = AnthropicBackend.AnthropicAwsBedrockMantleBackend.class,
         name = AWS_BEDROCK_MANTLE_ID),
+    @JsonSubTypes.Type(value = AnthropicBackend.AnthropicFoundryBackend.class, name = FOUNDRY_ID),
     @JsonSubTypes.Type(value = AnthropicBackend.AnthropicCustomBackend.class, name = CUSTOM_ID)
   })
   @TemplateDiscriminatorProperty(
@@ -94,14 +96,27 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
       }
 
       public record AnthropicApi(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "Anthropic API credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "anthropicApiCredential"),
+                  description =
+                      "Select a saved Anthropic API credential, or enter an API key below.")
+              @Nullable AnthropicApiCredential anthropicApiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "Anthropic API key",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "anthropicApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -136,9 +151,25 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        /** The Anthropic API key: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveApiKey() {
+          return anthropicApiCredential != null ? anthropicApiCredential.apiKey() : apiKey;
+        }
+
+        @JsonIgnore
+        @AssertTrue(
+            message = "Anthropic API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          String effective = effectiveApiKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "AnthropicApi{apiKey=[REDACTED], endpoint="
+          return "AnthropicApi{anthropicApiCredential="
+              + anthropicApiCredential
+              + ", apiKey=[REDACTED], endpoint="
               + endpoint
               + ", headers="
               + redactValues(headers)
@@ -218,8 +249,8 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
         @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
         public boolean isDefaultCredentialsChainUsedInSaaS() {
           return ConnectorUtils.isSaaS()
-              && authentication
-                  instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+              && authentication instanceof AwsAuthentication.AwsIamAuthentication iam
+              && iam.usesDefaultCredentialsChain();
         }
 
         @Override
@@ -227,6 +258,77 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           return "AwsBedrockMantleBackend{region="
               + region
               + ", endpoint="
+              + endpoint
+              + ", authentication="
+              + authentication
+              + ", headers="
+              + redactValues(headers)
+              + ", queryParameters="
+              + redactValues(queryParameters)
+              + ", bodyProperties="
+              + redactValues(bodyProperties)
+              + "}";
+        }
+      }
+    }
+
+    @TemplateSubType(id = FOUNDRY_ID, label = "Microsoft Foundry (Azure)")
+    record AnthropicFoundryBackend(@Valid @NotNull FoundryBackend foundry)
+        implements AnthropicBackend {
+
+      @TemplateProperty(ignore = true)
+      public static final String FOUNDRY_ID = "foundry";
+
+      @Override
+      public String type() {
+        return FOUNDRY_ID;
+      }
+
+      public record FoundryBackend(
+          @NotBlank
+              @HttpUrl
+              @TemplateProperty(
+                  group = "provider",
+                  label = "API endpoint",
+                  description = "Base URL of the Microsoft Foundry resource.",
+                  tooltip =
+                      "The full resource endpoint, e.g. "
+                          + "<code>https://your-resource.services.ai.azure.com</code>.",
+                  type = TemplateProperty.PropertyType.String,
+                  feel = FeelMode.optional,
+                  placeholder = "https://your-resource.services.ai.azure.com",
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              String endpoint,
+          @Valid @NotNull FoundryAuthentication authentication,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "HTTP headers",
+                  description = "Map of HTTP headers to add to the request.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, String> headers,
+          @Valid
+              @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Query parameters",
+                  description = "Map of query parameters to add to the request URL.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<@NotBlank String, String> queryParameters,
+          @TemplateProperty(
+                  group = "advanced-provider-options",
+                  label = "Body properties",
+                  description = "Map of additional properties to include in the request body.",
+                  type = TemplateProperty.PropertyType.Hidden,
+                  feel = FeelMode.disabled,
+                  optional = true)
+              @Nullable Map<String, Object> bodyProperties) {
+
+        @Override
+        public String toString() {
+          return "FoundryBackend{endpoint="
               + endpoint
               + ", authentication="
               + authentication
@@ -313,8 +415,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
           @TemplateProperty(
               group = "model",
               label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
+              tooltip =
+                  "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, "
+                      + "but can be chosen freely when the deployment is created. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",
@@ -431,11 +534,9 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
     public record AnthropicPromptCaching(
         @TemplateProperty(
                 group = "model",
-                label = "Prompt caching",
-                description = "Optional.",
+                label = "Enable prompt caching",
                 tooltip =
-                    "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents."
-                        + "<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
+                    "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
                 defaultValue = "false",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,

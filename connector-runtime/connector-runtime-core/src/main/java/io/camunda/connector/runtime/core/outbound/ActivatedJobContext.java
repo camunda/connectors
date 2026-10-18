@@ -96,6 +96,6 @@ public class ActivatedJobContext implements JobContext {
 
   @Override
   public String getLeaseToken() {
-    return activatedJob.getLeaseToken();
+    return activatedJob.getJobLeaseToken();
   }
 }

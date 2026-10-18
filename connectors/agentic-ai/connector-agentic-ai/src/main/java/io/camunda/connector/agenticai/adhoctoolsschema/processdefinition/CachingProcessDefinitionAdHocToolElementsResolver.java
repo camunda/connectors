@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 public class CachingProcessDefinitionAdHocToolElementsResolver
     implements ProcessDefinitionAdHocToolElementsResolver {
@@ -25,8 +26,9 @@ public class CachingProcessDefinitionAdHocToolElementsResolver
 
   @Override
   public List<AdHocToolElement> resolveToolElements(
-      Long processDefinitionKey, String adHocSubProcessId) {
-    return cache.get(new AdHocToolsIdentifier(processDefinitionKey, adHocSubProcessId));
+      @Nullable String physicalTenantId, Long processDefinitionKey, String adHocSubProcessId) {
+    return cache.get(
+        new AdHocToolsIdentifier(physicalTenantId, processDefinitionKey, adHocSubProcessId));
   }
 
   private LoadingCache<AdHocToolsIdentifier, List<AdHocToolElement>> buildCache(
@@ -38,10 +40,18 @@ public class CachingProcessDefinitionAdHocToolElementsResolver
     Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
 
     return builder.build(
-        id -> delegate.resolveToolElements(id.processDefinitionKey(), id.adHocSubProcessId()));
+        id ->
+            delegate.resolveToolElements(
+                id.physicalTenantId(), id.processDefinitionKey(), id.adHocSubProcessId()));
   }
 
-  private record AdHocToolsIdentifier(Long processDefinitionKey, String adHocSubProcessId) {
+  /**
+   * Keyed by physical tenant as well as definition key: keys are only unique within one
+   * orchestration cluster, so without it a runtime serving several of them could serve one tenant's
+   * cached tool elements to another.
+   */
+  private record AdHocToolsIdentifier(
+      @Nullable String physicalTenantId, Long processDefinitionKey, String adHocSubProcessId) {
     private AdHocToolsIdentifier {
       if (processDefinitionKey == null || processDefinitionKey <= 0) {
         throw new IllegalArgumentException("Process definition key must not be null or negative");

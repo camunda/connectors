@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -51,7 +52,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jso
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiFoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -369,7 +369,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 new AnthropicConnection(
                     new AnthropicApiBackend(
                         new AnthropicApiBackend.AnthropicApi(
-                            "sk-ant-test", null, null, null, null)),
+                            null, "sk-ant-test", null, null, null, null)),
                     new AnthropicModel("claude-sonnet-5", null),
                     null)),
             AnthropicChatModelFactory.class),
@@ -378,7 +378,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             new GeminiChatModelConfiguration(
                 new GeminiConnection(
                     new GeminiApiBackend(
-                        new GeminiApiBackend.GoogleGeminiApi("test-api-key", null)),
+                        new GeminiApiBackend.GoogleGeminiApi(null, "test-api-key", null)),
                     new GeminiModel("gemini-3-pro-preview", null),
                     null)),
             GeminiChatModelFactory.class),
@@ -434,7 +434,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend(
                         new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend
                             .OpenAiApiConnection(
-                            "sk-openai-test", null, null, null, null, null, null)),
+                            null, "sk-openai-test", null, null, null, null, null, null)),
                     new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
                     null)),
             OpenAiChatModelFactory.class),
@@ -757,10 +757,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomAnthropicChatModelFactory() {
           super(
+              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(AnthropicMessageRequestConverter.class),
               mock(AnthropicMessageResponseConverter.class),
-              mock(OAuthClientCredentialsTokenResolver.class));
+              mock(OAuthClientCredentialsTokenResolver.class),
+              mock(FoundryCredentialResolver.class));
         }
 
         @Override
@@ -780,10 +782,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomOpenAiChatModelFactory() {
           super(
+              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiFoundryCredentialResolver.class),
+              mock(FoundryCredentialResolver.class),
               mock(OAuthClientCredentialsTokenResolver.class));
         }
 

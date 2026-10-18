@@ -23,8 +23,10 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import java.time.Duration;
 import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -107,10 +109,11 @@ public class InboundCorrelationConfiguration {
   @Lazy
   public InboundCorrelationHandler inboundCorrelationHandler(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
+    var legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     var documentFactoriesByPhysicalTenantId =
         PhysicalTenantIds.buildDocumentFactoriesByPhysicalTenantId(
             registry, legacyCamundaClient, legacyDocumentFactory);

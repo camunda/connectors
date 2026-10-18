@@ -54,7 +54,7 @@ class GeminiContentRequestConverterTest {
   private static GeminiChatModelConfiguration model(@Nullable GeminiModelParameters parameters) {
     return new GeminiChatModelConfiguration(
         new GeminiConnection(
-            new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
+            new GeminiApiBackend(new GoogleGeminiApi(null, "gm-test", null)),
             new GeminiModel("gemini-3-pro-preview", parameters),
             null));
   }

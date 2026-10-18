@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,7 +101,7 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-a"));
     when(registry.get("engine-a")).thenReturn(clientA);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("explicit-tenant");
   }
@@ -112,7 +113,7 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.clientNames()).thenReturn(Set.of("engine-b"));
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("engine-b");
   }
@@ -126,7 +127,7 @@ class OutboundConnectorRuntimeConfigurationTest {
         .thenThrow(new RuntimeException("client not initialized"));
     when(registry.get("engine-c")).thenReturn(uninitializedClient);
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, null);
+    var result = configuration.documentStoresByPhysicalTenantId(registry, clientProvider());
 
     assertThat(result).containsOnlyKeys("engine-c");
   }
@@ -140,7 +141,8 @@ class OutboundConnectorRuntimeConfigurationTest {
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
     var legacyClient = clientWithPhysicalTenantId("legacy-tenant");
 
-    var result = configuration.documentStoresByPhysicalTenantId(registry, legacyClient);
+    var result =
+        configuration.documentStoresByPhysicalTenantId(registry, clientProvider(legacyClient));
 
     assertThat(result).containsOnlyKeys("legacy-tenant");
   }
@@ -154,7 +156,8 @@ class OutboundConnectorRuntimeConfigurationTest {
         .thenThrow(
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
-    assertThatThrownBy(() -> configuration.documentStoresByPhysicalTenantId(registry, null))
+    assertThatThrownBy(
+            () -> configuration.documentStoresByPhysicalTenantId(registry, clientProvider()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -169,7 +172,8 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(() -> configuration.documentStoresByPhysicalTenantId(registry, null))
+    assertThatThrownBy(
+            () -> configuration.documentStoresByPhysicalTenantId(registry, clientProvider()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }
@@ -183,7 +187,8 @@ class OutboundConnectorRuntimeConfigurationTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    var result = configuration.documentFactoriesByPhysicalTenantId(registry, null, null);
+    var result =
+        configuration.documentFactoriesByPhysicalTenantId(registry, clientProvider(), null);
 
     assertThat(result).containsOnlyKeys("tenant-a", "tenant-b");
   }

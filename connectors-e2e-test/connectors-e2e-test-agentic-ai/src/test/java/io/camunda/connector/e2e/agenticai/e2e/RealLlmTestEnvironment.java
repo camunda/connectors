@@ -14,6 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.webhook;
+package io.camunda.connector.e2e.agenticai.e2e;
 
-public record FeelExpressionErrorResponse(String reason, String expression) {}
+import java.util.List;
+
+final class RealLlmTestEnvironment {
+
+  private RealLlmTestEnvironment() {}
+
+  static boolean hasNonBlankValues(List<String> variableNames) {
+    return variableNames.stream()
+        .map(System::getenv)
+        .allMatch(value -> value != null && !value.isBlank());
+  }
+
+  static String getOrDefault(String variableName, String defaultValue) {
+    final var value = System.getenv(variableName);
+    return value == null || value.isBlank() ? defaultValue : value;
+  }
+}

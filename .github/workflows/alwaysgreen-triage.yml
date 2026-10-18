@@ -61,47 +61,10 @@ on:
         required: false
         type: string
         default: ''
-      tooling_ref:
-        description: >
-          Ref carrying this workflow's local actions and scripts. A reusable workflow's
-          checkout takes the CALLER's ref, and a stable branch has none of them, so the
-          tooling ref has to be named rather than inherited.
-        required: false
-        type: string
-        default: ''
-  workflow_dispatch:
-    inputs:
-      run_id:
-        description: >
-          AlwaysGreen run to classify. Required here: a manual replay always targets a
-          specific past run. On the workflow_call path it is optional, and a caller that
-          is itself the failing run leaves it unset.
-        required: true
-      base_ref:
-        description: 'Branch the failing run was on'
-        required: true
-        default: main
-      dry_run:
-        description: 'Classify and report, but do not dispatch'
-        type: boolean
-        required: false
-        default: true
-      max_dispatches:
-        description: 'Cap on fix-agent dispatches'
-        required: false
-        default: '2'
-      tooling_ref:
-        description: 'Ref carrying the AlwaysGreen tooling (defaults to main)'
-        required: false
-        default: ''
-      run_attempt:
-        description: 'Attempt of run_id to classify (default: latest)'
-        required: false
-        default: ''
 
 permissions:
   contents: read
-  actions: write
+  actions: read
   pull-requests: read
 
 defaults:
@@ -110,17 +73,16 @@ defaults:
 
 env:
   TEST_OWNER: '@camunda/test-automation-team'
-  FIX_WORKFLOW: alwaysgreen-fix.yml
-  # The fix agent workflow only exists on the default branch; base_ref travels as an
-  # input so a stable-branch failure is still fixed against its own branch.
-  FIX_AGENT_REF: main
   ALERT_CHANNEL_ID: 'C0AK0AVKRL0'
 
 jobs:
   triage:
     name: Classify and dispatch
+    if: ${{ github.ref_protected }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      fix_matrix: ${{ steps.handoff.outputs.fix_matrix }}
     # The in-flight check is a read taken before the dispatch write, and nothing made
     # the two atomic. MERGE_QUEUE_HELM_TEST.yaml puts the commit SHA in its concurrency
     # group on protected branches, deliberately, so consecutive pushes run in parallel —
@@ -141,32 +103,10 @@ jobs:
       group: alwaysgreen-triage-${{ github.repository }}-${{ inputs.base_ref }}
       cancel-in-progress: false
     steps:
-      # Checkout first: the flag lives in a local composite action, and the flag
-      # decides whether anything else runs.
-      #
-      # The ref is explicit because a reusable workflow's checkout follows the CALLER.
-      # Called from stable/8.x that is a tree with no .github/actions/alwaysgreen-flag and
-      # no .github/scripts/alwaysgreen, and the job dies on the first of them. There is no
-      # context value for "the ref this workflow was loaded from": job_workflow_sha is
-      # absent at runtime and workflow_sha is the caller's.
-      #
-      # `main` when tooling_ref is not given, rather than github.ref_name. run_id used to
-      # tell the two entry paths apart -- required on triage's own workflow_dispatch,
-      # absent on workflow_call, so its presence meant github.ref_name really was this
-      # workflow's ref. It is now settable on workflow_call too (for the watcher in
-      # connectors-streak-detector.yml, a separate run judging a finished one), so it no
-      # longer distinguishes anything, and github.event_name cannot either: inside a
-      # called workflow it reports the RUN's event, so a manually dispatched pipeline
-      # calling triage is indistinguishable from triage being dispatched itself.
-      #
-      # Defaulting to the branch that actually carries the tooling is the safe direction:
-      # the cost is that a manual replay dispatched from a feature branch has to name
-      # tooling_ref to test that branch's tree, and the alternative is silently checking
-      # out a caller's tree that has none of it.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tooling_ref || 'main' }}
+          ref: main
           sparse-checkout: .github
           persist-credentials: false
 
@@ -229,8 +169,8 @@ jobs:
           set -euo pipefail
           # The fallback serves a workflow_call that omits run_id, where github.run_id is
           # the caller's own run — exactly the run that failed. It does not apply to
-          # workflow_dispatch, where run_id is required, nor to a workflow_call that
-          # names one, which is how the watcher targets a run it is not part of.
+          # a workflow_call that names one, which is how the watcher targets a run it
+          # is not part of.
           run_id="${INPUT_RUN_ID:-$CALLER_RUN_ID}"
           if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
             echo "::error::run_id must be numeric, got '$run_id'"
@@ -408,10 +348,6 @@ jobs:
             text=":information_source: *AlwaysGreen triage: nothing to dispatch* on \`${BASE_REF}\`"$'\n'"${reasons}"$'\n'"<${TARGET_RUN_URL}|Failing run ↗> · <${RUN_URL}|Triage run ↗>"
           fi
 
-          # Kept so the post-dispatch step can append agent links via chat.update
-          # without rebuilding the message and drifting from this wording.
-          printf '%s' "$text" > /tmp/slack-text.txt
-
           # Thread onto the post-failure-feedback message when the caller handed one
           # down, so one failure produces one Slack thread. Falling back to a new
           # top-level message keeps SaaS-only failures (whose stage posts no feedback)
@@ -444,144 +380,35 @@ jobs:
             echo "channel=$(jq -r --arg c "$channel" '.channel // $c' <<<"$resp")"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Dispatch fix agents
-        id: dispatch
-        # outcome, not just count: a failed discovery leaves count empty, and '' != '0'
-        # would otherwise dispatch with no plan file.
+      - name: Prepare fix jobs
+        id: handoff
         if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outcome == 'success' && steps.plan.outputs.count != '0' }}
-        continue-on-error: true
         env:
-          GH_TOKEN: ${{ steps.github-token.outputs.token }}
           SLACK_TS: ${{ steps.slack.outputs.ts }}
           SLACK_CHANNEL: ${{ steps.slack.outputs.channel }}
           TRIAGE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          # workflow_dispatch caps at 10 inputs and the list below is at exactly 10, so
-          # blame/slack/evidence travel as single JSON objects. The fix workflow unpacks
-          # them in its first step; anything new has to join one of those bundles.
-          blame_json=$(jq -c '{reviewer: (.blame.reviewer // ""),
-                               author:   (.blame.author // ""),
-                               pr:       (.blame.pr_number // "" | tostring)}' \
-                        /tmp/alwaysgreen-plan.json)
-          slack_json=$(jq -nc --arg ts "${SLACK_TS:-}" --arg channel "${SLACK_CHANNEL:-}" \
-                        '{ts: $ts, channel: $channel}')
-          failing_run_url=$(jq -r '.run_url' /tmp/alwaysgreen-plan.json)
-
-          # Only runs created from here on can be ours; earlier runs carry the same
-          # run-name and would otherwise be matched by mistake on a repeat replay.
-          started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          : > /tmp/agent-runs.tsv
-
-          jq -c '.dispatches[]' /tmp/alwaysgreen-plan.json | while read -r d; do
-            key=$(jq -r '.dispatch_key' <<<"$d")
-            echo "Dispatching ${key}"
-            gh workflow run "${FIX_WORKFLOW}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --ref "${FIX_AGENT_REF}" \
-              -f dispatch_key="${key}" \
-              -f base_ref="$(jq -r '.base_ref' <<<"$d")" \
-              -f surface="$(jq -r '.surface' <<<"$d")" \
-              -f test_specs="$(jq -c '.test_specs' <<<"$d")" \
-              -f fingerprints="$(jq -c '.fingerprints' <<<"$d")" \
-              -f evidence="$(jq -c '{run_url: .evidence_run_url, repo: .evidence_repo}' <<<"$d")" \
-              -f failing_run_url="${failing_run_url}" \
-              -f triage_run_url="${TRIAGE_RUN_URL}" \
-              -f blame="${blame_json}" \
-              -f slack="${slack_json}"
-
-            # `gh workflow run` returns no run id, so resolve it from the run-name,
-            # which carries the dispatch key verbatim. Poll: the run takes a moment
-            # to appear, and two dispatches would otherwise race on "newest run".
-            url=""
-            for _ in 1 2 3 4 5 6 7 8; do
-              sleep 3
-              url=$(gh run list --repo "${GITHUB_REPOSITORY}" \
-                      --workflow "${FIX_WORKFLOW}" --limit 20 \
-                      --json url,displayTitle,createdAt \
-                    | jq -r --arg t "AlwaysGreen fix [${key}]" --arg since "${started_at}" \
-                        'map(select(.displayTitle == $t and .createdAt >= $since))
-                         | (.[0].url // "")')
-              [ -n "$url" ] && break
-            done
-            if [ -n "$url" ]; then
-              printf '%s\t%s\n' "${key}" "${url}" >> /tmp/agent-runs.tsv
-            else
-              echo "::warning::Dispatched ${key} but could not resolve its run URL."
-            fi
-          done
-
-          # Whether any agent actually started, as a step output rather than only as a
-          # file, so the marker step below can be gated on it. This step is
-          # continue-on-error, so neither its own conclusion nor the job's says anything
-          # about whether a dispatch landed.
-          if [ -s /tmp/agent-runs.tsv ]; then
-            echo "started=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "started=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # The Slack summary is posted before dispatch, because the fix agent needs its
-      # ts to reply in-thread. So the agent links can only be added afterwards.
-      - name: Add agent links to Slack
-        # hashFiles() cannot see outside GITHUB_WORKSPACE, so the file checks live in
-        # the script rather than in this condition.
-        if: ${{ always() && steps.slack.outputs.self_ts != '' }}
-        continue-on-error: true
-        env:
-          SLACK_TOKEN: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          SLACK_TS: ${{ steps.slack.outputs.self_ts }}
-          SLACK_CHANNEL: ${{ steps.slack.outputs.channel }}
-          DISPATCH_OUTCOME: ${{ steps.dispatch.outcome }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          [ -s /tmp/slack-text.txt ] || { echo "No posted message to update."; exit 0; }
-
-          # The message already claims agents were dispatched — it has to be posted
-          # first, because the agent needs its ts to reply in-thread. So if the dispatch
-          # then failed, or produced no run at all, the thread is left asserting an
-          # agent that does not exist and nobody is told. Correct it here.
-          if [ "${DISPATCH_OUTCOME}" = "failure" ] || \
-             { [ "${DISPATCH_OUTCOME}" = "success" ] && [ ! -s /tmp/agent-runs.tsv ]; }; then
-            echo "::error::fix-agent dispatch did not start any run; the Slack thread has been corrected"
-            text="$(cat /tmp/slack-text.txt)"$'\n'":x: *Dispatch failed* — no fix agent was started, so the line above is not accurate. <${RUN_URL}|Triage run ↗>"
-          else
-            [ -s /tmp/agent-runs.tsv ] || { echo "No agent runs to link."; exit 0; }
-            links=$(awk -F'\t' '{printf "%s<%s|%s ↗>", sep, $2, $1; sep=" · "}' /tmp/agent-runs.tsv)
-            text="$(cat /tmp/slack-text.txt)"$'\n'"Agents: ${links}"
-          fi
-
-          # A threaded reply is updated by its own ts; chat.update needs no thread_ts.
-          payload=$(jq -nc --arg channel "${SLACK_CHANNEL}" --arg ts "${SLACK_TS}" --arg text "$text" \
-            '{channel: $channel, ts: $ts, text: $text}')
-          resp=$(curl -sS -X POST https://slack.com/api/chat.update \
-            -H "Authorization: Bearer ${SLACK_TOKEN}" \
-            -H 'Content-Type: application/json; charset=utf-8' \
-            -d "$payload" || echo '{}')
-          [ "$(jq -r '.ok // false' <<<"$resp")" = "true" ] \
-            || echo "::warning::Slack update failed: $(jq -r '.error // "unknown"' <<<"$resp")"
-
-      # A marker step, not a message: `Dispatch fix agents` is continue-on-error so a
-      # failed `gh workflow run` leaves this job successful, and a step's own conclusion
-      # is masked by continue-on-error too. `skipped` IS reported faithfully, so the
-      # watcher in connectors-streak-detector.yml reads this step's skipped state to tell
-      # "an agent was started" from "the dispatch produced nothing" -- without it, a
-      # dispatch that started no agent counted as a completed classification and
-      # suppressed the retry.
-      #
-      # Both shapes: the dispatch step failing outright, and it succeeding while
-      # resolving no agent run (the file the links step reads stays empty).
-      - name: Flag dispatch failure
-        if: ${{ steps.mode.outputs.dispatch == 'true' && steps.plan.outputs.count != '0' && (steps.dispatch.outcome == 'failure' || steps.dispatch.outputs.started != 'true') }}
-        run: |
-          echo "::warning::AlwaysGreen dispatch started no fix agent for this run."
-          {
-            echo "## AlwaysGreen Triage"
-            echo ""
-            echo ":warning: The dispatch produced no fix agent run. The failure stays"
-            echo "unclaimed and is re-triaged on the next run of this pipeline."
-          } >> "$GITHUB_STEP_SUMMARY"
+          fix_matrix=$(jq -c \
+            --arg triage_run_url "$TRIAGE_RUN_URL" \
+            --arg slack_ts "${SLACK_TS:-}" \
+            --arg slack_channel "${SLACK_CHANNEL:-}" '
+              . as $plan |
+              [.dispatches[] | . + {
+                evidence: {
+                  run_url: (.evidence_run_url // ""),
+                  repo: (.evidence_repo // "")
+                },
+                failing_run_url: $plan.run_url,
+                triage_run_url: $triage_run_url,
+                blame: {
+                  reviewer: ($plan.blame.reviewer // ""),
+                  author: ($plan.blame.author // ""),
+                  pr: (($plan.blame.pr_number // "") | tostring)
+                },
+                slack: {ts: $slack_ts, channel: $slack_channel}
+              }]' /tmp/alwaysgreen-plan.json)
+          echo "fix_matrix=${fix_matrix}" >> "$GITHUB_OUTPUT"
 
       - name: Flag discovery failure
         if: ${{ steps.mode.outputs.active == 'true' && steps.plan.outcome != 'success' }}
@@ -612,3 +439,29 @@ jobs:
           secret_vault_address: ${{ secrets.VAULT_ADDR }}
           secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
           secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
+
+  fix:
+    name: Run credential-isolated fix agent
+    needs: triage
+    if: ${{ needs.triage.outputs.fix_matrix != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        fix: ${{ fromJSON(needs.triage.outputs.fix_matrix) }}
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    uses: ./.github/workflows/alwaysgreen-fix.yml
+    secrets: inherit
+    with:
+      dispatch_key: ${{ matrix.fix.dispatch_key }}
+      base_ref: ${{ matrix.fix.base_ref }}
+      surface: ${{ matrix.fix.surface }}
+      test_specs: ${{ toJSON(matrix.fix.test_specs) }}
+      fingerprints: ${{ toJSON(matrix.fix.fingerprints) }}
+      evidence: ${{ toJSON(matrix.fix.evidence) }}
+      failing_run_url: ${{ matrix.fix.failing_run_url }}
+      triage_run_url: ${{ matrix.fix.triage_run_url }}
+      blame: ${{ toJSON(matrix.fix.blame) }}
+      slack: ${{ toJSON(matrix.fix.slack) }}

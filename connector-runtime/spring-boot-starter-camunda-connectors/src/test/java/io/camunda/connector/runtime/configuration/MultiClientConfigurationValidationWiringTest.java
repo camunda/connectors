@@ -44,8 +44,8 @@ import org.springframework.context.ApplicationContext;
       "camunda.clients.engine-a.mode=self-managed",
       "camunda.clients.engine-a.grpc-address=http://engine-a.internal:26500",
       "camunda.clients.engine-a.physical-tenant-id=tenanta",
-      // marks engine-a as @Primary so the pre-existing single-CamundaClient autowiring points
-      // elsewhere still resolve unambiguously with two clients configured
+      // covers the designated-primary path; the no-primary case is covered by
+      // MultiClientPhysicalTenantWiringTest / MultiClientOutboundPhysicalTenantWiringTest
       "camunda.clients.engine-a.primary=true",
       "camunda.clients.engine-b.mode=self-managed",
       "camunda.clients.engine-b.grpc-address=http://engine-b.internal:26500",

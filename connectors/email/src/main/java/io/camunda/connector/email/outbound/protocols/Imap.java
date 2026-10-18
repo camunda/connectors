@@ -12,6 +12,7 @@ import io.camunda.connector.email.config.Configuration;
 import io.camunda.connector.email.config.ImapConfig;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -37,7 +38,16 @@ public record Imap(
         @Valid
         @NotNull
         ImapAction imapAction,
-    @NestedProperties(addNestedPath = false) @Valid ImapConfig imapConfig)
+    // Hidden and un-cascaded once an email account credential is bound: the account then
+    // supplies these coordinates (EmailRequest#getProtocolConfiguration), and validating the
+    // losing inline fields would reject the blank values Modeler still emits for them.
+    @NestedProperties(
+            addNestedPath = false,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "emailAccountConfiguration",
+                    isEmpty = TemplateProperty.NullableBoolean.TRUE))
+        ImapConfig imapConfig)
     implements Protocol {
   @Override
   public Action getProtocolAction() {

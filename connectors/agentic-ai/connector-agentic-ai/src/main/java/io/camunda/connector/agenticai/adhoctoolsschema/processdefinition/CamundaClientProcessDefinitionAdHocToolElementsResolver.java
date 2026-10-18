@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +55,7 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
 
   @Override
   public List<AdHocToolElement> resolveToolElements(
-      Long processDefinitionKey, String adHocSubProcessId) {
+      @Nullable String physicalTenantId, Long processDefinitionKey, String adHocSubProcessId) {
     if (processDefinitionKey == null || processDefinitionKey <= 0) {
       throw new IllegalArgumentException("Process definition key must not be null or negative");
     }
@@ -69,7 +70,7 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
         processDefinitionKey);
 
     final String processDefinitionXml =
-        processDefinitionClient.getProcessDefinitionXml(processDefinitionKey);
+        processDefinitionClient.getProcessDefinitionXml(physicalTenantId, processDefinitionKey);
     final BpmnModelInstance modelInstance =
         Bpmn.readModelFromStream(
             new ByteArrayInputStream(processDefinitionXml.getBytes(StandardCharsets.UTF_8)));

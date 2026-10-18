@@ -77,7 +77,8 @@ class AgentTaskExecutionContextTest {
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
-    when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+    when(toolElementsResolver.resolveToolElements(
+            null, PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
         .thenReturn(AD_HOC_TOOL_ELEMENTS);
 
     assertThat(executionContext.toolElements()).containsExactlyElementsOf(AD_HOC_TOOL_ELEMENTS);
@@ -89,7 +90,8 @@ class AgentTaskExecutionContextTest {
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
-    when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
+    when(toolElementsResolver.resolveToolElements(
+            null, PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
         .thenReturn(AD_HOC_TOOL_ELEMENTS);
 
     final var toolElements1 = executionContext.toolElements();
@@ -99,7 +101,7 @@ class AgentTaskExecutionContextTest {
         .containsExactlyElementsOf(AD_HOC_TOOL_ELEMENTS);
 
     verify(toolElementsResolver, times(1))
-        .resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID);
+        .resolveToolElements(null, PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID);
   }
 
   static Stream<ToolsConfiguration> missingToolCallResults() {

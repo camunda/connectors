@@ -20,8 +20,10 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.inbound.PhysicalTenantIds;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,12 +41,15 @@ public class ProcessInstanceClientConfiguration {
   @Bean
   public Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
     var searchQueryClientsByPhysicalTenantId =
         PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit);
+            registry,
+            PhysicalTenantClients.legacyClient(camundaClientProvider),
+            legacySearchQueryClient,
+            limit);
     return searchQueryClientsByPhysicalTenantId.entrySet().stream()
         .collect(
             Collectors.toMap(Map.Entry::getKey, e -> new ProcessInstanceClientImpl(e.getValue())));

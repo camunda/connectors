@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
@@ -18,6 +21,7 @@ import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,8 +49,47 @@ class ProcessDefinitionClientTest {
 
   @BeforeEach
   void setUp() {
-    client = new ProcessDefinitionClient(camundaClient, RETRIES_CONFIGURATION);
+    client = new ProcessDefinitionClient(singleTenant(camundaClient), RETRIES_CONFIGURATION);
     httpException = new ClientHttpException(404, "Not Found");
+  }
+
+  @Test
+  void readsTheDefinitionThroughTheRequestedPhysicalTenantsClient() {
+    final var tenantAClient = mock(CamundaClient.class);
+    final var tenantBClient = mock(CamundaClient.class);
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.forPhysicalTenant("tenantb")).thenReturn(tenantBClient);
+    when(tenantBClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY))
+        .thenReturn(xmlRequest);
+    when(xmlRequest.send()).thenReturn(camundaFuture);
+    when(camundaFuture.join()).thenReturn(PROCESS_DEFINITION_XML);
+
+    final var result =
+        new ProcessDefinitionClient(selector, RETRIES_CONFIGURATION)
+            .getProcessDefinitionXml("tenantb", PROCESS_DEFINITION_KEY);
+
+    assertThat(result).isEqualTo(PROCESS_DEFINITION_XML);
+    verifyNoInteractions(tenantAClient);
+  }
+
+  /**
+   * The classifier used here retries every exception, so an unroutable physical tenant resolved
+   * inside the retry would be re-attempted through the whole backoff even though no attempt can
+   * change the tenant mapping.
+   */
+  @Test
+  void failsImmediatelyWithoutRetryingWhenThePhysicalTenantCannotBeRouted() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.forPhysicalTenant("tenantc"))
+        .thenThrow(new IllegalStateException("No CamundaClient configured for physical tenant"));
+
+    assertThatThrownBy(
+            () ->
+                new ProcessDefinitionClient(selector, RETRIES_CONFIGURATION)
+                    .getProcessDefinitionXml("tenantc", PROCESS_DEFINITION_KEY))
+        .isInstanceOf(IllegalStateException.class);
+
+    verify(selector, times(1)).forPhysicalTenant("tenantc");
   }
 
   @Test
@@ -56,7 +99,7 @@ class ProcessDefinitionClientTest {
     when(xmlRequest.send()).thenReturn(camundaFuture);
     when(camundaFuture.join()).thenReturn(PROCESS_DEFINITION_XML);
 
-    final var result = client.getProcessDefinitionXml(PROCESS_DEFINITION_KEY);
+    final var result = client.getProcessDefinitionXml(null, PROCESS_DEFINITION_KEY);
     assertThat(result).isEqualTo(PROCESS_DEFINITION_XML);
 
     verify(camundaClient, times(1)).newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY);
@@ -69,7 +112,7 @@ class ProcessDefinitionClientTest {
     when(xmlRequest.send()).thenReturn(camundaFuture);
     when(camundaFuture.join()).thenThrow(httpException).thenReturn(PROCESS_DEFINITION_XML);
 
-    final var result = client.getProcessDefinitionXml(PROCESS_DEFINITION_KEY);
+    final var result = client.getProcessDefinitionXml(null, PROCESS_DEFINITION_KEY);
     assertThat(result).isEqualTo(PROCESS_DEFINITION_XML);
 
     verify(camundaClient, times(2)).newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY);
@@ -82,7 +125,7 @@ class ProcessDefinitionClientTest {
     when(xmlRequest.send()).thenReturn(camundaFuture);
     when(camundaFuture.join()).thenThrow(httpException);
 
-    assertThatThrownBy(() -> client.getProcessDefinitionXml(PROCESS_DEFINITION_KEY))
+    assertThatThrownBy(() -> client.getProcessDefinitionXml(null, PROCESS_DEFINITION_KEY))
         .isInstanceOf(ConnectorException.class)
         .hasMessage(
             "Failed to retrieve process definition XML with key 123456 after 3 attempt(s): Failed with code 404: 'Not Found'")
@@ -95,7 +138,7 @@ class ProcessDefinitionClientTest {
   void shouldNotRetryWhenNotConfigured() {
     final var clientWithoutRetries =
         new ProcessDefinitionClient(
-            camundaClient,
+            singleTenant(camundaClient),
             new AgenticAiConnectorsConfigurationProperties.RetriesProperties(
                 0, Duration.ofMillis(100)));
 
@@ -104,7 +147,8 @@ class ProcessDefinitionClientTest {
     when(xmlRequest.send()).thenReturn(camundaFuture);
     when(camundaFuture.join()).thenThrow(httpException);
 
-    assertThatThrownBy(() -> clientWithoutRetries.getProcessDefinitionXml(PROCESS_DEFINITION_KEY))
+    assertThatThrownBy(
+            () -> clientWithoutRetries.getProcessDefinitionXml(null, PROCESS_DEFINITION_KEY))
         .isInstanceOf(ConnectorException.class)
         .hasMessage(
             "Failed to retrieve process definition XML with key 123456 after 1 attempt(s): Failed with code 404: 'Not Found'")
@@ -122,7 +166,7 @@ class ProcessDefinitionClientTest {
 
     Thread.currentThread().interrupt();
 
-    assertThatThrownBy(() -> client.getProcessDefinitionXml(PROCESS_DEFINITION_KEY))
+    assertThatThrownBy(() -> client.getProcessDefinitionXml(null, PROCESS_DEFINITION_KEY))
         .isInstanceOf(ConnectorException.class)
         .hasMessage("Interrupted while retrying to fetch process definition XML with key 123456.")
         .hasCauseInstanceOf(InterruptedException.class);
@@ -139,7 +183,7 @@ class ProcessDefinitionClientTest {
 
     long startTime = System.currentTimeMillis();
 
-    assertThatThrownBy(() -> client.getProcessDefinitionXml(1L))
+    assertThatThrownBy(() -> client.getProcessDefinitionXml(null, 1L))
         .isInstanceOf(ConnectorException.class);
 
     long elapsedTime = System.currentTimeMillis() - startTime;

@@ -42,7 +42,7 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
-import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
+import io.camunda.connector.runtime.inbound.webhook.GenericErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -433,13 +433,16 @@ class WebhookControllerTestZeebeTest {
 
     deployProcess("processA");
 
-    ResponseEntity<FeelExpressionErrorResponse> responseEntity =
-        (ResponseEntity<FeelExpressionErrorResponse>)
+    ResponseEntity<GenericErrorResponse> responseEntity =
+        (ResponseEntity<GenericErrorResponse>)
             controller.inbound("myPath", new HashMap<>(), new MockHttpServletRequest());
 
+    // The FEEL failure reason/expression must not reach an unauthenticated (or any) caller, nor
+    // the application log: they may echo secrets resolved at bind time, and only a static warning
+    // is logged (see InboundWebhookRestController#buildErrorResponse).
     assertEquals(422, responseEntity.getStatusCode().value());
-    assertEquals("reason", responseEntity.getBody().reason());
-    assertEquals("expression", responseEntity.getBody().expression());
+    assertNotNull(responseEntity.getBody());
+    assertEquals("Failed to evaluate FEEL expression", responseEntity.getBody().reason());
   }
 
   interface MyVerifiableWebhook extends WebhookConnectorExecutable {}

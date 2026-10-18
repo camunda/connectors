@@ -1,0 +1,45 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.e2e;
+
+import java.util.Locale;
+
+enum RealLlmProviderGroup {
+  OPENAI,
+  VERTEX,
+  BEDROCK,
+  ANTHROPIC,
+  LOCAL;
+
+  boolean isSelected() {
+    return isSelected(System.getenv("REAL_LLM_PROVIDER_GROUP"));
+  }
+
+  boolean isSelected(String configuredGroup) {
+    return configuredGroup == null
+        || configuredGroup.isBlank()
+        || this == valueOf(configuredGroup.trim().toUpperCase(Locale.ROOT));
+  }
+
+  static boolean isShardedRun() {
+    return isShardedRun(System.getenv("REAL_LLM_PROVIDER_GROUP"));
+  }
+
+  static boolean isShardedRun(String configuredGroup) {
+    return configuredGroup != null && !configuredGroup.isBlank();
+  }
+}

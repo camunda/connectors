@@ -98,7 +98,7 @@ class GeminiChatModelConfigurationTest {
   void googleGeminiApiRedactsApiKeyInToString() {
     final var backend =
         new GeminiApiBackend(
-            new GeminiApiBackend.GoogleGeminiApi("gm-super-secret", "https://example.com"));
+            new GeminiApiBackend.GoogleGeminiApi(null, "gm-super-secret", "https://example.com"));
 
     final String toString = backend.toString();
     assertThat(toString).doesNotContain("gm-super-secret");
@@ -110,7 +110,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("  ", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "  ", null)),
                 new GeminiModel("gemini-3-pro-preview", null),
                 null));
 
@@ -120,9 +120,100 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("Gemini API key is required from the credential or element template");
             });
+  }
+
+  @Test
+  void geminiApiBackendRejectsMissingApiKeyAndCredential() {
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, null, null)),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("Gemini API key is required from the credential or element template");
+            });
+  }
+
+  @Test
+  void geminiApiBackendResolvesApiKeyFromCredentialWithNoViolations() {
+    final var credential = new GoogleGeminiApiCredential("gm-from-credential");
+    final var googleGeminiApi = new GeminiApiBackend.GoogleGeminiApi(credential, null, null);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(googleGeminiApi),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+  }
+
+  @Test
+  void geminiApiBackendCredentialTakesPrecedenceOverInlineApiKey() {
+    final var credential = new GoogleGeminiApiCredential("gm-from-credential");
+    final var googleGeminiApi = new GeminiApiBackend.GoogleGeminiApi(credential, "gm-inline", null);
+    final var config =
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(googleGeminiApi),
+                new GeminiModel("gemini-3-pro-preview", null),
+                null));
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+  }
+
+  @Test
+  void googleGeminiApiCredentialRedactsSecretInToString() {
+    assertThat(new GoogleGeminiApiCredential("gm-secret").toString())
+        .doesNotContain("gm-secret")
+        .isEqualTo("GoogleGeminiApiCredential{apiKey=[REDACTED]}");
+  }
+
+  @Test
+  void deserialisesGoogleGeminiApiCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-gemini-api",
+              "googleGeminiApi": {
+                "googleGeminiApiCredential": { "apiKey": "gm-from-credential" }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+    assertThat(validator.validate(parsed)).isEmpty();
+
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    final GeminiApiBackend.GoogleGeminiApi googleGeminiApi =
+        ((GeminiApiBackend) gemini.googleGemini().backend()).googleGeminiApi();
+    assertThat(googleGeminiApi.googleGeminiApiCredential())
+        .isEqualTo(new GoogleGeminiApiCredential("gm-from-credential"));
+    assertThat(googleGeminiApi.effectiveApiKey()).isEqualTo("gm-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -132,7 +223,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -155,7 +246,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -169,7 +260,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -191,7 +282,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -205,7 +296,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -226,7 +317,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", parameters),
                 null));
 
@@ -238,7 +329,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("gemini-3-pro-preview", null),
                 null));
 
@@ -250,7 +341,7 @@ class GeminiChatModelConfigurationTest {
     final var config =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi("gm-123", null)),
+                new GeminiApiBackend(new GeminiApiBackend.GoogleGeminiApi(null, "gm-123", null)),
                 new GeminiModel("  ", null),
                 null));
 
@@ -303,7 +394,8 @@ class GeminiChatModelConfigurationTest {
     assertThat(vertexAi.region()).isEqualTo("us-central1");
     assertThat(vertexAi.endpoint()).isNull();
     assertThat(vertexAi.authentication())
-        .isEqualTo(new ServiceAccountCredentialsAuthentication("{\"type\":\"service_account\"}"));
+        .isEqualTo(
+            new ServiceAccountCredentialsAuthentication(null, "{\"type\":\"service_account\"}"));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
@@ -346,17 +438,21 @@ class GeminiChatModelConfigurationTest {
 
   @Test
   void serviceAccountCredentialsAuthenticationRedactsJsonKeyInToString() {
-    final var authentication = new ServiceAccountCredentialsAuthentication("super-secret-key");
+    final var authentication =
+        new ServiceAccountCredentialsAuthentication(null, "super-secret-key");
 
     final String toString = authentication.toString();
 
     assertThat(toString).doesNotContain("super-secret-key");
-    assertThat(toString).isEqualTo("ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}");
+    assertThat(toString)
+        .isEqualTo(
+            "ServiceAccountCredentialsAuthentication{googleVertexAiCredential=null,"
+                + " jsonKey=[REDACTED]}");
   }
 
   @Test
   void vertexAiBackendRejectsBlankProjectIdAndRegion() {
-    final var authentication = new ServiceAccountCredentialsAuthentication("key-json");
+    final var authentication = new ServiceAccountCredentialsAuthentication(null, "key-json");
     final var backendWithBlanks =
         new GeminiVertexAiBackend(new GoogleVertexAi("  ", "  ", null, authentication));
 
@@ -384,7 +480,7 @@ class GeminiChatModelConfigurationTest {
   @Test
   void vertexAiServiceAccountCredentialsRejectsBlankJsonKey() {
     final var config =
-        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("  "));
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication(null, "  "));
 
     final var violations = validator.validate(config);
 
@@ -392,9 +488,97 @@ class GeminiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Vertex AI service account JSON key is required from the credential or"
+                          + " element template");
             });
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsRejectsMissingJsonKeyAndCredential() {
+    final var config =
+        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication(null, null));
+
+    final var violations = validator.validate(config);
+
+    assertThat(violations)
+        .anySatisfy(
+            v -> {
+              assertThat(v.getPropertyPath().toString())
+                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKeyPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo(
+                      "Vertex AI service account JSON key is required from the credential or"
+                          + " element template");
+            });
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsResolvesJsonKeyFromCredentialWithNoViolations() {
+    final var credential = new GoogleVertexAiCredential("key-from-credential");
+    final var authentication = new ServiceAccountCredentialsAuthentication(credential, null);
+    final var config = vertexAiChatModelConfiguration(authentication);
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+  }
+
+  @Test
+  void vertexAiServiceAccountCredentialsCredentialTakesPrecedenceOverInlineJsonKey() {
+    final var credential = new GoogleVertexAiCredential("key-from-credential");
+    final var authentication =
+        new ServiceAccountCredentialsAuthentication(credential, "key-inline");
+    final var config = vertexAiChatModelConfiguration(authentication);
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+  }
+
+  @Test
+  void googleVertexAiCredentialRedactsSecretInToString() {
+    assertThat(new GoogleVertexAiCredential("key-secret").toString())
+        .doesNotContain("key-secret")
+        .isEqualTo("GoogleVertexAiCredential{jsonKey=[REDACTED]}");
+  }
+
+  @Test
+  void deserialisesGoogleVertexAiCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "google-gemini",
+          "googleGemini": {
+            "backend": {
+              "type": "google-vertex-ai",
+              "googleVertexAi": {
+                "projectId": "my-project",
+                "region": "us-central1",
+                "authentication": {
+                  "type": "serviceAccountCredentials",
+                  "googleVertexAiCredential": { "jsonKey": "key-from-credential" }
+                }
+              }
+            },
+            "model": { "model": "gemini-3-pro-preview" }
+          }
+        }
+        """;
+
+    final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
+    assertThat(validator.validate(parsed)).isEmpty();
+
+    final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
+    final GoogleVertexAi vertexAi =
+        ((GeminiVertexAiBackend) gemini.googleGemini().backend()).googleVertexAi();
+    final var authentication = (ServiceAccountCredentialsAuthentication) vertexAi.authentication();
+    assertThat(authentication.googleVertexAiCredential())
+        .isEqualTo(new GoogleVertexAiCredential("key-from-credential"));
+    assertThat(authentication.effectiveJsonKey()).isEqualTo("key-from-credential");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
   }
 
   @Test
@@ -421,7 +605,8 @@ class GeminiChatModelConfigurationTest {
   @Test
   void validVertexAiConfigurationHasNoViolations() {
     final var config =
-        vertexAiChatModelConfiguration(new ServiceAccountCredentialsAuthentication("key-json"));
+        vertexAiChatModelConfiguration(
+            new ServiceAccountCredentialsAuthentication(null, "key-json"));
 
     assertThat(validator.validate(config)).isEmpty();
   }

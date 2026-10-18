@@ -473,6 +473,7 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 - On store: creates a **new document** each time (immutable documents), adds the previous reference to `previousDocuments`
 - Supports configurable TTL and custom properties
 - Supports transparent migration from `InProcessConversationContext`: if the context is in-process, it reads messages directly (no document to load)
+- Documents are created, read and deleted on the cluster serving the job's physical tenant. While a single tenant is served, the injected `documentFactory`/`documentStore` beans are used as they are, so overriding them keeps working
 
 **AwsAgentCoreConversationStore** (`type = "aws-agentcore"`):
 - Stores messages as events in AWS Bedrock AgentCore Memory
@@ -623,6 +624,12 @@ The `ProcessDefinitionAdHocToolElementsResolver` fetches the BPMN XML from Camun
 2. `CamundaClientProcessDefinitionAdHocToolElementsResolver` parses the XML to find the ad-hoc sub-process by element ID
 3. Extracts element metadata similar to the Zeebe-provided `adHocSubProcessElements`
 4. Results are cached by `CachingProcessDefinitionAdHocToolElementsResolver` (Caffeine cache, default: max 100 entries, 10min TTL, configurable via `camunda.connector.agenticai.tools.process-definition.cache.*`)
+
+Every step is scoped to the job's physical tenant, which the resolver takes as its first argument.
+The definition is read through that tenant's own `CamundaClient` (via `PhysicalTenantClientSelector`)
+and the cache is keyed by it alongside the definition key: keys are only unique within a single
+orchestration cluster, so a runtime serving several of them would otherwise serve one tenant's tool
+elements to another.
 
 ### FEEL Parameter Extraction
 
@@ -1728,20 +1735,22 @@ connector behavior, element template properties, or data model shapes, update th
 ## 23. Agent Instance Integration
 
 The agent reports its lifecycle to the engine's **agent instance** API via `AgentInstanceClient`
-(`CamundaAgentInstanceClient`). Update calls silently skip when the `agentInstanceKey` is `null`
+(`CamundaAgentInstanceClient`). Every call goes to the cluster serving the job's physical tenant,
+resolved per invocation from the `AgentExecutionContext`'s `JobContext` through
+`PhysicalTenantClientSelector`. Update calls silently skip when the `agentInstanceKey` is `null`
 (agents that pre-date the feature); create has no such key to check, since it produces one. All calls
 retry transient failures via `CamundaApiRetry`. A `404` from `create` is treated as **permanent** (not
 retried): its write endpoint is `x-eventually-consistent: false` and validated against primary
 processing state, with Zeebe's key-based partition routing guaranteeing the create is visible to the
 same partition before the key is ever returned to the caller. A `404` from any `update()` call
 (`applyTurnStart`/`applyTurnCompletion`/`applyToolCallResults`/`applyToolDiscoveryStart` — each fenced
-via `jobKey`/`jobLease` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
+via `jobKey`/`jobLeaseToken` on a `history(...)` batch, empty for `applyToolDiscoveryStart`) is instead
 treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
 Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and
-`jobLease` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
+`jobLeaseToken` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
 list — never a separate create-history command:
 
 - **`applyTurnStart`** (`BaseAgentRequestHandler.proceed`, before the LLM call): moves the agent

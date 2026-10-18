@@ -691,12 +691,13 @@ jobs:
     name: AlwaysGreen triage and fix dispatch
     needs: scan-run
     if: >-
+      github.ref_protected &&
       needs.scan-run.outputs.any_failed == 'true' &&
       needs.scan-run.outputs.already_triaged != 'true' &&
       needs.scan-run.outputs.base_ref_supported == 'true'
     permissions:
       contents: read
-      actions: write
+      actions: read
       pull-requests: read
     uses: ./.github/workflows/alwaysgreen-triage.yml
     secrets: inherit
@@ -706,14 +707,8 @@ jobs:
       # saw rather than whatever attempt is newest when it runs. Empty on a replay.
       run_attempt: ${{ github.event.workflow_run.run_attempt }}
       base_ref: ${{ needs.scan-run.outputs.base_ref }}
-      # This workflow's own ref, not a literal `main`. On a workflow_run event that IS
-      # the default branch, so production behaviour is unchanged; on a manual replay
-      # from a branch it makes the replay test that branch's tooling rather than
-      # silently classifying with main's.
-      tooling_ref: ${{ github.ref_name }}
-      # A replay defaults to classifying without dispatching, so exercising this
-      # workflow cannot open a fix PR by accident. Absent on workflow_run, where the
-      # Vault flag alone decides.
-      dry_run: ${{ inputs.dry_run || false }}
+      # A manual replay is always classification-only. Production workflow_run events
+      # remain controlled by the Vault feature flag.
+      dry_run: ${{ github.event_name == 'workflow_dispatch' || inputs.dry_run || false }}
       parent_slack_ts: ${{ needs.scan-run.outputs.parent_slack_ts }}
       parent_slack_channel: ${{ needs.scan-run.outputs.parent_slack_channel }}

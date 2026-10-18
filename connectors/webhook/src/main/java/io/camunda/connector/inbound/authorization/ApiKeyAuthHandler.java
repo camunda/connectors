@@ -49,8 +49,12 @@ final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
       }
       return Success.INSTANCE;
     } catch (Exception e) {
-      LOG.info("Error while extracting API key value", e);
-      return new InvalidCredentials(e.getMessage());
+      // apiKeyLocator is a FEEL expression, and inbound binding resolves secrets before
+      // compiling it, so its failure message (a FeelEngineWrapperException in particular) may
+      // contain a resolved secret. Never log or return it raw — it can reach an unauthenticated
+      // caller via the WebhookSecurityException this result is converted into.
+      LOG.info("Error while extracting API key value: {}", e.getClass().getSimpleName());
+      return new InvalidCredentials("Failed to extract API key value");
     }
   }
 

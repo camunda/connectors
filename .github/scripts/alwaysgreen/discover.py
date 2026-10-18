@@ -34,7 +34,9 @@ import plan as planning
 
 REPO = os.environ.get("ALWAYSGREEN_REPO", "camunda/connectors")
 E2E_REPO = os.environ.get("ALWAYSGREEN_E2E_REPO", "camunda/c8-cross-component-e2e-tests")
-FIX_WORKFLOW = os.environ.get("ALWAYSGREEN_FIX_WORKFLOW", "alwaysgreen-fix.yml")
+FIX_WORKFLOW = os.environ.get(
+    "ALWAYSGREEN_FIX_WORKFLOW", "connectors-streak-detector.yml"
+)
 FIX_LABEL = os.environ.get("ALWAYSGREEN_FIX_LABEL", "alwaysgreen-fix")
 #: Namespaces dispatch keys. camunda/camunda runs its own AlwaysGreen agent, both open
 #: fix PRs into the same e2e repository, and both call their branch `main` — so without
@@ -475,11 +477,11 @@ def dedupe_inputs() -> tuple[set[str], set[str], set[str], bool]:
 
 
 def inflight_keys() -> tuple[set[str], bool]:
-    """Dispatch keys of in-progress fix-agent runs.
+    """Whether another watcher run still has fix-agent work in progress.
 
-    Returns (keys, ok). On failure `ok` is False and the caller suppresses rather
-    than dispatching: a duplicate PR is worse than a delay, and the next failing
-    run retries in ~30-40 minutes anyway.
+    Fix agents are reusable jobs in the watcher run, so there is no independently
+    dispatchable run whose name carries one key. Conservatively serialize watcher
+    runs: a running predecessor suppresses all candidates until it finishes.
     """
     runs, err = gh_json_ex(
         [
@@ -495,12 +497,17 @@ def inflight_keys() -> tuple[set[str], bool]:
             log("fix workflow has no runs yet; treating as nothing in flight")
             return set(), True
         return set(), False
-    keys = {
-        (r.get("name") or "").split("[", 1)[-1].split("]", 1)[0]
-        for r in runs
-        if r.get("status") in {"queued", "in_progress"} and "[" in (r.get("name") or "")
-    }
-    return {k for k in keys if k}, True
+    try:
+        current_run_id = int(os.environ["GITHUB_RUN_ID"])
+        active_run_ids = {
+            int(r["databaseId"])
+            for r in runs
+            if r.get("status") in {"queued", "in_progress"}
+        }
+    except (KeyError, TypeError, ValueError):
+        return set(), False
+    predecessor_running = any(run_id < current_run_id for run_id in active_run_ids)
+    return ({planning.ALL_INFLIGHT} if predecessor_running else set()), True
 
 
 def paths_claimed_by_open_prs(paths: set[str]) -> tuple[dict[str, int], bool]:

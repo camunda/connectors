@@ -151,7 +151,7 @@ public class AgentSubProcessMemoryStorageTests extends BaseAgentSubProcessTest {
               camundaClient
                   .newFailCommand(jobKey.get())
                   .retries(0)
-                  .withLeaseToken(leaseToken.get())
+                  .withJobLeaseToken(leaseToken.get())
                   .errorMessage("Deliberately failed for e2e test")
                   .send()
                   .join();

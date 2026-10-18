@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
@@ -199,6 +200,35 @@ public class JWTAuthHandlerTest {
     var verificationResult = handler.checkAuthorization(payload);
 
     // then
+    assertThat(verificationResult).isInstanceOf(Forbidden.class);
+  }
+
+  @Test
+  public void jwtCheckPermissionExpressionEvaluationFailure_doesNotChangeBehavior() {
+    // Regression test for a PR review finding on
+    // https://github.com/camunda/security-testing-findings/issues/265: permissionsExpression is
+    // a FEEL expression, and inbound binding resolves secrets before compiling it, so a failure
+    // evaluating it must not log the raw reason/expression — JWTAuthHandler's own logger was an
+    // independent leak channel from the (already-generic) Forbidden result it returns.
+    //
+    // This module has no logback dependency (only slf4j-api), so the fixed log call itself
+    // cannot be asserted here without adding one; that fix (JWTAuthHandler#extractRoles logging
+    // a static message instead of ex.getReason()/ex) is verified by inspection instead. This test
+    // only pins the unchanged functional behavior: evaluation failure still yields Forbidden.
+    JwkProvider jwkProvider = new TestJwkProvider();
+    Function<Object, List<String>> throwingExpression =
+        variables -> {
+          throw new FeelEngineWrapperException(
+              "secret leak reason", "={{secrets.SUPER_SECRET}}", null);
+        };
+    JWTProperties jwtProperties =
+        new JWTProperties("https://mockUrl.com", throwingExpression, List.of("admin"));
+    var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
+    var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
+    var payload = new TestWebhookProcessingPayload(headers);
+
+    var verificationResult = handler.checkAuthorization(payload);
+
     assertThat(verificationResult).isInstanceOf(Forbidden.class);
   }
 

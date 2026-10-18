@@ -19,22 +19,23 @@ jobs:
   fork-guard:
     name: Skip if external fork
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    if: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.head_ref, 'fix/alwaysgreen-')) }}
     steps:
       - name: Explain skip in logs
         run: |
-          echo "🛑 External fork; skipping license/secrets-dependent checks."
-          echo "Push to a branch in the main repository to run full CI."
+          echo "🛑 Untrusted fork or AlwaysGreen agent branch; skipping license/secrets-dependent checks."
+          echo "Use a reviewed internal branch to run full CI."
 
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push' }}
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !startsWith(github.head_ref, 'fix/alwaysgreen-')) || github.event_name == 'push' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          persist-credentials: false
       # Import FOSSA_API_KEY and other secrets from Vault
       - name: Import secrets
         id: secrets
@@ -59,7 +60,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '25.0.4+101.0.LTS'
       - name: Update Maven settings.xml
         uses: s4u/maven-settings-action@v4.0.0
         with:

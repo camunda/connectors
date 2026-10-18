@@ -34,6 +34,13 @@
       <artifactId>element-template-generator-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!-- for PhysicalTenantClientSelector: a message has to be published to the cluster the job
+         came from, so the client is resolved per job rather than once at startup -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-spring</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>

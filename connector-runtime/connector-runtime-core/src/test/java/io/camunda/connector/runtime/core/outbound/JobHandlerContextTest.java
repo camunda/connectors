@@ -130,13 +130,13 @@ class JobHandlerContextTest {
 
   @Test
   void getLeaseToken() {
-    when(activatedJob.getLeaseToken()).thenReturn("lease-token-1");
+    when(activatedJob.getJobLeaseToken()).thenReturn("lease-token-1");
     assertThat(jobHandlerContext.getJobContext().getLeaseToken()).isEqualTo("lease-token-1");
   }
 
   @Test
   void getLeaseToken_nullWhenJobActivatedWithoutLease() {
-    when(activatedJob.getLeaseToken()).thenReturn(null);
+    when(activatedJob.getJobLeaseToken()).thenReturn(null);
     assertThat(jobHandlerContext.getJobContext().getLeaseToken()).isNull();
   }
 

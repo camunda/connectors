@@ -18,9 +18,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockApiKeyCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryApiKeyCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryClientCredentialsCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleGeminiApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleVertexAiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiCredential;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import java.util.List;
@@ -49,6 +57,16 @@ import org.jspecify.annotations.Nullable;
     inputDataClass = AgentTaskV2Request.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = AgentProcessVariables.AGENT_RESPONSE,
+    configurations = {
+      AnthropicApiCredential.class,
+      OpenAiApiCredential.class,
+      GoogleGeminiApiCredential.class,
+      GoogleVertexAiCredential.class,
+      FoundryApiKeyCredential.class,
+      FoundryClientCredentialsCredential.class,
+      AwsCredentialConfiguration.class,
+      BedrockApiKeyCredential.class
+    },
     propertyGroups = {
       @PropertyGroup(id = "provider", label = "Model provider", openByDefault = false),
       @PropertyGroup(

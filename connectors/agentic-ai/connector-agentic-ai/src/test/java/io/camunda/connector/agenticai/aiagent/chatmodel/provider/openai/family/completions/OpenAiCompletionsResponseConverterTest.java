@@ -156,6 +156,39 @@ class OpenAiCompletionsResponseConverterTest {
   }
 
   @Test
+  void mapsBlankRefusalAlongsideToolCallToCompletedResult() {
+    final ChatCompletion completion =
+        completionWithFinishReason(
+            "tool_calls",
+            """
+            {
+              "role": "assistant",
+              "content": null,
+              "refusal": "\\n\\n",
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {"name": "get_weather", "arguments": "{\\"city\\":\\"Berlin\\"}"}
+                }
+              ]
+            }
+            """);
+
+    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+
+    assertThat(result).isInstanceOf(ChatResult.Completed.class);
+    assertThat(result.assistantMessage().content()).isEmpty();
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+  }
+
+  @Test
   void mapsToolCallsToToolCall() {
     final ChatCompletion completion =
         completionWithFinishReason(

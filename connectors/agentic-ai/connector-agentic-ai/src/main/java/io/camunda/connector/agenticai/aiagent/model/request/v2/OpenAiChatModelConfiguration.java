@@ -19,14 +19,13 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertFalse;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -265,14 +264,26 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record OpenAiApiConnection(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "OpenAI API credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "openAiApiCredential"),
+                  description = "Select a saved OpenAI API credential, or enter the fields below.")
+              @Nullable OpenAiApiCredential openAiApiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "OpenAI API key",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @TemplateProperty(
                   group = "provider",
                   label = "Organization ID",
@@ -280,7 +291,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                       "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  optional = true)
+                  optional = true,
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
               @Nullable String organizationId,
           @TemplateProperty(
                   group = "provider",
@@ -289,7 +304,11 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                       "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  optional = true)
+                  optional = true,
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
               @Nullable String projectId,
           @HttpUrl
               @TemplateProperty(
@@ -325,9 +344,38 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   optional = true)
               @Nullable Map<String, Object> bodyProperties) {
 
+        /** The OpenAI API key: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveApiKey() {
+          return openAiApiCredential != null ? openAiApiCredential.apiKey() : apiKey;
+        }
+
+        /** The organization ID: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveOrganizationId() {
+          return openAiApiCredential != null
+              ? openAiApiCredential.organizationId()
+              : organizationId;
+        }
+
+        /** The project ID: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveProjectId() {
+          return openAiApiCredential != null ? openAiApiCredential.projectId() : projectId;
+        }
+
+        @JsonIgnore
+        @AssertTrue(message = "OpenAI API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          String effective = effectiveApiKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "OpenAiApiConnection{apiKey=[REDACTED], organizationId="
+          return "OpenAiApiConnection{openAiApiCredential="
+              + openAiApiCredential
+              + ", apiKey=[REDACTED], organizationId="
               + organizationId
               + ", projectId="
               + projectId
@@ -433,145 +481,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-      @JsonSubTypes.Type(value = FoundryAuthentication.ApiKeyAuthentication.class, name = "apiKey"),
-      @JsonSubTypes.Type(
-          value = FoundryAuthentication.ClientCredentialsAuthentication.class,
-          name = "clientCredentials"),
-      @JsonSubTypes.Type(
-          value = FoundryAuthentication.ManagedIdentityAuthentication.class,
-          name = "managedIdentity")
-    })
-    @TemplateDiscriminatorProperty(
-        label = "Authentication",
-        group = "provider",
-        name = "type",
-        defaultValue = "apiKey",
-        description = "Specify the Microsoft Foundry authentication strategy.")
-    sealed interface FoundryAuthentication {
-
-      @TemplateSubType(id = "apiKey", label = "API key")
-      record ApiKeyAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "API key",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey)
-          implements FoundryAuthentication {
-
-        @Override
-        public String toString() {
-          return "ApiKeyAuthentication{apiKey=[REDACTED]}";
-        }
-      }
-
-      @TemplateSubType(id = "clientCredentials", label = "Entra ID: Client credentials")
-      record ClientCredentialsAuthentication(
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Client ID",
-                  description = "Microsoft Entra ID application (client) ID.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String clientId,
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Client secret",
-                  description = "Microsoft Entra ID application client secret.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String clientSecret,
-          @NotBlank
-              @TemplateProperty(
-                  group = "provider",
-                  label = "Tenant ID",
-                  description = "Microsoft Entra ID tenant (directory) ID.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String tenantId,
-          @TemplateProperty(
-                  group = "provider",
-                  label = "Authority host",
-                  description =
-                      "Overrides the Microsoft Entra ID authority host, e.g. for sovereign "
-                          + "clouds. Leave unset to use the public cloud authority.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  optional = true)
-              @Nullable String authorityHost,
-          @TemplateProperty(
-                  group = "provider",
-                  label = "Entra ID scope",
-                  description =
-                      "Overrides the Microsoft Entra ID token scope requested for this "
-                          + "authentication flow. Leave unset to let the automatically detected "
-                          + "Azure cloud pick its own default.",
-                  type = TemplateProperty.PropertyType.Hidden,
-                  feel = FeelMode.disabled,
-                  optional = true)
-              @Nullable String entraIdScope)
-          implements FoundryAuthentication {
-
-        @Override
-        public String toString() {
-          return "ClientCredentialsAuthentication{clientId="
-              + clientId
-              + ", clientSecret=[REDACTED], tenantId="
-              + tenantId
-              + ", authorityHost="
-              + authorityHost
-              + ", entraIdScope="
-              + entraIdScope
-              + "}";
-        }
-      }
-
-      @TemplateSubType(
-          id = "managedIdentity",
-          label = "Entra ID: Managed identity (Hybrid/Self-Managed only)")
-      record ManagedIdentityAuthentication(
-          @TemplateProperty(
-                  id = "managedIdentity.clientId",
-                  group = "provider",
-                  label = "Client ID",
-                  description =
-                      "Client ID of a user-assigned managed identity. Leave unset to use the "
-                          + "system-assigned managed identity.",
-                  type = TemplateProperty.PropertyType.String,
-                  feel = FeelMode.optional,
-                  optional = true)
-              @Nullable String clientId,
-          @TemplateProperty(
-                  id = "managedIdentity.entraIdScope",
-                  group = "provider",
-                  label = "Entra ID scope",
-                  description =
-                      "Overrides the Microsoft Entra ID token scope requested for this "
-                          + "authentication flow. Leave unset to let the automatically detected "
-                          + "Azure cloud pick its own default.",
-                  type = TemplateProperty.PropertyType.Hidden,
-                  feel = FeelMode.disabled,
-                  optional = true)
-              @Nullable String entraIdScope)
-          implements FoundryAuthentication {
-
-        @JsonIgnore
-        @AssertFalse(message = "Managed identity authentication is not supported on SaaS")
-        public boolean isUsedInSaaS() {
-          return ConnectorUtils.isSaaS();
-        }
-      }
-    }
-
     @TemplateSubType(id = CUSTOM_ID, label = "Custom / compatible endpoint")
     record OpenAiCustomBackend(@Valid @NotNull CustomBackend custom) implements OpenAiBackend {
 
@@ -649,8 +558,9 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
           @TemplateProperty(
               group = "model",
               label = "Model",
-              description =
-                  "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
+              tooltip =
+                  "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, "
+                      + "but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               defaultValue = "",

@@ -78,6 +78,18 @@ def test_in_flight_agent_blocks_the_same_surface():
     assert result.suppressed[0].reason == plan.SUPPRESSED_IN_FLIGHT
 
 
+def test_in_flight_watcher_blocks_every_surface():
+    result = _plan(
+        [
+            _cand(surface=classify.SURFACE_SM_E2E),
+            _cand(surface=classify.SURFACE_SAAS_E2E),
+        ],
+        inflight_keys={plan.ALL_INFLIGHT},
+    )
+    assert result.dispatches == []
+    assert {s.reason for s in result.suppressed} == {plan.SUPPRESSED_IN_FLIGHT}
+
+
 def test_in_flight_on_another_branch_does_not_block():
     result = _plan([_cand(base_ref="main")], inflight_keys={"stable/8.9:sm-smoke-e2e"})
     assert len(result.dispatches) == 1

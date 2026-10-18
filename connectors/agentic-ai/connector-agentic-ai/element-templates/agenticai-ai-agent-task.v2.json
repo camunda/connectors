@@ -140,9 +140,35 @@
       "name" : "AWS Bedrock Mantle",
       "value" : "aws-bedrock-mantle"
     }, {
+      "name" : "Microsoft Foundry (Azure)",
+      "value" : "foundry"
+    }, {
       "name" : "Custom / compatible endpoint",
       "value" : "custom"
     } ]
+  }, {
+    "id" : "provider.anthropic.backend.anthropic.anthropicApiCredential",
+    "label" : "Anthropic API credential",
+    "description" : "Select a saved Anthropic API credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.anthropic.anthropicApiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "anthropic-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-anthropic-api-credential:1"
   }, {
     "id" : "provider.anthropic.backend.anthropic.apiKey",
     "label" : "Anthropic API key",
@@ -158,6 +184,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.anthropic.backend.anthropic.anthropicApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.anthropic.backend.type",
         "equals" : "anthropic-api",
         "type" : "simple"
@@ -241,8 +271,8 @@
   }, {
     "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
+    "description" : "Choose AWS IAM credentials or an AWS Bedrock API key.",
+    "value" : "awsIam",
     "group" : "provider",
     "binding" : {
       "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
@@ -261,17 +291,78 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
+      "name" : "AWS IAM",
+      "value" : "awsIam"
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Select a saved AWS credential, or enter authentication details below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
+    "label" : "AWS IAM authentication",
+    "description" : "Specify the one-time AWS IAM authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
     }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -281,13 +372,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.accessKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -299,9 +398,10 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -311,13 +411,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.secretKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsIam.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.anthropic.backend.type",
@@ -329,19 +437,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
-    "label" : "API key",
-    "description" : "Bearer API key for AWS Bedrock.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+    "label" : "Bedrock API key credential",
+    "description" : "Select a saved AWS Bedrock API key credential, or enter an API key below.",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -359,7 +464,404 @@
         "type" : "simple"
       } ]
     },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+    "label" : "API key",
+    "description" : "Bearer API key for AWS Bedrock.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.awsBedrockMantle.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.awsBedrockMantle.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.foundry.endpoint",
+    "label" : "API endpoint",
+    "description" : "Base URL of the Microsoft Foundry resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The full resource endpoint, e.g. <code>https://your-resource.services.ai.azure.com</code>.",
+    "placeholder" : "https://your-resource.services.ai.azure.com",
     "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Microsoft Foundry authentication strategy.",
+    "value" : "apiKey",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
+      "name" : "Entra ID: Client credentials",
+      "value" : "clientCredentials"
+    }, {
+      "name" : "Entra ID: Managed identity (Hybrid/Self-Managed only)",
+      "value" : "managedIdentity"
+    } ]
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
+    "label" : "Foundry API key credential",
+    "description" : "Select a saved Microsoft Foundry API key credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-api-key-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+    "label" : "Foundry Entra ID client credentials credential",
+    "description" : "Select a saved Microsoft Foundry Entra ID client credentials credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Microsoft Entra ID application (client) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Microsoft Entra ID application client secret.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.tenantId",
+    "label" : "Tenant ID",
+    "description" : "Microsoft Entra ID tenant (directory) ID.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.tenantId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+    "label" : "Authority host",
+    "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+    "label" : "Client ID",
+    "description" : "Client ID of a user-assigned managed identity. Leave unset to use the system-assigned managed identity.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+    "label" : "Entra ID scope",
+    "description" : "Overrides the Microsoft Entra ID token scope requested for this authentication flow. Leave unset to let the automatically detected Azure cloud pick its own default.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.foundry.authentication.type",
+        "equals" : "managedIdentity",
+        "type" : "simple"
+      }, {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
   }, {
     "id" : "provider.anthropic.backend.custom.endpoint",
     "label" : "API endpoint",
@@ -692,8 +1194,8 @@
   }, {
     "id" : "provider.bedrock.authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the AWS authentication strategy.",
-    "value" : "credentials",
+    "description" : "Choose AWS IAM credentials or an AWS Bedrock API key.",
+    "value" : "awsIam",
     "group" : "provider",
     "binding" : {
       "name" : "provider.bedrock.authentication.type",
@@ -706,17 +1208,70 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
+      "name" : "AWS IAM",
+      "value" : "awsIam"
     }, {
       "name" : "API key",
       "value" : "apiKey"
+    } ]
+  }, {
+    "id" : "provider.bedrock.authentication.awsCredential",
+    "label" : "AWS credential",
+    "description" : "Select a saved AWS credential, or enter authentication details below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.awsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:aws-credential:1"
+  }, {
+    "id" : "provider.bedrock.authentication.awsIam.type",
+    "label" : "AWS IAM authentication",
+    "description" : "Specify the one-time AWS IAM authentication strategy.",
+    "value" : "credentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.awsIam.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
     }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     } ]
   }, {
-    "id" : "provider.bedrock.authentication.accessKey",
+    "id" : "provider.bedrock.authentication.awsIam.accessKey",
     "label" : "Access key",
     "description" : "AWS IAM access key.",
     "optional" : false,
@@ -726,13 +1281,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.accessKey",
+      "name" : "provider.bedrock.authentication.awsIam.accessKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
+        "property" : "provider.bedrock.authentication.awsIam.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -740,9 +1303,10 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
-    "id" : "provider.bedrock.authentication.secretKey",
+    "id" : "provider.bedrock.authentication.awsIam.secretKey",
     "label" : "Secret key",
     "description" : "AWS IAM secret key.",
     "optional" : false,
@@ -752,13 +1316,21 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.bedrock.authentication.secretKey",
+      "name" : "provider.bedrock.authentication.awsIam.secretKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
-        "property" : "provider.bedrock.authentication.type",
+        "property" : "provider.bedrock.authentication.awsIam.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.awsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "awsIam",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -766,7 +1338,31 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+    "label" : "Bedrock API key credential",
+    "description" : "Select a saved AWS Bedrock API key credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-bedrock-api-key-credential:1"
   }, {
     "id" : "provider.bedrock.authentication.apiKey",
     "label" : "API key",
@@ -783,6 +1379,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.bedrockApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.bedrock.authentication.type",
         "equals" : "apiKey",
         "type" : "simple"
@@ -792,7 +1392,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.bedrock.timeouts.timeout",
     "label" : "Timeout",
@@ -860,6 +1461,29 @@
       "value" : "custom"
     } ]
   }, {
+    "id" : "provider.openai.backend.openai.openAiApiCredential",
+    "label" : "OpenAI API credential",
+    "description" : "Select a saved OpenAI API credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.openai.openAiApiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "openai-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-openai-api-credential:1"
+  }, {
     "id" : "provider.openai.backend.openai.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
@@ -874,6 +1498,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -897,6 +1525,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -920,6 +1552,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.openai.openAiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "openai-api",
         "type" : "simple"
@@ -1012,16 +1648,13 @@
       "value" : "managedIdentity"
     } ]
   }, {
-    "id" : "provider.openai.backend.foundry.authentication.apiKey",
-    "label" : "API key",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
+    "id" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
+    "label" : "Foundry API key credential",
+    "description" : "Select a saved Microsoft Foundry API key credential, or enter an API key below.",
+    "optional" : true,
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.backend.foundry.authentication.apiKey",
+      "name" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -1039,7 +1672,69 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-api-key-credential:1"
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryApiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String",
+    "secret" : true
+  }, {
+    "id" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+    "label" : "Foundry Entra ID client credentials credential",
+    "description" : "Select a saved Microsoft Foundry Entra ID client credentials credential, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1"
   }, {
     "id" : "provider.openai.backend.foundry.authentication.clientId",
     "label" : "Client ID",
@@ -1056,6 +1751,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1086,6 +1785,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1099,7 +1802,8 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "provider.openai.backend.foundry.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1116,6 +1820,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1143,6 +1851,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.foundry.authentication.foundryClientCredentialsCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.foundry.authentication.type",
         "equals" : "clientCredentials",
         "type" : "simple"
@@ -1267,7 +1979,7 @@
     "id" : "provider.openai.backend.custom.authentication.type",
     "label" : "Authentication",
     "description" : "Authentication for the compatible API.",
-    "value" : "apiKey",
+    "value" : "none",
     "group" : "provider",
     "binding" : {
       "name" : "provider.openai.backend.custom.authentication.type",
@@ -1286,6 +1998,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "none"
+    }, {
       "name" : "API key",
       "value" : "apiKey"
     }, {
@@ -1548,6 +2263,29 @@
       "value" : "google-vertex-ai"
     } ]
   }, {
+    "id" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+    "label" : "Gemini API credential",
+    "description" : "Select a saved Gemini API credential, or enter an API key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-gemini-api",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-google-gemini-api-credential:1"
+  }, {
     "id" : "provider.googleGemini.backend.googleGeminiApi.apiKey",
     "label" : "Gemini API key",
     "optional" : false,
@@ -1562,6 +2300,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleGeminiApi.googleGeminiApiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.type",
         "equals" : "google-gemini-api",
         "type" : "simple"
@@ -1696,6 +2438,33 @@
       "value" : "applicationDefaultCredentials"
     } ]
   }, {
+    "id" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+    "label" : "Vertex AI credential",
+    "description" : "Select a saved Vertex AI credential, or enter a service account JSON key below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.googleGemini.backend.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-gemini",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-google-vertex-ai-credential:1"
+  }, {
     "id" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey",
     "label" : "JSON key of the service account",
     "description" : "This is the key of the service account in JSON format.",
@@ -1711,6 +2480,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.googleGemini.backend.googleVertexAi.authentication.googleVertexAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.googleGemini.backend.googleVertexAi.authentication.type",
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
@@ -1904,6 +2677,72 @@
       "allMatch" : [ {
         "property" : "provider.anthropic.backend.type",
         "equals" : "aws-bedrock-mantle",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "anthropic",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "provider.anthropic.backend.foundry.bodyProperties",
+    "label" : "Body properties",
+    "description" : "Map of additional properties to include in the request body.",
+    "optional" : true,
+    "group" : "advanced-provider-options",
+    "binding" : {
+      "name" : "provider.anthropic.backend.foundry.bodyProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.anthropic.backend.type",
+        "equals" : "foundry",
         "type" : "simple"
       }, {
         "property" : "provider.type",
@@ -2255,7 +3094,6 @@
   }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2271,27 +3109,9 @@
       "equals" : "anthropic",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. See the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
-  }, {
-    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
-    "label" : "Prompt caching",
-    "description" : "Optional.",
-    "optional" : true,
-    "value" : false,
-    "feel" : "static",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean"
   }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
@@ -2412,9 +3232,26 @@
       "value" : "omitted"
     } ]
   }, {
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2430,12 +3267,12 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID or inference profile ID. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">model and inference profile documentation</a>.",
     "placeholder" : "us.amazon.nova-2-lite-v1:0",
     "type" : "String"
   }, {
     "id" : "provider.bedrock.model.parameters.promptCaching.enabled",
-    "label" : "Prompt caching",
-    "description" : "Optional.",
+    "label" : "Enable prompt caching",
     "optional" : true,
     "value" : false,
     "feel" : "static",
@@ -2449,12 +3286,11 @@
       "equals" : "bedrock",
       "type" : "simple"
     },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">caching documentation</a>.",
+    "tooltip" : "Enables AWS Bedrock automatic prompt caching. See the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" target=\"_blank\">documentation</a>.",
     "type" : "Boolean"
   }, {
     "id" : "provider.openai.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2470,26 +3306,9 @@
       "equals" : "openai",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.openai.status",
-    "label" : "Prompt caching",
-    "description" : "Automatic.",
-    "value" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingOpenAI",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://developers.openai.com/api/docs/guides/prompt-caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.openai.api.responses.effort",
     "label" : "Effort",
@@ -2583,7 +3402,6 @@
   }, {
     "id" : "provider.googleGemini.model.model",
     "label" : "Model",
-    "description" : "Specify the model ID. Details in the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2599,26 +3417,9 @@
       "equals" : "google-gemini",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://ai.google.dev/gemini-api/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gemini-3-pro-preview",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.googleGemini.status",
-    "label" : "Prompt caching",
-    "description" : "Automatic.",
-    "value" : true,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingGoogleGemini",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "google-gemini",
-      "type" : "simple"
-    },
-    "tooltip" : "Can speed up responses and lower API costs by reusing text from recent requests. Best for long conversations or large documents.<br><br>See the <a href=\"https://ai.google.dev/gemini-api/docs/caching\" target=\"_blank\">caching documentation</a>.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.googleGemini.model.parameters.thinking.thinkingBudget",
     "label" : "Thinking budget (tokens)",
@@ -2678,7 +3479,6 @@
   }, {
     "id" : "provider.model",
     "label" : "Model",
-    "description" : "Identifier of the model to use.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -2694,25 +3494,8 @@
       "equals" : "custom",
       "type" : "simple"
     },
+    "tooltip" : "Specify the model ID.",
     "type" : "String"
-  }, {
-    "id" : "promptCaching.custom.status",
-    "label" : "Prompt caching",
-    "description" : "Not available.",
-    "value" : false,
-    "group" : "model",
-    "binding" : {
-      "name" : "modeler:promptCachingCustom",
-      "type" : "property"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "custom",
-      "type" : "simple"
-    },
-    "tooltip" : "The prompt caching property does not control caching for custom implementations. Use a custom solution instead.",
-    "type" : "Boolean",
-    "editable" : false
   }, {
     "id" : "provider.anthropic.model.parameters.maxTokens",
     "label" : "Maximum tokens",
@@ -3060,7 +3843,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "Prompt",
     "optional" : false,
-    "value" : "=\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "value" : "=\"You are **TaskAgent**, a helpful, capable agent that can handle a wide variety of customer requests using your own knowledge **and** any tools explicitly provided to you at runtime. Prefer a provided tool over guessing whenever it would give a more accurate or reliable answer, and only use tools that were explicitly configured for you (never assume a tool exists). You can call the same tool multiple times with different inputs if that helps complete the request. If no tool fits the request, answer from your own knowledge; if you can't produce a reliable answer, say so plainly and explain why, rather than guessing.\"",
     "constraints" : {
       "notEmpty" : true
     },
@@ -3729,6 +4512,271 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda:agentic-ai-anthropic-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Anthropic API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Anthropic API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-openai-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenAI API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "OpenAI API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "organizationId",
+      "label" : "Organization ID",
+      "description" : "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "organizationId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "projectId",
+      "label" : "Project ID",
+      "description" : "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "projectId",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-google-gemini-api-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Gemini API Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "Gemini API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-google-vertex-ai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Vertex AI Credential",
+    "properties" : [ {
+      "id" : "jsonKey",
+      "label" : "JSON key of the service account",
+      "description" : "This is the key of the service account in JSON format.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "jsonKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-foundry-api-key-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Microsoft Foundry API Key Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-foundry-client-credentials-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Microsoft Foundry Entra ID Client Credentials Credential",
+    "properties" : [ {
+      "id" : "clientId",
+      "label" : "Client ID",
+      "description" : "Microsoft Entra ID application (client) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "clientId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "clientSecret",
+      "label" : "Client secret",
+      "description" : "Microsoft Entra ID application client secret.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "clientSecret",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "tenantId",
+      "label" : "Tenant ID",
+      "description" : "Microsoft Entra ID tenant (directory) ID.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "tenantId",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authorityHost",
+      "label" : "Authority host",
+      "description" : "Overrides the Microsoft Entra ID authority host, e.g. for sovereign clouds. Leave unset to use the public cloud authority.",
+      "group" : "provider",
+      "binding" : {
+        "name" : "authorityHost",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:aws-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 2,
+    "name" : "AWS Credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "value" : "credentials",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+        "value" : "defaultCredentialsChain"
+      }, {
+        "name" : "Credentials",
+        "value" : "credentials"
+      } ]
+    }, {
+      "id" : "authentication.accessKey",
+      "label" : "Access key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.accessKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM access key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.secretKey",
+      "label" : "Secret key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.secretKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "IAM secret key of a user with the necessary permissions for this connector",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "region",
+      "label" : "Default region",
+      "description" : "Used when a connector does not specify a region override.",
+      "group" : "configuration",
+      "binding" : {
+        "name" : "region",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-bedrock-api-key-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "AWS Bedrock API Key Credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "description" : "Bearer API key for AWS Bedrock.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K"

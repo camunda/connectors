@@ -49,10 +49,12 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.instances.service.InboundInstancesService;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -97,9 +99,10 @@ public class InboundConnectorRuntimeConfiguration {
       Map<String, ProcessInstanceClient> processInstanceClientsByPhysicalTenantId,
       @Autowired(required = false) DocumentFactory legacyDocumentFactory,
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Value("${camunda.connector.secret-resolver.secret-filter.mode:STRICT}")
           SecretFilterMode secretFilterMode) {
+    CamundaClient legacyCamundaClient = PhysicalTenantClients.legacyClient(camundaClientProvider);
     // LAX vs STRICT only matters outbound, where the allow-list needs a remote BPMN lookup that can
     // fail; the inbound allow-list is built from data already in memory, so it never fails and both
     // modes behave identically here — only DISABLED turns this off.
@@ -189,11 +192,14 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   Map<String, SearchQueryClient> searchQueryClientsByPhysicalTenantId(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
     return PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-        registry, legacyCamundaClient, legacySearchQueryClient, limit);
+        registry,
+        PhysicalTenantClients.legacyClient(camundaClientProvider),
+        legacySearchQueryClient,
+        limit);
   }
 
   @Bean
@@ -215,7 +221,7 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   public ProcessDefinitionInspector processDefinitionInspector(
       CamundaClientRegistry registry,
-      @Autowired(required = false) CamundaClient legacyCamundaClient,
+      ObjectProvider<CamundaClient> camundaClientProvider,
       @Autowired(required = false) SearchQueryClient legacySearchQueryClient,
       @Value("${camunda.connector.process-definition-search.page-size:200}") int limit,
       @Qualifier("processDefinitionCacheManager") CacheManager cacheManager,
@@ -226,7 +232,10 @@ public class InboundConnectorRuntimeConfiguration {
             "processDefinitions cache must be configured");
     return new ProcessDefinitionInspector(
         PhysicalTenantIds.buildSearchQueryClientsByPhysicalTenantId(
-            registry, legacyCamundaClient, legacySearchQueryClient, limit),
+            registry,
+            PhysicalTenantClients.legacyClient(camundaClientProvider),
+            legacySearchQueryClient,
+            limit),
         cache,
         connectorsInboundMetrics);
   }

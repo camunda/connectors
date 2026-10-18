@@ -36,7 +36,7 @@ public record CustomProviderConfiguration(
     @TemplateProperty(
             group = "model",
             label = "Model",
-            description = "Identifier of the model to use.",
+            tooltip = "Specify the model ID.",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

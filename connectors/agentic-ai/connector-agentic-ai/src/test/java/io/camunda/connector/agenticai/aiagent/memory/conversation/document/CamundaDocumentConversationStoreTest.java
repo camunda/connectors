@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
+import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
@@ -40,6 +42,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -95,7 +98,74 @@ class CamundaDocumentConversationStoreTest {
                         Duration.ofHours(1), Map.of("customKey", "customValue")),
                     20)));
 
-    store = new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+    store =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, singleTenant(), objectMapper);
+  }
+
+  /**
+   * Conversation memory has to live on the cluster the job runs against, so once more than one is
+   * served the injected single-tenant document beans must not be used any more — they are bound to
+   * whichever cluster was picked at startup.
+   */
+  @Test
+  void doesNotUseTheSingleTenantDocumentBeansWhenSeveralPhysicalTenantsAreServed() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.servesSinglePhysicalTenant()).thenReturn(false);
+    when(selector.forPhysicalTenant("tenanta")).thenReturn(mock(CamundaClient.class));
+    when(executionContext.jobContext().getPhysicalTenantId()).thenReturn("tenanta");
+
+    final var multiTenantStore =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, selector, objectMapper);
+
+    try (var session = multiTenantStore.createSession(executionContext, AgentContext.empty())) {
+      assertThat(session).isNotNull();
+    }
+
+    verifyNoInteractions(documentFactory, documentStore);
+  }
+
+  /**
+   * A cluster configured without a physical tenant can be served alongside tenant-scoped ones, and
+   * its own jobs carry no physical tenant either. Memory for those jobs still has to resolve.
+   */
+  @Test
+  void servesAJobWithoutAPhysicalTenantWhileSeveralClustersAreServed() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.servesSinglePhysicalTenant()).thenReturn(false);
+    when(selector.forPhysicalTenant(null)).thenReturn(mock(CamundaClient.class));
+    when(executionContext.jobContext().getPhysicalTenantId()).thenReturn(null);
+
+    final var multiTenantStore =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, selector, objectMapper);
+
+    try (var session = multiTenantStore.createSession(executionContext, AgentContext.empty())) {
+      assertThat(session).isNotNull();
+    }
+    // resolved once and cached, rather than rebuilt per job
+    try (var session = multiTenantStore.createSession(executionContext, AgentContext.empty())) {
+      assertThat(session).isNotNull();
+    }
+
+    verifyNoInteractions(documentFactory, documentStore);
+  }
+
+  @Test
+  void failsRatherThanStoringAJobsMemoryOnAnotherTenantsClusterWhenItsTenantIsUnknown() {
+    final var selector = mock(PhysicalTenantClientSelector.class);
+    when(selector.servesSinglePhysicalTenant()).thenReturn(false);
+    when(selector.forPhysicalTenant("tenantc"))
+        .thenThrow(new IllegalStateException("No CamundaClient configured for physical tenant"));
+    when(executionContext.jobContext().getPhysicalTenantId()).thenReturn("tenantc");
+
+    final var multiTenantStore =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, selector, objectMapper);
+
+    assertThatThrownBy(() -> multiTenantStore.createSession(executionContext, AgentContext.empty()))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {

@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
@@ -33,7 +34,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
@@ -110,6 +110,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
         new AnthropicChatModelConfiguration.AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApi(
+                    null,
                     connection.authentication().apiKey(),
                     toNativeAnthropicEndpoint(connection.endpoint()),
                     null,
@@ -129,6 +130,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
             new OpenAiCompletionsApi(completionsParametersOf(model.parameters())),
             new OpenAiApiBackend(
                 new OpenAiApiConnection(
+                    null,
                     authentication.apiKey(),
                     authentication.organizationId(),
                     authentication.projectId(),
@@ -226,13 +228,18 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
     return switch (authentication) {
       case BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication
               staticCredentials ->
-          new AwsAuthentication.AwsStaticCredentialsAuthentication(
-              staticCredentials.accessKey(), staticCredentials.secretKey());
+          new AwsAuthentication.AwsIamAuthentication(
+              null,
+              new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                  staticCredentials.accessKey(), staticCredentials.secretKey()));
       case BedrockProviderConfiguration.AwsAuthentication.AwsApiKeyAuthentication apiKey ->
-          new AwsAuthentication.AwsApiKeyAuthentication(apiKey.apiKey());
+          new AwsAuthentication.AwsApiKeyAuthentication(null, apiKey.apiKey());
       case BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication
               ignored ->
-          new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
+          new AwsAuthentication.AwsIamAuthentication(
+              null,
+              new AwsAuthentication.AwsIamAuthenticationMethod
+                  .AwsDefaultCredentialsChainAuthentication());
     };
   }
 
@@ -266,10 +273,11 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
       AzureOpenAiProviderConfiguration.AzureAuthentication authentication) {
     return switch (authentication) {
       case AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication apiKey ->
-          new FoundryAuthentication.ApiKeyAuthentication(apiKey.apiKey());
+          new FoundryAuthentication.ApiKeyAuthentication(null, apiKey.apiKey());
       case AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication
               clientCredentials ->
           new FoundryAuthentication.ClientCredentialsAuthentication(
+              null,
               clientCredentials.clientId(),
               clientCredentials.clientSecret(),
               clientCredentials.tenantId(),
@@ -313,7 +321,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
                   .ServiceAccountCredentialsAuthentication
               serviceAccount ->
           new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-              serviceAccount.jsonKey());
+              null, serviceAccount.jsonKey());
       case GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication
                   .ApplicationDefaultCredentialsAuthentication
               ignored ->

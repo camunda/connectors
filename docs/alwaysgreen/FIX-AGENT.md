@@ -66,7 +66,7 @@ So: establish *what the application did* before deciding the test is wrong.
 
 ## Evidence, and where it is
 
-Everything is under `/tmp/alwaysgreen-artifacts/`. There is no live cluster — the
+Everything is under `./.alwaysgreen-data/artifacts/`. There is no live cluster — the
 namespace is deleted by the pipeline's cleanup job and the SaaS org is deleted by the
 nightly, both before you start. Never try to reach a cluster or run `kubectl`.
 
@@ -83,11 +83,13 @@ is running and returning errors is visible. Retention is 1 day, so it may be abs
 replaying an older run — treat absence as "no cluster evidence", not as "the cluster was
 fine".
 
-Read PNG screenshots directly. For a trace: `unzip -l trace.zip`, then extract what you need.
+Read PNG screenshots directly. Playwright traces are pre-extracted beside each
+`trace.zip` under `trace-extracted/`; inspect those files directly.
 
 ## Diagnosis order
 
-1. **Is it flaky?** `/tmp/test_specs.json` carries `attempts` and `statuses` per spec.
+1. **Is it flaky?** `./.alwaysgreen-data/test_specs.json` carries `attempts` and
+   `statuses` per spec.
    All attempts failed → deterministic, a real defect. `failed → passed` → flaky, and the
    fix is waiting/retry, never a behavioural change. This is decided for you; do not
    re-litigate it with a re-run you cannot perform.
@@ -127,13 +129,41 @@ this **before** picking a repo, because guessing wrong is expensive in both dire
 reverting an intentional change destroys someone's work, and adapting the test to a real
 regression masks the defect the test exists to catch.
 
-The discriminator is whether the product still agrees with itself. The breaking PR number
-is in your prompt — read what it changed:
+**Zeroth check: does the blamed PR even touch anything relevant?** `./.alwaysgreen-data/blame-pr.json`
+comes from `originating_pr()`/`resolve_blame()` in `classify.py`, which match whichever PR's
+merge produced the commit this run tested — a trigger, not a suspect, and that is the
+*strongest* of their cases. Weaker still: a bot-authored merge (e.g. a backport) attributes
+to a different, original PR instead, and when no PR's merge matches the head commit at all
+the fallback is just the first candidate in the list, with no established connection to this
+commit whatsoever. See `Blame`'s docstring in `classify.py` for the exact cases. Treat all of
+them as leads, never verdicts — this is exactly the mistake that pinged an uninvolved author
+in camunda/camunda once already (camunda/camunda#63373).
 
-```bash
-gh pr view <blame_pr> --repo camunda/connectors --json title,body,files \
-  --jq '{title, files: [.files[].path]}'
-```
+Before running the intended/regression test below, check whether `blame-pr.json`'s `files`
+list has any plausible connection to the failing surface (e.g. a Zeebe engine test fix
+blamed for a Tasklist frontend failure has none). If it doesn't, that test does not apply —
+the real cause predates this commit and simply surfaced on the run it happened to trigger,
+or no commit-level attribution exists at all. Say so explicitly in the PR body, and fall
+back to the evidence you actually have: the failure artifacts under `./.alwaysgreen-data/`
+and the current state of the checked-out sources. You cannot widen the search through
+history — the repositories are cloned `--depth 1` and you have no `Bash` tool, so there is
+no `git log` and no earlier revision to compare against. When those sources cannot establish
+the cause on their own, that is a `category: "not-determined"` result with the evidence
+written up, not a guess pinned to the blamed PR.
+
+Record the verdict as `"blame_relevant": true` or `false` in `./fix-meta.json` (omit only
+when `blame-pr.json` is empty, i.e. no blame PR was supplied at all). The workflow reads this
+field, defaulting to "not relevant" when it is absent or anything other than `true`, before
+mentioning the blamed author in the PR body or requesting their review — see "Result
+manifest" below. Never name the blamed author yourself, anywhere in `root_cause` or `fix`:
+naming an uninvolved person still notifies them via GitHub's mention handling even inside a
+sentence explaining they are not the cause, and the mention is the workflow's job, gated on
+this verdict, not yours. The workflow strips the `@` from any mention it finds in your
+prose, so writing one only garbles the name — refer to the PR by number instead.
+
+The discriminator is whether the product still agrees with itself, once the zeroth check
+above has confirmed the blamed PR is at least plausibly connected. Read what
+`./.alwaysgreen-data/blame-pr.json` changed.
 
 - **It also updated the product's own tests** to the new value → the change is **intended**
   and the cross-component suite is simply behind. Fix `c8-cross-component-e2e-tests`.
@@ -158,7 +188,7 @@ usually is not. And `camunda-docs` describing the new copy or behaviour for this
 settles it as intended — cite it in the PR body.
 
 If it is still genuinely ambiguous, do **not** pick one. Write `category: "not-determined"`
-to `/tmp/fix-meta.json` with the evidence, name both candidate fixes, and leave the
+to `./fix-meta.json` with the evidence, name both candidate fixes, and leave the
 fingerprint unclaimed so a recurrence is re-triaged. A human deciding in ten minutes beats
 either wrong PR.
 
@@ -178,19 +208,18 @@ block.
 | chart values, Keycloak/Identity wiring, deploy config | **nowhere — escalate**         | see below                               |
 
 `camunda-platform-helm` and `camunda-docs` are in your workspace to be **read**, not
-changed: the token this agent runs with covers `connectors` and
-`c8-cross-component-e2e-tests` only, so a chart PR cannot be pushed even if you write
-one. That is deliberate — chart failures (`helm-install`, `helm-cleanup`) are not
-dispatched to you at all, and a chart root cause behind a *test* failure is worth more
-as a precise report than as a change this pipeline cannot verify. Write it to
-`/tmp/fix-meta.json` as `not-determined` with the evidence. Do not reach for a test-side
-workaround instead: that masks the defect.
+changed: The agent has no GitHub credential and the workflow publishes changes only from
+`connectors` or `c8-cross-component-e2e-tests`. Chart failures (`helm-install`,
+`helm-cleanup`) are not dispatched to you at all, and a chart root cause behind a
+*test* failure is worth more as a precise report than as a change this pipeline cannot
+verify. Write it to `./fix-meta.json` as `not-determined` with the evidence. Do not
+reach for a test-side workaround instead: that masks the defect.
 
 `connectors` is the one repository in the workspace checked out at the branch that
-failed. Read `## Opening a PR in connectors` below before opening a PR there — several of
-its rules are CI-enforced.
+failed. Read `## Changes in connectors` below before editing it — several of its rules
+are CI-enforced.
 
-The spec paths in `/tmp/test_specs.json` are already mapped to source. If you need to
+The spec paths in `./.alwaysgreen-data/test_specs.json` are already mapped to source. If you need to
 redo it: the suite comes from `config.rootDir` (`…/dist/tests/SM-8.10` → `SM-8.10`) and
 the package ships compiled `.js` while the source is `.ts`, so
 `smoke-tests.spec.js` → `tests/SM-8.10/smoke-tests.spec.ts`.
@@ -201,8 +230,8 @@ change there must not regress the nightly for the same version, and a competing
 
 ## Which version directory to edit
 
-The prompt gives you the resolved directories — use them rather than inferring. The rules
-behind them:
+`./.alwaysgreen-data/agent-context.json` gives you the resolved directories — use them rather than
+inferring. The rules behind them:
 
 - **`main` is the next unreleased minor, currently 8.10.** `stable/X.Y` is X.Y.
 - **SM specs live under an `SM-` prefix, SaaS specs under the bare version.** `pages/`
@@ -223,7 +252,7 @@ the differences between version directories often encode real product difference
 should stay encoded, and editing a passing sibling risks breaking it. If the same bug
 plausibly affects another version, say so in the PR body instead of changing it.
 
-## Opening a PR in connectors
+## Changes in connectors
 
 The run under test built and deployed a fresh connectors image, so a runtime or bundle
 regression shows up as a Playwright failure exactly like a stale selector does. Decide
@@ -231,41 +260,24 @@ between them the same way as anywhere else — but if you conclude the product i
 fault, these rules are CI-enforced in `camunda/connectors` and a PR that breaks one is
 rejected:
 
-- **PR title must match** `^(feat|fix|deps|docs|style|refactor|perf|test|chore|build|other|ci): `.
-- **Never `feat:`.** That type requires a named QA approver
-  (`ENFORCE_QA_APPROVAL.yml`); an agent PR must not enter that gate. A fix is `fix:`,
-  a test change is `test:`, a workflow change is `ci:`.
 - **Never hand-edit a generated element template.** They are produced by each
-  connector's `GenerateElementTemplate` test, and regenerating one means running Maven,
-  which is forbidden. If the fix needs a regenerated template, stop and write
+  connector's `GenerateElementTemplate` test, and the workflow rejects generated
+  template changes. If the fix needs a regenerated template, stop and write
   "no fix determined" with the reason — do not edit the JSON.
 - **Never hand cherry-pick a backport.** Each branch's failure is dispatched against
   its own branch, so a backport should not arise. If one genuinely does, say so in the
   PR body and let a human add the `backport stable/X.Y` label
   (`korthout/backport-action`).
-- `mvn` and `./mvnw` are forbidden, so you cannot compile or test a Java change. A
-  connectors code fix you cannot even compile is a strong signal to escalate instead.
+- You cannot compile or test a Java change. A connectors code fix you cannot verify is a
+  strong signal to escalate instead.
 
 Signals that the fault is connectors rather than the test: the same spec fails on every
 branch at once (test-side drift is normally version-scoped), and the blamed PR touches
 `connector-runtime/`, `bundle/`, or the connector the spec exercises.
 
-## Which branch the PR targets
-
-A PR in **`connectors`** must be opened with `--base <base_ref>` — the branch
-that failed, supplied in the prompt. `gh pr create` with no `--base` targets the
-repository default branch, so a `stable/8.9` fix opened that way carries the entire
-stable-to-main delta, and merging it would push stable-only code onto `main`. The
-workflow re-checks the base afterwards and retargets a wrong one, but it warns when it
-has to.
-
-This applies to `connectors` only. `c8-cross-component-e2e-tests` has no per-version
-branches — its PRs take its own default branch, and the version lives in the path
-(`tests/SM-8.9/`).
-
 ## The PR coverage block — mandatory
 
-Every PR you open must carry, in its body:
+The workflow adds this block to every PR body:
 
 ```
 <!-- alwaysgreen-fixed
@@ -274,15 +286,8 @@ fp=5e6f7a8b
 -->
 ```
 
-One `fp=` line per fingerprint in `/tmp/fingerprints.json`. Triage reads this block to
-suppress re-dispatch. **Omit a fingerprint and the same failure is dispatched again on the
-next push.** When updating an existing PR, preserve every line already there — the union,
-never a replacement.
-
-Also name the author of the breaking change in the body (supplied in the prompt). The
-workflow tries to add them as a reviewer, but that call fails when they are not a
-collaborator on the repository you opened the PR in, so the body mention is what
-guarantees the signal survives.
+One `fp=` line comes from each fingerprint in `./.alwaysgreen-data/fingerprints.json`. Triage reads
+this block to suppress re-dispatch.
 
 ## Constraints
 
@@ -295,47 +300,43 @@ guarantees the signal survives.
 - **Minimal diff.** No refactoring, no dependency bumps, nothing unrelated.
 - **Fix only the dispatched specs.** Other failures may be visible in the artifacts; leave
   them.
-- **Lint before commit.** For `.ts`: `npx prettier --check <files>` and
-  `npx eslint <files> --ext .ts`. `printWidth` is 80 and CI fails on a single-character
-  formatting delta.
-- **Forbidden commands:** `kubectl`, `helm`, any deploy, `npm run build`, `mvn` /
-  `./mvnw`, `docker`, and Playwright — there is nothing to run against.
+- **No command execution or network access.** Diagnose with the read/search/edit tools
+  provided by the workflow. Do not try to commit, push, open a PR, or invoke a shell.
 
 ## Result manifest
 
-Write `/tmp/fix-meta.json` before stopping, always:
+Write `./fix-meta.json` before stopping, always:
 
 ```json
 {
   "surface": "sm-smoke-e2e",
   "category": "test | chart | product | ci | not-determined",
-  "prs": [
-    {
-      "number": 1234,
-      "owner": "camunda",
-      "repo": "c8-cross-component-e2e-tests",
-      "branch": "fix/alwaysgreen-sm-smoke-e2e-keycloak-login",
-      "url": "https://github.com/…/pull/1234",
-      "root_cause": "One sentence.",
-      "fix": "One sentence.",
-      "fingerprints": ["1a2b3c4d"]
-    }
-  ],
-  "reason": "Required when prs is empty: what you found and why no change was safe."
+  "change": {
+    "owner": "camunda",
+    "repo": "c8-cross-component-e2e-tests",
+    "root_cause": "One sentence.",
+    "fix": "One sentence."
+  },
+  "reason": "Required when change is null: what you found and why no change was safe.",
+  "blame_relevant": true
 }
 ```
 
-Every entry needs a numeric `number` plus `owner` and `repo`, and the repository must be
-`camunda/connectors` or `camunda/c8-cross-component-e2e-tests` — the workflow reads them
-to label the PR and request review.
+`blame_relevant` is your "Zeroth check" verdict (see "Regression, or an intended change"
+above): `true` only when `./.alwaysgreen-data/blame-pr.json` is plausibly connected to the
+failing surface, `false` when it is a mere trigger you ruled out, omitted only when no blame
+PR was supplied at all. The workflow reads it before naming the blamed author in the PR body
+or requesting their review, and treats anything other than `true` — including a missing
+field — as "do not mention or request review from this person." Get this field right; it is
+the only thing standing between an uninvolved contributor and an unwanted mention.
 
-There is no default and no leniency here: an entry the workflow cannot verify is refused
-and the run fails. The alternative is acting on whatever PR happens to carry that number
-in the wrong repository — labelling it, requesting review on it, and retargeting its base
-branch. `camunda-platform-helm` and `camunda-docs` are rejected for the same reason; a
-finding in either belongs in `reason` with an empty `prs`.
+The repository must be `camunda/connectors` or
+`camunda/c8-cross-component-e2e-tests`, must match the one changed repository, and the
+workflow validates the paths and patch before minting a repository-specific publish
+token. `camunda-platform-helm` and `camunda-docs` are rejected; a finding in either
+belongs in `reason` with `"change": null`.
 
-**`"prs": []` with `category: "not-determined"` is a legitimate, expected outcome.** If the
-evidence shows the environment broke and you cannot pin it to a config change, say so and
-attach what you found. That is strictly better than a plausible-looking change that hides
-a real defect.
+**`"change": null` with `category: "not-determined"` is a legitimate, expected
+outcome.** If the evidence shows the environment broke and you cannot pin it to a
+config change, say so. That is strictly better than a plausible-looking change that
+hides a real defect.

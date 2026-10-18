@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -73,7 +74,7 @@ class InboundConnectorRuntimeConfigurationTest {
             Map.of("tenant", mock(ProcessInstanceClient.class)),
             mock(DocumentFactory.class),
             registry,
-            null,
+            clientProvider(),
             mode);
     return (InboundConnectorContextImpl)
         factory.createContext(

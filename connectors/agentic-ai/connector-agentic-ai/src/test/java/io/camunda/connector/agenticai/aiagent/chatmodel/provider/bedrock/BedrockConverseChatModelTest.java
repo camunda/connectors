@@ -67,7 +67,10 @@ class BedrockConverseChatModelTest {
           new BedrockConverseConnection(
               "eu-central-1",
               null,
-              new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+              new AwsAuthentication.AwsIamAuthentication(
+                  null,
+                  new AwsAuthentication.AwsIamAuthenticationMethod
+                      .AwsDefaultCredentialsChainAuthentication()),
               null,
               null,
               null,

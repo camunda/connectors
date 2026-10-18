@@ -11,18 +11,20 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
+import io.camunda.connector.email.config.EmailInboundAccountConfiguration;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @InboundConnector(name = "Email Consumer", type = "io.camunda:connector-email-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.email",
     name = "Email Event Connector",
     icon = "icon.svg",
-    version = 2,
+    version = 3,
     inputDataClass = EmailInboundConnectorProperties.class,
+    configurations = {EmailInboundAccountConfiguration.class},
     description = "Consume emails",
     keywords = {
       "email received",

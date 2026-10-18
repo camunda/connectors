@@ -128,7 +128,9 @@ class SnsWebhookResultShapeTest {
     headers.put("x-amz-sns-message-id", "2e062e6b-a527-5e68-b69b-72a8e42add60");
 
     WebhookProcessingPayload payload = payloadWith(NOTIFICATION_BODY, headers);
-    when(messageManager.parseMessage(any())).thenReturn(mock(SnsNotification.class));
+    SnsNotification notification = mock(SnsNotification.class);
+    when(notification.getTopicArn()).thenReturn(TOPIC_ARN);
+    when(messageManager.parseMessage(any())).thenReturn(notification);
 
     // When the webhook is triggered, exactly as it would be for a live SNS Notification callback
     WebhookResult result = executable.triggerWebhook(payload);
@@ -203,6 +205,7 @@ class SnsWebhookResultShapeTest {
 
     WebhookProcessingPayload payload = payloadWith(SUBSCRIPTION_CONFIRMATION_BODY, headers);
     SnsSubscriptionConfirmation confirmation = mock(SnsSubscriptionConfirmation.class);
+    when(confirmation.getTopicArn()).thenReturn(TOPIC_ARN);
     when(messageManager.parseMessage(any())).thenReturn(confirmation);
 
     // When the webhook is triggered, exactly as it would be for a live SNS SubscriptionConfirmation

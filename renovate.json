@@ -6,6 +6,7 @@
   ],
   "commitMessagePrefix": "deps:",
   "dependencyDashboard": true,
+  "pinDigests": true,
   "prConcurrentLimit": 50,
   "prHourlyLimit": 10,
   "updateNotScheduled": false,
@@ -74,7 +75,22 @@
       "matchManagers": [
         "github-actions"
       ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "automerge": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "automerge": false
     },
     {
       "matchBaseBranches": [
