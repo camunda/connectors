@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,6 +95,24 @@ public class OpenAiCompletionsResponseConverter {
     return choices.get(0);
   }
 
+  /** Server tools such as {@code openrouter:web_search} return sources as url_citation annotations. */
+  private List<Map<String, Object>> toCitations(ChatCompletionMessage message) {
+    final List<Map<String, Object>> citations = new ArrayList<>();
+    message
+        .annotations()
+        .ifPresent(
+            annotations ->
+                annotations.forEach(
+                    annotation -> {
+                      final var c = annotation.urlCitation();
+                      final Map<String, Object> entry = new LinkedHashMap<>();
+                      entry.put("url", c.url());
+                      entry.put("title", c.title());
+                      citations.add(entry);
+                    }));
+    return citations;
+  }
+
   /**
    * A refusal carries no {@code finish_reason} signal of its own, so it is treated the same as
    * {@code content_filter} for a uniform "blocked" outcome.
@@ -124,8 +143,13 @@ public class OpenAiCompletionsResponseConverter {
         .toolCalls()
         .ifPresent(calls -> calls.forEach(call -> toToolCall(call, toolCalls, content)));
 
-    final Map<String, Object> openAiMetadata =
-        Map.of(OPENAI_ID, Map.of("stopReason", choice.finishReason().asString()));
+    final Map<String, Object> openAiDetails = new LinkedHashMap<>();
+    openAiDetails.put("stopReason", choice.finishReason().asString());
+    final List<Map<String, Object>> citations = toCitations(message);
+    if (!citations.isEmpty()) {
+      openAiDetails.put("citations", citations);
+    }
+    final Map<String, Object> openAiMetadata = Map.of(OPENAI_ID, openAiDetails);
 
     return AssistantMessage.builder()
         .content(content)
