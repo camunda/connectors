@@ -12,8 +12,10 @@ import static io.camunda.connector.agenticai.common.util.ObjectMapperConstants.S
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentReferenceTagSerializer;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -23,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +39,16 @@ import org.jspecify.annotations.Nullable;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
+  private final ObjectMapper documentTagObjectMapper;
 
   public ToolCallConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
+    this.documentTagObjectMapper =
+        objectMapper
+            .copy()
+            .registerModule(
+                new SimpleModule()
+                    .addSerializer(Document.class, new DocumentReferenceTagSerializer()));
   }
 
   @Override
@@ -86,7 +96,10 @@ public class ToolCallConverterImpl implements ToolCallConverter {
    * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
    *
    * <p>If the result is not a string, it will be serialized to a JSON string using the connectors
-   * ObjectMapper. Document instances in the content tree are serialized as document references.
+   * ObjectMapper. {@link Document} instances in the content tree are rendered as {@code <doc id="…"
+   * fileName="…" contentType="…"/>} tags (without tool attribution — the tool attribution is
+   * emitted at Site 2, in the separate content-bearing user message). All other values are
+   * serialized to JSON.
    */
   @Override
   public ToolExecutionResultMessage asToolExecutionResultMessage(
@@ -111,12 +124,13 @@ public class ToolCallConverterImpl implements ToolCallConverter {
         .collect(Collectors.joining("\n"));
   }
 
+  // Document nodes are rendered as <doc/> tags via DocumentReferenceTagSerializer (sandbox PoC).
   private String contentElementAsString(String toolName, Content content) {
     try {
       return switch (content) {
         case TextContent t -> t.text();
-        case ObjectContent o -> objectMapper.writeValueAsString(o.content());
-        case DocumentContent d -> objectMapper.writeValueAsString(d.document());
+        case ObjectContent o -> documentTagObjectMapper.writeValueAsString(o.content());
+        case DocumentContent d -> documentTagObjectMapper.writeValueAsString(d.document());
         case ReasoningContent ignored ->
             throw new IllegalArgumentException(
                 "Reasoning content is not expected in tool call results");

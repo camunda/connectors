@@ -76,7 +76,7 @@ public final class DocumentHandle {
     };
   }
 
-  private static String sha256Prefix(String input, int hexChars) {
+  static String sha256Prefix(String input, int hexChars) {
     try {
       final var digest = MessageDigest.getInstance("SHA-256");
       final var bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));

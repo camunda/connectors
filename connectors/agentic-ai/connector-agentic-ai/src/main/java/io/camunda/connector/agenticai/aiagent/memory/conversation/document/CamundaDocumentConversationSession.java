@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.Document;
@@ -91,7 +92,11 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     try {
       final var content =
           conversationSerializer.readDocumentContent(previousConversationContext.document());
-      return ConversationLoadResult.of(content.messages());
+      final var registry =
+          content.documentRegistry() != null
+              ? content.documentRegistry()
+              : DocumentRegistry.empty();
+      return ConversationLoadResult.of(content.messages(), registry);
     } catch (IOException e) {
       throw new RuntimeException("Failed to load conversation from documentReference", e);
     }
@@ -107,7 +112,10 @@ public class CamundaDocumentConversationSession implements ConversationSession {
                 .conversationId(UUID.randomUUID().toString());
 
     final var updatedDocument =
-        createUpdatedDocument(request.messages(), conversationContextBuilder.conversationId());
+        createUpdatedDocument(
+            request.messages(),
+            conversationContextBuilder.conversationId(),
+            request.documentRegistry());
     conversationContextBuilder.document(updatedDocument);
 
     // after write succeeded, try to purge previous documents, but keep at least the last
@@ -123,8 +131,14 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     return conversationContextBuilder.build();
   }
 
-  private Document createUpdatedDocument(List<Message> messages, String conversationId) {
-    final var content = new CamundaDocumentConversationContext.DocumentContent(messages);
+  private Document createUpdatedDocument(
+      List<Message> messages, String conversationId, @Nullable DocumentRegistry documentRegistry) {
+    // Store null when registry is empty to keep the JSON lean and backward-compatible with old
+    // conversation documents that did not have a documentRegistry field.
+    final var registryToStore =
+        documentRegistry != null && !documentRegistry.entries().isEmpty() ? documentRegistry : null;
+    final var content =
+        new CamundaDocumentConversationContext.DocumentContent(messages, registryToStore);
 
     String serialized;
     try {

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
@@ -33,7 +34,8 @@ import java.util.List;
  * "MyFilesystem_readFile" and providing the result of the tool call.
  */
 public interface GatewayToolCallTransformer {
-  List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls);
+  List<ToolCall> transformToolCalls(
+      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls);
 
   List<ToolCallResult> transformToolCallResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);

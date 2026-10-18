@@ -34,17 +34,23 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.model.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +126,8 @@ public abstract class BaseAgentRequestHandler<
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
-      final var loadedMessages = session.loadMessages(agentContext).messages();
+      final var loadResult = session.loadMessages(agentContext);
+      final var loadedMessages = loadResult.messages();
       final var previousConversation =
           TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
@@ -145,6 +152,7 @@ public abstract class BaseAgentRequestHandler<
                 configuration,
                 previousConversation,
                 newMessages,
+                loadResult.documentRegistry(),
                 session,
                 store);
       };
@@ -176,12 +184,19 @@ public abstract class BaseAgentRequestHandler<
       final AgentConfiguration agentConfiguration,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
+      final DocumentRegistry loadedRegistry,
       final ConversationSession session,
       final ConversationStore store) {
     var systemMessage = createSystemMessage(executionContext, agentContext);
+    final var documentRegistry = buildRegistry(loadedRegistry, inputMessages);
     final var conversation =
         AgentConversation.rehydrate(
-            agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
+            agentConfiguration,
+            agentContext,
+            previousConversation,
+            systemMessage,
+            inputMessages,
+            documentRegistry);
 
     throwIfLimitsReached(conversation, agentConfiguration);
 
@@ -209,7 +224,8 @@ public abstract class BaseAgentRequestHandler<
     final var storedRef =
         session.storeMessages(
             updatedConversation.toAgentContext(),
-            ConversationStoreRequest.of(updatedConversation.allMessages()));
+            ConversationStoreRequest.of(
+                updatedConversation.allMessages(), updatedConversation.documentRegistry()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
     final var agentResponse = responseHandler.createResponse(storedConversation);
@@ -402,6 +418,44 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
+
+  /**
+   * Builds the document registry for this turn by combining the registry loaded from the previous
+   * turn with the documents newly added in {@code inputMessages} (user-prompt documents and
+   * tool-call-result documents). Population is engine-driven only (sandbox PoC, #7632).
+   */
+  private static DocumentRegistry buildRegistry(
+      DocumentRegistry loadedRegistry, List<Message> inputMessages) {
+    final var newDocs = new ArrayList<Document>();
+    for (var msg : inputMessages) {
+      switch (msg) {
+        case UserMessage userMsg ->
+            userMsg.content().stream()
+                .filter(c -> c instanceof DocumentContent)
+                .map(c -> ((DocumentContent) c).document())
+                .forEach(newDocs::add);
+        case ToolCallResultMessage toolMsg ->
+            toolMsg.results().stream()
+                .flatMap(r -> r.content().stream())
+                .forEach(
+                    c -> {
+                      if (c instanceof DocumentContent d) {
+                        newDocs.add(d.document());
+                      } else if (c
+                          instanceof
+                          io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent
+                          o) {
+                        newDocs.addAll(
+                            ContentTreeDocumentWalker.extractDocumentsFromContent(o.content()));
+                      }
+                    });
+        default -> {
+          // SystemMessage and AssistantMessage carry no inbound documents
+        }
+      }
+    }
+    return loadedRegistry.withAddedDocuments(newDocs);
+  }
 
   private static <C extends AgentExecutionContext>
       @Nullable AgentJobCompletionListener createStoreCompletionListener(
