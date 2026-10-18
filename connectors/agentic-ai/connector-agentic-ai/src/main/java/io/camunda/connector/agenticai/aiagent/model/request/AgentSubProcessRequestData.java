@@ -16,4 +16,11 @@ public record AgentSubProcessRequestData(
     @Valid @Nullable MemoryConfiguration memory,
     @Valid @Nullable LimitsConfiguration limits,
     @Valid @Nullable EventHandlingConfiguration events,
-    @Valid AgentSubProcessResponseConfiguration response) {}
+    @Valid AgentSubProcessResponseConfiguration response) {
+
+  public AgentSubProcessRequestData withSystemPrompt(
+      PromptConfiguration.SystemPromptConfiguration systemPrompt) {
+    return new AgentSubProcessRequestData(
+        systemPrompt, userPrompt, memory, limits, events, response);
+  }
+}

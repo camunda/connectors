@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV2Request;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
@@ -30,19 +31,35 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
+  private final LinkedSystemPromptResolver linkedSystemPromptResolver;
 
-  public AgentSubProcessV2Function(AgentSubProcessRequestHandler agentRequestHandler) {
+  public AgentSubProcessV2Function(
+      AgentSubProcessRequestHandler agentRequestHandler,
+      LinkedSystemPromptResolver linkedSystemPromptResolver) {
     this.agentRequestHandler = agentRequestHandler;
+    this.linkedSystemPromptResolver = linkedSystemPromptResolver;
   }
 
   @Override
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV2Request.class);
+    var inlinePrompt =
+        request.data().systemPrompt() == null ? null : request.data().systemPrompt().prompt();
+    var linkedPrompt =
+        linkedSystemPromptResolver.resolve(context.getJobContext().getCustomHeaders());
+    var data =
+        linkedPrompt == null
+            ? request.data()
+            : request
+                .data()
+                .withSystemPrompt(
+                    new SystemPromptConfiguration(
+                        LinkedSystemPromptResolver.compose(inlinePrompt, linkedPrompt)));
     var executionContext =
         new AgentSubProcessExecutionContext(
             context.getJobContext(),
-            request.data(),
+            data,
             request.agentContext(),
             request.toolCallResults(),
             request.toolElements(),

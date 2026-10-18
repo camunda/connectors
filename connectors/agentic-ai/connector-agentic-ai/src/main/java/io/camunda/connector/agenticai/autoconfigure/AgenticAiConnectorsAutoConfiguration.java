@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
+import io.camunda.connector.agenticai.aiagent.LinkedSystemPromptResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
@@ -415,7 +416,10 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
   public AgentSubProcessV2Function aiAgentSubProcessV2Function(
-      AgentSubProcessRequestHandler agentRequestHandler) {
-    return new AgentSubProcessV2Function(agentRequestHandler);
+      AgentSubProcessRequestHandler agentRequestHandler,
+      CamundaClient camundaClient,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new AgentSubProcessV2Function(
+        agentRequestHandler, new LinkedSystemPromptResolver(camundaClient, objectMapper));
   }
 }
