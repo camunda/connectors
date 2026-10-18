@@ -3113,6 +3113,24 @@
     "placeholder" : "claude-sonnet-5",
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
+    "label" : "Enable prompt caching",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
+    "type" : "Boolean"
+  }, {
     "id" : "provider.anthropic.model.parameters.effort",
     "label" : "Effort",
     "optional" : false,
@@ -3231,24 +3249,6 @@
       "name" : "omitted",
       "value" : "omitted"
     } ]
-  }, {
-    "id" : "provider.anthropic.model.parameters.promptCaching.enabled",
-    "label" : "Enable prompt caching",
-    "optional" : true,
-    "value" : false,
-    "feel" : "static",
-    "group" : "model",
-    "binding" : {
-      "name" : "provider.anthropic.model.parameters.promptCaching.enabled",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "anthropic",
-      "type" : "simple"
-    },
-    "tooltip" : "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
-    "type" : "Boolean"
   }, {
     "id" : "provider.bedrock.model.model",
     "label" : "Model",

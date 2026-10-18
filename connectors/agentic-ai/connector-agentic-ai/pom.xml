@@ -39,15 +39,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1=${project.basedir}/element-
 io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
     </systemPromptOverrides>
     <version.daytona-sdk>0.189.0</version.daytona-sdk>
-    <!--
-      OkHttp 5.x publishes its JVM classes in the `okhttp-jvm` artifact; the plain
-      `okhttp` artifact is an empty Kotlin-Multiplatform umbrella that only links to
-      `okhttp-jvm` via Gradle module metadata (which Maven does not read). The Daytona
-      SDK depends on the empty `okhttp`, so without an explicit `okhttp-jvm` dependency
-      classes like okhttp3.Callback are missing at runtime (NoClassDefFoundError).
-      Keep this in sync with the OkHttp version resolved transitively by the Daytona SDK.
-    -->
-    <version.okhttp>5.4.0</version.okhttp>
   </properties>
 
   <licenses>
@@ -318,17 +309,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <version>${version.daytona-sdk}</version>
     </dependency>
 
-    <!--
-      Provide OkHttp's actual JVM classes. The Daytona SDK pulls the empty
-      `com.squareup.okhttp3:okhttp` umbrella (KMP), so its classes (okhttp3.Callback, …)
-      are only available through `okhttp-jvm`. See the version.okhttp property comment.
-    -->
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
-      <scope>runtime</scope>
-    </dependency>
 
     <dependency>
       <groupId>io.github.a2asdk</groupId>

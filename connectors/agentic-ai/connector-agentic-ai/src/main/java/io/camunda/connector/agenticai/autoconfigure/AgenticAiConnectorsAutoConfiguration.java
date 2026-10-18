@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.autoconfigure;
 
+import io.camunda.client.CamundaClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aClientPollingConfiguration;

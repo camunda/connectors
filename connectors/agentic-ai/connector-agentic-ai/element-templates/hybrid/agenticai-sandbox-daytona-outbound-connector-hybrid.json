@@ -342,6 +342,17 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjExIiBoZWlnaHQ9IjIyMCIgdmlld0JveD0iMCAwIDIxMSAyMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHg9IjExLjE0MjgiIHk9IjE0OS4wMjUiIHdpZHRoPSI3Ni4yNDc0IiBoZWlnaHQ9IjI2LjE0MjEiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTEzLjUyMiIgeT0iNTcuNTI4NyIgd2lkdGg9Ijg3LjEzOTkiIGhlaWdodD0iMjYuMTQyMSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iOTEuNDk3MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KDAuNzA3MTA1IC0wLjcwNzEwOCAwLjcwNzEwNSAwLjcwNzEwOCA2Ny43NzM3IDY1LjU4NTgpIiBmaWxsPSIjMTYxNjE2Ii8+CjxyZWN0IHdpZHRoPSI3MC4yNjkxIiBoZWlnaHQ9IjI2LjE0MiIgdHJhbnNmb3JtPSJtYXRyaXgoLTAuNzA3MTA1IC0wLjcwNzEwOCAtMC43MDcxMDUgMC43MDcxMDggNjguMTcyOSAxMzAuOTQxKSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iNzQuMDY5MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KC0wLjcwNzEwNSAwLjcwNzEwOCAtMC43MDcxMDUgLTAuNzA3MTA4IDEzMy41MzIgMTY3LjUxMSkiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3Qgd2lkdGg9IjgyLjc4MzEiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjcwNzEwNSAwLjcwNzEwOCAwLjcwNzEwNSAtMC43MDcxMDggMTMzLjEzMyAxMDIuMTU2KSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB4PSI2Ny43NzM3IiB5PSIzNy45MjI3IiB3aWR0aD0iNjMuMTc2NyIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0icm90YXRlKDkwIDY3Ljc3MzcgMzcuOTIyNykiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTU5LjI3OCIgeT0iMTI5LjQxOSIgd2lkdGg9Ijc4LjQyNjIiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09InJvdGF0ZSg5MCAxNTkuMjc4IDEyOS40MTkpIiBmaWxsPSIjMTYxNjE2Ii8+Cjwvc3ZnPgo="
