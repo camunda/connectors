@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
          so it must be pinned independently. Remove once spring-boot-dependencies ships
          a non-vulnerable tools.jackson:jackson-bom version (>= 3.1.6 on 3.1.x or >= 3.2.2 on 3.2.x).
          Ref: https://github.com/FasterXML/jackson-databind/security/advisories/GHSA-q4xh-88c3-wmh7 -->
-    <version.jackson3-bom>3.2.3</version.jackson3-bom>
+    <version.jackson3-bom>3.2.4</version.jackson3-bom>
     <version.hibernate-validator>9.1.5.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
