@@ -374,7 +374,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
     // completedAt
     for (final var item :
-        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
+        historyMapper.inputHistoryItems(
+            syntheticMessage, toolCallsById, OffsetDateTime.now(), sandboxState(executionContext))) {
       items.add(toHistoryItem(item, iteration));
     }
 
