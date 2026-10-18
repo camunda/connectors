@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 public class VertexCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VertexCaller.class);
+  private static final String GLOBAL_ENDPOINT = "aiplatform.googleapis.com";
 
   public String generateContent(ExtractionRequestData input, GcpProvider baseRequest)
       throws Exception {
@@ -42,6 +43,7 @@ public class VertexCaller {
           VertexAiGeminiChatModel.builder()
               .project(configuration.getProjectId())
               .location(configuration.getRegion())
+              .apiEndpoint(GLOBAL_ENDPOINT)
               .modelName(input.converseData().modelId())
               .temperature(input.converseData().temperature())
               .topP(input.converseData().topP())
