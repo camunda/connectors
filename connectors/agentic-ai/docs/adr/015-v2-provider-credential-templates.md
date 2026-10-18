@@ -101,6 +101,9 @@ AWS (Bedrock Converse and Anthropic's AWS Bedrock Mantle backend). Concretely:
 
 ## Follow-up
 
-* Anthropic's and OpenAI's `custom` backends are intentionally not covered yet: whether an
-  `endpoint` belongs inside a credential there, or stays a per-diagram concern even when the
-  authentication is saved, is still open.
+* OpenAI's `custom` backend is covered by `agentic-ai-openai-custom-credential:1`, which holds
+  `endpoint`, `apiKey` and `model` together, because an OpenAI-compatible endpoint, key and model
+  form one unit. It supports API-key authentication only. OAuth client-credentials stays inline.
+* Anthropic's `custom` backend is intentionally not covered yet: whether an `endpoint` belongs
+  inside a credential there, or stays a per-diagram concern even when the authentication is
+  saved, is still open.

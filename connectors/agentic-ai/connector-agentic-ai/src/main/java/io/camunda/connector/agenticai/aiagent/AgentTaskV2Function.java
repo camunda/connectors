@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryClientCred
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleGeminiApiCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GoogleVertexAiCredential;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiApiCredential;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomCredential;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -60,6 +61,7 @@ import org.jspecify.annotations.Nullable;
     configurations = {
       AnthropicApiCredential.class,
       OpenAiApiCredential.class,
+      OpenAiCustomCredential.class,
       GoogleGeminiApiCredential.class,
       GoogleVertexAiCredential.class,
       FoundryApiKeyCredential.class,

@@ -88,7 +88,7 @@ public class OpenAiCompletionsRequestConverter {
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final OpenAiConnection connection = configuration.openai();
-    final String modelId = connection.model().model();
+    final String modelId = java.util.Objects.requireNonNull(connection.effectiveModel()).model();
     final CompletionsParameters params = completionsParameters(connection);
 
     final var builder = ChatCompletionCreateParams.builder().model(modelId);

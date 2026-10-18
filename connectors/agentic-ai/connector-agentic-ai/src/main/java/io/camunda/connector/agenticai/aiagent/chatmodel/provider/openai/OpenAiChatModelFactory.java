@@ -166,9 +166,9 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       OpenAiCustomBackend custom,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var connection = custom.custom();
-    builder.baseUrl(connection.endpoint());
+    builder.baseUrl(connection.effectiveEndpoint());
 
-    switch (connection.authentication()) {
+    switch (java.util.Objects.requireNonNull(connection.effectiveAuthentication())) {
       case NoAuthentication ignored -> builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY);
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
@@ -281,7 +281,7 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     return switch (backend) {
       case OpenAiApiBackend apiBackend -> Optional.ofNullable(apiBackend.openai().endpoint());
       case OpenAiFoundryBackend foundryBackend -> Optional.of(foundryBackend.foundry().endpoint());
-      case OpenAiCustomBackend custom -> Optional.of(custom.custom().endpoint());
+      case OpenAiCustomBackend custom -> Optional.ofNullable(custom.custom().effectiveEndpoint());
     };
   }
 }
