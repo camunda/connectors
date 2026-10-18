@@ -247,9 +247,25 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       }
       // Tests pass a typed SandboxToolCall directly (avoids serializing mock Documents);
       // at runtime bindVariables yields a Map which the document-aware mapper rehydrates.
-      return raw instanceof SandboxToolCall s
-          ? s
-          : objectMapper.convertValue(raw, SandboxToolCall.class);
+      if (raw instanceof SandboxToolCall s) {
+        return s;
+      }
+      // bindVariables already rehydrates document references into live Documents, which the
+      // plain ObjectMapper cannot serialize; carry the Document across the conversion as-is.
+      if (raw instanceof Map<?, ?> map && map.get("document") instanceof Document liveDocument) {
+        Map<Object, Object> copy = new LinkedHashMap<>(map);
+        copy.remove("document");
+        SandboxToolCall converted = objectMapper.convertValue(copy, SandboxToolCall.class);
+        return new SandboxToolCall(
+            converted.operation(),
+            converted.sandboxId(),
+            converted.command(),
+            converted.path(),
+            converted.content(),
+            liveDocument,
+            converted.agentInstanceKey());
+      }
+      return objectMapper.convertValue(raw, SandboxToolCall.class);
     }
     throw new ConnectorException("SANDBOX_UNSUPPORTED_MODE", "Unsupported connector mode: " + mode);
   }
