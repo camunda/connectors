@@ -199,7 +199,7 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put(
             "summary", "Exported '%s' (%d bytes) as a document.".formatted(path, bytes.length));
-        result.put("document", doc);
+        result.put("document", documentReferenceMap(doc));
         yield result;
       }
       case IMPORT_DOCUMENT -> {
@@ -352,5 +352,39 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
       case "webp" -> "image/webp";
       default -> "application/octet-stream";
     };
+  }
+
+  /**
+   * Serializes a document to the runtime's reference-map shape. The connector runtime's result
+   * mapper on this build has no document serializer, so a live {@link Document} fails job
+   * completion; {@link SandboxGatewayToolHandler#extractDocuments} converts this map back.
+   */
+  private static Map<String, Object> documentReferenceMap(Document doc) {
+    if (!(doc.reference()
+        instanceof io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference ref)) {
+      throw new ConnectorException(
+          "SANDBOX_DOCUMENT_REFERENCE", "Unsupported document reference: " + doc.reference());
+    }
+    Map<String, Object> metadata = new LinkedHashMap<>();
+    var md = ref.getMetadata();
+    if (md != null) {
+      if (md.getContentType() != null) metadata.put("contentType", md.getContentType());
+      if (md.getFileName() != null) metadata.put("fileName", md.getFileName());
+      if (md.getSize() != null) metadata.put("size", md.getSize());
+      if (md.getExpiresAt() != null) metadata.put("expiresAt", md.getExpiresAt().toString());
+      if (md.getProcessDefinitionId() != null)
+        metadata.put("processDefinitionId", md.getProcessDefinitionId());
+      if (md.getProcessInstanceKey() != null)
+        metadata.put("processInstanceKey", md.getProcessInstanceKey());
+      if (md.getCustomProperties() != null && !md.getCustomProperties().isEmpty())
+        metadata.put("customProperties", md.getCustomProperties());
+    }
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put("camunda.document.type", "camunda");
+    map.put("storeId", ref.getStoreId());
+    map.put("documentId", ref.getDocumentId());
+    map.put("contentHash", ref.getContentHash());
+    map.put("metadata", metadata);
+    return map;
   }
 }
