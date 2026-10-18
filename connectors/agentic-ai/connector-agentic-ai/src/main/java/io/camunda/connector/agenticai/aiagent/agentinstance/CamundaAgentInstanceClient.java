@@ -125,7 +125,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .history(
                 List.of(
                     configurationHistoryItem(
-                        configuration, FIRST_ITERATION, OffsetDateTime.now())));
+                        configuration,
+                        agentExecutionContext.configurationEvidence(),
+                        FIRST_ITERATION,
+                        OffsetDateTime.now())));
 
     try {
       final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
@@ -223,10 +226,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     final List<AgentInstanceHistoryItem> historyItems = new ArrayList<>();
     if (configurationChanged(previousTurn, configuration)) {
       historyItems.add(
-          configurationHistoryItem(configuration, turn.iterationKey(), turnIngestionTimestamp));
+          configurationHistoryItem(
+              configuration,
+              executionContext.configurationEvidence(),
+              turn.iterationKey(),
+              turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn,
+            previousTurn,
+            turnIngestionTimestamp,
+            turn.iterationKey(),
+            sandboxState(executionContext)));
 
     applyBatchedUpdate(
         executionContext,
@@ -243,12 +255,26 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .orElse(true);
   }
 
+  private static @Nullable Object sandboxState(AgentExecutionContext executionContext) {
+    final var agentContext = executionContext.initialAgentContext();
+    if (agentContext == null || agentContext.properties() == null) {
+      return null;
+    }
+    return agentContext.properties().get(AgentHistoryEvidence.SANDBOX_PROPERTY);
+  }
+
   private AgentInstanceHistoryItem configurationHistoryItem(
-      AgentConfiguration configuration, int iterationKey, OffsetDateTime producedAt) {
+      AgentConfiguration configuration,
+      Map<String, Object> evidence,
+      int iterationKey,
+      OffsetDateTime producedAt) {
     return new AgentInstanceHistoryItem()
         .historyItemId(configuration.fingerprint())
         .role(AgentInstanceHistoryRole.CONFIGURATION)
-        .content(List.of())
+        .content(
+            evidence.isEmpty()
+                ? List.of()
+                : List.of(AgentInstanceHistoryContent.object(AgentHistoryEvidence.wrap(evidence))))
         .loopIteration(iterationKey)
         .producedAt(producedAt)
         .provider(configuration.chatModel().descriptiveProvider())
@@ -263,13 +289,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      @Nullable Object sandboxState) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, sandboxState)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }

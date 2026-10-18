@@ -37,6 +37,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -76,6 +77,18 @@ public class AgentInstanceHistoryMapper {
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
+    return inputHistoryItems(message, toolCallsById, turnIngestionTimestamp, null);
+  }
+
+  /**
+   * @param sandboxState the {@code sandbox} agent context property (handle, workDir), used to
+   *     record sandbox evidence on sandbox tool results (prototype)
+   */
+  public List<InputHistoryItem> inputHistoryItems(
+      Message message,
+      Map<String, ToolCall> toolCallsById,
+      OffsetDateTime turnIngestionTimestamp,
+      @Nullable Object sandboxState) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
@@ -87,7 +100,7 @@ public class AgentInstanceHistoryMapper {
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
-              .map(result -> toolResultHistoryItem(result, toolCallsById))
+              .map(result -> toolResultHistoryItem(result, toolCallsById, sandboxState))
               .toList();
       default ->
           throw new IllegalArgumentException(
@@ -97,16 +110,29 @@ public class AgentInstanceHistoryMapper {
   }
 
   private InputHistoryItem toolResultHistoryItem(
-      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
+      ToolCallResultContent result,
+      Map<String, ToolCall> toolCallsById,
+      @Nullable Object sandboxState) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
+    final ToolCall toolCall = result.id() == null ? null : toolCallsById.get(result.id());
+    // gateway tools (e.g. the sandbox) report the element id as the result name; prefer the tool
+    // name the model called so the result matches its tool call
+    final String toolName = toolCall != null ? toolCall.name() : result.name();
+    final List<AgentInstanceHistoryContent> content =
+        new ArrayList<>(contentBlocks(result.content()));
+    final var sandboxEvidence =
+        AgentHistoryEvidence.sandbox(toolCall, result.elementId(), sandboxState, result.content());
+    if (sandboxEvidence != null) {
+      content.add(objectHistoryContent(AgentHistoryEvidence.wrap(sandboxEvidence)));
+    }
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        contentBlocks(result.content()),
+        content,
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
-                .toolName(StringUtils.defaultString(result.name()))
+                .toolName(StringUtils.defaultString(toolName))
                 .elementId(elementIdFor(result.elementId(), result.name()))
                 .arguments(argumentsForResult(result, toolCallsById))),
         requireCompletedAt(result),
@@ -149,7 +175,14 @@ public class AgentInstanceHistoryMapper {
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    return contentBlocks(assistantMessage.content());
+    final var content = contentBlocks(assistantMessage.content());
+    final var serverToolEvidence = AgentHistoryEvidence.serverToolUse(assistantMessage);
+    if (serverToolEvidence == null) {
+      return content;
+    }
+    final List<AgentInstanceHistoryContent> withEvidence = new ArrayList<>(content);
+    withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(serverToolEvidence)));
+    return withEvidence;
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
