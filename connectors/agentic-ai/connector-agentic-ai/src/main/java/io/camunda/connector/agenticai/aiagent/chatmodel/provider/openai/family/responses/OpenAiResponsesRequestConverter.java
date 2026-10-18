@@ -82,7 +82,7 @@ public class OpenAiResponsesRequestConverter {
       @Nullable ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final OpenAiConnection connection = configuration.openai();
-    final String modelId = connection.model().model();
+    final String modelId = java.util.Objects.requireNonNull(connection.effectiveModel()).model();
     final ResponsesParameters params = responsesParameters(connection);
 
     final var builder = ResponseCreateParams.builder().model(modelId);
