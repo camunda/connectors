@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.caller;
 
+import io.camunda.connector.idp.extraction.client.ai.BedrockAiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
@@ -13,11 +14,6 @@ import io.camunda.connector.idp.extraction.utils.AwsLlmModelUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
-import software.amazon.awssdk.services.bedrockruntime.model.Message;
-import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 
 public class BedrockCaller {
 
@@ -37,34 +33,12 @@ public class BedrockCaller {
             : converseData.modelId();
 
     LlmModel llmModel = LlmModel.fromId(modelId);
+    BedrockAiClient aiClient = new BedrockAiClient(bedrockRuntimeClient, modelId, converseData);
 
-    ConverseResponse response =
-        bedrockRuntimeClient.converse(
-            request -> {
-              String userMessage = llmModel.getMessage(extractedText, input.taxonomyItems());
-
-              if (llmModel.isSystemPromptAllowed()) {
-                SystemContentBlock prompt =
-                    SystemContentBlock.builder().text(llmModel.getSystemPrompt()).build();
-                request.system(prompt);
-              } else {
-                userMessage = String.format("%s%n%s", llmModel.getSystemPrompt(), userMessage);
-              }
-
-              Message message =
-                  Message.builder()
-                      .content(ContentBlock.fromText(userMessage))
-                      .role(ConversationRole.USER)
-                      .build();
-
-              request
-                  .modelId(modelId)
-                  .messages(message)
-                  .inferenceConfig(
-                      config ->
-                          config.temperature(converseData.temperature()).topP(converseData.topP()));
-            });
-
-    return response.output().message().content().getFirst().text();
+    String userMessage = llmModel.getMessage(extractedText, input.taxonomyItems());
+    if (llmModel.isSystemPromptAllowed()) {
+      return aiClient.chat(llmModel.getSystemPrompt(), userMessage);
+    }
+    return aiClient.chat(String.format("%s%n%s", llmModel.getSystemPrompt(), userMessage));
   }
 }
