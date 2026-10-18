@@ -10,12 +10,14 @@ import io.camunda.connector.agenticai.aiagent.LinkedSystemPromptResolver.Resolve
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,12 +28,15 @@ import org.jspecify.annotations.Nullable;
 /**
  * Prototype (unsupported): builds {@code {"evidence": {...}}} OBJECT content blocks that are
  * appended to agent instance history items so that Operate can show where a turn's inputs came from
- * (linked prompt, saved credential, server tools, sandbox). Never records secret values.
+ * (linked prompt, saved credential, server tools, PDF parsing, sandbox). Never records secret
+ * values.
  */
 public final class AgentHistoryEvidence {
 
   public static final String EVIDENCE_KEY = "evidence";
   public static final String SANDBOX_PROPERTY = "sandbox";
+  public static final String DOCUMENT_PARSING = "documentParsing";
+  private static final String FILE_PARSER_PLUGIN = "file-parser";
   private static final String OPENAI_CUSTOM_CREDENTIAL_TEMPLATE =
       "io.camunda:agentic-ai-openai-custom-credential:1";
   private static final Pattern EXIT_CODE = Pattern.compile("exit_code:\\s*(-?\\d+)");
@@ -59,7 +64,85 @@ public final class AgentHistoryEvidence {
     }
     evidence.put("credential", credential(provider));
     evidence.put("serverTools", Map.of("configured", configuredServerTools(provider)));
+    evidence.put(DOCUMENT_PARSING, documentParsing(provider));
     return evidence;
+  }
+
+  /**
+   * How PDF documents are parsed: the OpenRouter {@code file-parser} plugin engine configured in
+   * the custom backend {@code bodyProperties.plugins}, or the provider default when it is absent.
+   */
+  private static Map<String, Object> documentParsing(ChatModelConfiguration provider) {
+    final Map<String, Object> parsing = new LinkedHashMap<>();
+    if (!(provider instanceof OpenAiChatModelConfiguration openAi)) {
+      parsing.put("pdfEngine", "provider default");
+      return parsing;
+    }
+    final boolean completions = openAi.openai().api() instanceof OpenAiCompletionsApi;
+    parsing.put("sentAs", completions ? "file content part" : "input_file content part");
+    final var customizations = openAi.openai().backend().requestCustomizations();
+    final Map<String, Object> body =
+        customizations != null ? customizations.bodyProperties() : null;
+    final Object plugins = body != null ? body.get("plugins") : null;
+    if (plugins instanceof List<?> list) {
+      for (final Object plugin : list) {
+        if (plugin instanceof Map<?, ?> map && FILE_PARSER_PLUGIN.equals(map.get("id"))) {
+          parsing.put("plugin", FILE_PARSER_PLUGIN);
+          final Object engine = map.get("pdf") instanceof Map<?, ?> pdf ? pdf.get("engine") : null;
+          parsing.put("pdfEngine", engine != null ? engine : "provider default");
+          parsing.put("configuredVia", "bodyProperties.plugins");
+          return parsing;
+        }
+      }
+    }
+    parsing.put("pdfEngine", "provider default");
+    return parsing;
+  }
+
+  /**
+   * Evidence for the PDF documents attached to a user message: which document was sent to the model
+   * and which engine parsed it.
+   */
+  public static @Nullable Map<String, Object> documentParsing(
+      List<Content> content, @Nullable Object parsingConfiguration) {
+    final List<Object> documents = new ArrayList<>();
+    for (final Content c : content) {
+      if (c instanceof DocumentContent doc && isPdf(doc)) {
+        final Map<String, Object> entry = new LinkedHashMap<>();
+        final var metadata = doc.document().metadata();
+        putIfPresent(entry, "fileName", metadata != null ? metadata.getFileName() : null);
+        if (doc.document().reference() instanceof CamundaDocumentReference ref) {
+          entry.put("documentId", ref.getDocumentId());
+        }
+        putIfPresent(entry, "contentType", metadata != null ? metadata.getContentType() : null);
+        documents.add(entry);
+      }
+    }
+    if (documents.isEmpty()) {
+      return null;
+    }
+    final Map<String, Object> evidence = new LinkedHashMap<>();
+    evidence.put("kind", DOCUMENT_PARSING);
+    if (parsingConfiguration instanceof Map<?, ?> config) {
+      config.forEach((key, value) -> evidence.put(String.valueOf(key), value));
+    } else {
+      evidence.put("pdfEngine", "provider default");
+    }
+    evidence.put("documents", documents);
+    return evidence;
+  }
+
+  private static boolean isPdf(DocumentContent doc) {
+    final var metadata = doc.document().metadata();
+    if (metadata == null) {
+      return false;
+    }
+    final String contentType = metadata.getContentType();
+    if (contentType != null && contentType.toLowerCase().startsWith("application/pdf")) {
+      return true;
+    }
+    final String fileName = metadata.getFileName();
+    return fileName != null && fileName.toLowerCase().endsWith(".pdf");
   }
 
   private static Map<String, Object> credential(ChatModelConfiguration provider) {

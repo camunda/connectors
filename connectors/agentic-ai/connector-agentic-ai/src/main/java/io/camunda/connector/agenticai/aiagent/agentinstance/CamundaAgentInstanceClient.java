@@ -238,7 +238,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             previousTurn,
             turnIngestionTimestamp,
             turn.iterationKey(),
-            sandboxState(executionContext)));
+            sandboxState(executionContext),
+            executionContext.configurationEvidence().get(AgentHistoryEvidence.DOCUMENT_PARSING)));
 
     applyBatchedUpdate(
         executionContext,
@@ -290,14 +291,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       int iterationKey,
-      @Nullable Object sandboxState) {
+      @Nullable Object sandboxState,
+      @Nullable Object documentParsing) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(
-              message, toolCallsById, turnIngestionTimestamp, sandboxState)) {
+              message, toolCallsById, turnIngestionTimestamp, sandboxState, documentParsing)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }

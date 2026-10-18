@@ -89,12 +89,25 @@ public class AgentInstanceHistoryMapper {
       Map<String, ToolCall> toolCallsById,
       OffsetDateTime turnIngestionTimestamp,
       @Nullable Object sandboxState) {
+    return inputHistoryItems(message, toolCallsById, turnIngestionTimestamp, sandboxState, null);
+  }
+
+  /**
+   * @param documentParsing the {@code documentParsing} configuration evidence, used to record which
+   *     engine parsed the PDF documents attached to a user message (prototype)
+   */
+  public List<InputHistoryItem> inputHistoryItems(
+      Message message,
+      Map<String, ToolCall> toolCallsById,
+      OffsetDateTime turnIngestionTimestamp,
+      @Nullable Object sandboxState,
+      @Nullable Object documentParsing) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  contentBlocks(userMessage.content()),
+                  userContent(userMessage, documentParsing),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -107,6 +120,19 @@ public class AgentInstanceHistoryMapper {
               "Unsupported input message type for history item: "
                   + message.getClass().getSimpleName());
     };
+  }
+
+  private List<AgentInstanceHistoryContent> userContent(
+      UserMessage userMessage, @Nullable Object documentParsing) {
+    final var content = contentBlocks(userMessage.content());
+    final var evidence =
+        AgentHistoryEvidence.documentParsing(userMessage.content(), documentParsing);
+    if (evidence == null) {
+      return content;
+    }
+    final List<AgentInstanceHistoryContent> withEvidence = new ArrayList<>(content);
+    withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(evidence)));
+    return withEvidence;
   }
 
   private InputHistoryItem toolResultHistoryItem(
