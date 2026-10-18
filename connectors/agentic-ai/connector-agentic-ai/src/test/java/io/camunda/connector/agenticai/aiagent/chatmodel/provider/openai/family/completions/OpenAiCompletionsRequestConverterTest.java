@@ -44,6 +44,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool.WebSearchParameters;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -626,6 +628,67 @@ class OpenAiCompletionsRequestConverterTest {
     assertThat(params._additionalHeaders().values("X-Hidden-Header"))
         .containsExactly("hidden-value");
     assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
+  }
+
+  // --- Server tools --------------------------------------------------------------------------
+
+  @Test
+  void mapsWebSearchServerToolNextToFunctionTool() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            List.of(
+                ToolDefinition.builder()
+                    .name("Calc")
+                    .inputSchema(Map.of("type", "object"))
+                    .build()));
+    final var serverTool =
+        new OpenAiServerTool(
+            OpenAiServerTool.Type.WEB_SEARCH,
+            new WebSearchParameters("exa", 3, List.of("visa.com", "usa.visa.com")));
+
+    final var params =
+        converter.toRequest(
+            model(new CompletionsParameters(null, null, null, null, List.of(serverTool))),
+            null,
+            snapshot);
+
+    final var tools = requestBodyAsJson(params).path("tools");
+    assertThat(tools).hasSize(2);
+    assertThat(tools.get(0).path("type").asText()).isEqualTo("function");
+    final var webSearch = tools.get(1);
+    assertThat(webSearch.path("type").asText()).isEqualTo("openrouter:web_search");
+    assertThat(webSearch.path("parameters").path("engine").asText()).isEqualTo("exa");
+    assertThat(webSearch.path("parameters").path("max_results").asInt()).isEqualTo(3);
+    assertThat(webSearch.path("parameters").path("allowed_domains"))
+        .extracting(JsonNode::asText)
+        .containsExactly("visa.com", "usa.visa.com");
+  }
+
+  @Test
+  void omitsParametersWhenWebSearchServerToolHasNone() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+    final var serverTool = new OpenAiServerTool(OpenAiServerTool.Type.WEB_SEARCH, null);
+
+    final var params =
+        converter.toRequest(
+            model(new CompletionsParameters(null, null, null, null, List.of(serverTool))),
+            null,
+            snapshot);
+
+    final var tools = requestBodyAsJson(params).path("tools");
+    assertThat(tools).hasSize(1);
+    assertThat(tools.get(0).path("type").asText()).isEqualTo("openrouter:web_search");
+    assertThat(tools.get(0).has("parameters")).isFalse();
+  }
+
+  @Test
+  void sendsNoToolsWithoutServerTools() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(requestBodyAsJson(params).has("tools")).isFalse();
   }
 
   // --- Family guard --------------------------------------------------------------------------
