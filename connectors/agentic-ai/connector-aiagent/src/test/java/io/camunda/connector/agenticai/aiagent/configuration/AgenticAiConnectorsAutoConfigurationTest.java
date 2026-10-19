@@ -51,6 +51,7 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsA
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomGoogleVertexAiProviderConfig.CustomGoogleVertexAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiCompatibleProviderConfig.CustomOpenAiCompatibleChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsAutoConfigurationTest.CustomLangChain4JChatModelFactoryOverrides.CustomOpenAiProviderConfig.CustomOpenAiChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -140,6 +141,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV1Function.class,
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
+          AgentLifecycleDispatcher.class,
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
           BedrockConverseChatModelFactory.class,

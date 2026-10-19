@@ -10,8 +10,10 @@ import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
@@ -35,7 +37,8 @@ public class AgentSubProcessRequestHandler
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      AgentLifecycleDispatcher lifecycleDispatcher) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -43,7 +46,13 @@ public class AgentSubProcessRequestHandler
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        lifecycleDispatcher);
+  }
+
+  @Override
+  protected AgentFlavor flavor() {
+    return AgentFlavor.SUB_PROCESS;
   }
 
   @Override

@@ -23,11 +23,24 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentJobKind;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.JobDeferred;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.JobFailed;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.ModelRoundCompleted;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.ModelRoundFailed;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.ModelRoundStarted;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.ToolDiscoveryDispatched;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.ToolExecution;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.TurnCompleted;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.TurnStarted;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentJobLifecycle;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -35,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
@@ -42,10 +56,13 @@ import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -64,6 +81,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final AgentLifecycleDispatcher lifecycleDispatcher;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -72,7 +90,8 @@ public abstract class BaseAgentRequestHandler<
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      AgentLifecycleDispatcher lifecycleDispatcher) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -80,16 +99,24 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.lifecycleDispatcher = lifecycleDispatcher;
   }
 
   @Override
   public R handleRequest(final C executionContext) {
+    final var startedAt = Instant.now();
     return switch (agentInitializer.initializeAgent(executionContext)) {
       case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
         LOGGER.debug(
             "AI Agent initialization dispatching {} gateway tool discovery calls. Completing job without further processing.",
             toolDiscoveryToolCalls.size());
-        yield dispatchToolDiscovery(executionContext, agentContext, toolDiscoveryToolCalls);
+        final var lifecycle =
+            startLifecycle(executionContext, AgentJobKind.TOOL_DISCOVERY, agentContext, startedAt);
+        yield failFast(
+            lifecycle,
+            () ->
+                dispatchToolDiscovery(
+                    executionContext, agentContext, toolDiscoveryToolCalls, lifecycle));
       }
       case DeferConversation() -> {
         LOGGER.debug(
@@ -98,15 +125,44 @@ public abstract class BaseAgentRequestHandler<
       }
       case ReadyToConverse(var agentContext, var toolCallResults) -> {
         LOGGER.debug("Handling agent request with {} tool call results", toolCallResults.size());
-        yield converse(executionContext, agentContext, toolCallResults);
+        final var lifecycle =
+            startLifecycle(executionContext, AgentJobKind.CONVERSATION, agentContext, startedAt);
+        yield failFast(
+            lifecycle, () -> converse(executionContext, agentContext, toolCallResults, lifecycle));
       }
     };
+  }
+
+  /** The flavor of the connector that this handler runs, reported to lifecycle listeners. */
+  protected abstract AgentFlavor flavor();
+
+  private AgentJobLifecycle startLifecycle(
+      C executionContext, AgentJobKind kind, AgentContext agentContext, Instant startedAt) {
+    return lifecycleDispatcher.startJob(
+        flavor(), kind, executionContext.jobContext(), agentContext, startedAt);
+  }
+
+  /** Runs the agent work and reports a failure to the lifecycle listeners before rethrowing it. */
+  private R failFast(AgentJobLifecycle lifecycle, Supplier<R> work) {
+    try {
+      return work.get();
+    } catch (RuntimeException e) {
+      lifecycle.jobFailed(new JobFailed(e, errorCodeOf(e)));
+      throw e;
+    }
+  }
+
+  private static @Nullable String errorCodeOf(Throwable e) {
+    return e instanceof ConnectorException connectorException
+        ? connectorException.getErrorCode()
+        : null;
   }
 
   private R converse(
       final C executionContext,
       final AgentContext agentContext,
-      final List<ToolCallResult> toolCallResults) {
+      final List<ToolCallResult> toolCallResults,
+      final AgentJobLifecycle lifecycle) {
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
@@ -130,6 +186,7 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
               executionContext, agentContext, arrivedResults, previousConversation);
+          lifecycle.jobDeferred(new JobDeferred(arrivedResults));
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -144,7 +201,8 @@ public abstract class BaseAgentRequestHandler<
                 previousConversation,
                 newMessages,
                 session,
-                store);
+                store,
+                lifecycle);
       };
     }
   }
@@ -175,12 +233,14 @@ public abstract class BaseAgentRequestHandler<
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
       final ConversationSession session,
-      final ConversationStore store) {
+      final ConversationStore store,
+      final AgentJobLifecycle lifecycle) {
     var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
+    lifecycle.turnStarted(turnStarted(conversation, agentConfiguration));
     throwIfLimitsReached(conversation, agentConfiguration);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
@@ -200,7 +260,12 @@ public abstract class BaseAgentRequestHandler<
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
       updatedConversation =
           driveContinuationLoop(
-              executionContext, agentConfiguration, conversation, chatModel, agentInstanceKey);
+              executionContext,
+              agentConfiguration,
+              conversation,
+              chatModel,
+              agentInstanceKey,
+              lifecycle);
     }
 
     LOGGER.debug("Storing conversation messages to session");
@@ -210,14 +275,27 @@ public abstract class BaseAgentRequestHandler<
             ConversationStoreRequest.of(updatedConversation.allMessages()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
-    final var agentResponse = responseHandler.createResponse(storedConversation);
+    final var createdResponse = responseHandler.createResponse(storedConversation);
+    final var completedTurn = storedConversation.currentTurn();
+    final var agentResponse =
+        createdResponse.withContext(
+            lifecycle.turnCompleted(
+                createdResponse.context(),
+                new TurnCompleted(
+                    completedTurn.iterationKey(),
+                    completedTurn.toolCalls(),
+                    completedTurn.assistantMessage(),
+                    storedConversation.currentTurnMetrics())));
 
     LOGGER.debug("Request processing completed with agent response, completing job");
 
     final var messageStorageCompletionListener =
         createStoreCompletionListener(executionContext, store, agentResponse);
     return buildConnectorResponse(
-        executionContext, storedConversation, agentResponse, messageStorageCompletionListener);
+        executionContext,
+        storedConversation,
+        agentResponse,
+        withLifecycle(messageStorageCompletionListener, lifecycle));
   }
 
   /**
@@ -229,17 +307,22 @@ public abstract class BaseAgentRequestHandler<
       AgentConfiguration agentConfiguration,
       AgentConversation conversation,
       ChatModel chatModel,
-      @Nullable AgentInstanceKey agentInstanceKey) {
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentJobLifecycle lifecycle) {
     var workingConversation = conversation;
     boolean continued;
+    int round = 0;
     do {
+      round++;
       LOGGER.debug(
           "Sending turn (iterationKey={}) to the model",
           workingConversation.currentTurn().iterationKey());
 
       final var windowedSnapshot =
           workingConversation.window(agentConfiguration.contextWindowSize());
-      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
+      final var chatResult =
+          executeChatModelRound(
+              chatModel, executionContext, agentConfiguration, windowedSnapshot, lifecycle, round);
 
       workingConversation =
           workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
@@ -268,6 +351,41 @@ public abstract class BaseAgentRequestHandler<
       }
     } while (continued);
     return workingConversation;
+  }
+
+  /**
+   * Wraps {@link #executeChatModel} in a lifecycle round: every started round is closed, completed
+   * or failed, and a failure is rethrown unchanged.
+   */
+  private ChatResult executeChatModelRound(
+      ChatModel chatModel,
+      AgentExecutionContext executionContext,
+      AgentConfiguration agentConfiguration,
+      ConversationSnapshot snapshot,
+      AgentJobLifecycle lifecycle,
+      int round) {
+    lifecycle.modelRoundStarted(
+        new ModelRoundStarted(
+            round,
+            agentConfiguration.chatModel(),
+            snapshot.messages(),
+            snapshot.toolDefinitions()));
+    final ChatResult result;
+    try {
+      result = executeChatModel(chatModel, executionContext, snapshot);
+    } catch (RuntimeException e) {
+      final var errorCode = errorCodeOf(e);
+      lifecycle.modelRoundFailed(
+          new ModelRoundFailed(
+              errorCode != null ? errorCode : e.getClass().getSimpleName(), errorCode, e));
+      throw e;
+    }
+    lifecycle.modelRoundCompleted(
+        new ModelRoundCompleted(
+            result.assistantMessage(),
+            result.metrics(),
+            result instanceof ChatResult.Continuation));
+    return result;
   }
 
   /**
@@ -362,15 +480,20 @@ public abstract class BaseAgentRequestHandler<
   }
 
   private R dispatchToolDiscovery(
-      C executionContext, AgentContext agentContext, List<ToolCall> discoveryToolCalls) {
+      C executionContext,
+      AgentContext agentContext,
+      List<ToolCall> discoveryToolCalls,
+      AgentJobLifecycle lifecycle) {
     var response =
         AgentResponse.builder()
-            .context(agentContext)
+            .context(
+                lifecycle.toolDiscoveryDispatched(
+                    agentContext, new ToolDiscoveryDispatched(discoveryToolCalls.size())))
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
     agentInstanceClient.applyToolDiscoveryStart(
         executionContext, AgentInstanceKey.from(agentContext.metadata()));
-    return buildConnectorResponse(executionContext, null, response, null);
+    return buildConnectorResponse(executionContext, null, response, withLifecycle(null, lifecycle));
   }
 
   /** Called when no agent response should be produced this turn. Default: no-op response. */
@@ -397,6 +520,84 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
+
+  private TurnStarted turnStarted(
+      AgentConversation conversation, AgentConfiguration agentConfiguration) {
+    final var currentTurn = conversation.currentTurn();
+    final var previousTurn = conversation.lastTurn().orElse(null);
+    final var toolCallsById = new java.util.HashMap<String, ToolCall>();
+    if (previousTurn != null) {
+      previousTurn.toolCalls().forEach(call -> toolCallsById.putIfAbsent(call.id(), call));
+    }
+
+    final var toolExecutions =
+        currentTurn.inputMessages().stream()
+            .filter(ToolCallResultMessage.class::isInstance)
+            .map(ToolCallResultMessage.class::cast)
+            .flatMap(message -> message.results().stream())
+            .map(
+                result ->
+                    new ToolExecution(
+                        result.id() != null ? toolCallsById.get(result.id()) : null,
+                        result,
+                        result.properties() != null
+                            && Boolean.TRUE.equals(
+                                result.properties().get(ToolCallResult.PROPERTY_INTERRUPTED))))
+            .toList();
+
+    final var issuedAt =
+        toolExecutions.isEmpty() || previousTurn == null || previousTurn.assistantMessage() == null
+            ? null
+            : timestampOf(previousTurn.assistantMessage().id().value());
+
+    return new TurnStarted(
+        currentTurn.iterationKey(),
+        toolExecutions,
+        issuedAt,
+        currentTurn.inputMessages(),
+        conversation.systemMessage(),
+        agentConfiguration.chatModel(),
+        agentConfiguration.toolDefinitions());
+  }
+
+  /** The creation time encoded in a time-ordered (version 7) UUID, null for any other version. */
+  private static @Nullable Instant timestampOf(UUID id) {
+    return id.version() == 7 ? Instant.ofEpochMilli(id.getMostSignificantBits() >>> 16) : null;
+  }
+
+  /**
+   * Composes the completion callbacks of the conversation store and of the lifecycle listeners. The
+   * lifecycle callback runs even when the store callback throws.
+   */
+  private static @Nullable AgentJobCompletionListener withLifecycle(
+      @Nullable AgentJobCompletionListener storeListener, AgentJobLifecycle lifecycle) {
+    if (lifecycle == AgentJobLifecycle.NOOP) {
+      return storeListener;
+    }
+    return new AgentJobCompletionListener() {
+      @Override
+      public void onJobCompleted() {
+        try {
+          if (storeListener != null) {
+            storeListener.onJobCompleted();
+          }
+        } finally {
+          lifecycle.jobCompleted();
+        }
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        try {
+          if (storeListener != null) {
+            storeListener.onJobCompletionFailed(failure);
+          }
+        } finally {
+          lifecycle.jobCompletionFailed(failure);
+        }
+      }
+    };
+  }
 
   private static <C extends AgentExecutionContext>
       @Nullable AgentJobCompletionListener createStoreCompletionListener(

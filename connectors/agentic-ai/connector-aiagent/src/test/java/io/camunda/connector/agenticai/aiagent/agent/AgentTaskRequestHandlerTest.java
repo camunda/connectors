@@ -37,6 +37,8 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcherImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -63,6 +65,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,6 +89,11 @@ class AgentTaskRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private AgentLifecycleDispatcher lifecycleDispatcher =
+      new AgentLifecycleDispatcherImpl(List.of(), 4096);
+
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;

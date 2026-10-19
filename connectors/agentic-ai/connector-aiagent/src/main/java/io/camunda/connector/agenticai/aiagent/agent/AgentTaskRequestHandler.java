@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
@@ -25,7 +27,8 @@ public class AgentTaskRequestHandler
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      AgentLifecycleDispatcher lifecycleDispatcher) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -33,7 +36,13 @@ public class AgentTaskRequestHandler
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        lifecycleDispatcher);
+  }
+
+  @Override
+  protected AgentFlavor flavor() {
+    return AgentFlavor.TASK;
   }
 
   @Override
