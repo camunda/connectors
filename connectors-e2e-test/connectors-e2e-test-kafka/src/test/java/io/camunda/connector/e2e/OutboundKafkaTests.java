@@ -29,8 +29,9 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -66,28 +67,38 @@ public class OutboundKafkaTests extends BaseKafkaTest {
     }
   }
 
-  @Test
-  void testKafkaConnectorProcess() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testKafkaConnectorProcess(boolean useCredential) {
 
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+            .property(
+                "kafkaConnectionConfiguration", useCredential ? createConnectionCredential() : "")
             .property("authentication.username", "")
             .property("authentication.password", "")
-            .property("topic.bootstrapServers", getBootstrapServers())
+            .property("topic.bootstrapServers", useCredential ? "" : getBootstrapServers())
             .property("topic.topicName", TOPIC)
             .property("headers", "=" + HEADER_KEY_VALUE)
-            .property("additionalProperties", "=" + ADDITIONAL_PROPERTIES_KEY_VALUE)
+            // This process test exercises binding and the existing advanced override path.
+            // SASL_SSL authentication is covered by KafkaCredentialIntegrationTest.
+            .property(
+                "additionalProperties",
+                useCredential
+                    ? "={\"security.protocol\":\"PLAINTEXT\"}"
+                    : "=" + ADDITIONAL_PROPERTIES_KEY_VALUE)
             .property("message.key", "=" + MESSAGE_KEY_JSON)
             .property("message.value", "=" + MESSAGE_VALUE)
-            .property("resultExpression", OUTBOUND_RESULT_EXPRESSION)
-            .writeTo(new File(tempDir, "template.json"));
+            .property("resultExpression", OUTBOUND_RESULT_EXPRESSION);
+    var templateFile = elementTemplate.writeTo(new File(tempDir, "template.json"));
 
     BpmnModelInstance model = getBpmnModelInstance("outboundKafkaTask");
-    BpmnModelInstance updatedModel =
-        getBpmnModelInstance(model, elementTemplate, "outboundKafkaTask");
+    BpmnModelInstance updatedModel = getBpmnModelInstance(model, templateFile, "outboundKafkaTask");
     var bpmnTest = getZeebeTest(updatedModel);
 
-    KafkaInboundMessage kafkaMessage = testConsumer.pollMessages(1, 1000).get(0);
+    var messages = testConsumer.pollMessages(1, 10_000);
+    assertThat(messages).hasSize(1);
+    KafkaInboundMessage kafkaMessage = messages.getFirst();
     // validate kafka message
     assertThat(kafkaMessage.getKey().toString()).isEqualTo(MESSAGE_KEY_JSON);
     assertThat(kafkaMessage.getValue().toString()).isEqualTo(MESSAGE_VALUE);

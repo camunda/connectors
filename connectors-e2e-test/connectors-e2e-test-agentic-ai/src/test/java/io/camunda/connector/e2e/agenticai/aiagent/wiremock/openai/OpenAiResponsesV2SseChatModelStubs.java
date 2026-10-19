@@ -75,6 +75,32 @@ public final class OpenAiResponsesV2SseChatModelStubs {
   }
 
   /**
+   * A single response whose usage carries explicit cached-input and reasoning-token counts.
+   *
+   * <p>{@code inputTokens} is the expected non-cached input count. The wire response adds {@code
+   * cachedTokens} because the Responses API's {@code input_tokens} total includes cached input.
+   */
+  public record UsageDetailsTurnStub(
+      String text, int inputTokens, int outputTokens, long cachedTokens, long reasoningTokens) {}
+
+  public static void stubConversation(UsageDetailsTurnStub turn) {
+    final int id = TURN_COUNTER.getAndIncrement();
+    stubFor(
+        post(urlPathEqualTo(RESPONSES_PATH))
+            .willReturn(
+                sseResponse(
+                    frame(
+                        responseJson(
+                            id,
+                            turn.text(),
+                            List.of(),
+                            turn.inputTokens() + turn.cachedTokens(),
+                            turn.outputTokens(),
+                            turn.cachedTokens(),
+                            turn.reasoningTokens())))));
+  }
+
+  /**
    * Wires a scenario chain whose first turn is a {@link ReasoningTurnStub} (an {@code encrypted
    * reasoning} item followed by one or more client {@code function_call} items), followed by any
    * number of ordinary {@link TurnStub} turns - mirrors the native-Anthropic sibling's {@code
@@ -191,6 +217,17 @@ public final class OpenAiResponsesV2SseChatModelStubs {
 
   private static String responseJson(
       int id, String text, List<ToolCallStub> toolCalls, int inputTokens, int outputTokens) {
+    return responseJson(id, text, toolCalls, inputTokens, outputTokens, 0, 0);
+  }
+
+  private static String responseJson(
+      int id,
+      String text,
+      List<ToolCallStub> toolCalls,
+      long inputTokens,
+      long outputTokens,
+      long cachedTokens,
+      long reasoningTokens) {
     final StringBuilder output = new StringBuilder("[");
     boolean first = true;
     if (text != null && !text.isBlank()) {
@@ -213,7 +250,7 @@ public final class OpenAiResponsesV2SseChatModelStubs {
         + "\"tools\":[],\"output\":"
         + output
         + ",\"usage\":"
-        + usageJson(inputTokens, outputTokens)
+        + usageJson(inputTokens, outputTokens, cachedTokens, reasoningTokens)
         + "}";
   }
 
@@ -238,15 +275,23 @@ public final class OpenAiResponsesV2SseChatModelStubs {
         + ",\"status\":\"completed\"}";
   }
 
-  private static String usageJson(int inputTokens, int outputTokens) {
+  private static String usageJson(long inputTokens, long outputTokens) {
+    return usageJson(inputTokens, outputTokens, 0, 0);
+  }
+
+  private static String usageJson(
+      long inputTokens, long outputTokens, long cachedTokens, long reasoningTokens) {
     return "{\"input_tokens\":"
         + inputTokens
         + ",\"output_tokens\":"
         + outputTokens
         + ",\"total_tokens\":"
         + (inputTokens + outputTokens)
-        + ",\"input_tokens_details\":{\"cached_tokens\":0},"
-        + "\"output_tokens_details\":{\"reasoning_tokens\":0}}";
+        + ",\"input_tokens_details\":{\"cached_tokens\":"
+        + cachedTokens
+        + "},\"output_tokens_details\":{\"reasoning_tokens\":"
+        + reasoningTokens
+        + "}}";
   }
 
   private static Response parseResponse(String json) {

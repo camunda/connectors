@@ -11,6 +11,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.automationanywhere.auth.AuthenticationFactory;
+import io.camunda.connector.automationanywhere.model.request.AutomationAnywhereConfiguration;
 import io.camunda.connector.automationanywhere.model.request.AutomationAnywhereRequest;
 import io.camunda.connector.automationanywhere.operations.OperationFactory;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -20,10 +21,15 @@ import java.util.Map;
 
 @OutboundConnector(
     name = "Automation Anywhere Outbound Connector",
-    inputVariables = {"authentication", "operation", "configuration"},
+    inputVariables = {
+      "authenticationConfiguration",
+      "authentication",
+      "operation",
+      "configuration"
+    },
     type = "io.camunda:connector-automationanywhere:1")
 @ElementTemplate(
-    engineVersion = "^8.4",
+    engineVersion = "^8.10",
     id = "io.camunda.connectors.AutomationAnywhere",
     name = "Automation Anywhere Outbound Connector",
     description = "Manage work items in Automation Anywhere queues.",
@@ -39,7 +45,8 @@ import java.util.Map;
       "automation"
     },
     inputDataClass = AutomationAnywhereRequest.class,
-    version = 4,
+    version = 5,
+    configurations = {AutomationAnywhereConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

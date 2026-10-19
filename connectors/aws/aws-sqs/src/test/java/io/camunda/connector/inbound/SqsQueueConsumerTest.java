@@ -9,10 +9,13 @@ package io.camunda.connector.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityBuilder;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
@@ -21,8 +24,11 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.inbound.model.SqsInboundQueueProperties;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +40,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -195,5 +202,98 @@ public class SqsQueueConsumerTest {
     // then
     verify(context).reportHealth(Health.down());
     verifyNoMoreInteractions(context);
+  }
+
+  @Test
+  void receiveFailure_shouldBackOffAndReportHealth() {
+    // given
+    List<Duration> sleeps = new ArrayList<>();
+    consumer = new SqsQueueConsumer(sqsClient, properties, context, sleeps::add);
+    var queueMissing = QueueDoesNotExistException.builder().message("queue missing").build();
+    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+        .thenThrow(queueMissing, queueMissing, queueMissing)
+        .thenAnswer(
+            invocation -> {
+              consumer.setQueueConsumerActive(false);
+              return ReceiveMessageResponse.builder().messages(List.<Message>of()).build();
+            });
+
+    // when
+    consumer.run();
+
+    // then
+    assertThat(sleeps)
+        .containsExactly(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4));
+    ArgumentCaptor<Consumer<ActivityBuilder>> activityCaptor = ArgumentCaptor.captor();
+    verify(context, times(2)).log(activityCaptor.capture());
+    List<Activity> activities =
+        activityCaptor.getAllValues().stream()
+            .map(
+                builderConsumer -> {
+                  ActivityBuilder builder = Activity.newBuilder();
+                  builderConsumer.accept(builder);
+                  return builder.build();
+                })
+            .toList();
+    assertThat(activities.get(0).healthChange()).isEqualTo(Health.down(queueMissing));
+    assertThat(activities.get(1).healthChange()).isEqualTo(Health.up());
+    verify(context).reportHealth(Health.down());
+  }
+
+  @Test
+  void receiveFailure_backoffIsCapped() {
+    // given
+    List<Duration> sleeps = new ArrayList<>();
+    consumer =
+        new SqsQueueConsumer(
+            sqsClient,
+            properties,
+            context,
+            duration -> {
+              sleeps.add(duration);
+              if (sleeps.size() == 8) {
+                consumer.setQueueConsumerActive(false);
+              }
+            });
+    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+        .thenThrow(QueueDoesNotExistException.builder().message("queue missing").build());
+
+    // when
+    consumer.run();
+
+    // then
+    assertThat(sleeps)
+        .containsExactly(
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(2),
+            Duration.ofSeconds(4),
+            Duration.ofSeconds(8),
+            Duration.ofSeconds(16),
+            Duration.ofSeconds(32),
+            Duration.ofSeconds(60),
+            Duration.ofSeconds(60));
+  }
+
+  @Test
+  void receiveFailure_interruptedDuringBackoff_shouldStop() {
+    // given
+    consumer =
+        new SqsQueueConsumer(
+            sqsClient,
+            properties,
+            context,
+            duration -> {
+              throw new InterruptedException();
+            });
+    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+        .thenThrow(QueueDoesNotExistException.builder().message("queue missing").build());
+
+    // when
+    consumer.run();
+
+    // then
+    verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+    assertThat(Thread.interrupted()).isTrue();
+    verify(context).reportHealth(Health.down());
   }
 }

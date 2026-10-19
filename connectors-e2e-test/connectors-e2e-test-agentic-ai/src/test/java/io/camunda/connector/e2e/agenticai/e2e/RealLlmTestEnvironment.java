@@ -32,4 +32,8 @@ final class RealLlmTestEnvironment {
     final var value = System.getenv(variableName);
     return value == null || value.isBlank() ? defaultValue : value;
   }
+
+  static boolean isProviderRequired() {
+    return "true".equalsIgnoreCase(System.getenv("REQUIRE_NATIVE_LLM_PROVIDER"));
+  }
 }

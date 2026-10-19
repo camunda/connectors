@@ -37,6 +37,7 @@ import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Arrays;
@@ -148,6 +149,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
         connector ->
             openWorkerForOutboundConnector(
                 client,
+                clientName,
                 physicalTenantId,
                 documentFactory,
                 secretFilterFactory,
@@ -173,7 +175,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
    */
   private static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
     try {
-      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      var physicalTenantId = PhysicalTenantClients.configuredPhysicalTenantId(client);
       return physicalTenantId != null ? physicalTenantId : clientName;
     } catch (RuntimeException e) {
       return clientName;
@@ -182,6 +184,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   private void openWorkerForOutboundConnector(
       CamundaClient client,
+      String clientName,
       String physicalTenantId,
       DocumentFactory documentFactory,
       SecretFilterFactory secretFilterFactory,
@@ -228,6 +231,6 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 intrinsicFunctionAllowListFactory,
                 client);
     jobWorkerManager.createJobWorker(
-        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
+        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this, clientName);
   }
 }

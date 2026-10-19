@@ -416,6 +416,7 @@ public final class StreamingAnthropicMessagesSseChatModelStubs {
                     .outputTokensDetails((OutputTokensDetails) null)
                     .serverToolUse((ServerToolUsage) null)
                     .serviceTier((ServiceTier) null)
+                    .speed(Usage.Speed.STANDARD)
                     .build())
             .build();
     return RawMessageStartEvent.builder().message(message).build();
