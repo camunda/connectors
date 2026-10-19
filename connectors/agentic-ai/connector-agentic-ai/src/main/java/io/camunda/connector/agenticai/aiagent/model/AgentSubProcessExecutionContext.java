@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
+import java.util.Objects;
 
 public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
@@ -51,7 +52,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
     this.configuration =
         new AgentConfiguration(
             chatModel,
-            data.systemPrompt(),
+            Objects.requireNonNull(data.systemPrompt(), "System prompt must be provided"),
             data.userPrompt(),
             data.memory(),
             data.limits(),

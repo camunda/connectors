@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV2Request;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.LinkedHashMap;
 
@@ -52,14 +53,18 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
         request.data().systemPrompt() == null ? null : request.data().systemPrompt().prompt();
     var linkedPrompt =
         linkedSystemPromptResolver.resolve(context.getJobContext().getCustomHeaders());
-    var data =
+    if (linkedPrompt == null && (inlinePrompt == null || inlinePrompt.isBlank())) {
+      throw new ConnectorException(
+          "NO_SYSTEM_PROMPT", "Provide an inline system prompt or link a system prompt resource.");
+    }
+    var composedPrompt =
         linkedPrompt == null
+            ? null
+            : LinkedSystemPromptResolver.compose(inlinePrompt, linkedPrompt);
+    var data =
+        composedPrompt == null
             ? request.data()
-            : request
-                .data()
-                .withSystemPrompt(
-                    new SystemPromptConfiguration(
-                        LinkedSystemPromptResolver.compose(inlinePrompt, linkedPrompt)));
+            : request.data().withSystemPrompt(new SystemPromptConfiguration(composedPrompt));
     var executionContext =
         new AgentSubProcessExecutionContext(
                 context.getJobContext(),
@@ -72,6 +77,7 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
                 AgentHistoryEvidence.configuration(request.provider(), linkedPrompt));
     var response = agentRequestHandler.handleRequest(executionContext);
     if (linkedPrompt == null
+        || composedPrompt == null
         || !(response.variables().get(AgentProcessVariables.AGENT_RESPONSE)
             instanceof AgentSubProcessResponse agentResponse)) {
       return response;
@@ -83,7 +89,7 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
             linkedPrompt.promptId(),
             linkedPrompt.binding(),
             linkedPrompt.version(),
-            data.systemPrompt().prompt());
+            composedPrompt);
     var variables = new LinkedHashMap<>(response.variables());
     variables.put(AgentProcessVariables.AGENT_RESPONSE, agentResponse.withSystemPrompt(provenance));
     return response.withVariables(variables);
