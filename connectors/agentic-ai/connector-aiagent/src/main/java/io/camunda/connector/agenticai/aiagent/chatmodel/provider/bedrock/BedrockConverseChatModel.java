@@ -116,17 +116,21 @@ public class BedrockConverseChatModel implements ChatModel {
 
   private ConnectorException toConnectorException(Throwable cause) {
     if (cause instanceof AwsServiceException awsServiceException) {
-      final String errorCode =
+      final String reportedErrorCode =
           Optional.ofNullable(awsServiceException.awsErrorDetails())
               .map(details -> details.errorCode())
-              .orElseGet(() -> awsServiceException.getClass().getSimpleName());
+              .orElse(null);
+      final String errorCode =
+          reportedErrorCode != null
+              ? reportedErrorCode
+              : awsServiceException.getClass().getSimpleName();
       return new ChatModelCallFailedException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s"
               .formatted(
                   awsServiceException.statusCode(), errorCode, awsServiceException.getMessage()),
           awsServiceException,
-          errorCode);
+          reportedErrorCode != null ? reportedErrorCode : awsServiceException.getClass().getName());
     }
 
     final String detail =
@@ -137,7 +141,7 @@ public class BedrockConverseChatModel implements ChatModel {
         ERROR_CODE_FAILED_MODEL_CALL,
         "Model call failed: %s".formatted(detail),
         cause,
-        cause.getClass().getSimpleName());
+        cause.getClass().getName());
   }
 
   @Override

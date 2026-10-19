@@ -88,9 +88,9 @@ public class OpenAiChatModel implements ChatModel {
   /** The error type the API reported, else the class name of the failure. */
   private static String errorTypeOf(Exception e) {
     if (e instanceof OpenAIServiceException serviceException) {
-      return serviceException.type().filter(t -> !t.isBlank()).orElse(e.getClass().getSimpleName());
+      return serviceException.type().filter(t -> !t.isBlank()).orElse(e.getClass().getName());
     }
-    return e.getClass().getSimpleName();
+    return e.getClass().getName();
   }
 
   /**

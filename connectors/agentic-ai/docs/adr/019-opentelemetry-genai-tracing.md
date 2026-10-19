@@ -146,8 +146,10 @@ The decision comprises:
   Provider HTTP child spans are a production-milestone decision.
 
 * **D9 — The attribute vocabulary is pinned in one place, and attribute names track upstream.** The
-  GenAI conventions are in Development status. One mapping class pinned to a dated upstream revision is
-  the only place with attribute names, so an upstream rename is a one-file change. Token usage follows
+  GenAI conventions are in Development status. One mapping class pinned to a commit of the upstream
+  semantic-conventions-genai repository is the only place with attribute names, so an upstream rename
+  is a one-file change. Where a backend still reads a name that upstream has renamed (Phoenix and the
+  cache write count), both names are emitted. Token usage follows
   the conventions' totals rule: input tokens include cached tokens, with cache and reasoning counts as
   subsets. The mechanism (enablement, configuration, trace shape, failure semantics) is supported;
   attribute names are documented as following upstream.

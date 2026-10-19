@@ -16,6 +16,8 @@ import io.camunda.connector.agenticai.aiagent.api.lifecycle.ToolDiscoveryDispatc
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.ToolExecution;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.TurnCompleted;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.TurnStarted;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.otel.RunTraceState.Status;
 import io.camunda.connector.agenticai.otel.RunTraceStateResolver.Resolution;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -31,6 +33,7 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -68,6 +71,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
 
   private List<ToolExecution> toolExecutions = List.of();
   private @Nullable Instant toolCallsIssuedAt;
+  private Map<String, ToolDefinition> toolDefinitions = Map.of();
 
   AgentTracingJobObserver(
       AgentTracer tracer, JobStarted job, Resolution resolution, boolean captureContent) {
@@ -101,7 +105,15 @@ class AgentTracingJobObserver implements AgentJobObserver {
         () -> {
           this.toolExecutions = List.copyOf(event.toolExecutions());
           this.toolCallsIssuedAt = event.toolCallsIssuedAt();
+          this.toolDefinitions = toolDefinitionsByName(event.toolDefinitions());
           open(event);
+          final Span agentSpan = invokeAgent;
+          if (captureContent && agentSpan != null) {
+            final String input = GenAiAttributeMapper.inputMessagesJson(event.inputMessages());
+            if (input != null) {
+              agentSpan.setAttribute(GenAiAttributes.INPUT_MESSAGES, input);
+            }
+          }
           return null;
         });
   }
@@ -161,6 +173,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
           final Span span = chat;
           if (span != null) {
             chat = null;
+            span.setAttribute(
+                GenAiAttributes.RESPONSE_FINISH_REASONS,
+                List.of(GenAiAttributes.FINISH_REASON_ERROR));
             tracer.markError(span, event.errorType(), description(event.cause()));
             tracer.end(span, Instant.now());
           }
@@ -172,9 +187,17 @@ class AgentTracingJobObserver implements AgentJobObserver {
   public synchronized @Nullable Map<String, Object> onTurnCompleted(TurnCompleted event) {
     return guarded(
         "turn completed",
-        () ->
-            stateToContribute(
-                event.finalAnswer() ? Status.CLOSED : Status.OPEN, event.iterationKey()));
+        () -> {
+          final Span agentSpan = invokeAgent;
+          final AssistantMessage assistantMessage = event.assistantMessage();
+          if (captureContent && agentSpan != null && assistantMessage != null) {
+            agentSpan.setAttribute(
+                GenAiAttributes.OUTPUT_MESSAGES,
+                GenAiAttributeMapper.outputMessagesJson(assistantMessage));
+          }
+          return stateToContribute(
+              event.finalAnswer() ? Status.CLOSED : Status.OPEN, event.iterationKey());
+        });
   }
 
   @Override
@@ -184,9 +207,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
         () -> {
           open(null);
           final String errorType =
-              event.errorCode() != null
-                  ? event.errorCode()
-                  : event.cause().getClass().getSimpleName();
+              event.errorCode() != null ? event.errorCode() : event.cause().getClass().getName();
           endAll(GenAiAttributes.JOB_OUTCOME_FAILED, errorType, description(event.cause()), false);
           return null;
         });
@@ -223,13 +244,13 @@ class AgentTracingJobObserver implements AgentJobObserver {
             case ExecutionFailed executionFailed ->
                 endAll(
                     GenAiAttributes.JOB_OUTCOME_FAILED,
-                    executionFailed.cause().getClass().getSimpleName(),
+                    executionFailed.cause().getClass().getName(),
                     description(executionFailed.cause()),
                     false);
             case CommandFailed commandFailed ->
                 endAll(
                     GenAiAttributes.JOB_OUTCOME_FAILED,
-                    commandFailed.cause().getClass().getSimpleName(),
+                    commandFailed.cause().getClass().getName(),
                     description(commandFailed.cause()),
                     false);
             case JobErrorRaised errorRaised ->
@@ -311,8 +332,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private Attributes invokeAgentAttributes() {
     final AttributesBuilder builder = identity.toBuilder();
     builder.put(GenAiAttributes.OPERATION_NAME, GenAiAttributes.OPERATION_INVOKE_AGENT);
-    builder.put(
-        GenAiAttributes.AGENT_ID, job.job().processDefinitionKey() + "/" + job.job().elementId());
     builder.put(GenAiAttributes.AGENT_NAME, job.job().elementId());
     builder.put(GenAiAttributes.JOB_KEY, Long.toString(job.job().jobKey()));
     builder.put(GenAiAttributes.JOB_KIND, job.kind().name().toLowerCase(Locale.ROOT));
@@ -361,6 +380,12 @@ class AgentTracingJobObserver implements AgentJobObserver {
     final Span openChat = chat;
     if (openChat != null) {
       chat = null;
+      openChat.setAttribute(
+          GenAiAttributes.RESPONSE_FINISH_REASONS, List.of(GenAiAttributes.FINISH_REASON_ERROR));
+      tracer.markError(
+          openChat,
+          errorType != null ? errorType : GenAiAttributes.ERROR_TYPE_JOB_ABANDONED,
+          description);
       tracer.end(openChat, now);
     }
     final Span agentSpan = invokeAgent;
@@ -395,6 +420,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
 
         final AttributesBuilder builder = identity.toBuilder();
         builder.putAll(GenAiAttributeMapper.toolIdentityAttributes(execution.call(), result));
+        builder.put(GenAiAttributes.AGENT_NAME, job.job().elementId());
         builder.put(
             GenAiAttributes.TOOL_OUTCOME,
             execution.cancelled()
@@ -409,6 +435,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
             GenAiAttributeMapper.toolContentAttributes(execution.call(), result, captureContent));
 
         final String name = execution.call() != null ? execution.call().name() : result.name();
+        final ToolDefinition definition = name != null ? toolDefinitions.get(name) : null;
+        if (definition != null && definition.description() != null) {
+          builder.put(GenAiAttributes.TOOL_DESCRIPTION, definition.description());
+        }
         final Span span =
             tracer.startChild(
                 name != null ? "execute_tool " + name : "execute_tool",
@@ -421,6 +451,15 @@ class AgentTracingJobObserver implements AgentJobObserver {
         LOGGER.debug("Agent tracing could not emit a tool span", t);
       }
     }
+  }
+
+  private static Map<String, ToolDefinition> toolDefinitionsByName(
+      List<ToolDefinition> definitions) {
+    final Map<String, ToolDefinition> byName = new HashMap<>();
+    for (final ToolDefinition definition : definitions) {
+      byName.putIfAbsent(definition.name(), definition);
+    }
+    return byName;
   }
 
   /** The exception message, only with content capture: it can contain prompt or tool content. */

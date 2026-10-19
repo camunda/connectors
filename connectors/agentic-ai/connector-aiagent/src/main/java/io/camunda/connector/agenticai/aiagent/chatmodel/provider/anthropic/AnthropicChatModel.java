@@ -105,14 +105,15 @@ public class AnthropicChatModel implements ChatModel {
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(message, executionTime);
     } catch (AnthropicServiceException e) {
+      final String reportedErrorType = e.errorType().map(ErrorType::asString).orElse(null);
       final String errorType =
-          e.errorType().map(ErrorType::asString).orElse(e.getClass().getSimpleName());
+          reportedErrorType != null ? reportedErrorType : e.getClass().getSimpleName();
       throw new ChatModelCallFailedException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s"
               .formatted(e.statusCode(), errorType, e.getMessage()),
           e,
-          errorType);
+          reportedErrorType != null ? reportedErrorType : e.getClass().getName());
     } catch (ConnectorException | ChatModelRejectedException e) {
       // already coded -- a ConnectorException thrown by e.g. the OAuth token resolver, or a
       // ChatModelRejectedException thrown by the response converter for a known rejection. Let it
@@ -120,7 +121,7 @@ public class AnthropicChatModel implements ChatModel {
       throw e;
     } catch (Exception e) {
       throw new ChatModelCallFailedException(
-          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, e.getClass().getSimpleName());
+          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, e.getClass().getName());
     }
   }
 

@@ -158,7 +158,7 @@ public abstract class BaseAgentRequestHandler<
     if (e instanceof ChatModelCallFailedException callFailed) {
       return callFailed.errorType();
     }
-    return errorCode != null ? errorCode : e.getClass().getSimpleName();
+    return errorCode != null ? errorCode : e.getClass().getName();
   }
 
   private static @Nullable String errorCodeOf(Throwable e) {

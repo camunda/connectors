@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.otel.configuration.AgentTracingProperties;
 import io.camunda.connector.api.outbound.JobCompletionFailure.CommandFailure.CommandIgnored;
 import io.camunda.connector.api.outbound.JobCompletionFailure.ExecutionFailed;
@@ -156,6 +157,12 @@ class AgentTracingJobObserverTest {
     assertThat(searchTool.getEndEpochNanos()).isEqualTo(nanos(completedA));
     assertThat(searchTool.getParentSpanId()).isEqualTo(invokeAgent.getSpanId());
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME)).isEqualTo("completed");
+    assertThat(searchTool.getAttributes().get(GenAiAttributes.AGENT_NAME)).isEqualTo("agent");
+    assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION))
+        .isEqualTo("Search the web");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.PROCESS_DEFINITION_KEY))
+        .isEqualTo("3");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.INPUT_MESSAGES)).isNull();
     final SpanData approvalTool = span("execute_tool approval");
     assertThat(approvalTool.getEndEpochNanos()).isEqualTo(nanos(completedB));
     assertThat(approvalTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME))
@@ -202,6 +209,8 @@ class AgentTracingJobObserverTest {
     assertThat(chat.getAttributes().get(GenAiAttributes.ERROR_TYPE))
         .isEqualTo("MODEL_CONTEXT_WINDOW_EXCEEDED");
     assertThat(chat.getEvents()).isEmpty();
+    assertThat(chat.getAttributes().get(GenAiAttributes.RESPONSE_FINISH_REASONS))
+        .containsExactly("error");
     final SpanData invokeAgent = span("invoke_agent agent");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME)).isEqualTo("failed");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
@@ -209,6 +218,49 @@ class AgentTracingJobObserverTest {
     assertThat(invokeAgent.getStatus().getDescription()).isEmpty();
     final SpanData anchor = span("agent run");
     assertThat(anchor.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+  }
+
+  @Test
+  void chatSpanStillOpenWhenTheJobEndsIsEndedAsFailed() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onModelRoundStarted(roundStarted());
+    observer.onJobCompletionFailed(new CommandIgnored(new RuntimeException("not found")));
+
+    final SpanData chat = span("chat claude-x");
+    assertThat(chat.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+    assertThat(chat.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isEqualTo("job_superseded");
+    assertThat(chat.getAttributes().get(GenAiAttributes.RESPONSE_FINISH_REASONS))
+        .containsExactly("error");
+  }
+
+  @Test
+  void agentSpanCarriesTheTurnMessagesOnlyWithContentCapture() {
+    final var capturing =
+        new AgentTracingListener(
+            new AgentTracerImpl(
+                OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
+            new AgentTracingProperties(true, true, "prod-eu"));
+    final var observer =
+        capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnCompleted(
+        new TurnCompleted(
+            1,
+            List.of(),
+            AssistantMessage.builder().content(List.of(TextContent.textContent("answer"))).build(),
+            AgentMetrics.empty()));
+    observer.onJobCompleted();
+
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.INPUT_MESSAGES))
+        .contains("\"role\":\"user\"", "hi");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.OUTPUT_MESSAGES))
+        .contains("\"role\":\"assistant\"", "answer");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.USAGE_INPUT_TOKENS)).isNull();
   }
 
   @Test
@@ -282,7 +334,19 @@ class AgentTracingJobObserverTest {
       int iterationKey, List<ToolExecution> executions, @Nullable Instant issuedAt) {
     final List<Message> input =
         List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build());
-    return new TurnStarted(iterationKey, executions, issuedAt, input, null, CHAT_MODEL, List.of());
+    return new TurnStarted(
+        iterationKey,
+        executions,
+        issuedAt,
+        input,
+        null,
+        CHAT_MODEL,
+        List.of(
+            ToolDefinition.builder()
+                .name("search")
+                .description("Search the web")
+                .inputSchema(Map.of("type", "object"))
+                .build()));
   }
 
   private static TurnCompleted turnCompleted(int iterationKey, boolean withToolCalls) {

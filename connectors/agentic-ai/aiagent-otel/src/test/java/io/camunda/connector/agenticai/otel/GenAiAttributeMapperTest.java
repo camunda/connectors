@@ -51,6 +51,7 @@ class GenAiAttributeMapperTest {
 
     assertThat(attributes.get(GenAiAttributes.USAGE_INPUT_TOKENS)).isEqualTo(150L);
     assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_READ_INPUT_TOKENS)).isEqualTo(40L);
+    assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_WRITE_INPUT_TOKENS)).isEqualTo(10L);
     assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_CREATION_INPUT_TOKENS)).isEqualTo(10L);
     assertThat(attributes.get(GenAiAttributes.USAGE_OUTPUT_TOKENS)).isEqualTo(50L);
     assertThat(attributes.get(GenAiAttributes.USAGE_REASONING_OUTPUT_TOKENS)).isEqualTo(20L);
@@ -68,7 +69,7 @@ class GenAiAttributeMapperTest {
   void mapsProviderNames() {
     assertThat(GenAiAttributeMapper.providerName(ANTHROPIC)).isEqualTo("anthropic");
     assertThat(GenAiAttributeMapper.providerName(provider("bedrock"))).isEqualTo("aws.bedrock");
-    assertThat(GenAiAttributeMapper.providerName(provider("mistral"))).isEqualTo("mistral_ai");
+    assertThat(GenAiAttributeMapper.providerName(provider("mistral"))).isEqualTo("mistral");
     assertThat(GenAiAttributeMapper.providerName(provider("my-custom"))).isEqualTo("my-custom");
   }
 
@@ -128,7 +129,30 @@ class GenAiAttributeMapperTest {
         GenAiAttributeMapper.chatResponseAttributes(answer.build(), new TokenUsage(1, 1), true);
     final JsonNode output = JSON.readTree(response.get(GenAiAttributes.OUTPUT_MESSAGES));
     assertThat(output.get(0).get("role").asText()).isEqualTo("assistant");
-    assertThat(output.get(0).get("finish_reason").asText()).isEqualTo("stop");
+    assertThat(output.get(0).has("finish_reason")).isFalse();
+  }
+
+  @Test
+  void responseIdPrefersTheEnvelopeIdFromTheMessageMetadata() {
+    final var withMetadata =
+        AssistantMessage.builder()
+            .messageId("msg_1")
+            .metadata(Map.of("openai", Map.of("responseId", "resp_1")))
+            .build();
+    final var withoutMetadata = AssistantMessage.builder().messageId("msg_1").build();
+    final var withOtherMetadata =
+        AssistantMessage.builder()
+            .messageId("msg_1")
+            .metadata(Map.of("openai", "not a map", "other", Map.of("responseId", 42)))
+            .build();
+
+    assertThat(response(withMetadata).get(GenAiAttributes.RESPONSE_ID)).isEqualTo("resp_1");
+    assertThat(response(withoutMetadata).get(GenAiAttributes.RESPONSE_ID)).isEqualTo("msg_1");
+    assertThat(response(withOtherMetadata).get(GenAiAttributes.RESPONSE_ID)).isEqualTo("msg_1");
+  }
+
+  private static Attributes response(AssistantMessage message) {
+    return GenAiAttributeMapper.chatResponseAttributes(message, new TokenUsage(1, 1), false);
   }
 
   private static ChatModelConfiguration provider(String id) {

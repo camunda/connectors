@@ -163,7 +163,7 @@ public class LangChain4JChatModel implements ChatModel {
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed: %s".formatted(message),
           e,
-          e.getClass().getSimpleName());
+          e.getClass().getName());
     }
   }
 

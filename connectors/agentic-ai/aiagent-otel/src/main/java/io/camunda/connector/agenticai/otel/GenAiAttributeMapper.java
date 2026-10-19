@@ -39,6 +39,7 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -48,6 +49,8 @@ import org.jspecify.annotations.Nullable;
  * capture is requested.
  */
 public final class GenAiAttributeMapper {
+
+  private static final String METADATA_RESPONSE_ID = "responseId";
 
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final JsonNodeFactory NODES = JSON.getNodeFactory();
@@ -60,6 +63,7 @@ public final class GenAiAttributeMapper {
     final AttributesBuilder builder = Attributes.builder();
     builder.put(GenAiAttributes.SESSION_ID, sessionId);
     builder.put(GenAiAttributes.CONVERSATION_ID, sessionId);
+    builder.put(GenAiAttributes.PROCESS_DEFINITION_KEY, Long.toString(job.processDefinitionKey()));
     builder.put(GenAiAttributes.PROCESS_INSTANCE_KEY, Long.toString(job.processInstanceKey()));
     builder.put(GenAiAttributes.ELEMENT_INSTANCE_KEY, Long.toString(job.elementInstanceKey()));
     builder.put(GenAiAttributes.ELEMENT_ID, job.elementId());
@@ -82,7 +86,7 @@ public final class GenAiAttributeMapper {
       case "bedrock", "aws-bedrock", "aws" -> "aws.bedrock";
       case "google-gemini" -> descriptive.contains("vertex") ? "gcp.vertex_ai" : "gcp.gemini";
       case "google-vertex-ai" -> "gcp.vertex_ai";
-      case "mistral" -> "mistral_ai";
+      case "mistral" -> "mistral";
       case "azureOpenAi" -> "azure.ai.openai";
       default -> provider;
     };
@@ -119,6 +123,8 @@ public final class GenAiAttributeMapper {
           GenAiAttributes.USAGE_CACHE_READ_INPUT_TOKENS, (long) usage.cacheReadTokenCount());
     }
     if (usage.cacheCreationTokenCount() > 0) {
+      builder.put(
+          GenAiAttributes.USAGE_CACHE_WRITE_INPUT_TOKENS, (long) usage.cacheCreationTokenCount());
       builder.put(
           GenAiAttributes.USAGE_CACHE_CREATION_INPUT_TOKENS,
           (long) usage.cacheCreationTokenCount());
@@ -168,8 +174,9 @@ public final class GenAiAttributeMapper {
     if (message.modelId() != null) {
       builder.put(GenAiAttributes.RESPONSE_MODEL, message.modelId());
     }
-    if (message.messageId() != null) {
-      builder.put(GenAiAttributes.RESPONSE_ID, message.messageId());
+    final String responseId = responseId(message);
+    if (responseId != null) {
+      builder.put(GenAiAttributes.RESPONSE_ID, responseId);
     }
     final StopReason stopReason = message.stopReason();
     if (stopReason != null) {
@@ -177,13 +184,41 @@ public final class GenAiAttributeMapper {
     }
     builder.putAll(usageAttributes(usage));
     if (captureContent) {
-      final ObjectNode output = assistantMessageNode(message);
-      if (stopReason != null) {
-        output.put("finish_reason", finishReason(stopReason));
-      }
-      builder.put(GenAiAttributes.OUTPUT_MESSAGES, NODES.arrayNode().add(output).toString());
+      builder.put(GenAiAttributes.OUTPUT_MESSAGES, outputMessagesJson(message));
     }
     return builder.build();
+  }
+
+  /**
+   * The id of the response envelope: the {@code responseId} a provider stamps in its entry of the
+   * message metadata, else the id of the message.
+   */
+  private static @Nullable String responseId(AssistantMessage message) {
+    final Map<String, Object> metadata = message.metadata();
+    if (metadata != null) {
+      for (final Object providerEntry : metadata.values()) {
+        if (providerEntry instanceof Map<?, ?> entry
+            && entry.get(METADATA_RESPONSE_ID) instanceof String id
+            && !id.isBlank()) {
+          return id;
+        }
+      }
+    }
+    return message.messageId();
+  }
+
+  /**
+   * The conversation messages of the input, without system messages, as the input messages JSON.
+   */
+  public static @Nullable String inputMessagesJson(List<Message> messages) {
+    final List<Message> conversation =
+        messages.stream().filter(message -> !(message instanceof SystemMessage)).toList();
+    return conversation.isEmpty() ? null : messagesJson(conversation);
+  }
+
+  /** The assistant message as the output messages JSON. */
+  public static String outputMessagesJson(AssistantMessage message) {
+    return NODES.arrayNode().add(assistantMessageNode(message)).toString();
   }
 
   /** Attributes of an {@code execute_tool} span that identify the tool call. */

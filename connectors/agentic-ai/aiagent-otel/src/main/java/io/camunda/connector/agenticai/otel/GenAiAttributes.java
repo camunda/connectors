@@ -12,8 +12,10 @@ import java.util.List;
 /**
  * The attribute vocabulary of the AI Agent spans. The {@code gen_ai.*}, {@code session.id}, and
  * {@code error.type} names are pinned to the OpenTelemetry GenAI semantic conventions
- * (semantic-conventions-genai, status Development, as of 2026-10-02); the {@code camunda.*} names
- * are Camunda's own. An upstream rename is a change in this class.
+ * (open-telemetry/semantic-conventions-genai, status Development, main at commit
+ * 547934afa90a34298441caf80c43b27255c3a292, with the core attributes from semantic-conventions
+ * v1.44.0); the {@code camunda.*} names are Camunda's own. An upstream rename is a change in this
+ * class.
  */
 public final class GenAiAttributes {
 
@@ -42,8 +44,16 @@ public final class GenAiAttributes {
       AttributeKey.longKey("gen_ai.usage.output_tokens");
   public static final AttributeKey<Long> USAGE_CACHE_READ_INPUT_TOKENS =
       AttributeKey.longKey("gen_ai.usage.cache_read.input_tokens");
+  public static final AttributeKey<Long> USAGE_CACHE_WRITE_INPUT_TOKENS =
+      AttributeKey.longKey("gen_ai.usage.cache_write.input_tokens");
+
+  /**
+   * The former name of {@link #USAGE_CACHE_WRITE_INPUT_TOKENS}, deprecated upstream. It is emitted
+   * next to the current name because Arize Phoenix reads only this one.
+   */
   public static final AttributeKey<Long> USAGE_CACHE_CREATION_INPUT_TOKENS =
       AttributeKey.longKey("gen_ai.usage.cache_creation.input_tokens");
+
   public static final AttributeKey<Long> USAGE_REASONING_OUTPUT_TOKENS =
       AttributeKey.longKey("gen_ai.usage.reasoning.output_tokens");
 
@@ -51,7 +61,6 @@ public final class GenAiAttributes {
 
   public static final AttributeKey<String> CONVERSATION_ID =
       AttributeKey.stringKey("gen_ai.conversation.id");
-  public static final AttributeKey<String> AGENT_ID = AttributeKey.stringKey("gen_ai.agent.id");
   public static final AttributeKey<String> AGENT_NAME = AttributeKey.stringKey("gen_ai.agent.name");
   public static final AttributeKey<String> SESSION_ID = AttributeKey.stringKey("session.id");
 
@@ -60,6 +69,8 @@ public final class GenAiAttributes {
   public static final AttributeKey<String> TOOL_NAME = AttributeKey.stringKey("gen_ai.tool.name");
   public static final AttributeKey<String> TOOL_CALL_ID =
       AttributeKey.stringKey("gen_ai.tool.call.id");
+  public static final AttributeKey<String> TOOL_DESCRIPTION =
+      AttributeKey.stringKey("gen_ai.tool.description");
   public static final AttributeKey<String> TOOL_TYPE = AttributeKey.stringKey("gen_ai.tool.type");
   public static final AttributeKey<String> TOOL_CALL_ARGUMENTS =
       AttributeKey.stringKey("gen_ai.tool.call.arguments");
@@ -89,6 +100,8 @@ public final class GenAiAttributes {
       AttributeKey.stringKey("camunda.element_instance.key");
   public static final AttributeKey<String> ELEMENT_ID =
       AttributeKey.stringKey("camunda.element.id");
+  public static final AttributeKey<String> PROCESS_DEFINITION_KEY =
+      AttributeKey.stringKey("camunda.process_definition.key");
   public static final AttributeKey<String> BPMN_PROCESS_ID =
       AttributeKey.stringKey("camunda.bpmn_process_id");
   public static final AttributeKey<String> TENANT_ID = AttributeKey.stringKey("camunda.tenant_id");
@@ -136,4 +149,10 @@ public final class GenAiAttributes {
   public static final String RUN_TRIGGER_FOLLOW_UP = "follow_up";
 
   public static final String ERROR_TYPE_JOB_SUPERSEDED = "job_superseded";
+
+  /** The job ended while a model call was still in flight. */
+  public static final String ERROR_TYPE_JOB_ABANDONED = "job_abandoned";
+
+  /** The finish reason of a model call that ended with an error. */
+  public static final String FINISH_REASON_ERROR = "error";
 }
