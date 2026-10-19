@@ -19,6 +19,7 @@ import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -382,6 +383,28 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
 
     applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, items);
+  }
+
+  @Override
+  public void applyCompactionEvent(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      ConversationCompactionEvent event,
+      int iterationKey) {
+    if (agentInstanceKey == null) {
+      LOGGER.debug("Skipping agent instance compaction event: no agent instance key");
+      return;
+    }
+
+    final AgentInstanceHistoryItem item =
+        new AgentInstanceHistoryItem()
+            .historyItemId("compaction:" + event.eventId())
+            .role(AgentInstanceHistoryRole.CONFIGURATION)
+            .content(
+                List.of(AgentInstanceHistoryContent.object(AgentHistoryEvidence.compaction(event))))
+            .producedAt(OffsetDateTime.now())
+            .loopIteration(iterationKey);
+    applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, List.of(item));
   }
 
   private void applyBatchedUpdate(

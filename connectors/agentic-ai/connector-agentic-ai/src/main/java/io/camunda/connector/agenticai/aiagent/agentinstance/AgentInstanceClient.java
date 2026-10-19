@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -113,4 +114,14 @@ public interface AgentInstanceClient {
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
       AgentContext agentContext);
+
+  /**
+   * Appends a compaction event after the stored conversation was compacted. The event uses the
+   * completed turn's iteration key and does not change the agent instance status.
+   */
+  void applyCompactionEvent(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      ConversationCompactionEvent event,
+      int iterationKey);
 }
