@@ -167,16 +167,16 @@ mvn test -f connectors/agentic-ai/pom.xml                        # unit / integr
 **Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
 to it (`BpmnFile.apply`) to apply templates, so it must be installed even though no pom declares it.
 Template generation itself uses the `element-template-generator-maven-plugin` and needs no CLI. When it
-is missing, e2e tests fail with errors that can look unrelated to your change. Install it once with
-`npm i -g element-templates-cli`.
+is missing, e2e tests fail with errors that can look unrelated to your change. Follow the pinned-version
+prerequisites in the [E2E runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md).
 
 Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
 existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
 see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 
-E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
-LLM stubs). Extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task
-flavor).
+See the [E2E runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) for test
+ownership, local commands, paid-provider authorization, and how to verify that tests ran. Extend
+`BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task flavor).
 
 ```bash
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
@@ -200,9 +200,10 @@ Real-provider / real-LLM acceptance coverage for this module lives in
 
    Applying the label authorizes one run for the PR's current head SHA. After every push or other
    head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
-   receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
-   for images or real providers when Agentic AI code, Agentic AI e2e tests, the CPT registry, or its
-   workflow inputs changed. Matrix execution is capped at four concurrent legs.
+   receive Vault-backed credentials. The workflow first classifies changes using the curated impact
+   map, including shared dependencies and test infrastructure. Classification does not authorize
+   paid execution. See the runbook for the three reported states. Matrix execution is capped at
+   four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
@@ -226,19 +227,7 @@ Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mist
 run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
 shard-only behavior, disabled rows, or provider group membership.
 
-To run a capability suite locally, set `RUN_NATIVE_LLM_E2E=true`, `REAL_LLM_PROVIDER_GROUP`, and the
-credentials for the provider group you want to exercise. Provider rows whose required environment
-variables are missing are skipped locally; set `REQUIRE_NATIVE_LLM_PROVIDER=true` to fail instead
-when no provider row is selected.
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dgroups=core-smoke
-```
+Use the runbook's host command with strict provider selection and an explicitly chosen provider group.
 
 Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
 run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
@@ -248,14 +237,8 @@ prompt caching remain manual because their cache placement is opportunistic: uns
 `-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
 JUnit groups.
 
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dit.test=RealProviderStructuredOutputE2ETestIT
-```
+To select the structured-output class instead, replace `-Dgroups=core-smoke` in that command with
+`-Dit.test=RealProviderStructuredOutputE2ETestIT`.
 
 For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
 Set the same environment variables in **Run configuration → Environment variables**, keep the working
@@ -271,15 +254,8 @@ document scenarios to `DocumentToolCallResultsIT`, which owns compatibility cove
 v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
 whichever provider credentials you want its rows to exercise. Always set
 `REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
-available can run. For example, select only the OpenAI rows:
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm -Dgroups=document-tool-results
-```
+available can run. Use the runbook's host command with `-Dgroups=document-tool-results` to select
+only the OpenAI document rows.
 
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
 those selectively. Ensure that all e2e tests pass after completing a major work item.
