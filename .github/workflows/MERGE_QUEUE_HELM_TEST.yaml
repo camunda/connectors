@@ -343,17 +343,6 @@ jobs:
                   }
                 }'
 
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: trigger-saas-e2e
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
-
       - name: Wait for downstream workflow to finish
         id: wait-downstream
         if: steps.check-downstream.outputs.enabled == 'true'
@@ -691,6 +680,8 @@ jobs:
   run-ai-agent-cpt:
     name: AI Agent bundle E2E (CPT)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 20
@@ -795,17 +786,6 @@ jobs:
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
             -Pit-real-llm \
             --batch-mode
-
-      - name: Observe build status
-        if: always()
-        continue-on-error: true
-        uses: ./.github/actions/observe-build-status
-        with:
-          build_status: ${{ job.status }}
-          job_name: run-ai-agent-cpt
-          secret_vault_address: ${{ secrets.VAULT_ADDR }}
-          secret_vault_roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secret_vault_secretId: ${{ secrets.VAULT_SECRET_ID }}
 
   # Final job: hand a failed run to AlwaysGreen triage, which classifies the failure
   # and dispatches the fix agent. github.run_id here is this run, so the SM Playwright
