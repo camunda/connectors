@@ -46,8 +46,10 @@ the runtime, 5 minutes, does; set `CONNECTOR_MANAGED_SCRIPT_TIMEOUT` (millisecon
 timeout of the task otherwise. `provisioning-timeout` covers fetching the script resources and
 provisioning. A job still waiting for provisioning after `provisioning-timeout` fails without
 consuming a retry and is retried after `provisioning-retry-backoff`; provisioning continues in the
-background. A waiting job stays active and counts against the active jobs of the runtime, so jobs
-waiting for new scripts can delay other jobs. Retryable provisioning and execution failures consume
+background. A waiting job stays active and counts against the active jobs of the managed-script
+worker (`camunda.client.worker.defaults.max-jobs-active`, 100 in the bundle), so jobs waiting for
+new scripts can delay jobs of scripts that are already provisioned; jobs of other connectors have
+their own worker. Retryable provisioning and execution failures consume
 one retry with the same backoff; permanent ones, such as a syntax error or a missing
 `linkedResources` header, fail without retries.
 
