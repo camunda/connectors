@@ -1,0 +1,30 @@
+# Arize Phoenix as a local GenAI tracing backend for the AI Agent OpenTelemetry tracing.
+#
+#   docker compose -f docker-compose.phoenix.yml up -d
+#
+# UI:                       http://localhost:6006
+# OTLP/HTTP (protobuf):     http://localhost:6006/v1/traces
+# OTLP/gRPC:                localhost:4317
+#
+# Nothing is persisted (no volumes): `docker compose down` drops all traces. Local development only.
+name: camunda-ai-agent-phoenix
+
+services:
+  phoenix:
+    image: arizephoenix/phoenix:version-19.21.0
+    ports:
+      - "127.0.0.1:6006:6006" # UI and OTLP/HTTP
+      - "127.0.0.1:4317:4317" # OTLP/gRPC
+    environment:
+      PHOENIX_TELEMETRY_ENABLED: "false"
+    healthcheck:
+      # The image has no curl or wget, so probe /healthz with the image's own Python.
+      test:
+        - CMD
+        - /usr/bin/python3.13
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:6006/healthz', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
