@@ -13,13 +13,13 @@ execution: code
 ## Goal Capsule
 
 - **Objective:** Operators of self-managed and hybrid connector runtimes see every AI Agent run as an OpenTelemetry GenAI trace in their own LLM-observability backend (Langfuse, Arize Phoenix). Runs are grouped by conversation, and failed attempts are visible, so customers and the Agentic Orchestration pod can debug and evaluate agent behavior.
-- **Means:** A second telemetry channel emitted by the AI Agent connector over OTLP through the runtime's Spring Boot OpenTelemetry setup, next to the unchanged agent-instance history API (KTD1, KTD2).
+- **Means:** A second telemetry channel: an experimental agent lifecycle listener SPI in `aiagent-api`, event emission in the AI Agent connector, and an opt-in-by-configuration `aiagent-otel` module in the bundle that turns the events into OTel GenAI spans, next to the unchanged agent-instance history API (KTD1, KTD2, KTD15–KTD18). The customer enables Spring's OpenTelemetry support first; the default application gains no OTel SDK.
 - **Product authority:** Agentic Orchestration pod owns the connector. Product has not prioritized OTel (product-hub#3314 "Production-Grade Observability for AI Agent Orchestration" is open but deprioritized; product wants to discover customer pull first). The PoC milestone is the evidence step that precedes a product decision on the production milestone.
 - **Open blockers:** None for the PoC milestone. The production milestone is gated on the PoC exit criteria (Success Criteria) and on the product question in Outstanding Questions.
 - **Authority hierarchy:** Product Contract requirements win on behavior; Key Technical Decisions win on mechanism within them; Implementation Units carry unit-local detail only.
 - **Execution profile:** This plan's Implementation Units cover the PoC milestone only. Production-milestone work is listed under Deferred to Follow-Up Work and needs its own planning pass.
 - **Stop conditions:** Stop and ask before adding any Maven dependency (repository rule), before running any real-LLM test or demo (paid), and before any `git push`. Stop and report if a PoC exit criterion fails in a way that invalidates the hybrid topology.
-- **Who finishes:** `ce-work` implements U1–U9 on branch `ai-agent-otel-genai-tracing-plan`, committing per unit without pushing; the real-backend validation in U9 needs the user's go-ahead. The branch is based on main with #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations"; U8 additionally needs #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector" (open, stacked on #9525), so the branch is rebased onto it before U8 starts.
+- **Who finishes:** `ce-work` implements U1–U10 on branch `ai-agent-otel-genai-tracing-plan`, committing per unit without pushing; the real-backend validation in U10 needs the user's go-ahead. The branch is based on main with #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations"; U9 additionally needs #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector" (open, stacked on #9525), so the branch is rebased onto it before U8 starts.
 
 ---
 
@@ -27,7 +27,7 @@ execution: code
 
 ### Summary
 
-The AI Agent connector emits OTel GenAI semantic-convention spans over OTLP, enabled through Spring Boot's standard tracing configuration and off by default.
+The AI Agent connector emits lifecycle events to registered listeners (an experimental extension point), and the `aiagent-otel` module turns them into OTel GenAI semantic-convention spans over OTLP. It is enabled through Spring Boot's standard tracing configuration, which the customer adds to their runtime, and is off by default.
 Each agent run, from an input to the final answer, becomes one trace: an early-exported anchor root, one `invoke_agent` span per job, and `chat` and `execute_tool` spans beneath it.
 Runs of the same conversation group into one session, and consecutive runs are linked.
 Delivery starts with a PoC slice that validates the trace shape in Langfuse and Arize Phoenix before the production hardening.
@@ -62,6 +62,9 @@ A trace design that holds spans open, re-emits spans, or assumes one process see
 - **Supported mechanism, upstream-tracking vocabulary.** Enablement, configuration, trace shape, and failure semantics are supported; attribute names follow the pinned upstream GenAI semconv version, which is still "Development". Governs R24. (session-settled: user-approved — chosen over an experimental-only feature: aim for supported, at least experimental)
 - **Tracing requires an agent instance.** Only agents whose element carries an agent definition, and therefore get an agent instance, are traced; the agent instance key is the session identity. Governs R12, R30. (session-settled: user-directed — chosen over fallback identifiers for agents without an agent definition: one stable identity that also links to Operate)
 - **PoC slice first.** Validate backend rendering of the hybrid shape before production hardening. Governs the Delivery Milestones section. (session-settled: user-directed — chosen over building the production scope directly)
+- **Agent lifecycle listeners are the emission mechanism; interceptors are deferred.** Tracing is the first consumer of an experimental, observer-style listener SPI that pro-code users can also use; the SPI has failure-isolated notifications, a state-contribution hook, and framework-owned model-round pairing. Governs R31. (session-settled: user-directed — chosen over tracing code embedded in the handler, and over a behavior-changing interceptor SPI in this work)
+- **The history API is not a listener consumer in this work.** Its call sites map onto the same lifecycle points, but it takes internal turn types and is lease-fenced and fail-the-job (ADR 013), which breaks the failure-isolation contract; the decision is revisited once the SPI has stabilized. Governs R28. (session-settled: user-directed — chosen after assessing whether the history client could be a consumer: not an easy pick)
+- **Provider SDK built-in tracing is off.** The Anthropic SDK has its own GenAI spans, which would duplicate generation data in the backends. Governs R32. (session-settled: user-approved — chosen over building on the SDK's spans: duplicates and not available for the other providers)
 
 ### Actors
 
@@ -145,9 +148,14 @@ Job 3 in this example is a partial-result job (tool A finished first) and emits 
 - R28. The agent-instance history API behavior and the persisted agent context stay compatible; tracing state added to the agent context is additive, and losing it (for example during a rolling upgrade) degrades to starting a new trace rather than failing.
 - R29. Tool call metadata reserves trace context for the tool's span so a later runtime feature can parent tool-internal spans to it; no runtime-wide propagation is built here.
 
+**Extensibility and provider SDKs**
+
+- R31. The AI Agent publishes lifecycle events to registered listeners through an experimental extension point; listener failures never fail or delay a job beyond bounded time, and a listener cannot skip or alter model calls.
+- R32. Tracing built into provider SDKs never adds spans or trace-context headers to agent runs unless explicitly enabled.
+
 ### Delivery Milestones
 
-- **PoC milestone.** Covers R1, R3–R18, R19 (documentation), R20, R22 (document references only), R23, R24 (core attributes and the attribute-policy documentation), R28, R30, and the R25 validation, for the AI Agent Sub-process only. Content capture works without the redaction SPI and size cap. Validated end to end against local Langfuse and Arize Phoenix with a multi-tool agent that includes a user task. Exit criteria are in Success Criteria.
+- **PoC milestone.** Covers R1, R3–R18, R19 (documentation), R20, R22 (document references only), R23, R24 (core attributes and the attribute-policy documentation), R28, R30, R31, R32, and the R25 validation, for the AI Agent Sub-process only. Delivers the experimental listener SPI, the event emission, and the `aiagent-otel` module. Content capture works without the redaction SPI and size cap. Validated end to end against local Langfuse and Arize Phoenix with a multi-tool agent that includes a user task, in a runtime where the customer recipe (Spring OTel jars plus properties) was applied to the stock image. Exit criteria are in Success Criteria.
 - **Production milestone.** Adds R2, R21, the R22 size cap, R26, R27, R29, the full R24 mapping, and a sampling policy. Starts only after the PoC exit criteria hold and the product question in Outstanding Questions is answered.
 
 ### Key Flows
@@ -182,13 +190,15 @@ Job 3 in this example is a partial-result job (tool A finished first) and emits 
 - AE7. **Covers R28.** Given a runtime on an older connector version ran a turn and left the tracing state stale or removed it, when the next job runs on a new runtime, then it starts a new run trace (linked to the previous one when the old state is still readable) and the job succeeds.
 - AE8. **Covers R5, R12, R17.** Given the run-starting job makes a model call and then fails, when it is retried and succeeds, then the failed attempt's spans form their own trace, ended and marked failed, the retry's trace carries the run, and both traces share one session identifier.
 - AE9. **Covers R10.** Given the model rejects a request because the context window is exceeded, when the job fails, then the `chat` span carries error status and a context-window error type.
+- AE10. **Covers R32.** Given a global OpenTelemetry is registered in the process (for example by a Java agent), when the Anthropic client is built and a model call is made, then the SDK emits no span and sends no trace-context header.
+- AE11. **Covers R31.** Given a listener throws from every callback, when a job runs, then the job completes with the same result and context as without the listener.
 
 ### Success Criteria
 
 - PoC exit criterion 1: Langfuse and Arize Phoenix render an anchor-root run trace whose child spans arrive hours or days after the root, including `execute_tool` spans that start before their `invoke_agent` parent, with usable timeline, latency, and trace list ordering; any rendering defect has a documented mitigation or invalidates the topology decision.
 - PoC exit criterion 1b: Both backends keep spans findable when a parent was never exported: a job whose `invoke_agent` was lost (worker crash), and a run whose anchor root was lost (crash after the run-starting job's commit); a run whose first job fails on every attempt shows up as failed traces in its session.
 - PoC exit criterion 2: Runs of one conversation appear as one session in both backends, using `session.id` and `gen_ai.conversation.id`.
-- PoC exit criterion 3: The impact of adding tracing to the connector bundle on other connectors is measured, and a way to scope it per R2 is identified.
+- PoC exit criterion 3: The effect of a customer enabling Spring's OTel support on other connectors (REST calls, inbound webhooks) is measured with and without the Observation-bridge exclusion, and the documented recipe keeps them span-free per R2.
 - PoC exit criterion 4: With content capture on, both backends show correct span types for `invoke_agent`, `chat`, and `execute_tool`, with model input and output, tool calls, token usage, and finish reasons.
 - PoC exit criterion 5: A single run can be scored in both backends with its triggering input and final answer in view; if trace-level scoring cannot reach the final answer, the topology goes back to the user.
 - Production: an evaluator can score a single run in Langfuse or Phoenix with content capture on and redaction applied, without reading process variables or Operate.
@@ -218,6 +228,8 @@ The option stays a candidate complement for SaaS and external agents once those 
 **Deferred for later**
 
 - Export from the SaaS-hosted connectors runtime (per-cluster exporter configuration and credentials).
+- Interceptors: listener hooks that change agent behavior (guardrails, compaction, prompt rewriting), with their own failure contract.
+- The agent-instance history client as a lifecycle listener (see the Key Decision); the lifecycle points are named and placed like its call sites so a later migration is mechanical.
 - Per-agent content capture override through an element template property.
 - External content storage with references on spans (semconv has no reference format yet).
 - Runtime-wide trace propagation into tool activities executed as other connector jobs; R29 only reserves the hook.
@@ -229,10 +241,10 @@ The option stays a candidate complement for SaaS and external agents once those 
 
 Production-milestone work, planned separately after the PoC exit criteria hold:
 
-- Explicit scoping of other connectors' tracing in custom runtimes and its documentation (R2); the PoC only configures the default bundle.
+- Explicit scoping of other connectors' tracing in custom runtimes (R2) beyond the documented Observation-bridge exclusion; the PoC documents the recipe and measures its effect (PoC exit criterion 3).
 - Redaction SPI and content size cap (R21, R22).
 - AI Agent Task coverage (R26), including its per-pass element instances.
-- Provider HTTP child spans: OkHttp library instrumentation for the Anthropic, OpenAI, Mistral, and Gemini SDK clients, and the AWS SDK integration for Bedrock (R27).
+- Provider HTTP child spans (R27): the Anthropic SDK has its own CLIENT spans with HTTP attributes but also duplicates `gen_ai` data (KTD19); the other providers need OkHttp, AWS SDK, or Azure instrumentation. Decide in the production milestone.
 - Trace context reserved in tool call metadata (R29).
 - `execute_tool` spans for gateway tool discovery calls (MCP, A2A); the PoC shows discovery through the discovery job's `invoke_agent` span (R9).
 - Full attribute mapping: request parameters, per-modality usage splits, server address (R24).
@@ -241,7 +253,7 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 #### Considered and Not Built
 
 - A startup warning when agent tracing is on and the sampling ratio is below 1.0: operators see the ratio in the documented configuration and notice missing runs immediately; revisit if support cases show silent sampling confusion.
-- A library-side span export filter that drops non-agent spans: the default bundle excludes the Observation-to-span bridge instead (KTD2); revisit if custom runtimes cannot set that exclusion.
+- A library-side span export filter that drops non-agent spans: the customer recipe excludes the Observation-to-span bridge instead (KTD2); revisit if customers cannot set that exclusion.
 - Micrometer Observation metrics for agent spans: retroactive spans yield no Observation metrics and the semconv metrics are out of PoC scope; revisit with the production metrics decision.
 
 **Outside this work**
@@ -262,13 +274,10 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - Tool dispatch time is persisted in the run tracing state when tool calls are issued (KTD9); message-id timestamps are not relied on because legacy ids are backfilled at read time.
 - Customer demand is stated by the pod (customers asking for Phoenix and Langfuse); the internal research found no written customer request naming these tools.
 - Module layout: the agentic AI code is split into libraries, connectors, and integrations by [ADR 015](../../connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md) (#9525). The AI Agent connector, its handlers, and the agent instance client are in `connector-aiagent`; the agent model (`AgentContext`, `ChatModelConfiguration`, `ToolCallResult`, `StopReason`, `AgentMetrics`) is in `aiagent-model`; the extension points are in `aiagent-api`. Architecture tests in `agentic-ai-archunit-tests` enforce the layering, package cycles, vendor SDK containment, and auto-configuration conventions, so placement is a design input here (KTD15). The e2e tests are split into modules by #9546; tracing e2e tests go to the AI Agent e2e module.
-- The default bundle takes the runtime application, and the SaaS bundle builds on the default bundle, so SDK and exporter dependencies added to the runtime application reach the SaaS bundle too. They stay inert there: tracing is off by default and no exporter exists without an endpoint (KTD3).
+- The default bundle, and the SaaS bundle built on it, contain the `aiagent-otel` module but no OTel SDK, exporter, or Boot OTel module: without an `OpenTelemetry` bean the module is inert. `opentelemetry-api` 1.62.0 already reaches `connector-aiagent` transitively through `anthropic-java-core`.
+- Provider SDK instrumentation on the current classpath: only `anthropic-java-core` 2.73.0 emits OTel spans (`gen_ai.*` request, response, usage and optional content attributes, CLIENT kind, trace-context propagation), and only when a global `OpenTelemetry` is registered or a tracer provider is passed; the connector passes none today and builds the client with `AnthropicOkHttpClient.builder()` without `fromEnv()`. `openai-java-core`, `google-genai`, the AWS Bedrock runtime and core, `azure-core` (its tracing SPI has no OTel plugin on the classpath), and the LangChain4j modules have no OTel references. Boot's `spring-boot-opentelemetry` module does not register the global instance; a Java agent does.
 
 ### Outstanding Questions
-
-**For the user**
-
-- Add a `VendorSdkArchTest` row that confines `io.opentelemetry..` to `aiagent.tracing` and `aiagent.configuration` (recommended: it keeps OTel types out of the agent core as the vendor SDK rows do for providers)? Also, exclude the SDK and exporter from the SaaS bundle, or leave them inert there?
 
 **Deferred to Planning**
 
@@ -281,6 +290,8 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 
 - Execution model: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/BaseAgentRequestHandler.java` (turn flow, continuation loop, partial-result no-op path, completion listeners) and `connectors/agentic-ai/docs/reference/ai-agent.md` (distributed execution model).
 - Module boundaries and architecture tests: ADR 015 (`connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md`), the module table and architecture test list in `connectors/agentic-ai/AGENTS.md`, and the rules in `connectors/agentic-ai/agentic-ai-archunit-tests` (`PackageCyclesArchTest`, `VendorSdkArchTest`, `AutoConfigurationArchTest`, `ConfigurationPropertyNamesArchTest`, `NullMarkedPackagesArchTest`). E2E module layout: `connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md` as introduced by #9546.
+- Earlier Camunda-specific event model (reused for the lifecycle taxonomy): branch `agentic-ai-execution-tracing-solution-design`, `connectors/agentic-ai/docs/tracing/design.md` §6 (event types) and §11 (emission points).
+- Provider SDK tracing: `com.anthropic.core.opentelemetry` (`OpenTelemetryOptions`, `TraceApiCall`) in `anthropic-java-core`.
 - History channel: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agentinstance/CamundaAgentInstanceClient.java`, ADR 008 and ADR 013 under `connectors/agentic-ai/docs/adr/`.
 - Conversation id: `ConversationContext.conversationId()`, implemented by the in-process, Camunda document, and AWS AgentCore stores.
 - Job completion callbacks: SDK `JobCompletionListener` and `connector-runtime/connector-runtime-spring/.../outbound/job/SpringConnectorJobHandler.java`.
@@ -298,17 +309,17 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 
 ## Planning Contract
 
-**Product Contract preservation:** changed: R16 — "exactly once" weakened to "at most once, never twice", because completion callbacks run after the job's complete command and a worker crash in between loses them (already implied by R18). Changed by user decision during review: R5, R12, AE8 (random run ids, session identity from the agent instance key), R30 and its Key Decision added (agent instance required), R18 extended (lost anchor root), Success Criteria extended (criteria 1, 1b, 4, 5), Delivery Milestones aligned with the PoC units. Clarified, no scope change: R5 (anchor exported when the run-starting job completes), R12 (session identifier defined as known from the first job onwards), the hybrid-topology Key Decision wording, AE7 (older connectors may leave stale state rather than drop it), AE8 (target behavior now concrete). Outstanding Questions resolved by planning were removed in place. Realigned with the module split of #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations" and the e2e split of #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector": placement, paths, ADR number, and verification commands changed (KTD15, U1–U9, Verification Contract); no requirement changed.
+**Product Contract preservation:** changed: R16 — "exactly once" weakened to "at most once, never twice", because completion callbacks run after the job's complete command and a worker crash in between loses them (already implied by R18). Changed by user decision during review: R5, R12, AE8 (random run ids, session identity from the agent instance key), R30 and its Key Decision added (agent instance required), R18 extended (lost anchor root), Success Criteria extended (criteria 1, 1b, 4, 5), Delivery Milestones aligned with the PoC units. Clarified, no scope change: R5 (anchor exported when the run-starting job completes), R12 (session identifier defined as known from the first job onwards), the hybrid-topology Key Decision wording, AE7 (older connectors may leave stale state rather than drop it), AE8 (target behavior now concrete). Outstanding Questions resolved by planning were removed in place. Realigned with the module split of #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations" and the e2e split of #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector": placement, paths, ADR number, and verification commands changed (KTD15, U1–U9, Verification Contract); no requirement changed. Extended after the design review on 2026-10-19: tracing is delivered through an experimental agent lifecycle listener SPI and an `aiagent-otel` module in the bundle (R31, R32, AE10, AE11 added, KTD2–KTD4, KTD7, KTD15 revised, KTD16–KTD19 added, units renumbered U1–U10); the default application gains no OTel SDK, so the customer enables Spring OTel first.
 
 ### Key Technical Decisions
 
 - KTD1. **Raw OpenTelemetry API for agent spans; Spring integration through Boot's OTel SDK, exporter, and `management.opentelemetry.*` / `management.tracing.*` configuration.** Agent spans need explicit start timestamps, remote parents, links, and status without exceptions, which the Micrometer Observation API cannot express; Micrometer Tracing would add an adapter without gaining anything. Spans use their own instrumentation scope and the runtime's `OpenTelemetry` bean. Governs R1, R24. (session-settled: user-approved — chosen over building agent spans on the Micrometer Observation API: no start time, status, or links, and enabling the Observation bridge traces every connector)
-- KTD2. **Dependency split: `connector-aiagent` depends only on what it calls (the OTel API), and the library, client, and integration modules of the module split stay free of it; the runtime application adds Boot's OTel tracing module, the Micrometer OTel bridge Boot requires, and the OTLP exporter, and excludes Boot's Observation-to-span auto-configuration.** The exclusion keeps inbound webhooks, actuator calls, `@Scheduled` tasks, and Boot-built HTTP clients of other connectors span-free while the SDK and exporter stay. Custom runtimes add the same dependencies and exclusion themselves. Governs R1, R2. (session-settled: user-approved — chosen over shipping the SDK and exporter inside the connector module: that would put tracing auto-configuration into every runtime that embeds the connector)
-- KTD3. **Agent tracing has its own switches: `camunda.connector.agenticai.aiagent.tracing.enabled` (default false) and `camunda.connector.agenticai.aiagent.tracing.capture-content` (default false), plus the optional `camunda.connector.agenticai.aiagent.tracing.cluster-id` session prefix.** When tracing is disabled, or no `OpenTelemetry` bean exists, the handler receives a NO_OP tracer. The properties are a nested record of `AgenticAiConnectorsConfigurationProperties` in `connector-aiagent`, with kebab-case keys below `camunda.connector.agenticai`, as the architecture tests require; `camunda.connector.agenticai.enabled=false` still disables the whole auto-configuration. Export is controlled separately by Boot: no exporter exists until `management.opentelemetry.tracing.export.otlp.endpoint` is set. Governs R1, R12, R20, R23.
-- KTD4. **Run tracing state lives in one additive entry of the agent context `properties` map.** The entry holds the run's trace id, anchor span id, sampled flag, open/closed flag, the iteration key at write time, the process instance key, and the dispatch time of pending tool calls; a new run reads the previous anchor from the entry it replaces. It is written only on paths that already persist the agent context (tool-discovery dispatch and turns); no schema-version bump. Governs R3, R4, R13, R28. (session-settled: user-approved — chosen over a new top-level agent-context field and over inferring run state from conversation turns: older connectors keep unknown `properties` keys, and turn inference breaks across gateway tool discovery)
+- KTD2. **Dependency split: only `aiagent-otel` uses the OTel API, declared explicitly with the Boot-managed version; the default bundle gains no SDK, exporter, or Boot OTel module.** The module is in `agentic-ai-bundle` but inert: it registers its listener only when tracing is enabled and an `OpenTelemetry` bean exists. A customer who wants traces adds Boot's OpenTelemetry tracing module and an OTLP exporter to their runtime (on the stock image: jars in the custom library directory, version-matched to the image), sets the Boot properties, and excludes Boot's Observation-to-span auto-configuration so inbound webhooks, actuator calls, scheduled tasks, and other connectors' HTTP clients stay span-free; the docs carry that recipe. `connector-aiagent`, the libraries, and the integrations do not reference OpenTelemetry. Governs R1, R2. (session-settled: user-approved — chosen over shipping the SDK and exporter in the runtime application: the default application must not enable OTel, and the customer enables Spring's OTel first)
+- KTD3. **Agent tracing has its own switches: `camunda.connector.agenticai.aiagent.tracing.enabled` (default false) and `camunda.connector.agenticai.aiagent.tracing.capture-content` (default false), plus the optional `camunda.connector.agenticai.aiagent.tracing.cluster-id` session prefix.** The properties are a record in `aiagent-otel` with kebab-case keys below `camunda.connector.agenticai`, as the architecture tests require; `camunda.connector.agenticai.enabled=false` still disables the module's auto-configuration. When tracing is disabled or no `OpenTelemetry` bean exists, the module registers no listener and the core emits events to nobody. Export is controlled separately by Boot: no exporter exists until `management.opentelemetry.tracing.export.otlp.endpoint` is set. Governs R1, R12, R20, R23.
+- KTD4. **Run tracing state lives in the listener's state slot: one additive, namespaced entry of the agent context `properties` map, written by the framework from the listener's contribution.** The entry holds the run's trace id, anchor span id, sampled flag, open/closed flag, the iteration key at write time, the process instance key, and the dispatch time of pending tool calls; a new run reads the previous anchor from the entry it replaces. It is written only on paths that already persist the agent context (tool-discovery dispatch and turns); no schema-version bump; a contribution that fails is dropped, which degrades to a new run. Governs R3, R4, R13, R28. (session-settled: user-approved — chosen over a new top-level agent-context field and over inferring run state from conversation turns: older connectors keep unknown `properties` keys, and turn inference breaks across gateway tool discovery)
 - KTD5. **Run identity uses SDK-assigned random ids.** The run-starting job starts the anchor as a live root span with its job start time; the SDK assigns trace and span ids, and they are persisted with the run tracing state when the job completes. Each attempt ends its own anchor exactly once: completed on success, failed on failure, so a failed first attempt is its own failed trace in the same session and the retry starts the run's trace. Governs R5, R17, AE8. (session-settled: user-directed — chosen over ids derived from the run-starting job key with a cluster salt: no ID-generator hook or salt is needed, and the failed attempt stays visible in the right session)
 - KTD6. **Session identifier is the agent instance key, prefixed `<cluster-id>:` when the cluster-id property is set.** It is computed on every job, needs no persistence, and is set on every span because Langfuse v4 does not inherit trace-level attributes; jobs without an agent instance get the NO_OP session (R30). Governs R12, R30. (session-settled: user-directed — chosen over the conversation store's id and key-derived fallbacks: retry-stable from the first job and linkable to Operate; the operator-set prefix, documented with a one-backend-project-per-cluster recommendation, chosen over a runtime topology lookup and an upstream client change for the PoC)
-- KTD7. **Per-job telemetry session with a single-ended `invoke_agent` span.** The session opens lazily once the job is known to do agent work (tool-discovery dispatch or a turn) with the job's start time as span start, so partial-result and other no-op jobs emit nothing. The `invoke_agent` span, and the anchor when this job started the run, is ended exactly once by whichever comes first: the handler's exception path (outcome failed, rethrow unchanged), the success callback (outcome completed), or the failure callback (outcome superseded, BPMN error, or command failure). The handler's existing store listener and the telemetry listener are composed in `aiagent.agent`, next to `AgentJobCompletionListener`, so that a telemetry failure never affects the store callback; the session's end methods take the SDK `JobCompletionFailure` and plain values, so `aiagent.tracing` never depends on `aiagent.agent`. Governs R6, R15, R17, R18.
+- KTD7. **Per-job observer with a single-ended `invoke_agent` span.** The listener returns a per-job observer at job start; the observer opens its spans lazily once the job is known to do agent work (tool-discovery dispatch or a turn) with the job's start time as span start, so deferred partial-result jobs emit nothing. The `invoke_agent` span, and the anchor when this job started the run, is ended exactly once by whichever comes first: the job-failed callback (outcome failed, the handler rethrows unchanged), the job-completed callback (outcome completed), or the completion-failed callback (outcome superseded, BPMN error, or command failure). Governs R6, R15, R17, R18.
 - KTD8. **`chat` spans wrap the one provider-neutral chat-model call site**, so every provider and every continuation round is covered. Token usage is set only on `chat` spans (Langfuse skips usage on agent spans; R11 totals computed from the normalized token usage, where input excludes cache). Rejections map to a low-cardinality `error.type` that the handler derives from the existing model error codes and passes to the tracing code as a string (`AgentErrorCodes` stays in `aiagent.agent`); other exceptions map to their class name. Error spans carry only error status and `error.type`; exception messages, status descriptions, and exception events are attached only when content capture is on, because provider error bodies and parameter-parsing messages can contain prompt or tool content. Governs R7, R10, R11, R20.
 - KTD9. **`execute_tool` spans are built in the success callback** from tool-execution records captured while the turn composes its input: start is the dispatch time stored in the run tracing state when the previous turn issued the tool calls, end is the engine's `completedAt`; cancelled tools get outcome cancelled without error status; results without a stored dispatch time become zero-length spans at completion with a marker attribute. Names and call ids come from the originating tool call, element ids from the result. Governs R8, R16.
 - KTD10. **Anchor root is a Camunda-named INTERNAL span (agent name plus "run") without `gen_ai.operation.name`**, carrying agent name, session identifier, run trigger, Camunda identity, and, when content capture is on, the run's triggering input. Keeping the GenAI operation off the anchor keeps `invoke_agent` durations and backend type mapping honest, since the anchor's duration is only the first job's. PoC exit criterion 1 checks the rendering; the fallback is a GenAI-typed anchor. Governs R5, R24, R25.
@@ -316,7 +327,11 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - KTD12. **Sampling uses the runtime's configured sampler.** The anchor root is the only span sampled by ratio; every later span is parented to the persisted context with its sampled flag, so a run is all-in or all-out. The PoC configuration and docs set the probability to 1.0. Governs R3.
 - KTD13. **Run boundary.** A job starts a new run when no tracing state exists, when the state is closed, or when the state is stale: its iteration key differs from the agent context's last iteration key, its process instance differs, or it is open while a previous turn exists and ended without tool calls (an open state written by a tool-discovery dispatch, with no previous turn yet, continues the run). The state is closed in the context written by the job whose response has no tool calls. A new run links to the previous anchor when one is readable. Governs R4, R13, R28.
 - KTD14. **Attribute vocabulary lives in one constants-and-mapping class pinned to semantic-conventions-genai main as of 2026-10-02**, not in the stale incubating semconv Java artifact. Provider names use the well-known values (`anthropic`, `openai`, `aws.bedrock`, `gcp.gemini`, `gcp.vertex_ai`, `mistral_ai`, `azure.ai.openai`); finish reasons use the schema's normalized set (`stop`, `length`, `content_filter`, `tool_call`, `error`). Governs R24.
-- KTD15. **All tracing code lives in `connector-aiagent`, in a new first-level package `aiagent.tracing`.** `aiagent-model`, `aiagent-api`, `agentic-ai-common`, the MCP and A2A client connectors, and both gateway tool integrations stay unchanged and free of OpenTelemetry, so extensions compile against the same API and no `docs/breaking-changes.md` entry is needed. `aiagent.tracing` depends only on the model and API libraries, the common library, the connector SDK, and the OTel API; it receives the agent instance key, job data, and error types as plain values and never depends on `aiagent.agent`, `aiagent.configuration`, `aiagent.agentinstance`, or `aiagent.conversation`, so `PackageCyclesArchTest` stays green and its known cycles, which may only shrink, gain no entry. Spring wiring (`AgentTracingConfiguration`, the properties) lives in `aiagent.configuration` and hands `aiagent.tracing` a plain settings record. No new `@AutoConfiguration` is added, so the auto-configuration conventions are unaffected. A new `VendorSdkArchTest` row that confines `io.opentelemetry..` to `aiagent.tracing` and `aiagent.configuration` is proposed (see Outstanding Questions). Governs R1, R2, R28. (session-settled: user-directed — align the plan with the module split of #9525)
+- KTD15. **Module placement under ADR 015.** The listener SPI is in `aiagent-api` (package `aiagent.api.lifecycle`, Spring-free). Event emission is in `connector-aiagent` in a new first-level package `aiagent.lifecycle` that depends only on the API, model, and common libraries and never on `aiagent.agent`, `aiagent.configuration`, `aiagent.agentinstance`, or `aiagent.conversation`, so `PackageCyclesArchTest` gains no known cycle. The tracing consumer is the new module `aiagent-otel` (package root `otel`, a new module kind `EXTENSION`): it depends on the API, model, and common libraries only, is shipped in `agentic-ai-bundle`, and no other module depends on it. `aiagent-model`, the client connectors, and the gateway integrations stay unchanged. `AgenticAiModules`, the layering rule, the module inventory test, and `VendorSdkArchTest` change; the new `VendorSdkArchTest` row confines `io.opentelemetry..` to `otel..` and is needed because `opentelemetry-api` already reaches `connector-aiagent` transitively. The SPI is additive, so `docs/breaking-changes.md` gets only the experimental-API policy (KTD18). Governs R1, R2, R28, R31. (session-settled: user-directed — chosen over tracing code inside `connector-aiagent` and over a module outside the bundle: the listener SPI serves other pro-code uses, and the inert module costs stock-image users nothing)
+- KTD16. **Agent lifecycle listeners are experimental observers with three callback categories, each with its own contract.** Notifications (job started, tool discovery dispatched, job deferred, turn started, model-round outcome, job failed, job completed, job completion failed) are failure-isolated: the dispatcher catches and logs every listener exception, preserves order, and runs listeners on the job thread. State contribution at persist points (turn completed, tool discovery dispatched) returns a value that the framework writes into the listener's own namespace of the agent context, only on paths that already persist the context; an error drops the contribution. Model-round pairing is owned by the framework with try/finally on the same thread: a listener can neither skip nor alter the model call. Behavior-changing interceptors are not part of this SPI. Governs R31, R17, R18. (session-settled: user-directed — chosen over a read-only observer, which cannot carry tracing's state and span scoping; interceptors deferred)
+- KTD17. **Events carry complete data; content policy, redaction, and size limits belong to the consumer.** Any registered listener bean sees prompts, tool arguments, and tool results, and the SPI documents this. Events never carry the lease token, only the attempt discriminator hash (KTD11). The capture flag (R20), the redaction SPI (R21), and exception-message handling (KTD8) live in `aiagent-otel`. Governs R20, R21, R31.
+- KTD18. **The event surface follows the earlier tracing design's taxonomy and the history client's call sites, limited to what tracing needs, and is experimental.** Event points: tool discovery dispatched, tool-call results received (including deferred partial results), turn started, model round started and completed or failed, tool calls issued, turn completed, limit hit as a failure, job failed, job completed, job completion failed. A small public job-kind enum replaces the internal initialization and composition result types. Events fire for both flavors and carry the flavor; the tracing consumer handles only the Sub-process flavor in the PoC (R26). The deferred partial-result job emits its own event, which tracing ignores. A marker annotation in `aiagent-api` flags the types experimental; they are excluded from the planned API compatibility check, and changes to them are listed in `docs/breaking-changes.md` without a migration guarantee. The event set may change after the PoC exit criteria. Governs R31. (session-settled: user-directed — experimental from the start)
+- KTD19. **Provider SDK built-in tracing is disabled on every client the connector builds.** The Anthropic SDK emits its own `gen_ai` CLIENT spans (operation, model, token usage, optionally content, HTTP attributes) and propagates trace-context headers when a global OpenTelemetry is registered or a tracer provider is passed; Boot's OTel module registers no global, but a Java agent does. Left on, those spans would duplicate the `chat` spans' generation data and token usage in LLM-observability backends and add trace headers to provider requests. The connector sets the SDK's OpenTelemetry option to disabled when it builds the Anthropic client. The other provider clients carry no OTel instrumentation on this classpath (Assumptions). Governs R27, R32.
 
 ### High-Level Technical Design
 
@@ -324,14 +339,15 @@ Component and data flow. One component per box; arrows show calls or data hand-o
 
 ```mermaid
 flowchart TB
-  H[Agent request handler] -->|open per job| TS[Job telemetry session]
-  H -->|read and write| AC[Agent context: run tracing state entry]
-  TS -->|start and end spans| TR[Agent tracer]
+  H[Agent request handler] -->|emit events| D[Lifecycle dispatcher]
+  H -->|read and write| AC[Agent context: listener state entries]
+  D -->|isolated callbacks| L[Tracing listener in aiagent-otel]
+  D -->|state contribution| AC
+  L -->|per job| O[Job observer]
+  O -->|start and end spans| TR[Agent tracer]
   TR -->|attribute mapping| GA[GenAI attribute mapper]
-  TR --> SDK[Runtime OTel SDK: sampler, batch processor]
+  TR --> SDK[Customer-enabled OTel SDK: sampler, batch processor]
   SDK -->|OTLP, only when endpoint set| BE[Langfuse / Phoenix / Collector]
-  H -->|composed completion listener| CL[Store listener + telemetry listener]
-  CL -->|success or failure outcome| TS
 ```
 
 Job lifecycle for a job that consumes tool results and calls the model.
@@ -340,25 +356,32 @@ Job lifecycle for a job that consumes tool results and calls the model.
 sequenceDiagram
   participant Z as Zeebe job
   participant H as Handler
-  participant S as Telemetry session
+  participant D as Dispatcher
+  participant S as Job observer
   participant T as Tracer and SDK
   Z->>H: activate job
+  H->>D: job started (previous listener state)
+  D->>S: create observer
   H->>H: initialize and compose input
   alt partial results only
+    H->>D: job deferred
     H-->>Z: no-op completion, no spans
   else turn proceeds
-    H->>S: open with job start time and run state
-    S->>T: start invoke_agent (parent: anchor from run state)
-    H->>S: record consumed tool executions
+    H->>D: turn started (consumed tool results)
+    S->>T: start invoke_agent (parent: anchor from state)
     loop each model round
-      H->>T: chat span around the model call
+      H->>D: model round started
+      S->>T: start chat span
+      H->>D: model round completed or failed
+      S->>T: end chat span
     end
-    H->>H: stamp run state (dispatch time, open or closed)
+    H->>D: turn completed (tool calls issued, final answer)
+    D-->>H: state contribution (dispatch time, open or closed)
     H-->>Z: complete job with agent context
-    Z-->>S: success callback
+    Z-->>D: success callback, job completed
     S->>T: emit execute_tool spans, end invoke_agent (and anchor if run-starting)
   end
-  Note over H,S: exception path ends invoke_agent with error and rethrows; failure callback ends it as superseded or BPMN error
+  Note over H,S: exception path emits job failed, ends invoke_agent with error, and rethrows; completion failure ends it as superseded or BPMN error
 ```
 
 Run tracing state as persisted across jobs.
@@ -376,109 +399,145 @@ stateDiagram-v2
 ### Assumptions
 
 - The engine keeps one active job per AI Agent Sub-process element instance, so two jobs never both consume the same complete set of tool results; if this does not hold, the superseded one is labeled as such and tool spans still come only from the committed job.
-- Boot 4.1.1's Observation-to-span auto-configuration can be excluded at the runtime application level while its OTel tracing auto-configuration keeps the SDK, sampler, and exporter (verified in the 4.1.1 sources by the framework research; confirmed in U2).
+- Boot 4.1.1's Observation-to-span auto-configuration can be excluded by the customer while its OTel tracing auto-configuration keeps the SDK, sampler, and exporter (verified in the 4.1.1 sources by the framework research; confirmed in U10).
 
 ### Sequencing
 
-U1 records the decision. U2 sets up dependencies and configuration. U3 and U4 build independent components on top of U2; U5 builds on U2 and U3. U6 combines them into the per-job session. U7 wires the handler. U8 proves job-level behavior end to end in the AI Agent e2e module and needs #9546. U9 documents and validates against real backends.
+U1 records both decisions. U2 defines the experimental listener SPI. U3 creates the `aiagent-otel` module and its wiring; U8 emits the events from the AI Agent connector. Both depend only on U2. U4, U5, and U6 build the independent pieces of the tracing consumer on top of U3; U7 combines them into the listener. U9 proves job-level behavior end to end in the AI Agent e2e module and needs #9546. U10 documents and validates against real backends.
 
 ```mermaid
 flowchart TB
   U1 --> U2
   U2 --> U3
-  U2 --> U4
-  U2 --> U5
+  U2 --> U8
+  U3 --> U4
   U3 --> U5
   U3 --> U6
   U4 --> U6
-  U5 --> U6
+  U4 --> U7
+  U5 --> U7
   U6 --> U7
-  U7 --> U8
+  U7 --> U9
   U8 --> U9
+  U9 --> U10
 ```
 
 ---
 
 ## Implementation Units
 
-### U1. ADR 016: OpenTelemetry GenAI tracing for the AI Agent
+### U1. ADRs 016 and 017: agent lifecycle listeners and OpenTelemetry tracing
 
-**Goal:** Record the decision before implementation, as the module requires.
+**Goal:** Record both decisions before implementation, as the module requires.
 
-**Requirements:** R1–R18, R20, R24, R28; KTD1, KTD2, KTD4, KTD5, KTD7, KTD10, KTD13, KTD15
+**Requirements:** R1–R18, R20, R24, R28, R31, R32; KTD1, KTD2, KTD4, KTD5, KTD7, KTD10, KTD13, KTD15–KTD19
 
 **Dependencies:** none
 
 **Files:**
-- Create: `connectors/agentic-ai/docs/adr/016-opentelemetry-genai-tracing.md` (016 is the next free number at the time of writing; use the next free number when another ADR lands first)
+- Create: `connectors/agentic-ai/docs/adr/016-agent-lifecycle-listeners.md`
+- Create: `connectors/agentic-ai/docs/adr/017-opentelemetry-genai-tracing.md`
+
+016 and 017 are the next free numbers at the time of writing; use the next free numbers when other ADRs land first.
 
 **Approach:**
-- Follow the header and section format of ADR 014; decision altitude only, no code or line numbers.
-- State context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
-- Cite ADR 008 (tool-result timestamps), ADR 012 (message ids), ADR 013 (turn updates), and ADR 015 (module boundaries: where the tracing code lives and what stays free of it, KTD15).
+- Follow the header and section format of ADR 014 and ADR 015; decision altitude only, no code or line numbers.
+- ADR 016: context (pro-code users want hooks into the agent, tracing needs lifecycle events, the earlier tracing design already enumerated them), considered options (tracing code inside the handler, a read-only observer SPI, observers plus interceptors, reusing the history client as the event seam), the decision (KTD15–KTD18: experimental SPI with three callback categories, complete data with consumer-owned content policy, no interceptors yet, history API not a consumer), and consequences (public experimental surface, listener beans see sensitive data, compatibility check exclusion, policy for experimental changes).
+- ADR 017: context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13, KTD19: raw OTel API, `aiagent-otel` in the bundle but inert, customer enables Spring OTel, provider SDK tracing off), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
+- Cite ADR 008 (tool-result timestamps), ADR 012 (message ids), ADR 013 (turn updates and lease fencing), and ADR 015 (module boundaries).
 
-**Patterns to follow:** `connectors/agentic-ai/docs/adr/014-route-v1-requests-through-native-providers.md`
+**Patterns to follow:** `connectors/agentic-ai/docs/adr/014-route-v1-requests-through-native-providers.md`, `connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md`
 
 **Test scenarios:** Test expectation: none -- documentation only.
 
-**Verification:** The ADR names the chosen and rejected options and links this plan's Product Contract decisions.
+**Verification:** Each ADR names the chosen and rejected options and links this plan's Product Contract decisions.
 
-### U2. Dependencies, configuration properties, and tracer wiring
+### U2. Agent lifecycle listener SPI in `aiagent-api` (experimental)
 
-**Goal:** Make agent tracing switchable and give the handler a tracer that is NO_OP unless enabled, while the default bundle gets an SDK and exporter without tracing other connectors.
+**Goal:** A public, experimental extension point to observe agent execution, with no behavior of its own.
 
-**Requirements:** R1, R2 (default bundle), R3; KTD2, KTD3, KTD12, KTD15
+**Requirements:** R31; KTD15, KTD16, KTD17, KTD18
 
 **Dependencies:** U1
 
-**Files:**
-- Modify: `connectors/agentic-ai/connector-aiagent/pom.xml`
-- Modify: `apps/connector-runtime-application/pom.xml`
-- Modify: `apps/connector-runtime-application/src/main/resources/application.properties`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgentTracingConfiguration.java`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsAutoConfiguration.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsAutoConfigurationTest.java`
+**Files:** (paths relative to `connectors/agentic-ai/aiagent-api/src`)
+- Create: `main/java/io/camunda/connector/agenticai/aiagent/api/Experimental.java` (marker annotation)
+- Create: `main/java/io/camunda/connector/agenticai/aiagent/api/lifecycle/AgentLifecycleListener.java` (stateless bean-registered entry point returning a per-job observer; default returns a no-op observer)
+- Create: `main/java/io/camunda/connector/agenticai/aiagent/api/lifecycle/AgentJobObserver.java` (per-job callbacks with no-op defaults)
+- Create: `main/java/io/camunda/connector/agenticai/aiagent/api/lifecycle/` event records, the public job-kind and flavor enums, and the model-round scope type
+- Create: a `package-info.java` for each new package
+- Test: `test/java/io/camunda/connector/agenticai/aiagent/api/lifecycle/` defaults and record tests
 
 **Approach:**
-1. Ask the user before adding dependencies (repository rule), presenting the KTD2 list with Boot-managed versions.
-2. Add a nested tracing properties record under the AI Agent properties (KTD3 names and defaults).
-3. Add `AgentTracingConfiguration` in `aiagent.configuration`, imported by the master auto-configuration: it builds the plain tracing settings record from the properties and creates the real tracer bean when the enable property is true and an `OpenTelemetry` bean exists, else the NO_OP tracer. `aiagent.tracing` never reads the properties class (KTD15).
-4. In the runtime application, add the KTD2 runtime dependencies (listed as ignored in the dependency-analysis plugin like the Prometheus registry) and exclude Boot's Micrometer Tracing auto-configuration. The SaaS bundle builds on the default bundle and receives them inert; check that its application still starts and decide with the user whether to exclude them there.
-5. Every new package gets a `@NullMarked` `package-info.java`, generated with the script under `connector-aiagent/bin`, and a license header.
-6. If the user approves the `VendorSdkArchTest` row (Outstanding Questions), add it in `agentic-ai-archunit-tests` and list it in the architecture test section of `connectors/agentic-ai/AGENTS.md`.
+- Event set per KTD18: job started (job identity, flavor, start time, attempt discriminator hash, agent instance key when present, the listener's previous state), tool discovery dispatched, job deferred (arrived tool results), turn started (consumed tool results with their originating calls, input messages, tool definitions, system prompt, `ChatModelConfiguration`), model round (a scope the framework opens and closes: completed with response, stop reason, usage, and response id, or failed with an error type), turn completed (tool calls issued or final answer), job failed, job completed, job completion failed (SDK `JobCompletionFailure`).
+- Callback contracts per KTD16 in the javadoc: notifications are isolated and ordered; state contributions come only from the turn-completed and tool-discovery callbacks; the model-round scope cannot alter the call. The javadoc states that events carry complete data, including content, and never the lease token (KTD17).
+- Types come from `aiagent-model` and the connector SDK only; the module stays Spring-free.
 
-**Patterns to follow:** the conditional beans and `@Import` list in `AgenticAiConnectorsAutoConfiguration`; the Prometheus registry entry in `apps/connector-runtime-application/pom.xml`. Do not copy the `aiagent.chatmodel.provider.configuration` placement of imported configurations: a configuration package below a feature package is what created the known cycles with `aiagent.configuration`.
+**Patterns to follow:** `ConversationSession` and `GatewayToolHandler` in `aiagent-api` (per-job object with default no-ops; SPI registered as beans).
 
 **Test scenarios:**
-- Default properties: the context contains the NO_OP tracer and no real tracer bean.
-- Enable property true with an `OpenTelemetry` bean present: the real tracer bean is created.
-- Enable property true without any `OpenTelemetry` bean: the NO_OP tracer is used and startup succeeds.
-- Bean inventory list in the auto-configuration test includes the new tracing bean types.
+- A listener that implements nothing yields a no-op observer, and every observer callback has a no-op default.
+- Event records reject null required fields and expose the previous state as absent when none exists.
+- The model-round scope can be closed once; a second close is ignored.
 
-**Verification:** `connector-aiagent` builds with dependency analysis passing, the architecture tests pass (Verification Contract), and the runtime application starts with tracing disabled and no OTLP traffic.
+**Verification:** `aiagent-api` builds; `SpringFreeModelAndApiArchTest`, `NullMarkedPackagesArchTest`, and `ModulePackageOwnershipArchTest` pass.
 
-### U3. GenAI attribute vocabulary and mapping
+### U3. `aiagent-otel` module skeleton, properties, and wiring
 
-**Goal:** One place that turns agent data into semconv attributes, so upstream renames are a one-file change.
+**Goal:** Add the module to the bundle, switchable and inert unless the customer enabled Spring OTel and tracing.
 
-**Requirements:** R7, R8, R11, R12, R14, R20, R24; KTD8, KTD14, KTD15
+**Requirements:** R1, R2, R3; KTD2, KTD3, KTD12, KTD15
 
 **Dependencies:** U2
 
 **Files:**
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/GenAiAttributes.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/GenAiAttributeMapper.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/tracing/GenAiAttributeMapperTest.java`
+- Create: `connectors/agentic-ai/aiagent-otel/pom.xml`, `LICENSE.txt` (as in `aiagent-mcp-integration`)
+- Create: `connectors/agentic-ai/aiagent-otel/src/main/java/io/camunda/connector/agenticai/otel/configuration/AgentTracingAutoConfiguration.java`
+- Create: `connectors/agentic-ai/aiagent-otel/src/main/java/io/camunda/connector/agenticai/otel/configuration/AgentTracingProperties.java`
+- Create: `connectors/agentic-ai/aiagent-otel/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- Modify: `connectors/agentic-ai/pom.xml` (module list), `connectors/agentic-ai/agentic-ai-bundle/pom.xml`
+- Modify: `connectors/agentic-ai/agentic-ai-archunit-tests/src/test/java/io/camunda/connector/agenticai/archunit/AgenticAiModules.java` (new `EXTENSION` kind and the `otel` root), `ModuleLayersArchTest.java`, `ModuleInventoryTest.java`, `VendorSdkArchTest.java` (row confining `io.opentelemetry..` to `otel..`)
+- Modify: `connectors/agentic-ai/AGENTS.md` (module table and architecture test list)
+- Test: `connectors/agentic-ai/aiagent-otel/src/test/java/io/camunda/connector/agenticai/otel/configuration/AgentTracingAutoConfigurationTest.java`
+
+**Approach:**
+1. Ask the user before adding dependencies (repository rule): `io.opentelemetry:opentelemetry-api` with the Boot-managed version (already on `connector-aiagent`'s classpath through the Anthropic SDK; declared explicitly here), and `aiagent-api`, `aiagent-model`, `agentic-ai-common` as module dependencies.
+2. Properties record per KTD3 (names and defaults).
+3. The auto-configuration follows `AutoConfigurationArchTest`: in a `configuration` package, switched by `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, listed in the module's imports resource, ordered after Boot's OpenTelemetry SDK auto-configuration by class name (no compile dependency on Boot). It registers the tracing listener (U7) only when the tracing property is true and an `OpenTelemetry` bean exists.
+4. Every new package gets a `@NullMarked` `package-info.java` (generator script under `connector-aiagent/bin`) and a license header.
+5. Add the module to the layering rule (it may access API, model, common; nothing accesses it), the module inventory (the bundle depends on exactly the connector, integration, and extension modules), and `AgenticAiModules`.
+
+**Patterns to follow:** `aiagent-mcp-integration` (module layout, pom, auto-configuration, imports resource); the Prometheus-style "needed at runtime" pattern is not used because the module needs no SDK.
+
+**Test scenarios:**
+- Default properties: no listener bean.
+- Tracing enabled without an `OpenTelemetry` bean: no listener bean and startup succeeds.
+- Tracing enabled with an `OpenTelemetry` bean: the listener bean exists.
+- `camunda.connector.agenticai.enabled=false`: the module registers nothing.
+
+**Verification:** The module builds with dependency analysis passing, the architecture tests pass (Verification Contract), and the default bundle context starts with tracing disabled and no OTLP traffic.
+
+### U4. GenAI attribute vocabulary and mapping
+
+**Goal:** One place that turns lifecycle event data into semconv attributes, so upstream renames are a one-file change.
+
+**Requirements:** R7, R8, R11, R12, R14, R20, R24; KTD8, KTD14, KTD17
+
+**Dependencies:** U3
+
+**Files:** (paths relative to `connectors/agentic-ai/aiagent-otel/src`)
+- Create: `main/java/io/camunda/connector/agenticai/otel/GenAiAttributes.java`
+- Create: `main/java/io/camunda/connector/agenticai/otel/GenAiAttributeMapper.java`
+- Test: `test/java/io/camunda/connector/agenticai/otel/GenAiAttributeMapperTest.java`
 
 **Approach:**
 - Constants for the `gen_ai.*`, `session.id`, `error.type`, and Camunda attributes (`camunda.process_instance.key`, `camunda.element_instance.key`, `camunda.bpmn_process_id`, `camunda.tenant_id`, `camunda.agent_instance.key`, `camunda.agent.job.kind`, `camunda.agent.job.outcome`, `camunda.agent.job.attempt`, `camunda.agent.run.trigger`, `camunda.agent.tool.outcome`, `camunda.agent.tool.start_time_source`).
-- Provider-name mapping from `ChatModelConfiguration.provider()` (`aiagent-model`; `descriptiveProvider()` for a custom provider) to the KTD14 values.
+- Provider-name mapping from `ChatModelConfiguration.provider()` (`descriptiveProvider()` for a custom provider) to the KTD14 values.
 - Finish-reason mapping from the provider-neutral stop reason; unknown stop reasons pass through verbatim.
 - Usage: input total = new input + cache read + cache write; cache and reasoning counts as subsets (R11).
 - Content (only when capture is on): system instructions, input and output messages, and tool definitions as semconv JSON parts; tool calls as `tool_call` parts, tool results as `tool_call_response` parts, reasoning as `reasoning` parts, Camunda documents as references with metadata.
 
-**Patterns to follow:** provider-neutral types `StopReason`, `AgentMetrics.TokenUsage`, `AssistantMessage`, `ToolCallResultContent` (all in `aiagent-model`; the mapper depends on that module only).
+**Patterns to follow:** provider-neutral types `StopReason`, `AgentMetrics.TokenUsage`, `AssistantMessage`, `ToolCallResultContent` (all in `aiagent-model`).
 
 **Test scenarios:**
 - Each supported provider type maps to its well-known provider name; an unknown type maps to its configured provider id.
@@ -489,63 +548,62 @@ flowchart TB
 
 **Verification:** Mapper tests pass and no other class references a `gen_ai.*` string literal.
 
-### U4. Run tracing state and run-boundary decision
+### U5. Run tracing state and run-boundary decision
 
-**Goal:** Persist and interpret the per-run tracing state so stateless jobs agree on run identity.
+**Goal:** Interpret and produce the per-run tracing state so stateless jobs agree on run identity.
 
-**Requirements:** R3, R4, R12, R13, R28, R30; KTD4, KTD6, KTD9, KTD13, KTD15
+**Requirements:** R3, R4, R12, R13, R28, R30; KTD4, KTD6, KTD9, KTD13
 
-**Dependencies:** U2
+**Dependencies:** U3
 
-**Files:**
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/RunTraceState.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/RunTraceStateResolver.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/tracing/RunTraceStateResolverTest.java`
+**Files:** (paths relative to `connectors/agentic-ai/aiagent-otel/src`)
+- Create: `main/java/io/camunda/connector/agenticai/otel/RunTraceState.java`
+- Create: `main/java/io/camunda/connector/agenticai/otel/RunTraceStateResolver.java`
+- Test: `test/java/io/camunda/connector/agenticai/otel/RunTraceStateResolverTest.java`
 
 **Approach:**
-- A serializable record in `aiagent.tracing`, stored under one key in the `properties` map of `AgentContext` (`aiagent-model`, unchanged), with read and write helpers that tolerate a missing or malformed entry. The agent instance key and iteration key arrive as plain values, not as `aiagent.agentinstance` types.
-- Resolution input: the stored state, the agent context's last iteration key and agent instance key, the job context, and whether the previous turn issued tool calls. Output: not traced (no agent instance), continue the open run, or start a new run with the previous anchor as link target (KTD13).
+- A serializable record that the listener reads from the job-started event (its previous state) and returns as its state contribution; the framework stores it in the listener's namespace of the agent context (U8). Reading tolerates a missing or malformed value.
+- Resolution input: the previous state, the agent context's last iteration key (from the event), the agent instance key, the job identity, and whether the previous turn issued tool calls. Output: not traced (no agent instance), continue the open run, or start a new run with the previous anchor as link target (KTD13).
 - Session identifier: the agent instance key with the optional cluster-id prefix (KTD6).
 - The new run's ids are filled in from the started anchor (KTD5), not computed here.
 - Update helpers stamp the tool-call dispatch time and close the run.
 
-**Patterns to follow:** `AgentContext.withProperty`; `@AgenticAiRecord` records with record-builder; the gateway property keys in `McpClientGatewayToolHandler` (in `aiagent-mcp-integration`; reference only, no dependency).
+**Patterns to follow:** `@AgenticAiRecord` records with record-builder.
 
 **Test scenarios:**
-- No agent instance key: not traced, no state written. Covers R30.
+- No agent instance key: not traced, no state contributed. Covers R30.
 - No state: a new run with no link target.
 - Open state with a matching iteration key: continue, same trace and session.
 - Closed state: a new run linked to the previous anchor, same session. Covers AE4.
 - Stale state (iteration key mismatch, different process instance, or open while the previous turn had no tool calls): a new run linked to the old anchor. Covers AE7.
-- Malformed entry: treated as no state, no exception.
+- Malformed value: treated as no state, no exception.
 - Open state written by a tool-discovery dispatch and no previous turn: the first turn continues the same run.
 - Session identifier: `<cluster-id>:<agent instance key>` when the property is set, the bare agent instance key otherwise.
 - Serialization round-trip through the connectors object mapper keeps all fields.
 
 **Verification:** Resolver tests cover every branch of KTD13.
 
-### U5. Agent tracer
+### U6. Agent tracer
 
 **Goal:** A small facade that creates the four span kinds with explicit timestamps, remote parents, and links.
 
-**Requirements:** R3, R5, R6, R7, R8, R13, R17; KTD1, KTD5, KTD10, KTD12, KTD15
+**Requirements:** R3, R5, R6, R7, R8, R13, R17; KTD1, KTD5, KTD10, KTD12
 
-**Dependencies:** U2, U3
+**Dependencies:** U3, U4
 
-**Files:**
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/AgentTracer.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/AgentTracerImpl.java`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgentTracingConfiguration.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/tracing/AgentTracerImplTest.java`
+**Files:** (paths relative to `connectors/agentic-ai/aiagent-otel/src`)
+- Create: `main/java/io/camunda/connector/agenticai/otel/AgentTracer.java`
+- Create: `main/java/io/camunda/connector/agenticai/otel/AgentTracerImpl.java`
+- Test: `test/java/io/camunda/connector/agenticai/otel/AgentTracerImplTest.java`
 
 **Approach:**
-- The tracer interface has a NO_OP implementation and a real implementation on the runtime `OpenTelemetry` bean with its own instrumentation scope.
+- The tracer is built on the runtime `OpenTelemetry` bean with its own instrumentation scope.
 - Anchor creation starts a root span with the job start time and returns its SDK-assigned trace id, span id, and sampled flag for persistence (KTD5).
 - Child spans take a remote parent context rebuilt from the run state, including its sampled flag.
 - `execute_tool` spans take explicit start and end timestamps.
 - Status and `error.type` are set without requiring exceptions.
 
-**Patterns to follow:** registry and factory beans in `AgenticAiConnectorsAutoConfiguration`; interface in package root with `*Impl` beside it.
+**Patterns to follow:** interface with `*Impl` beside it (`NamingConventionsArchTest`).
 
 **Test scenarios:**
 - An anchor started with a past start time exports with that start time, and the returned ids match the exported span.
@@ -553,104 +611,108 @@ flowchart TB
 - `execute_tool` span start and end equal the given timestamps, including a start earlier than its parent's start.
 - An anchor that is never ended is never exported.
 - The anchor carries a link to the previous anchor when given one.
-- The NO_OP tracer creates nothing and never throws.
 
 **Verification:** Tracer tests pass against the OTel SDK test exporter, and the architecture tests pass (Verification Contract).
 
-### U6. Per-job telemetry session
+### U7. Tracing listener and per-job observer
 
-**Goal:** Own one job's spans and their single end, including outcome classification and tool-span emission.
+**Goal:** Implement the lifecycle listener that owns one job's spans and their single end, including outcome classification and tool-span emission.
 
-**Requirements:** R6, R7, R8, R10, R15, R16, R17, R18, R20, R23; KTD7, KTD8, KTD9, KTD11, KTD15
+**Requirements:** R6, R7, R8, R10, R15, R16, R17, R18, R20, R23, R26 (PoC: Sub-process only); KTD7, KTD8, KTD9, KTD11, KTD17
 
-**Dependencies:** U3, U4, U5
+**Dependencies:** U4, U5, U6
 
-**Files:**
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/AgentJobTelemetry.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/AgentJobTelemetryImpl.java`
-- Create: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tracing/ToolExecutionRecord.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/tracing/AgentJobTelemetryImplTest.java`
+**Files:** (paths relative to `connectors/agentic-ai/aiagent-otel/src`)
+- Create: `main/java/io/camunda/connector/agenticai/otel/AgentTracingListener.java`
+- Create: `main/java/io/camunda/connector/agenticai/otel/AgentTracingJobObserver.java`
+- Create: `main/java/io/camunda/connector/agenticai/otel/ToolExecutionRecord.java`
+- Modify: `main/java/io/camunda/connector/agenticai/otel/configuration/AgentTracingAutoConfiguration.java`
+- Test: `test/java/io/camunda/connector/agenticai/otel/AgentTracingJobObserverTest.java`
 
 **Approach:**
-- Opened by the handler once the job is known to do agent work, with job start time, resolved run state, job kind, and the content-capture policy resolved once (R23).
-- Starts the anchor (new run) and `invoke_agent`.
-- Exposes a wrapper for one model round that starts and ends a `chat` span and records usage, finish reason, response id, response model, and error type.
-- Collects tool-execution records.
-- End methods for success (emit tool spans, end `invoke_agent`, end the anchor if this job started the run), exception, and failure-callback outcomes (end `invoke_agent` and, for a run-starting job, the anchor as failed); an internal guard makes ending idempotent.
-- Every telemetry error is caught and logged at debug level, never propagated (R18).
+- The listener returns a no-op observer for the Task flavor and for jobs without an agent instance (R30); otherwise it resolves the run state (U5) and the content-capture policy once per job (R23).
+- The observer opens lazily on tool-discovery dispatch or turn start, starting the anchor (new run) and `invoke_agent` with the job start time.
+- Each model round starts and ends a `chat` span and records usage, finish reason, response id, response model, and error type.
+- It collects tool-execution records from the turn-started event and returns the updated run state from the turn-completed and tool-discovery callbacks.
+- End methods: job completed (emit tool spans, end `invoke_agent`, end the anchor if this job started the run), job failed, and completion failed (end `invoke_agent` and, for a run-starting job, the anchor as failed); an internal guard makes ending idempotent.
+- Every telemetry error is caught and logged at debug level, never propagated (R18); the dispatcher isolates the callbacks as well (U8).
+- Content, redaction, and exception messages are gated here (KTD17, KTD8).
 
-**Patterns to follow:** `ConversationSession` in `aiagent-api` (per-job, `AutoCloseable`, default no-ops); the SDK `JobCompletionFailure` subtypes for classification. `AgentJobCompletionListener` is in `aiagent.agent` and is composed there (U7); the session does not reference it.
+**Patterns to follow:** `ConversationSession` (per-job, default no-ops); the SDK `JobCompletionFailure` subtypes for classification.
 
 **Test scenarios:**
 - Success path: `invoke_agent` ends with outcome completed, tool spans emitted once, anchor ended only when the job started the run.
-- Exception thrown during a model round: the `chat` span has error status and the rejection error type, and `invoke_agent` ends failed. Covers AE9.
-- Failure callback with a superseded outcome after a response: `invoke_agent` ends superseded and no tool spans are emitted. Covers AE3.
-- Failure callback for a BPMN error: outcome BPMN error.
-- Ending twice (exception then failure callback): only the first end takes effect.
+- Exception during a model round: the `chat` span has error status and the rejection error type, and `invoke_agent` ends failed. Covers AE9.
+- Completion failure with a superseded outcome after a response: `invoke_agent` ends superseded and no tool spans are emitted. Covers AE3.
+- Completion failure for a BPMN error: outcome BPMN error.
+- Ending twice (job failed, then completion failed): only the first end takes effect.
 - Run-starting job failing: the anchor is ended once with failed status alongside `invoke_agent`. Covers AE8.
 - Cancelled tool record: span outcome cancelled without error status.
 - Tool record without dispatch time: zero-length span at completion with the marker attribute.
-- Attempt attribute is a hash and differs from the raw lease token.
-- An exporter or attribute failure inside the session does not propagate.
-- Content capture off and a model call failing with an exception whose message contains prompt text: the exported spans carry error status and `error.type` only, with no status description and no exception event. Covers AE5.
+- Attempt attribute is the hash from the event; the raw lease token never appears.
+- An exporter or attribute failure inside the observer does not propagate.
+- Content capture off and a model round failing with an error whose message contains prompt text: the exported spans carry error status and `error.type` only, with no status description and no exception event. Covers AE5.
+- Task flavor and no-agent-instance jobs: no spans and no state contribution. Covers R30.
 
-**Verification:** Session tests pass, each end path produces exactly one `invoke_agent` span, and the architecture tests pass (Verification Contract), in particular `PackageCyclesArchTest`.
+**Verification:** Observer tests pass, each end path produces exactly one `invoke_agent` span, and the architecture tests pass (Verification Contract).
 
-### U7. Handler integration
+### U8. Lifecycle event emission and provider SDK tracing off in `connector-aiagent`
 
-**Goal:** Wire the telemetry session into the Sub-process (and shared base) handler at the existing emit points without changing agent behavior.
+**Goal:** Emit the lifecycle events from the shared handler at the existing points without changing agent behavior, and keep provider SDK tracing out of agent runs.
 
-**Requirements:** R4, R5, R6, R7, R8, R9, R12, R13, R15, R16, R17, R28, R30; KTD4, KTD6, KTD7, KTD8, KTD9, KTD13, KTD15
+**Requirements:** R4, R5, R6, R7, R8, R9, R15, R16, R17, R28, R31, R32; KTD4, KTD7, KTD8, KTD9, KTD13, KTD15, KTD16, KTD18, KTD19
 
-**Dependencies:** U6
+**Dependencies:** U2
 
-**Files:**
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/BaseAgentRequestHandler.java`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentSubProcessRequestHandler.java`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentTaskRequestHandler.java`
-- Modify: `connectors/agentic-ai/connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsAutoConfiguration.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/agent/AgentSubProcessRequestHandlerTest.java`
-- Test: `connectors/agentic-ai/connector-aiagent/src/test/java/io/camunda/connector/agenticai/aiagent/agent/AgentTaskRequestHandlerTest.java`
+**Files:** (paths relative to `connectors/agentic-ai/connector-aiagent/src`)
+- Create: `main/java/io/camunda/connector/agenticai/aiagent/lifecycle/AgentLifecycleDispatcher.java` and `AgentLifecycleDispatcherImpl.java` (isolation, ordering, state-slot read and write), with `package-info.java`
+- Modify: `main/java/io/camunda/connector/agenticai/aiagent/agent/BaseAgentRequestHandler.java`
+- Modify: `main/java/io/camunda/connector/agenticai/aiagent/agent/AgentSubProcessRequestHandler.java`
+- Modify: `main/java/io/camunda/connector/agenticai/aiagent/agent/AgentTaskRequestHandler.java`
+- Modify: `main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsAutoConfiguration.java` (dispatcher bean from the registered listeners)
+- Modify: `main/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicChatModelFactory.java`
+- Test: `test/java/io/camunda/connector/agenticai/aiagent/lifecycle/AgentLifecycleDispatcherImplTest.java`
+- Test: `test/java/io/camunda/connector/agenticai/aiagent/agent/AgentSubProcessRequestHandlerTest.java`, `AgentTaskRequestHandlerTest.java`
+- Test: `test/java/io/camunda/connector/agenticai/aiagent/chatmodel/provider/anthropic/AnthropicChatModelFactoryTest.java`
 
 **Approach:**
-1. Inject the tracer into the handlers' constructors (singleton handler, not the prototype function beans); the two handler bean methods pass it.
-2. Record the job start time on entry.
-3. Open the session in the tool-discovery dispatch path and when composition yields a turn, only when the agent has an agent instance key; never on deferred, no-input, or discovery-pending paths.
-4. Wrap the existing chat-model call site with the session's model-round wrapper.
-5. Capture consumed tool executions from the composed turn input against the previous turn's tool calls.
-6. Write the updated run tracing state into the agent context before the response is built: open or close the run, and stamp the dispatch time when tool calls were issued.
-7. Compose the store listener with the telemetry listener in `aiagent.agent`, each isolated; give the discovery dispatch its telemetry listener. The handler derives the `error.type` of a model rejection from the coded exception it already builds and passes it to the session.
-8. Catch exceptions around the agent work only to end the session as failed, then rethrow the same exception.
+1. The dispatcher takes the registered listeners, creates one observer per listener at job start (a listener that throws gets a no-op observer), runs every callback in registration order with exceptions caught and logged, and writes each listener's state contribution into its namespace of the agent context (dropping failed contributions). With no listeners it does nothing.
+2. Inject the dispatcher into the handlers' constructors (singleton handler, not the prototype function beans).
+3. Record the job start time on entry and emit job started after initialization.
+4. Emit tool discovery dispatched, job deferred (with the arrived results), and turn started (with the consumed tool results, composed input, and configuration) at the existing branch points in `BaseAgentRequestHandler`; emit them for both flavors.
+5. Wrap the existing chat-model call site with the model-round scope (try/finally); the handler derives the `error.type` of a rejection from the coded exception it already builds.
+6. Emit turn completed before the response is built, apply the state contributions to the agent context, and give the response a completion listener that composes the store listener with the dispatcher's job-completed and completion-failed callbacks, each isolated.
+7. Catch exceptions around the agent work only to emit job failed, then rethrow the same exception.
+8. Build the Anthropic client with the SDK's OpenTelemetry option disabled (KTD19); confirm the builder method against the SDK version in use.
 
-The Task handler bean is wired with the NO_OP tracer in the PoC, so Task jobs write no tracing state and emit no spans until R26 is planned with its per-pass analysis.
+**Execution note:** Keep existing handler test expectations green first; add the dispatcher as a mock or no-listener instance in both handler tests, because `@InjectMocks` leaves unmatched constructor arguments null.
 
-**Execution note:** Keep existing handler test expectations green first; add the new tracer as a mock or NO_OP in both handler tests, because `@InjectMocks` leaves unmatched constructor arguments null.
-
-**Patterns to follow:** existing `createStoreCompletionListener`, `buildConnectorResponse`, and `AgentContext.withProperty` usage in gateway handlers.
+**Patterns to follow:** the existing `createStoreCompletionListener`, `buildConnectorResponse`, and `AgentContext.withProperty` usage; the gateway tool handler bean lists in `AgenticAiConnectorsAutoConfiguration`.
 
 **Test scenarios:**
-- Tool-call turn: the response's agent context contains an open run state with a dispatch time, and the composed listener calls both the store and the telemetry session on success.
-- Final-answer turn: the persisted run state is closed.
-- Deferred partial-result job: no telemetry session is opened, and the response carries no context or state change. Covers AE1 (job-level part).
-- Tool-discovery dispatch: the persisted context carries the new run state and the response carries a telemetry listener.
-- Model rejection: the same coded connector exception is still thrown and the session is ended as failed.
-- Store listener throws on completion: the telemetry listener still runs, and the reverse.
-- Tracing disabled: handler behavior and persisted context are identical to today (no tracing entry written).
-- Tracing enabled: the Task handler still receives the NO_OP tracer, and a Task turn writes no tracing entry.
-- Tracing enabled, element without an agent definition: no session is opened and no tracing entry is written. Covers R30.
+- Dispatcher: a throwing listener does not stop later listeners or change the job; callbacks arrive in registration order; a failing state contribution is dropped; the contribution lands in the listener's namespace only. Covers AE11.
+- Tool-call turn: events arrive in order (job started, turn started, model round, turn completed), the response's agent context contains the contributed state, and both the store listener and the dispatcher run on success.
+- Final-answer turn: the contributed state marks the run closed.
+- Deferred partial-result job: job deferred is emitted, no turn events, and the response carries no context or state change. Covers AE1 (job-level part).
+- Tool-discovery dispatch: the persisted context carries the contributed state and the response carries the completion listener.
+- Model rejection: the same coded connector exception is still thrown, the round is closed as failed, and job failed is emitted.
+- Store listener throws on completion: the dispatcher callbacks still run, and the reverse.
+- No listeners registered: handler behavior and persisted context are identical to today (no extra entry written).
+- Task flavor emits the same events, and a Task turn without a state-contributing listener writes no entry.
+- Anthropic factory: the built client has SDK tracing disabled. Covers AE10.
 
-**Verification:** All existing handler and listener-delegation tests pass unchanged apart from constructor wiring, the new scenarios pass, and the architecture tests pass (Verification Contract).
+**Verification:** All existing handler and listener-delegation tests pass unchanged apart from constructor wiring, the new scenarios pass, and the architecture tests pass (Verification Contract), in particular `PackageCyclesArchTest`.
 
-### U8. End-to-end tests with an in-memory span exporter
+### U9. End-to-end tests with an in-memory span exporter
 
 **Goal:** Prove job-completion semantics, persistence, and span shape across real jobs in the in-process runtime.
 
-**Requirements:** R4–R8, R12, R13, R15–R17, R20, R28, R30; F1, F2, F3; AE1–AE5, AE8
+**Requirements:** R4–R8, R12, R13, R15–R17, R20, R28, R30, R31; F1, F2, F3; AE1–AE5, AE8, AE11
 
-**Dependencies:** U7, and #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector" merged or this branch rebased onto it
+**Dependencies:** U7, U8, and #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector" merged or this branch rebased onto it
 
 **Files:** (paths relative to `connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent`, the AI Agent e2e module)
-- Modify: `pom.xml` (test-scoped OpenTelemetry SDK testing dependency, which needs the user's approval; the OTel API arrives through `connector-aiagent`)
+- Modify: `pom.xml` (the `aiagent-otel` module, because the e2e modules depend on connector modules instead of the bundle, and a test-scoped OpenTelemetry SDK testing dependency, which needs the user's approval)
 - Create: `src/test/java/io/camunda/connector/e2e/agenticai/aiagent/tracing/InMemoryTracingTestConfiguration.java`
 - Create: `src/test/java/io/camunda/connector/e2e/agenticai/aiagent/subprocess/AgentSubProcessTracingTests.java`
 
@@ -674,47 +736,46 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 - Covers AE5. With content capture off, no exported span carries content attributes, status descriptions, or exception events, including on a failed model call; with it on, `chat` spans carry input and output messages.
 - Tracing disabled for one test class: no spans exported and the agent context has no tracing entry.
 - Covers R30. An agent element without an agent definition: no spans exported with tracing enabled.
+- Covers AE11. A registered listener that throws from every callback: the process completes with the same result.
 
 **Verification:** The new e2e class passes alongside the existing tests of the AI Agent e2e module.
 
-### U9. Documentation and PoC backend validation
+### U10. Documentation and PoC backend validation
 
-**Goal:** Document how to enable and read agent traces, and run the PoC exit checks against real Langfuse and Phoenix.
+**Goal:** Document how to enable and read agent traces and how to use the listener SPI, and run the PoC exit checks against real Langfuse and Phoenix.
 
-**Requirements:** R1, R12, R18, R19, R24, R25; Success Criteria (PoC exit criteria 1, 1b, 2, 3, 4, 5)
+**Requirements:** R1, R2, R12, R18, R19, R24, R25, R31; Success Criteria (PoC exit criteria 1, 1b, 2, 3, 4, 5)
 
-**Dependencies:** U8
+**Dependencies:** U9
 
 **Files:**
-- Modify: `connectors/agentic-ai/docs/reference/ai-agent.md`
-- Modify: `connectors/agentic-ai/AGENTS.md` (navigation entry, the tracing-state gotcha, and the architecture test list if the `VendorSdkArchTest` row is added)
 - Create: `connectors/agentic-ai/docs/reference/opentelemetry-tracing.md`
+- Modify: `connectors/agentic-ai/docs/reference/ai-agent.md` (Spring configuration and agent-context-properties sections, and the extension playbooks: a lifecycle listener entry)
+- Modify: `connectors/agentic-ai/AGENTS.md` (navigation entry, the gotcha that listener state is written only on persisting paths, the lifecycle package in the architecture notes)
+- Modify: `connectors/agentic-ai/docs/breaking-changes.md` (the policy line for experimental API changes; no migration entry, since nothing existing breaks)
 - Modify: `docs/plans/2026-10-05-1445-feat-ai-agent-otel-genai-tracing-plan.md`
 
 **Approach:**
-- Reference doc: configuration properties (KTD3 including the cluster-id prefix, plus the Boot OTLP endpoint, headers, sampling at 1.0), the recommendation of one backend project per cluster, the agent-definition prerequisite, the trace model with run boundary and session identifier, attribute policy (pinned semconv, Development status), limitations (at-most-once on crash after commit, process termination, Datadog 18-hour window), and a local validation recipe: Langfuse v4 self-host compose with the Basic auth header and `x-langfuse-ingestion-version: 4`, and Phoenix via its pinned container with the protobuf OTLP endpoint.
-- `ai-agent.md`: add the tracing entry to the Spring configuration and agent-context-properties sections and link the new doc.
-- `AGENTS.md`: navigation entry and the gotcha that tracing state is written only on persisting paths.
-- `docs/breaking-changes.md`: no entry. Tracing is additive: no SPI, package, job type, or property changes, and the run state is one additive entry in the agent context `properties`.
-- Validation, after the user approves real-LLM usage, through the default bundle against both backends:
+- Reference doc: the customer recipe (Boot OpenTelemetry tracing module and OTLP exporter jars for the stock image, `management.opentelemetry.*` and `management.tracing.sampling.probability=1.0`, the Observation-bridge exclusion), configuration properties (KTD3 including the cluster-id prefix), the recommendation of one backend project per cluster, the agent-definition prerequisite, the trace model with run boundary and session identifier, attribute policy (pinned semconv, Development status), content capture and the sensitivity of listener data, limitations (at-most-once on crash after commit, process termination, Datadog 18-hour window), the note that provider SDK tracing is off, and a local validation recipe: Langfuse v4 self-host compose with the Basic auth header and `x-langfuse-ingestion-version: 4`, and Phoenix via its pinned container with the protobuf OTLP endpoint.
+- Validation, after the user approves real-LLM usage, in a stock-image runtime with the customer recipe applied, against both backends:
   1. One multi-tool agent run with a user task and content capture on (criteria 1, 2, 4, 5), including scoring one run in each backend.
   2. A run whose first job fails on every attempt, and a worker killed after the run-starting job's commit and once mid-job (criterion 1b).
-  3. A REST connector call and an inbound webhook with tracing enabled, counting the spans they produce (criterion 3).
+  3. A REST connector call and an inbound webhook with the recipe applied, counting the spans they produce with and without the bridge exclusion (criterion 3).
   4. Record each criterion's outcome in this plan's Success Criteria section.
 
-**Test scenarios:** Test expectation: none -- documentation and manual validation; the automated proof is U8.
+**Test scenarios:** Test expectation: none -- documentation and manual validation; the automated proof is U9.
 
-**Verification:** Each PoC exit criterion has a recorded outcome, and any failure is either mitigated or raised to the user as a topology decision.
+**Verification:** Each PoC exit criterion has a recorded outcome, any failure is either mitigated or raised to the user as a topology decision, and the recipe works on the stock image.
 
 ---
 
 ## System-Wide Impact
 
-- The default bundle runtime gains the OTel SDK and an exporter that stays inactive until an endpoint is configured; Boot's Observation-to-span bridge is excluded so other connectors' HTTP and scheduled work produce no spans.
-- Runtimes that embed the connector without the runtime application see only the OTel API on the classpath; without an `OpenTelemetry` bean they get the NO_OP tracer.
-- The `agentContext` process variable grows by one small entry when tracing is enabled; nothing changes when it is disabled.
-- Only `connector-aiagent` changes among the agentic AI modules. `aiagent-model`, `aiagent-api`, the client connectors, the integrations, `agentic-ai-bundle`, and the element templates are untouched, so extension authors see no API change.
-- The SaaS bundle inherits the SDK and exporter dependencies from the default bundle and keeps them inert.
+- The default bundle gains the `aiagent-otel` module and the experimental listener SPI; it gains no OTel SDK, exporter, or Boot OTel module, so nothing is traced or exported until the customer adds Spring's OTel support and enables agent tracing. The SaaS bundle inherits the inert module.
+- Customers who add Spring's OTel support get Boot's Observation-to-span bridge unless they exclude it; the recipe documents the exclusion (R2).
+- `aiagent-api` gains an experimental public surface; `aiagent-model`, the client connectors, the integrations, and the element templates are untouched.
+- `connector-aiagent` gains event emission and a state slot: the `agentContext` process variable grows by one small entry per state-contributing listener; nothing changes without such a listener.
+- The Anthropic client is built with SDK tracing disabled; other provider clients are unchanged.
 - The agent-instance history API is untouched.
 
 ## Risks & Dependencies
@@ -725,14 +786,18 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 | Session views merge unrelated agents when several or reset clusters share one backend project without a cluster-id prefix | Optional prefix property and one-project-per-cluster guidance in the docs; trace ids are random and unaffected |
 | The final answer exists only on the last job's spans, so trace-level evaluation may not see it (PoC exit criterion 5) | Anchor carries the triggering input when capture is on; if scoring needs the answer at trace level, the topology goes back to the user |
 | Semconv renames attributes again | KTD14 isolates names in one class pinned to a dated revision |
-| Phoenix reads a legacy cache-creation attribute name instead of `cache_write` | Checked in U9; mapper can emit both names if needed |
+| Phoenix reads a legacy cache-creation attribute name instead of `cache_write` | Checked in U10; mapper can emit both names if needed |
 | Retroactive tool spans older than a backend's ingest window are dropped (Datadog 18 hours) | Documented limitation; not an acceptance backend |
 | Worker crash after job completion loses that job's `invoke_agent` and tool spans | Documented at-most-once guarantee (R16, R18); flush happens through the SDK's shutdown hook |
-| New dependencies need approval and pass dependency analysis | U2 asks first; runtime-only deps are declared as ignored where the analysis plugin requires it |
-| Tracing code introduces a package cycle or leaks OTel types into other packages, failing the architecture tests | KTD15: `aiagent.tracing` depends on no `aiagent` first-level package, plain-value inputs, wiring in `aiagent.configuration`; architecture tests run after each unit |
-| #9546 is not merged when U8 starts, so the e2e module paths do not exist | U8 depends on it explicitly; rebase onto it first |
-| Another ADR takes number 016 first | U1 uses the next free number |
-| The SaaS bundle starts with the new dependencies and Boot's OTel auto-configuration | Inert by default; U2 checks SaaS startup and asks whether to exclude them there |
+| The experimental SPI changes after the PoC and breaks early adopters | Marker annotation, compatibility-check exclusion, and the documented policy (KTD18); the event set is limited to what tracing needs |
+| A listener bean reads prompts, tool arguments, or results it should not | Documented in the SPI javadoc and the reference doc (KTD17); content gating stays in the tracing consumer |
+| A global OpenTelemetry (Java agent) makes the Anthropic SDK emit duplicate generation spans and trace headers | KTD19: tracing disabled on the client, covered by AE10 and a factory test |
+| The new module kind or layering breaks the architecture tests | U3 updates `AgenticAiModules`, the layer rules, and the inventory test together; tests run after each unit |
+| Tracing code or the dispatcher introduces a package cycle in `connector-aiagent` | KTD15: `aiagent.lifecycle` depends on the libraries only; wiring stays in `aiagent.configuration`; architecture tests run after U2, U3, U7, and U8 |
+| Stock-image users hit version mismatches adding the Boot OTel and exporter jars | The recipe pins versions per release; U10 validates it on the stock image |
+| #9546 is not merged when U9 starts, so the e2e module paths do not exist | U9 depends on it explicitly; rebase onto it first |
+| Another ADR takes 016 or 017 first | U1 uses the next free numbers |
+| New dependencies need approval and pass dependency analysis | U3 and U9 ask first |
 
 ---
 
@@ -740,20 +805,19 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 
 | Gate | Command or check | Proves |
 |---|---|---|
-| Module build and unit tests | `./mvnw clean install -f connectors/agentic-ai/pom.xml` (run outside the sandbox when Mockito fails on MockMaker); includes the architecture tests | U2–U7 unit tests, dependency analysis, NullAway, architecture rules |
-| Architecture tests | `./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false` after U2, U5, U6, and U7 | No new package cycle (`PackageCyclesArchTest`), vendor SDK containment, package ownership, `@NullMarked` packages, naming, auto-configuration and property conventions |
+| Module build and unit tests | `./mvnw clean install -f connectors/agentic-ai/pom.xml` (run outside the sandbox when Mockito fails on MockMaker); includes the architecture tests | U2–U8 unit tests, dependency analysis, NullAway, architecture rules |
+| Architecture tests | `./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false` after U2, U3, U7, and U8 | No new package cycle (`PackageCyclesArchTest`), module layering and inventory, vendor SDK containment, package ownership, `@NullMarked` packages, Spring-free API, naming, auto-configuration and property conventions |
 | Formatting and license headers | `mvn spotless:apply` and `mvn license:format` on the touched modules; check `git status` for rewritten headers after any phase other than `test` run with `-am` | Repository conventions |
-| Runtime application build | `mvn clean install -f apps/connector-runtime-application/pom.xml` | KTD2 dependencies and properties |
-| End-to-end tracing tests | `mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent -Dtest=AgentSubProcessTracingTests` after `mvn install -DskipTests -f connectors/agentic-ai/pom.xml` and installing the `*-base` e2e modules | U8 scenarios, F1–F3, AE1–AE5, AE8 |
+| End-to-end tracing tests | `mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent -Dtest=AgentSubProcessTracingTests` after `mvn install -DskipTests -f connectors/agentic-ai/pom.xml` and installing the `*-base` e2e modules | U9 scenarios, F1–F3, AE1–AE5, AE8, AE11 |
 | AI Agent e2e regression | `mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent` once at the end (the aggregator path runs no tests) | No behavior change with tracing disabled |
-| PoC backend validation | Manual runs per U9, only after user approval for real-LLM calls | PoC exit criteria 1, 1b, 2, 3, 4, 5 |
+| PoC backend validation | Manual runs per U10, only after user approval for real-LLM calls | PoC exit criteria 1, 1b, 2, 3, 4, 5 |
 
 ## Definition of Done
 
-- U1–U9 are implemented and committed on `ai-agent-otel-genai-tracing-plan`, nothing pushed, and ADR 016 is written before the implementation units.
-- The architecture tests pass with no new entry in the known package cycles and no change to the module layering.
-- With tracing disabled, the agentic-ai unit tests and the AI Agent e2e module pass with no change to persisted agent context.
+- U1–U10 are implemented and committed on `ai-agent-otel-genai-tracing-plan`, nothing pushed, and ADRs 016 and 017 are written before the implementation units.
+- The architecture tests pass with no new entry in the known package cycles, and the module layering and inventory include `aiagent-otel`.
+- With no listener or tracing disabled, the agentic-ai unit tests and the AI Agent e2e module pass with no change to persisted agent context.
 - With tracing enabled, `AgentSubProcessTracingTests` passes all scenarios.
 - The PoC exit criteria have recorded outcomes in Success Criteria.
-- Reference docs, `ai-agent.md`, and `AGENTS.md` describe the current behavior only.
+- Reference docs, `ai-agent.md`, `AGENTS.md`, and the experimental-API policy in `breaking-changes.md` describe the current behavior only.
 - No experimental or abandoned code from approaches that did not pan out remains in the diff.
