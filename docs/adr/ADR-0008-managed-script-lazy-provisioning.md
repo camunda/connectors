@@ -1,11 +1,11 @@
-# ADR-0008: Managed Script Worker with Lazy Provisioning
+# ADR-0008: Managed Script Connector with Lazy Provisioning
 
 ## Status
 Proposed
 
 ## Context
 
-Managed scripts let a Script Task run customer Python or JavaScript in an isolated cloud function.
+Managed scripts let a Service Task run customer Python or JavaScript in an isolated cloud function.
 The script is an independent, versioned Camunda resource, linked to the task like a form or an RPA
 script. Nothing is provisioned when the resource or the BPMN is deployed: the engine resolves the
 link to a `resourceKey` when it creates an `io.camunda:managed-script:1` job and passes it in the
@@ -15,21 +15,25 @@ adding deployment-time state to the engine.
 
 ## Decision
 
-Add an optional, disabled-by-default `connector-runtime-managed-code` module whose job worker
-provisions lazily, inside the first job that needs an artifact:
+Add an optional, disabled-by-default `connector-runtime-managed-code` module with an outbound
+connector, `ManagedScriptFunction`, served by the runtime like any other. Its generated element
+template applies to a Service Task, links the script with `zeebe:linkedResource`, and builds the
+script input with one FEEL expression mapped to `scriptInput`, the only variable the runtime
+fetches. The connector provisions lazily, inside the first job that needs an artifact:
 
 - It fetches the linked script and optional dependency manifest by `resourceKey` and caches them,
   because a resource key's content is immutable.
 - It computes a SHA-256 artifact digest over the script, the generated wrapper, the language, the
   runtime, the manifest and a build-policy version.
 - It provisions through a provider SPI that must be idempotent: a deterministic deployment name
-  derived from physical tenant, tenant, provider and digest, create-if-absent, and adoption of an
-  existing deployment.
+  derived from physical tenant, tenant, provider and digest, behind a configurable per-cluster
+  prefix, create-if-absent, and adoption of an existing deployment.
 - Concurrent jobs of one runtime instance share one provisioning. Provisioning concurrency is
-  bounded separately from invocation concurrency.
-- The job timeout covers the provisioning timeout plus the execution timeout. A job that is still
-  waiting at the provisioning timeout fails with unchanged retries and a backoff; provisioning
-  continues and the next attempt resumes it.
+  bounded separately from the active jobs of the runtime.
+- The job timeout must cover the provisioning timeout plus the execution timeout; the default of
+  the runtime does. A job that is still waiting at the provisioning timeout fails with unchanged
+  retries and a backoff, through `ConnectorRetryException` and the job retries that `JobContext`
+  now exposes; provisioning continues and the next attempt resumes it.
 - Permanent provisioning errors fail the job without retries; transient ones consume one retry.
 - A deployment that the provider reports missing is provisioned again once within the same job.
 
@@ -44,7 +48,7 @@ after a restart. A dependency manifest is installed once while provisioning (`pi
 Node.js or Python subprocesses with the Connector Runtime operating-system identity.
 
 Cloud providers are separate implementations of the provider SPI (`ManagedCodeProvider`:
-`ensureProvisioned`, `invoke`, `delete`). The worker uses the provider bean whose name matches
+`ensureProvisioned`, `invoke`, `delete`). The connector uses the provider bean whose name matches
 `camunda.connector.managed-code.provider`, so a provider can also come from a jar added to the
 runtime classpath, such as `/opt/custom` in the Docker image; this has not been tested. The SPI
 has no compatibility guarantee yet.
@@ -53,8 +57,10 @@ has no compatibility guarantee yet.
 
 ### Positive
 
-- No engine changes beyond linked-resource support for Script Tasks: no deployment records,
-  leases or reconciler.
+- No engine changes: linked resources already work on Service Tasks, and there are no deployment
+  records, leases or reconciler.
+- The runtime's connector machinery handles activation, variable fetching, result and error
+  expressions, retries and secrets, as for every connector.
 - Deployment stays fast and independent of provider availability.
 - Losing the registry or a provider deployment costs first-run latency, not correctness.
 - Disabling managed code leaves the ordinary connector workers unchanged.
@@ -66,5 +72,7 @@ has no compatibility guarantee yet.
 - Several runtime instances can provision the same artifact in parallel; correctness relies on
   provider idempotency (GAP-012), which each cloud provider implementation must prove.
 - Provisioning status is visible only through job failure messages and incidents.
+- As for any connector input, `{{secrets.<name>}}` placeholders in the script input are replaced
+  before the script receives them.
 - Unused deployments are not evicted yet; `lastUsedAt` is recorded and the SPI has `delete` for a
   later cleanup.
