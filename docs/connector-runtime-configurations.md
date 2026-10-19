@@ -53,8 +53,9 @@ their own worker. Retryable provisioning and execution failures consume
 one retry with the same backoff; permanent ones, such as a syntax error or a missing
 `linkedResources` header, fail without retries.
 
-As for any connector input, the runtime replaces `{{secrets.<name>}}` placeholders in the script
-input before the script receives it.
+Unlike other connectors, the runtime does not replace legacy `{{secrets.<name>}}` placeholders in
+the script input: the script receives them as literal text. A script gets a secret only through
+`camunda.secrets.<name>` in its input mapping, which the engine resolves.
 
 The only built-in provider is `local`. It deploys each script to its own subdirectory of
 `local.directory` (by default `camunda-managed-code` in the Java temporary directory), adopts

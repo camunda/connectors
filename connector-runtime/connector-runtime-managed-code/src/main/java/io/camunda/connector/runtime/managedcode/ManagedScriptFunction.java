@@ -22,12 +22,17 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.runtime.core.secret.LegacySecretsNotResolved;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 
 /**
  * Runs a linked Python or JavaScript script in an isolated provider. The function is served by the
  * connector runtime like any outbound connector: the runtime activates the job, fetches only the
  * script input variable and completes or fails the job.
+ *
+ * <p>Legacy {@code {{secrets.X}}} placeholders in the script input reach the script as literal
+ * text; a script gets secrets only through {@code camunda.secrets.X} in its input mapping, which
+ * the engine resolves.
  */
 @OutboundConnector(
     name = ManagedScriptFunction.NAME,
@@ -45,7 +50,7 @@ import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
       @PropertyGroup(id = "script", label = "Script"),
       @PropertyGroup(id = "input", label = "Input")
     })
-public class ManagedScriptFunction implements OutboundConnectorFunction {
+public class ManagedScriptFunction implements OutboundConnectorFunction, LegacySecretsNotResolved {
 
   static final String NAME = "Managed script";
   static final String JOB_TYPE = "io.camunda:managed-script:1";

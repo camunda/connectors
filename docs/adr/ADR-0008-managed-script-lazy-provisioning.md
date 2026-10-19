@@ -72,7 +72,8 @@ has no compatibility guarantee yet.
 - Several runtime instances can provision the same artifact in parallel; correctness relies on
   provider idempotency (GAP-012), which each cloud provider implementation must prove.
 - Provisioning status is visible only through job failure messages and incidents.
-- As for any connector input, `{{secrets.<name>}}` placeholders in the script input are replaced
-  before the script receives them.
+- Legacy `{{secrets.<name>}}` placeholders in the script input are not replaced: the connector
+  implements `LegacySecretsNotResolved`, for which the runtime uses a deny-all secret filter.
+  Secrets reach a script only through `camunda.secrets.<name>`, resolved by the engine.
 - Unused deployments are not evicted yet; `lastUsedAt` is recorded and the SPI has `delete` for a
   later cleanup.
