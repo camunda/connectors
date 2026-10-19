@@ -18,7 +18,8 @@ class AzureAiFoundryClientTest {
     "https://idp.services.ai.azure.com/models, https://idp.services.ai.azure.com",
     "https://idp.services.ai.azure.com/models/, https://idp.services.ai.azure.com",
     "https://idp.services.ai.azure.com/, https://idp.services.ai.azure.com",
-    "https://idp.services.ai.azure.com, https://idp.services.ai.azure.com"
+    "https://idp.services.ai.azure.com, https://idp.services.ai.azure.com",
+    "https://models-idp.services.ai.azure.com/models, https://models-idp.services.ai.azure.com"
   })
   void shouldStripModelsPathFromEndpoint(String endpoint, String expected) {
     assertThat(AzureAiFoundryClient.toBaseEndpoint(endpoint)).isEqualTo(expected);

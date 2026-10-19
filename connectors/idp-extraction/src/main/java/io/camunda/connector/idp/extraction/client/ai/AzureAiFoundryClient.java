@@ -37,6 +37,6 @@ public class AzureAiFoundryClient extends AiClient {
   }
 
   static String toBaseEndpoint(String endpoint) {
-    return endpoint.replace("/models", "").replaceAll("/$", "");
+    return endpoint.replaceAll("/models/?$", "").replaceAll("/$", "");
   }
 }
