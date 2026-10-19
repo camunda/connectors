@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
+import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
