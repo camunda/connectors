@@ -6,7 +6,7 @@ for Phoenix, dev-only credentials for Langfuse, everything bound to `127.0.0.1`.
 
 | File                                                       | Purpose                                                    |
 |------------------------------------------------------------|------------------------------------------------------------|
-| [docker-compose.phoenix.yml](docker-compose.phoenix.yml)   | Arize Phoenix `version-19.21.0`                            |
+| [docker-compose.phoenix.yml](docker-compose.phoenix.yml)   | Arize Phoenix `version-20`                            |
 | [docker-compose.langfuse.yml](docker-compose.langfuse.yml) | Langfuse `4.63.0` self-hosted (web, worker, Postgres, ClickHouse, Redis, MinIO) |
 | [application-tracing-phoenix.yaml](application-tracing-phoenix.yaml)   | Spring profile that exports to Phoenix   |
 | [application-tracing-langfuse.yaml](application-tracing-langfuse.yaml) | Spring profile that exports to Langfuse  |
@@ -22,7 +22,7 @@ docker compose -f docker-compose.phoenix.yml up -d --wait
 * UI: <http://localhost:6006>
 * OTLP/HTTP (protobuf): `http://localhost:6006/v1/traces` (Phoenix rejects OTLP/JSON with HTTP 415)
 * OTLP/gRPC: `localhost:4317`
-* Stop and discard everything: `docker compose -f docker-compose.phoenix.yml down`
+* Traces persist in the `phoenix_data` volume (SQLite). Stop: `docker compose -f docker-compose.phoenix.yml down`; also discard the traces: add `-v`
 
 ### Langfuse
 
