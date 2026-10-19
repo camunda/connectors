@@ -41,7 +41,9 @@ The deployment registry is an in-memory operational cache per runtime instance, 
 truth. Runtime instances do not coordinate; they converge through deterministic names and
 create-if-absent at the provider.
 
-Only a `local` provider ships, for trusted development only; it is not a sandbox. Each artifact is
+Two providers ship. `aws` deploys each artifact as its own Lambda function with a generated
+handler, publishes a version guarded by the code hash and invokes that version. `local` is for
+trusted development only; it is not a sandbox. Each artifact is
 deployed to its own directory, built in a staging directory and renamed atomically, and adopted
 after a restart. A dependency manifest is installed once while provisioning (`pip install
 --target`, `npm install --ignore-scripts`), never during an invocation. Execution runs in local
@@ -75,5 +77,8 @@ has no compatibility guarantee yet.
 - Legacy `{{secrets.<name>}}` placeholders in the script input are not replaced: the connector
   implements `LegacySecretsNotResolved`, for which the runtime uses a deny-all secret filter.
   Secrets reach a script only through `camunda.secrets.<name>`, resolved by the engine.
+- The artifact digest covers the wrapper of the local provider, not the Lambda handler: a change
+  to the handler alone keeps reusing functions built with the old one until
+  `BUILD_POLICY_VERSION` is bumped.
 - Unused deployments are not evicted yet; `lastUsedAt` is recorded and the SPI has `delete` for a
   later cleanup.
