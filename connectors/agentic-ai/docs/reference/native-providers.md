@@ -72,9 +72,14 @@ for the whole prefix (system prompt, tools, prior messages); there are no per-me
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference
-(`AnthropicContentConverter.toToolResultBlocks`), never embedded natively, so the bytes the
-composer's `<doc/>` fallback message already delivers aren't sent twice.
+A document inside a tool result is never embedded natively. For an agent instance with the `documents` feature the
+conversation window has already rendered it as text before the request is built (a document that is the whole result as
+its `<doc id=... />` tag, a document nested in an object as its tag string, see `ai-agent.md` §6), so
+`AnthropicContentConverter.toToolResultBlocks` sees text and has no document specific code. The bytes reach the model
+only when the document gets content: they travel in the user message that follows the tool results, after the same tag,
+so the tool result is never sent together with a second copy. An agent instance without the `documents` feature is not
+expanded: the converter renders the `Document` as its reference JSON in a text block (see
+[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md) §2.13).
 
 ### Token usage
 
@@ -139,7 +144,7 @@ AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkP
 
 `DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
 containing a document can ever hit. `DocumentHandle.idFor(Document)`
-(`aiagent/model/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
+(`aiagent/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
 verbatim, or a SHA-256 prefix of the external URL / inline content.
 
 ### Reasoning
@@ -167,16 +172,14 @@ always reports a distinct cache-write count in `TokenUsage`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as the JSON reference the runtime's standard
-`DocumentSerializer` writes — the same shape an embedded document gets
-(`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
-fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
-as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
-the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
-trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
-`DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
-through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
-recurse forever.
+A document inside a tool result is never embedded as a native `DocumentBlock`, regardless of content type. For an agent
+instance with the `documents` feature the conversation window renders it as text first: its `<doc id=... />` tag, the
+same tag the follow-up message that adds content carries, so the model can correlate the two 1:1; a nested document
+becomes its tag string inside the JSON (`BedrockConverseContentConverter.toToolResultBlocks` sees a `text` or `json`
+block). The follow-up message is the document's only bytes channel; embedding it here too would send the bytes twice
+and trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
+`DocumentBlock.name` in both places. An agent instance without the `documents` feature is not expanded: the converter
+serializes the document as its reference JSON (see `BedrockConverseDocuments`).
 
 ### Token usage
 
@@ -297,12 +300,13 @@ the acceptance row sets `reportsCacheCreationTokens = false`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference, on both Responses
-(`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
-(`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather
-than sharing the former), regardless of content type — never embedded natively as `input_image`/
-`input_file`, so the bytes the composer's `<doc/>` fallback message already delivers aren't sent
-twice.
+A document inside a tool result is never embedded natively as `input_image`/`input_file`, regardless of content
+type, on both Responses (`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
+(`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather than sharing the
+former). For an agent instance with the `documents` feature the conversation window has already rendered the document
+as its `<doc id=... />` tag (or a tag string inside an object), so both converters see text. The bytes reach the model
+only when the document gets content, in the user message that follows the tool results. An agent instance without the
+`documents` feature is not expanded and keeps the reference JSON.
 
 ### Token usage
 
@@ -386,12 +390,13 @@ else in this file — a different feature from a per-request model call, not a p
 
 ### Tool-result documents
 
-Like Anthropic and OpenAI, a document inside a tool result is flattened to a JSON reference rather
-than embedded natively: `GeminiContentConverter.toFunctionResponseParts` serializes just
-`doc.document()` to a text `Part`, the same reference-only shape `AnthropicContentConverter
-#toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce — the
-document's actual bytes are already delivered to the model elsewhere for tool results, so embedding
-them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively.
+Like Anthropic and OpenAI, a document inside a tool result is not embedded natively. For an agent instance with the
+`documents` feature the window has already rendered it as its `<doc/>` tag, so
+`GeminiContentConverter.toFunctionResponseParts` writes text into the `functionResponse` output, the same reference-only
+shape `AnthropicContentConverter#toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce.
+The document's actual bytes reach the model only when it gets content, in the user message that follows, so embedding
+them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively. An agent instance
+without the `documents` feature is not expanded and keeps the reference JSON.
 
 ### Token usage
 

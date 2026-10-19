@@ -73,6 +73,15 @@ public interface ProviderWireFormatFixture {
   /** Reads and parses all recorded model-call requests, oldest first. */
   List<RecordedChatRequest> recordedRequests();
 
+  /**
+   * Whether the stubbed responses of this provider can carry document id placeholders (see {@code
+   * DocumentIdPlaceholderTransformer}). A provider that answers with a binary event stream cannot:
+   * its frames carry lengths and checksums.
+   */
+  default boolean supportsDocumentIdPlaceholders() {
+    return true;
+  }
+
   default int modelCallCount() {
     return recordedRequests().size();
   }

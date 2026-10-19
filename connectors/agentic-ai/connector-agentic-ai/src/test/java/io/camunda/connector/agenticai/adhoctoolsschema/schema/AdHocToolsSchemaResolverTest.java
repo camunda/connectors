@@ -10,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +56,98 @@ class AdHocToolsSchemaResolverTest {
               assertThat(toolDefinition.description()).isEqualTo("This is a test tool.");
               assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
             });
+  }
+
+  @Test
+  void addsTheHintToTheDocumentParametersOfTheGeneratedSchema() {
+    final var element =
+        AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
+    final var schema =
+        Map.<String, Object>of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "The invoice")));
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
+
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
+    assertThat(schemaResponse.toolDefinitions())
+        .singleElement()
+        .satisfies(
+            toolDefinition ->
+                assertThat(toolDefinition.inputSchema())
+                    .isEqualTo(
+                        Map.of(
+                            "type",
+                            "object",
+                            "properties",
+                            Map.of(
+                                "doc",
+                                Map.of(
+                                    "type",
+                                    "string",
+                                    "format",
+                                    "camunda-document-id",
+                                    "description",
+                                    "The invoice. " + DocumentParameterSchema.HINT)))));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"content", "CONTENT", " Content "})
+  void marksAToolWhoseActivityRequestsTheDeliveryContent(String value) {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION, value))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .singleElement()
+        .satisfies(
+            toolDefinition ->
+                assertThat(toolDefinition.documentDelivery()).isEqualTo(DocumentDelivery.CONTENT));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"reference", "", "unknown"})
+  void keepsTheDocumentsOfAToolByReferenceForAnyOtherValue(String value) {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of(AdHocToolsSchemaResolver.DOCUMENT_DELIVERY_EXTENSION, value))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .singleElement()
+        .satisfies(toolDefinition -> assertThat(toolDefinition.documentDelivery()).isNull());
+  }
+
+  @Test
+  void keepsTheDocumentsOfAToolWithoutTheMarkerByReference() {
+    final var element =
+        AdHocToolElement.builder()
+            .elementId("Test_Tool")
+            .properties(Map.of("some.other.property", "content"))
+            .build();
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(DUMMY_SCHEMA);
+
+    assertThat(resolver.resolveAdHocToolsSchema(List.of(element)).toolDefinitions())
+        .singleElement()
+        .satisfies(toolDefinition -> assertThat(toolDefinition.documentDelivery()).isNull());
   }
 
   @ParameterizedTest

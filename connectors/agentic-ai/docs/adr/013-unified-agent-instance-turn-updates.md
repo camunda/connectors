@@ -68,7 +68,7 @@ keeps ADR 011's streamed-early write, now also batched.
 `historyItemId` is derived per role so a retried batch dedups against its own prior attempt:
 `USER`/`ASSISTANT` from the message's own self-generated id (ADR 012), `TOOL_RESULT` from the
 originating tool-call id (so a streamed-early report and the later batch write for the same result
-collapse into one row once the engine's per-item dedup lands), and `CONFIGURATION` from a content hash
+collapse into one row through the engine's per-item dedup), and `CONFIGURATION` from a content hash
 over system prompt and tools — which doubles as change detection: a `CONFIGURATION` item is only
 emitted when that hash differs from the one recorded for the previous turn.
 
@@ -110,9 +110,9 @@ items see an empty tool list and the fingerprints (and thus `historyItemId`s) co
 still harmless since it's an idempotent dedup key over identical content. Folding creation into the
 first turn to remove the redundancy was declined to keep the change low-risk.
 
-**Per-item dedup.** camunda/camunda#58792 (engine) has no PR yet. `historyItemId` values are already chosen so
-dedup works transparently once it lands; until then, the ADR 011 streamed-early duplicate row (one from
-`applyToolCallResults`, one written again by the next `applyTurnStart`) persists.
+**Per-item dedup.** The engine deduplicates history items by `historyItemId`, within one job activation and across jobs
+(camunda/camunda#58792). The `historyItemId` values are chosen so this works transparently: the ADR 011 streamed-early write
+(`applyToolCallResults`) and the next `applyTurnStart` write the same result under one id, and the history holds one row.
 
 **Reasoning/cache token counts on history items.** Blocked on camunda/camunda#59627. No regression: the
 request-level update this design replaces never carried them either.

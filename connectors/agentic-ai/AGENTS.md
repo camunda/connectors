@@ -124,6 +124,32 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
+  instance without the `documents` feature (created before it) keeps the previous document handling: bare
+  content and the older tag format, no registry, no document parameters, and without the `runtimeTools` feature
+  (`documents` implies it) it has no runtime tools (`c8__return_document`, `c8__get_document`) and no tool
+  element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
+  `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
+  `docs/design/ai-agent-document-flow.md` §2.13.
+- **Runtime calls of a mixed batch are answered one job later**: when the model issues runtime tool calls and process
+  calls together, only the process calls are activated, and the agent answers its own calls when it composes the next
+  turn, merged with the process results in call order. The calls are classified again in that job, so
+  `RuntimeTool.isAvailable` must not change within one turn. `ai-agent.md` §9, `docs/design/ai-agent-document-flow.md` §2.8.
+- **The document delivery is `reference` by default**: for an instance with the `documents` feature the model sees a
+  `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
+  document of a type outside the allowlist or above the size limit before returning its content. Documents are persisted
+  as typed document references (`DocumentReferenceContent`), also a document that is a whole tool result, and the one whose
+  content was added has the delivery `content`. The window decorator (`DocumentExpander`) turns a reference into its tag
+  text and, with the delivery `content`, the content from the registry; in a tool result it renders the short tag as
+  text, so the providers have no document specific code. The content stays in every request until its message leaves
+  the window. Passing the tag of a document to a tool never adds content, and the tag is the only thing a document
+  parameter accepts (a bare id is invalid). The delivery `content` is the opt-in
+  exception: the user prompt dropdown `data.userPrompt.documentDelivery` (`reference` by default, or `content`; v2
+  templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity
+  extension property `io.camunda.agenticai.documents.delivery` = `content` (`ToolDefinition.documentDelivery`) set the
+  delivery `content`, so the agent adds the content of the document to the request through the same guard; a rejected document stays a reference with a note,
+  never an error. `docs/design/ai-agent-document-flow.md` §2.3 and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -137,8 +163,8 @@ Do not break these (full statement and rationale in
 suite will enforce (epic #7537):
 
 - **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the root
+  `model/`) stays framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
@@ -146,8 +172,8 @@ suite will enforce (epic #7537):
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
   `*Impl`. Wire impls as Spring beans, depend on the interface.
-- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
+- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
+  gateway tool, or runtime tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
 ## Working in this module
@@ -345,9 +371,11 @@ Before claiming a change is complete:
 
 ## Extension points
 
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
-implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19).
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
+tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
+a Spring bean. A runtime tool is the three-method interface `RuntimeTool` (`definition`, `isAvailable`, `call`); the
+built-in tools in `aiagent/tool/runtime/builtin` use only that SPI. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §2.7).
 
 ## Element templates
 
@@ -396,6 +424,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that `git diff origin/main` of the v1 template files stays empty.
 
 ### Deprecation marker (v1 only)
 

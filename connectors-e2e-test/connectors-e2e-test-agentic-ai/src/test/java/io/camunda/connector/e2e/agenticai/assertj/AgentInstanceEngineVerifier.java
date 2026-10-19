@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /** Reads an agent instance back through the query API and asserts its persisted state. */
@@ -101,6 +102,22 @@ public class AgentInstanceEngineVerifier {
     return this;
   }
 
+  /**
+   * Asserts the instance lists the tool without a BPMN element, as a runtime tool of the agent is.
+   */
+  public AgentInstanceEngineVerifier hasToolWithoutElementId(String toolName) {
+    instanceChecks.add(
+        instance ->
+            assertThat(instance.getTools())
+                .as("tool '%s' without a BPMN element", toolName)
+                .anySatisfy(
+                    tool -> {
+                      assertThat(tool.getName()).isEqualTo(toolName);
+                      assertThat(tool.getElementId()).isNull();
+                    }));
+    return this;
+  }
+
   /** Asserts the create-time CONFIGURATION item, i.e. the lowest-keyed one. */
   public AgentInstanceEngineVerifier createdWithConfigurationItem(
       String model, String provider, int maxModelCalls) {
@@ -168,6 +185,93 @@ public class AgentInstanceEngineVerifier {
                   .map(AgentInstanceHistoryToolCall::getToolName)
                   .toList();
           assertThat(resultToolNames).as("tool result tool names").contains(toolNames);
+        });
+    return this;
+  }
+
+  /**
+   * Asserts the committed TOOL_RESULT items are exactly the ones of the given tools, in {@code
+   * historyItemKey} order. A result reported twice would show up as a repeated name, so this also
+   * proves that every result is in the history exactly once.
+   */
+  public AgentInstanceEngineVerifier hasExactlyToolResultsInOrder(String... toolNames) {
+    historyChecks.add(
+        history ->
+            assertThat(
+                    history.stream()
+                        .filter(item -> item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
+                        .flatMap(item -> item.getToolCalls().stream())
+                        .map(AgentInstanceHistoryToolCall::getToolName)
+                        .toList())
+                .as("committed TOOL_RESULT tool names in history order")
+                .containsExactly(toolNames));
+    return this;
+  }
+
+  /**
+   * Awaits the agent instance of a process instance and returns its key, for an agent that has not
+   * finished yet.
+   */
+  public static long awaitAgentInstanceKey(CamundaClient client, long processInstanceKey) {
+    return await()
+        .alias("agent instance of process instance " + processInstanceKey)
+        .atMost(Duration.ofSeconds(30))
+        .ignoreExceptions()
+        .until(
+            () ->
+                client
+                    .newAgentInstanceSearchRequest()
+                    .filter(f -> f.processInstanceKey(processInstanceKey))
+                    .execute()
+                    .items(),
+            items -> !items.isEmpty())
+        .getFirst()
+        .getAgentInstanceKey();
+  }
+
+  /**
+   * Asserts the tool calls of the history (ASSISTANT items) and the TOOL_RESULT items of the given
+   * tool carry the given element id, {@code null} for a tool without a BPMN element.
+   */
+  public AgentInstanceEngineVerifier hasToolCallsWithElementId(String toolName, String elementId) {
+    historyChecks.add(
+        history -> {
+          final var calls =
+              history.stream()
+                  .filter(
+                      item ->
+                          item.getRole() == AgentInstanceHistoryRole.ASSISTANT
+                              || item.getRole() == AgentInstanceHistoryRole.TOOL_RESULT)
+                  .flatMap(item -> item.getToolCalls().stream())
+                  .filter(call -> toolName.equals(call.getToolName()))
+                  .toList();
+          assertThat(calls).as("history tool calls of '%s'", toolName).isNotEmpty();
+          assertThat(calls)
+              .as("element id of the history tool calls of '%s'", toolName)
+              .allSatisfy(call -> assertThat(call.getElementId()).isEqualTo(elementId));
+        });
+    return this;
+  }
+
+  /**
+   * Asserts on the arguments of every tool call of the history (ASSISTANT items) and of every
+   * TOOL_RESULT item of the given tool; there must be at least one of each.
+   */
+  public AgentInstanceEngineVerifier hasToolCallArguments(
+      String toolName, Consumer<Map<String, Object>> assertion) {
+    historyChecks.add(
+        history -> {
+          for (final var role :
+              List.of(AgentInstanceHistoryRole.ASSISTANT, AgentInstanceHistoryRole.TOOL_RESULT)) {
+            final var calls =
+                history.stream()
+                    .filter(item -> item.getRole() == role)
+                    .flatMap(item -> item.getToolCalls().stream())
+                    .filter(call -> toolName.equals(call.getToolName()))
+                    .toList();
+            assertThat(calls).as("%s history tool calls of '%s'", role, toolName).isNotEmpty();
+            calls.forEach(call -> assertion.accept(call.getArguments()));
+          }
         });
     return this;
   }

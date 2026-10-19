@@ -273,10 +273,10 @@ public class OpenAiCompletionsRequestConverter {
    * concatenated verbatim, {@link ObjectContent} is unwrapped to its raw {@code content()}, and
    * {@link DocumentContent} is unwrapped to its raw {@code document()} reference -- in both cases
    * so the polymorphic {@link Content} envelope itself, including its {@code type} discriminator,
-   * never leaks onto the wire. A document's bytes are already delivered to the model elsewhere, so
-   * this reference is never accompanied by a native embed, matching the tool-result document
-   * handling on the Responses and Anthropic siblings. Anything else falls back to serializing the
-   * whole content value. Tool results are always text-only on this family.
+   * never leaks onto the wire. A document's bytes are already sent to the model elsewhere, so this
+   * reference is never accompanied by a native embed, matching the tool-result document handling on
+   * the Responses and Anthropic siblings. Anything else falls back to serializing the whole content
+   * value. Tool results are always text-only on this family.
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()

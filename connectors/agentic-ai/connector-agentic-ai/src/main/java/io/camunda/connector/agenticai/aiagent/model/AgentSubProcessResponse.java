@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.LinkedHashMap;
 import org.jspecify.annotations.Nullable;
 
 @AgenticAiRecord
@@ -20,8 +22,18 @@ public record AgentSubProcessResponse(
     @Nullable AgentContext context,
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
-    @Nullable Object responseJson)
+    @Nullable Object responseJson,
+    // the response documents by key, in call order; a LinkedHashMap because the record builder
+    // copies a Map into an immutable map of unspecified iteration order
+    @RecordBuilder.Initializer(
+            source = AgentSubProcessResponse.class,
+            value = "noResponseDocuments")
+        LinkedHashMap<String, ReturnedDocument> responseDocuments)
     implements AgentSubProcessResponseBuilder.With {
+
+  static LinkedHashMap<String, ReturnedDocument> noResponseDocuments() {
+    return new LinkedHashMap<>();
+  }
 
   public static AgentSubProcessResponseBuilder builder() {
     return AgentSubProcessResponseBuilder.builder();

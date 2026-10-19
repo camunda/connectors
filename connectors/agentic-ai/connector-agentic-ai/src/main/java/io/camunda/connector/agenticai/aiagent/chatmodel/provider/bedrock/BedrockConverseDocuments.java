@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,8 +31,8 @@ import software.amazon.awssdk.core.document.Document;
  * <p>A Camunda {@link io.camunda.connector.api.document.Document} nested in the input is converted
  * to its JSON reference shape structurally, never handed back to Jackson for deserialization (which
  * would recurse forever through the runtime's Document module), and never inlined as native bytes:
- * those are already delivered to the model elsewhere, and {@link DocumentHandle#idFor} derives the
- * same {@code DocumentBlock.name} in both places, so a second inlined copy would trip Bedrock's
+ * those are already sent to the model elsewhere, and {@link DocumentHandle#idFor} derives the same
+ * {@code DocumentBlock.name} in both places, so a second inlined copy would trip Bedrock's
  * duplicate-document-name validation.
  *
  * <p>Any other POJO is normalized to its JSON tree shape via Jackson and retried.

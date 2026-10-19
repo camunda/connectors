@@ -10,6 +10,19 @@
       "id": "Field_0wn5mar"
     },
     {
+      "label": "Document",
+      "type": "documentPreview",
+      "layout": {
+        "row": "Row_1ls0yvl",
+        "columns": null
+      },
+      "id": "Field_0vsmyk7",
+      "dataSource": "=[email_document]",
+      "conditional": {
+        "hide": "=email_document = null"
+      }
+    },
+    {
       "type": "separator",
       "layout": {
         "row": "Row_1loqtfk",
@@ -47,7 +60,7 @@
   "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.51.1"
+    "version": "5.52.0"
   },
   "schemaVersion": 19
 }

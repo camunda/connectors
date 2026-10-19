@@ -9,28 +9,54 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
+import io.camunda.connector.runtime.core.document.InlineDocument;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class AgentInstanceHistoryMapperTest {
+
+  private static final AgentContext NO_DOCUMENTS =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
 
   private static final OffsetDateTime TURN_INGESTION_TIMESTAMP =
       OffsetDateTime.parse("2026-07-02T10:00:00Z");
@@ -38,16 +64,261 @@ class AgentInstanceHistoryMapperTest {
       OffsetDateTime.parse("2026-07-02T09:59:55Z");
 
   private final AgentInstanceHistoryMapper mapper =
-      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
+      new AgentInstanceHistoryMapper(
+          Mockito.mock(GatewayToolHandlerRegistry.class),
+          new RuntimeToolRegistryImpl(
+              List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE))),
+          new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
     final var userMessage =
         UserMessage.builder().content(MessageUtil.singleTextContent("hi")).build();
 
-    final var items = mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP);
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
 
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
+  }
+
+  private static List<String> texts(List<AgentInstanceHistoryContent> content) {
+    return content.stream()
+        .filter(AgentInstanceHistoryContent.TextContent.class::isInstance)
+        .map(c -> ((AgentInstanceHistoryContent.TextContent) c).getText())
+        .toList();
+  }
+
+  @Test
+  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheRegistry() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
+    final var tag = DocumentReferenceContent.from(registry.entries().getFirst());
+    final var userMessage =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS.withDocumentRegistry(registry));
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.content()).hasSize(3);
+              assertThat(texts(item.content())).containsExactly("see", "`" + tag.toTag() + "`");
+              assertThat(item.content().get(2))
+                  .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+            });
+  }
+
+  @Test
+  void theMessageThatLoadsADocumentIsReportedAsAUserItemWithTheTagAndTheDocumentReference() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("fetch", "call-1", null))));
+    final var tag =
+        DocumentReferenceContent.from(registry.entries().getFirst(), DocumentDelivery.CONTENT);
+    final var loadedMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "System message, not written by the user: the content of the documents loaded for the tool results above follows."),
+                    tag))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            loadedMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS.withDocumentRegistry(registry));
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
+              assertThat(texts(item.content()))
+                  .containsExactly(
+                      "System message, not written by the user: the content of the documents loaded for the tool results above follows.",
+                      "`" + tag.toTag() + "`");
+              assertThat(item.content()).hasSize(3);
+              assertThat(item.content().get(2))
+                  .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+            });
+  }
+
+  @Test
+  void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
+    final var tag =
+        new DocumentReferenceContent(
+            "unknown", null, null, null, null, null, null, DocumentDelivery.REFERENCE);
+    final var userMessage = UserMessage.builder().content(List.of(tag)).build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> assertThat(texts(item.content())).containsExactly("`" + tag.toTag() + "`"));
+  }
+
+  @Test
+  void aTagTypedByAUserInATextIsReportedVerbatim() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "Documents (<doc /> tag + content pair): <doc id=\"a\" /> and <doc id=\"b\""
+                            + " fileName=\"b.txt\" />.")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly(
+                        "Documents (<doc /> tag + content pair): <doc id=\"a\" /> and <doc"
+                            + " id=\"b\" fileName=\"b.txt\" />."));
+  }
+
+  @Test
+  void aTagInsideBackticksAndAPlainTagInATextAreReportedVerbatim() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "quoted `<doc id=\"a\" />` and plain <doc id=\"b\" />")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly("quoted `<doc id=\"a\" />` and plain <doc id=\"b\" />"));
+  }
+
+  @Test
+  void textWithoutADocTagIsReportedAsIs() {
+    final var userMessage =
+        UserMessage.builder()
+            .content(List.of(TextContent.textContent("a <document> and <b>bold</b> text")))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly("a <document> and <b>bold</b> text"));
+  }
+
+  @Test
+  void aToolResultTextQuotingADocTagIsReportedVerbatim() {
+    final var toolCall = ToolCall.builder().id("call-1").name("getWeather").build();
+    final var result =
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("getWeather")
+            .elementId("getWeather")
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "Parameter 'id' must be the <doc /> tag of a known document, got '<doc id=\"a\" />'.")))
+            .completedAt(TURN_INGESTION_TIMESTAMP)
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder().results(List.of(result)).build(),
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item ->
+                assertThat(texts(item.content()))
+                    .containsExactly(
+                        "Parameter 'id' must be the <doc /> tag of a known document, got '<doc id=\"a\" />'."));
+  }
+
+  @Test
+  void anAssistantTextWithADocTagIsReportedVerbatim() {
+    final var content =
+        mapper.assistantContent(
+            AssistantMessage.builder()
+                .content(List.of(TextContent.textContent("I use <doc id=\"a\" />")))
+                .build(),
+            NO_DOCUMENTS);
+
+    assertThat(texts(content)).containsExactly("I use <doc id=\"a\" />");
+  }
+
+  @Test
+  void withoutTheDocumentsFeatureTextsAndRuntimeToolNamesAreReportedAsStored() {
+    final var withoutDocumentFlow = AgentContext.empty();
+    final var tag = "<doc toolName=\"t\" toolCallId=\"c\" documentId=\"d1\" />";
+    final var toolCall =
+        ToolCall.builder().id("call-1").name(ReturnDocumentTool.NAME).arguments(Map.of()).build();
+
+    final var assistant =
+        AssistantMessage.builder()
+            .content(List.of(TextContent.textContent("I use " + tag)))
+            .toolCalls(List.of(toolCall))
+            .build();
+    final var user =
+        UserMessage.builder()
+            .content(List.of(TextContent.textContent(tag), TextContent.textContent("see " + tag)))
+            .build();
+
+    assertThat(texts(mapper.assistantContent(assistant, withoutDocumentFlow)))
+        .containsExactly("I use " + tag);
+    assertThat(mapper.assistantToolCalls(assistant, withoutDocumentFlow))
+        .singleElement()
+        .satisfies(call -> assertThat(call.getElementId()).isEqualTo(ReturnDocumentTool.NAME));
+    final var userItems =
+        mapper.inputHistoryItems(user, Map.of(), TURN_INGESTION_TIMESTAMP, withoutDocumentFlow);
+    assertThat(texts(userItems.getFirst().content())).containsExactly(tag, "see " + tag);
   }
 
   @Test
@@ -64,7 +335,8 @@ class AgentInstanceHistoryMapperTest {
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
     final var items =
-        mapper.inputHistoryItems(message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP);
+        mapper.inputHistoryItems(
+            message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS);
 
     assertThat(items)
         .singleElement()
@@ -73,6 +345,169 @@ class AgentInstanceHistoryMapperTest {
               assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
               assertThat(item.producedAt()).isEqualTo(TOOL_RESULT_COMPLETED_AT);
             });
+  }
+
+  @Test
+  void aCallAndAResultOfARuntimeToolHaveNoElementId() {
+    final var toolCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("c8__return_document")
+            .arguments(Map.of("key", "report", "document", "a"))
+            .build();
+    final var result =
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("c8__return_document")
+            .content(
+                List.of(TextContent.textContent("Returned the document under the key 'report'.")))
+            .completedAt(TOOL_RESULT_COMPLETED_AT)
+            .build();
+
+    final var assistantCalls =
+        mapper.assistantToolCalls(
+            AssistantMessage.builder().toolCalls(List.of(toolCall)).build(), NO_DOCUMENTS);
+    final var items =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder().results(List.of(result)).build(),
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
+
+    assertThat(assistantCalls)
+        .singleElement()
+        .satisfies(
+            call -> {
+              assertThat(call.getToolName()).isEqualTo("c8__return_document");
+              assertThat(call.getElementId()).isNull();
+            });
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+              assertThat(item.content())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      AgentInstanceHistoryContent.TextContent.class,
+                      text ->
+                          assertThat(text.getText())
+                              .isEqualTo("Returned the document under the key 'report'."));
+              assertThat(item.toolCalls())
+                  .singleElement()
+                  .satisfies(
+                      call -> {
+                        assertThat(call.getToolName()).isEqualTo("c8__return_document");
+                        assertThat(call.getToolCallId()).isEqualTo("call-1");
+                        assertThat(call.getElementId()).isNull();
+                        assertThat(call.getArguments()).containsEntry("key", "report");
+                      });
+            });
+  }
+
+  @Nested
+  class DocumentArguments {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    private final String documentId = DocumentHandle.idFor(document);
+    private final DocumentRegistry registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
+    private final AgentContext agentContext = NO_DOCUMENTS.withDocumentRegistry(registry);
+
+    private final ToolCall uploadCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("upload")
+            .arguments(
+                Map.of(
+                    "file",
+                    documentId,
+                    "attachments",
+                    List.of("<doc id=\"" + documentId + "\" />", "unknown"),
+                    "note",
+                    "n"))
+            .build();
+
+    @Test
+    void assistantToolCallShowsTheArgumentsAsTheModelSentThem() {
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(), agentContext);
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments()));
+    }
+
+    @Test
+    void toolResultShowsTheSameArgumentsAsTheAssistantToolCall() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              agentContext);
+
+      assertThat(items)
+          .singleElement()
+          .satisfies(
+              item ->
+                  assertThat(item.toolCalls())
+                      .singleElement()
+                      .satisfies(
+                          call ->
+                              assertThat(call.getArguments()).isEqualTo(uploadCall.arguments())));
+    }
+
+    @Test
+    void showsTheIdsOfTheDocumentParametersOfARuntimeToolCall() {
+      final var call =
+          ToolCall.builder()
+              .id("call-2")
+              .name("c8__return_document")
+              .arguments(Map.of("key", "report", "document", documentId))
+              .build();
+
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(call)).build(), agentContext);
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(
+              reported ->
+                  assertThat(reported.getArguments())
+                      .isEqualTo(Map.of("key", "report", "document", documentId)));
+    }
+
+    @Test
+    void showsTheArgumentsAsGivenForAnAgentWithoutDocuments() {
+      final var withoutRegistry = NO_DOCUMENTS;
+
+      assertThat(
+              mapper.assistantToolCalls(
+                  AssistantMessage.builder().toolCalls(List.of(uploadCall)).build(),
+                  withoutRegistry))
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments()));
+    }
   }
 
   @Test
@@ -102,7 +537,10 @@ class AgentInstanceHistoryMapperTest {
 
     final var items =
         mapper.inputHistoryItems(
-            message, Map.of("fast", fastToolCall, "slow", slowToolCall), TURN_INGESTION_TIMESTAMP);
+            message,
+            Map.of("fast", fastToolCall, "slow", slowToolCall),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS);
 
     assertThat(items).hasSize(2);
     assertThat(items.get(0).producedAt()).isEqualTo(fastCompletedAt);
@@ -127,7 +565,7 @@ class AgentInstanceHistoryMapperTest {
     assertThatThrownBy(
             () ->
                 mapper.inputHistoryItems(
-                    message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP))
+                    message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP, NO_DOCUMENTS))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
@@ -142,7 +580,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -160,7 +598,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -178,7 +616,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(reasoningContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -203,7 +641,7 @@ class AgentInstanceHistoryMapperTest {
                     TextContent.textContent("after")))
             .build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content).hasSize(4);
     assertThat(content.get(0))
@@ -233,7 +671,7 @@ class AgentInstanceHistoryMapperTest {
     final var assistantMessage =
         AssistantMessage.builder().content(List.of(providerContent)).build();
 
-    final var content = mapper.assistantContent(assistantMessage);
+    final var content = mapper.assistantContent(assistantMessage, NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -250,7 +688,7 @@ class AgentInstanceHistoryMapperTest {
 
     final var content =
         mapper.assistantContent(
-            AssistantMessage.builder().content(List.of(providerContent)).build());
+            AssistantMessage.builder().content(List.of(providerContent)).build(), NO_DOCUMENTS);
 
     assertThat(content)
         .singleElement()
@@ -267,7 +705,7 @@ class AgentInstanceHistoryMapperTest {
     for (final var providerContent : List.of(noText, blankText)) {
       final var content =
           mapper.assistantContent(
-              AssistantMessage.builder().content(List.of(providerContent)).build());
+              AssistantMessage.builder().content(List.of(providerContent)).build(), NO_DOCUMENTS);
 
       assertThat(content)
           .singleElement()
@@ -310,5 +748,385 @@ class AgentInstanceHistoryMapperTest {
     assertThat(result.getCacheCreationTokenCount()).isEqualTo(30L);
     assertThat(result.getReasoningTokenCount()).isEqualTo(20L);
     assertThat(result.getDurationMs()).isEqualTo(1234L);
+  }
+
+  @Nested
+  class ToolResultDocuments {
+
+    private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
+    private final DocumentFactoryImpl documentFactory =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+    private final Document document =
+        documentFactory.create(
+            DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                .contentType("application/pdf")
+                .fileName("report.pdf")
+                .timeToLive(Duration.ofHours(2))
+                .processDefinitionId("process-1")
+                .processInstanceKey(42L)
+                .customProperties(Map.of("origin", "test"))
+                .build());
+    private final Document otherDocument =
+        documentFactory.create(
+            DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName("other.txt")
+                .build());
+    private final String tag = DocumentReferenceContent.from(document).toTag();
+    private final String otherTag = DocumentReferenceContent.from(otherDocument).toTag();
+
+    private final DocumentRegistry registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("fetch", "call-1", "m-1")),
+                    new IngestedDocument(
+                        otherDocument, DocumentSource.toolCall("fetch", "call-1", "m-1"))));
+    private final AgentContext agentContext = NO_DOCUMENTS.withDocumentRegistry(registry);
+
+    private final ToolCall call =
+        ToolCall.builder()
+            .id("call-1")
+            .name("fetch")
+            .arguments(Map.of("document", DocumentHandle.idFor(document), "n", 1))
+            .build();
+
+    private ToolCallResultMessage message(Content... content) {
+      return ToolCallResultMessage.builder()
+          .results(
+              List.of(
+                  ToolCallResultContent.builder()
+                      .id("call-1")
+                      .name("fetch")
+                      .elementId("fetch")
+                      .content(List.of(content))
+                      .completedAt(TOOL_RESULT_COMPLETED_AT)
+                      .build()))
+          .build();
+    }
+
+    private AgentInstanceHistoryMapper.InputHistoryItem item(
+        ToolCallResultMessage message, AgentContext agentContext) {
+      final var items =
+          mapper.inputHistoryItems(
+              message, Map.of("call-1", call), TURN_INGESTION_TIMESTAMP, agentContext);
+      assertThat(items).hasSize(1);
+      return items.getFirst();
+    }
+
+    /** The message as the conversation store gives it back in the next job. */
+    private ToolCallResultMessage persisted(ToolCallResultMessage message) throws Exception {
+      return objectMapper.readValue(
+          objectMapper.writeValueAsString(message), ToolCallResultMessage.class);
+    }
+
+    private String describe(AgentInstanceHistoryContent content) {
+      return switch (content) {
+        case AgentInstanceHistoryContent.TextContent text -> "TEXT " + text.getText();
+        case AgentInstanceHistoryContent.ObjectContent object ->
+            "OBJECT " + objectMapper.valueToTree(object.getObject());
+        case AgentInstanceHistoryContent.DocumentContent doc -> {
+          final var reference = doc.getDocumentReference();
+          final var metadata = reference.getMetadata();
+          yield "DOCUMENT %s %s %s %s %s %s %s %s %s"
+              .formatted(
+                  reference.getDocumentId(),
+                  reference.getStoreId(),
+                  reference.getContentHash(),
+                  metadata.getFileName(),
+                  metadata.getContentType(),
+                  metadata.getSize(),
+                  metadata.getExpiresAt(),
+                  metadata.getProcessDefinitionId() + "/" + metadata.getProcessInstanceKey(),
+                  metadata.getCustomProperties());
+        }
+        default -> content.toString();
+      };
+    }
+
+    private JsonNode tree(Object value) {
+      return objectMapper.valueToTree(value);
+    }
+
+    private List<String> described(AgentInstanceHistoryMapper.InputHistoryItem item) {
+      return item.content().stream().map(this::describe).toList();
+    }
+
+    @Test
+    void aBareLiveDocumentIsTheShortTagInInlineCodeFollowedByTheDocument() {
+      final var item = item(message(DocumentContent.documentContent(document)), agentContext);
+
+      assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+      assertThat(item.content()).hasSize(2);
+      assertThat(texts(item.content())).containsExactly("`" + tag + "`");
+      assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void aBareTypedReferenceIsReportedLikeTheLiveDocument() {
+      final var live = item(message(DocumentContent.documentContent(document)), agentContext);
+      final var stored = item(message(DocumentReferenceContent.from(document)), agentContext);
+
+      assertThat(described(stored)).isEqualTo(described(live));
+    }
+
+    @Test
+    void theEarlyAndTheLaterWriteOfABareDocumentAreIdentical() throws Exception {
+      final var live = message(DocumentContent.documentContent(document));
+      final var stored = persisted(message(DocumentReferenceContent.from(document)));
+
+      // the early write knows no document of this turn yet
+      final var early = item(live, NO_DOCUMENTS);
+      final var later = item(stored, agentContext);
+
+      assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
+    }
+
+    @Test
+    void aReferenceBlockBetweenTextsIsTheShortTagInInlineCodeAndTheDocumentInTheOrderOfTheBlocks() {
+      // the block of a registry entry carries the tool call that returned the document, the model
+      // reads the short tag of a document in a tool result
+      final var block =
+          DocumentReferenceContent.from(registry.entries().getFirst(), DocumentDelivery.REFERENCE);
+
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("Loaded the document."),
+                  block,
+                  TextContent.textContent("Its content follows in the next message.")),
+              agentContext);
+
+      assertThat(block.toTag()).contains("toolName").contains("toolCallId");
+      assertThat(tag).doesNotContain("toolName").doesNotContain("toolCallId");
+      assertThat(item.content()).hasSize(4);
+      assertThat(described(item).get(0)).isEqualTo("TEXT Loaded the document.");
+      assertThat(described(item).get(1)).isEqualTo("TEXT `" + tag + "`");
+      assertThat(item.content().get(2))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(described(item).get(3)).isEqualTo("TEXT Its content follows in the next message.");
+    }
+
+    @Test
+    void aTagWrittenInTheTextOfAToolResultIsReportedVerbatimNextToTheReferenceBlock() {
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("The tool wrote " + tag),
+                  DocumentReferenceContent.from(otherDocument)),
+              agentContext);
+
+      assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + tag);
+      assertThat(texts(item.content()).get(1)).isEqualTo("`" + otherTag + "`");
+    }
+
+    @Test
+    void aTypedReferenceOfAnUnknownDocumentIsItsTagOnly() {
+      final var unknown =
+          new DocumentReferenceContent(
+              "unknown", "u.txt", null, null, null, null, null, DocumentDelivery.REFERENCE);
+
+      final var item = item(message(unknown), NO_DOCUMENTS);
+
+      assertThat(item.content()).hasSize(1);
+      assertThat(texts(item.content())).containsExactly("`" + unknown.toTag() + "`");
+    }
+
+    @Test
+    void aNestedDocumentIsTheTagStringInTheObjectAndTheDocumentFollowsTheObject() {
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      Map.of("status", 200, "file", document, "meta", Map.of("kind", "pdf")))),
+              agentContext);
+
+      assertThat(item.content()).hasSize(2);
+      assertThat(item.content().getFirst())
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object ->
+                  assertThat(tree(object.getObject()))
+                      .isEqualTo(
+                          tree(Map.of("status", 200, "file", tag, "meta", Map.of("kind", "pdf")))));
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void theTagInAnObjectIsNotWrappedInBackticksAndEqualsWhatTheModelSees() throws Exception {
+      final var message = message(ObjectContent.objectContent(Map.of("file", document)));
+      final var item = item(message, agentContext);
+
+      final var reported =
+          ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
+      assertThat(reported).isEqualTo(Map.of("file", tag));
+      final var modelFacing =
+          (ToolCallResultMessage)
+              new DocumentExpander(objectMapper)
+                  .expandMessages(List.of(message), DocumentRegistry.empty())
+                  .getFirst();
+      assertThat(modelFacing.results().getFirst().content())
+          .containsExactly(ObjectContent.objectContent(reported));
+    }
+
+    @Test
+    void aDocumentNestedAtAnyDepthAndInARecordIsReplacedByItsTag() {
+      record Attachment(String name, Document file) {}
+
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      Map.of("attachments", List.of(new Attachment("a", document))))),
+              agentContext);
+
+      assertThat(item.content()).hasSize(2);
+      assertThat(
+              tree(
+                  ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst())
+                      .getObject()))
+          .isEqualTo(tree(Map.of("attachments", List.of(Map.of("name", "a", "file", tag)))));
+    }
+
+    @Test
+    void theDocumentsOfAnObjectAreReportedOnceEachInOrderOfAppearance() {
+      final var item =
+          item(
+              message(
+                  ObjectContent.objectContent(
+                      List.of(
+                          Map.of("file", document),
+                          Map.of("file", otherDocument),
+                          Map.of("again", document)))),
+              agentContext);
+
+      assertThat(item.content()).hasSize(3);
+      assertThat(item.content().get(1))
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              doc ->
+                  assertThat(doc.getDocumentReference().getDocumentId())
+                      .isEqualTo(DocumentHandle.idFor(document)));
+      assertThat(item.content().get(2))
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.DocumentContent.class,
+              doc ->
+                  assertThat(doc.getDocumentReference().getDocumentId())
+                      .isEqualTo(DocumentHandle.idFor(otherDocument)));
+    }
+
+    @Test
+    void theEarlyAndTheLaterWriteOfANestedDocumentAreIdentical() throws Exception {
+      final var content =
+          ObjectContent.objectContent(
+              Map.of("status", 200, "file", document, "list", List.of(otherDocument)));
+
+      final var early = item(message(content), NO_DOCUMENTS);
+      final var later = item(persisted(message(content)), agentContext);
+
+      assertThat(described(later)).isEqualTo(described(early)).hasSize(3);
+    }
+
+    @Test
+    void aMixedResultKeepsTheOrderOfItsContent() {
+      final var item =
+          item(
+              message(
+                  TextContent.textContent("done"),
+                  DocumentReferenceContent.from(otherDocument),
+                  ObjectContent.objectContent(Map.of("file", document))),
+              agentContext);
+
+      assertThat(item.content()).hasSize(5);
+      assertThat(texts(item.content())).containsExactly("done", "`" + otherTag + "`");
+      assertThat(item.content().get(2))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(item.content().get(3))
+          .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
+      assertThat(item.content().get(4))
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+    }
+
+    @Test
+    void anObjectWithoutDocumentsIsReportedAsItIs() {
+      final var value = Map.of("status", 200, "items", List.of("a", "b"));
+
+      final var item = item(message(ObjectContent.objectContent(value)), agentContext);
+
+      assertThat(item.content())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object -> assertThat(object.getObject()).isSameAs(value));
+    }
+
+    @Test
+    void anExternalDocumentIsItsTagAndTheExternalReference() {
+      final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
+      final var externalTag = DocumentReferenceContent.from(external).toTag();
+
+      final var item = item(message(DocumentContent.documentContent(external)), agentContext);
+
+      assertThat(texts(item.content())).containsExactly("`" + externalTag + "`");
+      assertThat(item.content()).hasSize(2);
+      assertThat(item.content().get(1))
+          .isInstanceOf(AgentInstanceHistoryContent.ObjectContent.class);
+      assertThat(externalTag).doesNotContain("example.com");
+    }
+
+    @Test
+    void anInlineDocumentHasItsTagOnly() {
+      final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
+      final var inlineTag = DocumentReferenceContent.from(inline).toTag();
+
+      final var bare = item(message(DocumentContent.documentContent(inline)), agentContext);
+      final var nested =
+          item(message(ObjectContent.objectContent(Map.of("file", inline))), agentContext);
+
+      assertThat(texts(bare.content())).containsExactly("`" + inlineTag + "`");
+      assertThat(bare.content()).hasSize(1);
+      assertThat(nested.content()).hasSize(1);
+      assertThat(
+              ((AgentInstanceHistoryContent.ObjectContent) nested.content().getFirst()).getObject())
+          .isEqualTo(Map.of("file", inlineTag));
+    }
+
+    @Test
+    void theArgumentsAreTheOnesTheModelSent() {
+      final var item =
+          item(
+              message(
+                  DocumentReferenceContent.from(document),
+                  ObjectContent.objectContent(Map.of("file", otherDocument))),
+              agentContext);
+
+      assertThat(item.toolCalls())
+          .singleElement()
+          .satisfies(reported -> assertThat(reported.getArguments()).isEqualTo(call.arguments()));
+    }
+
+    @Test
+    void withoutTheDocumentsFeatureAToolResultIsReportedAsStored() {
+      final var legacy = AgentContext.empty();
+
+      final var bare = item(message(DocumentContent.documentContent(document)), legacy);
+      final var nested =
+          item(message(ObjectContent.objectContent(Map.of("file", document))), legacy);
+
+      assertThat(bare.content())
+          .singleElement()
+          .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+      assertThat(nested.content())
+          .singleElement()
+          .isInstanceOfSatisfying(
+              AgentInstanceHistoryContent.ObjectContent.class,
+              object ->
+                  assertThat(((Map<?, ?>) object.getObject()).get("file")).isSameAs(document));
+    }
   }
 }

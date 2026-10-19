@@ -22,6 +22,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class AgentV2ElementTemplateTest {
 
+  private static final String DOCUMENT_DELIVERY_ID = "data.userPrompt.documentDelivery";
+
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -171,6 +173,48 @@ class AgentV2ElementTemplateTest {
     assertThat(migratesFrom.get("sources")).hasSize(1);
     assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
         .isEqualTo(sourceTemplateId);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void offersTheDocumentDeliveryDropdownNextToTheDocumentsOfTheUserPrompt(String file)
+      throws IOException {
+    final var properties = template(file).get("properties");
+
+    final var dropdown = named(properties, "id", DOCUMENT_DELIVERY_ID);
+
+    assertThat(dropdown.get("type").asText()).isEqualTo("Dropdown");
+    assertThat(dropdown.get("label").asText()).isEqualTo("Document delivery");
+    assertThat(dropdown.get("group").asText()).isEqualTo("userPrompt");
+    assertThat(dropdown.get("value").asText()).isEqualTo("reference");
+    assertThat(dropdown.get("choices").findValuesAsText("value"))
+        .containsExactly("reference", "content");
+    assertThat(dropdown.get("choices").findValuesAsText("name"))
+        .containsExactly("Reference", "Content");
+    assertThat(dropdown.get("binding").get("name").asText()).isEqualTo(DOCUMENT_DELIVERY_ID);
+    final var ids = properties.findValuesAsText("id");
+    assertThat(ids.indexOf(DOCUMENT_DELIVERY_ID))
+        .isEqualTo(ids.indexOf("data.userPrompt.documents") + 1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "agenticai-aiagent-outbound-connector.json",
+        "agenticai-aiagent-job-worker.json",
+        "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+        "hybrid/agenticai-aiagent-job-worker-hybrid.json"
+      })
+  void leavesTheDocumentDeliveryDropdownOutOfTheFrozenV1Templates(String file) throws IOException {
+    assertThat(template(file).get("properties").findValuesAsText("id"))
+        .contains("data.userPrompt.documents")
+        .doesNotContain(DOCUMENT_DELIVERY_ID);
   }
 
   private static JsonNode preset(JsonNode template, String id) {

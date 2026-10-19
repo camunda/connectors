@@ -16,6 +16,9 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -23,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -31,12 +35,16 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +61,16 @@ import org.jspecify.annotations.Nullable;
 public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final RuntimeToolRegistry runtimeToolRegistry;
+  private final DocumentExpander documentExpander;
 
-  public AgentInstanceHistoryMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentInstanceHistoryMapper(
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      RuntimeToolRegistry runtimeToolRegistry,
+      DocumentExpander documentExpander) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.runtimeToolRegistry = runtimeToolRegistry;
+    this.documentExpander = documentExpander;
   }
 
   /**
@@ -74,21 +89,26 @@ public class AgentInstanceHistoryMapper {
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
    *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
    *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
+   * @param agentContext the persisted state of the agent: its features decide how the messages are
+   *     shown, its document registry is what document tags are expanded with
    */
   public List<InputHistoryItem> inputHistoryItems(
-      Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
+      Message message,
+      Map<String, ToolCall> toolCallsById,
+      OffsetDateTime turnIngestionTimestamp,
+      AgentContext agentContext) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  contentBlocks(userMessage.content()),
+                  userContentBlocks(userMessage.content(), agentContext),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
       case ToolCallResultMessage toolCallResultMessage ->
           toolCallResultMessage.results().stream()
-              .map(result -> toolResultHistoryItem(result, toolCallsById))
+              .map(result -> toolResultHistoryItem(result, toolCallsById, agentContext))
               .toList();
       default ->
           throw new IllegalArgumentException(
@@ -98,17 +118,19 @@ public class AgentInstanceHistoryMapper {
   }
 
   private InputHistoryItem toolResultHistoryItem(
-      ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
+      ToolCallResultContent result,
+      Map<String, ToolCall> toolCallsById,
+      AgentContext agentContext) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        contentBlocks(result.content()),
+        toolResultContent(result.content(), agentContext),
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
                 .toolName(StringUtils.defaultString(result.name()))
-                .elementId(elementIdFor(result.elementId(), result.name()))
+                .elementId(elementIdFor(result.elementId(), result.name(), agentContext))
                 .arguments(argumentsForResult(result, toolCallsById))),
         requireCompletedAt(result),
         AgentInstanceHistoryItemIds.forToolCallResult(result));
@@ -133,7 +155,7 @@ public class AgentInstanceHistoryMapper {
    * Resolves the originating request arguments for a tool-call result. Event results (no id) have
    * no originating tool call and carry empty arguments; a result with an id is expected to
    * correlate to a tool call in the previous turn, so a missing correlation is treated as an
-   * invariant violation.
+   * invariant violation. The arguments are shown as the model sent them.
    */
   private Map<String, Object> argumentsForResult(
       ToolCallResultContent result, Map<String, ToolCall> toolCallsById) {
@@ -141,7 +163,7 @@ public class AgentInstanceHistoryMapper {
       return Map.of();
     }
     return Optional.ofNullable(toolCallsById.get(result.id()))
-        .map(toolCall -> requireNonNullElse(toolCall.arguments(), Map.<String, Object>of()))
+        .map(AgentInstanceHistoryMapper::argumentsOf)
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
@@ -149,12 +171,13 @@ public class AgentInstanceHistoryMapper {
                         .formatted(result.id())));
   }
 
-  public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
-    return contentBlocks(assistantMessage.content());
+  public List<AgentInstanceHistoryContent> assistantContent(
+      AssistantMessage assistantMessage, AgentContext agentContext) {
+    return contentBlocks(assistantMessage.content(), agentContext);
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(
-      AssistantMessage assistantMessage) {
+      AssistantMessage assistantMessage, AgentContext agentContext) {
     final List<ToolCall> toolCalls = assistantMessage.toolCalls();
     if (toolCalls == null || toolCalls.isEmpty()) {
       return null;
@@ -165,23 +188,33 @@ public class AgentInstanceHistoryMapper {
                 new AgentInstanceHistoryToolCall()
                     .toolCallId(toolCall.id())
                     .toolName(toolCall.name())
-                    .elementId(elementIdFor(null, toolCall.name()))
-                    .arguments(toolCall.arguments()))
+                    .elementId(elementIdFor(null, toolCall.name(), agentContext))
+                    .arguments(argumentsOf(toolCall)))
         .toList();
+  }
+
+  /** The arguments of {@code toolCall} as the model sent them, document ids included. */
+  private static Map<String, Object> argumentsOf(ToolCall toolCall) {
+    return requireNonNullElse(toolCall.arguments(), Map.<String, Object>of());
   }
 
   /**
    * Resolves the BPMN element id for a tool call history entry. Prefers an already-resolved {@code
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
-   * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools.
+   * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools. A call of
+   * a runtime tool has no BPMN element: its element id is {@code null}.
    */
-  private String elementIdFor(@Nullable String elementId, @Nullable String toolName) {
+  private @Nullable String elementIdFor(
+      @Nullable String elementId, @Nullable String toolName, AgentContext agentContext) {
     if (elementId != null) {
       return elementId;
     }
     if (toolName == null) {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
+    }
+    if (agentContext.supportsRuntimeTools() && runtimeToolRegistry.toolNames().contains(toolName)) {
+      return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
   }
@@ -198,18 +231,123 @@ public class AgentInstanceHistoryMapper {
         .durationMs(durationMs);
   }
 
-  private List<AgentInstanceHistoryContent> contentBlocks(List<Content> contents) {
-    return contents.stream().map(this::toHistoryContent).toList();
+  /**
+   * The content of a user message. A document reference is its tag in inline code followed by the
+   * document, as the registry knows it; text is reported as it is, also when it holds a tag.
+   */
+  private List<AgentInstanceHistoryContent> userContentBlocks(
+      List<Content> contents, AgentContext agentContext) {
+    if (!agentContext.supportsDocuments()) {
+      return contentBlocks(contents, agentContext);
+    }
+
+    final var registry = agentContext.documentRegistry();
+    final var blocks = new ArrayList<AgentInstanceHistoryContent>();
+    for (final var content : contents) {
+      if (content instanceof DocumentReferenceContent reference) {
+        final var expanded = documentExpander.expandContent(List.of(reference), registry);
+        blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
+        expanded.stream()
+            .skip(1)
+            .forEach(document -> blocks.add(toHistoryContent(document, agentContext)));
+      } else {
+        blocks.add(toHistoryContent(content, agentContext));
+      }
+    }
+    return List.copyOf(blocks);
   }
 
-  private AgentInstanceHistoryContent toHistoryContent(Content content) {
+  /**
+   * The content of a tool result as the model receives it. A document, as a typed reference or as a
+   * live document, is its tag in inline code followed by the document; a document nested in an
+   * object is replaced by its tag, the same text the model gets, and the documents follow the
+   * object. A document that is not a Camunda or an external one has its tag only.
+   */
+  private List<AgentInstanceHistoryContent> toolResultContent(
+      List<Content> contents, AgentContext agentContext) {
+    if (!agentContext.supportsDocuments()) {
+      return contentBlocks(contents, agentContext);
+    }
+
+    final var registry = agentContext.documentRegistry();
+    final var blocks = new ArrayList<AgentInstanceHistoryContent>();
+    for (final var content : contents) {
+      switch (content) {
+        case DocumentContent documentContent ->
+            addDocument(
+                blocks,
+                DocumentReferenceContent.from(documentContent.document()),
+                documentContent.document());
+        case DocumentReferenceContent reference ->
+            addDocument(
+                blocks,
+                reference,
+                documentExpander.findDocument(registry, reference.id()).orElse(null));
+        case ObjectContent objectContent -> addObject(blocks, objectContent);
+        default -> blocks.add(toHistoryContent(content, agentContext));
+      }
+    }
+    return List.copyOf(blocks);
+  }
+
+  private void addDocument(
+      List<AgentInstanceHistoryContent> blocks,
+      DocumentReferenceContent reference,
+      @Nullable Document document) {
+    // the tag the model reads for the document of a tool result, the short one
+    final var tag = document != null ? DocumentReferenceContent.from(document) : reference;
+    blocks.add(AgentInstanceHistoryContent.text(inlineCode(tag.toTag())));
+    if (document != null && hasHistoryDocument(document)) {
+      blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
+    }
+  }
+
+  private void addObject(List<AgentInstanceHistoryContent> blocks, ObjectContent objectContent) {
+    final var tagged = documentExpander.renderWithTags(objectContent.content());
+    if (tagged.documents().isEmpty()) {
+      blocks.add(objectHistoryContent(objectContent.content()));
+      return;
+    }
+
+    blocks.add(objectHistoryContent(tagged.tree()));
+    final var reportedIds = new HashSet<String>();
+    for (final var document : tagged.documents()) {
+      if (hasHistoryDocument(document) && reportedIds.add(DocumentHandle.idFor(document))) {
+        blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
+      }
+    }
+  }
+
+  /** The history shows the Camunda and the external documents; an inline one has its tag only. */
+  private static boolean hasHistoryDocument(Document document) {
+    return document.reference() instanceof CamundaDocumentReference
+        || document.reference() instanceof ExternalDocumentReference;
+  }
+
+  private List<AgentInstanceHistoryContent> contentBlocks(
+      List<Content> contents, AgentContext agentContext) {
+    return contents.stream().map(content -> toHistoryContent(content, agentContext)).toList();
+  }
+
+  private AgentInstanceHistoryContent toHistoryContent(Content content, AgentContext agentContext) {
     return switch (content) {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
+      case DocumentReferenceContent reference ->
+          AgentInstanceHistoryContent.text(
+              agentContext.supportsDocuments() ? inlineCode(reference.toTag()) : reference.toTag());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };
+  }
+
+  /**
+   * The tag in inline code backticks, so a markdown renderer shows it instead of treating it as
+   * markup.
+   */
+  private static String inlineCode(String tag) {
+    return "`" + tag + "`";
   }
 
   private AgentInstanceHistoryContent reasoningHistoryContent(ReasoningContent reasoningContent) {
@@ -288,7 +426,10 @@ public class AgentInstanceHistoryMapper {
       protocolMetadata.size(metadata.getSize());
     }
     if (metadata.getExpiresAt() != null) {
-      protocolMetadata.expiresAt(metadata.getExpiresAt().toString());
+      // a UTC instant, so a live document and the same document read back from the registry (which
+      // keeps the instant, not its offset) are reported with the same text
+      protocolMetadata.expiresAt(
+          metadata.getExpiresAt().withOffsetSameInstant(ZoneOffset.UTC).toString());
     }
     if (metadata.getProcessDefinitionId() != null) {
       protocolMetadata.processDefinitionId(metadata.getProcessDefinitionId());
