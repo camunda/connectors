@@ -83,6 +83,17 @@
     },
     "type" : "String"
   }, {
+    "id" : "baseUrl",
+    "label" : "API base URL",
+    "optional" : false,
+    "value" : "https://slack.com/api/",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
     "id" : "method",
     "label" : "Method",
     "value" : "chat.postMessage",

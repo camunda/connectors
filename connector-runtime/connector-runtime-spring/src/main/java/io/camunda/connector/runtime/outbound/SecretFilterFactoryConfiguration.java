@@ -18,9 +18,14 @@ package io.camunda.connector.runtime.outbound;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.outbound.job.ConfigurableIntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListMode;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionIntrinsicFunctionAllowListCache;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,10 +61,21 @@ public class SecretFilterFactoryConfiguration {
             Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
   }
 
+  /**
+   * Builds its own {@link ProcessDefinitionModelCache} backed by the shared {@code
+   * bpmnModelCacheStore} rather than fetching BPMN XML itself: {@link
+   * #intrinsicFunctionAllowListCache} builds one from the exact same underlying cache, so a process
+   * definition fetched for one purpose is reused for the other instead of being fetched and parsed
+   * twice.
+   */
   @Bean
   public SecretKeyCache secretKeyCache(
-      CamundaClient camundaClient, SecretKeyCacheHolder secretKeyCacheStore) {
-    return new ProcessDefinitionSecretKeyCache(camundaClient, secretKeyCacheStore.cache());
+      CamundaClient camundaClient,
+      SecretKeyCacheHolder secretKeyCacheStore,
+      BpmnModelCacheHolder bpmnModelCacheStore) {
+    var modelCache =
+        new ProcessDefinitionModelCache("default", camundaClient, bpmnModelCacheStore.cache());
+    return new ProcessDefinitionSecretKeyCache(modelCache, secretKeyCacheStore.cache());
   }
 
   @Bean
@@ -68,5 +84,59 @@ public class SecretFilterFactoryConfiguration {
           SecretFilterMode secretFilterMode,
       SecretKeyCache secretKeyCache) {
     return new ConfigurableSecretFilterFactory(secretFilterMode, secretKeyCache);
+  }
+
+  /**
+   * Mirrors {@link #secretKeyCacheStore} exactly, one type level down: an unqualified {@code Cache}
+   * bean would collide with a host application's own cache bean of that exact type.
+   */
+  @Bean
+  BpmnModelCacheHolder bpmnModelCacheStore(
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new BpmnModelCacheHolder(new NoOpCache("bpmnModel"));
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new BpmnModelCacheHolder(
+        new CaffeineCache("bpmnModel", Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
+  }
+
+  @Bean
+  IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore(
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.enabled:true}")
+          boolean cacheEnabled,
+      @Value("${camunda.connector.intrinsic-function.allow-list.cache.max-size:1000}")
+          int cacheMaxSize) {
+    if (!cacheEnabled) {
+      return new IntrinsicFunctionAllowListCacheHolder(new NoOpCache("intrinsicFunctionAllowList"));
+    }
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    return new IntrinsicFunctionAllowListCacheHolder(
+        new CaffeineCache(
+            "intrinsicFunctionAllowList",
+            Caffeine.newBuilder().maximumSize(boundedMaxSize).build()));
+  }
+
+  @Bean
+  public ProcessDefinitionIntrinsicFunctionAllowListCache intrinsicFunctionAllowListCache(
+      CamundaClient camundaClient,
+      BpmnModelCacheHolder bpmnModelCacheStore,
+      IntrinsicFunctionAllowListCacheHolder intrinsicFunctionAllowListCacheStore) {
+    var modelCache =
+        new ProcessDefinitionModelCache("default", camundaClient, bpmnModelCacheStore.cache());
+    return new ProcessDefinitionIntrinsicFunctionAllowListCache(
+        "default", modelCache, intrinsicFunctionAllowListCacheStore.cache());
+  }
+
+  @Bean
+  public IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory(
+      @Value("${camunda.connector.intrinsic-function.allow-list.mode:ENABLED}")
+          IntrinsicFunctionAllowListMode intrinsicFunctionAllowListMode,
+      ProcessDefinitionIntrinsicFunctionAllowListCache intrinsicFunctionAllowListCache) {
+    return new ConfigurableIntrinsicFunctionAllowListFactory(
+        intrinsicFunctionAllowListMode, intrinsicFunctionAllowListCache);
   }
 }

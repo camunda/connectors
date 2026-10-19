@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.9.10</version>
+    <version>8.9.13</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -126,7 +126,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-ai-documentintelligence</artifactId>
-      <version>1.0.9</version>
+      <version>1.0.11</version>
       <exclusions>
         <exclusion>
           <groupId>io.vertx</groupId>
@@ -149,7 +149,7 @@
       <dependency>
           <groupId>dev.langchain4j</groupId>
           <artifactId>langchain4j-azure-open-ai</artifactId>
-          <version>1.18.1</version>
+          <version>1.22.0</version>
       </dependency>
 
 

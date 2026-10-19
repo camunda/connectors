@@ -178,9 +178,16 @@ public class BatchExecutableProcessor {
     try {
       if (executable instanceof WebhookConnectorExecutable) {
         LOG.debug("Registering webhook: {}", data.type());
-        if (webhookConnectorRegistry.register(
-            new RegisteredExecutable.Activated(executable, context, id))) {
-          executable.activate(context);
+        var activated = new RegisteredExecutable.Activated(executable, context, id);
+        if (webhookConnectorRegistry.register(activated)) {
+          try {
+            executable.activate(context);
+          } catch (Exception e) {
+            // free the path, otherwise the failed instance would block it until the runtime
+            // restarts
+            deregisterAfterFailedActivation(activated, e);
+            throw e;
+          }
         }
       } else {
         executable.activate(context);
@@ -201,6 +208,15 @@ public class BatchExecutableProcessor {
                     data.type(), data.deduplicationId())));
     connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
     return new Activated(executable, context, id);
+  }
+
+  private void deregisterAfterFailedActivation(Activated activated, Exception activationError) {
+    try {
+      webhookConnectorRegistry.deregister(activated);
+    } catch (Exception e) {
+      LOG.error("Failed to deregister webhook after failed activation", e);
+      activationError.addSuppressed(e);
+    }
   }
 
   /** Deactivates a batch of inbound connectors. */

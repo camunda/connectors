@@ -58,7 +58,12 @@ public class JakartaValidationAnnotationProcessor implements AnnotationProcessor
       constraintsBuilder.pattern(
           new PropertyConstraints.Pattern(pattern.getLeft(), pattern.getRight()));
     }
-    if (pattern != null && !hasNotEmptyConstraint(field) && AnnotationProcessor.isOptional(field)) {
+    // Web Modeler's schema requires notEmpty to be present in a constraint block, so an optional
+    // property carrying any other constraint must be explicitly marked as allowed to be empty.
+    var hasOtherConstraint = pattern != null || minSize != null || maxSize != null;
+    if (hasOtherConstraint
+        && !hasNotEmptyConstraint(field)
+        && AnnotationProcessor.isOptional(field)) {
       constraintsBuilder.notEmpty(false);
     }
     var constraints = constraintsBuilder.build();

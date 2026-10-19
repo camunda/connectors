@@ -31,6 +31,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -54,6 +55,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final DocumentFactory documentFactory;
   private final MetricsRecorder metricsRecorder;
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -64,7 +66,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder,
-      SecretFilterFactory secretFilterFactory) {
+      SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -74,6 +77,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
   }
 
   @Override
@@ -120,7 +124,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 documentFactory,
                 objectMapper,
                 connectorFunction,
-                secretFilterFactory);
+                secretFilterFactory,
+                intrinsicFunctionAllowListFactory);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }

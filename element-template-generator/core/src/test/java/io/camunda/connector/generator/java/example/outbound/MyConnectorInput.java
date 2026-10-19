@@ -84,6 +84,11 @@ public record MyConnectorInput(
     @TemplateProperty(id = "idNotEqualToBinding") String propertyWithDifferentIdAndBinding,
     @Size(min = 1, max = 10) String propertyWithMinMax,
     @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,
+    @TemplateProperty(id = "optionalPropertyWithMaxSize", optional = true)
+        @Size(min = Integer.MIN_VALUE, max = 10)
+        String optionalPropertyWithMaxSize,
+    @TemplateProperty(id = "optionalPropertyWithMinSize", optional = true) @Size(min = 1)
+        String optionalPropertyWithMinSize,
     @NotEmpty String stringPropertyWithNotEmpty,
     @NotBlank String stringPropertyWithNotBlank,
     @NotNull Object objectPropertyWithNotNull,

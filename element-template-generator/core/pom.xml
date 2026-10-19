@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>element-template-generator-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.10</version>
+    <version>8.9.13</version>
   </parent>
 
   <name>element-template-generator-core</name>
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.20.0</version>
+      <version>3.21.0</version>
     </dependency>
     <!-- Docs template engine -->
     <dependency>

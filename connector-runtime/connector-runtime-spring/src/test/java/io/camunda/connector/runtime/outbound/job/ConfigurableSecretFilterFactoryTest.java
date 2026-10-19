@@ -30,6 +30,7 @@ import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
 import io.camunda.connector.runtime.core.secret.SecretFilter.Secret;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
 import io.camunda.connector.runtime.outbound.job.ConfigurableSecretFilterFactory.SecretFilterMode;
+import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionModelCache;
 import io.camunda.connector.runtime.outbound.secret.ProcessDefinitionSecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache;
 import io.camunda.connector.runtime.outbound.secret.SecretKeyCache.SecretKeyContext;
@@ -203,8 +204,9 @@ class ConfigurableSecretFilterFactoryTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(anyLong())).thenReturn(xmlRequest);
     when(xmlRequest.execute())
         .thenThrow(new RuntimeException("Operate returned 404 for process definition 42"));
-    SecretKeyCache realSecretKeyCache =
-        new ProcessDefinitionSecretKeyCache(camundaClient, cache, Duration.ofMillis(1));
+    var modelCache =
+        new ProcessDefinitionModelCache("default", camundaClient, cache, Duration.ofMillis(1));
+    SecretKeyCache realSecretKeyCache = new ProcessDefinitionSecretKeyCache(modelCache, cache);
     var factory = new ConfigurableSecretFilterFactory(SecretFilterMode.STRICT, realSecretKeyCache);
 
     var filter = factory.create(CONTEXT);

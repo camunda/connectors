@@ -17,6 +17,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import java.util.ArrayList;
@@ -42,7 +43,8 @@ class JobWorkerAgentExecutionContextFactoryImplTest {
           mock(ValidationProvider.class),
           mock(DocumentFactory.class),
           ConnectorsObjectMapperSupplier.getCopy(),
-          secretFilterFactory);
+          secretFilterFactory,
+          IntrinsicFunctionAllowListFactory.disabled());
 
   /**
    * The binding is where a secret reference becomes a value, so a failure raised anywhere after it

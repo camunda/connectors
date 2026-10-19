@@ -503,9 +503,13 @@ class ChatMessageConverterTest {
 
     final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
 
+    final var expectedInputTokensDetails = new LinkedHashMap<String, Object>();
+    expectedInputTokensDetails.put("cacheWriteTokens", null);
+    expectedInputTokensDetails.put("cachedTokens", 1);
+
     final var expectedTokenUsage = new LinkedHashMap<String, Object>();
     expectedTokenUsage.put("inputTokenCount", 10);
-    expectedTokenUsage.put("inputTokensDetails", Map.of("cachedTokens", 1));
+    expectedTokenUsage.put("inputTokensDetails", expectedInputTokensDetails);
     expectedTokenUsage.put("outputTokenCount", 20);
     expectedTokenUsage.put("outputTokensDetails", null);
     expectedTokenUsage.put("totalTokenCount", 30);

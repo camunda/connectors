@@ -10,8 +10,9 @@ on:
     branches:
       - '**'
       - '!main'
+      - '!gh-readonly-queue/**'
   merge_group:
-    branches: [ main ]
+    branches: [ main, 'stable/**' ]
 
 # Cancel stale runs of the same type (push-on-push, PR-on-PR) without
 # letting push and pull_request events cancel each other.
@@ -22,7 +23,7 @@ concurrency:
 jobs:
   run-tests:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -62,7 +63,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - uses: actions/setup-node@v6
         with:
@@ -111,7 +112,7 @@ jobs:
 
       # Build and test (format and javadoc run in parallel jobs)
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C
+        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C '-P!autoFormat'
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
@@ -127,17 +128,17 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: connector-runtime/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.4.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
 
@@ -153,7 +154,7 @@ jobs:
 
   check-javadoc:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -187,7 +188,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -227,14 +228,14 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
 
       - name: Check Javadoc
-        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly
+        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
   check-format:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -268,7 +269,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.9'
+          java-version: '21.0.12+101.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -308,7 +309,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly
+        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
 
       - name: Check Format
         run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
