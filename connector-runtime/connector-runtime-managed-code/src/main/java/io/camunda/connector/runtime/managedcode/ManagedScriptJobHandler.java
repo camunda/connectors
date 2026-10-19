@@ -153,6 +153,7 @@ final class ManagedScriptJobHandler {
         physicalTenantId,
         job.getTenantId(),
         provider.name(),
+        registry.buildVersion(),
         deploymentNamePrefix,
         scriptLanguage,
         runtime,

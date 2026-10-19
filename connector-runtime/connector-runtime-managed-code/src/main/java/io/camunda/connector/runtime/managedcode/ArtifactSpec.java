@@ -27,8 +27,9 @@ import java.util.Optional;
 /**
  * Everything a provider needs to build and deploy one script artifact.
  *
- * @param digest SHA-256 over script, wrapper, language, runtime, dependency manifest and build
- *     policy version; identical inputs always produce the same digest
+ * @param digest SHA-256 over script, language, runtime, dependency manifest, build policy version
+ *     and the build version of the packager, which covers the generated entrypoint; identical
+ *     inputs always produce the same digest
  * @param deploymentName deterministic provider resource name, see {@link #deploymentName(Key)}
  */
 public record ArtifactSpec(
@@ -58,6 +59,7 @@ public record ArtifactSpec(
       String physicalTenantId,
       String tenantId,
       String provider,
+      String buildVersion,
       String deploymentNamePrefix,
       ScriptLanguage language,
       String runtime,
@@ -65,7 +67,7 @@ public record ArtifactSpec(
       byte[] script,
       Optional<byte[]> dependencies) {
     final var normalizedRuntime = runtime.strip().toLowerCase(Locale.ROOT);
-    final var digest = digest(language, normalizedRuntime, script, dependencies);
+    final var digest = digest(buildVersion, language, normalizedRuntime, script, dependencies);
     final var key = new Key(physicalTenantId, tenantId, provider, digest);
     return new ArtifactSpec(
         key,
@@ -82,12 +84,16 @@ public record ArtifactSpec(
   }
 
   static String digest(
-      ScriptLanguage language, String runtime, byte[] script, Optional<byte[]> dependencies) {
+      String buildVersion,
+      ScriptLanguage language,
+      String runtime,
+      byte[] script,
+      Optional<byte[]> dependencies) {
     final var sha256 = sha256();
     update(sha256, BUILD_POLICY_VERSION.getBytes(StandardCharsets.UTF_8));
+    update(sha256, buildVersion.getBytes(StandardCharsets.UTF_8));
     update(sha256, language.language().getBytes(StandardCharsets.UTF_8));
     update(sha256, runtime.getBytes(StandardCharsets.UTF_8));
-    update(sha256, language.wrapper());
     update(sha256, script);
     if (dependencies.isPresent()) {
       update(sha256, dependencies.get());

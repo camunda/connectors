@@ -187,6 +187,7 @@ class ManagedCodeAutoConfigurationTest {
             "camunda.connector.managed-code.enabled=true",
             "camunda.connector.managed-code.provider=controlled")
         .withBean(ManagedCodeProvider.class, ControlledProvider::new)
+        .withBean(ScriptPackager.class, ControlledPackager::new)
         .run(
             context -> {
               assertThat(context).hasNotFailed();

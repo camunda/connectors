@@ -19,11 +19,9 @@ package io.camunda.connector.runtime.managedcode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
@@ -51,9 +49,9 @@ import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
  *   <li>The function name is the deterministic deployment name of the artifact, so concurrent
  *       runtime instances converge: one create is accepted, the others get a conflict and adopt the
  *       function.
- *   <li>The package holds a generated handler and the user script, zipped deterministically, so
- *       that its code hash is stable and publishing the version returns the same number to every
- *       instance.
+ *   <li>The {@link AwsLambdaScriptPackager} provides the generated handler and the user script,
+ *       zipped here deterministically, so that the code hash is stable and publishing the version
+ *       returns the same number to every instance.
  *   <li>The execution role is attached to customer code and must grant nothing beyond logging.
  * </ul>
  */
@@ -101,10 +99,9 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
 
   /** Runs on the provisioning executor of the registry, so it creates and waits synchronously. */
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
     final var name = artifact.deploymentName();
-    final var runtime = lambdaRuntime(artifact);
-    final var code = SdkBytes.fromByteArray(packageFor(artifact));
+    final var code = SdkBytes.fromByteArray(zip(scriptPackage));
     try {
       final var created =
           call(
@@ -114,8 +111,8 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
                           .functionName(name)
                           .description("Camunda managed script " + artifact.resourceName())
                           .role(executionRoleArn)
-                          .runtime(runtime)
-                          .handler(handlerFor(artifact.language()))
+                          .runtime(scriptPackage.runtime())
+                          .handler(scriptPackage.entrypoint())
                           .timeout(Math.toIntExact(Math.max(1, executionTimeout.toSeconds())))
                           .memorySize(memoryMb)
                           .publish(true)
@@ -261,58 +258,11 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     }
   }
 
-  static String lambdaRuntime(ArtifactSpec artifact) {
-    final var runtime = artifact.runtime().toLowerCase(Locale.ROOT);
-    return switch (artifact.language()) {
-      case PYTHON ->
-          switch (runtime) {
-            case "python3", "python3.13" -> "python3.13";
-            case "python3.12" -> "python3.12";
-            default -> throw unsupportedRuntime(artifact);
-          };
-      case JAVASCRIPT ->
-          switch (runtime) {
-            case "nodejs", "nodejs22", "nodejs22.x" -> "nodejs22.x";
-            case "nodejs20", "nodejs20.x" -> "nodejs20.x";
-            default -> throw unsupportedRuntime(artifact);
-          };
-    };
-  }
-
-  private static ProvisioningException unsupportedRuntime(ArtifactSpec artifact) {
-    return new ProvisioningException(
-        "UNSUPPORTED_RUNTIME",
-        "Runtime '%s' is not supported on AWS Lambda".formatted(artifact.runtime()),
-        false);
-  }
-
-  static String handlerFor(ScriptLanguage language) {
-    return switch (language) {
-      case PYTHON -> "handler.lambda_handler";
-      case JAVASCRIPT -> "index.handler";
-    };
-  }
-
   /** Deterministic zip: fixed entry order and timestamps, so the code hash depends on content. */
-  static byte[] packageFor(ArtifactSpec artifact) {
-    final Map<String, byte[]> files = new LinkedHashMap<>();
-    switch (artifact.language()) {
-      case PYTHON -> {
-        files.put("handler.py", resource("python_handler.py"));
-        files.put("user_script.py", artifact.script());
-      }
-      case JAVASCRIPT -> {
-        files.put("index.mjs", resource("node_handler.mjs"));
-        files.put("user_script.mjs", artifact.script());
-      }
-    }
-    if (artifact.dependencies().isPresent()) {
-      throw new ProvisioningException(
-          "UNSUPPORTED_DEPENDENCIES", "Dependencies are not supported by the AWS provider", false);
-    }
+  static byte[] zip(ScriptPackage scriptPackage) {
     final var bytes = new ByteArrayOutputStream();
     try (var zip = new ZipOutputStream(bytes)) {
-      for (var file : files.entrySet()) {
+      for (var file : scriptPackage.files().entrySet()) {
         final var entry = new ZipEntry(file.getKey());
         entry.setTime(FIXED_ZIP_TIME);
         zip.putNextEntry(entry);
@@ -323,18 +273,6 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
       throw new UncheckedIOException(e);
     }
     return bytes.toByteArray();
-  }
-
-  private static byte[] resource(String name) {
-    try (InputStream stream =
-        AwsLambdaManagedCodeProvider.class.getResourceAsStream("/managed-code-aws/" + name)) {
-      if (stream == null) {
-        throw new IllegalStateException("Missing managed-script handler: " + name);
-      }
-      return stream.readAllBytes();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 
   private static Map<String, Object> contractRequest(ExecutionRequest request) {

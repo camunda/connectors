@@ -24,8 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -53,8 +55,9 @@ import java.util.concurrent.TimeoutException;
  *   <li>A deleted directory is reported as {@link ExecutionResponse#DEPLOYMENT_MISSING}.
  * </ul>
  *
- * <p>Provisioning completes synchronously, before {@link #ensureProvisioned(ArtifactSpec)} returns.
- * A cloud provider returns once the provider accepted the work and completes the handle later.
+ * <p>Provisioning completes synchronously, before {@link #ensureProvisioned(ArtifactSpec,
+ * ScriptPackage)} returns. A cloud provider returns once the provider accepted the work and
+ * completes the handle later.
  */
 public final class LocalManagedCodeProvider implements ManagedCodeProvider {
 
@@ -64,7 +67,12 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   private static final int MAX_INSTALL_LOG_CHARS = 2_000;
 
-  private record DeploymentMetadata(String language, String runtime, String digest) {}
+  /**
+   * @param entrypoint the wrapper the executor runs
+   * @param files the files of the package, in the deployment directory
+   */
+  private record DeploymentMetadata(
+      String language, String runtime, String digest, String entrypoint, List<String> files) {}
 
   private final LocalProcessScriptExecutor executor;
   private final LocalInterpreterDiscovery.DiscoveryReport interpreters;
@@ -91,11 +99,11 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
   }
 
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
     final var deployment = new ProviderDeployment(NAME, artifact.deploymentName());
     final var target = deploymentDirectory(artifact.deploymentName());
     if (!Files.isRegularFile(target.resolve(METADATA_FILE))) {
-      build(artifact, target);
+      build(artifact, scriptPackage, target);
     }
     return new ProvisioningHandle(
         artifact.deploymentName(), CompletableFuture.completedFuture(deployment));
@@ -105,12 +113,14 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
   public ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request) {
     final var target = deploymentDirectory(deployment.deploymentId());
     final DeploymentMetadata metadata;
-    final byte[] script;
+    final Map<String, byte[]> files = new LinkedHashMap<>();
     try {
       metadata =
           objectMapper.readValue(target.resolve(METADATA_FILE).toFile(), DeploymentMetadata.class);
-      script = Files.readAllBytes(target.resolve(scriptFileName(language(metadata))));
-    } catch (IOException e) {
+      for (var file : metadata.files()) {
+        files.put(file, Files.readAllBytes(target.resolve(file)));
+      }
+    } catch (IOException | RuntimeException e) {
       return ExecutionResponse.failed(
           ExecutionResponse.DEPLOYMENT_MISSING,
           "Provider deployment '%s' does not exist".formatted(deployment.deploymentId()),
@@ -122,7 +132,8 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
       final var result =
           executor.execute(
               language,
-              script,
+              files,
+              metadata.entrypoint(),
               request,
               Files.isDirectory(packages) ? Optional.of(packages) : Optional.empty());
       return objectMapper.treeToValue(result.response(), ExecutionResponse.class);
@@ -150,7 +161,7 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
   }
 
-  private void build(ArtifactSpec artifact, Path target) {
+  private void build(ArtifactSpec artifact, ScriptPackage scriptPackage, Path target) {
     try {
       interpreters.require(artifact.language());
     } catch (IllegalStateException e) {
@@ -162,7 +173,9 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
       staging =
           Files.createDirectory(
               directory.resolve(".staging-" + artifact.deploymentName() + "-" + UUID.randomUUID()));
-      Files.write(staging.resolve(scriptFileName(artifact.language())), artifact.script());
+      for (var file : scriptPackage.files().entrySet()) {
+        Files.write(staging.resolve(file.getKey()), file.getValue());
+      }
       if (artifact.dependencies().isPresent()) {
         install(artifact.language(), artifact.dependencies().get(), staging);
       }
@@ -170,7 +183,11 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
       objectMapper.writeValue(
           staging.resolve(METADATA_FILE).toFile(),
           new DeploymentMetadata(
-              artifact.language().language(), artifact.runtime(), artifact.digest()));
+              artifact.language().language(),
+              artifact.runtime(),
+              artifact.digest(),
+              scriptPackage.entrypoint(),
+              List.copyOf(scriptPackage.files().keySet())));
       try {
         Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
       } catch (IOException e) {
@@ -285,11 +302,6 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   private static ScriptLanguage language(DeploymentMetadata metadata) {
     return ScriptLanguage.valueOf(metadata.language().toUpperCase(Locale.ROOT));
-  }
-
-  /** The same names that {@link LocalProcessScriptExecutor} uses for the invocation. */
-  private static String scriptFileName(ScriptLanguage language) {
-    return language == ScriptLanguage.PYTHON ? "user_script.py" : "user_script.mjs";
   }
 
   private static String packagesDirectoryName(ScriptLanguage language) {

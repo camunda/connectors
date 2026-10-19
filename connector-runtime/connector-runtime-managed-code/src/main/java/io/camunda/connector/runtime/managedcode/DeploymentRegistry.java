@@ -93,15 +93,18 @@ final class DeploymentRegistry implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(DeploymentRegistry.class);
 
   private final ManagedCodeProvider provider;
+  private final ScriptPackager packager;
   private final ExecutorService provisioningExecutor;
   private final Clock clock;
   private final Map<ArtifactSpec.Key, CompletableFuture<ProviderDeployment>> deployments =
       new ConcurrentHashMap<>();
   private final Map<ArtifactSpec.Key, Entry> entries = new ConcurrentHashMap<>();
 
-  DeploymentRegistry(ManagedCodeProvider provider, int provisioningConcurrency) {
+  DeploymentRegistry(
+      ManagedCodeProvider provider, ScriptPackager packager, int provisioningConcurrency) {
     this(
         provider,
+        packager,
         Executors.newFixedThreadPool(
             provisioningConcurrency,
             Thread.ofPlatform().name("managed-code-provisioning-", 0).daemon().factory()),
@@ -109,10 +112,19 @@ final class DeploymentRegistry implements AutoCloseable {
   }
 
   DeploymentRegistry(
-      ManagedCodeProvider provider, ExecutorService provisioningExecutor, Clock clock) {
+      ManagedCodeProvider provider,
+      ScriptPackager packager,
+      ExecutorService provisioningExecutor,
+      Clock clock) {
     this.provider = provider;
+    this.packager = packager;
     this.provisioningExecutor = provisioningExecutor;
     this.clock = clock;
+  }
+
+  /** Build version of the packager, part of the digest of every artifact of this registry. */
+  String buildVersion() {
+    return packager.buildVersion();
   }
 
   /**
@@ -193,7 +205,7 @@ final class DeploymentRegistry implements AutoCloseable {
           "Provisioning managed-script artifact {} as provider deployment '{}'",
           key.digest(),
           artifact.deploymentName());
-      final var handle = provider.ensureProvisioned(artifact);
+      final var handle = provider.ensureProvisioned(artifact, packager.packageFor(artifact));
       entries.computeIfPresent(
           key, (ignored, entry) -> entry.with(Status.DEPLOYING, handle.deploymentName(), null));
       final var deployment = handle.ready().toCompletableFuture().get();

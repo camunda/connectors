@@ -97,11 +97,33 @@ public class ManagedCodeAutoConfiguration {
         aws.pollInterval());
   }
 
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "provider",
+      havingValue = LocalManagedCodeProvider.NAME)
+  public LocalScriptPackager localScriptPackager() {
+    return new LocalScriptPackager();
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "provider",
+      havingValue = AwsLambdaManagedCodeProvider.NAME)
+  public AwsLambdaScriptPackager awsLambdaScriptPackager() {
+    return new AwsLambdaScriptPackager();
+  }
+
   @Bean(destroyMethod = "close")
   public DeploymentRegistry managedCodeDeploymentRegistry(
-      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+      ObjectProvider<ManagedCodeProvider> providers,
+      ObjectProvider<ScriptPackager> packagers,
+      ManagedCodeProperties properties) {
     return new DeploymentRegistry(
-        requireProvider(providers, properties), properties.provisioningConcurrency());
+        requireProvider(providers, properties),
+        requirePackager(packagers, properties),
+        properties.provisioningConcurrency());
   }
 
   @Bean
@@ -129,6 +151,25 @@ public class ManagedCodeAutoConfiguration {
   public ManagedScriptFunction managedScriptFunction(
       ManagedScriptJobHandler handler, PhysicalTenantClientSelector clients) {
     return new ManagedScriptFunction(handler, clients);
+  }
+
+  /**
+   * Selects the packager bean for the provider named by {@code
+   * camunda.connector.managed-code.provider}.
+   */
+  private static ScriptPackager requirePackager(
+      ObjectProvider<ScriptPackager> packagers, ManagedCodeProperties properties) {
+    final var matching =
+        packagers
+            .orderedStream()
+            .filter(packager -> properties.provider().equals(packager.provider()))
+            .toList();
+    if (matching.size() != 1) {
+      throw new IllegalStateException(
+          "Expected one script packager for managed-code provider '%s', found %d"
+              .formatted(properties.provider(), matching.size()));
+    }
+    return matching.getFirst();
   }
 
   /**

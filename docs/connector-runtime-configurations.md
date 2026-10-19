@@ -86,9 +86,10 @@ Concurrent instances converge on one function: a create that conflicts adopts th
 Dependencies are not supported. Networking, such as denying egress, is not configured by the
 provider.
 
-Other providers implement `ManagedCodeProvider` and register it as a Spring bean, for example
-through an auto-configuration in a jar placed in `/opt/custom` of the Docker image. The connector
-uses the bean whose `name()` matches `provider`. Loading a provider from `/opt/custom` has not been
+Other providers implement `ScriptPackager`, which turns the script into the files and entrypoint of
+the platform, and `ManagedCodeProvider`, which creates, invokes and deletes them, and register both
+as Spring beans, for example through an auto-configuration in a jar placed in `/opt/custom` of the
+Docker image. The connector uses the beans whose `provider()` and `name()` match `provider`. Loading a provider from `/opt/custom` has not been
 tested yet.
 
 Deployments are tracked in memory per runtime instance. Several instances do not coordinate: they

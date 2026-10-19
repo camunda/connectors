@@ -190,7 +190,8 @@ class LocalManagedCodeProviderTest {
 
     assertThatThrownBy(
             () ->
-                provider.ensureProvisioned(
+                provision(
+                    provider,
                     python(
                         "def execute(v, c):\n    return {}\n", Optional.of(missingWheel + "\n"))))
         .isInstanceOfSatisfying(
@@ -206,7 +207,7 @@ class LocalManagedCodeProviderTest {
   void failsRetryablyWithoutInterpreter() {
     final var provider = provider(new LocalInterpreterDiscovery.DiscoveryReport(Map.of()));
 
-    assertThatThrownBy(() -> provider.ensureProvisioned(javascript(SUM_SCRIPT, Optional.empty())))
+    assertThatThrownBy(() -> provision(provider, javascript(SUM_SCRIPT, Optional.empty())))
         .isInstanceOfSatisfying(
             ProvisioningException.class,
             e -> {
@@ -233,7 +234,7 @@ class LocalManagedCodeProviderTest {
   private static ProviderDeployment provision(
       LocalManagedCodeProvider provider, ArtifactSpec artifact) throws Exception {
     return provider
-        .ensureProvisioned(artifact)
+        .ensureProvisioned(artifact, new LocalScriptPackager().packageFor(artifact))
         .ready()
         .toCompletableFuture()
         .get(1, TimeUnit.SECONDS);
@@ -266,6 +267,7 @@ class LocalManagedCodeProviderTest {
         "default",
         "tenant-a",
         "local",
+        new LocalScriptPackager().buildVersion(),
         ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         language,
         runtime,

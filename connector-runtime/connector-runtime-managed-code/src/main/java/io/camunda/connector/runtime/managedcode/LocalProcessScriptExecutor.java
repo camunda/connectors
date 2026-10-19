@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -89,7 +90,28 @@ final class LocalProcessScriptExecutor {
   ExecutionResult execute(
       ScriptLanguage language, byte[] source, ExecutionRequest request, Optional<Path> dependencies)
       throws IOException, InterruptedException {
+    return execute(
+        language,
+        LocalScriptPackager.files(language, source),
+        LocalScriptPackager.entrypoint(language),
+        request,
+        dependencies);
+  }
+
+  /**
+   * Runs a packaged script: writes its files and the request to a fresh working directory and runs
+   * the entrypoint with the interpreter of the language.
+   */
+  ExecutionResult execute(
+      ScriptLanguage language,
+      Map<String, byte[]> files,
+      String entrypoint,
+      ExecutionRequest request,
+      Optional<Path> dependencies)
+      throws IOException, InterruptedException {
     final var interpreter = interpreters.require(language);
+    final var source =
+        files.getOrDefault(LocalScriptPackager.scriptFileName(language), new byte[0]);
     if (source.length > limits.maxScriptBytes()) {
       throw new IllegalArgumentException(
           "Script exceeds the %d byte limit".formatted(limits.maxScriptBytes()));
@@ -106,7 +128,7 @@ final class LocalProcessScriptExecutor {
     Process process = null;
     Throwable failure = null;
     try {
-      final var wrapper = materializeInvocation(language, source, requestBytes, workingDirectory);
+      final var wrapper = materializeInvocation(files, entrypoint, requestBytes, workingDirectory);
       final var processBuilder =
           new ProcessBuilder(
                   interpreter.executable().orElseThrow().toString(),
@@ -156,24 +178,25 @@ final class LocalProcessScriptExecutor {
   }
 
   private Path materializeInvocation(
-      ScriptLanguage language, byte[] source, byte[] request, Path workingDirectory)
+      Map<String, byte[]> files, String entrypoint, byte[] request, Path workingDirectory)
       throws IOException {
-    final var scriptName = language == ScriptLanguage.PYTHON ? "user_script.py" : "user_script.mjs";
-    Files.write(
-        workingDirectory.resolve(scriptName),
-        source,
-        StandardOpenOption.CREATE_NEW,
-        StandardOpenOption.WRITE);
+    for (var file : files.entrySet()) {
+      final var target = workingDirectory.resolve(file.getKey()).normalize();
+      if (!target.getParent().equals(workingDirectory)) {
+        throw new IllegalArgumentException("Invalid package file name: " + file.getKey());
+      }
+      Files.write(target, file.getValue(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+    }
     Files.write(
         workingDirectory.resolve("request.json"),
         request,
         StandardOpenOption.CREATE_NEW,
         StandardOpenOption.WRITE);
-
-    final var wrapper = workingDirectory.resolve(language.wrapperResource());
-    Files.write(
-        wrapper, language.wrapper(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-    return wrapper;
+    if (!files.containsKey(entrypoint)) {
+      throw new IllegalArgumentException(
+          "The package has no entrypoint '%s'".formatted(entrypoint));
+    }
+    return workingDirectory.resolve(entrypoint);
   }
 
   private CapturedProcess captureProcess(Process process, int maxOutputBytes, int maxLogBytes)

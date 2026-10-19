@@ -58,6 +58,7 @@ class AwsLambdaManagedCodeProviderTest {
   private static final String ROLE = "arn:aws:iam::000000000000:role/test";
 
   private final LambdaClient lambda = mock(LambdaClient.class, CALLS_REAL_METHODS);
+  private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AwsLambdaManagedCodeProvider provider =
       new AwsLambdaManagedCodeProvider(
@@ -82,7 +83,7 @@ class AwsLambdaManagedCodeProviderTest {
         .when(lambda)
         .publishVersion(any(PublishVersionRequest.class));
 
-    final var handle = provider.ensureProvisioned(artifact);
+    final var handle = provision(artifact);
 
     assertThat(handle.ready().toCompletableFuture().join())
         .isEqualTo(new ProviderDeployment("aws", artifact.deploymentName() + ":1"));
@@ -120,7 +121,7 @@ class AwsLambdaManagedCodeProviderTest {
         .when(lambda)
         .publishVersion(any(PublishVersionRequest.class));
 
-    final var handle = provider.ensureProvisioned(artifact);
+    final var handle = provision(artifact);
 
     assertThat(handle.ready().toCompletableFuture().join().deploymentId())
         .isEqualTo(artifact.deploymentName() + ":3");
@@ -141,8 +142,7 @@ class AwsLambdaManagedCodeProviderTest {
         .getFunctionConfiguration(any(GetFunctionConfigurationRequest.class));
 
     final var failure =
-        catchThrowableOfType(
-            ProvisioningException.class, () -> provider.ensureProvisioned(artifact));
+        catchThrowableOfType(ProvisioningException.class, () -> provision(artifact));
 
     assertThat(failure.code()).isEqualTo("BUILD_FAILED");
     assertThat(failure.retryable()).isFalse();
@@ -155,7 +155,7 @@ class AwsLambdaManagedCodeProviderTest {
     final var failure =
         catchThrowableOfType(
             ProvisioningException.class,
-            () -> provider.ensureProvisioned(artifact(ScriptLanguage.PYTHON, "python2", "a.py")));
+            () -> packager.packageFor(artifact(ScriptLanguage.PYTHON, "python2", "a.py")));
 
     assertThat(failure.code()).isEqualTo("UNSUPPORTED_RUNTIME");
     assertThat(failure.retryable()).isFalse();
@@ -165,8 +165,8 @@ class AwsLambdaManagedCodeProviderTest {
   void packagesDeterministically() {
     final var artifact = artifact(ScriptLanguage.JAVASCRIPT, "nodejs", "sum.js");
 
-    assertThat(AwsLambdaManagedCodeProvider.packageFor(artifact))
-        .isEqualTo(AwsLambdaManagedCodeProvider.packageFor(artifact));
+    assertThat(AwsLambdaManagedCodeProvider.zip(packager.packageFor(artifact)))
+        .isEqualTo(AwsLambdaManagedCodeProvider.zip(packager.packageFor(artifact)));
   }
 
   @Test
@@ -245,6 +245,31 @@ class AwsLambdaManagedCodeProviderTest {
     assertThat(request.getValue().functionName()).isEqualTo("camunda-ms-abc");
   }
 
+  private ProvisioningHandle provision(ArtifactSpec artifact) {
+    return provider.ensureProvisioned(artifact, packager.packageFor(artifact));
+  }
+
+  @Test
+  void changesTheDigestWithTheHandler() {
+    final var script =
+        "export function execute(v) { return v; }\n".getBytes(StandardCharsets.UTF_8);
+
+    assertThat(
+            ArtifactSpec.digest(
+                packager.buildVersion(),
+                ScriptLanguage.JAVASCRIPT,
+                "nodejs",
+                script,
+                Optional.empty()))
+        .isNotEqualTo(
+            ArtifactSpec.digest(
+                new LocalScriptPackager().buildVersion(),
+                ScriptLanguage.JAVASCRIPT,
+                "nodejs",
+                script,
+                Optional.empty()));
+  }
+
   private static ArtifactSpec artifact(ScriptLanguage language, String runtime, String name) {
     final var script =
         language == ScriptLanguage.PYTHON
@@ -254,6 +279,7 @@ class AwsLambdaManagedCodeProviderTest {
         "default",
         "tenant-a",
         "aws",
+        new AwsLambdaScriptPackager().buildVersion(),
         ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         language,
         runtime,

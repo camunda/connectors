@@ -36,6 +36,7 @@ class DeploymentRegistryTest {
   private final DeploymentRegistry registry =
       new DeploymentRegistry(
           provider,
+          new ControlledPackager(),
           Executors.newFixedThreadPool(2),
           Clock.fixed(Instant.parse("2026-10-07T10:00:00Z"), ZoneOffset.UTC));
 
@@ -146,6 +147,7 @@ class DeploymentRegistryTest {
         "default",
         "tenant-a",
         "controlled",
+        ControlledPackager.BUILD_VERSION,
         ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         ScriptLanguage.JAVASCRIPT,
         "nodejs22",

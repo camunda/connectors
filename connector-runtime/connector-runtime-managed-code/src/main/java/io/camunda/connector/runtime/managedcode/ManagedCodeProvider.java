@@ -18,11 +18,12 @@ package io.camunda.connector.runtime.managedcode;
 
 /**
  * Provider SPI for managed-script execution: provisions an artifact on first use and invokes it.
+ * The {@link ScriptPackager} of the same name turns the script into the files the provider deploys.
  *
- * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec)} idempotent for {@link
- * ArtifactSpec#deploymentName()}: the name is deterministic, creation is create-if-absent, and an
- * existing deployment with that name is adopted instead of being created again. Several runtime
- * instances may call it concurrently for the same artifact.
+ * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec, ScriptPackage)} idempotent
+ * for {@link ArtifactSpec#deploymentName()}: the name is deterministic, creation is
+ * create-if-absent, and an existing deployment with that name is adopted instead of being created
+ * again. Several runtime instances may call it concurrently for the same artifact.
  */
 public interface ManagedCodeProvider {
 
@@ -30,13 +31,14 @@ public interface ManagedCodeProvider {
   String name();
 
   /**
-   * Builds and creates the provider deployment if absent, or adopts an existing one. The call
+   * Creates the provider deployment of the package if absent, or adopts an existing one. The call
    * returns once the provider accepted the work; {@link ProvisioningHandle#ready()} completes when
    * the deployment can be invoked.
    *
+   * @param scriptPackage the artifact as packaged by the {@link ScriptPackager} of this provider
    * @throws ProvisioningException when the artifact cannot be built or deployed
    */
-  ProvisioningHandle ensureProvisioned(ArtifactSpec artifact);
+  ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage);
 
   /**
    * Invokes a ready deployment with an execution contract request. Script and platform failures are

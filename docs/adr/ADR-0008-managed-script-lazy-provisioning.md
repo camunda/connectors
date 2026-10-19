@@ -49,9 +49,19 @@ after a restart. A dependency manifest is installed once while provisioning (`pi
 --target`, `npm install --ignore-scripts`), never during an invocation. Execution runs in local
 Node.js or Python subprocesses with the Connector Runtime operating-system identity.
 
-Cloud providers are separate implementations of the provider SPI (`ManagedCodeProvider`:
-`ensureProvisioned`, `invoke`, `delete`). The connector uses the provider bean whose name matches
-`camunda.connector.managed-code.provider`, so a provider can also come from a jar added to the
+The provider SPI has two parts, both selected by the name in
+`camunda.connector.managed-code.provider`:
+
+- `ScriptPackager` turns a script written for the Camunda contract, `execute(variables, context)`,
+  into what the provider invokes: a generated entrypoint next to the user script, with the
+  provider's runtime id (`packageFor`). Its `buildVersion`, a hash of the generated code, is part of
+  the artifact digest, so a new entrypoint gives every script a new deployment.
+- `ManagedCodeProvider` runs the lifecycle of a packaged artifact on the platform:
+  `ensureProvisioned(artifact, package)`, `invoke`, `delete`.
+
+The connector keeps everything else: the digest, the registry, the wait that consumes no retry,
+re-provisioning on `DEPLOYMENT_MISSING`, limits and secrets. A provider can also come from a jar
+added to the runtime classpath, with one bean of each part, so a provider can also come from a jar added to the
 runtime classpath, such as `/opt/custom` in the Docker image; this has not been tested. The SPI
 has no compatibility guarantee yet.
 
@@ -77,8 +87,5 @@ has no compatibility guarantee yet.
 - Legacy `{{secrets.<name>}}` placeholders in the script input are not replaced: the connector
   implements `LegacySecretsNotResolved`, for which the runtime uses a deny-all secret filter.
   Secrets reach a script only through `camunda.secrets.<name>`, resolved by the engine.
-- The artifact digest covers the wrapper of the local provider, not the Lambda handler: a change
-  to the handler alone keeps reusing functions built with the old one until
-  `BUILD_POLICY_VERSION` is bumped.
 - Unused deployments are not evicted yet; `lastUsedAt` is recorded and the SPI has `delete` for a
   later cleanup.

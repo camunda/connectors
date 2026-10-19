@@ -16,40 +16,27 @@
  */
 package io.camunda.connector.runtime.managedcode;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Locale;
 
-/** Supported managed-script languages, with the generated wrapper and local interpreter names. */
+/** Supported managed-script languages, with their local interpreter names. */
 public enum ScriptLanguage {
-  PYTHON(
-      "python",
-      ".py",
-      "python",
-      "python3",
-      "python_wrapper.py",
-      List.of("python3", "python"),
-      3,
-      10),
-  JAVASCRIPT("javascript", ".js", "node", "nodejs", "node_wrapper.mjs", List.of("node"), 20, 0);
+  PYTHON("python", ".py", "python", "python3", List.of("python3", "python"), 3, 10),
+  JAVASCRIPT("javascript", ".js", "node", "nodejs", List.of("node"), 20, 0);
 
   private final String language;
   private final String extension;
   private final String runtimePrefix;
   private final String defaultRuntime;
-  private final String wrapperResource;
   private final List<String> executableNames;
   private final int minimumMajor;
   private final int minimumMinor;
-  private volatile byte[] wrapper;
 
   ScriptLanguage(
       String language,
       String extension,
       String runtimePrefix,
       String defaultRuntime,
-      String wrapperResource,
       List<String> executableNames,
       int minimumMajor,
       int minimumMinor) {
@@ -57,7 +44,6 @@ public enum ScriptLanguage {
     this.extension = extension;
     this.runtimePrefix = runtimePrefix;
     this.defaultRuntime = defaultRuntime;
-    this.wrapperResource = wrapperResource;
     this.executableNames = executableNames;
     this.minimumMajor = minimumMajor;
     this.minimumMinor = minimumMinor;
@@ -76,10 +62,6 @@ public enum ScriptLanguage {
     return defaultRuntime;
   }
 
-  String wrapperResource() {
-    return wrapperResource;
-  }
-
   List<String> executableNames() {
     return executableNames;
   }
@@ -90,24 +72,6 @@ public enum ScriptLanguage {
 
   int minimumMinor() {
     return minimumMinor;
-  }
-
-  /** The generated wrapper that invokes the user entrypoint; part of the artifact digest. */
-  public byte[] wrapper() {
-    var bytes = wrapper;
-    if (bytes == null) {
-      final var resourceName = "/managed-code-local/" + wrapperResource;
-      try (var stream = ScriptLanguage.class.getResourceAsStream(resourceName)) {
-        if (stream == null) {
-          throw new IllegalStateException("Missing managed-script wrapper: " + resourceName);
-        }
-        bytes = stream.readAllBytes();
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-      wrapper = bytes;
-    }
-    return bytes;
   }
 
   /**

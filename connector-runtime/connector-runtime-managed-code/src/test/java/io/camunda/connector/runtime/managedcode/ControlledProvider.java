@@ -71,7 +71,7 @@ final class ControlledProvider implements ManagedCodeProvider {
   }
 
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
     provisionings.incrementAndGet();
     provisioned.add(artifact);
     if (provisioningFailure != null) {
