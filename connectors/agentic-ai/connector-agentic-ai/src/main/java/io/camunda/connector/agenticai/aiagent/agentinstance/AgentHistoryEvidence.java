@@ -11,11 +11,13 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.util.ArrayList;
@@ -116,6 +118,14 @@ public final class AgentHistoryEvidence {
         }
         putIfPresent(entry, "contentType", metadata != null ? metadata.getContentType() : null);
         documents.add(entry);
+      } else if (c instanceof DocumentReferenceContent reference
+          && reference.delivery() == DocumentDelivery.CONTENT
+          && isPdf(reference.fileName(), reference.contentType())) {
+        final Map<String, Object> entry = new LinkedHashMap<>();
+        putIfPresent(entry, "fileName", reference.fileName());
+        entry.put("documentId", reference.id());
+        putIfPresent(entry, "contentType", reference.contentType());
+        documents.add(entry);
       }
     }
     if (documents.isEmpty()) {
@@ -134,14 +144,15 @@ public final class AgentHistoryEvidence {
 
   private static boolean isPdf(DocumentContent doc) {
     final var metadata = doc.document().metadata();
-    if (metadata == null) {
-      return false;
-    }
-    final String contentType = metadata.getContentType();
+    return isPdf(
+        metadata != null ? metadata.getFileName() : null,
+        metadata != null ? metadata.getContentType() : null);
+  }
+
+  private static boolean isPdf(@Nullable String fileName, @Nullable String contentType) {
     if (contentType != null && contentType.toLowerCase().startsWith("application/pdf")) {
       return true;
     }
-    final String fileName = metadata.getFileName();
     return fileName != null && fileName.toLowerCase().endsWith(".pdf");
   }
 

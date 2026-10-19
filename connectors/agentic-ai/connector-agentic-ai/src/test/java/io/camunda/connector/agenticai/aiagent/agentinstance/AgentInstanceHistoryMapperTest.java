@@ -81,6 +81,61 @@ class AgentInstanceHistoryMapperTest {
     assertThat(items).singleElement().extracting("producedAt").isEqualTo(TURN_INGESTION_TIMESTAMP);
   }
 
+  @Test
+  void aPdfSentAsDocumentContentHasDocumentParsingEvidence() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("%PDF-test".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("statement.pdf")
+                    .build());
+    final var registry =
+        DocumentRegistry.empty()
+            .withDocuments(
+                List.of(new IngestedDocument(document, DocumentSource.userMessage(null))));
+    final var reference =
+        DocumentReferenceContent.from(
+            document, DocumentSource.userMessage(null), DocumentDelivery.CONTENT);
+    final var userMessage = UserMessage.builder().content(List.of(reference)).build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            userMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            NO_DOCUMENTS.withDocumentRegistry(registry),
+            Map.of("plugin", "file-parser", "pdfEngine", "native"));
+
+    final var evidence =
+        items.getFirst().content().stream()
+            .filter(AgentInstanceHistoryContent.ObjectContent.class::isInstance)
+            .map(AgentInstanceHistoryContent.ObjectContent.class::cast)
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(evidence.getObject())
+        .isEqualTo(
+            Map.of(
+                "evidence",
+                Map.of(
+                    "kind",
+                    "documentParsing",
+                    "plugin",
+                    "file-parser",
+                    "pdfEngine",
+                    "native",
+                    "documents",
+                    List.of(
+                        Map.of(
+                            "fileName",
+                            "statement.pdf",
+                            "documentId",
+                            reference.id(),
+                            "contentType",
+                            "application/pdf")))));
+  }
+
   private static List<String> texts(List<AgentInstanceHistoryContent> content) {
     return content.stream()
         .filter(AgentInstanceHistoryContent.TextContent.class::isInstance)
