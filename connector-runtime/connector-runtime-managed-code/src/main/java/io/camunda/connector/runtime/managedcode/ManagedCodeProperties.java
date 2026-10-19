@@ -36,7 +36,8 @@ public record ManagedCodeProperties(
     Duration provisioningTimeout,
     Duration provisioningRetryBackoff,
     int provisioningConcurrency,
-    Local local) {
+    Local local,
+    Aws aws) {
 
   private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
@@ -67,6 +68,7 @@ public record ManagedCodeProperties(
     provisioningConcurrency =
         provisioningConcurrency > 0 ? provisioningConcurrency : DEFAULT_PROVISIONING_CONCURRENCY;
     local = local == null ? new Local(null, null) : local;
+    aws = aws == null ? new Aws(null, null, 0, null) : aws;
   }
 
   /**
@@ -82,6 +84,28 @@ public record ManagedCodeProperties(
               ? Path.of(System.getProperty("java.io.tmpdir"), "camunda-managed-code")
               : directory;
       installTimeout = positive(installTimeout, DEFAULT_LOCAL_INSTALL_TIMEOUT);
+    }
+  }
+
+  /**
+   * Settings of the AWS Lambda provider. Credentials come from the default AWS credentials chain.
+   *
+   * @param region region of the functions; the default region of the chain when absent
+   * @param executionRoleArn role attached to the functions, granting nothing beyond logging
+   * @param memoryMb memory of each function
+   * @param pollInterval interval between status reads while a function is created
+   */
+  public record Aws(String region, String executionRoleArn, int memoryMb, Duration pollInterval) {
+
+    private static final int DEFAULT_MEMORY_MB = 256;
+    private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(2);
+
+    public Aws {
+      region = region == null || region.isBlank() ? null : region.strip();
+      executionRoleArn =
+          executionRoleArn == null || executionRoleArn.isBlank() ? null : executionRoleArn.strip();
+      memoryMb = memoryMb > 0 ? memoryMb : DEFAULT_MEMORY_MB;
+      pollInterval = positive(pollInterval, DEFAULT_POLL_INTERVAL);
     }
   }
 

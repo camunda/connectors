@@ -137,13 +137,47 @@ class ManagedCodeAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.managed-code.enabled=true",
-            "camunda.connector.managed-code.provider=aws")
+            "camunda.connector.managed-code.provider=gcp")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("No managed-code provider 'aws'"));
+                    .hasMessageContaining("No managed-code provider 'gcp'"));
+  }
+
+  @Test
+  void awsProviderRequiresAnExecutionRole() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=aws",
+            "camunda.connector.managed-code.aws.region=eu-central-1")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("aws.execution-role-arn must be set"));
+  }
+
+  @Test
+  void enabledWithAwsProvider() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=aws",
+            "camunda.connector.managed-code.aws.region=eu-central-1",
+            "camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::000000000000:role/test",
+            "camunda.connector.managed-code.aws.memory-mb=512")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).hasSingleBean(AwsLambdaManagedCodeProvider.class);
+              assertThat(context).doesNotHaveBean(LocalManagedCodeProvider.class);
+              assertThat(context.getBean(ManagedCodeProperties.class).aws().memoryMb())
+                  .isEqualTo(512);
+            });
   }
 
   @Test

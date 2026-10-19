@@ -66,6 +66,26 @@ once while provisioning, with `pip install --target` or `npm install --ignore-sc
 apply. Scripts run with the Connector Runtime operating-system identity: this mode limits time and
 I/O but is **not a sandbox** and is for trusted development only.
 
+The `aws` provider deploys each script as its own AWS Lambda function, named after the artifact
+behind `deployment-name-prefix`, and invokes a published version of it:
+
+```properties
+camunda.connector.managed-code.provider=aws
+camunda.connector.managed-code.aws.region=eu-central-1
+camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::<account>:role/<execution-role>
+camunda.connector.managed-code.aws.memory-mb=256
+```
+
+Credentials come from the default AWS credentials chain, for example `AWS_PROFILE` or a workload
+identity. That identity needs `lambda:CreateFunction`, `GetFunctionConfiguration`,
+`PublishVersion`, `InvokeFunction` and `DeleteFunction` on the functions of the prefix, and
+`iam:PassRole` on the execution role. The execution role runs customer code and must grant nothing
+beyond writing logs. The function timeout is `execution-timeout`. A function is created with the
+first job of its script, which waits until it is active; later jobs invoke the published version.
+Concurrent instances converge on one function: a create that conflicts adopts the existing one.
+Dependencies are not supported. Networking, such as denying egress, is not configured by the
+provider.
+
 Other providers implement `ManagedCodeProvider` and register it as a Spring bean, for example
 through an auto-configuration in a jar placed in `/opt/custom` of the Docker image. The connector
 uses the bean whose `name()` matches `provider`. Loading a provider from `/opt/custom` has not been

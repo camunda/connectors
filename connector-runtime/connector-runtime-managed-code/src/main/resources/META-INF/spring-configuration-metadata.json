@@ -10,6 +10,12 @@
       "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Local",
       "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
       "description": "Settings of the trusted-development-only local provider."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Aws",
+      "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Settings of the AWS Lambda provider."
     }
   ],
   "properties": [
@@ -22,7 +28,7 @@
     {
       "name": "camunda.connector.managed-code.provider",
       "type": "java.lang.String",
-      "description": "Name of the managed-code provider bean to use. The only built-in provider is 'local': deployments in a local directory and Node.js or Python execution in local subprocesses, for trusted development only."
+      "description": "Name of the managed-code provider bean to use. Built in: 'local', deployments in a local directory and Node.js or Python execution in local subprocesses, for trusted development only; and 'aws', one AWS Lambda function per script."
     },
     {
       "name": "camunda.connector.managed-code.deployment-name-prefix",
@@ -64,6 +70,28 @@
       "type": "java.time.Duration",
       "description": "Maximum duration of one dependency installation (pip or npm) while provisioning.",
       "defaultValue": "5m"
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.region",
+      "type": "java.lang.String",
+      "description": "AWS region of the Lambda functions. Defaults to the region of the default AWS configuration."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.execution-role-arn",
+      "type": "java.lang.String",
+      "description": "IAM role attached to every function. It runs customer code and must grant nothing beyond writing its logs."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.memory-mb",
+      "type": "java.lang.Integer",
+      "description": "Memory of each function, in MB.",
+      "defaultValue": 256
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.poll-interval",
+      "type": "java.time.Duration",
+      "description": "Interval between status reads while a function is created.",
+      "defaultValue": "2s"
     }
   ]
 }

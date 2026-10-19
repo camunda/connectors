@@ -27,6 +27,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 @AutoConfiguration
 @ConditionalOnProperty(
@@ -59,6 +61,40 @@ public class ManagedCodeAutoConfiguration {
         objectMapper,
         properties.local().directory(),
         properties.local().installTimeout());
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "provider",
+      havingValue = AwsLambdaManagedCodeProvider.NAME)
+  public AwsLambdaManagedCodeProvider awsLambdaManagedCodeProvider(
+      ManagedCodeProperties properties) {
+    final var aws = properties.aws();
+    if (aws.executionRoleArn() == null) {
+      throw new IllegalStateException(
+          "camunda.connector.managed-code.aws.execution-role-arn must be set for the 'aws' provider");
+    }
+    final var builder =
+        LambdaClient.builder()
+            .overrideConfiguration(
+                // the synchronous invocation must outlive the function timeout
+                o -> o.apiCallAttemptTimeout(properties.executionTimeout().plusSeconds(30)));
+    if (aws.region() != null) {
+      builder.region(Region.of(aws.region()));
+    }
+    LOG.info(
+        "Managed-code provider 'aws' is enabled: scripts are deployed as AWS Lambda functions"
+            + " named '{}*'",
+        properties.deploymentNamePrefix());
+    return new AwsLambdaManagedCodeProvider(
+        builder.build(),
+        objectMapper,
+        aws.executionRoleArn(),
+        aws.memoryMb(),
+        properties.executionTimeout(),
+        properties.provisioningTimeout(),
+        aws.pollInterval());
   }
 
   @Bean(destroyMethod = "close")
@@ -104,7 +140,7 @@ public class ManagedCodeAutoConfiguration {
     if (properties.provider().isBlank()) {
       throw new IllegalStateException(
           "camunda.connector.managed-code.provider must be set when managed code is enabled;"
-              + " the only built-in provider is 'local'");
+              + " the built-in providers are 'local' and 'aws'");
     }
     final var matching =
         providers
@@ -113,7 +149,7 @@ public class ManagedCodeAutoConfiguration {
             .toList();
     if (matching.isEmpty()) {
       throw new IllegalStateException(
-          "No managed-code provider '%s' is available; the only built-in provider is 'local'"
+          "No managed-code provider '%s' is available; the built-in providers are 'local' and 'aws'"
               .formatted(properties.provider()));
     }
     if (matching.size() > 1) {
