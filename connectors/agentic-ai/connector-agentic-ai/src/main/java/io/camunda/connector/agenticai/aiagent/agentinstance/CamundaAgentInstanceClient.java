@@ -327,6 +327,19 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       OffsetDateTime producedAt,
       AgentInstanceUpdateStatus status,
       AgentContext agentContext) {
+    applyTurnCompletion(
+        executionContext, agentInstanceKey, turn, producedAt, status, agentContext, null);
+  }
+
+  @Override
+  public void applyTurnCompletion(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status,
+      AgentContext agentContext,
+      @Nullable ConversationCompactionEvent compactionEvent) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn completion: no agent instance key");
       return;
@@ -337,11 +350,16 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       throw new IllegalArgumentException(
           "Cannot create assistant history item for a turn without an assistant message");
     }
-    final var content = historyMapper.assistantContent(assistantMessage, agentContext);
+    final var content =
+        new ArrayList<>(historyMapper.assistantContent(assistantMessage, agentContext));
     final var toolCalls = historyMapper.assistantToolCalls(assistantMessage, agentContext);
     if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
       throw new IllegalArgumentException(
           "Cannot create assistant history item with neither content nor tool calls");
+    }
+    if (compactionEvent != null) {
+      content.add(
+          AgentInstanceHistoryContent.object(AgentHistoryEvidence.compaction(compactionEvent)));
     }
 
     final AgentInstanceHistoryItem item =
@@ -383,28 +401,6 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     }
 
     applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, items);
-  }
-
-  @Override
-  public void applyCompactionEvent(
-      AgentExecutionContext executionContext,
-      @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationCompactionEvent event,
-      int iterationKey) {
-    if (agentInstanceKey == null) {
-      LOGGER.debug("Skipping agent instance compaction event: no agent instance key");
-      return;
-    }
-
-    final AgentInstanceHistoryItem item =
-        new AgentInstanceHistoryItem()
-            .historyItemId("compaction:" + event.eventId())
-            .role(AgentInstanceHistoryRole.CONFIGURATION)
-            .content(
-                List.of(AgentInstanceHistoryContent.object(AgentHistoryEvidence.compaction(event))))
-            .producedAt(OffsetDateTime.now())
-            .loopIteration(iterationKey);
-    applyBatchedUpdate(executionContext, agentInstanceKey.value(), null, List.of(item));
   }
 
   private void applyBatchedUpdate(

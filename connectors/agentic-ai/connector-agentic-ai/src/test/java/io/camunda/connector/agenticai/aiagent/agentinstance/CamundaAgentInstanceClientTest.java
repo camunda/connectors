@@ -229,29 +229,57 @@ class CamundaAgentInstanceClientTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  void appendsCompactionEvidenceAsConfigurationAtTheCompactedTurnIteration() {
+  void appendsCompactionEvidenceToTheRealAssistantCompletionWithoutAConfigurationItem() {
     givenUpdateCommand();
     final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
         ArgumentCaptor.forClass(List.class);
+    final var assistantMessage =
+        AssistantMessage.builder()
+            .content(MessageUtil.singleTextContent("Calling tools"))
+            .toolCalls(
+                List.of(
+                    ToolCall.builder().id("tc-1").name("getWeather").arguments(Map.of()).build()))
+            .build();
+    final var turn =
+        new AgentConversationTurn(
+            4,
+            List.of(),
+            assistantMessage,
+            new AgentMetrics(1, new TokenUsage(11, 22), 1, Duration.ofMillis(345)),
+            null);
+    final var producedAt = OffsetDateTime.parse("2026-10-19T21:00:00Z");
 
-    client.applyCompactionEvent(
+    client.applyTurnCompletion(
         TestAgentExecutionContext.withLimits(),
         AgentInstanceKey.of(AGENT_INSTANCE_KEY),
-        new ConversationCompactionEvent("event-123", null, "Masked older tool results."),
-        4);
+        turn,
+        producedAt,
+        AgentInstanceUpdateStatus.TOOL_CALLING,
+        NO_DOCUMENTS,
+        new ConversationCompactionEvent("event-123", null, "Masked older tool results."));
 
     verify(updateCommandStep4).history(historyCaptor.capture());
     verify(updateCommandStep4).execute();
-    verify(updateCommandStep2, never()).status(any());
+    verify(updateCommandStep2).status(AgentInstanceUpdateStatus.TOOL_CALLING);
     assertThat(historyCaptor.getValue())
         .singleElement()
         .satisfies(
             item -> {
-              assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
-              assertThat(item.getHistoryItemId()).isEqualTo("compaction:event-123");
+              assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.ASSISTANT);
+              assertThat(item.getHistoryItemId()).isEqualTo(assistantMessage.id().toString());
               assertThat(item.getLoopIteration()).isEqualTo(4);
-              assertThat(item.getContent())
+              assertThat(item.getProducedAt()).isEqualTo(producedAt);
+              assertThat(item.getMetrics().getInputTokens()).isEqualTo(11L);
+              assertThat(item.getMetrics().getOutputTokens()).isEqualTo(22L);
+              assertThat(item.getToolCalls())
                   .singleElement()
+                  .satisfies(call -> assertThat(call.getToolCallId()).isEqualTo("tc-1"));
+              assertThat(item.getContent().getFirst())
+                  .isInstanceOfSatisfying(
+                      AgentInstanceHistoryContent.TextContent.class,
+                      content -> assertThat(content.getText()).isEqualTo("Calling tools"));
+              assertThat(item.getContent()).hasSize(2);
+              assertThat(item.getContent().getLast())
                   .isInstanceOfSatisfying(
                       AgentInstanceHistoryContent.ObjectContent.class,
                       content ->
