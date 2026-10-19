@@ -12,6 +12,10 @@ This list is curated: it covers the obvious extension points (SPIs and replaceab
 most common code changes, not every moved class or changed signature. Compile your extension against
 the new version to find the rest.
 
+Types marked `@Experimental` (for example the agent lifecycle listener API in `aiagent-api`) are excluded from
+this list and from any compatibility guarantee: they can change or disappear in any release, and changes to
+them are not tracked here.
+
 ## Camunda 8.10 to 8.11
 
 Summary of what changes for a custom extension. Details follow in the linked sections.

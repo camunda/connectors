@@ -2001,6 +2001,17 @@ one section per provider, rather than here.
 
 <a id="252-add-a-systempromptcontributor"></a>
 
+### 25.2 Observe agent execution (experimental)
+
+**The SPI.** Implement `AgentLifecycleListener` (`aiagent-api`, package `aiagent.api.lifecycle`) and register
+it as a Spring bean; `AgentLifecycleDispatcherImpl` (`aiagent/lifecycle`) hands every job of both flavors to
+all listeners and isolates their failures. Reference implementation: `AgentTracingListener` in
+`aiagent-otel`. The API is `@Experimental`, listeners see complete prompts and tool data, and listener state
+is written into the agent context only on the paths that persist it. See
+[OpenTelemetry tracing](opentelemetry-tracing.md) and [ADR 018](../adr/018-agent-lifecycle-listeners.md).
+
+<a id="252-add-a-systempromptcontributor"></a>
+
 ### 25.2 Add a `SystemPromptContributor`
 
 Implement `SystemPromptContributor` (see [§13](#13-system-prompt-composition)).
@@ -2019,3 +2030,8 @@ store (`InProcessConversationStore` and its session/context). Context subtypes a
 implementation (see `BuiltInConversationContextSubtypes`). A broken provider entry is logged at ERROR
 level and skipped; it never disables the other subtypes. For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
+
+<a id="254-observe-agent-execution"></a>
+
+
+

@@ -146,6 +146,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 | Agent instance API (status, metrics, history reporting)                  | [§23](docs/reference/ai-agent.md#23-agent-instance-integration)                         |
 | **Architectural invariants (what you must not break)**                   | [§24](docs/reference/ai-agent.md#24-architectural-invariants)                           |
 | **Extension points** (add provider / contributor / store)                | [§25](docs/reference/ai-agent.md#25-extension-playbooks)                                |
+| OpenTelemetry GenAI tracing, agent lifecycle listeners (experimental)    | [`opentelemetry-tracing.md`](docs/reference/opentelemetry-tracing.md), [§25.4](docs/reference/ai-agent.md#254-observe-agent-execution) |
 | Native provider specifics (Anthropic/Bedrock/OpenAI wire-format details) | [`native-providers.md`](docs/reference/native-providers.md)                             |
 
 ## Mental model
@@ -205,6 +206,11 @@ High-frequency traps (detail behind each link):
   running instance (Task flavor re-evaluates per iteration). `ai-agent.md` §17.
 - **Migration blocked cases**: removing/renaming tools or adding/removing gateway tools fails; adding tools or changing
   descriptions is allowed. `ai-agent.md` §17.
+- **Lifecycle listener state is written only on persisting paths**: a listener's state (for example the
+  tracing run state under `lifecycle:<listener id>` in `AgentContext.properties`) is stored only by the two jobs
+  that persist the agent context (tool discovery dispatch and turn completion). A failed, superseded, or
+  deferred job loses it, and a listener must treat missing state as "start over".
+  [`opentelemetry-tracing.md`](docs/reference/opentelemetry-tracing.md).
 - **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't
   bubble up to the AHSP scope. `ai-agent.md` §8.
 - **Events have `id = null`**: tool-call results without an id are event results, partitioned from real tool results.
