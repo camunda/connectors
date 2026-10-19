@@ -1,8 +1,8 @@
 # GenAI tracing backends for the AI Agent
 
 Docker Compose stacks to look at the OpenTelemetry GenAI traces that the AI Agent connector emits
-(see [ADR 019](../../docs/adr/019-opentelemetry-genai-tracing.md)). Local development only: no persistence
-for Phoenix, dev-only credentials for Langfuse, everything bound to `127.0.0.1`.
+(see [ADR 019](../../docs/adr/019-opentelemetry-genai-tracing.md)). Local development only: Phoenix keeps its
+traces in a local SQLite volume, Langfuse uses dev-only credentials, and everything is bound to `127.0.0.1`.
 
 | File                                                       | Purpose                                                    |
 |------------------------------------------------------------|------------------------------------------------------------|
