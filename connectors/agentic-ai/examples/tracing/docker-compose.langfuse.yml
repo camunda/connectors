@@ -15,7 +15,7 @@
 # ports are bound to 127.0.0.1. Never expose this stack, and never reuse these values anywhere else.
 #
 # Needs roughly 3 GB of free memory in the Docker VM (web, worker, ClickHouse, Postgres, Redis, MinIO).
-# The MinIO image is left unpinned, as in Langfuse's official file; every other image is pinned.
+# The Langfuse images use the floating major tag `4` and the MinIO image is unpinned, as in Langfuse's official file.
 #
 # Data lives in named volumes; `docker compose -f docker-compose.langfuse.yml down -v`
 # wipes it. The LANGFUSE_INIT_* values only apply when the database is empty.
@@ -62,7 +62,7 @@ x-langfuse-depends-on: &langfuse-depends-on
 
 services:
   langfuse-web:
-    image: docker.langfuse.com/langfuse/langfuse:4.63.0
+    image: docker.langfuse.com/langfuse/langfuse:4
     depends_on: *langfuse-depends-on
     ports:
       - "127.0.0.1:3000:3000"
@@ -89,7 +89,7 @@ services:
       start_period: 20s
 
   langfuse-worker:
-    image: docker.langfuse.com/langfuse/langfuse-worker:4.63.0
+    image: docker.langfuse.com/langfuse/langfuse-worker:4
     depends_on: *langfuse-depends-on
     ports:
       - "127.0.0.1:3030:3030"

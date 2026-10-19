@@ -7,7 +7,7 @@ for Phoenix, dev-only credentials for Langfuse, everything bound to `127.0.0.1`.
 | File                                                       | Purpose                                                    |
 |------------------------------------------------------------|------------------------------------------------------------|
 | [docker-compose.phoenix.yml](docker-compose.phoenix.yml)   | Arize Phoenix `version-20`                            |
-| [docker-compose.langfuse.yml](docker-compose.langfuse.yml) | Langfuse `4.63.0` self-hosted (web, worker, Postgres, ClickHouse, Redis, MinIO) |
+| [docker-compose.langfuse.yml](docker-compose.langfuse.yml) | Langfuse `4` self-hosted (web, worker, Postgres, ClickHouse, Redis, MinIO) |
 | [application-tracing-phoenix.yaml](application-tracing-phoenix.yaml)   | Spring profile that exports to Phoenix   |
 | [application-tracing-langfuse.yaml](application-tracing-langfuse.yaml) | Spring profile that exports to Langfuse  |
 
