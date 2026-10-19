@@ -15,6 +15,7 @@ import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import com.google.cloud.documentai.v1.RawDocument;
 import com.google.protobuf.ByteString;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.Polygon;
@@ -25,6 +26,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,18 +42,31 @@ public class GcpDocumentAiExtractionClient implements TextExtractor, MlExtractor
   public GcpDocumentAiExtractionClient(
       GoogleCredentials credentials, String projectId, String region, String processorId) {
     this.projectId = projectId;
-    this.region = region;
+    this.region = normalizeRegion(region);
     this.processorId = processorId;
     try {
-      DocumentProcessorServiceSettings settings =
-          DocumentProcessorServiceSettings.newBuilder()
-              .setCredentialsProvider(() -> credentials)
-              .build();
-      client = DocumentProcessorServiceClient.create(settings);
+      client = DocumentProcessorServiceClient.create(buildSettings(credentials, this.region));
     } catch (IOException e) {
       LOGGER.error("Error while initializing DocumentProcessorServiceClient", e);
       throw new RuntimeException(e);
     }
+  }
+
+  static DocumentProcessorServiceSettings buildSettings(
+      GoogleCredentials credentials, String region) throws IOException {
+    // The default endpoint only serves processors in the 'us' location
+    return DocumentProcessorServiceSettings.newBuilder()
+        .setCredentialsProvider(() -> credentials)
+        .setEndpoint(String.format("%s-documentai.googleapis.com:443", region))
+        .build();
+  }
+
+  static String normalizeRegion(String region) {
+    if (region == null || region.isBlank()) {
+      throw new ConnectorInputException(
+          "Document AI region must not be empty. Use the location of the processor, e.g. 'eu' or 'us'.");
+    }
+    return region.trim().toLowerCase(Locale.ROOT);
   }
 
   @Override
