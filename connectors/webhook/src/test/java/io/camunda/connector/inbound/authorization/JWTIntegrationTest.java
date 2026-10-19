@@ -107,6 +107,8 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "issuer", "https://idp.local",
+                            "audience", "api1",
                             "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
@@ -142,6 +144,8 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "issuer", "https://idp.local",
+                            "audience", "api1",
                             "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
@@ -177,6 +181,8 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "issuer", "https://idp.local",
+                            "audience", "api1",
                             "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
@@ -212,6 +218,8 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "issuer", "https://idp.local",
+                            "audience", "api1",
                             "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
@@ -247,6 +255,8 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", "https://google.com",
+                            "issuer", "https://idp.local",
+                            "audience", "api1",
                             "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 

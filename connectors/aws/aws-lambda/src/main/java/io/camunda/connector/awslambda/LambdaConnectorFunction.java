@@ -48,7 +48,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeResponse;
       @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/",
     icon = "icon.svg")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 

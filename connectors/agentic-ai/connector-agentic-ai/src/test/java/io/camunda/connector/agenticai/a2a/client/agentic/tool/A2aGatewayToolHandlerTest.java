@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStat
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -267,6 +268,24 @@ class A2aGatewayToolHandlerTest {
                               .containsOnlyKeys("text", "contextId", "taskId", "referenceTaskIds");
                         });
               });
+    }
+
+    @Test
+    void discoveredToolsDeclareNoDocumentParametersAndReachTheModelProviderAsTheyAre() {
+      var toolDiscoveryResults =
+          List.of(
+              createToolCallResultWithContent(
+                  "A2A_fetchAgentCard_a2a1", "a2a1", Map.of("title", "Agent 1")));
+
+      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
+
+      assertThat(result).hasSize(1);
+      var toolDefinition = result.getFirst();
+      assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
+          .isFalse();
+      assertThat(toolDefinition.documentDelivery()).isNull();
+      assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
+          .isSameAs(toolDefinition);
     }
 
     @Test

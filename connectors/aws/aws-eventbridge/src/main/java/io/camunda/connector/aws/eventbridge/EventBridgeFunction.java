@@ -48,7 +48,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
       @ElementTemplate.PropertyGroup(id = "eventPayload", label = "Event Payload")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
     icon = "icon.svg")
 public class EventBridgeFunction implements OutboundConnectorFunction {
 

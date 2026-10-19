@@ -17,7 +17,7 @@ public class AwsEventBridgeInput {
       group = "eventDetails",
       label = "Source",
       tooltip =
-          "Value that identifies the service that generated the event. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
+          "Value that identifies the service that generated the event. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
   @NotBlank
   private String source;
 
@@ -25,7 +25,7 @@ public class AwsEventBridgeInput {
       group = "eventDetails",
       label = "Detail type",
       tooltip =
-          "Type of event being sent. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
+          "Type of event being sent. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
   @NotBlank
   private String detailType;
 
@@ -35,7 +35,7 @@ public class AwsEventBridgeInput {
       type = TemplateProperty.PropertyType.Text,
       feel = FeelMode.required,
       tooltip =
-          "Name of the destination event bus. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
+          "Name of the destination event bus. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.")
   @NotBlank
   private String eventBusName;
 
@@ -44,7 +44,7 @@ public class AwsEventBridgeInput {
       label = "Event payload",
       placeholder = "{\"key\": \"value\"}",
       tooltip =
-          "Payload must be provided as JSON. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a> documentation.")
+          "Payload must be provided as JSON. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a> documentation.")
   @NotNull
   private Object detail;
 

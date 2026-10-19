@@ -20,13 +20,16 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -161,6 +164,74 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.name()).isEqualTo("Alice");
     assertThat(reconstructed.metadata()).isNullOrEmpty();
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
+  }
+
+  @Test
+  void shouldRoundTripTextContentWithMetadataInOrder() {
+    // given - a text with metadata between plain texts keeps its metadata and its position
+    var tag = new TextContent("annotated", Map.of("source", "test"));
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(textContent("before"), tag, textContent("after")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(payloads.get(0).conversational()).isNotNull();
+    assertThat(payloads.get(1).blob()).isNotNull();
+    assertThat(payloads.get(2).conversational()).isNotNull();
+    assertThat(((UserMessage) message).content())
+        .containsExactly(textContent("before"), tag, textContent("after"));
+  }
+
+  @Test
+  void shouldRoundTripDocumentReferenceContentInOrderAsBlob() {
+    // given - a document reference between plain texts keeps its delivery and its position
+    var reference =
+        new DocumentReferenceContent(
+            "d1", "a.txt", "text/plain", 3L, "user_message", null, null, DocumentDelivery.CONTENT);
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(textContent("before"), reference, textContent("after")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
+
+    // then
+    assertThat(payloads.get(0).conversational()).isNotNull();
+    assertThat(payloads.get(1).blob()).isNotNull();
+    assertThat(payloads.get(2).conversational()).isNotNull();
+    assertThat(((UserMessage) message).content())
+        .containsExactly(textContent("before"), reference, textContent("after"));
+  }
+
+  @Test
+  void shouldSummarizeADocumentReferenceInAToolResultAsItsTag() {
+    // given
+    var reference = DocumentReferenceContent.from(new InlineDocument("{}", "d.json", null));
+    ToolCallResultMessage original =
+        ToolCallResultMessage.builder()
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id("call-1")
+                        .name("tool")
+                        .content(List.of(reference))
+                        .build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
+
+    // then
+    assertThat(payloads.getFirst().conversational().content().text()).isEqualTo(reference.toTag());
   }
 
   @Test

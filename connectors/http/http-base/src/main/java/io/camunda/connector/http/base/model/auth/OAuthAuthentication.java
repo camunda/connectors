@@ -7,6 +7,7 @@
 package io.camunda.connector.http.base.model.auth;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
@@ -24,7 +25,10 @@ public record OAuthAuthentication(
         @Pattern(
             regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
             message = "Must be a http(s) URL")
-        @TemplateProperty(group = "authentication", label = "OAuth 2.0 token endpoint")
+        @TemplateProperty(
+            group = "authentication",
+            label = "OAuth 2.0 token endpoint",
+            feel = FeelMode.optional)
         String oauthTokenEndpoint,
     @FEEL
         @NotEmpty

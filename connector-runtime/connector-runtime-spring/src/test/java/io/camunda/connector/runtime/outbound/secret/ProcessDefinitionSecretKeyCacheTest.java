@@ -457,7 +457,10 @@ class ProcessDefinitionSecretKeyCacheTest {
     // simulates the get-XML endpoint's eventual-consistency window right after deployment: the
     // first two attempts 404 before the definition becomes visible, the third succeeds
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(1));
+        new ProcessDefinitionSecretKeyCache(
+            "tenant",
+            new ProcessDefinitionModelCache("tenant", camundaClient, cache, Duration.ofMillis(1)),
+            cache);
     when(xmlRequest.execute())
         .thenThrow(new RuntimeException("not found (yet)"))
         .thenThrow(new RuntimeException("not found (yet)"))
@@ -476,7 +479,10 @@ class ProcessDefinitionSecretKeyCacheTest {
   @Test
   void getSecretKeys_xmlFetchFailsPastMaxRetries_throwsLastFailure() {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(1));
+        new ProcessDefinitionSecretKeyCache(
+            "tenant",
+            new ProcessDefinitionModelCache("tenant", camundaClient, cache, Duration.ofMillis(1)),
+            cache);
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
 
     assertThatThrownBy(
@@ -491,19 +497,28 @@ class ProcessDefinitionSecretKeyCacheTest {
 
   @Test
   void getSecretKeys_deadlineWithinSafetyMargin_failsWithoutAttemptingFetch() {
+    // The deadline check lives in ProcessDefinitionModelCache, which this test's
+    // ProcessDefinitionSecretKeyCache instance backs with its own real (not mocked) Cache — a
+    // real Cache wraps the loader's exception in its own ValueRetrievalException, so the
+    // IllegalStateException may arrive directly or as that wrapper's cause.
     assertThatThrownBy(
             () ->
                 secretKeyCache.getSecretKeys(
                     new SecretKeyContext(
                         PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
-        .isInstanceOf(IllegalStateException.class);
+        .satisfiesAnyOf(
+            e -> assertThat(e).isInstanceOf(IllegalStateException.class),
+            e -> assertThat(e).hasCauseInstanceOf(IllegalStateException.class));
     verify(xmlRequest, times(0)).execute();
   }
 
   @Test
   void getSecretKeys_deadlineLeavesOnlyAPartialRetryWindow_stopsRetryingBeforeMaxRetries() {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(200));
+        new ProcessDefinitionSecretKeyCache(
+            "tenant",
+            new ProcessDefinitionModelCache("tenant", camundaClient, cache, Duration.ofMillis(200)),
+            cache);
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
@@ -525,7 +540,10 @@ class ProcessDefinitionSecretKeyCacheTest {
   void getSecretKeys_xmlFetchIgnoresInterruptAndSucceedsPastDeadline_stillFails()
       throws IOException {
     var retryingCache =
-        new ProcessDefinitionSecretKeyCache("tenant", camundaClient, cache, Duration.ofMillis(200));
+        new ProcessDefinitionSecretKeyCache(
+            "tenant",
+            new ProcessDefinitionModelCache("tenant", camundaClient, cache, Duration.ofMillis(200)),
+            cache);
     String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
     when(xmlRequest.execute())
         .thenAnswer(

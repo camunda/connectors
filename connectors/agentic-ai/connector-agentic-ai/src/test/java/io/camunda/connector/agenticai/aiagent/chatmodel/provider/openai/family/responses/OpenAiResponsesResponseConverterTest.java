@@ -141,6 +141,152 @@ class OpenAiResponsesResponseConverterTest {
   }
 
   @Test
+  void keepsCommentaryAsProviderContentAndFinalAnswerAsTextWithPhase() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {
+                    "type": "output_text",
+                    "text": "CLASSIFIED FACT SHEET...",
+                    "annotations": []
+                  }
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "output_text", "text": "{\\"answer\\":\\"done\\"}", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .satisfiesExactly(
+            commentary -> {
+              assertThat(commentary).isInstanceOf(ProviderContent.class);
+              assertThat(((ProviderContent) commentary).provider()).isEqualTo("openai");
+              assertThat(((ProviderContent) commentary).payload())
+                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                  .containsEntry("id", "msg_commentary")
+                  .containsEntry("phase", "commentary");
+              assertThat(((ProviderContent) commentary).text())
+                  .isEqualTo("CLASSIFIED FACT SHEET...");
+            },
+            answer ->
+                assertThat(answer).isEqualTo(TextContent.textContent("{\"answer\":\"done\"}")));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .containsEntry("phase", "final_answer");
+  }
+
+  @Test
+  void retainsAllUnphasedMessages() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_1",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "First", "annotations": []}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_2",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                  {"type": "output_text", "text": "Second", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .containsExactly(TextContent.textContent("First"), TextContent.textContent("Second"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_1");
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .doesNotContainKey("phase");
+  }
+
+  @Test
+  void keepsCommentaryAsProviderContentAlongsideFunctionCallWhenNoFinalAnswerExists() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "output_text", "text": "Checking the weather", "annotations": []}
+                ]
+              },
+              {
+                "type": "function_call",
+                "id": "fc_1",
+                "call_id": "call_1",
+                "name": "get_weather",
+                "arguments": "{\\"city\\":\\"Berlin\\"}",
+                "status": "completed"
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ProviderContent.class,
+            commentary ->
+                assertThat(commentary.payload())
+                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                    .containsEntry("id", "msg_commentary")
+                    .containsEntry("phase", "commentary"));
+    assertThat(((ProviderContent) result.assistantMessage().content().get(0)).text())
+        .isEqualTo("Checking the weather");
+    assertThat(result.assistantMessage().messageId()).isNull();
+    assertThat(result.assistantMessage().metadata())
+        .extractingByKey("openai", InstanceOfAssertFactories.MAP)
+        .doesNotContainKey("phase");
+    assertThat(result.assistantMessage().toolCalls())
+        .containsExactly(
+            ToolCall.builder()
+                .id("call_1")
+                .name("get_weather")
+                .arguments(Map.of("city", "Berlin"))
+                .build());
+    assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
+  }
+
+  @Test
   void mapsBlankOutputTextAlongsideFunctionCallToNoTextContent() {
     // A blank output_text part alongside a function_call must not crash TextContent.
     final Response response =
@@ -191,6 +337,81 @@ class OpenAiResponsesResponseConverterTest {
                   .containsExactly(TextContent.textContent("I can't help with that."));
               assertThat(assistantMessage.toolCalls()).isEmpty();
             });
+  }
+
+  @Test
+  void throwsContentFilteredExceptionForFinalAnswerRefusalAfterCommentary() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "output_text", "text": "Checking the request", "annotations": []}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "refusal", "refusal": "I can't help with that."}
+                ]
+              }
+            ]
+            """);
+
+    assertThatThrownBy(() -> converter.toResult(response, Duration.ofMillis(100)))
+        .isInstanceOfSatisfying(
+            ContentFilteredException.class,
+            e ->
+                assertThat(e.partialResult().assistantMessage().content())
+                    .filteredOn(TextContent.class::isInstance)
+                    .containsExactly(TextContent.textContent("I can't help with that.")));
+  }
+
+  @Test
+  void ignoresCommentaryRefusalWhenFinalAnswerExists() {
+    final Response response =
+        baseResponse(
+            """
+            [
+              {
+                "type": "message",
+                "id": "msg_commentary",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "commentary",
+                "content": [
+                  {"type": "refusal", "refusal": "Intermediate refusal"}
+                ]
+              },
+              {
+                "type": "message",
+                "id": "msg_final",
+                "role": "assistant",
+                "status": "completed",
+                "phase": "final_answer",
+                "content": [
+                  {"type": "output_text", "text": "{\\"answer\\":\\"done\\"}", "annotations": []}
+                ]
+              }
+            ]
+            """);
+
+    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+
+    assertThat(result.assistantMessage().content())
+        .filteredOn(TextContent.class::isInstance)
+        .containsExactly(TextContent.textContent("{\"answer\":\"done\"}"));
+    assertThat(result.assistantMessage().messageId()).isEqualTo("msg_final");
   }
 
   @Test
@@ -493,6 +714,54 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(50);
     assertThat(metrics.tokenUsage().cacheReadTokenCount()).isEqualTo(20);
     assertThat(metrics.tokenUsage().reasoningTokenCount()).isEqualTo(10);
+  }
+
+  @Test
+  void splitsCacheWriteTokensOutOfInputTokens() {
+    final Response response =
+        baseResponse(
+            "[]",
+            """
+            {
+              "input_tokens": 100,
+              "output_tokens": 50,
+              "total_tokens": 150,
+              "input_tokens_details": {"cached_tokens": 20, "cache_write_tokens": 30},
+              "output_tokens_details": {"reasoning_tokens": 0}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isEqualTo(50);
+    assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(20);
+    assertThat(tokenUsage.cacheCreationTokenCount()).isEqualTo(30);
+    assertThat(
+            tokenUsage.inputTokenCount()
+                + tokenUsage.cacheReadTokenCount()
+                + tokenUsage.cacheCreationTokenCount()
+                + tokenUsage.outputTokenCount())
+        .isEqualTo(150);
+  }
+
+  @Test
+  void clampsInputTokensAtZeroWhenCacheTokensExceedInputTokens() {
+    final Response response =
+        baseResponse(
+            "[]",
+            """
+            {
+              "input_tokens": 10,
+              "output_tokens": 5,
+              "total_tokens": 15,
+              "input_tokens_details": {"cached_tokens": 20},
+              "output_tokens_details": {"reasoning_tokens": 0}
+            }
+            """);
+
+    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+
+    assertThat(tokenUsage.inputTokenCount()).isZero();
   }
 
   @Test

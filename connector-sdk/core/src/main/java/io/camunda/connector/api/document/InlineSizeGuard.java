@@ -21,7 +21,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 public final class InlineSizeGuard {
 
   // Zeebe safe limit for commands that include variables (e.g. complete-job):
-  // https://docs.camunda.io/docs/components/concepts/variables/#variable-size-limitation
+  // https://docs.camunda.io/docs/8.10/components/concepts/variables/#variable-size-limitation
   public static final long MAX_INLINE_BYTES = 3L * 1024 * 1024 / 2; // 1.5 MB
 
   private InlineSizeGuard() {}

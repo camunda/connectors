@@ -39,7 +39,7 @@ public class CommonProperties {
             .group("output")
             .label("Result expression")
             .description(
-                "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.")
+                "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.")
             .feel(FeelMode.required);
 
     if (StringUtils.isNotBlank(value)) {
@@ -60,7 +60,7 @@ public class CommonProperties {
             .group("output")
             .label("Result variable")
             .description(
-                "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.")
+                "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.")
             .feel(FeelMode.disabled);
 
     if (StringUtils.isNotBlank(value)) {
@@ -94,7 +94,7 @@ public class CommonProperties {
         .label("Error expression")
         .group("error")
         .description(
-            "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")
+            "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")
         .feel(FeelMode.required);
   }
 
@@ -206,7 +206,7 @@ public class CommonProperties {
         .label("Message name")
         .tooltip(
             "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. "
-                + "Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.")
+                + "Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/8.10/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.")
         .group("correlation")
         .generatedValue()
         .binding(PropertyBinding.MessageProperty.NAME);
@@ -290,9 +290,9 @@ public class CommonProperties {
         .tooltip(
             "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription."
                 + " Select asynchronous to trigger the correlation and return immediately without waiting for a result."
-                + " This affects the data available in the <a href=\"https://docs.camunda.io/docs/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.")
+                + " This affects the data available in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.")
         .description(
-            "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>")
+            "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>")
         .group("synchronousResponse")
         .value("false")
         .binding(new ZeebeProperty("synchronousResponse"));

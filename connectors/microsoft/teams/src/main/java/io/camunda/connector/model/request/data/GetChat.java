@@ -38,6 +38,6 @@ public record GetChat(
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             tooltip =
-                "See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response\">expand response</a> reference.")
+                "See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response\">expand response</a> reference.")
         String expand)
     implements ChatData {}

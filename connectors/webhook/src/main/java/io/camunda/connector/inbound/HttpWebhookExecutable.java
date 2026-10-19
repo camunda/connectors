@@ -27,6 +27,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
+import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookOutputExample;
@@ -34,6 +35,9 @@ import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -51,7 +55,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 15,
+    version = 16,
     inputDataClass = {
       WebhookConnectorPropertiesWrapper.class,
       DynamicWebhookPropertiesWrapper.class
@@ -66,7 +70,8 @@ import org.slf4j.LoggerFactory;
       "HTTP callback",
       "listen for event"
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/",
     outputDataClass = WebhookOutputExample.class,
     defaultResultExpression =
         "{\n"
@@ -130,10 +135,18 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     rejectDeprecatedResponseBodyExpression(context);
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
+    rejectInvalidHmacTimestampHeader(props);
+    rejectInvalidHmacTolerance(props);
+    rejectUnsupportedHmacScopeCombination(props);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
-            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
+            props.hmacScopes(),
+            props.hmacHeader(),
+            props.hmacSecret(),
+            props.hmacAlgorithm(),
+            props.hmacTimestampHeader(),
+            props.hmacTolerance());
     context.reportHealth(Health.up());
   }
 
@@ -169,7 +182,87 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           "The webhook property 'responseBodyExpression' is deprecated and no longer supported. "
               + "Replace it with 'responseExpression', which returns a full HTTP response, e.g. "
               + "'={body: ..., statusCode: 200, headers: {...}}'. See "
-              + "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/ for details.");
+              + "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/ for details.");
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC authentication is enabled with the {@code
+   * timestamp} scope but its header is missing or matches the signature header. Neither
+   * configuration can pass verification, so they are rejected at deploy time rather than on every
+   * request.
+   */
+  private static void rejectInvalidHmacTimestampHeader(WebhookConnectorProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    if (!enabled.equals(props.shouldValidateHmac()) || !timestampScopeSelected) {
+      return;
+    }
+    String timestampHeader = props.hmacTimestampHeader();
+    if (timestampHeader == null || timestampHeader.isBlank()) {
+      throw new ConnectorInputException(
+          "HMAC scope 'timestamp' is selected but 'hmacTimestampHeader' is not configured. "
+              + "Set 'hmacTimestampHeader' to the name of the header carrying the request timestamp.");
+    }
+    if (timestampHeader.equalsIgnoreCase(props.hmacHeader())) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTimestampHeader' must be different from 'hmacHeader'.");
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when the {@code timestamp} scope is selected and {@code
+   * hmacTolerance} is not a positive ISO-8601 duration. Gated on the {@code timestamp} scope,
+   * matching {@link #rejectInvalidHmacTimestampHeader}: the property is hidden and irrelevant
+   * otherwise, so a leftover invalid value from a previous configuration (e.g. after switching
+   * scopes back to {@code body}) must not block activation.
+   *
+   * <p>The {@code @Pattern} constraint on the property is never evaluated at runtime — {@code
+   * bindProperties} validates {@link WebhookConnectorPropertiesWrapper}, whose {@code inbound}
+   * component isn't annotated {@code @Valid}, so Jakarta Validation doesn't cascade into the nested
+   * {@link WebhookConnectorProperties} record. Enforced here explicitly instead of adding that
+   * cascade, to avoid retroactively activating validation for the record's other, pre-existing
+   * constraints as an unrelated side effect.
+   */
+  private static void rejectInvalidHmacTolerance(WebhookConnectorProperties props) {
+    boolean timestampScopeSelected =
+        Arrays.asList(props.hmacScopes()).contains(HMACScope.TIMESTAMP);
+    if (!enabled.equals(props.shouldValidateHmac()) || !timestampScopeSelected) {
+      return;
+    }
+    String tolerance = props.hmacTolerance();
+    if (tolerance == null || tolerance.isBlank()) {
+      return;
+    }
+    Duration parsed;
+    try {
+      parsed = Duration.parse(tolerance);
+    } catch (DateTimeParseException e) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be an ISO-8601 duration, but was " + tolerance);
+    }
+    if (!parsed.isPositive()) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be a positive duration, but was " + tolerance);
+    }
+    if (parsed.getNano() != 0) {
+      throw new ConnectorInputException(
+          "HMAC property 'hmacTolerance' must be a whole-second duration, but was " + tolerance);
+    }
+  }
+
+  /**
+   * Fails webhook deployment (activation) when HMAC is enabled and the configured {@code
+   * hmacScopes} — after stripping {@code timestamp}, which isn't itself signable — reduce to a
+   * combination {@link HMACVerifier} doesn't support (e.g. {@code [timestamp, url]} strips down to
+   * {@code [url]} alone). Gated on HMAC being enabled: {@link HMACVerifier} is constructed
+   * unconditionally below regardless of {@code shouldValidateHmac}, so this check must be too, or a
+   * deployment with HMAC disabled could fail activation over a scope combination that will never
+   * actually be evaluated.
+   */
+  private static void rejectUnsupportedHmacScopeCombination(WebhookConnectorProperties props) {
+    if (enabled.equals(props.shouldValidateHmac())) {
+      HMACVerifier.rejectUnsupportedScopeCombination(props.hmacScopes());
     }
   }
 
@@ -220,6 +313,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
    * ordering.
    */
   private void authenticate(WebhookProcessingPayload payload) {
+    if (props == null || authChecker == null || hmacVerifier == null) {
+      // activate() sets props, authChecker and hmacVerifier in sequence and can abort partway
+      // (e.g. a JWT webhook missing the now-required issuer/audience aborts before props is set;
+      // one with an unparseable jwkUrl aborts after props but before authChecker). Reject
+      // cleanly on any partial activation instead of letting a NullPointerException on whichever
+      // field never got set reach the caller as an empty-body 500.
+      throw new WebhookConnectorException(503, "This webhook is not active.");
+    }
     validateHttpMethod(payload);
     verifyHmac(payload);
 

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
       "stream data"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),

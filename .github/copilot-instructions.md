@@ -95,10 +95,11 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   hover); example values belong in `placeholder`; keep the always-visible `description` only for
   value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance.
 - **Documentation links must pin the current released minor**, e.g.
-  `https://docs.camunda.io/docs/8.9/components/connectors/...` — never unversioned, never `/next/`.
+  `https://docs.camunda.io/docs/8.10/components/connectors/...` — never unversioned, never `/next/`.
   Versioned URLs are kept resolving by the docs team, and the release bumper
-  (`version-bump-docs-links` in `RELEASE.yaml`) only rewrites links that already carry a version, so
-  an unversioned one is stranded permanently. For a page that exists only in unreleased docs, use its
+  (`version-bump-docs-links` in `RELEASE.yaml`) rewrites every older versioned link to the new
+  minor but cannot touch an unversioned one, so it would be stranded permanently. CI rejects
+  unversioned and `/next/` links (`check_element_template_docs_links.sh`). For a page that exists only in unreleased docs, use its
   numbered form (e.g. `/docs/8.10/...`).
 - **A `version` bump is not needed for content that doesn't change how a template applies** (e.g.
   correcting a URL). `CurrentVersionBumpRule` requires the current template's `version` to equal the
@@ -112,11 +113,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   ./element-template-generator/validator/target/appassembler/bin/element-template-validator
   ./mvnw -pl <module> spotless:check
 
-  # docs-link check; the script writes connectors-element-template-links.txt, which is not
-  # gitignored — delete it afterwards so it isn't committed by accident
-  ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
-  if grep -q "/next/" connectors-element-template-links.txt; then echo "FAIL: forbidden /next/ link"; fi
-  rm -f connectors-element-template-links.txt
+  # docs-link check: rejects unversioned and /next/ links
+  ./.github/workflows/scripts/check_element_template_docs_links.sh
   ```
 
 ## Testing conventions
@@ -136,6 +134,8 @@ read it. If you can't name both, don't write it.
 Read `docs/adr/README.md` for process, template, and the current index before creating or updating one.
 Write one when a decision affects multiple modules, involves a real trade-off, or changes an
 established SDK/runtime/connector pattern. Sequence number and index entry come from that same README.
+`docs/adr/README.md` is authoritative for ADR criteria and format; it overrides the generic ADR rules
+in the third-party `domain-modeling` skill (`.agents/skills/domain-modeling`).
 
 ## Pull requests & commits
 
@@ -171,3 +171,23 @@ established SDK/runtime/connector pattern. Sequence number and index entry come 
 Connector-development-pattern, runtime-configuration, or testing-strategy changes should also update
 [docs.camunda.io](https://docs.camunda.io/docs/components/connectors/overview/) — open a PR against
 `camunda/camunda-docs`.
+
+## Agent skills
+
+All skills live in `.agents/skills/`; `.claude/skills/<name>` are symlinks to them so Claude Code
+picks them up. Third-party skills (`grill-me`, `grill-with-docs`, `grilling`, `domain-modeling`,
+`handoff`) are managed with [`npx skills`](https://github.com/vercel-labs/skills) and tracked in
+`skills-lock.json`; the others (`connectors-cve-triage-v3`, `fix-backports`, `ready-for-review`,
+`update-salesforce-api-version`) are authored in this repo.
+
+```bash
+npx skills experimental_install                                  # reinstall the locked skills from their upstream source
+npx skills add mattpocock/skills --skill <name> --agent claude-code  # add a skill (updates lock file)
+npx skills update                                                # update to latest versions
+npx skills list                                                  # list installed skills
+```
+
+The CLI does not pin revisions or enforce the recorded hashes, so a reinstall or update fetches
+the current upstream content; review the resulting diff. Commit `skills-lock.json` and
+`.agents/skills/` together. After adding a skill, make sure the
+`.claude/skills/<name>` symlink exists.

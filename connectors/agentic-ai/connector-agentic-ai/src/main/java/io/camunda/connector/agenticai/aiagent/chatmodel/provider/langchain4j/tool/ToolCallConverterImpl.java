@@ -18,6 +18,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentReferenceTagSerializer;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -124,13 +125,13 @@ public class ToolCallConverterImpl implements ToolCallConverter {
         .collect(Collectors.joining("\n"));
   }
 
-  // Document nodes are rendered as <doc/> tags via DocumentReferenceTagSerializer (sandbox PoC).
   private String contentElementAsString(String toolName, Content content) {
     try {
       return switch (content) {
         case TextContent t -> t.text();
-        case ObjectContent o -> documentTagObjectMapper.writeValueAsString(o.content());
-        case DocumentContent d -> documentTagObjectMapper.writeValueAsString(d.document());
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
+        case ObjectContent o -> objectMapper.writeValueAsString(o.content());
+        case DocumentContent d -> objectMapper.writeValueAsString(d.document());
         case ReasoningContent ignored ->
             throw new IllegalArgumentException(
                 "Reasoning content is not expected in tool call results");

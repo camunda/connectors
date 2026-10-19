@@ -62,6 +62,8 @@ import io.camunda.connector.runtime.core.error.IgnoreError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.InvalidJobTimeoutException;
 import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory.IntrinsicFunctionAllowListContext;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
@@ -104,6 +106,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private final DocumentFactory documentFactory;
   private final ObjectMapper objectMapper;
   private final SecretFilterFactory secretFilterFactory;
+  private final IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory;
   private final DocumentReturnProcessor documentReturnProcessor;
   private final CamundaClient camundaClient;
 
@@ -116,6 +119,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory,
       CamundaClient camundaClient) {
     this(
         new ConnectorOutboundMetrics(outboundMetrics, null),
@@ -126,6 +130,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         objectMapper,
         connectorFunction,
         secretFilterFactory,
+        intrinsicFunctionAllowListFactory,
         camundaClient);
   }
 
@@ -138,6 +143,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory,
       CamundaClient camundaClient) {
     this.call = connectorFunction;
     this.secretProvider = secretProviderAggregator;
@@ -145,6 +151,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
     this.secretFilterFactory = secretFilterFactory;
+    this.intrinsicFunctionAllowListFactory = intrinsicFunctionAllowListFactory;
     this.documentReturnProcessor = new DocumentReturnProcessor(documentFactory, objectMapper);
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
@@ -228,6 +235,10 @@ public class SpringConnectorJobHandler implements JobHandler {
         secretFilterFactory.create(
             new SecretFilterContext(
                 job.getProcessDefinitionKey(), job.getElementId(), Instant.ofEpochMilli(deadline)));
+    var intrinsicFunctionAllowList =
+        intrinsicFunctionAllowListFactory.create(
+            new IntrinsicFunctionAllowListContext(
+                job.getProcessDefinitionKey(), job.getElementId(), Instant.ofEpochMilli(deadline)));
     var context =
         new JobHandlerContext(
             job,
@@ -235,7 +246,8 @@ public class SpringConnectorJobHandler implements JobHandler {
             validationProvider,
             documentFactory,
             objectMapper,
-            secretFilter);
+            secretFilter,
+            intrinsicFunctionAllowList);
 
     ResultWithDeadline resultWithDeadline =
         deadlineResolutionFailure != null

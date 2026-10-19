@@ -1,0 +1,135 @@
+---
+name: Auto-merge backport pull request
+
+# Approves and enables auto-merge on backport PRs created by BACKPORT_PR.yml once
+# their tests passed. Anything that needed a human (conflicts, extra commits) is
+# left for manual review.
+#
+# Triggered via workflow_run so that this single file on main covers every
+# stable/* branch, regardless of the triggers of "Test branch" on that branch.
+on:
+  workflow_run:
+    workflows: [ "Test branch" ]
+    types: [ completed ]
+
+permissions: { }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    name: Approve and auto-merge backport PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The run's actor is the authenticated pusher of the tested commit, so this
+    # ensures nobody but the backport automation changed the branch.
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login == 'team-connectors-int-automation[bot]' &&
+      startsWith(github.event.workflow_run.head_branch, 'backport-')
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          # Must be a different app than the one creating the backport PRs,
+          # as GitHub does not allow approving your own pull request.
+          secrets: |
+            secret/data/products/connectors/ci/common BACKPORT_APPROVER_APP_ID;
+            secret/data/products/connectors/ci/common BACKPORT_APPROVER_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.BACKPORT_APPROVER_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.BACKPORT_APPROVER_APP_PRIVATE_KEY }}
+
+      - name: Check backport PR eligibility
+        id: check
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          BACKPORT_AUTHOR: app/team-connectors-int-automation
+        run: |
+          skip() {
+            echo "Not auto-merging: $1"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          if [[ ! "$HEAD_BRANCH" =~ ^backport-[0-9]+-to-stable/ ]]; then
+            skip "branch $HEAD_BRANCH is not a backport branch"
+          fi
+
+          NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+          [[ -n "$NUMBER" ]] || skip "no open PR for $HEAD_BRANCH"
+          echo "Checking PR #$NUMBER"
+
+          # Mergeability is computed asynchronously, wait for it before taking the
+          # snapshot below to keep the window until the approval small
+          for _ in 1 2 3 4 5; do
+            MERGEABLE=$(gh pr view "$NUMBER" --repo "$REPO" --json mergeable --jq .mergeable)
+            [[ "$MERGEABLE" == "UNKNOWN" ]] || break
+            sleep 10
+          done
+          [[ "$MERGEABLE" == "MERGEABLE" ]] || skip "PR is not mergeable ($MERGEABLE)"
+
+          PR=$(gh pr view "$NUMBER" --repo "$REPO" \
+            --json id,author,baseRefName,headRefOid,isDraft,autoMergeRequest)
+
+          [[ "$(jq -r .author.login <<< "$PR")" == "$BACKPORT_AUTHOR" ]] || skip "PR not created by $BACKPORT_AUTHOR"
+          [[ "$(jq -r .baseRefName <<< "$PR")" == stable/* ]] || skip "base branch is not stable/*"
+          [[ "$(jq -r .headRefOid <<< "$PR")" == "$HEAD_SHA" ]] || skip "tested commit $HEAD_SHA is no longer the PR head"
+          [[ "$(jq -r .isDraft <<< "$PR")" == "false" ]] || skip "PR is a draft (cherry-pick had conflicts)"
+          [[ "$(jq -r .autoMergeRequest <<< "$PR")" == "null" ]] || skip "auto-merge already enabled"
+
+          # A PR that has ever been a draft had conflicts, even if nothing was pushed
+          # after the backport automation committed them
+          if gh api "repos/$REPO/issues/$NUMBER/timeline" --paginate --jq '.[].event' \
+              | grep -qxE 'ready_for_review|convert_to_draft'; then
+            skip "PR was a draft at some point (cherry-pick had conflicts)"
+          fi
+
+          {
+            echo "eligible=true"
+            echo "number=$NUMBER"
+            echo "node-id=$(jq -r .id <<< "$PR")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Approve and enable auto-merge
+        if: steps.check.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.check.outputs.number }}
+          PR_NODE_ID: ${{ steps.check.outputs.node-id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # Both the approval and auto-merge are bound to the tested commit
+          REVIEW_ID=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            -f event=APPROVE -f commit_id="$HEAD_SHA" \
+            -f body="Auto-approved: clean backport of an already reviewed change, tests passed." \
+            --jq .id)
+
+          # Call the API directly to work around https://github.com/cli/cli/issues/8352;
+          # on merge queue branches this enqueues the PR once all requirements are met.
+          # expectedHeadOid makes this fail if the branch moved since it was checked.
+          # shellcheck disable=SC2016 # $id and $sha are GraphQL variables
+          if ! gh api graphql \
+              -f query='mutation($id: ID!, $sha: GitObjectID!) { enablePullRequestAutoMerge(input: {pullRequestId: $id, expectedHeadOid: $sha}) { clientMutationId } }' \
+              -f id="$PR_NODE_ID" -f sha="$HEAD_SHA"; then
+            echo "Enabling auto-merge failed, dismissing the approval"
+            gh api -X PUT "repos/$REPO/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" \
+              -f message="Auto-merge could not be enabled for the tested commit, manual review required."
+            exit 1
+          fi

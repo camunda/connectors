@@ -4,8 +4,8 @@
   "id" : "io.camunda.connectors.box-hybrid",
   "description" : "Interact with the Box Document API",
   "keywords" : [ "create folder", "delete folder", "upload file", "download file", "move file", "delete file", "search files", "file storage", "document management" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 6,
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/box/",
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -119,6 +119,7 @@
       "equals" : "createFolder",
       "type" : "simple"
     },
+    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.deleteFolderPath",
@@ -138,6 +139,7 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
+    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.recursive",
@@ -158,25 +160,6 @@
     "tooltip" : "Deletes all items contained by the folder",
     "type" : "Boolean"
   }, {
-    "id" : "operation.uploadFileName",
-    "label" : "File name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "operation.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "operation.type",
-      "equals" : "uploadFile",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "operation.uploadFileFolderPath",
     "label" : "Folder path",
     "optional" : false,
@@ -194,6 +177,7 @@
       "equals" : "uploadFile",
       "type" : "simple"
     },
+    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.document_documentSource",
@@ -371,6 +355,29 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "operation.uploadFileName",
+    "label" : "File name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation.document_documentSource",
+        "equals" : "camunda",
+        "type" : "simple"
+      }, {
+        "property" : "operation.type",
+        "equals" : "uploadFile",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Name of the uploaded file. If empty, the file name of the Camunda document is used.",
+    "type" : "String"
+  }, {
     "id" : "operation.downloadFilePath",
     "label" : "File path",
     "optional" : false,
@@ -473,6 +480,7 @@
       "equals" : "moveFile",
       "type" : "simple"
     },
+    "tooltip" : "Path must start with /, e.g. /Invoices/2026. Use / for the root folder.",
     "type" : "String"
   }, {
     "id" : "operation.deleteFilePath",
@@ -774,7 +782,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -795,7 +803,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -805,7 +813,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
@@ -816,7 +824,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {

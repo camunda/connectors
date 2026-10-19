@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -170,16 +171,54 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
         return null;
       }
       JsonNode jsonNode = BLANK_OBJECT_MAPPER.valueToTree(result);
-      if (targetType.getRawClass() == String.class && jsonNode.isObject()) {
-        return (R) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
-      }
       // The result mapper, not the caller's context: conversion runs the result back through the
       // deserializers, and the property mapper's would treat a string in it as expression source.
-      return resultReader(ctx, targetType).readValue(jsonNode);
+      return bindOrWriteAsJson(
+          jsonNode, targetType, () -> resultReader(ctx, targetType).readValue(jsonNode));
     } catch (IOException e) {
       throw new FeelEngineWrapperException(
           "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
     }
+  }
+
+  /** Binds a node to a target type; see {@link #bindOrWriteAsJson}. */
+  @FunctionalInterface
+  protected interface NodeBinder<R> {
+    R bind() throws IOException;
+  }
+
+  /**
+   * Binds {@code node} with {@code binder}, so that the deserializers registered for the target
+   * type get the first say — the document module's String deserializer, for instance, binds a
+   * document reference or an intrinsic function. Only an object that none of them can bind to a
+   * String is bound as its JSON text instead.
+   *
+   * <p>That case is told apart by the mismatch being reported for the String itself, at the root: a
+   * payload a registered deserializer did take, but could not bind — an unknown document type, say
+   * — fails on a type of its own and propagates rather than turning into JSON text.
+   */
+  @SuppressWarnings("unchecked")
+  protected static <R> R bindOrWriteAsJson(JsonNode node, JavaType targetType, NodeBinder<R> binder)
+      throws IOException {
+    try {
+      return binder.bind();
+    } catch (MismatchedInputException e) {
+      if (targetType.getRawClass() == String.class
+          && node.isObject()
+          && isMismatchOf(e, targetType)) {
+        return (R) BLANK_OBJECT_MAPPER.writeValueAsString(node);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Whether {@code e} reports that the target type itself cannot take the node's shape, as opposed
+   * to a failure inside a deserializer that did take it, which is reported for a type of its own or
+   * further down the path.
+   */
+  protected static boolean isMismatchOf(MismatchedInputException e, JavaType targetType) {
+    return e.getTargetType() == targetType.getRawClass() && e.getPath().isEmpty();
   }
 
   /**

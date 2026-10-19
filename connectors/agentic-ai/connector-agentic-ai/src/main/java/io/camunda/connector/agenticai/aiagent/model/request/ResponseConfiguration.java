@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import org.jspecify.annotations.Nullable;
+
 public interface ResponseConfiguration {
   ResponseFormatConfiguration format();
 
-  Boolean includeAssistantMessage();
+  @Nullable Boolean includeAssistantMessage();
 }

@@ -25,6 +25,7 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
+- [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
 
@@ -123,6 +124,32 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
+  instance without the `documents` feature (created before it) keeps the previous document handling: bare
+  content and the older tag format, no registry, no document parameters, and without the `runtimeTools` feature
+  (`documents` implies it) it has no runtime tools (`c8__return_document`, `c8__get_document`) and no tool
+  element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
+  `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
+  `docs/design/ai-agent-document-flow.md` §2.13.
+- **Runtime calls of a mixed batch are answered one job later**: when the model issues runtime tool calls and process
+  calls together, only the process calls are activated, and the agent answers its own calls when it composes the next
+  turn, merged with the process results in call order. The calls are classified again in that job, so
+  `RuntimeTool.isAvailable` must not change within one turn. `ai-agent.md` §9, `docs/design/ai-agent-document-flow.md` §2.8.
+- **The document delivery is `reference` by default**: for an instance with the `documents` feature the model sees a
+  `<doc/>` tag and gets content only through `c8__get_document`, which rejects (error tool result, no incident) a
+  document of a type outside the allowlist or above the size limit before returning its content. Documents are persisted
+  as typed document references (`DocumentReferenceContent`), also a document that is a whole tool result, and the one whose
+  content was added has the delivery `content`. The window decorator (`DocumentExpander`) turns a reference into its tag
+  text and, with the delivery `content`, the content from the registry; in a tool result it renders the short tag as
+  text, so the providers have no document specific code. The content stays in every request until its message leaves
+  the window. Passing the tag of a document to a tool never adds content, and the tag is the only thing a document
+  parameter accepts (a bare id is invalid). The delivery `content` is the opt-in
+  exception: the user prompt dropdown `data.userPrompt.documentDelivery` (`reference` by default, or `content`; v2
+  templates; omitted from the frozen v1 templates through `v1OmittedPropertyIds` in the pom) and the tool activity
+  extension property `io.camunda.agenticai.documents.delivery` = `content` (`ToolDefinition.documentDelivery`) set the
+  delivery `content`, so the agent adds the content of the document to the request through the same guard; a rejected document stays a reference with a note,
+  never an error. `docs/design/ai-agent-document-flow.md` §2.3 and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -136,17 +163,17 @@ Do not break these (full statement and rationale in
 suite will enforce (epic #7537):
 
 - **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the root
+  `model/`) stays framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
-  (`io.camunda.connector.agenticai.model.*`) is translated to/from LangChain4j only through the
+  (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
   `*Impl`. Wire impls as Spring beans, depend on the interface.
-- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
+- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
+  gateway tool, or runtime tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
 ## Working in this module
@@ -179,6 +206,105 @@ flavor).
 
 ```bash
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
+```
+
+#### Real-LLM CPT coverage
+
+Real-provider / real-LLM acceptance coverage for this module lives in
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/` and is intentionally split in two dimensions:
+
+1. **Provider shards**: `.github/workflows/AI_AGENT_CPT_PR.yml` runs the pre-merge suite when a
+   maintainer applies the `ai-agent-model-e2e-test` label. The registry in
+   `connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json`
+   defines the bundle test leg and the native-provider
+   capability-group legs. The workflow validates that registry and uses its generated matrix.
+   Credential profile names are selected by the registry, while their Vault and environment wiring
+   remains explicit in the workflow. When adding or changing a provider capability, update the
+   matching `ci: true` row or document why it is omitted from `requiredCiCapabilities` and remains
+   manual-only. Add the workflow credential wiring as well when the row needs a new credential
+   profile.
+
+   Applying the label authorizes one run for the PR's current head SHA. After every push or other
+   head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
+   receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
+   for images or real providers when Agentic AI code, Agentic AI e2e tests, the CPT registry, or its
+   workflow inputs changed. Matrix execution is capped at four concurrent legs.
+2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
+   together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
+   `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
+   provider labels. If a scenario needs provider-specific element-template properties, put them in the
+   row's `capabilityProperties` entry for that capability.
+
+   Capability-focused scenarios live in the `RealProvider*E2ETestIT` classes and use JUnit tags
+   matching the registry's `groups` values.
+
+   Keep structured JSON generation separate from structured output combined with tool
+   orchestration. Gemini 3.8 supports the former, but can repeatedly call an already-completed tool
+   when both tools and a response schema are present. Its structured-output row therefore runs the
+   AI Agent Task v2 no-tool fixture while providers with `STRUCTURED_OUTPUT_WITH_TOOLS` run the
+   single- and multi-tool subprocess scenarios.
+
+   The always-on provider scenarios (`toolCallLoopSurfacesPlantedFact` and
+   `userFeedbackLoopReplaysAssistantTextOnFollowUp`) use `providers()` directly and are not gated by a
+   capability. When debugging one capability, run the matching method instead of the whole class.
+
+Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mistral`, or `local`) to
+run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
+shard-only behavior, disabled rows, or provider group membership.
+
+To run a capability suite locally, set `RUN_NATIVE_LLM_E2E=true`, `REAL_LLM_PROVIDER_GROUP`, and the
+credentials for the provider group you want to exercise. Provider rows whose required environment
+variables are missing are skipped locally; set `REQUIRE_NATIVE_LLM_PROVIDER=true` to fail instead
+when no provider row is selected.
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm \
+  -Dgroups=core-smoke
+```
+
+Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
+run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
+prompt caching remain manual because their cache placement is opportunistic: unset
+`REAL_LLM_PROVIDER_GROUP`, provide only the credentials for the provider under test, and use
+`-Dgroups=prompt-caching`. CI selects the bundle-backed `AiAgentE2ETestIT` by class with
+`-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
+JUnit groups.
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm \
+  -Dit.test=RealProviderStructuredOutputE2ETestIT
+```
+
+For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
+Set the same environment variables in **Run configuration → Environment variables**, keep the working
+directory at the repository root, and use the `connectors-e2e-test-agentic-ai` module classpath. Check
+the test output for skipped parameterized invocations before treating a green IDE run as full provider
+coverage.
+
+`DocumentToolCallResultsIT` is explicitly included in the `it-real-llm` profile because it does not
+match the `*E2ETestIT` class pattern. Its active scenario deterministically checks the provider's
+final response for the facts contained in every nested document; it does not require a separate judge
+model. Add user-message document scenarios to `RealProviderMultimodalE2ETestIT`; add tool-result
+document scenarios to `DocumentToolCallResultsIT`, which owns compatibility coverage across legacy
+v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
+whichever provider credentials you want its rows to exercise. Always set
+`REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
+available can run. For example, select only the OpenAI rows:
+
+```bash
+export RUN_NATIVE_LLM_E2E=true
+export REAL_LLM_PROVIDER_GROUP=openai
+export OPENAI_API_KEY=...
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+  -Pit-real-llm -Dgroups=document-tool-results
 ```
 
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
@@ -235,15 +361,21 @@ Before claiming a change is complete:
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
 - [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
+- [ ] Real-provider changes update the `RealProviderApiSmokeSupport` provider/capability matrix and
+  `RealProviderSelectionTest` where applicable, plus the corresponding `ci: true` registry row or an
+  explicit manual-only decision in `requiredCiCapabilities`.
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
+- [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
 
 ## Extension points
 
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
-implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19).
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
+tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
+a Spring bean. A runtime tool is the three-method interface `RuntimeTool` (`definition`, `isAvailable`, `call`); the
+built-in tools in `aiagent/tool/runtime/builtin` use only that SPI. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and `docs/design/ai-agent-document-flow.md` §2.7).
 
 ## Element templates
 
@@ -274,6 +406,14 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
+When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
+fixtures for the new template generation in the same change. The fixtures live in
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/regression/` (one Task and one
+Sub-process BPMN per generation, e.g. `ai-agent-task-8.10.0.bpmn`) and are run by
+`AgentTaskElementTemplateRegressionTests` and `AgentSubProcessElementTemplateRegressionTests`. Copy the latest
+pair, rename it for the new version with unique process IDs (e.g. `AI_Agent_Task_8100`), re-apply the new
+templates in Modeler, and add both files to the tests' `@ValueSource`. Never edit an existing fixture.
+
 ### Agent definition marker
 
 All AI Agent Task and Sub-process templates (v1 and v2, all flavors, including hybrid) carry a
@@ -284,6 +424,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that `git diff origin/main` of the v1 template files stays empty.
 
 ### Deprecation marker (v1 only)
 
@@ -368,6 +515,10 @@ properties, error codes, behavioral contracts), update the matching doc in the s
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
   provider specifics → `native-providers.md`.
+- **`docs/breaking-changes.md`**: breaking changes for custom extensions (SPIs, public classes and
+  packages, persisted data, job types, configuration). Add an entry in the same change that
+  introduces the break, under the section of the release in development, with the old and new API
+  and a migration hint. The public docs link to it.
 - **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
   (maintenance rules are in the Element templates section above).
 

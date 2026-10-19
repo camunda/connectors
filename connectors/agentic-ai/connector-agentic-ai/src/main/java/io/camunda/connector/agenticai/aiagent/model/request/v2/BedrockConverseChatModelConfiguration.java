@@ -27,7 +27,9 @@ import org.jspecify.annotations.Nullable;
 
 @TemplateSubType(
     id = BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID,
-    label = "AWS Bedrock Converse")
+    label = "AWS Bedrock Converse",
+    description = "Any Bedrock model via the Converse API.",
+    keywords = {"Bedrock", "AWS"})
 public record BedrockConverseChatModelConfiguration(
     @Valid @NotNull BedrockConverseConnection bedrock) implements ProviderConfiguration {
 
@@ -203,7 +205,7 @@ public record BedrockConverseChatModelConfiguration(
                         + "href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html\" "
                         + "target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
-                defaultValue = "false",
+                defaultValue = "true",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
             @Nullable Boolean enabled) {}

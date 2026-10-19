@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.AWSEventBridge.v1",
   "description" : "Send events to AWS EventBridge",
   "keywords" : [ "emit event", "publish event", "send event", "trigger event", "event bus", "cloud event" ],
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
   "version" : 9,
   "category" : {
     "id" : "connectors",
@@ -64,7 +64,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "authentication",
     "binding" : {
@@ -203,7 +203,7 @@
       "name" : "input.source",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Value that identifies the service that generated the event. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
+    "tooltip" : "Value that identifies the service that generated the event. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "String"
   }, {
     "id" : "input.detailType",
@@ -218,7 +218,7 @@
       "name" : "input.detailType",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Type of event being sent. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
+    "tooltip" : "Type of event being sent. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "String"
   }, {
     "id" : "input.eventBusName",
@@ -233,7 +233,7 @@
       "name" : "input.eventBusName",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Name of the destination event bus. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
+    "tooltip" : "Name of the destination event bus. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge documentation</a>.",
     "type" : "Text"
   }, {
     "id" : "input.detail",
@@ -248,7 +248,7 @@
       "name" : "input.detail",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Payload must be provided as JSON. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a> documentation.",
+    "tooltip" : "Payload must be provided as JSON. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">Amazon EventBridge event payload</a> documentation.",
     "placeholder" : "{\"key\": \"value\"}",
     "type" : "String"
   }, {
@@ -276,7 +276,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -286,7 +286,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
@@ -297,7 +297,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {
@@ -348,7 +348,7 @@
     "properties" : [ {
       "id" : "authentication.type",
       "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "value" : "credentials",
       "group" : "authentication",
       "binding" : {

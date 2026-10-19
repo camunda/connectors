@@ -12,18 +12,22 @@ import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.strip
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponseBuilder;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,22 +53,27 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   @Override
   public AgentResponse createResponse(AgentConversation conversation) {
+    return createResponse(
+        conversation,
+        Optional.ofNullable(assistantMessageOf(conversation).toolCalls()).orElse(List.of()));
+  }
+
+  @Override
+  public AgentResponse createResponse(
+      AgentConversation conversation, List<ToolCall> processToolCalls) {
     final var agentContext = conversation.toAgentContext();
-    final var assistantMessage =
-        Objects.requireNonNull(
-            conversation
-                .lastTurn()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "Cannot create an agent response: the conversation has no completed turn"))
-                .assistantMessage(),
-            "Cannot create an agent response: the last turn has no assistant message");
-    final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    final var assistantMessage = assistantMessageOf(conversation);
+    // the stored assistant message keeps the document ids the model sent; only the tool call
+    // handed to the process carries the document references
+    final var resolvedToolCalls =
+        conversation.supportsDocuments()
+            ? DocumentParameterResolver.resolveAll(
+                processToolCalls,
+                conversation.configuration().toolDefinitions(),
+                conversation.documentRegistry())
+            : processToolCalls;
     final var toolCalls =
-        gatewayToolHandlers
-            .transformToolCalls(agentContext, conversation.documentRegistry(), rawToolCalls)
-            .stream()
+        gatewayToolHandlers.transformToolCalls(agentContext, resolvedToolCalls).stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 
@@ -74,6 +83,11 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElse(DEFAULT_RESPONSE_CONFIGURATION);
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
+    if (toolCalls.isEmpty() && conversation.supportsDocuments()) {
+      // every final response carries all response documents, which stay in the
+      // context for the lifetime of the agent instance
+      builder.responseDocuments(responseDocuments(conversation));
+    }
     if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
       builder.responseMessage(assistantMessage);
     }
@@ -83,6 +97,36 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
+  }
+
+  private static AssistantMessage assistantMessageOf(AgentConversation conversation) {
+    return Objects.requireNonNull(
+        conversation
+            .lastTurn()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Cannot create an agent response: the conversation has no completed turn"))
+            .assistantMessage(),
+        "Cannot create an agent response: the last turn has no assistant message");
+  }
+
+  private LinkedHashMap<String, ReturnedDocument> responseDocuments(
+      AgentConversation conversation) {
+    final var registry = conversation.documentRegistry();
+    final var returned = new LinkedHashMap<String, ReturnedDocument>();
+    conversation
+        .responseDocuments()
+        .forEach(
+            (key, selected) ->
+                registry
+                    .findById(selected.document())
+                    .ifPresent(
+                        entry ->
+                            returned.put(
+                                key,
+                                new ReturnedDocument(entry.reference(), selected.description()))));
+    return returned;
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {

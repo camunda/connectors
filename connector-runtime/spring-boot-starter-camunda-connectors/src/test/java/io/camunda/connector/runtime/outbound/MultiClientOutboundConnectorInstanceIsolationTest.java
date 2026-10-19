@@ -118,7 +118,7 @@ class MultiClientOutboundConnectorInstanceIsolationTest {
     var clientCaptor = ArgumentCaptor.forClass(CamundaClient.class);
     var workerCaptor = ArgumentCaptor.forClass(ManagedJobWorker.class);
     verify(jobWorkerManager, atLeastOnce())
-        .createJobWorker(clientCaptor.capture(), workerCaptor.capture(), any());
+        .createJobWorker(clientCaptor.capture(), workerCaptor.capture(), any(), any());
 
     var clients = clientCaptor.getAllValues();
     var workers = workerCaptor.getAllValues();

@@ -72,8 +72,9 @@ public class AgentInitializerImpl implements AgentInitializer {
   }
 
   /**
-   * Builds the initial agent context for a new agent, provisioning an agent instance on the engine
-   * when the job carries a non-blank {@code agentDefinitionKey} custom header.
+   * Builds the initial agent context for a new agent, which is created with the current features
+   * (see {@link AgentContext#features()}), provisioning an agent instance on the engine when the
+   * job carries a non-blank {@code agentDefinitionKey} custom header.
    */
   private AgentContext createAgentContext(AgentExecutionContext executionContext) {
     final var jobContext = executionContext.jobContext();
@@ -88,7 +89,9 @@ public class AgentInitializerImpl implements AgentInitializer {
           "Skipping agent instance creation: element was not marked with an agent definition");
     }
 
-    return AgentContext.empty().withMetadata(metadata);
+    return AgentContext.empty()
+        .withMetadata(metadata)
+        .withFeatures(AgentContext.newInstanceFeatures());
   }
 
   private boolean hasAgentDefinitionKeyHeader(JobContext jobContext) {
@@ -119,10 +122,14 @@ public class AgentInitializerImpl implements AgentInitializer {
     final var executionMetadata = AgentMetadata.of(executionContext.jobContext());
     if (agentMetadata == null
         || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
+      final var updatedMetadata =
+          agentMetadata == null
+              ? executionMetadata
+              : agentMetadata.withProcessDefinitionKey(executionMetadata.processDefinitionKey());
       agentContext =
           toolsResolver
               .updateToolDefinitions(executionContext, agentContext)
-              .withMetadata(executionMetadata);
+              .withMetadata(updatedMetadata);
     }
 
     return new ReadyToConverse(agentContext, initialToolCallResults);

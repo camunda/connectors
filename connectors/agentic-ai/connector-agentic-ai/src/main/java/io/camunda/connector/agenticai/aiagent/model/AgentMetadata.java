@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * @param agentInstanceKey The key of the agent instance created on the engine, if any
  * @param lastIterationKey The highest turn iterationKey persisted so far, if any. Authoritative
  *     counter for the next turn's iterationKey; absent for conversations created before this field
- *     was introduced, or right after a process definition migration reset.
+ *     was introduced.
  * @param configurationFingerprintHistory The turn iterationKey at which {@link
  *     AgentConfiguration#fingerprint()} changed, mapped to the fingerprint it changed to. Only
  *     entries where it actually changed are recorded (not one per turn), so the fingerprint

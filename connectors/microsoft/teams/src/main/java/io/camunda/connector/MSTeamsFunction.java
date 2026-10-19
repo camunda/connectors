@@ -12,15 +12,16 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.MicrosoftEntraConfiguration;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.operation.OperationFactory;
 
 @OutboundConnector(
     name = "MS Teams",
-    inputVariables = {"authentication", "data"},
+    inputVariables = {"authenticationConfiguration", "authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.MSTeams.v1",
     name = "Microsoft Teams Outbound Connector",
     description = "Create, update, and send a message to your Microsoft Teams",
@@ -45,14 +46,15 @@ import io.camunda.connector.operation.OperationFactory;
       "notification"
     },
     inputDataClass = MSTeamsRequest.class,
-    version = 9,
+    configurations = {MicrosoftEntraConfiguration.class},
+    version = 10,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "data", label = "Data")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/microsoft-teams/",
     icon = "icon.svg")
 public class MSTeamsFunction implements OutboundConnectorFunction {
 

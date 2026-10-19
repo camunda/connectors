@@ -46,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -297,6 +298,84 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
+  void replaysRecordedAnswerPhaseOnAssistantMessage() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("done")))
+                    .messageId("msg_1")
+                    .metadata(Map.of("openai", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var message =
+        params.input().orElseThrow().asResponse().get(0).responseOutputMessage().orElseThrow();
+    assertThat(message.phase()).contains(ResponseOutputMessage.Phase.FINAL_ANSWER);
+  }
+
+  @Test
+  void replaysUnphasedAndForeignProviderAssistantMessageWithoutPhase() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("unphased")))
+                    .build(),
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("other provider")))
+                    .metadata(Map.of("anthropic", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    assertThat(params.input().orElseThrow().asResponse())
+        .extracting(item -> item.responseOutputMessage().orElseThrow().phase())
+        .containsOnly(java.util.Optional.empty());
+  }
+
+  @Test
+  void replaysCommentaryProviderContentBeforeFinalAnswerWithPhases() {
+    final Map<String, Object> commentary =
+        Map.of(
+            "type", "message",
+            "id", "msg_commentary",
+            "role", "assistant",
+            "status", "completed",
+            "phase", "commentary",
+            "content",
+                List.of(
+                    Map.of("type", "output_text", "text", "Checking", "annotations", List.of())));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            new ProviderContent("openai", commentary, null),
+                            TextContent.textContent("done")))
+                    .messageId("msg_final")
+                    .metadata(Map.of("openai", Map.of("phase", "final_answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var items = params.input().orElseThrow().asResponse();
+    assertThat(items).hasSize(2);
+    final var first = items.get(0).responseOutputMessage().orElseThrow();
+    assertThat(first.id()).isEqualTo("msg_commentary");
+    assertThat(first.phase()).contains(ResponseOutputMessage.Phase.COMMENTARY);
+    assertThat(first.content().get(0).asOutputText().text()).isEqualTo("Checking");
+    final var second = items.get(1).responseOutputMessage().orElseThrow();
+    assertThat(second.id()).isEqualTo("msg_final");
+    assertThat(second.phase()).contains(ResponseOutputMessage.Phase.FINAL_ANSWER);
+  }
+
+  @Test
   void replaysMultipleAssistantTextBlocksAsSeparateOutputTextParts() {
     // Block boundaries are preserved rather than flattened into one joined string - see
     // OpenAiResponsesRequestConverter#assistantContentInputItem.
@@ -490,6 +569,54 @@ class OpenAiResponsesRequestConverterTest {
             toolNode.path("parameters").path("properties").path("quantity").path("type").asText())
         .isEqualTo("integer");
     assertThat(toolNode.path("parameters").path("required").get(0).asText()).isEqualTo("quantity");
+  }
+
+  @Test
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.HINT;
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "A document."),
+                "docs",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of("type", "string", "format", "camunda-document-id"))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    final var properties = toolNode.path("parameters").path("properties");
+    assertThat(properties.path("doc").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("doc").path("description").asText())
+        .isEqualTo("A document. " + HINT);
+    assertThat(properties.path("docs").path("items").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("docs").path("items").path("description").asText()).isEqualTo(HINT);
+    assertThat(toolNode.toString()).doesNotContain("\"type\":\"document\"");
   }
 
   @Test

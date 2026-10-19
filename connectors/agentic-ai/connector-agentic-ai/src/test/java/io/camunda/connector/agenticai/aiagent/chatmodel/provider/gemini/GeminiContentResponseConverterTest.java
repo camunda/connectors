@@ -404,14 +404,21 @@ class GeminiContentResponseConverterTest {
                 EXECUTION_TIME)
             .assistantMessage();
 
-    assertThat(assistantMessage.content())
-        .containsExactly(
-            new ReasoningContent(
-                GOOGLE_GEMINI_ID,
-                Map.of("thought", true),
-                "Let me think it through",
-                Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64)),
-            TextContent.textContent("the answer"));
+    assertThat(assistantMessage.content()).hasSize(2);
+    assertThat(assistantMessage.content().get(0))
+        .isInstanceOfSatisfying(
+            ReasoningContent.class,
+            reasoning -> {
+              assertThat(reasoning.provider()).isEqualTo(GOOGLE_GEMINI_ID);
+              assertThat(reasoning.text()).isEqualTo("Let me think it through");
+              assertThat(reasoning.metadata())
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64);
+              assertThat(reasoning.payload())
+                  .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                  .containsEntry("thought", true)
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE);
+            });
+    assertThat(assistantMessage.content().get(1)).isEqualTo(TextContent.textContent("the answer"));
   }
 
   @Test
@@ -429,7 +436,7 @@ class GeminiContentResponseConverterTest {
             .assistantMessage()
             .content();
 
-    // Round trip through the request-direction converter: same metadata key, same base64 alphabet.
+    // Round trip through the request-direction converter using the established metadata contract.
     final var replayed = new GeminiContentConverter(new ObjectMapper()).toParts(content);
 
     assertThat(replayed)
@@ -447,17 +454,22 @@ class GeminiContentResponseConverterTest {
     final var thoughtPart =
         Part.builder().thought(true).thoughtSignature(THOUGHT_SIGNATURE).build();
 
-    assertThat(
-            converter
-                .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
-                .assistantMessage()
-                .content())
-        .containsExactly(
-            new ReasoningContent(
-                GOOGLE_GEMINI_ID,
-                Map.of("thought", true),
-                null,
-                Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64)));
+    final var assistantMessage =
+        converter
+            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
+            .assistantMessage();
+
+    assertThat(assistantMessage.content())
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ReasoningContent.class,
+            reasoning -> {
+              assertThat(reasoning.text()).isNull();
+              assertThat(reasoning.payload())
+                  .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                  .containsEntry("thought", true)
+                  .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE);
+            });
   }
 
   @Test
@@ -666,7 +678,7 @@ class GeminiContentResponseConverterTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  void mapsUsageMetadataIncludingImplicitCacheReadsAndThoughtTokens() {
+  void mapsUsageMetadataIntoDisjointBuckets() {
     final var response =
         responseBuilder(candidate(FinishReason.Known.STOP, Part.fromText("ok")))
             .usageMetadata(
@@ -675,18 +687,25 @@ class GeminiContentResponseConverterTest {
                     .candidatesTokenCount(50)
                     .cachedContentTokenCount(3)
                     .thoughtsTokenCount(5)
-                    .totalTokenCount(158)
+                    .toolUsePromptTokenCount(7)
+                    .totalTokenCount(162)
                     .build())
             .build();
 
     final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
 
-    assertThat(tokenUsage.inputTokenCount()).isEqualTo(100);
-    assertThat(tokenUsage.outputTokenCount()).isEqualTo(50);
+    assertThat(tokenUsage.inputTokenCount()).isEqualTo(97 + 7);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(3);
+    assertThat(tokenUsage.outputTokenCount()).isEqualTo(55);
     assertThat(tokenUsage.reasoningTokenCount()).isEqualTo(5);
     // Gemini's implicit caching reports reads only; there is no cache-write counter to map.
     assertThat(tokenUsage.cacheCreationTokenCount()).isZero();
+    assertThat(
+            tokenUsage.inputTokenCount()
+                + tokenUsage.cacheReadTokenCount()
+                + tokenUsage.cacheCreationTokenCount()
+                + tokenUsage.outputTokenCount())
+        .isEqualTo(162);
   }
 
   @Test

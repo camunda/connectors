@@ -9,6 +9,7 @@ package io.camunda.connector.inbound.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -22,9 +23,25 @@ public record JWTProperties(
         @FEEL
         String jwkUrl,
     @TemplateProperty(
+            label = "Issuer",
+            description = "Expected value of the JWT 'iss' claim",
+            feel = FeelMode.optional,
+            group = "authorization")
+        @FEEL
+        @NotBlank
+        String issuer,
+    @TemplateProperty(
+            label = "Audience",
+            description = "Expected value of the JWT 'aud' claim",
+            feel = FeelMode.optional,
+            group = "authorization")
+        @FEEL
+        @NotBlank
+        String audience,
+    @TemplateProperty(
             label = "JWT role property expression",
             description =
-                "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
+                "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
             group = "authorization",
             feel = FeelMode.required)
         Function<Object, List<String>> permissionsExpression,
@@ -37,5 +54,11 @@ public record JWTProperties(
         List<String> requiredPermissions) {
   public JWTProperties {
     Objects.requireNonNull(jwkUrl);
+    if (issuer == null || issuer.isBlank()) {
+      throw new IllegalArgumentException("issuer is required for JWT webhook authorization");
+    }
+    if (audience == null || audience.isBlank()) {
+      throw new IllegalArgumentException("audience is required for JWT webhook authorization");
+    }
   }
 }

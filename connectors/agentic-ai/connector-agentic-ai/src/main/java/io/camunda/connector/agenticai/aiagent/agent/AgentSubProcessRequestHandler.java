@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -38,7 +39,9 @@ public class AgentSubProcessRequestHandler
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeToolCallHandler runtimeToolCallHandler,
+      DocumentExpander documentExpander) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -46,7 +49,9 @@ public class AgentSubProcessRequestHandler
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeToolCallHandler,
+        documentExpander);
   }
 
   @Override
@@ -93,9 +98,9 @@ public class AgentSubProcessRequestHandler
       AgentResponse agentResponse,
       @Nullable AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    // cancel remaining instances if any tool call in this turn's input was interrupted
+    // cancel remaining instances if any tool call in this invocation's input was interrupted
     boolean cancelRemainingInstances =
-        conversation != null && conversation.currentTurn().hasInterruptedToolCallResults();
+        conversation != null && conversation.hasInterruptedToolCallResultsInInvocation();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",
@@ -132,7 +137,8 @@ public class AgentSubProcessRequestHandler
         AgentSubProcessResponse.builder()
             .responseText(agentResponse.responseText())
             .responseJson(agentResponse.responseJson())
-            .responseMessage(agentResponse.responseMessage());
+            .responseMessage(agentResponse.responseMessage())
+            .responseDocuments(agentResponse.responseDocuments());
 
     if (executionContext.response() != null
         && Boolean.TRUE.equals(executionContext.response().includeAgentContext())) {

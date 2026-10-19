@@ -36,7 +36,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.List;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -103,6 +106,76 @@ class AgentResponseHandlerTest {
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
         .ingest(assistantMessage, new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0));
+  }
+
+  @Test
+  void handsTheDocumentReferenceToTheProcessWhileTheStoredMessageKeepsTheId() {
+    final var document =
+        new io.camunda.connector.runtime.core.document.DocumentFactoryImpl(
+                io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore.INSTANCE)
+            .create(
+                io.camunda.connector.api.document.DocumentCreationRequest.from(
+                        "data".getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var registry =
+        io.camunda.connector.agenticai.aiagent.document.DocumentRegistry.empty()
+            .withDocuments(
+                List.of(
+                    new io.camunda.connector.agenticai.aiagent.document.IngestedDocument(
+                        document,
+                        io.camunda.connector.agenticai.aiagent.document.DocumentSource.userMessage(
+                            null))));
+    final var documentId =
+        io.camunda.connector.agenticai.aiagent.document.DocumentHandle.idFor(document);
+    final var toolCall =
+        new io.camunda.connector.agenticai.aiagent.model.tool.ToolCall(
+            "call-1",
+            "upload",
+            java.util.Map.of("doc", "<doc id=\"" + documentId + "\" />", "note", "x"));
+    final var assistantMessage = assistantMessage("uploading", List.of(toolCall));
+    final var config =
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+            .withToolDefinitions(
+                List.of(
+                    io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition.builder()
+                        .name("upload")
+                        .inputSchema(
+                            java.util.Map.of(
+                                "type",
+                                "object",
+                                "properties",
+                                java.util.Map.of(
+                                    "doc",
+                                    java.util.Map.of(
+                                        "type", "string", "format", "camunda-document-id"))))
+                        .build()));
+    final var conversation =
+        AgentConversation.rehydrate(
+                config,
+                BASE_AGENT_CONTEXT
+                    .withFeatures(AgentContext.newInstanceFeatures())
+                    .withDocuments(registry.entries()),
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of())
+            .ingest(assistantMessage, AgentMetrics.empty());
+
+    final var response = responseHandler.createResponse(conversation);
+
+    assertThat(response.toolCalls())
+        .singleElement()
+        .satisfies(
+            call -> {
+              assertThat(call.metadata().id()).isEqualTo("call-1");
+              assertThat(call.arguments())
+                  .containsEntry("doc", registry.findById(documentId).orElseThrow().reference())
+                  .containsEntry("note", "x");
+            });
+    assertThat(conversation.allMessages().getLast()).isEqualTo(assistantMessage);
+    assertThat(assistantMessage.toolCalls().getFirst().arguments())
+        .containsEntry("doc", "<doc id=\"" + documentId + "\" />");
   }
 
   @Nested
@@ -316,6 +389,65 @@ class AgentResponseHandlerTest {
       // then
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isNull();
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+  }
+
+  /**
+   * security-testing-findings#275, PR review thread PRRT_kwDOIGZYus6kVTwr: {@code
+   * ConnectorsAutoConfiguration#connectorObjectMapper} -- the mapper actually injected here in
+   * production -- registers {@link JacksonModuleDocumentDeserializer}, unlike the bare {@code new
+   * ObjectMapper()} the rest of this test class uses. These tests wire a mapper the same way
+   * (document module present, {@link DisabledIntrinsicFunctionExecutor} as its function executor,
+   * matching the fixed production wiring) to prove that an LLM-generated {@code responseText}
+   * shaped like a {@code camunda.function.type} call cannot reach the executor through {@link
+   * AgentResponseHandlerImpl#createResponse}, while an ordinary JSON response still parses
+   * correctly through the same, document-module-equipped mapper.
+   */
+  @Nested
+  class ProductionMapperWiring {
+
+    // Built inside each test, not as a field initializer: a @Nested class's field initializers
+    // run while constructing the instance, before MockitoExtension injects the outer
+    // gatewayToolHandlers mock, so a handler built here would permanently capture a null.
+    private AgentResponseHandler handlerWithDocumentModuleMapper() {
+      var documentModuleObjectMapper =
+          new ObjectMapper()
+              .registerModule(
+                  new JacksonModuleDocumentDeserializer(
+                      mock(DocumentFactory.class), new DisabledIntrinsicFunctionExecutor()));
+      return new AgentResponseHandlerImpl(documentModuleObjectMapper, gatewayToolHandlers);
+    }
+
+    @Test
+    void doesNotDispatchAnIntrinsicFunctionFoundInTheModelResponseText() {
+      // given - an LLM response shaped exactly like the discriminator object this cache/executor
+      // dispatches for a model-declared FEEL literal; here it arrives as ordinary response text,
+      // which no allow-list check ever covers.
+      String exploitJson = "{\"camunda.function.type\":\"base64\",\"params\":[\"test\"]}";
+      var conversation =
+          conversationWith(
+              new AgentTaskResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(exploitJson));
+
+      // then - the executor refuses rather than returning "dGVzdA==" (base64("test")), which
+      // would prove the function actually ran.
+      assertThatThrownBy(() -> handlerWithDocumentModuleMapper().createResponse(conversation))
+          .isInstanceOf(UnsupportedOperationException.class)
+          .hasMessageContaining("Intrinsic function dispatch is disabled");
+    }
+
+    @Test
+    void stillParsesOrdinaryJsonResponseTextThroughTheDocumentModuleEquippedMapper() {
+      var conversation =
+          conversationWith(
+              new AgentTaskResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(HAIKU_JSON));
+
+      var response = handlerWithDocumentModuleMapper().createResponse(conversation);
+
       assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
     }
   }

@@ -36,7 +36,7 @@ public record JdbcConnectionConfiguration(
             label = "Select a database",
             tooltip =
                 "If you choose Oracle, make sure the Oracle JDBC driver is included. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
+                    + "<a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/sql/#database\">Oracle JDBC driver setup</a>.",
             group = "connection",
             type = PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

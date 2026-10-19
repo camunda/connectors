@@ -31,11 +31,13 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Arrays;
@@ -58,6 +60,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final Map<String, ObjectMapper> objectMappersByPhysicalTenantId;
   private final MetricsRecorder metricsRecorder;
   private final Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId;
+  private final Map<String, IntrinsicFunctionAllowListFactory>
+      intrinsicFunctionAllowListFactoriesByPhysicalTenantId;
   private final MeterRegistry meterRegistry;
 
   /**
@@ -83,6 +87,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
       Map<String, ObjectMapper> objectMappersByPhysicalTenantId,
       MetricsRecorder metricsRecorder,
       Map<String, SecretFilterFactory> secretFilterFactoriesByPhysicalTenantId,
+      Map<String, IntrinsicFunctionAllowListFactory>
+          intrinsicFunctionAllowListFactoriesByPhysicalTenantId,
       MeterRegistry meterRegistry) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
@@ -93,6 +99,8 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     this.objectMappersByPhysicalTenantId = objectMappersByPhysicalTenantId;
     this.metricsRecorder = metricsRecorder;
     this.secretFilterFactoriesByPhysicalTenantId = secretFilterFactoriesByPhysicalTenantId;
+    this.intrinsicFunctionAllowListFactoriesByPhysicalTenantId =
+        intrinsicFunctionAllowListFactoriesByPhysicalTenantId;
     this.meterRegistry = meterRegistry;
   }
 
@@ -118,10 +126,16 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     var physicalTenantId = resolvePhysicalTenantId(client, clientName);
     var documentFactory = documentFactoriesByPhysicalTenantId.get(physicalTenantId);
     var secretFilterFactory = secretFilterFactoriesByPhysicalTenantId.get(physicalTenantId);
+    var intrinsicFunctionAllowListFactory =
+        intrinsicFunctionAllowListFactoriesByPhysicalTenantId.get(physicalTenantId);
     var objectMapper = objectMappersByPhysicalTenantId.get(physicalTenantId);
-    if (documentFactory == null || secretFilterFactory == null || objectMapper == null) {
+    if (documentFactory == null
+        || secretFilterFactory == null
+        || intrinsicFunctionAllowListFactory == null
+        || objectMapper == null) {
       throw new IllegalStateException(
-          "No DocumentFactory/SecretFilterFactory/ObjectMapper configured for physical tenant '"
+          "No DocumentFactory/SecretFilterFactory/IntrinsicFunctionAllowListFactory/ObjectMapper"
+              + " configured for physical tenant '"
               + physicalTenantId
               + "'");
     }
@@ -135,9 +149,11 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
         connector ->
             openWorkerForOutboundConnector(
                 client,
+                clientName,
                 physicalTenantId,
                 documentFactory,
                 secretFilterFactory,
+                intrinsicFunctionAllowListFactory,
                 objectMapper,
                 connector));
   }
@@ -159,7 +175,7 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
    */
   private static String resolvePhysicalTenantId(CamundaClient client, String clientName) {
     try {
-      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+      var physicalTenantId = PhysicalTenantClients.configuredPhysicalTenantId(client);
       return physicalTenantId != null ? physicalTenantId : clientName;
     } catch (RuntimeException e) {
       return clientName;
@@ -168,9 +184,11 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   private void openWorkerForOutboundConnector(
       CamundaClient client,
+      String clientName,
       String physicalTenantId,
       DocumentFactory documentFactory,
       SecretFilterFactory secretFilterFactory,
+      IntrinsicFunctionAllowListFactory intrinsicFunctionAllowListFactory,
       ObjectMapper objectMapper,
       OutboundConnectorConfiguration connector) {
     JobWorkerValue jobWorkerValue = new JobWorkerValue();
@@ -210,8 +228,9 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
                 objectMapper,
                 connectorFunction,
                 secretFilterFactory,
+                intrinsicFunctionAllowListFactory,
                 client);
     jobWorkerManager.createJobWorker(
-        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
+        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this, clientName);
   }
 }

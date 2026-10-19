@@ -75,6 +75,7 @@ import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -161,6 +162,7 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll(),
+        IntrinsicFunctionAllowListFactory.disabled(),
         camundaClient);
   }
 
@@ -183,6 +185,7 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll(),
+        IntrinsicFunctionAllowListFactory.disabled(),
         mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
@@ -199,6 +202,7 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll(),
+        IntrinsicFunctionAllowListFactory.disabled(),
         mock(CamundaClient.class, RETURNS_DEEP_STUBS));
   }
 
@@ -215,6 +219,7 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         job -> SecretFilter.allowAll(),
+        IntrinsicFunctionAllowListFactory.disabled(),
         camundaClient);
   }
 
@@ -234,6 +239,7 @@ class SpringConnectorJobHandlerTest {
         TestObjectMapperSupplier.INSTANCE,
         call,
         secretFilterFactory,
+        IntrinsicFunctionAllowListFactory.disabled(),
         camundaClient);
   }
 
@@ -792,6 +798,7 @@ class SpringConnectorJobHandlerTest {
               TestObjectMapperSupplier.INSTANCE,
               context -> null,
               secretFilterFactory,
+              IntrinsicFunctionAllowListFactory.disabled(),
               mock(CamundaClient.class, RETURNS_DEEP_STUBS));
 
       assertThatThrownBy(() -> JobBuilder.create().execute(jobHandler)).isSameAs(failure);

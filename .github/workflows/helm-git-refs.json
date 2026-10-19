@@ -1,5 +1,5 @@
 {
-  "main": "camunda-platform-8.10",
+  "main": "camunda-platform-8.11",
   "stable/8.10": "camunda-platform-8.10",
   "stable/8.9": "camunda-platform-8.9",
   "stable/8.8": "camunda-platform-8.8",

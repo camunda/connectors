@@ -5,7 +5,8 @@ connector's element template — for humans and agents alike. It complements
 [ADR-0004](adr/ADR-0004-configuration-templates-in-element-templates.md), which records *why* the
 feature is shaped this way; this document is *how* to build on it correctly, distilled from
 migrating REST, GraphQL, Polling, the AWS connector family (~14 connectors + idp-extraction +
-aws-sqs), and JDBC.
+aws-sqs), JDBC, Slack, and the Microsoft family (Teams, O365 Email inbound, Azure Blob Storage,
+and the hand-written O365 Mail and Azure OpenAI templates).
 
 If you're adding a credential chooser to a connector that doesn't have one yet, read this end to
 end before writing code — most of the mistakes below are easy to make and easy to avoid once you
@@ -230,6 +231,38 @@ module build (`mvn test-compile`), then diff. The generator embeds serialization
 casing, an `elementTemplateVersion` display value mirroring the numeric version, per-group
 property ordering) that are easy to get subtly wrong by hand and won't be caught by an eyeball
 review of the JSON.
+
+This rule assumes a generator exists. The O365 Mail and Azure OpenAI templates
+(`connectors/microsoft/mail/` and `connectors/microsoft/azure-open-ai/`) are the exception: they
+have no `src/`, no connector class, and no `GenerateElementTemplate` to run, so their JSON is
+hand-maintained source and hand-editing it is simply how you change it. Each embeds a verbatim
+copy of the `io.camunda.connectors:rest-authentication:1` schema, taken from
+`connectors/http/rest/element-templates/http-json-connector.json`, as its `configurationTemplates`
+block. Unlike every other consumer of that credential, these two cannot regenerate the copy from
+`RestAuthenticationConfiguration.java` — whoever changes that class, or any of the nested
+authentication model classes it embeds (e.g. `ApiKeyAuthentication`, `BasicAuthentication`,
+`BearerAuthentication`, `OAuthAuthentication`, `OAuthRefreshTokenAuthentication`), must re-copy the
+embedded `configurationTemplates` block into both templates by hand, since nothing else keeps them
+in sync.
+
+Salesforce (`connectors/salesforce/`) sits in between: it also has no `src/main` and runs as
+`io.camunda:http-json:1`, but its template is derived from HTTP JSON's generated one by
+`GenerateElementTemplate` (a test-scope class, run manually). Instead of reusing HTTP JSON's
+`rest-authentication` credential type, it embeds its own `io.camunda.connectors:salesforce-authentication:1`,
+derived from that one and narrowed to the bearer and OAuth 2.0 client-credentials types Salesforce
+supports, so the chooser offers only Salesforce credentials. Two consequences:
+
+- The runtime binds the credential as `RestAuthenticationConfiguration`, which never checks the
+  credential type's id, so its rules still apply — e.g. a bearer credential must carry a URL, which
+  the Salesforce credential labels as the instance URL.
+- No `@Configuration` class or `ConfigurationValidator` exists for the Salesforce id, so
+  configuration validation reports it as unsupported.
+
+A change to `RestAuthenticationConfiguration` makes Salesforce's `GenerateElementTemplateTest` fail
+as stale — rerun the generator and commit the result. If the committed Salesforce template version
+has already been released, that's a non-cosmetic change to it: bump `TEMPLATE_VERSION` and archive
+the previous version under `versioned/` first, and bump `SALESFORCE_CREDENTIAL_VERSION` too if the
+change would invalidate existing Salesforce credentials.
 
 ## Trying it out locally
 

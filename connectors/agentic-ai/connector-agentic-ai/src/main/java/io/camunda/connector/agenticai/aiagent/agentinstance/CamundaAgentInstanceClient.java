@@ -20,13 +20,13 @@ import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgentInstanceCommandStep2;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.RetriesProperties;
 import io.camunda.connector.agenticai.common.util.retry.CamundaApiRetry;
@@ -126,6 +126,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
                 List.of(
                     configurationHistoryItem(
                         configuration,
+                        newInstanceContext(),
                         agentExecutionContext.configurationEvidence(),
                         FIRST_ITERATION,
                         OffsetDateTime.now())));
@@ -141,6 +142,11 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       }
       throw e;
     }
+  }
+
+  /** The agent context an agent instance starts with. */
+  private static AgentContext newInstanceContext() {
+    return AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
   }
 
   /**
@@ -217,7 +223,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp) {
+      OffsetDateTime turnIngestionTimestamp,
+      AgentContext agentContext) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn start: no agent instance key");
       return;
@@ -228,6 +235,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       historyItems.add(
           configurationHistoryItem(
               configuration,
+              agentContext,
               executionContext.configurationEvidence(),
               turn.iterationKey(),
               turnIngestionTimestamp));
@@ -238,7 +246,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             previousTurn,
             turnIngestionTimestamp,
             turn.iterationKey(),
-            sandboxState(executionContext),
+            agentContext,
             executionContext.configurationEvidence().get(AgentHistoryEvidence.DOCUMENT_PARSING)));
 
     applyBatchedUpdate(
@@ -256,16 +264,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .orElse(true);
   }
 
-  private static @Nullable Object sandboxState(AgentExecutionContext executionContext) {
-    final var agentContext = executionContext.initialAgentContext();
-    if (agentContext == null || agentContext.properties() == null) {
-      return null;
-    }
-    return agentContext.properties().get(AgentHistoryEvidence.SANDBOX_PROPERTY);
-  }
-
   private AgentInstanceHistoryItem configurationHistoryItem(
       AgentConfiguration configuration,
+      AgentContext agentContext,
       Map<String, Object> evidence,
       int iterationKey,
       OffsetDateTime producedAt) {
@@ -282,7 +283,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .model(configuration.chatModel().model())
         .systemPrompt(
             List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
-        .tools(toolMapper.mapTools(configuration.toolDefinitions()))
+        .tools(toolMapper.mapTools(configuration.toolDefinitions(), agentContext))
         .limits(AgentInstanceLimits.of(-1, configuration.maxModelCalls(), -1));
   }
 
@@ -291,7 +292,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
       int iterationKey,
-      @Nullable Object sandboxState,
+      AgentContext agentContext,
       @Nullable Object documentParsing) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
@@ -299,7 +300,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     for (final Message message : turn.inputMessages()) {
       for (final var item :
           historyMapper.inputHistoryItems(
-              message, toolCallsById, turnIngestionTimestamp, sandboxState, documentParsing)) {
+              message, toolCallsById, turnIngestionTimestamp, agentContext, documentParsing)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -323,7 +324,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       OffsetDateTime producedAt,
-      AgentInstanceUpdateStatus status) {
+      AgentInstanceUpdateStatus status,
+      AgentContext agentContext) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance turn completion: no agent instance key");
       return;
@@ -334,8 +336,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       throw new IllegalArgumentException(
           "Cannot create assistant history item for a turn without an assistant message");
     }
-    final var content = historyMapper.assistantContent(assistantMessage);
-    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage);
+    final var content = historyMapper.assistantContent(assistantMessage, agentContext);
+    final var toolCalls = historyMapper.assistantToolCalls(assistantMessage, agentContext);
     if (content.isEmpty() && (toolCalls == null || toolCalls.isEmpty())) {
       throw new IllegalArgumentException(
           "Cannot create assistant history item with neither content nor tool calls");
@@ -358,17 +360,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
   public void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
-      AgentConversationTurn previousTurn) {
+      List<ToolCallResultContent> toolCallResults,
+      AgentConversationTurn previousTurn,
+      AgentContext agentContext) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
     }
 
-    final var syntheticMessage =
-        ToolCallResultMessage.builder()
-            .results(toolCallResults.stream().map(ToolCallResultContent::from).toList())
-            .build();
+    final var syntheticMessage = ToolCallResultMessage.builder().results(toolCallResults).build();
     final var toolCallsById = previousTurn.toolCallsById();
     final var iteration = previousTurn.iterationKey() + 1;
 
@@ -377,7 +377,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(
-            syntheticMessage, toolCallsById, OffsetDateTime.now(), sandboxState(executionContext))) {
+            syntheticMessage, toolCallsById, OffsetDateTime.now(), agentContext)) {
       items.add(toHistoryItem(item, iteration));
     }
 

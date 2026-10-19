@@ -253,8 +253,8 @@ class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMul
             .readValue(response.getBody(), new TypeReference<>() {});
     // still one entry per pod — the filter narrows each pod's own sums, not the pod fan-out itself
     assertEquals(2, metrics.size());
-    // the client-owned worker counters carry no physical-tenant tag, so they are left out
-    assertTrue(metrics.stream().allMatch(m -> m.worker() == null));
+    // the client-owned worker counters are tagged by physical tenant too, so they are kept
+    assertTrue(metrics.stream().allMatch(m -> m.worker() != null));
   }
 
   @Test

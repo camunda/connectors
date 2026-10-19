@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="ai-agent-chat-with-tools" name="AI Agent Chat With Tools" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:extensionElements>
@@ -19,6 +19,7 @@
         <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
         <zeebe:ioMapping>
           <zeebe:input source="=agent.responseText" target="responseText" />
+          <zeebe:input source="=if agent.responseDocuments != null then get entries(agent.responseDocuments).value.document else []" target="responseDocuments" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0m7etfk</bpmn:incoming>
@@ -39,20 +40,26 @@
     <bpmn:sequenceFlow id="Flow_16c9bwj" name="yes" sourceRef="Gateway_1dcg4ha" targetRef="Event_0i39jej">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=userSatisfied</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.jobworker.v1" zeebe:modelerTemplateVersion="7" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
+    <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.ai-agent-subprocess.v2" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
       <bpmn:extensionElements>
-        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
-        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
+        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult,&#10;  completedAt: now()&#10;}" />
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:subprocess:2" retries="3" />
         <zeebe:ioMapping>
-          <zeebe:input source="bedrock" target="provider.type" />
-          <zeebe:input source="eu-central-1" target="provider.bedrock.region" />
-          <zeebe:input source="credentials" target="provider.bedrock.authentication.type" />
-          <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.bedrock.authentication.accessKey" />
-          <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.bedrock.authentication.secretKey" />
-          <zeebe:input source="eu.anthropic.claude-sonnet-4-5-20250929-v1:0" target="provider.bedrock.model.model" />
-          <zeebe:input source="=&#34;You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`&#34;" target="data.systemPrompt.prompt" />
+          <zeebe:input source="anthropic" target="provider.type" />
+          <zeebe:input source="aws-bedrock-mantle" target="provider.anthropic.backend.type" />
+          <zeebe:input source="eu-west-1" target="provider.anthropic.backend.awsBedrockMantle.region" />
+          <zeebe:input source="credentials" target="provider.anthropic.backend.awsBedrockMantle.authentication.type" />
+          <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.accessKey" />
+          <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.secretKey" />
+          <zeebe:input source="anthropic.claude-sonnet-5" target="provider.anthropic.model.model" />
+          <zeebe:input source="modelDefault" target="provider.anthropic.model.parameters.effort" />
+          <zeebe:input source="adaptive" target="provider.anthropic.model.parameters.thinking.mode" />
+          <zeebe:input source="summarized" target="provider.anthropic.model.parameters.thinking.display" />
+          <zeebe:input source="=true" target="provider.anthropic.model.parameters.promptCaching.enabled" />
+          <zeebe:input source="=&#34;You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;When asked to do data analysis, avoid to read the data source directly and resort to your code interpreter to process the data. Use documents as vehicle to transport data without reading it. The code interpreter has a wide variety of Python libraries pre-installed.&#10;&#34;" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
+          <zeebe:input source="reference" target="data.userPrompt.documentDelivery" />
           <zeebe:input source="=agent.context" target="agentContext" />
           <zeebe:input source="in-process" target="data.memory.storage.type" />
           <zeebe:input source="=20" target="data.memory.contextWindowSize" />
@@ -66,20 +73,18 @@
           <zeebe:output source="=agent" target="agent" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
-          <zeebe:header key="elementTemplateVersion" value="7" />
-          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.aiagent.jobworker.v1" />
-          <zeebe:header key="retryBackoff" value="PT0S" />
+          <zeebe:header key="elementTemplateVersion" value="1" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.ai-agent-subprocess.v2" />
+          <zeebe:header key="retryBackoff" value="PT30S" />
         </zeebe:taskHeaders>
+        <zeebe:properties>
+          <zeebe:property name="io.camunda.agenticai.toolContainer" value="true" />
+        </zeebe:properties>
+        <zeebe:agentDefinition agentType="aiAgentSubProcess" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_16otfp1</bpmn:incoming>
       <bpmn:outgoing>Flow_0m7etfk</bpmn:outgoing>
-      <bpmn:scriptTask id="GetDateAndTime" name="Get Date and Time">
-        <bpmn:documentation>Returns the current date and time including the timezone.</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:script expression="=now()" resultVariable="toolCallResult" />
-        </bpmn:extensionElements>
-      </bpmn:scriptTask>
-      <bpmn:serviceTask id="LoadUserByID" name="Load user by ID" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+      <bpmn:serviceTask id="LoadUserByID" name="Load user by ID" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
         <bpmn:documentation>Loads a user by ID</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda:http-json:1" retries="0" />
@@ -87,20 +92,20 @@
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
             <zeebe:input source="=&#34;https://jsonplaceholder.typicode.com/users/&#34; + string(fromAi(toolCall.id, &#34;The user ID&#34;, &#34;number&#34;))" target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="JSON" target="documentReturnFormat.choice" />
             <zeebe:input source="20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateVersion" value="18" />
             <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
             <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: if (is defined(response.body.id)) then response.body else &#34;User not found&#34;&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="ListUsers" name="List users" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+      <bpmn:serviceTask id="ListUsers" name="List users" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
         <bpmn:documentation>Lists all available users. More contact details (such as e-mail addresses) can be loaded up by looking up the individual user by ID.</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
@@ -108,51 +113,19 @@
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
             <zeebe:input source="https://jsonplaceholder.typicode.com/users" target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="JSON" target="documentReturnFormat.choice" />
             <zeebe:input source="20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateVersion" value="18" />
             <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
             <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: for user in response.body return {&#10;    id: user.id,&#10;    name: user.name,&#10;    username: user.username&#10;  }&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:serviceTask id="Search_Recipe" name="Search recipe" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
-        <bpmn:documentation>Searches a recipe given a search query</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="noAuth" target="authentication.type" />
-            <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://dummyjson.com/recipes/search" target="url" />
-            <zeebe:input source="={&#10;  q: fromAi(toolCall.searchQuery, &#34;The query describing which recipe to search (e.g. a specific dish or the cuisine).&#34;)&#10;}" target="queryParameters" />
-            <zeebe:input source="=false" target="storeResponse" />
-            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
-            <zeebe:input source="20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-            <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: if (count(response.body.recipes) &#62; 0) then response.body.recipes else &#34;No result found.&#34;&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
-      <bpmn:scriptTask id="SuperfluxProduct" name="Superflux Product Calculation">
-        <bpmn:documentation>Calculates the superflux product (a very complicated method only this tool can do) given two input numbers</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:script expression="=3 * (inputA + inputB)" resultVariable="toolCallResult" />
-          <zeebe:ioMapping>
-            <zeebe:input source="=fromAi(toolCall.a, &#34;The first number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputA" />
-            <zeebe:input source="=fromAi(toolCall.b, &#34;The second number to be superflux calculated.&#34;, &#34;number&#34;)" target="inputB" />
-          </zeebe:ioMapping>
-        </bpmn:extensionElements>
-      </bpmn:scriptTask>
       <bpmn:userTask id="AskHumanToSendEmail" name="Ask human to send email">
         <bpmn:documentation>Ask a human to send an email for you</bpmn:documentation>
         <bpmn:extensionElements>
@@ -164,6 +137,7 @@
             <zeebe:input source="=fromAi(toolCall.recipient_email, &#34;The the recipient&#39;s email address.&#34;)" target="recipient_email" />
             <zeebe:input source="=fromAi(toolCall.email_subject, &#34;The subject of the email.&#34;)" target="email_subject" />
             <zeebe:input source="=fromAi(toolCall.email_body, &#34;The body of the email.&#34;)" target="email_body" />
+            <zeebe:input source="=fromAi(toolCall.email_document, &#34;Document to include in the email&#34;, &#34;document&#34;)" target="email_document" />
             <zeebe:output source="={&#10;  operatorFeedback: operatorFeedback,&#10;  emailOk: emailOk&#10;}" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
@@ -193,28 +167,7 @@
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_0uqjclh</bpmn:incoming>
       </bpmn:scriptTask>
-      <bpmn:serviceTask id="Jokes_API" name="Jokes API" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
-        <bpmn:documentation>Fetches a random joke from a Jokes REST API</bpmn:documentation>
-        <bpmn:extensionElements>
-          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
-          <zeebe:ioMapping>
-            <zeebe:input source="noAuth" target="authentication.type" />
-            <zeebe:input source="GET" target="method" />
-            <zeebe:input source="https://v2.jokeapi.dev/joke/Any?format=txt&#38;safe-mode" target="url" />
-            <zeebe:input source="=false" target="storeResponse" />
-            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
-            <zeebe:input source="=20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
-          </zeebe:ioMapping>
-          <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
-            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-            <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: response.body&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
-          </zeebe:taskHeaders>
-        </bpmn:extensionElements>
-      </bpmn:serviceTask>
-      <bpmn:serviceTask id="Fetch_URL" name="Fetch URL" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="12" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+      <bpmn:serviceTask id="Fetch_URL" name="Fetch URL" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
         <bpmn:documentation>Fetches the contents of a given URL. Only accepts valid RFC 3986/RFC 7230 HTTP(s) URLs.</bpmn:documentation>
         <bpmn:extensionElements>
           <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
@@ -222,32 +175,50 @@
             <zeebe:input source="noAuth" target="authentication.type" />
             <zeebe:input source="GET" target="method" />
             <zeebe:input source="=fromAi(toolCall.url, &#34;The URL to fetch&#34;)" target="url" />
-            <zeebe:input source="=true" target="storeResponse" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="DOCUMENT" target="documentReturnFormat.choice" />
             <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
             <zeebe:input source="=20" target="readTimeoutInSeconds" />
-            <zeebe:input source="=false" target="ignoreNullValues" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
-            <zeebe:header key="elementTemplateVersion" value="12" />
+            <zeebe:header key="elementTemplateVersion" value="18" />
             <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
             <zeebe:header key="resultExpression" value="={&#10;  toolCallResult: response.document&#10;}" />
-            <zeebe:header key="retryBackoff" value="PT0S" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
-      <bpmn:subProcess id="Event_Sub_Process" triggeredByEvent="true">
-        <bpmn:scriptTask id="Handle_Message" name="Handle message">
-          <bpmn:extensionElements>
-            <zeebe:script expression="=&#34;Updated message from event: &#34; + messageFromEvent" resultVariable="toolCallResult" />
-          </bpmn:extensionElements>
-          <bpmn:incoming>Flow_0kd4go1</bpmn:incoming>
-        </bpmn:scriptTask>
-        <bpmn:sequenceFlow id="Flow_0kd4go1" sourceRef="On_Message" targetRef="Handle_Message" />
-        <bpmn:startEvent id="On_Message" isInterrupting="false">
-          <bpmn:outgoing>Flow_0kd4go1</bpmn:outgoing>
-          <bpmn:messageEventDefinition id="MessageEventDefinition_0l1ft5s" messageRef="Message_3mpc025" />
-        </bpmn:startEvent>
-      </bpmn:subProcess>
+      <bpmn:serviceTask id="Execute_Python_Code" name="Execute Python Code" zeebe:modelerTemplate="io.camunda.connectors.aws.bedrock.codeinterpreter.v1" zeebe:modelerTemplateVersion="4" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvMzIvQXJjaF9BbWF6b24tQmVkcm9ja18zMjwvdGl0bGU+CiAgICA8ZyBpZD0iSWNvbi1BcmNoaXRlY3R1cmUvMzIvQXJjaF9BbWF6b24tQmVkcm9ja18zMiIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLUJHLzMyL01hY2hpbmUtTGVhcm5pbmciIGZpbGw9IiMwMUE4OEQiPgogICAgICAgICAgICA8cmVjdCBpZD0iUmVjdGFuZ2xlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiPjwvcmVjdD4KICAgICAgICA8L2c+CiAgICAgICAgPGcgaWQ9Ikljb24tU2VydmljZS8zMi9BbWF6b24tQmVkcm9ja18zMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNi4wMDAwMDAsIDYuMDAwMDAwKSIgZmlsbD0iI0ZGRkZGRiI+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0xMC41MTYsMjYuOTMzMjExNiBMOC4yOTMsMjUuNjYzMjExNiBMMTEuNzI0LDIzLjk0NzIxMTYgTDExLjI3NywyMy4wNTMyMTE2IEw3LjI3NywyNS4wNTMyMTE2IEw3LjI5NywyNS4wOTQyMTE2IEw0LDIzLjIxMDIxMTYgTDQsMTkuODA5MjExNiBMNy43MjQsMTcuOTQ3MjExNiBMNy4yNzcsMTcuMDUzMjExNiBMMy41MzYsMTguOTIzMjExNiBMMSwxNy4yMzIyMTE2IEwxLDE0LjgwOTIxMTYgTDQuNzI0LDEyLjk0NzIxMTYgTDQuMjc3LDEyLjA1MzIxMTYgTDEsMTMuNjkxMjExNiBMMSwxMC43NjcyMTE2IEwzLjUyMyw5LjA4NjIxMTU4IEw3LDExLjAzODIxMTYgTDcsMTQuMTkxMjExNiBMNS4yNzcsMTUuMDUzMjExNiBMNS43MjQsMTUuOTQ3MjExNiBMNy41LDE1LjA1OTIxMTYgTDkuMjc3LDE1Ljk0NzIxMTYgTDkuNzI0LDE1LjA1MzIxMTYgTDgsMTQuMTkxMjExNiBMOCwxMC43NjcyMTE2IEwxMC43NzgsOC45MTYyMTE1OCBDMTAuOTE2LDguODIzMjExNTggMTEsOC42NjcyMTE1OCAxMSw4LjUwMDIxMTU4IEwxMSw1LjAwMDIxMTU4IEwxMCw1LjAwMDIxMTU4IEwxMCw4LjIzMjIxMTU4IEw3LjI3OCwxMC4wNDcyMTE2IEw0LDguMjA3MjExNTggTDQsNC4wMzUyMTE1OCBMNywyLjY1NzIxMTU4IEw3LDcuMDAwMjExNTggTDgsNy4wMDAyMTE1OCBMOCwyLjE5ODIxMTU4IEwxMC40OTIsMS4wNTQyMTE1OCBMMTQsMi44MDkyMTE1OCBMMTQsMTcuMTkxMjExNiBMNi4yNzcsMjEuMDUzMjExNiBMNi43MjQsMjEuOTQ3MjExNiBMMTQsMTguMzA5MjExNiBMMTQsMjUuMTkxMjExNiBMMTAuNTE2LDI2LjkzMzIxMTYgWiBNMjUuNSwxOS41MDAyMTE2IEMyNS41LDIwLjA1MTIxMTYgMjUuMDUyLDIwLjUwMDIxMTYgMjQuNSwyMC41MDAyMTE2IEMyMy45NDksMjAuNTAwMjExNiAyMy41LDIwLjA1MTIxMTYgMjMuNSwxOS41MDAyMTE2IEMyMy41LDE4Ljk0OTIxMTYgMjMuOTQ5LDE4LjUwMDIxMTYgMjQuNSwxOC41MDAyMTE2IEMyNS4wNTIsMTguNTAwMjExNiAyNS41LDE4Ljk0OTIxMTYgMjUuNSwxOS41MDAyMTE2IEwyNS41LDE5LjUwMDIxMTYgWiBNMjAuNSwyNC4wMDAyMTE2IEMyMC41LDI0LjU1MTIxMTYgMjAuMDUyLDI1LjAwMDIxMTYgMTkuNSwyNS4wMDAyMTE2IEMxOC45NDksMjUuMDAwMjExNiAxOC41LDI0LjU1MTIxMTYgMTguNSwyNC4wMDAyMTE2IEMxOC41LDIzLjQ0OTIxMTYgMTguOTQ5LDIzLjAwMDIxMTYgMTkuNSwyMy4wMDAyMTE2IEMyMC4wNTIsMjMuMDAwMjExNiAyMC41LDIzLjQ0OTIxMTYgMjAuNSwyNC4wMDAyMTE2IEwyMC41LDI0LjAwMDIxMTYgWiBNMTkuNSw0LjAwMDIxMTU4IEMxOS41LDMuNDQ5MjExNTggMTkuOTQ5LDMuMDAwMjExNTggMjAuNSwzLjAwMDIxMTU4IEMyMS4wNTIsMy4wMDAyMTE1OCAyMS41LDMuNDQ5MjExNTggMjEuNSw0LjAwMDIxMTU4IEMyMS41LDQuNTUxMjExNTggMjEuMDUyLDUuMDAwMjExNTggMjAuNSw1LjAwMDIxMTU4IEMxOS45NDksNS4wMDAyMTE1OCAxOS41LDQuNTUxMjExNTggMTkuNSw0LjAwMDIxMTU4IEwxOS41LDQuMDAwMjExNTggWiBNMjYsMTEuNTAwMjExNiBDMjYuNTUyLDExLjUwMDIxMTYgMjcsMTEuOTQ5MjExNiAyNywxMi41MDAyMTE2IEMyNywxMy4wNTEyMTE2IDI2LjU1MiwxMy41MDAyMTE2IDI2LDEzLjUwMDIxMTYgQzI1LjQ0OSwxMy41MDAyMTE2IDI1LDEzLjA1MTIxMTYgMjUsMTIuNTAwMjExNiBDMjUsMTEuOTQ5MjExNiAyNS40NDksMTEuNTAwMjExNiAyNiwxMS41MDAyMTE2IEwyNiwxMS41MDAyMTE2IFogTTI0LjA3MSwxMy4wMDAyMTE2IEMyNC4yOTUsMTMuODYwMjExNiAyNS4wNzEsMTQuNTAwMjExNiAyNiwxNC41MDAyMTE2IEMyNy4xMDMsMTQuNTAwMjExNiAyOCwxMy42MDMyMTE2IDI4LDEyLjUwMDIxMTYgQzI4LDExLjM5NzIxMTYgMjcuMTAzLDEwLjUwMDIxMTYgMjYsMTAuNTAwMjExNiBDMjUuMDcxLDEwLjUwMDIxMTYgMjQuMjk1LDExLjE0MDIxMTYgMjQuMDcxLDEyLjAwMDIxMTYgTDE1LDEyLjAwMDIxMTYgTDE1LDkuMDAwMjExNTggTDIwLjUsOS4wMDAyMTE1OCBDMjAuNzc3LDkuMDAwMjExNTggMjEsOC43NzYyMTE1OCAyMSw4LjUwMDIxMTU4IEwyMSw1LjkyOTIxMTU4IEMyMS44Niw1LjcwNTIxMTU4IDIyLjUsNC45MjkyMTE1OCAyMi41LDQuMDAwMjExNTggQzIyLjUsMi44OTcyMTE1OCAyMS42MDMsMi4wMDAyMTE1OCAyMC41LDIuMDAwMjExNTggQzE5LjM5OCwyLjAwMDIxMTU4IDE4LjUsMi44OTcyMTE1OCAxOC41LDQuMDAwMjExNTggQzE4LjUsNC45MjkyMTE1OCAxOS4xNCw1LjcwNTIxMTU4IDIwLDUuOTI5MjExNTggTDIwLDguMDAwMjExNTggTDE1LDguMDAwMjExNTggTDE1LDIuNTAwMjExNTggQzE1LDIuMzEwMjExNTggMTQuODkzLDIuMTM4MjExNTggMTQuNzI0LDIuMDUzMjExNTggTDEwLjcyNCwwLjA1MzIxMTU4NDMgQzEwLjU4OCwtMC4wMTQ3ODg0MTU3IDEwLjQzLC0wLjAxNzc4ODQxNTcgMTAuMjkxLDAuMDQ1MjExNTg0MyBMMy4yOTEsMy4yNjAyMTE1OCBDMy4xMTUsMy4zNDEyMTE1OCAzLDMuNTE5MjExNTggMywzLjcxNDIxMTU4IEwzLDguMjMyMjExNTggTDAuMjIzLDEwLjA4NDIxMTYgQzAuMDg0LDEwLjE3NzIxMTYgMCwxMC4zMzMyMTE2IDAsMTAuNTAwMjExNiBMMCwxNy41MDAyMTE2IEMwLDE3LjY2NzIxMTYgMC4wODQsMTcuODIzMjExNiAwLjIyMywxNy45MTYyMTE2IEwzLDE5Ljc2NzIxMTYgTDMsMjMuNTAwMjExNiBDMywyMy42NzkyMTE2IDMuMDk2LDIzLjg0NTIxMTYgMy4yNTIsMjMuOTM0MjExNiBMMTAuMjUyLDI3LjkzNDIxMTYgQzEwLjMyOSwyNy45NzgyMTE2IDEwLjQxNCwyOC4wMDAyMTE2IDEwLjUsMjguMDAwMjExNiBDMTAuNTc3LDI4LjAwMDIxMTYgMTAuNjU0LDI3Ljk4MjIxMTYgMTAuNzI0LDI3Ljk0NzIxMTYgTDE0LjcyNCwyNS45NDcyMTE2IEMxNC44OTMsMjUuODYyMjExNiAxNSwyNS42ODkyMTE2IDE1LDI1LjUwMDIxMTYgTDE1LDIxLjAwMDIxMTYgTDE5LDIxLjAwMDIxMTYgTDE5LDIyLjA3MTIxMTYgQzE4LjE0LDIyLjI5NTIxMTYgMTcuNSwyMy4wNzEyMTE2IDE3LjUsMjQuMDAwMjExNiBDMTcuNSwyNS4xMDMyMTE2IDE4LjM5OCwyNi4wMDAyMTE2IDE5LjUsMjYuMDAwMjExNiBDMjAuNjAzLDI2LjAwMDIxMTYgMjEuNSwyNS4xMDMyMTE2IDIxLjUsMjQuMDAwMjExNiBDMjEuNSwyMy4wNzEyMTE2IDIwLjg2LDIyLjI5NTIxMTYgMjAsMjIuMDcxMjExNiBMMjAsMjAuNTAwMjExNiBDMjAsMjAuMjI0MjExNiAxOS43NzcsMjAuMDAwMjExNiAxOS41LDIwLjAwMDIxMTYgTDE1LDIwLjAwMDIxMTYgTDE1LDE3LjAwMDIxMTYgTDIxLjI5MywxNy4wMDAyMTE2IEwyMi43ODQsMTguNDkwMjExNiBDMjIuNjA4LDE4Ljc4ODIxMTYgMjIuNSwxOS4xMzAyMTE2IDIyLjUsMTkuNTAwMjExNiBDMjIuNSwyMC42MDMyMTE2IDIzLjM5OCwyMS41MDAyMTE2IDI0LjUsMjEuNTAwMjExNiBDMjUuNjAzLDIxLjUwMDIxMTYgMjYuNSwyMC42MDMyMTE2IDI2LjUsMTkuNTAwMjExNiBDMjYuNSwxOC4zOTcyMTE2IDI1LjYwMywxNy41MDAyMTE2IDI0LjUsMTcuNTAwMjExNiBDMjQuMTMxLDE3LjUwMDIxMTYgMjMuNzg4LDE3LjYwODIxMTYgMjMuNDkxLDE3Ljc4MzIxMTYgTDIxLjg1NCwxNi4xNDYyMTE2IEMyMS43NiwxNi4wNTMyMTE2IDIxLjYzMywxNi4wMDAyMTE2IDIxLjUsMTYuMDAwMjExNiBMMTUsMTYuMDAwMjExNiBMMTUsMTMuMDAwMjExNiBMMjQuMDcxLDEzLjAwMDIxMTYgWiIgaWQ9IkZpbGwtNSI+PC9wYXRoPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+">
+        <bpmn:documentation>Execute Python code in a sandbox (AWS Code Interpreter). There is no network access, so the code can't download anything. The sandbox is stateless: every call starts with an empty workspace, no files, variables or imports survive between calls, so pass all files again on every call and write the complete analysis in one script.
+
+To work with a document, pass it in files together with a file name that you choose, for example {"document": &lt;id&gt;, "fileName": "data.csv"}.
+
+It is written to uploads/&lt;fileName&gt; before the code runs, so the code reads open("uploads/data.csv"). Write the results you want back (charts, CSV, text) as files into the working directory. All new files are returned to you as documents (max 10 files, 10 MB in total, hidden files excluded); give them to the user with c8__return_document. 
+
+Preinstalled libraries: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/code-interpreter-preinstalled-libraries.html</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:aws-bedrock-codeinterpreter:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="credentials" target="authentication.type" />
+            <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="authentication.accessKey" />
+            <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="authentication.secretKey" />
+            <zeebe:input source="eu-central-1" target="configuration.region" />
+            <zeebe:input source="python" target="input.language" />
+            <zeebe:input source="=fromAi(toolCall.code, &#34;The python code to execute in the Code Interpreter sandbox.&#34;, &#34;string&#34;)" target="input.code" />
+            <zeebe:input source="=fromAi(&#10;  toolCall.files,&#10;  &#34;Files that are uploaded into the sandbox before the code runs. Each file is stored as uploads/&#60;fileName&#62;, so choose a meaningful fileName that the code can use.&#34;,&#10;  &#34;array&#34;,&#10;  {&#10;    &#34;items&#34;: {&#10;      &#34;type&#34;: &#34;object&#34;,&#10;      &#34;properties&#34;: {&#10;        &#34;document&#34;: {&#10;          &#34;type&#34;: &#34;document&#34;,&#10;          &#34;description&#34;: &#34;The document to upload.&#34;&#10;        },&#10;        &#34;fileName&#34;: {&#10;          &#34;type&#34;: &#34;string&#34;,&#10;          &#34;description&#34;: &#34;The name the file is stored under, for example data.csv. Defaults to the document file name.&#34;&#10;        }&#10;      },&#10;      &#34;required&#34;: [&#34;document&#34;]&#10;    }&#10;  }&#10;)" target="input.files" />
+            <zeebe:input source="aws.codeinterpreter.v1" target="input.codeInterpreterIdentifier" />
+            <zeebe:input source="PT5M" target="input.sessionTimeout" />
+            <zeebe:input source="=10" target="input.maxFiles" />
+            <zeebe:input source="=10485760" target="input.maxTotalFileSize" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="4" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.aws.bedrock.codeinterpreter.v1" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_16otfp1" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
     <bpmn:sequenceFlow id="Flow_0m7etfk" sourceRef="AI_Agent" targetRef="User_Feedback" />
@@ -279,11 +250,7 @@
         <dc:Bounds x="1052" y="192" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="AI_Agent" isExpanded="true">
-        <dc:Bounds x="350" y="170" width="400" height="740" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
-        <dc:Bounds x="380" y="210" width="100" height="80" />
+        <dc:Bounds x="350" y="170" width="400" height="570" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_1fihe00" bpmnElement="LoadUserByID">
@@ -292,14 +259,6 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0kkpyxf_di" bpmnElement="ListUsers">
         <dc:Bounds x="380" y="310" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0d8luif_di" bpmnElement="Search_Recipe">
-        <dc:Bounds x="380" y="410" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0x0a1hy" bpmnElement="SuperfluxProduct">
-        <dc:Bounds x="500" y="210" width="100" height="80" />
-        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_16uhg8o_di" bpmnElement="AskHumanToSendEmail">
         <dc:Bounds x="380" y="540" width="100" height="80" />
@@ -320,26 +279,13 @@
       <bpmndi:BPMNShape id="Activity_1sddc2g_di" bpmnElement="SendEmail">
         <dc:Bounds x="620" y="540" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1l8tp85_di" bpmnElement="Jokes_API">
-        <dc:Bounds x="500" y="410" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1knqabi_di" bpmnElement="Fetch_URL">
-        <dc:Bounds x="620" y="210" width="100" height="80" />
+        <dc:Bounds x="380" y="210" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0ixs5a4_di" bpmnElement="Event_Sub_Process" isExpanded="true">
-        <dc:Bounds x="375" y="740" width="350" height="130" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0bsqv5x_di" bpmnElement="Handle_Message">
-        <dc:Bounds x="600" y="760" width="100" height="80" />
+      <bpmndi:BPMNShape id="Activity_08et49p_di" bpmnElement="Execute_Python_Code">
+        <dc:Bounds x="500" y="420" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_031hxyb_di" bpmnElement="On_Message">
-        <dc:Bounds x="402" y="782" width="36" height="36" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_0kd4go1_di" bpmnElement="Flow_0kd4go1">
-        <di:waypoint x="438" y="800" />
-        <di:waypoint x="600" y="800" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0demz1g_di" bpmnElement="Flow_0demz1g">
         <di:waypoint x="480" y="580" />
         <di:waypoint x="525" y="580" />

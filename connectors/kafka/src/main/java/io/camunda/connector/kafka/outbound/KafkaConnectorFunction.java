@@ -61,7 +61,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
     icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 

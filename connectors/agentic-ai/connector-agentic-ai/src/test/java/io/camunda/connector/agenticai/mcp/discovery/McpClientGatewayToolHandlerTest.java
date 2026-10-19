@@ -14,6 +14,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -305,6 +306,38 @@ class McpClientGatewayToolHandlerTest {
                 assertThat(toolDefinition.name()).isEqualTo("MCP_mcp1___tool2");
                 assertThat(toolDefinition.description()).isEqualTo("Tool 2 description");
               });
+    }
+
+    @Test
+    void discoveredToolsDeclareNoDocumentParametersAndReachTheModelProviderAsTheyAre() {
+      var inputSchema =
+          Map.<String, Object>of(
+              "type",
+              "object",
+              "properties",
+              Map.of("document", Map.of("type", "string", "description", "The document name")));
+      var mcpListToolsResult =
+          new McpClientListToolsResult(
+              List.of(
+                  McpToolDefinitionBuilder.builder()
+                      .name("read")
+                      .description("Reads a document")
+                      .inputSchema(inputSchema)
+                      .build()));
+      var toolDiscoveryResults =
+          List.of(
+              createToolCallResultWithContent("MCP_toolsList_mcp1", "mcp1", mcpListToolsResult));
+
+      var result = handler.handleToolDiscoveryResults(AgentContext.empty(), toolDiscoveryResults);
+
+      assertThat(result).hasSize(1);
+      var toolDefinition = result.getFirst();
+      assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
+      assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
+          .isFalse();
+      assertThat(toolDefinition.documentDelivery()).isNull();
+      assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
+          .isSameAs(toolDefinition);
     }
 
     @Test

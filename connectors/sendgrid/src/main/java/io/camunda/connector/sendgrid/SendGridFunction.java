@@ -19,6 +19,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.sendgrid.model.SendGridApiKeyConfiguration;
 import io.camunda.connector.sendgrid.model.SendGridRequest;
 import java.io.IOException;
 import java.util.List;
@@ -27,10 +28,18 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "SendGrid",
-    inputVariables = {"apiKey", "from", "to", "template", "content", "attachments"},
+    inputVariables = {
+      "sendGridCredential",
+      "apiKey",
+      "from",
+      "to",
+      "template",
+      "content",
+      "attachments"
+    },
     type = "io.camunda:sendgrid:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.SendGrid.v2",
     name = "Send Email with SendGrid",
     description = "Send an email via SendGrid",
@@ -45,7 +54,8 @@ import org.slf4j.LoggerFactory;
       "email template"
     },
     inputDataClass = SendGridRequest.class,
-    version = 6,
+    version = 7,
+    configurations = {SendGridApiKeyConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "sender", label = "Sender"),
@@ -53,7 +63,7 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "content", label = "Compose email")
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/sendgrid/",
     icon = "icon.svg")
 public class SendGridFunction implements OutboundConnectorFunction {
 

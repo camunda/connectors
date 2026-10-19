@@ -11,6 +11,20 @@
             "columns": null
           },
           "id": "Field_0e59eom"
+        },
+        {
+          "label": "Documents returned by the agent",
+          "dataSource": "=responseDocuments",
+          "maxHeight": 300,
+          "type": "documentPreview",
+          "layout": {
+            "row": "Row_00sgw33",
+            "columns": null
+          },
+          "id": "Field_1qdhnvh",
+          "conditional": {
+            "hide": "=count(responseDocuments) = 0"
+          }
         }
       ],
       "showOutline": true,
@@ -78,10 +92,10 @@
   "type": "default",
   "id": "ai-agent-chat-user-feedback",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.8.0",
+  "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.39.0"
+    "version": "5.52.0"
   },
   "schemaVersion": 19
 }

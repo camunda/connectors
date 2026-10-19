@@ -76,7 +76,7 @@ public sealed interface MemoryStorageConfiguration
                   "Will use the cluster default TTL (time-to-live) if not specified. Make sure to set this value to a reasonable duration "
                       + "matching your process lifecycle.",
               optional = true)
-          Duration timeToLive,
+          @Nullable Duration timeToLive,
       @FEEL
           @TemplateProperty(
               label = "Custom document properties",
@@ -84,7 +84,7 @@ public sealed interface MemoryStorageConfiguration
                   "An optional map of custom properties to be stored with the conversation document.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, Object> customProperties)
+          @Nullable Map<String, Object> customProperties)
       implements MemoryStorageConfiguration {
     @Override
     public String storeType() {

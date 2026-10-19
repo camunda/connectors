@@ -80,6 +80,19 @@ except in compliance with the proprietary license.</license.inlineheader>
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- Test-only: SnsWebhookConnectorPropertiesFeelBindingTest exercises the same
+         FeelContextAwareObjectReader binding path the runtime uses to prove topicsAllowList (a
+         List<String> with @FEEL) binds a FEEL list expression correctly. Not used by main code. -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

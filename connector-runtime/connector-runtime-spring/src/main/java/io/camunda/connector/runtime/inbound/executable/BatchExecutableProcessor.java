@@ -237,12 +237,27 @@ public class BatchExecutableProcessor {
     if (executable instanceof WebhookConnectorExecutable) {
       LOG.debug("Registering webhook: {}", context.getDefinition().type());
       if (webhookConnectorRegistry.register(activated)) {
-        executable.activate(context);
+        try {
+          executable.activate(context);
+        } catch (Exception e) {
+          // free the path, otherwise the failed instance would block it until the runtime restarts
+          deregisterAfterFailedActivation(activated, e);
+          throw e;
+        }
       }
     } else {
       executable.activate(context);
     }
     return activated;
+  }
+
+  private void deregisterAfterFailedActivation(Activated activated, Exception activationError) {
+    try {
+      webhookConnectorRegistry.deregister(activated);
+    } catch (Exception e) {
+      LOG.error("Failed to deregister webhook after failed activation", e);
+      activationError.addSuppressed(e);
+    }
   }
 
   /** Deactivates a single inbound connector. */

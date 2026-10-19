@@ -13,12 +13,14 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.azure.blobstorage.model.core.BlobStorageExecutor;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
+import io.camunda.connector.azure.blobstorage.model.request.auth.AzureBlobStorageConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.function.Function;
 
 @OutboundConnector(
     name = "Azure Blob Storage",
     inputVariables = {
+      "authenticationConfiguration",
       "authentication",
       "operationDiscriminator",
       "operation",
@@ -27,12 +29,13 @@ import java.util.function.Function;
     },
     type = "io.camunda:azure-blobstorage:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.azure.blobstorage.v1",
     name = "Azure Blob Storage Outbound Connector",
     description = "Upload and download files from Azure Blob Storage.",
     inputDataClass = BlobStorageRequest.class,
-    version = 6,
+    configurations = {AzureBlobStorageConfiguration.class},
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
@@ -50,7 +53,7 @@ import java.util.function.Function;
       "cloud storage"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
     icon = "icon.svg")
 public class BlobStorageConnectorFunction implements OutboundConnectorFunction {
 

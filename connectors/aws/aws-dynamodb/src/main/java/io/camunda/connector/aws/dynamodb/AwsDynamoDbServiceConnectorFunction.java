@@ -37,7 +37,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
       "database"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),

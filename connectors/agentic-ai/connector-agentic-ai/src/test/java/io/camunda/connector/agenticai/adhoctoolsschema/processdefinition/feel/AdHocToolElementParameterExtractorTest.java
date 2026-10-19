@@ -65,6 +65,43 @@ class AdHocToolElementParameterExtractorTest {
                 Map.of()));
   }
 
+  @Test
+  void returnsTheAlternativesOfAParameterThatTakesTextOrADocument() {
+    final var expression =
+        """
+        {
+          named: fromAi(value: toolCall.body, description: "The body", schema: {
+            "anyOf": [{"type": "string"}, {"type": "document"}]
+          }),
+          positional: fromAi(toolCall.note, "The note", "string", {
+            "oneOf": [{"type": "string"}, {"type": "document"}]
+          }),
+          typeArray: fromAi(value: toolCall.text, schema: {"type": ["string", "document"]})
+        }
+        """;
+
+    assertThat(parameterExtractor.extractParameters(expression))
+        .containsExactly(
+            new AdHocToolElementParameter(
+                "toolCall.body",
+                "The body",
+                null,
+                Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document"))),
+                Map.of()),
+            new AdHocToolElementParameter(
+                "toolCall.note",
+                "The note",
+                "string",
+                Map.of("oneOf", List.of(Map.of("type", "string"), Map.of("type", "document"))),
+                Map.of()),
+            new AdHocToolElementParameter(
+                "toolCall.text",
+                null,
+                null,
+                Map.of("type", List.of("string", "document")),
+                Map.of()));
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {

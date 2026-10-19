@@ -17,15 +17,11 @@
 package io.camunda.connector.e2e.agenticai.aiagent.task;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.EXTRACTED_DOCUMENTS_PREAMBLE;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
-import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseExternalDocumentReference;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.message.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
@@ -33,7 +29,6 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation.RecordedMessage;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,19 +52,18 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
 
   @ParameterizedTest
   @CsvSource({
-    "test.csv,text,text/csv",
-    "test.gif,base64,image/gif",
-    "test.jpg,base64,image/jpeg",
-    "test.json,text,application/json",
-    "test.pdf,base64,application/pdf",
-    "test.png,base64,image/png",
-    "test.txt,text,text/plain",
-    "test.webp,base64,image/webp",
-    "test.xml,text,application/xml",
-    "test.yaml,text,application/yaml"
+    "test.csv,text/csv",
+    "test.gif,image/gif",
+    "test.jpg,image/jpeg",
+    "test.json,application/json",
+    "test.pdf,application/pdf",
+    "test.png,image/png",
+    "test.txt,text/plain",
+    "test.webp,image/webp",
+    "test.xml,application/xml",
+    "test.yaml,application/yaml"
   })
-  void supportsDocumentResponsesFromToolCalls(String filename, String type, String mimeType)
-      throws Exception {
+  void supportsDocumentResponsesFromToolCalls(String filename, String mimeType) throws Exception {
     final var initialUserPrompt = "Go and download a document!";
     final var fileUrl = wireMock.getHttpBaseUrl() + "/" + filename;
     final var aiFinalResponseText = "The content type is '%s'".formatted(mimeType);
@@ -93,36 +87,26 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(3);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(7);
+    assertThat(lastMessages).hasSize(6);
 
     assertRole(lastMessages.get(0), "system");
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: document serialized as a document reference (parsed from the tool message text)
+    // tool result: the document shown as a <doc/> tag (parsed from the tool message text)
     assertRole(lastMessages.get(3), "tool");
     assertThat(lastMessages.get(3).toolCallId()).isEqualTo("aaa111");
-    final var documentReference = parseDocumentReference(lastMessages.get(3).content());
-    assertThat(documentReference.metadata().contentType()).isEqualTo(mimeType);
+    final var documentTag = parseDocumentTag(lastMessages.get(3).content());
+    assertThat(documentTag.contentType()).isEqualTo(mimeType);
 
-    // synthetic user message carrying the extracted document content
-    final var expectedXmlTag =
-        new CamundaDocumentReferenceXmlTag(
-                "aaa111",
-                "Download_A_File",
-                documentReference.documentId(),
-                documentReference.storeId(),
-                documentReference.metadata().getContentType(),
-                documentReference.metadata().getFileName())
-            .toXml();
-    assertExtractedDocumentsUserMessage(lastMessages.get(4), expectedXmlTag, type, mimeType);
-
-    assertRole(lastMessages.get(5), "assistant"); // response after tool
-    assertRole(lastMessages.get(6), "user"); // follow-up prompt
-    assertThat(lastMessages.get(6).textContent()).isEqualTo("What is the content type?");
+    // the content of the document is not part of the conversation
+    assertRole(lastMessages.get(4), "assistant"); // response after tool
+    assertRole(lastMessages.get(5), "user"); // follow-up prompt
+    assertThat(lastMessages.get(5).textContent()).isEqualTo("What is the content type?");
 
     assertAgentResponse(
         zeebeTest,
@@ -162,28 +146,23 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
             createProcessInstance(e -> e, Map.of("userPrompt", initialUserPrompt)));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(2);
 
     final var lastMessages = recorded.lastRequest().messages();
-    assertThat(lastMessages).hasSize(5);
+    assertThat(lastMessages).hasSize(4);
 
     assertRole(lastMessages.get(0), "system");
     assertRole(lastMessages.get(1), "user"); // initial prompt
     assertRole(lastMessages.get(2), "assistant"); // tool call
 
-    // tool result: external document reference serialized as { url, name }
+    // tool result: external document shown as a <doc/> tag with its name, never its URL
     assertRole(lastMessages.get(3), "tool");
-    final var externalRef = parseExternalDocumentReference(lastMessages.get(3).content());
-    assertThat(externalRef.url()).isEqualTo(docUrl);
-    assertThat(externalRef.name()).isEqualTo(docName);
+    final var externalTag = parseDocumentTag(lastMessages.get(3).content());
+    assertThat(externalTag.fileName()).isEqualTo(docName);
+    assertThat(lastMessages.get(3).content()).doesNotContain(docUrl);
 
-    // synthetic user message: external doc rendered as <doc url="…" name="…" /> + content block
-    final var expectedXmlTag =
-        new ExternalDocumentReferenceXmlTag(
-                "ext111", "External_File_Reference", externalRef.url(), externalRef.name())
-            .toXml();
-    assertExtractedDocumentsUserMessage(
-        lastMessages.get(4), expectedXmlTag, "base64", "application/pdf");
+    assertThat(externalTag.size()).isNull();
 
     assertAgentResponse(
         zeebeTest,
@@ -198,51 +177,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
-  // ---------------------------------------------------------------------------
-  // OpenAI-compatible multimodal message assertions
-  // ---------------------------------------------------------------------------
-
   private static void assertRole(RecordedMessage message, String expectedRole) {
     assertThat(message.role()).isEqualTo(expectedRole);
-  }
-
-  /**
-   * Asserts the synthetic "extracted documents" user message in OpenAI-compatible form: a
-   * multimodal {@code content} array of {@code preamble (text) + <doc/> tag (text) + content
-   * block}.
-   *
-   * <p>The content block is classified the same way as {@link
-   * io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions#assertDocumentContentBlock}:
-   * {@code text} → {@code type=text}; {@code application/pdf} → {@code type=file}; otherwise {@code
-   * type=image_url} with a {@code data:<mime>;base64,} URL.
-   */
-  private static void assertExtractedDocumentsUserMessage(
-      RecordedMessage message,
-      String expectedXmlTag,
-      String expectedType,
-      String expectedMimeType) {
-    assertRole(message, "user");
-
-    final List<JsonNode> parts = message.contentParts();
-    assertThat(parts).as("preamble + <doc/> tag + content block").hasSize(3);
-
-    assertThat(parts.get(0).path("type").asText()).isEqualTo("text");
-    assertThat(parts.get(0).path("text").asText()).isEqualTo(EXTRACTED_DOCUMENTS_PREAMBLE);
-
-    assertThat(parts.get(1).path("type").asText()).isEqualTo("text");
-    assertThat(parts.get(1).path("text").asText()).isEqualTo(expectedXmlTag);
-
-    final JsonNode block = parts.get(2);
-    if ("text".equals(expectedType)) {
-      assertThat(block.path("type").asText()).isEqualTo("text");
-      assertThat(block.path("text").asText()).isNotBlank();
-    } else if ("application/pdf".equals(expectedMimeType)) {
-      assertThat(block.path("type").asText()).isEqualTo("file");
-      assertThat(block.path("file").path("file_data").asText()).isNotBlank();
-    } else {
-      assertThat(block.path("type").asText()).isEqualTo("image_url");
-      assertThat(block.path("image_url").path("url").asText())
-          .startsWith("data:" + expectedMimeType + ";base64,");
-    }
   }
 }

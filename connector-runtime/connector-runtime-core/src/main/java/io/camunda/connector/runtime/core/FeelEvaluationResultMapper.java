@@ -22,7 +22,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
+import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.Map;
 
 /**
@@ -50,7 +50,7 @@ public final class FeelEvaluationResultMapper {
     return mapper.registerModules(
         new JacksonModuleDocumentDeserializer(
             documentFactory,
-            new DefaultIntrinsicFunctionExecutor(mapper),
+            new DisabledIntrinsicFunctionExecutor(),
             DocumentModuleSettings.create()),
         new JacksonModuleDocumentSerializer());
   }
@@ -61,7 +61,7 @@ public final class FeelEvaluationResultMapper {
     return mapper.registerModules(
         new JacksonModuleDocumentDeserializer(
             documentFactoriesByTenantId,
-            new DefaultIntrinsicFunctionExecutor(mapper),
+            new DisabledIntrinsicFunctionExecutor(),
             DocumentModuleSettings.create()),
         new JacksonModuleDocumentSerializer());
   }

@@ -21,14 +21,13 @@ import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.legacyCl
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.resolveClient;
 import static io.camunda.connector.runtime.tenant.PhysicalTenantClients.toMapByPhysicalTenantId;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.spring.bean.CamundaClientRegistry;
 import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluatorBuilder;
-import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
+import io.camunda.connector.runtime.core.FeelEvaluationResultMapper;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationRegistry;
 import io.camunda.connector.runtime.core.configuration.ConfigurationValidationService;
 import io.camunda.connector.runtime.core.secret.LegacySecretSyntaxRejectingProcessor;
@@ -121,12 +120,23 @@ public class ConfigurationValidationConfiguration {
    * proxying re-resolves a {@code @Bean} method's parameters from the container even when it is
    * called directly in code. Either path would silently yield a single-entry map keyed by the
    * scalar {@code FeelExpressionEvaluator} bean's name instead of the real per-tenant map.
+   *
+   * <p>Deliberately does <b>not</b> reuse the {@code @OutboundConnectorObjectMapper} bean: that
+   * mapper dispatches a model-declared {@code camunda.function.type} call, gated by {@code
+   * JobHandlerContext}'s allow-list check on the job-binding path this service never goes through.
+   * {@code credentialRef} here is instead evaluated once, out of band, against the cluster, so
+   * nothing at this layer knows which discriminator occurrences a process model actually declared —
+   * the same reasoning that already keeps {@link FeelEvaluationResultMapper} off the live executor
+   * for an ordinary FEEL evaluation result. {@link FeelEvaluationResultMapper#create()} (no
+   * document factory) is used rather than a document-capable variant: no registered {@code
+   * ConfigurationValidator}'s configuration class uses a {@code Document}-typed field today, and
+   * this bean is direction-agnostic (also built for inbound-only runtimes), where an outbound
+   * {@code DocumentFactory} may not even exist to wire one.
    */
   @Bean
   public ConfigurationValidationService configurationValidationService(
       ConfigurationValidationRegistry configurationValidationRegistry,
       ValidationProvider validationProvider,
-      @OutboundConnectorObjectMapper ObjectMapper objectMapper,
       @Autowired(required = false) CamundaClientRegistry registry,
       ObjectProvider<CamundaClient> camundaClientProvider) {
     return new ConfigurationValidationService(
@@ -134,7 +144,7 @@ public class ConfigurationValidationConfiguration {
         buildFeelExpressionEvaluatorsByPhysicalTenantId(
             registry, legacyClient(camundaClientProvider)),
         validationProvider,
-        objectMapper);
+        FeelEvaluationResultMapper.create());
   }
 
   /**

@@ -17,6 +17,7 @@ import com.google.genai.types.FunctionResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -42,12 +43,11 @@ import org.jspecify.annotations.Nullable;
 public class GeminiContentConverter {
 
   /**
-   * Metadata key under which the Gemini {@code thoughtSignature} is stored on a {@link
-   * ReasoningContent}'s {@link Content#metadata()}, base64-encoded as a {@link String}.
-   *
-   * <p>The response converter writes this exact key when it first extracts the signature from a
-   * live response; {@link #toParts(List)} reads it back here to restore the signature verbatim on
-   * replay, which Gemini 3 requires for follow-up tool-calling requests.
+   * Metadata key under which the Gemini {@code thoughtSignature} is stored on {@link Content}
+   * metadata, base64-encoded as a {@link String}. This metadata is a transient in-memory replay
+   * source: the response converter writes this key and {@link #toParts(List)} reads it back to
+   * restore the signature on replay. The raw signature remains in the provider payload for durable
+   * history.
    */
   public static final String THOUGHT_SIGNATURE_METADATA_KEY = "thoughtSignature";
 
@@ -78,6 +78,7 @@ public class GeminiContentConverter {
       switch (c) {
         case TextContent text -> parts.add(toTextPart(text));
         case DocumentContent doc -> parts.add(toDocumentPart(doc));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> parts.add(Part.fromText(writeAsJson(obj.content())));
         // Content tagged for a different provider is dropped rather than replayed: a Gemini part
         // built from an Anthropic/OpenAI-native payload can fail conversion or send invalid
@@ -107,8 +108,8 @@ public class GeminiContentConverter {
    * emit sibling parts sharing one name/id.
    *
    * <p>Unlike {@link #toParts(List)}, a document here is flattened to a JSON reference rather than
-   * embedded natively as {@code inlineData}: the document's actual bytes are already delivered to
-   * the model elsewhere for tool results, so embedding it here as well would send it twice. Matches
+   * embedded natively as {@code inlineData}: the document's actual bytes are already sent to the
+   * model elsewhere for tool results, so embedding it here as well would send it twice. Matches
    * {@code AnthropicContentConverter#toToolResultBlocks} and {@code
    * OpenAiContentConverter#toResponsesToolResultOutputItems}. Every branch still wraps its payload
    * in a {@code functionResponse}, the reference-only document included: a plain text {@link Part}
@@ -121,6 +122,7 @@ public class GeminiContentConverter {
     for (final Content c : content) {
       switch (c) {
         case TextContent text -> parts.add(toFunctionResponsePart(text.text()));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> parts.add(toFunctionResponsePart(writeAsJson(obj.content())));
         case DocumentContent doc -> parts.add(toFunctionResponsePart(writeAsJson(doc.document())));
         default -> parts.add(toFunctionResponsePart(writeAsJson(c)));
@@ -164,7 +166,10 @@ public class GeminiContentConverter {
     if (metadata == null) {
       return null;
     }
-    final Object value = metadata.get(THOUGHT_SIGNATURE_METADATA_KEY);
+    return decodeThoughtSignature(metadata.get(THOUGHT_SIGNATURE_METADATA_KEY));
+  }
+
+  private byte @Nullable [] decodeThoughtSignature(@Nullable Object value) {
     if (value == null) {
       return null;
     }
@@ -176,7 +181,7 @@ public class GeminiContentConverter {
     }
     throw new ConnectorException(
         ERROR_CODE_FAILED_MODEL_CALL,
-        "Unsupported %s metadata value type '%s'"
+        "Unsupported %s value type '%s'"
             .formatted(THOUGHT_SIGNATURE_METADATA_KEY, value.getClass().getSimpleName()));
   }
 

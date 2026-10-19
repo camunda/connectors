@@ -57,7 +57,7 @@ public class HMACEncodingStrategyFactory {
 
   private static boolean checkAllMatch(final HMACScope[] hmacScopes, final HMACScope... scopes) {
     return hmacScopes.length == scopes.length
-        && Arrays.stream(hmacScopes).allMatch(s -> Arrays.asList(scopes).contains(s));
+        && Arrays.stream(scopes).allMatch(s -> Arrays.asList(hmacScopes).contains(s));
   }
 
   private static boolean isGetMethod(final String method) {

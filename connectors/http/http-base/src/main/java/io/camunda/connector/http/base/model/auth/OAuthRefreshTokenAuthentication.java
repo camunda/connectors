@@ -7,6 +7,7 @@
 package io.camunda.connector.http.base.model.auth;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
@@ -24,7 +25,8 @@ public record OAuthRefreshTokenAuthentication(
         @TemplateProperty(
             id = "oauthRefreshToken.oauthTokenEndpoint",
             group = "authentication",
-            label = "OAuth 2.0 token endpoint")
+            label = "OAuth 2.0 token endpoint",
+            feel = FeelMode.optional)
         String oauthTokenEndpoint,
     @FEEL
         @NotEmpty

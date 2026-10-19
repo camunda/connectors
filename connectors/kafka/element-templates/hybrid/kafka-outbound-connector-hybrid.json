@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.KAFKA.v1-hybrid",
   "description" : "Produce Kafka message",
   "keywords" : [ "publish message", "send message", "message queue", "event streaming", "produce event", "stream data", "kafka topic" ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+  "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
   "version" : 7,
   "category" : {
     "id" : "connectors",
@@ -221,7 +221,7 @@
       "equals" : "schemaRegistry",
       "type" : "simple"
     },
-    "tooltip" : "Format used to (de)serialize the message value: JSON or Avro. See the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector</a> guide.",
+    "tooltip" : "Format used to (de)serialize the message value: JSON or Avro. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">Kafka connector</a> guide.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "JSON",
@@ -311,7 +311,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -321,7 +321,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
@@ -332,7 +332,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {

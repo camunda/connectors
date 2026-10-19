@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.MessageUtil.singleTextContent;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -17,6 +18,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import io.camunda.connector.generator.java.annotation.DataExample;
+import io.soabase.recordbuilder.core.RecordBuilder;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -29,8 +32,17 @@ public record AgentResponse(
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
     @Nullable Object responseJson,
-    @Nullable SystemPromptProvenance systemPrompt)
+    @Nullable SystemPromptProvenance systemPrompt,
+    // the response documents by key, in call order; a LinkedHashMap because the record builder
+    // copies a Map into an immutable map of unspecified iteration order
+    @RecordBuilder.Initializer(source = AgentResponse.class, value = "noResponseDocuments")
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        LinkedHashMap<String, ReturnedDocument> responseDocuments)
     implements AgentResponseBuilder.With {
+
+  static LinkedHashMap<String, ReturnedDocument> noResponseDocuments() {
+    return new LinkedHashMap<>();
+  }
 
   public static AgentResponseBuilder builder() {
     return AgentResponseBuilder.builder();
@@ -122,6 +134,29 @@ public record AgentResponse(
                         .name("sampleTool")
                         .arguments(Map.of("input1", "value1", "input2", 42))
                         .build())))
+        .build();
+  }
+
+  @DataExample(id = "withResponseDocuments", feel = "=responseDocuments")
+  public static AgentResponse exampleResultWithResponseDocuments() {
+    return AgentResponse.builder()
+        .context(exampleResultWithTextResponse().context())
+        .responseText("The report is attached.")
+        .responseDocuments(
+            new LinkedHashMap<>(
+                Map.of(
+                    "report",
+                    new ReturnedDocument(
+                        Map.ofEntries(
+                            Map.entry("camunda.document.type", "camunda"),
+                            Map.entry("storeId", "in-memory"),
+                            Map.entry("documentId", "d2a6b9c4-5f1e-4a6e-9a43-6a5a1d3b8c10"),
+                            Map.entry("contentHash", "9f86d081884c7d659a2feaa0c55ad015"),
+                            Map.entry(
+                                "metadata",
+                                Map.of(
+                                    "contentType", "application/pdf", "fileName", "report.pdf"))),
+                        "The quarterly report"))))
         .build();
   }
 }

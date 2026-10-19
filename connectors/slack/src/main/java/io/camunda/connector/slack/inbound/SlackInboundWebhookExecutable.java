@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
       "new message"
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
     defaultResultExpression =
         "{\n"
             + "  myRequestBody: request.body\n"

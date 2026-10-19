@@ -154,7 +154,8 @@ class BedrockConverseResponseConverterTest {
             .build();
     final var response = response(List.of(block), StopReason.END_TURN, usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var content = assistantMessage.content();
 
     assertThat(content).hasSize(1);
     final var textContent = (TextContent) content.get(0);
@@ -291,7 +292,8 @@ class BedrockConverseResponseConverterTest {
             StopReason.END_TURN,
             usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var content = assistantMessage.content();
 
     assertThat(content).hasSize(2);
     final var reasoningContent = (ReasoningContent) content.get(0);
@@ -317,7 +319,8 @@ class BedrockConverseResponseConverterTest {
             StopReason.END_TURN,
             usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var content = assistantMessage.content();
 
     assertThat(content).hasSize(1);
     final var reasoningContent = (ReasoningContent) content.get(0);

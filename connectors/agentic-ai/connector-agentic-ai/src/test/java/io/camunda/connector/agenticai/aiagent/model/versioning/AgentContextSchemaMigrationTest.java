@@ -15,10 +15,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -516,6 +520,111 @@ class AgentContextSchemaMigrationTest {
       assertThat(result.elementId()).isEqualTo("Activity_1");
       assertThat(result.completedAt()).isEqualTo(OffsetDateTime.parse("2026-01-01T10:15:30Z"));
       assertThat(result.properties()).containsEntry("interrupted", true);
+    }
+
+    @Test
+    void legacyContextWithoutDocumentsBindsToEmptyRegistryAndKeepsSchemaVersion() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "conversation": {"type": "in-process", "conversationId": "test", "messages": []},
+                "properties": {}
+              }
+              """);
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      assertThat(agentContext.documents()).isEmpty();
+      assertThat(agentContext.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    }
+
+    @Test
+    void currentVersionContextKeepsItsPersistedDocuments() throws Exception {
+      JsonNode tree =
+          objectMapper.readTree(
+              """
+              {
+                "schemaVersion": %d,
+                "state": "READY",
+                "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 1}},
+                "toolDefinitions": [],
+                "documents": [
+                  {
+                    "id": "doc-1",
+                    "source": {"type": "TOOL_CALL", "toolName": "search", "toolCallId": "call-1"},
+                    "reference": {"camunda.document.type": "camunda", "storeId": "in-memory", "documentId": "doc-1"}
+                  }
+                ]
+              }
+              """
+                  .formatted(AgentContext.CURRENT_SCHEMA_VERSION));
+
+      AgentContext agentContext =
+          AgentContextSchemaMigration.migrateAndBindAgentContext(tree, objectMapper);
+
+      assertThat(agentContext).isNotNull();
+      assertThat(agentContext.documents())
+          .singleElement()
+          .satisfies(
+              entry -> {
+                assertThat(entry.id()).isEqualTo("doc-1");
+                assertThat(entry.reference()).containsEntry("storeId", "in-memory");
+                assertThat(entry.source().toolCallId()).isEqualTo("call-1");
+              });
+    }
+
+    @Test
+    void toolCallResultMessagesKeepTheirTypedBlocksThroughTheVersionedDeserialization()
+        throws Exception {
+      final var blocks =
+          List.<Content>of(
+              TextContent.textContent("Loaded the document."),
+              new DocumentReferenceContent(
+                  "doc-1",
+                  "report.txt",
+                  "text/plain",
+                  10L,
+                  null,
+                  "search",
+                  "call-1",
+                  DocumentDelivery.REFERENCE),
+              TextContent.textContent("Its content follows in the next message."));
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("c8__get_document")
+              .content(blocks)
+              .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
+              .build();
+      final var context =
+          AgentContext.builder()
+              .conversation(
+                  InProcessConversationContext.builder("conv")
+                      .messages(
+                          List.of(ToolCallResultMessage.builder().results(List.of(result)).build()))
+                      .build())
+              .build();
+
+      final var serialized = objectMapper.writeValueAsString(context);
+      final var bound = objectMapper.readValue(serialized, AgentContext.class);
+
+      assertThat(bound.conversation())
+          .isInstanceOfSatisfying(
+              InProcessConversationContext.class,
+              conversation ->
+                  assertThat(conversation.messages())
+                      .singleElement()
+                      .isInstanceOfSatisfying(
+                          ToolCallResultMessage.class,
+                          message ->
+                              assertThat(message.results().getFirst().content())
+                                  .isEqualTo(blocks)));
     }
 
     @Test

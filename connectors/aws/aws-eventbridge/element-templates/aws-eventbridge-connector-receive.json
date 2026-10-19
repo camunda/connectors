@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Receive Task Connector",
   "id": "io.camunda.connectors.AWSEventBridge.receive.v1",
-  "version": 5,
+  "version": 6,
   "description": "Receive events from AWS EventBridge",
   "keywords" : [
     "receive event",
@@ -11,7 +11,7 @@
     "cloud event",
     "event driven"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=inbound",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=inbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -171,6 +171,44 @@
       }
     },
     {
+      "label": "Issuer",
+      "description": "Expected value of the JWT 'iss' claim",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.jwt.issuer"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Audience",
+      "description": "Expected value of the JWT 'aud' claim",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.jwt.audience"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "JWT role property expression",
       "description": "Expression to extract the roles from the JWT token",
       "type": "String",
@@ -325,7 +363,7 @@
         "type": "zeebe:property",
         "name": "activationCondition"
       },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
     },
     {
       "label": "Result variable",

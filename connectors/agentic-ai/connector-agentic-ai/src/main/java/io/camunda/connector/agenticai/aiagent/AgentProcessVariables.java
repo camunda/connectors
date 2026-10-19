@@ -30,7 +30,7 @@ public final class AgentProcessVariables {
   /** Sub-process only: the tool call passed into an activated ad-hoc element. */
   public static final String TOOL_CALL = "toolCall";
 
-  /** Sub-process only: the local result variable of an activated ad-hoc element. */
+  /** Sub-process only: the runtime result variable of an activated ad-hoc element. */
   public static final String TOOL_CALL_RESULT = "toolCallResult";
 
   private AgentProcessVariables() {}

@@ -155,6 +155,73 @@ class ConnectorResultHandlerTest {
   }
 
   @Test
+  void resultVariableRejectsAForbiddenLiteralInTheResponseContent() {
+    // SFD-069 route C: with resultVariable alone (no resultExpression), verifyNoForbiddenLiterals
+    // previously never ran at all, so a webhook payload shaped like an intrinsic-function call
+    // was written straight into a process variable, unchecked. This is the branch the finding's
+    // remediation hint #3 asks to close.
+    Object responseContent =
+        Map.of(
+            "probe",
+            Map.of(
+                "camunda.function.type",
+                "createLink",
+                "params",
+                List.of(Map.of("camunda.document.type", "camunda"), "PT1H")));
+
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, "hookResult", null, null));
+
+    assertThat(exception)
+        .hasMessageContaining(
+            "The connector result contains a forbidden literal 'camunda.function.type'");
+  }
+
+  @Test
+  void resultVariableAllowsOrdinaryResponseDataWithoutALiteral() {
+    Object responseContent = Map.of("status", "ok", "count", 3);
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(responseContent, "hookResult", null, null);
+
+    assertThat(result).containsEntry("hookResult", responseContent);
+  }
+
+  @Test
+  void resultVariableAllowsABenignStringValueThatHappensToMatchTheForbiddenLiteral() {
+    // security-testing-findings#275, T10: the literal appears only as a plain STRING VALUE here,
+    // never as an object key, so it can never reach the intrinsic-function executor (which only
+    // ever looks for the discriminator as a key). The previous substring-over-serialized-JSON
+    // check flagged this anyway, rejecting an entirely benign HTTP response body.
+    Object responseContent = Map.of("message", "camunda.function.type");
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(responseContent, "hookResult", null, null);
+
+    assertThat(result).containsEntry("hookResult", responseContent);
+  }
+
+  @Test
+  void resultVariableAllowsADocumentReferenceWithoutTreatingItAsForbidden() {
+    // A plain document reference must not be mistaken for the forbidden intrinsic-function
+    // literal — only IntrinsicFunctionModel.DISCRIMINATOR_KEY is blocked, not document references.
+    Object responseContent =
+        Map.of(
+            "camunda.document.type", "camunda",
+            "storeId", "s",
+            "documentId", "d");
+
+    Map<String, Object> result =
+        connectorResultHandler.createOutputVariables(responseContent, "hookResult", null, null);
+
+    assertThat(result).containsEntry("hookResult", responseContent);
+  }
+
+  @Test
   void shouldHandleEmptyResponseBody() {
     // given - simulates HTTP response with empty/null body
     final String resultExpression = "={\"status\": response.status}";

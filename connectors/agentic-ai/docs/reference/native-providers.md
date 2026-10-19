@@ -7,6 +7,25 @@ and how to add a provider at all live in
 [`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
+## Token usage
+
+Every provider maps its usage report onto the same disjoint buckets of `AgentMetrics.TokenUsage`, so
+the sum `input + cacheRead + cacheWrite + output` is the total number of tokens processed for the
+call, whichever provider ran it:
+
+| Bucket        | Meaning                                                                          |
+|---------------|----------------------------------------------------------------------------------|
+| `input`       | input tokens that were neither read from nor written to a prompt cache          |
+| `cacheRead`   | input tokens served from a prompt cache                                          |
+| `cacheWrite`  | input tokens written to a prompt cache                                           |
+| `output`      | all generated tokens, including reasoning tokens                                 |
+| `reasoning`   | the part of `output` spent on reasoning; informational, never added to the total |
+
+Providers report usage differently: some count cached tokens inside their input total, some report
+them separately, and some leave thinking tokens out of the output count. Each provider section below
+has a **Token usage** table that shows which provider fields each bucket is computed from, and what
+those fields contain.
+
 ## Anthropic
 
 One wire format (the Messages API), so a single backend axis covers everything: `AnthropicBackend`
@@ -56,15 +75,33 @@ carry no text, only the encrypted payload.
 
 ### Caching
 
-Opt-in per model (`AnthropicModelParameters.promptCaching.enabled`, default `false`): a single
-top-level `cache_control` breakpoint covers the whole prefix (system prompt, tools, prior messages);
-no per-message breakpoints.
+Opt-in in the raw provider config (`AnthropicModelParameters.promptCaching.enabled`, default
+`false` when omitted), but the generated AI Agent task and subprocess element templates currently
+set the field to `true` by default. Anthropic uses a single top-level `cache_control` breakpoint
+for the whole prefix (system prompt, tools, prior messages); there are no per-message breakpoints.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference
-(`AnthropicContentConverter.toToolResultBlocks`), never embedded natively, so the bytes the
-composer's `<doc/>` fallback message already delivers aren't sent twice.
+A document inside a tool result is never embedded natively. For an agent instance with the `documents` feature the
+conversation window has already rendered it as text before the request is built (a document that is the whole result as
+its `<doc id=... />` tag, a document nested in an object as its tag string, see `ai-agent.md` §6), so
+`AnthropicContentConverter.toToolResultBlocks` sees text and has no document specific code. The bytes reach the model
+only when the document gets content: they travel in the user message that follows the tool results, after the same tag,
+so the tool result is never sent together with a second copy. An agent instance without the `documents` feature is not
+expanded: the converter renders the `Document` as its reference JSON in a text block (see
+[`ai-agent-document-flow.md`](../design/ai-agent-document-flow.md) §2.13).
+
+### Token usage
+
+The provider's input fields are already mutually exclusive, so each bucket is copied from one field.
+
+| Bucket       | Computed as                                   | What the provider field contains                                    |
+|--------------|-----------------------------------------------|---------------------------------------------------------------------|
+| `input`      | `usage.input_tokens`                          | input tokens not read from or written to the cache                  |
+| `cacheRead`  | `usage.cache_read_input_tokens`               | input tokens served from the prompt cache                           |
+| `cacheWrite` | `usage.cache_creation_input_tokens`           | input tokens written to the prompt cache (5-minute and 1-hour TTL combined) |
+| `output`     | `usage.output_tokens`                         | all generated tokens, including thinking tokens                     |
+| `reasoning`  | `usage.output_tokens_details.thinking_tokens` | the thinking tokens already counted in `output_tokens`              |
 
 ### Truncation
 
@@ -122,7 +159,7 @@ AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkP
 
 `DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
 containing a document can ever hit. `DocumentHandle.idFor(Document)`
-(`aiagent/model/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
+(`aiagent/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
 verbatim, or a SHA-256 prefix of the external URL / inline content.
 
 ### Reasoning
@@ -143,22 +180,33 @@ model, and Claude via the Converse path) to prove the normalization holds in pra
 
 ### Caching
 
-Opt-in per model (`BedrockConverseModelParameters.promptCaching.enabled`, default `false`),
-expressed as Converse `cachePoint` blocks. Converse always reports a distinct cache-write count in
-`TokenUsage`.
+Opt-in in the raw provider config (`BedrockConverseModelParameters.promptCaching.enabled`, default
+`false` when omitted), but the generated AI Agent task and subprocess element templates currently
+set the field to `true` by default. Bedrock expresses caching as Converse `cachePoint` blocks and
+always reports a distinct cache-write count in `TokenUsage`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as the JSON reference the runtime's standard
-`DocumentSerializer` writes — the same shape an embedded document gets
-(`BedrockConverseContentConverter.toToolResultBlocks`, see `BedrockConverseDocuments`) and the same
-fields the composer's `<doc/>` tag carries, so the model can correlate the two 1:1 — never embedded
-as a native `DocumentBlock`, regardless of content type. The composer's `<doc/>` fallback message is
-the document's only bytes-delivery channel; embedding it here too would send the bytes twice and
-trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
-`DocumentBlock.name` in both places. The nested Camunda document is serialized, never round-tripped
-through Jackson deserialization: an `Object.class` target reconstructs another `Document` and would
-recurse forever.
+A document inside a tool result is never embedded as a native `DocumentBlock`, regardless of content type. For an agent
+instance with the `documents` feature the conversation window renders it as text first: its `<doc id=... />` tag, the
+same tag the follow-up message that adds content carries, so the model can correlate the two 1:1; a nested document
+becomes its tag string inside the JSON (`BedrockConverseContentConverter.toToolResultBlocks` sees a `text` or `json`
+block). The follow-up message is the document's only bytes channel; embedding it here too would send the bytes twice
+and trip Converse's duplicate-document-name validation, since `DocumentHandle.idFor` produces the same
+`DocumentBlock.name` in both places. An agent instance without the `documents` feature is not expanded: the converter
+serializes the document as its reference JSON (see `BedrockConverseDocuments`).
+
+### Token usage
+
+The provider's input fields are already mutually exclusive, so each bucket is copied from one field.
+
+| Bucket       | Computed as                     | What the provider field contains                                  |
+|--------------|---------------------------------|-------------------------------------------------------------------|
+| `input`      | `usage.inputTokens`             | input tokens not read from or written to the cache                |
+| `cacheRead`  | `usage.cacheReadInputTokens`    | input tokens served from the prompt cache                         |
+| `cacheWrite` | `usage.cacheWriteInputTokens`   | input tokens written to the prompt cache                          |
+| `output`     | `usage.outputTokens`            | all generated tokens                                              |
+| `reasoning`  | always 0                        | Converse reports no reasoning-token count                         |
 
 ### Truncation
 
@@ -255,19 +303,63 @@ that reasoning item on a later turn. A non-empty `summary` is joined onto
 `ReasoningContent.text`, stripped from the raw payload only when reconstructible byte-identical on
 replay.
 
+### Phased output
+
+Responses models can emit multiple assistant messages labeled as intermediate `commentary` or as the
+`final_answer`. Each `commentary` message is captured losslessly as `ProviderContent` (provider
+`openai`, payload = the raw output item including `id` and `phase`), in original order, with its
+joined text in `ProviderContent.text` so agent instance history shows it as plain text. It is not
+`TextContent`, so it stays out of `responseText` and is not concatenated with structured JSON before
+parsing. The final-answer message is `TextContent`, its `msg_*` id is the assistant message ID, and
+its phase is recorded under `metadata.openai.phase`. Unphased messages stay plain `TextContent`
+without a recorded phase.
+
+On replay, `ProviderContent` commentary is sent back verbatim, and the answer message is sent with the
+recorded `phase`. Unphased and cross-provider history is replayed without a phase. Content is
+replayed in the order reasoning/provider items, answer message, tool calls, so commentary interleaved
+with several tool calls in one response is not replayed in its original position relative to them.
+
 ### Caching
 
-Automatic and read-only — no config, no cache-write metric, so the acceptance row sets
-`reportsCacheCreationTokens = false`.
+Automatic — no config. `input_tokens` / `prompt_tokens` include the cached and cache-write tokens, so
+the converters subtract both (clamped at 0) from `inputTokenCount` and report them as
+`cacheReadTokenCount` / `cacheCreationTokenCount`. Models that don't bill cache writes report none, so
+the acceptance row sets `reportsCacheCreationTokens = false`.
 
 ### Tool-result documents
 
-A document inside a tool result always renders as a JSON reference, on both Responses
-(`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
-(`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather
-than sharing the former), regardless of content type — never embedded natively as `input_image`/
-`input_file`, so the bytes the composer's `<doc/>` fallback message already delivers aren't sent
-twice.
+A document inside a tool result is never embedded natively as `input_image`/`input_file`, regardless of content
+type, on both Responses (`OpenAiContentConverter.toResponsesToolResultOutputItems`) and Completions
+(`OpenAiCompletionsRequestConverter.toTextOutput`, which has its own tool-result flattening rather than sharing the
+former). For an agent instance with the `documents` feature the conversation window has already rendered the document
+as its `<doc id=... />` tag (or a tag string inside an object), so both converters see text. The bytes reach the model
+only when the document gets content, in the user message that follows the tool results. An agent instance without the
+`documents` feature is not expanded and keeps the reference JSON.
+
+### Token usage
+
+Both API families count the cached and cache-write tokens inside their input total, so those are
+subtracted from it to keep `input` free of cache tokens.
+
+**Chat Completions**
+
+| Bucket       | Computed as                                                                              | What the provider field contains                                                      |
+|--------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `input`      | `usage.prompt_tokens` minus `cacheRead` minus `cacheWrite`; never below 0                | all input tokens, including the cached and cache-write ones                           |
+| `cacheRead`  | `usage.prompt_tokens_details.cached_tokens`                                              | input tokens served from the prompt cache                                             |
+| `cacheWrite` | `usage.prompt_tokens_details.cache_write_tokens`; 0 if absent                            | input tokens written to the prompt cache; only models that bill cache writes send it  |
+| `output`     | `usage.completion_tokens`                                                                | all generated tokens, including reasoning tokens                                      |
+| `reasoning`  | `usage.completion_tokens_details.reasoning_tokens`                                       | the reasoning tokens already counted in `completion_tokens`                           |
+
+**Responses**
+
+| Bucket       | Computed as                                                                              | What the provider field contains                                                      |
+|--------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `input`      | `usage.input_tokens` minus `cacheRead` minus `cacheWrite`; never below 0                 | all input tokens, including the cached and cache-write ones                           |
+| `cacheRead`  | `usage.input_tokens_details.cached_tokens`                                               | input tokens served from the prompt cache                                             |
+| `cacheWrite` | `usage.input_tokens_details.cache_write_tokens`; 0 if absent                             | input tokens written to the prompt cache; only models that bill cache writes send it  |
+| `output`     | `usage.output_tokens`                                                                    | all generated tokens, including reasoning tokens                                      |
+| `reasoning`  | `usage.output_tokens_details.reasoning_tokens`                                           | the reasoning tokens already counted in `output_tokens`                               |
 
 ### Truncation
 
@@ -326,18 +418,39 @@ follow-up request whose history dropped it.
 
 Implicit and read-only, like OpenAI: `GeminiContentResponseConverter.toMetrics` reads
 `cachedContentTokenCount` for `cacheReadTokenCount` only, nothing to configure, no cache-write metric.
+Because `promptTokenCount` includes the cached content, it is subtracted from `inputTokenCount`;
+`toolUsePromptTokenCount` is added to input, and `thoughtsTokenCount` (excluded from
+`candidatesTokenCount`) is added to `outputTokenCount` and reported as `reasoningTokenCount`.
 Gemini's explicit caching (`CachedContent`, a session-scoped resource with its own
 create/reference/expire lifecycle) is out of scope for the same reason it's out of scope everywhere
 else in this file — a different feature from a per-request model call, not a per-provider gap.
 
 ### Tool-result documents
 
-Like Anthropic and OpenAI, a document inside a tool result is flattened to a JSON reference rather
-than embedded natively: `GeminiContentConverter.toFunctionResponseParts` serializes just
-`doc.document()` to a text `Part`, the same reference-only shape `AnthropicContentConverter
-#toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce — the
-document's actual bytes are already delivered to the model elsewhere for tool results, so embedding
-them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively.
+Like Anthropic and OpenAI, a document inside a tool result is not embedded natively. For an agent instance with the
+`documents` feature the window has already rendered it as its `<doc/>` tag, so
+`GeminiContentConverter.toFunctionResponseParts` writes text into the `functionResponse` output, the same reference-only
+shape `AnthropicContentConverter#toToolResultBlocks`/`OpenAiContentConverter#toResponsesToolResultOutputItems` produce.
+The document's actual bytes reach the model only when it gets content, in the user message that follows, so embedding
+them here too would send them twice. Only `#toParts` (ordinary message content) embeds natively. An agent instance
+without the `documents` feature is not expanded and keeps the reference JSON.
+
+### Token usage
+
+Gemini's prompt count includes cached tokens, its candidates count excludes thinking tokens, and tool-use
+prompt tokens are reported separately. The buckets are rebuilt from those fields so they match what
+`totalTokenCount` sums.
+
+| Bucket       | Computed as                                                       | What the provider fields contain                                                          |
+|--------------|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `input`      | `promptTokenCount` minus `cachedContentTokenCount` (never below 0), plus `toolUsePromptTokenCount` | `promptTokenCount` includes the cached tokens; tool-use prompt tokens are the results of built-in tools such as Google Search that are fed back to the model |
+| `cacheRead`  | `cachedContentTokenCount`                                         | input tokens served from the cache                                                        |
+| `cacheWrite` | always 0                                                          | implicit caching has no write counter                                                     |
+| `output`     | `candidatesTokenCount` plus `thoughtsTokenCount`                  | `candidatesTokenCount` excludes thinking tokens, which are reported in `thoughtsTokenCount` and billed as output |
+| `reasoning`  | `thoughtsTokenCount`                                              | the thinking tokens                                                                       |
+
+`totalTokenCount` is prompt + candidates + thoughts + tool-use prompt tokens, which equals the sum of the
+four normalized buckets.
 
 ### Truncation
 
@@ -374,6 +487,76 @@ Retry needs no equivalent fix: the SDK unconditionally wraps every call in a `Re
 (decompiled defaults: 5 attempts, exponential backoff with full jitter, retrying on
 408/429/500/502/503/504) whether or not `HttpOptions.retryOptions()` is configured, matching
 Anthropic/OpenAI's own SDK-default retry behavior (neither configures anything explicitly either).
+
+## Mistral AI
+
+`MistralChatModel` reuses the OpenAI Completions family's converters
+(`OpenAiCompletionsRequestConverter`/`OpenAiCompletionsResponseConverter`) wholesale, since
+Mistral's Chat Completions API is OpenAI-compatible, but supplies its own content chunk strategy
+and stream assembler: `MistralDocumentUrlContentChunkStrategy` (in the `provider.mistral` package,
+extending the shared `OpenAiFileContentChunkStrategy`) maps a PDF to Mistral's `document_url` chunk
+instead of OpenAI's `file`/`file_data` shape, and `MistralCompletionsStreamAssembler` (implementing
+the shared `OpenAiCompletionsStreamAssembler`) drives the chunked reasoning content covered below --
+OpenAI's own wiring uses the shared `OpenAiCompletionsContentChunkStrategy.openAi(...)` and
+`OpenAiCompletionsStreamAssembler.accumulating()` instead. It also
+does not go through `OpenAiCompletionsStrategy` -- that class is typed to
+`OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
+that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
+`MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
+pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of
+`mistral` through to the shared converters. The sealed backend axis has two members:
+`MistralApiBackend` (`mistral-api`), pointed at Mistral's own API, and `MistralCustomBackend`
+(`custom`), for a Mistral-compatible endpoint reached via a configurable base URL, reusing
+`OpenAiCustomEndpointAuthentication` (none / API key / OAuth 2.0 client credentials) and
+`OpenAiChatModelFactory`'s client-construction pattern wholesale — Mistral's custom-endpoint
+authentication model is identical to OpenAI's. Further backends remain purely additive, without
+moving any existing template property.
+
+### Reasoning
+
+Mistral's reasoning-capable models (`mistral-medium`, `mistral-small`) return assistant `content` as a chunk array
+(`[{type:"thinking",...},{type:"text",...}]`) instead of a plain string. Per Mistral's own OpenAPI
+schema (`ThinkChunk`, `additionalProperties: false`), a `thinking` chunk's items aren't limited to
+plain text: `thinking` is an array of `text` | `tool_reference` | `reference` items, and the chunk
+itself carries an optional `signature` field the schema documents as existing specifically "to
+replay some reasoning blocks across turns." The contract this connector holds itself to is bounded
+accordingly: a streamed assembly of that array must equal what the non-streaming response would
+have contained for the same generation — every item and the `signature`/`closed` fields carried
+through unchanged — not an open-ended byte-for-byte promise beyond what the schema itself declares.
+There is no dialect flag and no model-name heuristic anywhere in this path: the response parser
+detects the chunked shape structurally, and request-side replay requires both a provider-tag match
+and that same structural shape.
+
+- **Response**: `OpenAiCompletionsResponseConverter` reads the raw `ChatCompletionMessage._content()`
+  field. If it's a JSON array, each chunk is walked and mapped by its own `type` key (`thinking` →
+  `ReasoningContent`, carrying the chunk's other fields as `payload` and the joined thinking text as
+  `text`; `text` → `TextContent`). If it's a plain string, the existing OpenAI string-content path
+  runs unchanged — a non-reasoning Mistral model is indistinguishable from OpenAI at this layer.
+- **Request**: `assistantMessage()` rebuilds the chunk array only when a `ReasoningContent` was
+  produced by this same provider instance (its `provider` tag matches this converter's own
+  `providerId`) *and* its `payload` is itself shaped like a thinking chunk (`instanceof Map` with
+  `type=thinking`). Both checks are required: payload shape alone isn't a unique signal —
+  Anthropic's raw thinking-block payload also keeps a `type: "thinking"` field after its own text
+  extraction — so a provider-tag-only or shape-only check would misclassify reasoning content
+  replayed after a mid-conversation provider switch.
+- **Streaming**: `ChatCompletionAccumulator` (the openai-java SDK helper this converter chain
+  otherwise reuses) can't accumulate array-shaped content deltas, so streamed Mistral responses use a
+  separate `ChunkedContentChatCompletionAccumulator` (in the `provider.mistral` package) — a manual
+  reimplementation of the same accumulation algorithm that additionally self-detects string-vs-array
+  shape per delta, wired in via `MistralCompletionsStreamAssembler`.
+
+`MistralParameters.effort` maps onto the same `reasoning_effort` field OpenAI Completions uses.
+`MistralEffort` is its own enum, not a reuse of `OpenAiEffort`: Mistral's API-wide `ReasoningEffort`
+type declares six values (`none`/`minimal`/`low`/`medium`/`high`/`xhigh`), but `mistral-medium-3-5` —
+the only model in the real-provider acceptance matrix claiming `REASONING` — rejects every value
+except `none` and `high` with an HTTP 400 (confirmed against the live API, and matching the two-way
+toggle Mistral's own playground exposes for reasoning effort), so `MistralEffort` only offers
+`MODEL_DEFAULT`, `NONE`, and `HIGH`.
+
+### Token usage
+
+Mistral uses the OpenAI Chat Completions converter, so the mapping is the Chat Completions table of
+the [OpenAI section](#openai). `cacheWrite` is 0 unless the response carries `cache_write_tokens`.
 
 ## Microsoft Foundry authentication
 

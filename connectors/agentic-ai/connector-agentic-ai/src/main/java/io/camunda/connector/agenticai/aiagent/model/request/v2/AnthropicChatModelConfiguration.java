@@ -36,7 +36,12 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
-@TemplateSubType(id = ANTHROPIC_ID, label = "Anthropic")
+@TemplateSubType(
+    id = ANTHROPIC_ID,
+    label = "Anthropic",
+    description =
+        "Claude models via the Anthropic API, AWS Bedrock, Microsoft Foundry, or a compatible endpoint.",
+    keywords = {"Anthropic", "Claude"})
 public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnection anthropic)
     implements ProviderConfiguration {
 
@@ -538,7 +543,7 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
                 tooltip =
                     "Enables Anthropic automatic prompt caching. See the <a href=\"https://platform.claude.com/docs/en/build-with-claude/prompt-caching#automatic-caching\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Boolean,
-                defaultValue = "false",
+                defaultValue = "true",
                 defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 optional = true)
             @Nullable Boolean enabled) {}

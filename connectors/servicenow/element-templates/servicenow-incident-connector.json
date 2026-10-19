@@ -14,7 +14,7 @@
     "ticket",
     "incident management"
   ],
-  "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/servicenow/connectors/incident-handler/",
+  "documentationRef": "https://docs.camunda.io/docs/8.10/components/camunda-integrations/servicenow/connectors/incident-handler/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -942,7 +942,7 @@
     {
       "id": "resultVariable",
       "label": "Result variable",
-      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
+      "tooltip": "Name of variable to store the response in. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">result variable documentation</a>",
       "group": "output",
       "binding": {
         "key": "resultVariable",
@@ -954,7 +954,7 @@
     {
       "id": "resultExpression",
       "label": "Result expression",
-      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
+      "tooltip": "Expression to map the response into process variables. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">result expression documentation</a>",
       "feel": "required",
       "group": "output",
       "binding": {
@@ -966,7 +966,7 @@
     {
       "id": "errorExpression",
       "label": "Error expression",
-      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
+      "tooltip": "Expression to handle errors. <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">BPMN error handling documentation</a>",
       "feel": "required",
       "group": "error",
       "binding": {

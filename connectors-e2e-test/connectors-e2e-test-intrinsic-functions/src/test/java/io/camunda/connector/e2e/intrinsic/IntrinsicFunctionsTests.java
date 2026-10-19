@@ -39,6 +39,7 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.outbound.StaticAnalysisCacheResetter;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -47,14 +48,30 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+/**
+ * Clears the shared BPMN-model/intrinsic-function-allow-list caches after every test method via
+ * {@link StaticAnalysisCacheResetter}: {@code @CamundaSpringProcessTest} resets the embedded broker
+ * between test methods within this class, recycling its process definition/instance key sequence --
+ * so two different methods routinely get the exact same {@code processDefinitionKey} for two
+ * different deployed models. The connector-runtime's {@code (physicalTenantId,
+ * processDefinitionKey)}-keyed caches are ordinary Spring singletons, unaffected by that broker
+ * reset, and would otherwise keep serving one method's cached allow-list to the next method that
+ * happens to land on the same recycled key -- e.g. {@code getTextIntrinsic_defaultCharset} refused
+ * because the cache still thinks that key only permits {@code base64} from an earlier test. A real,
+ * persistent Zeebe cluster never recycles a processDefinitionKey within its own lifetime, so this
+ * mismatch is specific to this broker-reset test harness, not a production concern (see
+ * security-testing-findings#275, PR #8991).
+ */
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
@@ -76,6 +93,7 @@ public class IntrinsicFunctionsTests {
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
   @Autowired DocumentFactory documentFactory;
+  @Autowired ApplicationContext applicationContext;
 
   // Spy on the runtime's document store so that `generateLink` can return a deterministic value —
   // the test cluster's fallback in-memory document store rejects link generation with HTTP 403,
@@ -89,6 +107,14 @@ public class IntrinsicFunctionsTests {
                 TEST_LINK_PREFIX + ((CamundaDocumentReference) inv.getArgument(0)).getDocumentId())
         .when(documentStore)
         .generateLink(any(), any());
+  }
+
+  // See this class's own javadoc: without this, a later test's allow-list lookup can be served a
+  // stale entry cached under a processDefinitionKey the embedded broker has since recycled for an
+  // unrelated, newly-deployed model.
+  @AfterEach
+  void clearStaticAnalysisCaches() {
+    StaticAnalysisCacheResetter.clearAll(applicationContext);
   }
 
   @Test

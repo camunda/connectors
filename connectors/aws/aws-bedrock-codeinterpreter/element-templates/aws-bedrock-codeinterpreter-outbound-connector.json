@@ -3,7 +3,7 @@
   "name" : "Run Code with AWS Bedrock Code Interpreter",
   "id" : "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
   "description" : "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -62,7 +62,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "authentication",
     "binding" : {
@@ -225,6 +225,19 @@
     },
     "type" : "String"
   }, {
+    "id" : "input.files",
+    "label" : "Files",
+    "description" : "Documents that are uploaded into the session workspace before the code runs, each as {document: ..., fileName: ...}.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "codeExecution",
+    "binding" : {
+      "name" : "input.files",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Each file is saved as uploads/<fileName> in the workspace. The fileName is optional and defaults to the file name of the document (document-1, document-2, ... when it has none). The sandbox is stateless: every execution starts with an empty workspace, so pass all files again on every call. Files the code creates in the workspace are returned as documents in the response.",
+    "type" : "String"
+  }, {
     "id" : "input.codeInterpreterIdentifier",
     "label" : "Code Interpreter ID",
     "description" : "The Code Interpreter identifier. Defaults to the AWS managed default.",
@@ -280,7 +293,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -301,7 +314,7 @@
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
-    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
     "group" : "output",
     "binding" : {
       "key" : "resultVariable",
@@ -311,7 +324,7 @@
   }, {
     "id" : "resultExpression",
     "label" : "Result expression",
-    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "output",
     "binding" : {
@@ -322,7 +335,7 @@
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
-    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
     "feel" : "required",
     "group" : "error",
     "binding" : {
@@ -373,7 +386,7 @@
     "properties" : [ {
       "id" : "authentication.type",
       "label" : "Authentication",
-      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
       "value" : "credentials",
       "group" : "authentication",
       "binding" : {

@@ -37,7 +37,8 @@ public record ClientCredentialsAuthentication(
             id = "credentials.clientSecret",
             label = "Client secret",
             tooltip = "The secret value of the Microsoft Entra ID (formerly Azure AD) application",
-            feel = FeelMode.optional)
+            feel = FeelMode.optional,
+            secret = true)
         String clientSecret)
     implements MicrosoftAuthentication {
 

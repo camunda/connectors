@@ -24,6 +24,7 @@
   </licenses>
 
   <properties>
+    <version.okio>3.18.2</version.okio>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -34,6 +35,20 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.box</groupId>
       <artifactId>box-java-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${version.okhttp}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okio</groupId>
+      <artifactId>okio-jvm</artifactId>
+      <version>${version.okio}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>http-client</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

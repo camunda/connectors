@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
+import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -330,7 +331,9 @@ public class BedrockConverseRequestConverter {
     }
 
     final var jsonSchemaBuilder =
-        JsonSchemaDefinition.builder().schema(writeAsJson(json.schema())).name(json.schemaName());
+        JsonSchemaDefinition.builder()
+            .schema(writeAsJson(requireNonNull(json.schema())))
+            .name(json.schemaName());
     builder.outputConfig(
         OutputConfig.builder()
             .textFormat(

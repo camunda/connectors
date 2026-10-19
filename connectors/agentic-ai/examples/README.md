@@ -5,12 +5,14 @@ This directory contains example projects showcasing the Agentic AI capabilities.
 - [ai-agent/ad-hoc-sub-process](ai-agent/ad-hoc-sub-process): example projects directly implementing AI Agents on top of
   an ad-hoc sub-process. This
   is the recommended approach for most use cases.
+- [ai-agent/ad-hoc-sub-process/ai-agent-chat-with-documents](ai-agent/ad-hoc-sub-process/ai-agent-chat-with-documents): example project
+  showing the document flow of the AI Agent Sub-process (document parameters of tools, returning documents)
 - [ai-agent/service-task](ai-agent/service-task): example projects implementing AI Agents using service tasks. This
   approach is more
   complex and requires more manual modeling work to implement the tool calling feedback loop, but can be useful in
   certain scenarios.
 - [ad-hoc-tools-schema](ad-hoc-tools-schema): example project directly using
-  the [Ad-Hoc Tools Schema Resolver](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/)
+  the [Ad-Hoc Tools Schema Resolver](https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/)
   to derive tool descriptions from elements within the ad-hoc sub-process. This can be used in combination with custom
   LLM connectors.
 - [mcp/standalone](mcp/standalone): example project demonstrating how to use MCP clients in standalone mode

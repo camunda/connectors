@@ -22,7 +22,7 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 9,
+    version = 10,
     inputDataClass = PollingRequest.class,
     configurations = {RestAuthenticationConfiguration.class},
     description = "Polls endpoint at regular intervals",
@@ -36,7 +36,7 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
       "periodic request",
       "HTTP callback"
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
+    documentationRef = "https://docs.camunda.io/docs/8.10/components/connectors/protocol/polling/",
     defaultResultExpression =
         "{\n"
             + "  myResponseBody: response.body\n"

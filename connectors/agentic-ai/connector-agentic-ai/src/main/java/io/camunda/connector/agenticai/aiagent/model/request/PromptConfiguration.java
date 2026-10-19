@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -52,10 +53,31 @@ public interface PromptConfiguration {
               description = "Documents to be included in the user prompt.",
               tooltip =
                   "Referenced documents will be automatically added to the user prompt. "
-                      + "<a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
+                      + "<a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
-          @Nullable List<Document> documents)
-      implements PromptConfiguration {}
+          @Nullable List<Document> documents,
+      @TemplateProperty(
+              group = "userPrompt",
+              label = "Document delivery",
+              description =
+                  "How the documents of the user prompt reach the model: as references or with their content.",
+              tooltip =
+                  "<code>Reference</code>: the model sees a reference to each document and loads the content it needs with a tool. "
+                      + "<code>Content</code>: the content of text, PDF and image documents is part of the conversation right away. "
+                      + "Large documents cost many tokens in every model call; a document that is too large or of an unsupported type stays a reference.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(value = "reference", label = "Reference"),
+                @TemplateProperty.DropdownPropertyChoice(value = "content", label = "Content")
+              },
+              defaultValue = "reference")
+          @Nullable DocumentDelivery documentDelivery)
+      implements PromptConfiguration {
+
+    public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {
+      this(prompt, documents, null);
+    }
+  }
 }
