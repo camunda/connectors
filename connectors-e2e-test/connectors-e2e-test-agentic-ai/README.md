@@ -60,6 +60,12 @@ After a push, remove and reapply the label. Leaving it attached does not authori
 Check the run's head commit and each matrix result. A green classification job with skipped provider
 jobs is not a passing provider run.
 
+The pull request workflow downloads Maven through the authenticated Nexus proxy and caches its
+distribution separately from Maven dependencies. It saves the distribution immediately after
+bootstrap, even if later tests fail. The proxy URL stays set for every wrapper invocation so later
+steps reuse the same distribution; proxy credentials are available only during bootstrap. A cache
+hit avoids downloading Maven, while a cache miss uses Nexus instead of Maven Central directly.
+
 ## Run one native capability from the host
 
 Start at the repository root with JDK 21, Node.js 24, a working Docker-compatible runtime, and

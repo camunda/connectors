@@ -99,6 +99,8 @@ jobs:
     needs: setup
     runs-on: gcp-core-8-default
     timeout-minutes: 45
+    env:
+      MVNW_REPOURL: https://repository.nexus.camunda.cloud/content/groups/internal
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -224,6 +226,32 @@ jobs:
                "password": "${{ steps.build-secrets.outputs.CI_LDAP_PASSWORD }}"
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven distribution
+        if: needs.setup.outputs.ai == 'true'
+        id: maven-distribution
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper/dists
+          key: ${{ runner.os }}-${{ runner.arch }}-maven-wrapper-nexus-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
+      - name: Bootstrap Maven through Nexus
+        if: needs.setup.outputs.ai == 'true'
+        env:
+          MVNW_USERNAME: ${{ steps.build-secrets.outputs.CI_LDAP_USER }}
+          MVNW_PASSWORD: ${{ steps.build-secrets.outputs.CI_LDAP_PASSWORD }}
+          MVNW_VERBOSE: 'true'
+        run: |
+          test -n "$MVNW_USERNAME" || { echo "::error::Missing Maven distribution username"; exit 1; }
+          test -n "$MVNW_PASSWORD" || { echo "::error::Missing Maven distribution password"; exit 1; }
+          ./mvnw --version
+
+      - name: Save Maven distribution
+        if: needs.setup.outputs.ai == 'true' && steps.maven-distribution.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper/dists
+          key: ${{ steps.maven-distribution.outputs.cache-primary-key }}
 
       - name: Restore Maven cache
         if: needs.setup.outputs.ai == 'true'
