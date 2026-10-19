@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures;
+import io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.spi.ProviderWireFormatFixture;
 import java.util.Map;
 import java.util.function.Function;
