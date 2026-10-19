@@ -73,6 +73,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-autoconfigure</artifactId>
     </dependency>
+    <!-- TMP: agent tracing PoC, so that LocalConnectorRuntime can export AI Agent traces. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-opentelemetry</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- HttpServletRequest/Response in SelfManagedApiSecurityAutoConfiguration. -->
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
@@ -420,6 +426,16 @@
                 <dependency>org.springframework:spring-web</dependency>
                 <!-- Used only as an @AutoConfigureBefore value, which the analyzer cannot see. -->
                 <dependency>io.camunda.connector:connector-runtime-spring</dependency>
+                <!-- TMP: agent tracing PoC, only needed on the LocalConnectorRuntime classpath. -->
+                <dependency>org.springframework.boot:spring-boot-starter-opentelemetry</dependency>
+                <!-- TMP: used by TmpAgentTracingPocConfiguration(Test), transitive from the starter. -->
+                <dependency>org.springframework.boot:spring-boot-opentelemetry</dependency>
+                <dependency>org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry</dependency>
+                <dependency>io.opentelemetry:opentelemetry-api</dependency>
+                <dependency>io.opentelemetry:opentelemetry-sdk</dependency>
+                <dependency>io.opentelemetry:opentelemetry-sdk-common</dependency>
+                <dependency>io.opentelemetry:opentelemetry-sdk-trace</dependency>
+                <dependency>io.opentelemetry:opentelemetry-exporter-otlp</dependency>
               </ignoredDependencies>
             </configuration>
           </execution>
