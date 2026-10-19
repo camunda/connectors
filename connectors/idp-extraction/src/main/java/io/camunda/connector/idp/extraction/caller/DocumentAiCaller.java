@@ -45,16 +45,15 @@ public class DocumentAiCaller {
       ExtractionRequestData input, GcpProvider baseRequest) {
     try {
       // Get DocumentAI client and process the document
+      DocumentAiRequestConfiguration requestConfiguration =
+          (DocumentAiRequestConfiguration) baseRequest.getConfiguration();
+      String region = DocumentAiClientSupplier.normalizeRegion(requestConfiguration.getRegion());
       try (DocumentProcessorServiceClient client =
-          documentAiClientSupplier.getDocumentAiClient(baseRequest.getAuthentication())) {
-        DocumentAiRequestConfiguration requestConfiguration =
-            (DocumentAiRequestConfiguration) baseRequest.getConfiguration();
+          documentAiClientSupplier.getDocumentAiClient(baseRequest.getAuthentication(), region)) {
         String processorName =
             String.format(
                 "projects/%s/locations/%s/processors/%s",
-                requestConfiguration.getProjectId(),
-                requestConfiguration.getRegion(),
-                requestConfiguration.getProcessorId());
+                requestConfiguration.getProjectId(), region, requestConfiguration.getProcessorId());
 
         ProcessRequest request;
 

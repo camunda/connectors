@@ -6,10 +6,15 @@
  */
 package io.camunda.connector.idp.extraction.caller;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.documentai.v1.BoundingPoly;
@@ -19,6 +24,7 @@ import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
@@ -36,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -52,7 +59,8 @@ class DocumentAiCallerTest {
     ProcessResponse mockResponse = mock(ProcessResponse.class);
     Document mockDocument = mock(Document.class);
 
-    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class), eq("us")))
+        .thenReturn(mockClient);
     when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
     when(mockResponse.getDocument()).thenReturn(mockDocument);
 
@@ -201,7 +209,8 @@ class DocumentAiCallerTest {
     ProcessResponse mockResponse = mock(ProcessResponse.class);
     Document mockDocument = mock(Document.class);
 
-    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class), eq("us")))
+        .thenReturn(mockClient);
     when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
     when(mockResponse.getDocument()).thenReturn(mockDocument);
 
@@ -279,7 +288,8 @@ class DocumentAiCallerTest {
     ProcessResponse mockResponse = mock(ProcessResponse.class);
     Document mockDocument = mock(Document.class);
 
-    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class), eq("us")))
+        .thenReturn(mockClient);
     when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
     when(mockResponse.getDocument()).thenReturn(mockDocument);
 
@@ -438,7 +448,8 @@ class DocumentAiCallerTest {
     ProcessResponse mockResponse = mock(ProcessResponse.class);
     Document mockDocument = mock(Document.class);
 
-    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class))).thenReturn(mockClient);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class), eq("us")))
+        .thenReturn(mockClient);
     when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
     when(mockResponse.getDocument()).thenReturn(mockDocument);
 
@@ -738,5 +749,58 @@ class DocumentAiCallerTest {
     when(mockValueLayout.getBoundingPoly()).thenReturn(mockValueBoundingPoly);
 
     return mockFormField;
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_shouldUseNormalizedRegion() throws Exception {
+    DocumentAiClientSupplier mockSupplier = mock(DocumentAiClientSupplier.class);
+    DocumentProcessorServiceClient mockClient = mock(DocumentProcessorServiceClient.class);
+    ProcessResponse mockResponse = mock(ProcessResponse.class);
+    when(mockSupplier.getDocumentAiClient(any(GcpAuthentication.class), eq("eu")))
+        .thenReturn(mockClient);
+    when(mockClient.processDocument((ProcessRequest) any())).thenReturn(mockResponse);
+    when(mockResponse.getDocument()).thenReturn(Document.getDefaultInstance());
+
+    new DocumentAiCaller(mockSupplier)
+        .extractKeyValuePairsWithConfidence(mockRequestData(), gcpProvider(" EU "));
+
+    ArgumentCaptor<ProcessRequest> request = ArgumentCaptor.forClass(ProcessRequest.class);
+    verify(mockClient).processDocument(request.capture());
+    assertThat(request.getValue().getName())
+        .isEqualTo("projects/test-project/locations/eu/processors/test-processor");
+  }
+
+  @Test
+  void extractKeyValuePairsWithConfidence_shouldRejectBlankRegion() {
+    DocumentAiClientSupplier mockSupplier = mock(DocumentAiClientSupplier.class);
+
+    assertThatThrownBy(
+            () ->
+                new DocumentAiCaller(mockSupplier)
+                    .extractKeyValuePairsWithConfidence(mockRequestData(), gcpProvider(" ")))
+        .isInstanceOf(ConnectorInputException.class);
+    verifyNoInteractions(mockSupplier);
+  }
+
+  private GcpProvider gcpProvider(String region) {
+    GcpProvider provider = new GcpProvider();
+    provider.setConfiguration(
+        new DocumentAiRequestConfiguration(region, "test-project", "test-processor"));
+    provider.setAuthentication(
+        new GcpAuthentication(GcpAuthenticationType.BEARER, "test-token", null, null, null, null));
+    return provider;
+  }
+
+  private ExtractionRequestData mockRequestData() {
+    ExtractionRequestData requestData = mock(ExtractionRequestData.class);
+    io.camunda.connector.api.document.Document inputDocument =
+        mock(io.camunda.connector.api.document.Document.class);
+    DocumentMetadata metadata = mock(DocumentMetadata.class);
+    when(requestData.document()).thenReturn(inputDocument);
+    when(inputDocument.asInputStream())
+        .thenReturn(new ByteArrayInputStream("test document content".getBytes()));
+    when(inputDocument.metadata()).thenReturn(metadata);
+    when(metadata.getContentType()).thenReturn("application/pdf");
+    return requestData;
   }
 }
