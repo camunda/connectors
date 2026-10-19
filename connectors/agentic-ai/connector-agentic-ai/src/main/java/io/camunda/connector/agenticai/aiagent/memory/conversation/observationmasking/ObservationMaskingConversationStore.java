@@ -310,6 +310,7 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
   private static Map<String, Object> ledgerView(CaseLedger ledger) {
     final var view = new LinkedHashMap<String, Object>();
     view.put("matchedTransactionIds", ledger.matchedTransactionIds());
+    view.put("reconciliationFacts", ledger.reconciliationFacts());
     if (ledger.overchargeAmount() != null) {
       view.put("overchargeAmount", ledger.overchargeAmount());
     }
