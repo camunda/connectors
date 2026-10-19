@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLo
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -29,11 +28,7 @@ public class InProcessConversationSession implements ConversationSession {
       return ConversationLoadResult.empty();
     }
 
-    final var registry =
-        previousConversationContext.documentRegistry() != null
-            ? previousConversationContext.documentRegistry()
-            : DocumentRegistry.empty();
-    return ConversationLoadResult.of(previousConversationContext.messages(), registry);
+    return ConversationLoadResult.of(previousConversationContext.messages());
   }
 
   @Override
@@ -44,9 +39,6 @@ public class InProcessConversationSession implements ConversationSession {
             ? previousConversationContext.with()
             : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
 
-    return conversationContextBuilder
-        .messages(request.messages())
-        .documentRegistry(request.documentRegistry())
-        .build();
+    return conversationContextBuilder.messages(request.messages()).build();
   }
 }

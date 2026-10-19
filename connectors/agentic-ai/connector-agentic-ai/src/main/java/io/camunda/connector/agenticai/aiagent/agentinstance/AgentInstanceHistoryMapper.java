@@ -43,6 +43,7 @@ import io.camunda.connector.api.document.DocumentReference.ExternalDocumentRefer
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -217,7 +218,8 @@ public class AgentInstanceHistoryMapper {
       List<AgentInstanceHistoryContent> content,
       UserMessage userMessage,
       @Nullable Object documentParsing) {
-    final var evidence = AgentHistoryEvidence.documentParsing(userMessage.content(), documentParsing);
+    final var evidence =
+        AgentHistoryEvidence.documentParsing(userMessage.content(), documentParsing);
     if (evidence == null) {
       return content;
     }

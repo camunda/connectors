@@ -45,10 +45,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool.WebSearchParameters;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,7 +115,7 @@ public class OpenAiCompletionsRequestConverter {
     applyReasoning(builder, spec);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
-    applyServerTools(builder, params);
+    applyServerTools(builder, spec);
     applyStructuredOutput(builder, response);
     applyRequestCustomizations(builder, spec.customizations());
 
@@ -320,11 +323,11 @@ public class OpenAiCompletionsRequestConverter {
    * so it is never a client tool call.
    */
   private void applyServerTools(
-      ChatCompletionCreateParams.Builder builder, @Nullable CompletionsParameters params) {
-    if (params == null || params.serverTools() == null) {
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    if (spec.serverTools() == null) {
       return;
     }
-    for (final OpenAiServerTool serverTool : params.serverTools()) {
+    for (final OpenAiServerTool serverTool : spec.serverTools()) {
       final Map<String, Object> wire = new LinkedHashMap<>();
       switch (serverTool.type()) {
         case WEB_SEARCH -> {

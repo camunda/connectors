@@ -140,8 +140,7 @@ public abstract class BaseAgentRequestHandler<
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
-      final var loadResult = session.loadMessages(agentContext);
-      final var loadedMessages = loadResult.messages();
+      final var loadedMessages = session.loadMessages(agentContext).messages();
       final var previousConversation =
           TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
@@ -242,19 +241,12 @@ public abstract class BaseAgentRequestHandler<
       final AgentConfiguration agentConfiguration,
       final PreviousConversation previousConversation,
       final List<Message> inputMessages,
-      final DocumentRegistry loadedRegistry,
       final ConversationSession session,
       final ConversationStore store) {
     var systemMessage = createSystemMessage(executionContext, agentContext);
-    final var documentRegistry = buildRegistry(loadedRegistry, inputMessages);
     final var conversation =
         AgentConversation.rehydrate(
-            agentConfiguration,
-            agentContext,
-            previousConversation,
-            systemMessage,
-            inputMessages,
-            documentRegistry);
+            agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
     throwIfLimitsReached(conversation, agentConfiguration);
 
@@ -284,8 +276,7 @@ public abstract class BaseAgentRequestHandler<
     final var storedRef =
         session.storeMessages(
             updatedConversation.toAgentContext(),
-            ConversationStoreRequest.of(
-                updatedConversation.allMessages(), updatedConversation.documentRegistry()));
+            ConversationStoreRequest.of(updatedConversation.allMessages()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
     final var agentResponse =
@@ -487,9 +478,6 @@ public abstract class BaseAgentRequestHandler<
       AgentExecutionContext executionContext, AgentContext agentContext) {
     LOGGER.trace("Composing system message");
     var composedPrompt = systemPromptComposer.compose(executionContext, agentContext);
-    if (executionContext instanceof AgentTaskExecutionContext taskExecutionContext) {
-      taskExecutionContext.recordComposedSystemPrompt(composedPrompt);
-    }
     if (StringUtils.isBlank(composedPrompt)) {
       return null;
     }
@@ -538,44 +526,6 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
-
-  /**
-   * Builds the document registry for this turn by combining the registry loaded from the previous
-   * turn with the documents newly added in {@code inputMessages} (user-prompt documents and
-   * tool-call-result documents). Population is engine-driven only (sandbox PoC, #7632).
-   */
-  private static DocumentRegistry buildRegistry(
-      DocumentRegistry loadedRegistry, List<Message> inputMessages) {
-    final var newDocs = new ArrayList<Document>();
-    for (var msg : inputMessages) {
-      switch (msg) {
-        case UserMessage userMsg ->
-            userMsg.content().stream()
-                .filter(c -> c instanceof DocumentContent)
-                .map(c -> ((DocumentContent) c).document())
-                .forEach(newDocs::add);
-        case ToolCallResultMessage toolMsg ->
-            toolMsg.results().stream()
-                .flatMap(r -> r.content().stream())
-                .forEach(
-                    c -> {
-                      if (c instanceof DocumentContent d) {
-                        newDocs.add(d.document());
-                      } else if (c
-                          instanceof
-                          io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent
-                          o) {
-                        newDocs.addAll(
-                            ContentTreeDocumentWalker.extractDocumentsFromContent(o.content()));
-                      }
-                    });
-        default -> {
-          // SystemMessage and AssistantMessage carry no inbound documents
-        }
-      }
-    }
-    return loadedRegistry.withAddedDocuments(newDocs);
-  }
 
   private static <C extends AgentExecutionContext>
       @Nullable AgentJobCompletionListener createStoreCompletionListener(

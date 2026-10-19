@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.tool;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -125,6 +124,7 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
       }
     }
 
+    // remaining tool call results not being part of tool discovery
     final var nonGatewayToolCallResults =
         groupedByGateway.getOrDefault(DEFAULT_TYPE, Collections.emptyList());
 
@@ -150,14 +150,11 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
 
   @Override
   public List<ToolCall> transformToolCalls(
-      final AgentContext agentContext,
-      final DocumentRegistry documentRegistry,
-      final List<ToolCall> toolCalls) {
+      final AgentContext agentContext, final List<ToolCall> toolCalls) {
     List<ToolCall> transformedToolCalls = toolCalls;
     for (GatewayToolHandler gatewayToolHandler : handlers.values()) {
       transformedToolCalls =
-          gatewayToolHandler.transformToolCalls(
-              agentContext, documentRegistry, transformedToolCalls);
+          gatewayToolHandler.transformToolCalls(agentContext, transformedToolCalls);
     }
 
     return transformedToolCalls;

@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.common.JsonSchemaConstants.PROPERTY
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.common.JsonSchemaConstants.TYPE_STRING;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -154,12 +155,8 @@ public final class SandboxToolDefinitions {
   }
 
   private static ToolDefinition importDocumentDefinition(Map<String, Object> metadata) {
-    Map<String, Object> idProp = new LinkedHashMap<>();
-    idProp.put(PROPERTY_TYPE, TYPE_STRING);
-    idProp.put(
-        PROPERTY_DESCRIPTION,
-        "The id from a <doc id=\"…\"/> marker in the conversation. Use the exact id value as"
-            + " it appears in the marker.");
+    Map<String, Object> idProp =
+        DocumentParameterSchema.documentSchema("The document to import into the sandbox.");
 
     Map<String, Object> pathProp = new LinkedHashMap<>();
     pathProp.put(PROPERTY_TYPE, TYPE_STRING);

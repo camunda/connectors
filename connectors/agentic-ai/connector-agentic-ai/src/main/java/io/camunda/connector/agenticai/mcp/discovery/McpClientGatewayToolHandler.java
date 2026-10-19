@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -213,8 +212,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
    * from the tool call name.
    */
   @Override
-  public List<ToolCall> transformToolCalls(
-      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls) {
+  public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
     return toolCalls.stream()
         .map(
             toolCall -> {

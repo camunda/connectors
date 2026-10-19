@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
 import java.util.Map;
@@ -37,7 +35,7 @@ public record ToolDefinition(
     @Nullable String description,
     Map<String, Object> inputSchema,
     @Nullable DocumentDelivery documentDelivery,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements ToolDefinitionBuilder.With {
 
   /** Metadata key carrying the gateway type (e.g. "sandbox") for gateway-managed tools. */
@@ -61,7 +59,8 @@ public record ToolDefinition(
 
   @JsonIgnore
   public @Nullable String gatewayType() {
-    final var value = metadata().get(METADATA_GATEWAY_TYPE);
+    final var meta = metadata();
+    final var value = meta != null ? meta.get(METADATA_GATEWAY_TYPE) : null;
     return value instanceof String s ? s : null;
   }
 

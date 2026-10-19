@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -52,7 +51,6 @@ public final class AgentConversation {
   private final AgentConversationTurn currentTurn;
   private final int invocationStartIterationKey;
   private final @Nullable String precedingConfigurationFingerprint;
-  private final DocumentRegistry documentRegistry;
 
   private AgentConversation(
       AgentConfiguration configuration,
@@ -61,8 +59,7 @@ public final class AgentConversation {
       List<AgentConversationTurn> previousTurns,
       AgentConversationTurn currentTurn,
       int invocationStartIterationKey,
-      @Nullable String precedingConfigurationFingerprint,
-      DocumentRegistry documentRegistry) {
+      @Nullable String precedingConfigurationFingerprint) {
     this.configuration = configuration;
     this.currentContext = currentContext;
     this.systemMessage = systemMessage;
@@ -71,7 +68,6 @@ public final class AgentConversation {
     this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
     this.invocationStartIterationKey = invocationStartIterationKey;
     this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
-    this.documentRegistry = documentRegistry;
   }
 
   /**
@@ -91,8 +87,7 @@ public final class AgentConversation {
       AgentContext agentContext,
       PreviousConversation previousConversation,
       @Nullable SystemMessage systemMessage,
-      List<Message> inputMessages,
-      DocumentRegistry documentRegistry) {
+      List<Message> inputMessages) {
     int nextKey = nextIterationKey(agentContext, previousConversation);
     var currentTurn =
         new AgentConversationTurn(
@@ -107,8 +102,7 @@ public final class AgentConversation {
         precedingTurns,
         currentTurn,
         nextKey,
-        precedingFingerprint,
-        documentRegistry);
+        precedingFingerprint);
   }
 
   /**
@@ -153,8 +147,7 @@ public final class AgentConversation {
         previousTurns,
         completedTurn,
         invocationStartIterationKey,
-        precedingConfigurationFingerprint,
-        documentRegistry);
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -229,8 +222,7 @@ public final class AgentConversation {
         updatedPreviousTurns,
         nextTurn,
         invocationStartIterationKey,
-        precedingConfigurationFingerprint,
-        documentRegistry);
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -246,8 +238,7 @@ public final class AgentConversation {
         previousTurns,
         currentTurn,
         invocationStartIterationKey,
-        precedingConfigurationFingerprint,
-        documentRegistry);
+        precedingConfigurationFingerprint);
   }
 
   /**
@@ -334,11 +325,6 @@ public final class AgentConversation {
   /** Returns the static per-invocation configuration. */
   public AgentConfiguration configuration() {
     return configuration;
-  }
-
-  /** Returns the document registry for this conversation. */
-  public DocumentRegistry documentRegistry() {
-    return documentRegistry;
   }
 
   /** Returns the current turn's metrics, or empty metrics while the turn is still pending. */

@@ -77,7 +77,7 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
     final OpenAiConnection connection = configuration.openai();
     final CompletionsParameters params = completionsParameters(connection);
     return new CompletionsRequestSpec(
-        connection.model().model(),
+        java.util.Objects.requireNonNull(connection.effectiveModel()).model(),
         params == null || params.maxCompletionTokens() == null
             ? null
             : params.maxCompletionTokens().longValue(),
@@ -85,7 +85,8 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
         params == null ? null : params.temperature(),
         params == null ? null : params.topP(),
         effort(params),
-        connection.backend().requestCustomizations());
+        connection.backend().requestCustomizations(),
+        params == null ? null : params.serverTools());
   }
 
   /**

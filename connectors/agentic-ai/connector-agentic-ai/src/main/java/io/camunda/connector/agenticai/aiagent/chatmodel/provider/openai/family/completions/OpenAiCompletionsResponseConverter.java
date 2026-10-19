@@ -113,7 +113,9 @@ public class OpenAiCompletionsResponseConverter {
     return choices.get(0);
   }
 
-  /** Server tools such as {@code openrouter:web_search} return sources as url_citation annotations. */
+  /**
+   * Server tools such as {@code openrouter:web_search} return sources as url_citation annotations.
+   */
   private List<Map<String, Object>> toCitations(ChatCompletionMessage message) {
     final List<Map<String, Object>> citations = new ArrayList<>();
     message

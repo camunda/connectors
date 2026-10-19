@@ -377,7 +377,8 @@ public class SandboxDaytonaFunction implements OutboundConnectorFunction {
    */
   private static Map<String, Object> documentReferenceMap(Document doc) {
     if (!(doc.reference()
-        instanceof io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference ref)) {
+        instanceof
+        io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference ref)) {
       throw new ConnectorException(
           "SANDBOX_DOCUMENT_REFERENCE", "Unsupported document reference: " + doc.reference());
     }

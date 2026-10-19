@@ -8,8 +8,6 @@ package io.camunda.connector.agenticai.sandbox.discovery;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -179,8 +177,7 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
-  public List<ToolCall> transformToolCalls(
-      AgentContext agentContext, DocumentRegistry documentRegistry, List<ToolCall> toolCalls) {
+  public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
     return toolCalls.stream()
         .map(
             toolCall -> {
@@ -214,20 +211,16 @@ public class SandboxGatewayToolHandler implements GatewayToolHandler {
                 payload.put("handle", handle);
               }
               if (operation == SandboxOperation.IMPORT_DOCUMENT) {
-                // Resolve the document registry id to a reference on the trusted in-process side.
-                // The connector job has no access to the registry; resolution must happen here.
-                final var id =
-                    toolCall.arguments() != null ? (String) toolCall.arguments().get("id") : null;
+                // The runtime resolves the document-typed "id" parameter to a Camunda document
+                // reference before this transformer runs.
+                final var document =
+                    toolCall.arguments() != null ? toolCall.arguments().get("id") : null;
                 final var path =
                     toolCall.arguments() != null ? (String) toolCall.arguments().get("path") : null;
-                final java.util.Optional<DocumentRegistryEntry> registryEntry =
-                    id != null ? documentRegistry.findById(id) : java.util.Optional.empty();
-                if (registryEntry.isPresent()) {
-                  payload.put("document", registryEntry.get().reference());
+                if (document != null) {
+                  payload.put("document", document);
                 } else {
-                  LOGGER.warn(
-                      "sandbox_import_document: no document found in registry for id '{}' — the connector will return an error",
-                      id);
+                  LOGGER.warn("sandbox_import_document: no document resolved for parameter 'id'");
                 }
                 if (path != null) {
                   payload.put("path", path);

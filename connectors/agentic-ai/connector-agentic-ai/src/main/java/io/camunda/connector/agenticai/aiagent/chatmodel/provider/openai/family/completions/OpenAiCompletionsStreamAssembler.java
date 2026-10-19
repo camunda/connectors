@@ -39,8 +39,7 @@ public interface OpenAiCompletionsStreamAssembler {
     return stream -> {
       final ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
       final List<ChatCompletionMessage.Annotation> annotations = new ArrayList<>();
-      stream
-          .stream()
+      stream.stream()
           .forEach(
               chunk -> {
                 accumulator.accumulate(chunk);

@@ -167,14 +167,7 @@ public class AgentTaskV2Function implements AgentConnectorFunction {
             linkedPrompt.binding(),
             linkedPrompt.version(),
             StringUtils.defaultString(executionContext.composedSystemPrompt(), systemPrompt));
-    var enrichedResponse =
-        new AgentResponse(
-            response.context(),
-            response.toolCalls(),
-            response.responseMessage(),
-            response.responseText(),
-            response.responseJson(),
-            provenance);
+    var enrichedResponse = response.withSystemPrompt(provenance);
     return new AgentTaskConnectorResponse(enrichedResponse, connectorResponse.completionListener());
   }
 
