@@ -39,6 +39,7 @@ public record McpClientConfigurationProperties(
       @Nullable StdioMcpClientTransportConfiguration stdio,
       @Nullable StreamableHttpMcpClientTransportConfiguration http,
       @Nullable SseHttpMcpClientTransportConfiguration sse,
+      @Nullable InMemoryMcpClientTransportConfiguration inMemory,
       @Nullable Duration initializationTimeout,
       @Nullable Duration toolExecutionTimeout,
       @Nullable Duration reconnectInterval)
@@ -47,7 +48,8 @@ public record McpClientConfigurationProperties(
     public enum McpClientType {
       STDIO(McpClientConfiguration::stdio),
       HTTP(McpClientConfiguration::http),
-      SSE(McpClientConfiguration::sse);
+      SSE(McpClientConfiguration::sse),
+      IN_MEMORY(McpClientConfiguration::inMemory);
 
       private final Function<McpClientConfiguration, McpClientTransportConfiguration>
           transportSupplier;
@@ -108,7 +110,8 @@ public record McpClientConfigurationProperties(
   public sealed interface McpClientTransportConfiguration
       permits StdioMcpClientTransportConfiguration,
           StreamableHttpMcpClientTransportConfiguration,
-          SseHttpMcpClientTransportConfiguration {}
+          SseHttpMcpClientTransportConfiguration,
+          InMemoryMcpClientTransportConfiguration {}
 
   public interface McpClientHttpTransportConfiguration {
     String url();
@@ -139,4 +142,12 @@ public record McpClientConfigurationProperties(
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
       Duration timeout)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
+
+  /**
+   * References an {@code InMemoryMcpServer} bean of the same Spring context. Exactly one of the
+   * fields must be set.
+   */
+  public record InMemoryMcpClientTransportConfiguration(
+      @Nullable String serverBeanName, @Nullable String serverClassName)
+      implements McpClientTransportConfiguration {}
 }

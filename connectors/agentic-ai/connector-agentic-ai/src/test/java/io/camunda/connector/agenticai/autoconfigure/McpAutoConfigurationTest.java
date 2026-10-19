@@ -15,10 +15,12 @@ import io.camunda.connector.agenticai.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.inmemory.InMemoryMcpServer;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
+import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -140,5 +142,87 @@ public class McpAutoConfigurationTest {
               assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
             });
+  }
+
+  @Test
+  void startsWithInMemoryClientReferencingExistingServerBean() {
+    contextRunner
+        .withBean("echoServer", InMemoryMcpServer.class, StubServer::new)
+        .withPropertyValues(
+            "camunda.connector.agenticai.mcp.client.enabled=true",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.type=IN_MEMORY",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-bean-name=echoServer")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context.getBean(McpClientRegistry.class).getClient("ticket-tools"))
+                  .isNotNull();
+            });
+  }
+
+  @Test
+  void startsWithInMemoryClientReferencingServerClassName() {
+    contextRunner
+        .withBean("echoServer", StubServer.class, StubServer::new)
+        .withPropertyValues(
+            "camunda.connector.agenticai.mcp.client.enabled=true",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.type=IN_MEMORY",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-class-name="
+                + StubServer.class.getName())
+        .run(context -> assertThat(context).hasNotFailed());
+  }
+
+  @Test
+  void failsStartupForInMemoryClientWithMissingServerBean() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.agenticai.mcp.client.enabled=true",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.type=IN_MEMORY",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-bean-name=missing")
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .hasStackTraceContaining(
+                        "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-bean-name"));
+  }
+
+  @Test
+  void failsStartupForInMemoryClientWithAmbiguousServerClass() {
+    contextRunner
+        .withBean("first", StubServer.class, StubServer::new)
+        .withBean("second", StubServer.class, StubServer::new)
+        .withPropertyValues(
+            "camunda.connector.agenticai.mcp.client.enabled=true",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.type=IN_MEMORY",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-class-name="
+                + StubServer.class.getName())
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .hasStackTraceContaining("found 2")
+                    .hasStackTraceContaining("first")
+                    .hasStackTraceContaining("second"));
+  }
+
+  @Test
+  void skipsResolutionForDisabledInMemoryClient() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.agenticai.mcp.client.enabled=true",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.enabled=false",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.type=IN_MEMORY",
+            "camunda.connector.agenticai.mcp.client.clients.ticket-tools.in-memory.server-bean-name=missing")
+        .run(context -> assertThat(context).hasNotFailed());
+  }
+
+  static class StubServer implements InMemoryMcpServer {
+    @Override
+    public List<SyncToolSpecification> tools() {
+      return List.of();
+    }
   }
 }
