@@ -32,6 +32,7 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +66,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private @Nullable Span invokeAgent;
   private @Nullable Context invokeAgentContext;
   private @Nullable Span chat;
+  // TMP: makes the chat span current during the model call so that SDK spans nest under it
+  private @Nullable Scope chatScope;
 
   /** The run the spans of this job belong to. */
   private @Nullable RunTraceState run;
@@ -144,6 +147,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
                   Instant.now(),
                   attributes,
                   parent);
+          @SuppressWarnings("MustBeClosedChecker") // closed with the chat span
+          final Scope scope = chat.makeCurrent();
+          chatScope = scope;
           return null;
         });
   }
@@ -156,6 +162,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
           final Span span = chat;
           if (span != null) {
             chat = null;
+            closeChatScope();
             span.setAllAttributes(
                 GenAiAttributeMapper.chatResponseAttributes(
                     event.assistantMessage(), event.metrics().tokenUsage(), captureContent));
@@ -173,6 +180,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
           final Span span = chat;
           if (span != null) {
             chat = null;
+            closeChatScope();
             span.setAttribute(
                 GenAiAttributes.RESPONSE_FINISH_REASONS,
                 List.of(GenAiAttributes.FINISH_REASON_ERROR));
@@ -380,6 +388,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
     final Span openChat = chat;
     if (openChat != null) {
       chat = null;
+      closeChatScope();
       openChat.setAttribute(
           GenAiAttributes.RESPONSE_FINISH_REASONS, List.of(GenAiAttributes.FINISH_REASON_ERROR));
       tracer.markError(
@@ -474,6 +483,14 @@ class AgentTracingJobObserver implements AgentJobObserver {
     } catch (Throwable t) {
       LOGGER.debug("Agent tracing failed on {}", callback, t);
       return null;
+    }
+  }
+
+  private void closeChatScope() {
+    final Scope scope = chatScope;
+    if (scope != null) {
+      chatScope = null;
+      scope.close();
     }
   }
 }
