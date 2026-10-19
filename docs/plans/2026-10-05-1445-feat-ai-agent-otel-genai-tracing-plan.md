@@ -383,7 +383,7 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 
 ## Planning Contract
 
-**Product Contract preservation:** changed: R16 — "exactly once" weakened to "at most once, never twice", because completion callbacks run after the job's complete command and a worker crash in between loses them (already implied by R18). Changed by user decision during review: R5, R12, AE8 (random run ids, session identity from the agent instance key), R30 and its Key Decision added (agent instance required), R18 extended (lost anchor root), Success Criteria extended (criteria 1, 1b, 4, 5), Delivery Milestones aligned with the PoC units. Clarified, no scope change: R5 (anchor exported when the run-starting job completes), R12 (session identifier defined as known from the first job onwards), the hybrid-topology Key Decision wording, AE7 (older connectors may leave stale state rather than drop it), AE8 (target behavior now concrete). Outstanding Questions resolved by planning were removed in place. Realigned with the module split of #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations" and the e2e split of #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector": placement, paths, ADR number, and verification commands changed (KTD15, U1–U9, Verification Contract); no requirement changed. Extended after the design review on 2026-10-19: tracing is delivered through an experimental agent lifecycle listener SPI and an `aiagent-otel` module in the bundle (R31, R32, AE10, AE11 added, KTD2–KTD4, KTD7, KTD15 revised, KTD16–KTD19 added, units renumbered U1–U10); the default application gains no OTel SDK, so the customer enables Spring OTel first.
+**Product Contract preservation:** changed: R16 — "exactly once" weakened to "at most once, never twice", because completion callbacks run after the job's complete command and a worker crash in between loses them (already implied by R18). Changed by user decision during review: R5, R12, AE8 (random run ids, session identity from the agent instance key), R30 and its Key Decision added (agent instance required), R18 extended (lost anchor root), Success Criteria extended (criteria 1, 1b, 4, 5), Delivery Milestones aligned with the PoC units. Clarified, no scope change: R5 (anchor exported when the run-starting job completes), R12 (session identifier defined as known from the first job onwards), the hybrid-topology Key Decision wording, AE7 (older connectors may leave stale state rather than drop it), AE8 (target behavior now concrete). Outstanding Questions resolved by planning were removed in place. Realigned with the module split of #9525 "refactor(agentic-ai): split agentic AI into libraries, connectors and integrations" and the e2e split of #9546 "test(agentic-ai): split the agentic AI e2e tests into modules per connector": placement, paths, ADR number, and verification commands changed (KTD15, the units, Verification Contract); no requirement changed. Extended after the design review on 2026-10-19: tracing is delivered through an experimental agent lifecycle listener SPI and an `aiagent-otel` module in the bundle (R31, R32, AE10, AE11 added, KTD2–KTD4, KTD7, KTD15 revised, KTD16–KTD19 added, units renumbered U1–U10); the default application gains no OTel SDK, so the customer enables Spring OTel first.
 
 ### Key Technical Decisions
 
@@ -529,7 +529,7 @@ flowchart TB
 
 ## Implementation Units
 
-### U1. ADRs 016 and 017: agent lifecycle listeners and OpenTelemetry tracing
+### U1. ADRs 018 and 019: agent lifecycle listeners and OpenTelemetry tracing
 
 **Goal:** Record both decisions before implementation, as the module requires.
 
@@ -538,17 +538,17 @@ flowchart TB
 **Dependencies:** none
 
 **Files:**
-- Create: `connectors/agentic-ai/docs/adr/016-agent-lifecycle-listeners.md`
-- Create: `connectors/agentic-ai/docs/adr/017-opentelemetry-genai-tracing.md`
+- Create: `connectors/agentic-ai/docs/adr/018-agent-lifecycle-listeners.md`
+- Create: `connectors/agentic-ai/docs/adr/019-opentelemetry-genai-tracing.md`
 
-016 and 017 are the next free numbers at the time of writing; use the next free numbers when other ADRs land first.
+016 and 017 are reserved by pending ADRs on other branches, so 018 and 019 are the next free numbers; use the next free numbers when other ADRs land first.
 
 **Approach:**
 - Follow the header and section format of ADR 014 and ADR 015; decision altitude only, no code or line numbers.
-- Include the worked example, the run tracing state example, and the error mapping table of this plan: the callback and persist-point table in ADR 016, the example and error mapping in ADR 017.
-- ADR 016: context (pro-code users want hooks into the agent, tracing needs lifecycle events, the earlier tracing design already enumerated them), considered options (tracing code inside the handler, a read-only observer SPI, observers plus interceptors, reusing the history client as the event seam), the decision (KTD15–KTD18: experimental SPI with three callback categories, complete data with consumer-owned content policy, no interceptors yet, history API not a consumer), and consequences (public experimental surface, listener beans see sensitive data, compatibility check exclusion, policy for experimental changes).
-- ADR 017: context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13, KTD19: raw OTel API, `aiagent-otel` in the bundle but inert, customer enables Spring OTel, provider SDK tracing off), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
-- ADR 017 ends with a `## Follow-up` section that names the tool error signal (R33) with its closing condition: an error marker on tool call results set by the gateway handlers, as described in Tool Error Signal.
+- Include the worked example, the run tracing state example, and the error mapping table of this plan: the callback and persist-point table in ADR 018, the example and error mapping in ADR 019.
+- ADR 018: context (pro-code users want hooks into the agent, tracing needs lifecycle events, the earlier tracing design already enumerated them), considered options (tracing code inside the handler, a read-only observer SPI, observers plus interceptors, reusing the history client as the event seam), the decision (KTD15–KTD18: experimental SPI with three callback categories, complete data with consumer-owned content policy, no interceptors yet, history API not a consumer), and consequences (public experimental surface, listener beans see sensitive data, compatibility check exclusion, policy for experimental changes).
+- ADR 019: context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13, KTD19: raw OTel API, `aiagent-otel` in the bundle but inert, customer enables Spring OTel, provider SDK tracing off), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
+- ADR 019 ends with a `## Follow-up` section that names the tool error signal (R33) with its closing condition: an error marker on tool call results set by the gateway handlers, as described in Tool Error Signal.
 - Cite ADR 008 (tool-result timestamps), ADR 012 (message ids), ADR 013 (turn updates and lease fencing), and ADR 015 (module boundaries).
 
 **Patterns to follow:** `connectors/agentic-ai/docs/adr/014-route-v1-requests-through-native-providers.md`, `connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md`
@@ -904,7 +904,7 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 | Tracing code or the dispatcher introduces a package cycle in `connector-aiagent` | KTD15: `aiagent.lifecycle` depends on the libraries only; wiring stays in `aiagent.configuration`; architecture tests run after U2, U3, U7, and U8 |
 | Stock-image users hit version mismatches adding the Boot OTel and exporter jars | The recipe pins versions per release; U10 validates it on the stock image |
 | #9546 is not merged when U9 starts, so the e2e module paths do not exist | U9 depends on it explicitly; rebase onto it first |
-| Another ADR takes 016 or 017 first | U1 uses the next free numbers |
+| Another ADR takes 018 or 019 first | U1 uses the next free numbers |
 | New dependencies need approval and pass dependency analysis | U3 and U9 ask first |
 
 ---
@@ -922,7 +922,7 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 
 ## Definition of Done
 
-- U1–U10 are implemented and committed on `ai-agent-otel-genai-tracing-plan`, nothing pushed, and ADRs 016 and 017 are written before the implementation units.
+- U1–U10 are implemented and committed on `ai-agent-otel-genai-tracing-plan`, nothing pushed, and ADRs 018 and 019 are written before the implementation units.
 - The architecture tests pass with no new entry in the known package cycles, and the module layering and inventory include `aiagent-otel`.
 - With no listener or tracing disabled, the agentic-ai unit tests and the AI Agent e2e module pass with no change to persisted agent context.
 - With tracing enabled, `AgentSubProcessTracingTests` passes all scenarios.
