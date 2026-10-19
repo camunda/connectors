@@ -187,6 +187,76 @@ class ObservationMaskingConversationStoreTest {
   }
 
   @Test
+  void retainsNestedFraudAnswerAndReconciliationFactsAfterMasking() throws Exception {
+    final var messages =
+        List.<Message>of(
+            toolResult(
+                "reconcile-1",
+                "ReconcileTransactions",
+                Map.of(
+                    "matches",
+                    List.of(Map.of("id", "TX-0911"), Map.of("id", "TX-0912")),
+                    "overchargeAmount",
+                    482.17,
+                    "refundTotal",
+                    34.99,
+                    "refundsPosted",
+                    List.of(Map.of("id", "TX-0914", "date", "2026-09-19", "amount", -34.99)),
+                    "matchCount",
+                    2,
+                    "daysBetweenCharges",
+                    1)),
+            toolResult(
+                "fraud-1", "AskFraudRiskAgent", Map.of("answer", "RISK: LOW\nCONFIDENCE: 0.95")),
+            toolResult("recent-1", "sandbox_execute", "filingDeadline=2027-01-13"),
+            toolResult("recent-2", "recentTool", "latest result"));
+    final var context = storeContext(messages);
+    assertThat(context.ledger().fraudVerdict()).isEqualTo("LOW");
+    assertThat(context.ledger().matchedTransactionIds()).containsExactly("TX-0911", "TX-0912");
+    assertThat(context.ledger().overchargeAmount()).isEqualTo("482.17");
+    assertThat(context.ledger().reconciliationFacts())
+        .containsExactlyInAnyOrderEntriesOf(
+            Map.of(
+                "refundTotal", "34.99",
+                "postedRefundTransactionIds", "TX-0914",
+                "matchCount", "2",
+                "daysBetweenCharges", "1"));
+    final var prompt =
+        new ObservationMaskingSystemPromptContributor()
+            .contribute(
+                mock(AgentExecutionContext.class), AgentContext.empty().withConversation(context));
+    assertThat(prompt)
+        .contains(
+            "refundTotal: 34.99",
+            "matchCount: 2",
+            "daysBetweenCharges: 1",
+            "fraud verdict: LOW",
+            "postedRefundTransactionIds: TX-0914",
+            "refunds already posted");
+    assertThat(context.messages().getFirst().toString()).doesNotContain("34.99");
+    final var persisted =
+        TestObjectMapperSupplier.INSTANCE.convertValue(
+            TestObjectMapperSupplier.INSTANCE.valueToTree(
+                AgentContext.empty().withConversation(context)),
+            AgentContext.class);
+    assertThat(persisted.conversation()).isEqualTo(context);
+    try (final var session = store.createSession(mock(AgentExecutionContext.class), persisted)) {
+      final var revised =
+          (ObservationMaskingConversationContext)
+              session.storeMessages(persisted, ConversationStoreRequest.of(context.messages()));
+      assertThat(revised.ledger()).isEqualTo(context.ledger());
+      final var response =
+          HttpClient.newHttpClient()
+              .send(
+                  HttpRequest.newBuilder(URI.create(revised.storeUrl())).GET().build(),
+                  HttpResponse.BodyHandlers.ofString());
+      assertThat(response.statusCode()).isEqualTo(200);
+      assertThat(response.body())
+          .contains("\"refundTotal\":\"34.99\"", "TX-0914", "\"fraudVerdict\":\"LOW\"");
+    }
+  }
+
+  @Test
   void extractsLedgerFactsFromTextToolResults() {
     final var ledger =
         CaseLedger.fromMessages(

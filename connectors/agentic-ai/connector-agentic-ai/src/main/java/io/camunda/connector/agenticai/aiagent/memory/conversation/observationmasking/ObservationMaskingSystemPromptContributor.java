@@ -38,6 +38,15 @@ public class ObservationMaskingSystemPromptContributor implements SystemPromptCo
     if (context.ledger().deadline() != null) {
       facts.add("deadline: " + context.ledger().deadline());
     }
+    context.ledger().reconciliationFacts().entrySet().stream()
+        .sorted(java.util.Map.Entry.comparingByKey())
+        .forEach(entry -> facts.add(entry.getKey() + ": " + entry.getValue()));
+    if (context.ledger().reconciliationFacts().containsKey("refundTotal")) {
+      facts.add(
+          "refundTotal is the total of refunds already posted, not a new refund. "
+              + "Quote the reported total without substituting zero. "
+              + "Use postedRefundTransactionIds to identify those refunds.");
+    }
 
     return """
         Pinned case ledger from completed tool results:

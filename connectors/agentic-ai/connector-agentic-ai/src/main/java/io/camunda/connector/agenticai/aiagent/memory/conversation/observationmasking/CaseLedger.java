@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,8 @@ public record CaseLedger(
     List<String> matchedTransactionIds,
     @Nullable String overchargeAmount,
     @Nullable String fraudVerdict,
-    @Nullable String deadline) {
+    @Nullable String deadline,
+    Map<String, String> reconciliationFacts) {
 
   private static final Pattern OVERCHARGE_TEXT =
       Pattern.compile("(?i)\"?overchargeAmount\"?\\s*[:=]\\s*\"?([0-9]+(?:\\.[0-9]+)?)");
@@ -35,6 +37,15 @@ public record CaseLedger(
 
   public CaseLedger {
     matchedTransactionIds = List.copyOf(matchedTransactionIds);
+    reconciliationFacts = reconciliationFacts == null ? Map.of() : Map.copyOf(reconciliationFacts);
+  }
+
+  public CaseLedger(
+      List<String> matchedTransactionIds,
+      @Nullable String overchargeAmount,
+      @Nullable String fraudVerdict,
+      @Nullable String deadline) {
+    this(matchedTransactionIds, overchargeAmount, fraudVerdict, deadline, Map.of());
   }
 
   public static CaseLedger empty() {
@@ -45,17 +56,21 @@ public record CaseLedger(
     return matchedTransactionIds.isEmpty()
         && overchargeAmount == null
         && fraudVerdict == null
-        && deadline == null;
+        && deadline == null
+        && reconciliationFacts.isEmpty();
   }
 
   public CaseLedger merge(CaseLedger newer) {
     final var transactionIds = new LinkedHashSet<>(matchedTransactionIds);
     transactionIds.addAll(newer.matchedTransactionIds);
+    final var facts = new LinkedHashMap<>(reconciliationFacts);
+    facts.putAll(newer.reconciliationFacts);
     return new CaseLedger(
         List.copyOf(transactionIds),
         newer.overchargeAmount != null ? newer.overchargeAmount : overchargeAmount,
         newer.fraudVerdict != null ? newer.fraudVerdict : fraudVerdict,
-        newer.deadline != null ? newer.deadline : deadline);
+        newer.deadline != null ? newer.deadline : deadline,
+        facts);
   }
 
   public static CaseLedger fromMessages(List<Message> messages) {
@@ -81,6 +96,7 @@ public record CaseLedger(
     private @Nullable String overchargeAmount;
     private @Nullable String fraudVerdict;
     private @Nullable String deadline;
+    private final Map<String, String> reconciliationFacts = new LinkedHashMap<>();
 
     private void visit(@Nullable Object value, @Nullable String toolName) {
       if (value instanceof Map<?, ?> map) {
@@ -92,6 +108,8 @@ public record CaseLedger(
         }
       } else if (value instanceof Iterable<?> items) {
         items.forEach(item -> visit(item, toolName));
+      } else if (value instanceof String text) {
+        visitText(text, toolName);
       }
     }
 
@@ -99,6 +117,27 @@ public record CaseLedger(
       final String normalized = key.replaceAll("[^A-Za-z]", "").toLowerCase();
       if (value == null) {
         return;
+      }
+      if (toolName != null && toolName.toLowerCase().contains("reconcil")) {
+        final var factName =
+            switch (normalized) {
+              case "refundtotal" -> "refundTotal";
+              case "matchcount" -> "matchCount";
+              case "daysbetweencharges" -> "daysBetweenCharges";
+              default -> null;
+            };
+        if (factName != null && (value instanceof Number || value instanceof String)) {
+          reconciliationFacts.put(factName, String.valueOf(value));
+        }
+        if (normalized.equals("refundsposted") && value instanceof Iterable<?> refunds) {
+          final var ids = new ArrayList<String>();
+          for (final var refund : refunds) {
+            if (refund instanceof Map<?, ?> map && map.get("id") instanceof String id) {
+              ids.add(id);
+            }
+          }
+          reconciliationFacts.put("postedRefundTransactionIds", String.join(", ", ids));
+        }
       }
       if (normalized.equals("matchedtransactionids")
           || normalized.equals("matchingtransactionids")
@@ -164,7 +203,11 @@ public record CaseLedger(
 
     private CaseLedger toLedger() {
       return new CaseLedger(
-          new ArrayList<>(transactionIds), overchargeAmount, fraudVerdict, deadline);
+          new ArrayList<>(transactionIds),
+          overchargeAmount,
+          fraudVerdict,
+          deadline,
+          reconciliationFacts);
     }
 
     private static String valueText(Object value) {

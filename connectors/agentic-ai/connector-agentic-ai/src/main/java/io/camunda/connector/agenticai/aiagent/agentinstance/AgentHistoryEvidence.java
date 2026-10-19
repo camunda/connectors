@@ -155,6 +155,7 @@ public final class AgentHistoryEvidence {
     evidence.put("kind", "customMemory");
     evidence.put("strategy", "observation masking with pinned case ledger");
     evidence.put("storeUrl", context.storeUrl());
+    evidence.put("reconciliationFacts", context.ledger().reconciliationFacts());
     evidence.put(
         "maskedToolResults",
         context.messages().stream()
