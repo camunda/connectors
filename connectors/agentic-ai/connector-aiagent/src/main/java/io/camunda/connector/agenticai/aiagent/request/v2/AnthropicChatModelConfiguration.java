@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelRequestParameters;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
@@ -61,6 +62,22 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @Override
   public String descriptiveProvider() {
     return "%s/%s".formatted(provider(), anthropic.backend().type());
+  }
+
+  @Override
+  public ChatModelRequestParameters requestParameters() {
+    final var parameters = anthropic.model().parameters();
+    if (parameters == null) {
+      return new ChatModelRequestParameters(
+          AnthropicModel.AnthropicModelParameters.DEFAULT_MAX_TOKENS, null, null, null);
+    }
+    return new ChatModelRequestParameters(
+        parameters.maxTokens() != null
+            ? parameters.maxTokens().longValue()
+            : AnthropicModel.AnthropicModelParameters.DEFAULT_MAX_TOKENS,
+        parameters.temperature(),
+        parameters.topP(),
+        parameters.topK() != null ? parameters.topK().longValue() : null);
   }
 
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */

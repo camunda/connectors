@@ -24,4 +24,12 @@ public interface ChatModelConfiguration {
   default String descriptiveProvider() {
     return provider();
   }
+
+  /**
+   * The generation parameters configured for the model. Defaults to none; providers that expose
+   * them override this.
+   */
+  default ChatModelRequestParameters requestParameters() {
+    return ChatModelRequestParameters.NONE;
+  }
 }

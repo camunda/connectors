@@ -27,6 +27,14 @@ public final class GenAiAttributes {
       AttributeKey.stringKey("gen_ai.provider.name");
   public static final AttributeKey<String> REQUEST_MODEL =
       AttributeKey.stringKey("gen_ai.request.model");
+  public static final AttributeKey<Long> REQUEST_MAX_TOKENS =
+      AttributeKey.longKey("gen_ai.request.max_tokens");
+  public static final AttributeKey<Double> REQUEST_TEMPERATURE =
+      AttributeKey.doubleKey("gen_ai.request.temperature");
+  public static final AttributeKey<Double> REQUEST_TOP_P =
+      AttributeKey.doubleKey("gen_ai.request.top_p");
+  public static final AttributeKey<Double> REQUEST_TOP_K =
+      AttributeKey.doubleKey("gen_ai.request.top_k");
   public static final AttributeKey<String> RESPONSE_MODEL =
       AttributeKey.stringKey("gen_ai.response.model");
   public static final AttributeKey<String> RESPONSE_ID =
