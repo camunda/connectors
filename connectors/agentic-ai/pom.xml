@@ -37,7 +37,7 @@
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
     <version.groovy>6.0.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
-    <version.archunit>1.4.1</version.archunit>
+    <version.archunit>1.5.1</version.archunit>
   </properties>
 
   <modules>
