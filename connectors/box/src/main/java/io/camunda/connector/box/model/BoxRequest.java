@@ -6,25 +6,82 @@
  */
 package io.camunda.connector.box.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.generator.java.annotation.DocumentReturnFormat;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateDocumentProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * @param boxCredential reusable Box credential; when bound, its authentication takes precedence
+ *     over the inline one (see {@link #authentication()}). Declared first so it renders before the
+ *     fields it gates, as required by ConditionPropertyOrderRule.
+ * @param authentication hidden and validated only while no credential is bound.
+ */
 public record BoxRequest(
-    @TemplateProperty(group = "authentication", id = "authentication") @Valid @NotNull
+    @TemplateProperty(
+            id = "boxCredential",
+            label = "Box credential",
+            group = "authentication",
+            type = PropertyType.Configuration,
+            optional = true,
+            binding = @TemplateProperty.PropertyBinding(name = "boxCredential"),
+            description =
+                "Choose a reusable Box credential, or configure one-time authentication parameters"
+                    + " below.")
+        @Valid
+        BoxCredentialConfiguration boxCredential,
+    @TemplateProperty(group = "authentication", id = "authentication")
+        @NestedProperties(
+            condition =
+                @PropertyCondition(property = "boxCredential", isEmpty = NullableBoolean.TRUE))
         Authentication authentication,
     @TemplateProperty(group = "operation", id = "operation") @Valid @NotNull Operation operation) {
+
+  /** Convenience constructor for the shape without a bound credential. */
+  public BoxRequest(Authentication authentication, Operation operation) {
+    this(null, authentication, operation);
+  }
+
+  /** The bound credential's authentication wins over the inline one. */
+  @Override
+  public Authentication authentication() {
+    return boxCredential != null && boxCredential.authentication() != null
+        ? (Authentication) boxCredential.authentication()
+        : authentication;
+  }
+
+  @AssertTrue(
+      message = "No authentication provided by the reusable credential or the element template")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return authentication() != null;
+  }
+
+  /**
+   * Validates the inline authentication only when no credential is bound, so a leftover inline
+   * discriminator default does not fail validation once the credential supplies the login.
+   */
+  @Valid
+  @JsonIgnore
+  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
+    return boxCredential != null ? null : authentication;
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
@@ -54,6 +111,7 @@ public record BoxRequest(
         @TemplateProperty(
                 group = "authentication",
                 label = "Access key",
+                secret = true,
                 tooltip = "The access key or developer token")
             @NotBlank
             String accessToken)
@@ -67,7 +125,8 @@ public record BoxRequest(
         @TemplateProperty(
                 group = "authentication",
                 id = "clientSecretUser",
-                label = "Client secret")
+                label = "Client secret",
+                secret = true)
             @NotBlank
             String clientSecret,
         @TemplateProperty(
@@ -76,7 +135,7 @@ public record BoxRequest(
                 tooltip = "The user ID of the account to authenticate against")
             @NotBlank
             String userId)
-        implements Authentication {}
+        implements Authentication, CredentialAuthentication {}
 
     @TemplateSubType(id = "clientCredentialsEnterprise", label = "Client Credentials Enterprise")
     record ClientCredentialsEnterprise(
@@ -86,7 +145,8 @@ public record BoxRequest(
         @TemplateProperty(
                 group = "authentication",
                 id = "clientSecretEnterprise",
-                label = "Client secret")
+                label = "Client secret",
+                secret = true)
             @NotBlank
             String clientSecret,
         @TemplateProperty(
@@ -95,18 +155,45 @@ public record BoxRequest(
                 tooltip = "The enterprise ID to authenticate against")
             @NotBlank
             String enterpriseId)
-        implements Authentication {}
+        implements Authentication, CredentialAuthentication {}
 
     @TemplateSubType(id = "jwtJsonConfig", label = "JWT JSON Config")
     record JWTJsonConfig(
         @TemplateProperty(
                 group = "authentication",
                 label = "JSON config",
+                secret = true,
                 tooltip = "The JSON config as string")
             @NotBlank
             String jsonConfig)
-        implements Authentication {}
+        implements Authentication, CredentialAuthentication {}
   }
+
+  /**
+   * The authentication variants a reusable credential can hold. The developer token is left out: it
+   * expires after 60 minutes, so it is only offered inline.
+   */
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(
+        value = Authentication.ClientCredentialsUser.class,
+        name = "clientCredentialsUser"),
+    @JsonSubTypes.Type(
+        value = Authentication.ClientCredentialsEnterprise.class,
+        name = "clientCredentialsEnterprise"),
+    @JsonSubTypes.Type(value = Authentication.JWTJsonConfig.class, name = "jwtJsonConfig")
+  })
+  @TemplateDiscriminatorProperty(
+      label = "Authentication",
+      group = "authentication",
+      name = "type",
+      defaultValue = "clientCredentialsEnterprise",
+      description =
+          "Specify authentication strategy. Learn more at the <a href=\"https://developer.box.com/guides/authentication/\" target=\"_blank\">documentation page</a>")
+  public sealed interface CredentialAuthentication
+      permits Authentication.ClientCredentialsEnterprise,
+          Authentication.ClientCredentialsUser,
+          Authentication.JWTJsonConfig {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
