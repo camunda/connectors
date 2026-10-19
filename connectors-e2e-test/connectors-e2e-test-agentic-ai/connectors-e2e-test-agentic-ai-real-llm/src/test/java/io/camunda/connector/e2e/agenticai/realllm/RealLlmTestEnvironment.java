@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.e2e;
+package io.camunda.connector.e2e.agenticai.realllm;
 
 import java.util.List;
 

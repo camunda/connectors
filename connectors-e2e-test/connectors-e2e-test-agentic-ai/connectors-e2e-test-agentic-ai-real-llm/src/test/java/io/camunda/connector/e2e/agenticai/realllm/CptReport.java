@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.e2e;
+package io.camunda.connector.e2e.agenticai.realllm;
 
-final class RealProviderCapabilityTags {
-  static final String CORE = "core-smoke";
-  static final String STRUCTURED_OUTPUT = "structured-output";
-  static final String REASONING = "reasoning";
-  static final String PROMPT_CACHING = "prompt-caching";
-  static final String MULTIMODAL = "multimodal-documents";
-  static final String DOCUMENT_TOOL_CALL_RESULTS = "document-tool-results";
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-  private RealProviderCapabilityTags() {}
-}
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@ExtendWith(CptReportExtension.class)
+@interface CptReport {}

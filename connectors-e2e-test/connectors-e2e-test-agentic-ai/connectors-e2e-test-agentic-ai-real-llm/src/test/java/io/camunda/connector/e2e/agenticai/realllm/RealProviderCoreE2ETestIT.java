@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.e2e;
+package io.camunda.connector.e2e.agenticai.realllm;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
-import static io.camunda.connector.e2e.agenticai.e2e.RealProviderResponseAssertions.extractMemoryToken;
-import static io.camunda.connector.e2e.agenticai.e2e.RealProviderResponseAssertions.normalizeShortAnswer;
+import static io.camunda.connector.e2e.agenticai.realllm.RealProviderResponseAssertions.extractMemoryToken;
+import static io.camunda.connector.e2e.agenticai.realllm.RealProviderResponseAssertions.normalizeShortAnswer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
