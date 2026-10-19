@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.e2e;
+package io.camunda.connector.e2e.agenticai.realllm;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import java.util.Map;
@@ -27,54 +26,42 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "RUN_NATIVE_LLM_E2E", matches = "true")
-@Tag(RealProviderCapabilityTags.PROMPT_CACHING)
-class RealProviderPromptCachingE2ETestIT extends RealProviderApiSmokeSupport {
+@Tag(RealProviderCapabilityTags.REASONING)
+class RealProviderReasoningE2ETestIT extends RealProviderApiSmokeSupport {
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
-  @MethodSource("providersWithPromptCaching")
-  void promptCachingReportsCacheReadAndWriteTokens(ProviderConfig provider) {
+  @MethodSource("providersWithReasoning")
+  void reasoningEnabledProducesReasoningAndAnswerContent(ProviderConfig provider) {
+    final var systemPrompt =
+        "You are a careful reasoner. Solve arithmetic directly without tools, and never claim that "
+            + "you need a calculation tool. Think step by step before answering.";
     var model =
         buildModel(
             provider,
             AI_AGENT_SUB_PROCESS_V2_ELEMENT_TEMPLATE_PATH,
             BPMN_RESOURCE,
-            template -> {
-              provider.propertiesFor(Capability.PROMPT_CACHING).forEach(template::property);
-              template.property("data.systemPrompt.prompt", "=longSystemPrompt");
-            });
+            template -> provider.propertiesFor(Capability.REASONING).forEach(template::property));
 
     var instance =
         startAgent(
             model,
             PROCESS_ID,
-            DEFAULT_SYSTEM_PROMPT,
+            systemPrompt,
             Map.of(
                 "userPrompt",
-                "What is the internal project code name? Use your lookup tool.",
-                "longSystemPrompt",
-                LONG_SYSTEM_PROMPT));
+                "A farmer has chickens and rabbits. Together they have 35 heads and 94 legs. How "
+                    + "many chickens are there? You may include an explanation, but conclude by "
+                    + "explicitly stating how many chickens there are in the form 'There are N "
+                    + "chickens.'"));
     completeUserFeedback(instance, Map.of("userSatisfied", true));
 
-    // The tool call forces a second model call: turn 1 writes the cache, turn 2 reads it.
     assertAgentResponse(
         instance,
-        response -> {
-          var agentAssert = AgentSubProcessResponseAssert.assertThat(response).isReady();
-          if (provider.reportsCacheCreationTokens()) {
-            agentAssert.metricsSatisfy(
-                metrics ->
-                    assertThat(metrics.tokenUsage().cacheCreationTokenCount())
-                        .as("cache creation token count")
-                        .isPositive());
-          }
-          agentAssert
-              .metricsSatisfy(
-                  metrics ->
-                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
-                          .as("cache read token count")
-                          .isPositive())
-              .hasResponseTextSatisfying(
-                  text -> assertThat(normalizeDashes(text)).contains(NONCE_CODE_NAME));
-        });
+        response ->
+            AgentSubProcessResponseAssert.assertThat(response)
+                .isReady()
+                .hasReasoningContent()
+                .hasResponseTextSatisfying(
+                    RealProviderResponseAssertions::assertCorrectChickenCountConclusion));
   }
 }

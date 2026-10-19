@@ -332,7 +332,7 @@ jobs:
           REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/META-INF/services"
           mkdir -p "$REPORTER_SERVICES"
           printf '%s\n' \
-            'io.camunda.connector.e2e.agenticai.e2e.CptReportExtension' \
+            'io.camunda.connector.e2e.agenticai.realllm.CptReportExtension' \
             > "$REPORTER_SERVICES/org.junit.jupiter.api.extension.Extension"
 
           ARGS=(
