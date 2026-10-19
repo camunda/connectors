@@ -18,6 +18,10 @@ jobs:
         with:
           ref: fa767ad97df55fe6ec7f2cc405743a73d8989ee3
           persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: "21.0.12+101.0.LTS"
       - name: Check Maven bootstrap with an empty distribution directory
         env:
           MAVEN_USER_HOME: ${{ runner.temp }}/maven-bootstrap-9546-${{ github.run_id }}
