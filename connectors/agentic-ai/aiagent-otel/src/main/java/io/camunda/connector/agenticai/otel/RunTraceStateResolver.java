@@ -58,7 +58,7 @@ public class RunTraceStateResolver {
     return Optional.of(new Resolution(sessionId, continues, previous));
   }
 
-  /** A tool discovery dispatch persists iteration key 0, so no persisted turn counts as 0. */
+  /** A tool discovery dispatch keeps the persisted iteration key; no persisted turn counts as 0. */
   private static int iterationKeyOf(JobStarted event) {
     final Integer lastIterationKey = event.lastIterationKey();
     return lastIterationKey != null ? lastIterationKey : 0;

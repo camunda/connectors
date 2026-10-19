@@ -87,7 +87,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
         "tool discovery dispatched",
         () -> {
           open(null);
-          return stateToContribute(Status.OPEN, 0);
+          // a discovery dispatch persists no turn, so the iteration key stays what the context
+          // already holds; this also covers a re-discovery in the middle of a run
+          final Integer lastIterationKey = job.lastIterationKey();
+          return stateToContribute(Status.OPEN, lastIterationKey != null ? lastIterationKey : 0);
         });
   }
 
