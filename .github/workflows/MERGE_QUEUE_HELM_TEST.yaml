@@ -680,6 +680,8 @@ jobs:
   run-ai-agent-cpt:
     name: AI Agent bundle E2E (CPT)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 20
