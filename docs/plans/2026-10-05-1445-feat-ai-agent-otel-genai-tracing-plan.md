@@ -92,6 +92,61 @@ flowchart TB
 
 Job 3 in this example is a partial-result job (tool A finished first) and emits no spans, per R15.
 
+### Worked Example
+
+A Sub-process agent "Travel helper" with an agent instance, session `prod-eu:2251799813685260` (cluster-id prefix set), tracing on, content capture off. Tool A "Search flights" is a script task, tool B "Manager approval" is a user task, and gateway tool discovery is on.
+
+| Job | Trigger | Persists context | Spans exported | Run state after |
+|---|---|---|---|---|
+| 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes (discovery dispatch) | Anchor `Travel helper run` (root, 0.4 s), `invoke_agent` (discovery) | `OPEN`, new trace T1 |
+| 2, Mon 09:00:01 | Discovery results arrive, first turn | Yes (turn completed) | `invoke_agent`, `chat` round 1 (4 s, tokens, finish reason `tool_call`) | `OPEN`, iteration key 1 |
+| 3, Mon 09:00:08 | Tool A completes | No (job deferred) | None | Unchanged |
+| 4, Wed 09:00 | Tool B completes after two days | Yes (turn completed) | `invoke_agent`, `chat` round 1 (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00) | `CLOSED` |
+| 5, Wed 09:30 | Event message "move to Friday" | Yes | New anchor A2 linked to A1, `invoke_agent`, `chat` | `OPEN`, new trace T2, same session |
+
+`chat` spans are exported when each model round ends. `invoke_agent` and the anchor are exported only after the job completion is confirmed. `execute_tool` spans are emitted by job 4 after its completion succeeds, with their real earlier start times, so the user task appears as a two-day span under job 4's `invoke_agent`, which starts later than its own child (PoC exit criterion 1).
+
+```text
+Session prod-eu:2251799813685260
+Trace T1  "Travel helper run" (anchor, 0.4 s, no gen_ai.operation.name)
+├─ invoke_agent  job 1 (tool discovery)
+├─ invoke_agent  job 2
+│  └─ chat  round 1  (model, tokens, finish=tool_call)
+└─ invoke_agent  job 4 (Wed)
+   ├─ execute_tool  Search flights   (call-1, Mon 09:00:06 → 09:00:08)
+   ├─ execute_tool  Manager approval (call-2, Mon 09:00:06 → Wed 09:00)
+   └─ chat  round 1  (finish=stop, final answer)
+Trace T2  "Travel helper run"  --link--> T1 anchor
+└─ invoke_agent  job 5 → chat
+```
+
+Attributes by span kind:
+
+- All spans: `session.id`, `gen_ai.conversation.id`, and the `camunda.*` identity (process instance, element, tenant, agent instance).
+- `invoke_agent`: `gen_ai.operation.name=invoke_agent`, `gen_ai.agent.id`, `gen_ai.agent.name`, `camunda.agent.job.kind`, `camunda.agent.job.outcome`, `camunda.agent.job.attempt`.
+- `chat`: `gen_ai.operation.name=chat`, provider, request and response model, usage totals with cache and reasoning counts, finish reason, response id.
+- `execute_tool`: `gen_ai.operation.name=execute_tool`, tool name, tool call id, BPMN element id, outcome (`completed` or `cancelled`).
+
+Failure variants. If job 4's first attempt fails after its model call (F2), it exports `invoke_agent` with outcome failed and the `chat` span with its tokens, no `execute_tool` spans, and persists nothing; the retry exports a second `invoke_agent`, a second `chat`, and the two `execute_tool` spans once. If job 1's first attempt fails (AE8), it exports its own failed trace in the same session and the retry starts the run's trace.
+
+### Errors
+
+GenAI semantic conventions have no tool-error type of their own. A failed operation gets span status Error and a low-cardinality `error.type` (conditionally required when the operation ended in an error); `gen_ai.tool.call.result` is opt-in and documented as the result of a successful execution; instrumentation should not synthesize output content for a failed operation; and the general error recording guidance prefers log records over repeating an exception on spans. Message and exception text appear only with content capture on (KTD8).
+
+| Source | Span | Status and `error.type` |
+|---|---|---|
+| Model rejection (content filter, context window, guardrail) | `chat`, and its `invoke_agent` | Error; the value derived from the existing error code |
+| Other provider or transport exception | `chat` | Error; the HTTP status when known, else the exception class name |
+| Limit hit (maximum model calls) | `invoke_agent` | Error; the error code value; no `chat` span |
+| Agent failure (store, agent instance, parameters) | `invoke_agent` | Error; the error code value or exception class name |
+| BPMN error raised by the agent | `invoke_agent` | Error; the error code value; outcome `bpmn_error` |
+| Job superseded or completion rejected | `invoke_agent` (and the anchor of a run-starting job) | Outcome `superseded`; Error with `error.type=job_superseded` so wasted spend stays visible |
+| Tool completed | `execute_tool` | Outcome `completed`; status unset |
+| Tool cancelled | `execute_tool` | Outcome `cancelled`; status unset, because the agent or engine interrupted it |
+| Tool failed (BPMN error boundary mapped to content, MCP `isError`, A2A failed task) | `execute_tool` | Not distinguishable today: the tool result carries only free content; see Outstanding Questions |
+| Tool incident (tool job never completes) | None | The result never arrives; visible only through cluster data |
+
+
 ### Requirements
 
 **Enablement and configuration**
@@ -229,6 +284,7 @@ The option stays a candidate complement for SaaS and external agents once those 
 
 - Export from the SaaS-hosted connectors runtime (per-cluster exporter configuration and credentials).
 - Interceptors: listener hooks that change agent behavior (guardrails, compaction, prompt rewriting), with their own failure contract.
+- Structured tool-error outcome on `execute_tool` spans: needs an explicit error signal on tool call results (see Outstanding Questions).
 - The agent-instance history client as a lifecycle listener (see the Key Decision); the lifecycle points are named and placed like its call sites so a later migration is mechanical.
 - Per-agent content capture override through an element template property.
 - External content storage with references on spans (semconv has no reference format yet).
@@ -271,7 +327,7 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - Agent instance creation is idempotent per element instance, so a retried first job gets the same agent instance key and its spans land in the same session.
 - Zeebe keys restart at 0 on every fresh cluster, so agent instance keys repeat across clusters; without the cluster-id prefix, two clusters exporting to one backend project merge unrelated sessions (trace ids are random and never collide).
 - Datadog APM rejects spans that start more than 18 hours in the past; `execute_tool` spans for long user tasks will not ingest there. Accepted, because Langfuse and Phoenix are the acceptance bar.
-- Tool dispatch time is persisted in the run tracing state when tool calls are issued (KTD9); message-id timestamps are not relied on because legacy ids are backfilled at read time.
+- Tool dispatch time is derived from the UUIDv7 id of the assistant message that issued the tool calls: ADR 012 gives every message a time-ordered id at construction that stays stable across persistence, and only legacy conversations get fresh ids at load time. Agents with an agent instance are new enough to carry original ids, so no dispatch time is stored (KTD9).
 - Customer demand is stated by the pod (customers asking for Phoenix and Langfuse); the internal research found no written customer request naming these tools.
 - Module layout: the agentic AI code is split into libraries, connectors, and integrations by [ADR 015](../../connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md) (#9525). The AI Agent connector, its handlers, and the agent instance client are in `connector-aiagent`; the agent model (`AgentContext`, `ChatModelConfiguration`, `ToolCallResult`, `StopReason`, `AgentMetrics`) is in `aiagent-model`; the extension points are in `aiagent-api`. Architecture tests in `agentic-ai-archunit-tests` enforce the layering, package cycles, vendor SDK containment, and auto-configuration conventions, so placement is a design input here (KTD15). The e2e tests are split into modules by #9546; tracing e2e tests go to the AI Agent e2e module.
 - The default bundle, and the SaaS bundle built on it, contain the `aiagent-otel` module but no OTel SDK, exporter, or Boot OTel module: without an `OpenTelemetry` bean the module is inert. `opentelemetry-api` 1.62.0 already reaches `connector-aiagent` transitively through `anthropic-java-core`.
@@ -280,6 +336,8 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 ### Outstanding Questions
 
 **Deferred to Planning**
+
+- Tool errors: `ToolCallResult` carries only free content plus an `interrupted` property for cancelled tools, and the MCP `isError` flag is dropped when the gateway result is transformed. Marking a tool execution as failed needs a structured signal, for example an additive error property on the result set by the MCP and A2A gateway handlers, plus a documented convention for BPMN tools (a BPMN error boundary mapped to the result). It touches `aiagent-model` and the integrations, and would also let the history API show failed tools. Decide scope for the production milestone.
 
 - Does product want the production milestone tracked under product-hub#3314, and does it need a PDP before shipping as a supported feature? This gates the production milestone, not planning of the PoC milestone.
 - Default size cap for R22 and the redaction SPI contract for R21 (production milestone).
@@ -316,12 +374,12 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - KTD1. **Raw OpenTelemetry API for agent spans; Spring integration through Boot's OTel SDK, exporter, and `management.opentelemetry.*` / `management.tracing.*` configuration.** Agent spans need explicit start timestamps, remote parents, links, and status without exceptions, which the Micrometer Observation API cannot express; Micrometer Tracing would add an adapter without gaining anything. Spans use their own instrumentation scope and the runtime's `OpenTelemetry` bean. Governs R1, R24. (session-settled: user-approved — chosen over building agent spans on the Micrometer Observation API: no start time, status, or links, and enabling the Observation bridge traces every connector)
 - KTD2. **Dependency split: only `aiagent-otel` uses the OTel API, declared explicitly with the Boot-managed version; the default bundle gains no SDK, exporter, or Boot OTel module.** The module is in `agentic-ai-bundle` but inert: it registers its listener only when tracing is enabled and an `OpenTelemetry` bean exists. A customer who wants traces adds Boot's OpenTelemetry tracing module and an OTLP exporter to their runtime (on the stock image: jars in the custom library directory, version-matched to the image), sets the Boot properties, and excludes Boot's Observation-to-span auto-configuration so inbound webhooks, actuator calls, scheduled tasks, and other connectors' HTTP clients stay span-free; the docs carry that recipe. `connector-aiagent`, the libraries, and the integrations do not reference OpenTelemetry. Governs R1, R2. (session-settled: user-approved — chosen over shipping the SDK and exporter in the runtime application: the default application must not enable OTel, and the customer enables Spring's OTel first)
 - KTD3. **Agent tracing has its own switches: `camunda.connector.agenticai.aiagent.tracing.enabled` (default false) and `camunda.connector.agenticai.aiagent.tracing.capture-content` (default false), plus the optional `camunda.connector.agenticai.aiagent.tracing.cluster-id` session prefix.** The properties are a record in `aiagent-otel` with kebab-case keys below `camunda.connector.agenticai`, as the architecture tests require; `camunda.connector.agenticai.enabled=false` still disables the module's auto-configuration. When tracing is disabled or no `OpenTelemetry` bean exists, the module registers no listener and the core emits events to nobody. Export is controlled separately by Boot: no exporter exists until `management.opentelemetry.tracing.export.otlp.endpoint` is set. Governs R1, R12, R20, R23.
-- KTD4. **Run tracing state lives in the listener's state slot: one additive, namespaced entry of the agent context `properties` map, written by the framework from the listener's contribution.** The entry holds the run's trace id, anchor span id, sampled flag, open/closed flag, the iteration key at write time, the process instance key, and the dispatch time of pending tool calls; a new run reads the previous anchor from the entry it replaces. It is written only on paths that already persist the agent context (tool-discovery dispatch and turns); no schema-version bump; a contribution that fails is dropped, which degrades to a new run. Governs R3, R4, R13, R28. (session-settled: user-approved — chosen over a new top-level agent-context field and over inferring run state from conversation turns: older connectors keep unknown `properties` keys, and turn inference breaks across gateway tool discovery)
+- KTD4. **Run tracing state lives in the listener's state slot: one additive, namespaced entry of the agent context `properties` map, written by the framework from the listener's contribution.** The entry holds the run's trace id, anchor span id, sampled flag, open/closed status, the iteration key at write time, and the process instance key; a new run reads the previous anchor from the entry it replaces. It is written only on paths that already persist the agent context (tool-discovery dispatch and turns); no schema-version bump; a contribution that fails is dropped, which degrades to a new run. Governs R3, R4, R13, R28. (session-settled: user-approved — chosen over a new top-level agent-context field and over inferring run state from conversation turns: older connectors keep unknown `properties` keys, and turn inference breaks across gateway tool discovery)
 - KTD5. **Run identity uses SDK-assigned random ids.** The run-starting job starts the anchor as a live root span with its job start time; the SDK assigns trace and span ids, and they are persisted with the run tracing state when the job completes. Each attempt ends its own anchor exactly once: completed on success, failed on failure, so a failed first attempt is its own failed trace in the same session and the retry starts the run's trace. Governs R5, R17, AE8. (session-settled: user-directed — chosen over ids derived from the run-starting job key with a cluster salt: no ID-generator hook or salt is needed, and the failed attempt stays visible in the right session)
 - KTD6. **Session identifier is the agent instance key, prefixed `<cluster-id>:` when the cluster-id property is set.** It is computed on every job, needs no persistence, and is set on every span because Langfuse v4 does not inherit trace-level attributes; jobs without an agent instance get the NO_OP session (R30). Governs R12, R30. (session-settled: user-directed — chosen over the conversation store's id and key-derived fallbacks: retry-stable from the first job and linkable to Operate; the operator-set prefix, documented with a one-backend-project-per-cluster recommendation, chosen over a runtime topology lookup and an upstream client change for the PoC)
 - KTD7. **Per-job observer with a single-ended `invoke_agent` span.** The listener returns a per-job observer at job start; the observer opens its spans lazily once the job is known to do agent work (tool-discovery dispatch or a turn) with the job's start time as span start, so deferred partial-result jobs emit nothing. The `invoke_agent` span, and the anchor when this job started the run, is ended exactly once by whichever comes first: the job-failed callback (outcome failed, the handler rethrows unchanged), the job-completed callback (outcome completed), or the completion-failed callback (outcome superseded, BPMN error, or command failure). Governs R6, R15, R17, R18.
 - KTD8. **`chat` spans wrap the one provider-neutral chat-model call site**, so every provider and every continuation round is covered. Token usage is set only on `chat` spans (Langfuse skips usage on agent spans; R11 totals computed from the normalized token usage, where input excludes cache). Rejections map to a low-cardinality `error.type` that the handler derives from the existing model error codes and passes to the tracing code as a string (`AgentErrorCodes` stays in `aiagent.agent`); other exceptions map to their class name. Error spans carry only error status and `error.type`; exception messages, status descriptions, and exception events are attached only when content capture is on, because provider error bodies and parameter-parsing messages can contain prompt or tool content. Governs R7, R10, R11, R20.
-- KTD9. **`execute_tool` spans are built in the success callback** from tool-execution records captured while the turn composes its input: start is the dispatch time stored in the run tracing state when the previous turn issued the tool calls, end is the engine's `completedAt`; cancelled tools get outcome cancelled without error status; results without a stored dispatch time become zero-length spans at completion with a marker attribute. Names and call ids come from the originating tool call, element ids from the result. Governs R8, R16.
+- KTD9. **`execute_tool` spans are built in the job-completed callback** from tool-execution records captured while the turn composes its input. The start is the time the tool calls were issued, which the framework derives from the time-ordered UUIDv7 id of the assistant message that issued them (ADR 012) and passes in the turn-started event; the end is the engine's `completedAt`. Only agents with an agent instance are traced (R30), so their messages carry their original ids; an id that is not time-based yields a zero-length span at completion with a marker attribute. The derived start precedes the engine's activation of the tool by the store write and completion command latency, the same bias a stored timestamp would have. Cancelled tools get outcome cancelled without error status. Names and call ids come from the originating tool call, element ids from the result. Governs R8, R16.
 - KTD10. **Anchor root is a Camunda-named INTERNAL span (agent name plus "run") without `gen_ai.operation.name`**, carrying agent name, session identifier, run trigger, Camunda identity, and, when content capture is on, the run's triggering input. Keeping the GenAI operation off the anchor keeps `invoke_agent` durations and backend type mapping honest, since the anchor's duration is only the first job's. PoC exit criterion 1 checks the rendering; the fallback is a GenAI-typed anchor. Governs R5, R24, R25.
 - KTD11. **Attempt discriminator is a short hash of the job's lease token**, set as an attribute on the job's `invoke_agent` span; the raw token is never exported. Retries count is not on the connector SDK job context and is not added in the PoC. Governs R17.
 - KTD12. **Sampling uses the runtime's configured sampler.** The anchor root is the only span sampled by ratio; every later span is parented to the persisted context with its sampled flag, so a run is all-in or all-out. The PoC configuration and docs set the probability to 1.0. Governs R3.
@@ -332,6 +390,35 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - KTD17. **Events carry complete data; content policy, redaction, and size limits belong to the consumer.** Any registered listener bean sees prompts, tool arguments, and tool results, and the SPI documents this. Events never carry the lease token, only the attempt discriminator hash (KTD11). The capture flag (R20), the redaction SPI (R21), and exception-message handling (KTD8) live in `aiagent-otel`. Governs R20, R21, R31.
 - KTD18. **The event surface follows the earlier tracing design's taxonomy and the history client's call sites, limited to what tracing needs, and is experimental.** Event points: tool discovery dispatched, tool-call results received (including deferred partial results), turn started, model round started and completed or failed, tool calls issued, turn completed, limit hit as a failure, job failed, job completed, job completion failed. A small public job-kind enum replaces the internal initialization and composition result types. Events fire for both flavors and carry the flavor; the tracing consumer handles only the Sub-process flavor in the PoC (R26). The deferred partial-result job emits its own event, which tracing ignores. A marker annotation in `aiagent-api` flags the types experimental; they are excluded from the planned API compatibility check, and changes to them are listed in `docs/breaking-changes.md` without a migration guarantee. The event set may change after the PoC exit criteria. Governs R31. (session-settled: user-directed — experimental from the start)
 - KTD19. **Provider SDK built-in tracing is disabled on every client the connector builds.** The Anthropic SDK emits its own `gen_ai` CLIENT spans (operation, model, token usage, optionally content, HTTP attributes) and propagates trace-context headers when a global OpenTelemetry is registered or a tracer provider is passed; Boot's OTel module registers no global, but a Java agent does. Left on, those spans would duplicate the `chat` spans' generation data and token usage in LLM-observability backends and add trace headers to provider requests. The connector sets the SDK's OpenTelemetry option to disabled when it builds the Anthropic client. The other provider clients carry no OTel instrumentation on this classpath (Assumptions). Governs R27, R32.
+
+### Run Tracing State Example
+
+The entry in `agentContext.properties` after job 2 of the worked example:
+
+```json
+"properties": {
+  "lifecycle:otel-tracing": {
+    "version": 1,
+    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "anchorSpanId": "00f067aa0ba902b7",
+    "sampled": true,
+    "status": "OPEN",
+    "iterationKey": 1,
+    "processInstanceKey": 2251799813685249
+  }
+}
+```
+
+It is about 200 bytes. The key is the listener namespace (`lifecycle:` plus the listener id).
+
+| Field | Used for |
+|---|---|
+| `traceId`, `anchorSpanId` | Rebuild the remote parent so every later job's spans join the run's trace. |
+| `sampled` | Sampling is decided once on the anchor; later jobs inherit it (R3, KTD12). |
+| `status` | `CLOSED` means the last turn had no tool calls, so the next job starts a new run. |
+| `iterationKey`, `processInstanceKey` | Stale detection after a migration, an older connector, or another process instance: a mismatch starts a new run linked to the old anchor. |
+
+A `CLOSED` entry keeps `traceId` and `anchorSpanId`; the next run links to them and then replaces the entry. Not stored: the session identifier (derived on every job), span ids of `invoke_agent`, `chat`, and `execute_tool`, attributes, content, tool timing (derived from message ids, KTD9), and the lease token. If the entry is lost or malformed, the next job starts a fresh run without a link and succeeds (R28).
 
 ### High-Level Technical Design
 
@@ -376,7 +463,7 @@ sequenceDiagram
       S->>T: end chat span
     end
     H->>D: turn completed (tool calls issued, final answer)
-    D-->>H: state contribution (dispatch time, open or closed)
+    D-->>H: state contribution (open or closed)
     H-->>Z: complete job with agent context
     Z-->>D: success callback, job completed
     S->>T: emit execute_tool spans, end invoke_agent (and anchor if run-starting)
@@ -442,6 +529,7 @@ flowchart TB
 
 **Approach:**
 - Follow the header and section format of ADR 014 and ADR 015; decision altitude only, no code or line numbers.
+- Include the worked example, the run tracing state example, and the error mapping table of this plan: the callback and persist-point table in ADR 016, the example and error mapping in ADR 017.
 - ADR 016: context (pro-code users want hooks into the agent, tracing needs lifecycle events, the earlier tracing design already enumerated them), considered options (tracing code inside the handler, a read-only observer SPI, observers plus interceptors, reusing the history client as the event seam), the decision (KTD15–KTD18: experimental SPI with three callback categories, complete data with consumer-owned content policy, no interceptors yet, history API not a consumer), and consequences (public experimental surface, listener beans see sensitive data, compatibility check exclusion, policy for experimental changes).
 - ADR 017: context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13, KTD19: raw OTel API, `aiagent-otel` in the bundle but inert, customer enables Spring OTel, provider SDK tracing off), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
 - Cite ADR 008 (tool-result timestamps), ADR 012 (message ids), ADR 013 (turn updates and lease fencing), and ADR 015 (module boundaries).
@@ -469,7 +557,7 @@ flowchart TB
 - Test: `test/java/io/camunda/connector/agenticai/aiagent/api/lifecycle/` defaults and record tests
 
 **Approach:**
-- Event set per KTD18: job started (job identity, flavor, start time, attempt discriminator hash, agent instance key when present, the listener's previous state), tool discovery dispatched, job deferred (arrived tool results), turn started (consumed tool results with their originating calls, input messages, tool definitions, system prompt, `ChatModelConfiguration`), model round (a scope the framework opens and closes: completed with response, stop reason, usage, and response id, or failed with an error type), turn completed (tool calls issued or final answer), job failed, job completed, job completion failed (SDK `JobCompletionFailure`).
+- Event set per KTD18: job started (job identity, flavor, start time, attempt discriminator hash, agent instance key when present, the listener's previous state), tool discovery dispatched, job deferred (arrived tool results), turn started (consumed tool results with their originating calls and the time those calls were issued, derived from the issuing assistant message's id, input messages, tool definitions, system prompt, `ChatModelConfiguration`), model round (a scope the framework opens and closes: completed with response, stop reason, usage, and response id, or failed with an error type), turn completed (tool calls issued or final answer), job failed, job completed, job completion failed (SDK `JobCompletionFailure`).
 - Callback contracts per KTD16 in the javadoc: notifications are isolated and ordered; state contributions come only from the turn-completed and tool-discovery callbacks; the model-round scope cannot alter the call. The javadoc states that events carry complete data, including content, and never the lease token (KTD17).
 - Types come from `aiagent-model` and the connector SDK only; the module stays Spring-free.
 
@@ -566,7 +654,7 @@ flowchart TB
 - Resolution input: the previous state, the agent context's last iteration key (from the event), the agent instance key, the job identity, and whether the previous turn issued tool calls. Output: not traced (no agent instance), continue the open run, or start a new run with the previous anchor as link target (KTD13).
 - Session identifier: the agent instance key with the optional cluster-id prefix (KTD6).
 - The new run's ids are filled in from the started anchor (KTD5), not computed here.
-- Update helpers stamp the tool-call dispatch time and close the run.
+- Update helpers open and close the run; the record holds no tool timing.
 
 **Patterns to follow:** `@AgenticAiRecord` records with record-builder.
 
@@ -648,7 +736,8 @@ flowchart TB
 - Ending twice (job failed, then completion failed): only the first end takes effect.
 - Run-starting job failing: the anchor is ended once with failed status alongside `invoke_agent`. Covers AE8.
 - Cancelled tool record: span outcome cancelled without error status.
-- Tool record without dispatch time: zero-length span at completion with the marker attribute.
+- Issued-at time absent (the issuing message id is not time-based): zero-length span at completion with the marker attribute.
+- Issued-at time present: the span starts at that time, even days before the job's `invoke_agent` span.
 - Attempt attribute is the hash from the event; the raw lease token never appears.
 - An exporter or attribute failure inside the observer does not propagate.
 - Content capture off and a model round failing with an error whose message contains prompt text: the exported spans carry error status and `error.type` only, with no status description and no exception event. Covers AE5.
@@ -679,7 +768,7 @@ flowchart TB
 1. The dispatcher takes the registered listeners, creates one observer per listener at job start (a listener that throws gets a no-op observer), runs every callback in registration order with exceptions caught and logged, and writes each listener's state contribution into its namespace of the agent context (dropping failed contributions). With no listeners it does nothing.
 2. Inject the dispatcher into the handlers' constructors (singleton handler, not the prototype function beans).
 3. Record the job start time on entry and emit job started after initialization.
-4. Emit tool discovery dispatched, job deferred (with the arrived results), and turn started (with the consumed tool results, composed input, and configuration) at the existing branch points in `BaseAgentRequestHandler`; emit them for both flavors.
+4. Emit tool discovery dispatched, job deferred (with the arrived results), and turn started (with the consumed tool results, composed input, configuration, and the time the tool calls were issued, derived from the time-ordered id of the assistant message that issued them when that id is a UUIDv7) at the existing branch points in `BaseAgentRequestHandler`; emit them for both flavors.
 5. Wrap the existing chat-model call site with the model-round scope (try/finally); the handler derives the `error.type` of a rejection from the coded exception it already builds.
 6. Emit turn completed before the response is built, apply the state contributions to the agent context, and give the response a completion listener that composes the store listener with the dispatcher's job-completed and completion-failed callbacks, each isolated.
 7. Catch exceptions around the agent work only to emit job failed, then rethrow the same exception.
@@ -693,6 +782,7 @@ flowchart TB
 - Dispatcher: a throwing listener does not stop later listeners or change the job; callbacks arrive in registration order; a failing state contribution is dropped; the contribution lands in the listener's namespace only. Covers AE11.
 - Tool-call turn: events arrive in order (job started, turn started, model round, turn completed), the response's agent context contains the contributed state, and both the store listener and the dispatcher run on success.
 - Final-answer turn: the contributed state marks the run closed.
+- Tool results arriving after an assistant message with a UUIDv7 id: the turn-started event carries that message's time as the issued-at time; a message with a non-time-based id yields none.
 - Deferred partial-result job: job deferred is emitted, no turn events, and the response carries no context or state change. Covers AE1 (job-level part).
 - Tool-discovery dispatch: the persisted context carries the contributed state and the response carries the completion listener.
 - Model rejection: the same coded connector exception is still thrown, the round is closed as failed, and job failed is emitted.
