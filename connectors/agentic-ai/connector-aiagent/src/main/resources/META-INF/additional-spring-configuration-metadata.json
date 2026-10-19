@@ -1,0 +1,16 @@
+{
+  "properties": [
+    {
+      "name": "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent outbound connector.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent Ad-Hoc Sub-Process job worker.",
+      "defaultValue": "true"
+    }
+  ]
+}

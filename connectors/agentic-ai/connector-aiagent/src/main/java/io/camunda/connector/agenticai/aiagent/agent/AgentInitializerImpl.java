@@ -1,0 +1,184 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.agent;
+
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.api.outbound.JobContext;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+
+public class AgentInitializerImpl implements AgentInitializer {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
+
+  private static final String AGENT_DEFINITION_KEY_HEADER_NAME =
+      "io.camunda.zeebe:agentDefinitionKey";
+
+  private final AgentToolsResolver toolsResolver;
+  private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final AgentInstanceClient agentInstanceClient;
+  private final ToolCallResultCompletedAtResolver completedAtResolver;
+
+  public AgentInitializerImpl(
+      AgentToolsResolver toolsResolver,
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      AgentInstanceClient agentInstanceClient,
+      ToolCallResultCompletedAtResolver completedAtResolver) {
+    this.toolsResolver = toolsResolver;
+    this.gatewayToolHandlers = gatewayToolHandlers;
+    this.agentInstanceClient = agentInstanceClient;
+    this.completedAtResolver = completedAtResolver;
+  }
+
+  @Override
+  public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
+    AgentContext agentContext =
+        Optional.ofNullable(executionContext.initialAgentContext())
+            .orElseGet(() -> createAgentContext(executionContext));
+
+    List<ToolCallResult> initialToolCallResults =
+        Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
+
+    // resolve completedAt (engine timestamp -> now()) at the earliest ingestion point, per
+    // ADR 008, before any further processing of these results
+    initialToolCallResults = completedAtResolver.resolve(initialToolCallResults);
+
+    return switch (agentContext.state()) {
+      case INITIALIZING ->
+          beginToolDiscovery(executionContext, agentContext, initialToolCallResults);
+      case TOOL_DISCOVERY -> completeToolDiscovery(agentContext, initialToolCallResults);
+      default -> resumeReadyAgent(executionContext, agentContext, initialToolCallResults);
+    };
+  }
+
+  /**
+   * Builds the initial agent context for a new agent, provisioning an agent instance on the engine
+   * when the job carries a non-blank {@code agentDefinitionKey} custom header.
+   */
+  private AgentContext createAgentContext(AgentExecutionContext executionContext) {
+    final var jobContext = executionContext.jobContext();
+    var metadata = AgentMetadata.of(jobContext);
+
+    if (hasAgentDefinitionKeyHeader(jobContext)) {
+      final var agentInstanceKey = provisionAgentInstance(executionContext);
+      LOGGER.debug("Created agent instance {}", agentInstanceKey.value());
+      metadata = metadata.withAgentInstanceKey(agentInstanceKey.value());
+    } else {
+      LOGGER.warn(
+          "Skipping agent instance creation: element was not marked with an agent definition");
+    }
+
+    return AgentContext.empty().withMetadata(metadata);
+  }
+
+  private boolean hasAgentDefinitionKeyHeader(JobContext jobContext) {
+    final var customHeaders = jobContext.getCustomHeaders();
+    if (customHeaders == null) {
+      return false;
+    }
+    final var agentDefinitionKey = customHeaders.get(AGENT_DEFINITION_KEY_HEADER_NAME);
+    return agentDefinitionKey != null && !agentDefinitionKey.isBlank();
+  }
+
+  /**
+   * Registers the agent instance on the engine.
+   *
+   * @throws io.camunda.connector.api.error.ConnectorException with code {@code
+   *     AGENT_INSTANCE_CREATION_FAILED} when retries are exhausted or a non-retryable error occurs
+   */
+  private AgentInstanceKey provisionAgentInstance(AgentExecutionContext executionContext) {
+    return agentInstanceClient.create(executionContext);
+  }
+
+  private AgentInitializationResult resumeReadyAgent(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> initialToolCallResults) {
+
+    final var agentMetadata = agentContext.metadata();
+    final var executionMetadata = AgentMetadata.of(executionContext.jobContext());
+    if (agentMetadata == null
+        || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
+      final var updatedMetadata =
+          agentMetadata == null
+              ? executionMetadata
+              : agentMetadata.withProcessDefinitionKey(executionMetadata.processDefinitionKey());
+      agentContext =
+          toolsResolver
+              .updateToolDefinitions(executionContext, agentContext)
+              .withMetadata(updatedMetadata);
+    }
+
+    return new ReadyToConverse(agentContext, initialToolCallResults);
+  }
+
+  private AgentInitializationResult beginToolDiscovery(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> initialToolCallResults) {
+    // add ad-hoc tool definitions to agent context
+    final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
+    agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
+
+    if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {
+      return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
+    }
+
+    // handle gateway tool definitions (e.g. MCP)
+    return dispatchGatewayToolDiscovery(
+        agentContext, initialToolCallResults, adHocToolsSchema.gatewayToolDefinitions());
+  }
+
+  private AgentInitializationResult dispatchGatewayToolDiscovery(
+      AgentContext agentContext,
+      List<ToolCallResult> initialToolCallResults,
+      List<GatewayToolDefinition> gatewayToolDefinitions) {
+    GatewayToolDiscoveryInitiationResult initiationResult =
+        gatewayToolHandlers.initiateToolDiscovery(agentContext, gatewayToolDefinitions);
+    agentContext = initiationResult.agentContext();
+
+    if (!CollectionUtils.isEmpty(initiationResult.toolDiscoveryToolCalls())) {
+      // execute tool discovery tool calls before agent is ready for requests
+      final List<ToolCall> discoveryToolCalls = initiationResult.toolDiscoveryToolCalls();
+      return new DiscoverTools(
+          agentContext.withState(AgentState.TOOL_DISCOVERY), discoveryToolCalls);
+    } else {
+      // no tool discovery needed -> agent is ready for requests
+      return new ReadyToConverse(agentContext.withState(AgentState.READY), initialToolCallResults);
+    }
+  }
+
+  private AgentInitializationResult completeToolDiscovery(
+      AgentContext agentContext, List<ToolCallResult> initialToolCallResults) {
+    if (!gatewayToolHandlers.allToolDiscoveryResultsPresent(agentContext, initialToolCallResults)) {
+      return new DeferConversation();
+    }
+
+    final var gatewayToolDiscoveryResult =
+        gatewayToolHandlers.handleToolDiscoveryResults(agentContext, initialToolCallResults);
+
+    return new ReadyToConverse(
+        gatewayToolDiscoveryResult.agentContext().withState(AgentState.READY),
+        gatewayToolDiscoveryResult.remainingToolCallResults());
+  }
+}
