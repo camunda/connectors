@@ -36,16 +36,22 @@ enum AgenticAiModules {
       "connector-aiagent",
       "AiAgent",
       Kind.CONNECTOR,
-      under("aiagent").and(resideOutsideOfPackages(pkg("aiagent.model.."), pkg("aiagent.api.."))));
+      under("aiagent").and(resideOutsideOfPackages(pkg("aiagent.model.."), pkg("aiagent.api..")))),
+  OTEL("aiagent-otel", "Otel", Kind.EXTENSION, under("otel"));
 
-  /** What a module is: shared code, a connector of its own, or the glue between two connectors. */
+  /**
+   * What a module is: shared code, a connector of its own, the glue between two connectors, or an
+   * extension of the AI Agent.
+   */
   enum Kind {
     /** Shared code without a connector of its own. */
     LIBRARY,
     /** A connector, shipped in the agentic AI bundle. */
     CONNECTOR,
     /** The glue that lets the AI Agent connector use another connector as a gateway tool. */
-    INTEGRATION
+    INTEGRATION,
+    /** An optional listener of the AI Agent extension points that nothing else depends on. */
+    EXTENSION
   }
 
   static final String ROOT = "io.camunda.connector.agenticai";

@@ -16,7 +16,8 @@ import java.util.List;
 
 /**
  * Enforces that each vendor SDK is only used by the packages that integrate it: the chat model
- * provider, the conversation store, the HTTP proxy support, or the client of the protocol.
+ * provider, the conversation store, the HTTP proxy support, the client of the protocol, or the
+ * tracing extension.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class VendorSdkArchTest {
@@ -38,6 +39,7 @@ class VendorSdkArchTest {
   private static final String PROXY = AgenticAiModules.pkg("aiagent.proxy..");
   private static final String A2A_CLIENT = AgenticAiModules.pkg("a2a.client..");
   private static final String MCP_CLIENT_FRAMEWORK = AgenticAiModules.pkg("mcp.client.framework..");
+  private static final String OTEL = AgenticAiModules.pkg("otel..");
 
   private static final List<VendorSdk> VENDOR_SDKS =
       List.of(
@@ -97,7 +99,12 @@ class VendorSdkArchTest {
               "MCP SDK",
               "io.modelcontextprotocol..",
               "the MCP client can be extracted into its own module",
-              MCP_CLIENT_FRAMEWORK));
+              MCP_CLIENT_FRAMEWORK),
+          new VendorSdk(
+              "OpenTelemetry API",
+              "io.opentelemetry..",
+              "only the tracing extension emits spans, so the AI Agent stays free of tracing code",
+              OTEL));
 
   /** One rule per vendor SDK, each failing with a message that names the SDK. */
   @ArchTest

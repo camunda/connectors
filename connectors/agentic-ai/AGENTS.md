@@ -46,15 +46,17 @@ The module is split into Maven modules with a fixed dependency direction
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
 | `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
-| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
+| `aiagent-otel`                  | `otel`                               | OpenTelemetry GenAI tracing for the AI Agent as a lifecycle listener, inert unless enabled | api, model, common |
+| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors, gateway tool integrations, and extensions, for runtimes | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations, otel |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
-Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
-or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
+Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients,
+integrations, or extensions. Extensions (`aiagent-otel`) implement the extension points of `aiagent-api`, and no
+module depends on them. Package roots are relative to `io.camunda.connector.agenticai`;
 put new classes under the root of their module, and no Java package spans several modules. Each module has its own
 auto-configuration, element templates and icons.
 All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
-bundles, the e2e tests) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there.
+bundles, the e2e tests) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector, integration, or extension there.
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
 
 ### Architecture tests
@@ -72,7 +74,7 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
   and `aiagent.configuration`) does not depend on the providers.
 - `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+  LangChain4j, A2A, MCP, OpenTelemetry API) is only used by the packages that integrate it.
 - `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
   `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
   in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
@@ -98,12 +100,12 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `GeneralCodingRulesArchTest`: no access to the standard streams, no `java.util.logging`.
 - `NamingConventionsArchTest`: a class named `FooImpl` implements the interface `Foo`.
 - `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
-  `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
-  integration modules.
+  `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector,
+  integration, and extension modules.
 
-`AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
-a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
-integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
+`AgenticAiModules` maps modules to package roots and kinds (library, connector, integration, extension). When you add
+a module, a package root or a dependency between modules, update it and the layer rules; a new connector,
+integration, or extension also goes into `agentic-ai-bundle`. Run only the architecture tests with:
 
 ```bash
 ./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \

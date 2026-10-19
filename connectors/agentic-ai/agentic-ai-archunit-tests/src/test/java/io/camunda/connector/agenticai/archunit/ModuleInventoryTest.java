@@ -17,7 +17,7 @@ import org.w3c.dom.Element;
 /**
  * Keeps the {@link AgenticAiModules} registry, which the architecture rules are built from, in step
  * with the Maven modules: every module of the aggregator is registered, and the bundle ships
- * exactly the connectors and their integrations.
+ * exactly the connectors, their integrations, and the extensions.
  */
 class ModuleInventoryTest {
 
@@ -42,7 +42,7 @@ class ModuleInventoryTest {
   }
 
   @Test
-  void bundleDeclaresExactlyTheConnectorsAndIntegrations() throws Exception {
+  void bundleDeclaresExactlyTheConnectorsIntegrationsAndExtensions() throws Exception {
     final Set<String> bundled = new LinkedHashSet<>();
     for (final Element dependency :
         PomFiles.children(
