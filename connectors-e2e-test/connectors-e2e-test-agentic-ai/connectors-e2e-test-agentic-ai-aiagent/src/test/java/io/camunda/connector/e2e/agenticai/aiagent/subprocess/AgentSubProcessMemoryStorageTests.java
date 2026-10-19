@@ -30,8 +30,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
-import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
+import io.camunda.connector.e2e.agenticai.aiagent.common.AgentCoreMemoryTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.common.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
