@@ -115,13 +115,13 @@ public interface AgentInstanceClient {
       AgentConversationTurn previousTurn,
       AgentContext agentContext);
 
-  /**
-   * Appends a compaction event after the stored conversation was compacted. The event uses the
-   * completed turn's iteration key and does not change the agent instance status.
-   */
-  void applyCompactionEvent(
+  /** Records the real assistant completion with evidence of compaction during snapshot storage. */
+  void applyTurnCompletion(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      ConversationCompactionEvent event,
-      int iterationKey);
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status,
+      AgentContext agentContext,
+      @Nullable ConversationCompactionEvent compactionEvent);
 }
