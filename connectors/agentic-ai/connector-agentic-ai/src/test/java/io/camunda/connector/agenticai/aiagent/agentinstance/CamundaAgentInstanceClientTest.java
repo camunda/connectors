@@ -48,6 +48,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -224,6 +225,44 @@ class CamundaAgentInstanceClientTest {
         .thenReturn(updateCommandStep2);
     when(updateCommandStep2.jobKey(JOB_KEY)).thenReturn(updateCommandStep3);
     when(updateCommandStep3.jobLeaseToken(any())).thenReturn(updateCommandStep4);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  void appendsCompactionEvidenceAsConfigurationAtTheCompactedTurnIteration() {
+    givenUpdateCommand();
+    final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
+        ArgumentCaptor.forClass(List.class);
+
+    client.applyCompactionEvent(
+        TestAgentExecutionContext.withLimits(),
+        AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+        new ConversationCompactionEvent("event-123", null, "Masked older tool results."),
+        4);
+
+    verify(updateCommandStep4).history(historyCaptor.capture());
+    verify(updateCommandStep4).execute();
+    verify(updateCommandStep2, never()).status(any());
+    assertThat(historyCaptor.getValue())
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+              assertThat(item.getHistoryItemId()).isEqualTo("compaction:event-123");
+              assertThat(item.getLoopIteration()).isEqualTo(4);
+              assertThat(item.getContent())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      AgentInstanceHistoryContent.ObjectContent.class,
+                      content ->
+                          assertThat(content.getObject())
+                              .isEqualTo(
+                                  Map.of(
+                                      "evidence",
+                                      Map.of(
+                                          "kind", "compaction",
+                                          "message", "Masked older tool results."))));
+            });
   }
 
   @Nested

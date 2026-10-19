@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionExc
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionAware;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -279,6 +280,17 @@ public abstract class BaseAgentRequestHandler<
             ConversationStoreRequest.of(updatedConversation.allMessages()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
+    final var compactionEvent =
+        storedRef instanceof ConversationCompactionAware compactionAware
+            ? compactionAware.compactionEvent()
+            : null;
+    if (compactionEvent != null) {
+      agentInstanceClient.applyCompactionEvent(
+          executionContext,
+          storedConversation.agentInstanceKey(),
+          compactionEvent,
+          storedConversation.currentTurn().iterationKey());
+    }
     final var agentResponse =
         responseHandler.createResponse(storedConversation, outcome.processToolCalls());
 

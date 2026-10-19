@@ -31,6 +31,7 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +72,10 @@ class ObservationMaskingConversationStoreTest {
             .build());
 
     final var context = storeContext(messages);
+    final var compactionEvent = Objects.requireNonNull(context.compactionEvent());
+    assertThat(compactionEvent.savedTokens()).isNull();
+    assertThat(compactionEvent.message())
+        .isEqualTo("Masked older tool results from tools: tool-1, tool-2.");
     final ConversationLoadResult loaded =
         store
             .createSession(
@@ -107,6 +112,17 @@ class ObservationMaskingConversationStoreTest {
                         user ->
                             assertThat(user.content())
                                 .contains(TextContent.textContent("latest analyst feedback"))));
+
+    try (final var session =
+        store.createSession(
+            mock(AgentExecutionContext.class), AgentContext.empty().withConversation(context))) {
+      final var nextSnapshot =
+          (ObservationMaskingConversationContext)
+              session.storeMessages(
+                  AgentContext.empty().withConversation(context),
+                  ConversationStoreRequest.of(context.messages()));
+      assertThat(nextSnapshot.compactionEvent()).isNull();
+    }
   }
 
   @Test
