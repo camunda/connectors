@@ -1,0 +1,86 @@
+{
+  "description": "Curated paths that can change AI Agent CPT behavior. Keep this list reviewable, add positive and negative classifier tests with every update, and do not treat it as a complete transitive dependency graph.",
+  "tradeoffs": "For v1, shared parent POMs are conservative whole-file matches, and whole-module directory matches include docs and other nonbehavioral files. This can over-select, but avoids brittle content parsing while separate unrelated modules remain excluded; exact-head label authorization still prevents automatic paid-provider spend.",
+  "maintenance": "Update this map when a mapped module adds or removes a first-party compile, runtime, or test dependency relevant to CPT; when registry or workflow inputs change; or when Maven parent, wrapper, or build configuration changes.",
+  "exclusions": "Unrelated connectors co-packaged in the default bundle remain excluded: ordinary build and E2E coverage owns bundle-startup regressions, while including every packaged connector would fan one unrelated change out to all paid provider rows.",
+  "groups": [
+    {
+      "name": "direct AI Agent CPT inputs",
+      "description": "The connector, its real-provider tests, registry helpers, workflow, and pinned template CLI version directly define CPT behavior.",
+      "paths": [
+        "connectors/agentic-ai/**",
+        "connectors-e2e-test/connectors-e2e-test-agentic-ai/**",
+        ".github/ai-agent-cpt/**",
+        ".github/workflows/AI_AGENT_CPT_PR.yml",
+        ".github/workflows/package.json"
+      ]
+    },
+    {
+      "name": "Maven parents and dependency management",
+      "description": "These parent POMs control inherited dependency, plugin, and reactor configuration used to compile or execute the CPT modules.",
+      "paths": [
+        "pom.xml",
+        "parent/pom.xml",
+        "connectors/pom.xml",
+        "connectors-e2e-test/pom.xml",
+        "connector-commons/pom.xml",
+        "connector-runtime/pom.xml",
+        "connector-sdk/pom.xml",
+        "element-template-generator/pom.xml",
+        "apps/bundle/pom.xml",
+        "connectors/http/pom.xml"
+      ]
+    },
+    {
+      "name": "shared runtime, SDK, document, and provider support",
+      "description": "AI Agent execution and HTTP-backed tool/provider calls use these shared APIs, serializers, validators, clients, and runtime implementations.",
+      "paths": [
+        "connector-sdk/core/**",
+        "connector-sdk/validation/**",
+        "connector-runtime/connector-feel/**",
+        "connector-runtime/connector-runtime-core/**",
+        "connector-runtime/connector-runtime-spring/**",
+        "connector-runtime/jackson-datatype-document/**",
+        "connector-runtime/jackson-datatype-feel/**",
+        "connector-runtime/spring-boot-starter-camunda-connectors/**",
+        "connector-commons/connector-object-mapper/**",
+        "connector-commons/connector-utils/**",
+        "connector-commons/http-client/**",
+        "connector-commons/host-ip-validator/**",
+        "connector-commons/host-ip-validator-annotation/**",
+        "connectors/http/http-base/**",
+        "connectors/http/rest/**",
+        "connectors/webhook/**"
+      ]
+    },
+    {
+      "name": "shared element-template tooling",
+      "description": "The AI Agent templates are generated from these shared annotations, generator logic, and Maven plugin.",
+      "paths": [
+        "element-template-generator/annotations/**",
+        "element-template-generator/core/**",
+        "element-template-generator/maven-plugin/**"
+      ]
+    },
+    {
+      "name": "CPT application and test infrastructure",
+      "description": "The bundle-backed row and test harness build and execute through these application, image, fixture, and test-support modules, including inherited shared runtime test infrastructure.",
+      "paths": [
+        "apps/connector-runtime-application/**",
+        "apps/bundle/default-bundle/**",
+        "connector-commons/connector-test-utils/**",
+        "connector-runtime/connector-runtime-test/**",
+        "connector-sdk/test/**",
+        "connectors-e2e-test/connectors-e2e-test-base/**"
+      ]
+    },
+    {
+      "name": "Maven execution infrastructure",
+      "description": "The checked-in Maven launcher and wrapper/build configuration determine how every CPT reactor build resolves and executes.",
+      "paths": [
+        "mvnw",
+        ".mvn/**"
+      ]
+    }
+  ]
+}

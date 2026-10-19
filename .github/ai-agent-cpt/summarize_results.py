@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 
 import validate_registry
 
@@ -14,6 +15,16 @@ SCHEMA_VERSION = 1
 MAX_DETAIL_ROWS = 300
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 EXCEPTION_CLASS = re.compile(r"[A-Za-z_$][A-Za-z0-9_.$]*")
+MATRIX_ROW_FIELDS = {
+    "id",
+    "name",
+    "provider-group",
+    "groups",
+    "test-classes",
+    "build-bundle",
+    "maven-projects",
+    "credential-profiles",
+}
 
 
 def compact(value):
@@ -161,10 +172,59 @@ def render_matrix(registry_path):
     registry, rows = validate_registry.load_registry(registry_path)
     validate_registry.validate(registry, rows)
     matrix = validate_registry.render_ci_matrix(rows)
-    ci_rows = [row for row in rows if row.get("ci")]
-    for matrix_row, registry_row in zip(matrix, ci_rows, strict=True):
-        matrix_row["id"] = registry_row["id"]
     return json.dumps(matrix, separators=(",", ":"))
+
+
+def validate_matrix_json(value):
+    try:
+        matrix = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"rendered matrix is not valid JSON: {error.msg}") from error
+    if not isinstance(matrix, list) or not matrix:
+        raise ValueError("rendered matrix must be a non-empty JSON array")
+    matrix_ids = set()
+    for index, row in enumerate(matrix):
+        if not isinstance(row, dict):
+            raise ValueError(f"rendered matrix row {index} must be an object")
+        missing_fields = MATRIX_ROW_FIELDS - row.keys()
+        if missing_fields:
+            raise ValueError(
+                f"rendered matrix row {index} is missing fields: "
+                + ", ".join(sorted(missing_fields))
+            )
+        for field in ("id", "name", "maven-projects"):
+            if not isinstance(row[field], str) or not row[field]:
+                raise ValueError(
+                    f"rendered matrix row {index} field {field} must be a non-empty string"
+                )
+        for field in ("provider-group", "groups", "test-classes"):
+            if not isinstance(row[field], str):
+                raise ValueError(
+                    f"rendered matrix row {index} field {field} must be a string"
+                )
+        if type(row["build-bundle"]) is not bool:
+            raise ValueError(
+                f"rendered matrix row {index} field build-bundle must be a boolean"
+            )
+        profiles = row["credential-profiles"]
+        if (
+            not isinstance(profiles, list)
+            or not profiles
+            or not all(isinstance(profile, str) and profile for profile in profiles)
+            or len(profiles) != len(set(profiles))
+        ):
+            raise ValueError(
+                f"rendered matrix row {index} field credential-profiles "
+                "must contain unique non-empty strings"
+            )
+        if bool(row["groups"]) == bool(row["test-classes"]):
+            raise ValueError(
+                f"rendered matrix row {index} must select exactly one of groups or test-classes"
+            )
+        if row["id"] in matrix_ids:
+            raise ValueError(f"rendered matrix contains duplicate id: {row['id']}")
+        matrix_ids.add(row["id"])
+    return matrix
 
 
 def aggregate(registry_path, results_directory, output):
@@ -272,6 +332,7 @@ def parse_args():
     subparsers = parser.add_subparsers(dest="command", required=True)
     matrix_parser = subparsers.add_parser("matrix")
     matrix_parser.add_argument("--registry", required=True)
+    subparsers.add_parser("validate-matrix")
     finalize_parser = subparsers.add_parser("finalize")
     finalize_parser.add_argument("--output", required=True)
     aggregate_parser = subparsers.add_parser("aggregate")
@@ -285,6 +346,8 @@ if __name__ == "__main__":
     arguments = parse_args()
     if arguments.command == "matrix":
         print(render_matrix(arguments.registry))
+    elif arguments.command == "validate-matrix":
+        validate_matrix_json(sys.stdin.read())
     elif arguments.command == "finalize":
         finalize(arguments.output)
     else:

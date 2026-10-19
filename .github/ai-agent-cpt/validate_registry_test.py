@@ -34,6 +34,7 @@ class ValidateRegistryTest(unittest.TestCase):
         matrix = validate_registry.render_ci_matrix(self.registry["rows"])
         row = next(row for row in matrix if row["name"] == "OpenAI native capability CPT")
 
+        self.assertEqual("openai-native", row["id"])
         self.assertEqual(
             "core-smoke | structured-output | reasoning",
             row["groups"],
@@ -72,6 +73,29 @@ class ValidateRegistryTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "define exactly these provider groups"):
             self.validate()
+
+    def test_rejects_invalid_row_identity_and_build_inputs(self):
+        row = next(row for row in self.registry["rows"] if row["id"] == "openai-native")
+        invalid = [
+            ("id", "OpenAI/native", "id must contain only"),
+            ("name", "", "name must be non-empty"),
+            ("mavenProjects", "", "mavenProjects must be non-empty"),
+            (
+                "credentialProfiles",
+                ["openai", "openai"],
+                "unique non-empty strings",
+            ),
+            ("credentialProfiles", [""], "unique non-empty strings"),
+        ]
+        for field, value, message in invalid:
+            with self.subTest(field=field, value=value):
+                original = row[field]
+                row[field] = value
+                try:
+                    with self.assertRaisesRegex(ValueError, message):
+                        self.validate()
+                finally:
+                    row[field] = original
 
 
 if __name__ == "__main__":
