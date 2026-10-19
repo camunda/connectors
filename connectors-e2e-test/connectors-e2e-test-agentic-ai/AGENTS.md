@@ -21,7 +21,7 @@ it tests, so it runs a runtime with only these connectors:
 | E2E module                                    | Tests                                                                                                 |
 |-----------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store) |
-| `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`AgentTestFixtures`, the `assertj` package)         |
+| `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`aiagent.fixtures`, `assertj`)                      |
 | `connectors-e2e-test-agentic-ai-aiagent`      | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools                               |
 | `connectors-e2e-test-agentic-ai-real-llm`     | AI Agent against real LLM providers (CPT), with the AI Agent connector only                           |
 | `connectors-e2e-test-agentic-ai-mcp`          | MCP client connectors, including the authentication tests                                             |
@@ -73,7 +73,11 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
   files into the module that uses them.
 - Paths to element templates and other files of `connectors/agentic-ai` are relative to the module
   directory (`../../../connectors/...`). `AgentTestFixtures` holds the template paths.
-- Keep all Java packages below `io.camunda.connector.e2e.agenticai`, independent of the module.
+- Keep all Java packages below `io.camunda.connector.e2e.agenticai`. Each package belongs to one e2e
+  module: the root package to the base module, `aiagent.fixtures` and `assertj` to the AI Agent base
+  module, `aiagent` (except `aiagent.fixtures`) and `adhoctoolsschema` to the AI Agent module,
+  `realllm` to the real LLM module, `mcp` to the MCP module and `a2a` to the A2A module. Shared AI Agent
+  test helpers for MCP and A2A gateway tools live in `aiagent.common`.
 
 ### Element template regression fixtures
 
