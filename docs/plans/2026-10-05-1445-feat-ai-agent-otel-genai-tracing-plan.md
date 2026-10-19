@@ -143,8 +143,25 @@ GenAI semantic conventions have no tool-error type of their own. A failed operat
 | Job superseded or completion rejected | `invoke_agent` (and the anchor of a run-starting job) | Outcome `superseded`; Error with `error.type=job_superseded` so wasted spend stays visible |
 | Tool completed | `execute_tool` | Outcome `completed`; status unset |
 | Tool cancelled | `execute_tool` | Outcome `cancelled`; status unset, because the agent or engine interrupted it |
-| Tool failed (BPMN error boundary mapped to content, MCP `isError`, A2A failed task) | `execute_tool` | Not distinguishable today: the tool result carries only free content; see Outstanding Questions |
+| Tool failed (BPMN error boundary mapped to content, MCP `isError`, A2A failed task) | `execute_tool` | Not distinguishable until the tool error signal exists (R33, deferred): the span shows outcome `completed` |
 | Tool incident (tool job never completes) | None | The result never arrives; visible only through cluster data |
+
+### Tool Error Signal
+
+Deferred to the production milestone (R33). Today a tool result carries only free `content`, an `interrupted` property for cancelled tools, and the properties the modeler maps in. Three sources of tool failure exist, and none sets a structured marker:
+
+- **Gateway tools:** the MCP client result has an `isError` flag that the gateway handler drops when it converts the result; A2A has failed and rejected task states that end up as content.
+- **BPMN tools:** a failure raised as a BPMN error and caught by an error boundary is turned into text by the modeler's mapping.
+- **Tool incidents:** the tool job fails and never completes, so no result and no span exist; this stays visible only through cluster data.
+
+What closing the gap needs:
+
+- An additive, optional error marker on the tool call result, for example error properties in the existing `properties` map plus constants next to `PROPERTY_INTERRUPTED` in `aiagent-model`. Old data and older connectors ignore it.
+- The MCP and A2A gateway handlers set it from `isError` and the failed task state.
+- A documented convention for BPMN tools (the element template or modeling guide maps an error boundary to the marker).
+- `aiagent-otel` then sets Error status and `error.type` on `execute_tool`. The marker also lets the agent-instance history API and Operate show failed tools, so the signal is worth designing with that consumer.
+
+The change touches `aiagent-model` and the gateway integrations, which this work leaves unchanged, so it needs its own plan.
 
 
 ### Requirements
@@ -165,6 +182,7 @@ GenAI semantic conventions have no tool-error type of their own. A failed operat
 - R8. Every tool call result consumed by a turn produces one `execute_tool` span from tool dispatch to engine completion, carrying tool name, tool call id, BPMN element id, and outcome, including cancelled tools.
 - R9. Gateway tool discovery (MCP, A2A) is visible as part of the run in which it happens.
 - R10. Model rejections (content filter, context window, guardrail), limit hits, and other agent failures appear as error spans with a low-cardinality error type.
+- R33. A tool execution that failed is marked on its `execute_tool` span with error status and a low-cardinality `error.type` (production milestone; see Tool Error Signal).
 - R11. Token usage follows the semconv totals rule: input tokens include cached tokens, with cache and reasoning counts as subsets.
 
 **Correlation**
@@ -211,7 +229,7 @@ GenAI semantic conventions have no tool-error type of their own. A failed operat
 ### Delivery Milestones
 
 - **PoC milestone.** Covers R1, R3–R18, R19 (documentation), R20, R22 (document references only), R23, R24 (core attributes and the attribute-policy documentation), R28, R30, R31, R32, and the R25 validation, for the AI Agent Sub-process only. Delivers the experimental listener SPI, the event emission, and the `aiagent-otel` module. Content capture works without the redaction SPI and size cap. Validated end to end against local Langfuse and Arize Phoenix with a multi-tool agent that includes a user task, in a runtime where the customer recipe (Spring OTel jars plus properties) was applied to the stock image. Exit criteria are in Success Criteria.
-- **Production milestone.** Adds R2, R21, the R22 size cap, R26, R27, R29, the full R24 mapping, and a sampling policy. Starts only after the PoC exit criteria hold and the product question in Outstanding Questions is answered.
+- **Production milestone.** Adds R2, R21, the R22 size cap, R26, R27, R29, R33, the full R24 mapping, and a sampling policy. Starts only after the PoC exit criteria hold and the product question in Outstanding Questions is answered.
 
 ### Key Flows
 
@@ -284,7 +302,6 @@ The option stays a candidate complement for SaaS and external agents once those 
 
 - Export from the SaaS-hosted connectors runtime (per-cluster exporter configuration and credentials).
 - Interceptors: listener hooks that change agent behavior (guardrails, compaction, prompt rewriting), with their own failure contract.
-- Structured tool-error outcome on `execute_tool` spans: needs an explicit error signal on tool call results (see Outstanding Questions).
 - The agent-instance history client as a lifecycle listener (see the Key Decision); the lifecycle points are named and placed like its call sites so a later migration is mechanical.
 - Per-agent content capture override through an element template property.
 - External content storage with references on spans (semconv has no reference format yet).
@@ -301,6 +318,7 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 - Redaction SPI and content size cap (R21, R22).
 - AI Agent Task coverage (R26), including its per-pass element instances.
 - Provider HTTP child spans (R27): the Anthropic SDK has its own CLIENT spans with HTTP attributes but also duplicates `gen_ai` data (KTD19); the other providers need OkHttp, AWS SDK, or Azure instrumentation. Decide in the production milestone.
+- Tool error signal (R33): see Tool Error Signal in the Product Contract. Until it exists, `execute_tool` spans carry only the outcomes `completed` and `cancelled`, and a failed tool is not distinguishable from a successful one.
 - Trace context reserved in tool call metadata (R29).
 - `execute_tool` spans for gateway tool discovery calls (MCP, A2A); the PoC shows discovery through the discovery job's `invoke_agent` span (R9).
 - Full attribute mapping: request parameters, per-modality usage splits, server address (R24).
@@ -336,8 +354,6 @@ Production-milestone work, planned separately after the PoC exit criteria hold:
 ### Outstanding Questions
 
 **Deferred to Planning**
-
-- Tool errors: `ToolCallResult` carries only free content plus an `interrupted` property for cancelled tools, and the MCP `isError` flag is dropped when the gateway result is transformed. Marking a tool execution as failed needs a structured signal, for example an additive error property on the result set by the MCP and A2A gateway handlers, plus a documented convention for BPMN tools (a BPMN error boundary mapped to the result). It touches `aiagent-model` and the integrations, and would also let the history API show failed tools. Decide scope for the production milestone.
 
 - Does product want the production milestone tracked under product-hub#3314, and does it need a PDP before shipping as a supported feature? This gates the production milestone, not planning of the PoC milestone.
 - Default size cap for R22 and the redaction SPI contract for R21 (production milestone).
@@ -532,6 +548,7 @@ flowchart TB
 - Include the worked example, the run tracing state example, and the error mapping table of this plan: the callback and persist-point table in ADR 016, the example and error mapping in ADR 017.
 - ADR 016: context (pro-code users want hooks into the agent, tracing needs lifecycle events, the earlier tracing design already enumerated them), considered options (tracing code inside the handler, a read-only observer SPI, observers plus interceptors, reusing the history client as the event seam), the decision (KTD15–KTD18: experimental SPI with three callback categories, complete data with consumer-owned content policy, no interceptors yet, history API not a consumer), and consequences (public experimental surface, listener beans see sensitive data, compatibility check exclusion, policy for experimental changes).
 - ADR 017: context (stateless jobs, days-long tools, history API gaps), considered options (cluster-side reconstruction, per-job traces, run trace with anchor root), the decision (KTD1, KTD2, KTD5, KTD13, KTD19: raw OTel API, `aiagent-otel` in the bundle but inert, customer enables Spring OTel, provider SDK tracing off), and consequences (at-most-once tool spans, Datadog 18-hour window, semconv churn).
+- ADR 017 ends with a `## Follow-up` section that names the tool error signal (R33) with its closing condition: an error marker on tool call results set by the gateway handlers, as described in Tool Error Signal.
 - Cite ADR 008 (tool-result timestamps), ADR 012 (message ids), ADR 013 (turn updates and lease fencing), and ADR 015 (module boundaries).
 
 **Patterns to follow:** `connectors/agentic-ai/docs/adr/014-route-v1-requests-through-native-providers.md`, `connectors/agentic-ai/docs/adr/015-split-agentic-ai-into-modules.md`
@@ -846,7 +863,7 @@ The package `aiagent.tracing` belongs to the AI Agent e2e module, which owns eve
 - Modify: `docs/plans/2026-10-05-1445-feat-ai-agent-otel-genai-tracing-plan.md`
 
 **Approach:**
-- Reference doc: the customer recipe (Boot OpenTelemetry tracing module and OTLP exporter jars for the stock image, `management.opentelemetry.*` and `management.tracing.sampling.probability=1.0`, the Observation-bridge exclusion), configuration properties (KTD3 including the cluster-id prefix), the recommendation of one backend project per cluster, the agent-definition prerequisite, the trace model with run boundary and session identifier, attribute policy (pinned semconv, Development status), content capture and the sensitivity of listener data, limitations (at-most-once on crash after commit, process termination, Datadog 18-hour window), the note that provider SDK tracing is off, and a local validation recipe: Langfuse v4 self-host compose with the Basic auth header and `x-langfuse-ingestion-version: 4`, and Phoenix via its pinned container with the protobuf OTLP endpoint.
+- Reference doc: the customer recipe (Boot OpenTelemetry tracing module and OTLP exporter jars for the stock image, `management.opentelemetry.*` and `management.tracing.sampling.probability=1.0`, the Observation-bridge exclusion), configuration properties (KTD3 including the cluster-id prefix), the recommendation of one backend project per cluster, the agent-definition prerequisite, the trace model with run boundary and session identifier, attribute policy (pinned semconv, Development status), content capture and the sensitivity of listener data, limitations (at-most-once on crash after commit, process termination, Datadog 18-hour window), the note that provider SDK tracing is off, the limitation that a failed tool is not distinguishable from a successful one (`execute_tool` shows only `completed` or `cancelled`, tool incidents produce no span) with the planned error marker, and a local validation recipe: Langfuse v4 self-host compose with the Basic auth header and `x-langfuse-ingestion-version: 4`, and Phoenix via its pinned container with the protobuf OTLP endpoint.
 - Validation, after the user approves real-LLM usage, in a stock-image runtime with the customer recipe applied, against both backends:
   1. One multi-tool agent run with a user task and content capture on (criteria 1, 2, 4, 5), including scoring one run in each backend.
   2. A run whose first job fails on every attempt, and a worker killed after the run-starting job's commit and once mid-job (criterion 1b).
