@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelRequestParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
@@ -90,9 +89,6 @@ class AnthropicChatModelConfigurationTest {
     assertThat(parameters.effort()).isEqualTo(AnthropicEffort.HIGH);
     assertThat(parameters.thinking())
         .isEqualTo(new AnthropicThinking(ThinkingMode.ENABLED, 2048, null));
-
-    assertThat(parsed.requestParameters())
-        .isEqualTo(new ChatModelRequestParameters(1024L, null, null, null));
 
     final String reserialised = mapper.writeValueAsString(parsed);
     assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);

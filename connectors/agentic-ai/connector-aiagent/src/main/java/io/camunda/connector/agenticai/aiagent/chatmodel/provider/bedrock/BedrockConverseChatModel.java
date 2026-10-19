@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -119,20 +120,24 @@ public class BedrockConverseChatModel implements ChatModel {
           Optional.ofNullable(awsServiceException.awsErrorDetails())
               .map(details -> details.errorCode())
               .orElseGet(() -> awsServiceException.getClass().getSimpleName());
-      return new ConnectorException(
+      return new ChatModelCallFailedException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s"
               .formatted(
                   awsServiceException.statusCode(), errorCode, awsServiceException.getMessage()),
-          awsServiceException);
+          awsServiceException,
+          errorCode);
     }
 
     final String detail =
         Optional.ofNullable(cause.getMessage())
             .filter(m -> !m.isBlank())
             .orElseGet(() -> cause.getClass().getSimpleName());
-    return new ConnectorException(
-        ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), cause);
+    return new ChatModelCallFailedException(
+        ERROR_CODE_FAILED_MODEL_CALL,
+        "Model call failed: %s".formatted(detail),
+        cause,
+        cause.getClass().getSimpleName());
   }
 
   @Override

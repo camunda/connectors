@@ -10,7 +10,9 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.openai.client.OpenAIClient;
 import com.openai.errors.BadRequestException;
+import com.openai.errors.OpenAIServiceException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -75,10 +77,20 @@ public class OpenAiChatModel implements ChatModel {
       if (OPENAI_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
         throw new ContextWindowExceededException(failureMessage(e), e, null);
       }
-      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
+      throw new ChatModelCallFailedException(
+          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, errorTypeOf(e));
     } catch (Exception e) {
-      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
+      throw new ChatModelCallFailedException(
+          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, errorTypeOf(e));
     }
+  }
+
+  /** The error type the API reported, else the class name of the failure. */
+  private static String errorTypeOf(Exception e) {
+    if (e instanceof OpenAIServiceException serviceException) {
+      return serviceException.type().filter(t -> !t.isBlank()).orElse(e.getClass().getSimpleName());
+    }
+    return e.getClass().getSimpleName();
   }
 
   /**

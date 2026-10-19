@@ -140,19 +140,6 @@ public final class GenAiAttributeMapper {
     builder.put(GenAiAttributes.OPERATION_NAME, GenAiAttributes.OPERATION_CHAT);
     builder.put(GenAiAttributes.PROVIDER_NAME, providerName(chatModel));
     builder.put(GenAiAttributes.REQUEST_MODEL, chatModel.model());
-    final var parameters = chatModel.requestParameters();
-    if (parameters.maxTokens() != null) {
-      builder.put(GenAiAttributes.REQUEST_MAX_TOKENS, parameters.maxTokens());
-    }
-    if (parameters.temperature() != null) {
-      builder.put(GenAiAttributes.REQUEST_TEMPERATURE, parameters.temperature());
-    }
-    if (parameters.topP() != null) {
-      builder.put(GenAiAttributes.REQUEST_TOP_P, parameters.topP());
-    }
-    if (parameters.topK() != null) {
-      builder.put(GenAiAttributes.REQUEST_TOP_K, parameters.topK().doubleValue());
-    }
     if (captureContent) {
       final ArrayNode instructions = NODES.arrayNode();
       final List<Message> conversation = new ArrayList<>();

@@ -119,7 +119,8 @@ public class AnthropicChatModel implements ChatModel {
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
-      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
+      throw new ChatModelCallFailedException(
+          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, e.getClass().getSimpleName());
     }
   }
 

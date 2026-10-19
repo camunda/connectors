@@ -18,13 +18,13 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentParameters;
 import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
-import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -116,17 +116,21 @@ public class GeminiChatModel implements ChatModel {
           Optional.ofNullable(e.message())
               .filter(m -> !m.isBlank())
               .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
+      throw new ChatModelCallFailedException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s".formatted(e.code(), status, message),
-          e);
+          e,
+          status);
     } catch (Exception e) {
       final String detail =
           Optional.ofNullable(e.getMessage())
               .filter(m -> !m.isBlank())
               .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+      throw new ChatModelCallFailedException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Model call failed: %s".formatted(detail),
+          e,
+          e.getClass().getSimpleName());
     }
   }
 

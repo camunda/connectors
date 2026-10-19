@@ -16,6 +16,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -27,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownSt
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
-import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Function;
@@ -159,8 +159,11 @@ public class LangChain4JChatModel implements ChatModel {
               .filter(StringUtils::isNotBlank)
               .orElseGet(() -> e.getClass().getSimpleName());
 
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(message), e);
+      throw new ChatModelCallFailedException(
+          ERROR_CODE_FAILED_MODEL_CALL,
+          "Model call failed: %s".formatted(message),
+          e,
+          e.getClass().getSimpleName());
     }
   }
 
