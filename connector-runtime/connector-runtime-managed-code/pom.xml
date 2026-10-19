@@ -13,7 +13,7 @@
 
   <artifactId>connector-runtime-managed-code</artifactId>
   <name>Connector Runtime Managed Code</name>
-  <description>Optional managed-script worker with lazy provisioning</description>
+  <description>Optional managed-script connector with lazy provisioning</description>
 
   <dependencies>
     <dependency>
@@ -33,8 +33,16 @@
       <artifactId>camunda-client-java</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>camunda-spring-boot-starter</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -77,4 +85,36 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate-templates</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.runtime.managedcode.ManagedScriptFunction</connectorClass>
+              <!-- Registered as a Spring bean: a ServiceLoader entry would need a no-argument constructor -->
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.ManagedScript.v1</templateId>
+                  <templateFileName>managed-script-connector.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

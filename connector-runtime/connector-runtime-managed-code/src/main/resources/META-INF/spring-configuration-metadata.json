@@ -3,7 +3,7 @@
     {
       "name": "camunda.connector.managed-code",
       "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
-      "description": "Optional managed-script worker with lazy provisioning."
+      "description": "Optional managed-script connector with lazy provisioning."
     },
     {
       "name": "camunda.connector.managed-code.local",
@@ -16,7 +16,7 @@
     {
       "name": "camunda.connector.managed-code.enabled",
       "type": "java.lang.Boolean",
-      "description": "Whether to start the managed-script worker for the 'io.camunda:managed-script:1' job type.",
+      "description": "Whether to serve the 'io.camunda:managed-script:1' job type with the managed-script connector.",
       "defaultValue": false
     },
     {
@@ -25,10 +25,10 @@
       "description": "Name of the managed-code provider bean to use. The only built-in provider is 'local': deployments in a local directory and Node.js or Python execution in local subprocesses, for trusted development only."
     },
     {
-      "name": "camunda.connector.managed-code.worker-name",
+      "name": "camunda.connector.managed-code.deployment-name-prefix",
       "type": "java.lang.String",
-      "description": "Name of the managed-script job worker.",
-      "defaultValue": "managed-script-worker"
+      "description": "Prefix of every provider resource name, one per cluster. The identity of the runtime may only manage resources whose name starts with it. A lowercase letter followed by at most 23 lowercase letters, digits and hyphens.",
+      "defaultValue": "camunda-ms-"
     },
     {
       "name": "camunda.connector.managed-code.execution-timeout",
@@ -47,12 +47,6 @@
       "type": "java.time.Duration",
       "description": "Retry backoff of jobs that failed while waiting for provisioning or with a retryable error.",
       "defaultValue": "10s"
-    },
-    {
-      "name": "camunda.connector.managed-code.invocation-concurrency",
-      "type": "java.lang.Integer",
-      "description": "Maximum number of managed-script jobs activated concurrently per Camunda client.",
-      "defaultValue": 4
     },
     {
       "name": "camunda.connector.managed-code.provisioning-concurrency",

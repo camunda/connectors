@@ -76,6 +76,7 @@ class ArtifactSpecTest {
         "default",
         tenantId,
         "local",
+        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         ScriptLanguage.JAVASCRIPT,
         runtime,
         resourceName,

@@ -17,22 +17,13 @@
 package io.camunda.connector.runtime.managedcode;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.command.CompleteJobCommandStep1;
-import io.camunda.client.api.command.FailJobCommandStep1;
-import io.camunda.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
-import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.client.api.worker.JobClient;
+import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.managedcode.ManagedScriptJobHandler.Outcome;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
@@ -40,15 +31,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 class ManagedScriptJobHandlerTest {
 
   private static final Duration BACKOFF = Duration.ofSeconds(7);
+  private static final Map<String, Object> INPUT = Map.of("a", 2, "b", 3);
   private static final String SCRIPT =
       """
       export async function execute(variables) {
@@ -77,16 +69,14 @@ class ManagedScriptJobHandlerTest {
   @Test
   void completesWithScriptVariables() {
     provider.respond(ExecutionResponse.completed(Map.of("sum", 5)));
-    final var job = job(1L, 3, scriptLink(1L));
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofSeconds(5)).handle(camundaClient, "default", jobClient.mock, job);
+    final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L)));
 
-    verify(jobClient.complete).variables(Map.<String, Object>of("sum", 5));
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
     final var request = provider.requests.getFirst();
     assertThat(request.contractVersion()).isEqualTo("1");
     assertThat(request.executionId()).isEqualTo("1");
-    assertThat(request.variables()).containsEntry("a", 2);
+    assertThat(request.variables()).isEqualTo(INPUT);
     assertThat(request.context())
         .containsEntry("tenantId", "tenant-a")
         .containsEntry("jobKey", "1")
@@ -100,13 +90,40 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void derivesLanguageFromTheFileExtensionWithoutHeaders() {
+    final var job = job(1L, 3, scriptLink(1L));
+    when(job.getCustomHeaders()).thenReturn(Map.of("linkedResources", scriptLink(1L)));
+
+    final var outcome = handle(handler(Duration.ofSeconds(5)), job);
+
+    assertThat(outcome).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.provisioned.getFirst().language()).isEqualTo(ScriptLanguage.JAVASCRIPT);
+    assertThat(provider.provisioned.getFirst().runtime()).isEqualTo("nodejs");
+  }
+
+  @Test
+  void prefixesTheDeploymentName() {
+    final var handler =
+        new ManagedScriptJobHandler(
+            provider,
+            registry,
+            scriptResources(),
+            objectMapper,
+            Duration.ofSeconds(5),
+            BACKOFF,
+            "camunda-ms-c1-");
+
+    handle(handler, job(1L, 3, scriptLink(1L)));
+
+    assertThat(provider.provisioned.getFirst().deploymentName()).startsWith("camunda-ms-c1-");
+  }
+
+  @Test
   void reusesDeploymentAndCachedContentForTheSameArtifact() {
     final var handler = handler(Duration.ofSeconds(5));
 
-    handler.handle(
-        camundaClient, "default", new RecordingJobClient().mock, job(1L, 3, scriptLink(1L)));
-    handler.handle(
-        camundaClient, "default", new RecordingJobClient().mock, job(2L, 3, scriptLink(1L)));
+    handle(handler, job(1L, 3, scriptLink(1L)));
+    handle(handler, job(2L, 3, scriptLink(1L)));
 
     assertThat(provider.provisionings).hasValue(1);
     assertThat(fetches).hasValue(1);
@@ -118,14 +135,12 @@ class ManagedScriptJobHandlerTest {
     final var ready = new CompletableFuture<ProviderDeployment>();
     provider.readyWhen(ready);
     final var handler = handler(Duration.ofSeconds(10));
-    final var first = new RecordingJobClient();
-    final var second = new RecordingJobClient();
+    final Future<Outcome> first;
+    final Future<Outcome> second;
 
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      executor.submit(
-          () -> handler.handle(camundaClient, "default", first.mock, job(1L, 3, scriptLink(1L))));
-      executor.submit(
-          () -> handler.handle(camundaClient, "default", second.mock, job(2L, 3, scriptLink(1L))));
+      first = executor.submit(() -> handle(handler, job(1L, 3, scriptLink(1L))));
+      second = executor.submit(() -> handle(handler, job(2L, 3, scriptLink(1L))));
       Thread.sleep(200);
       ready.complete(null);
       executor.shutdown();
@@ -133,8 +148,8 @@ class ManagedScriptJobHandlerTest {
     }
 
     assertThat(provider.provisionings).hasValue(1);
-    verify(first.complete).execute();
-    verify(second.complete).execute();
+    assertThat(first.get()).isInstanceOf(Outcome.Completed.class);
+    assertThat(second.get()).isInstanceOf(Outcome.Completed.class);
   }
 
   @Test
@@ -142,51 +157,43 @@ class ManagedScriptJobHandlerTest {
     final var ready = new CompletableFuture<ProviderDeployment>();
     provider.readyWhen(ready);
     final var handler = handler(Duration.ofMillis(100));
-    final var timedOut = new RecordingJobClient();
 
-    handler.handle(camundaClient, "default", timedOut.mock, job(1L, 3, scriptLink(1L)));
+    final var timedOut = failed(handle(handler, job(1L, 3, scriptLink(1L))));
 
-    verify(timedOut.fail).retries(3);
-    verify(timedOut.failStep2).retryBackoff(BACKOFF);
-    assertThat(timedOut.errorMessage()).contains("still being provisioned");
+    assertThat(timedOut.retries()).isEqualTo(3);
+    assertThat(timedOut.backoff()).isEqualTo(BACKOFF);
+    assertThat(timedOut.message()).contains("still being provisioned");
 
     ready.complete(null);
-    final var retried = new RecordingJobClient();
-    handler.handle(camundaClient, "default", retried.mock, job(1L, 3, scriptLink(1L)));
-
-    verify(retried.complete).execute();
+    assertThat(handle(handler, job(1L, 3, scriptLink(1L)))).isInstanceOf(Outcome.Completed.class);
     assertThat(provider.provisionings).hasValue(1);
   }
 
   @Test
   void permanentProvisioningFailureFailsWithoutRetries() {
     provider.failProvisioning(new ProvisioningException("BUILD_FAILED", "syntax error", false));
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofSeconds(5))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))));
 
-    verify(jobClient.fail).retries(0);
-    verify(jobClient.failStep2, never()).retryBackoff(any());
-    assertThat(jobClient.errorMessage()).contains("BUILD_FAILED").contains("syntax error");
+    assertThat(failure.retries()).isZero();
+    assertThat(failure.backoff()).isZero();
+    assertThat(failure.code()).isEqualTo("BUILD_FAILED");
+    assertThat(failure.message()).contains("BUILD_FAILED").contains("syntax error");
   }
 
   @Test
   void transientProvisioningFailureConsumesOneRetryAndProvisionsAgainNextTime() {
     provider.failProvisioning(new ProvisioningException("PLATFORM_THROTTLED", "quota", true));
     final var handler = handler(Duration.ofSeconds(5));
-    final var jobClient = new RecordingJobClient();
 
-    handler.handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var failure = failed(handle(handler, job(1L, 3, scriptLink(1L))));
 
-    verify(jobClient.fail).retries(2);
-    verify(jobClient.failStep2).retryBackoff(BACKOFF);
+    // null lets the runtime consume one retry
+    assertThat(failure.retries()).isNull();
+    assertThat(failure.backoff()).isEqualTo(BACKOFF);
 
     provider.failProvisioning(null);
-    final var retried = new RecordingJobClient();
-    handler.handle(camundaClient, "default", retried.mock, job(1L, 2, scriptLink(1L)));
-
-    verify(retried.complete).execute();
+    assertThat(handle(handler, job(1L, 2, scriptLink(1L)))).isInstanceOf(Outcome.Completed.class);
     assertThat(provider.provisionings).hasValue(2);
   }
 
@@ -196,17 +203,16 @@ class ManagedScriptJobHandlerTest {
         ExecutionResponse.failed("PLATFORM_UNAVAILABLE", "busy", true),
         ExecutionResponse.failed("SCRIPT_ERROR", "x".repeat(2_000), false));
     final var handler = handler(Duration.ofSeconds(5));
-    final var retryable = new RecordingJobClient();
-    final var permanent = new RecordingJobClient();
 
-    handler.handle(camundaClient, "default", retryable.mock, job(1L, 3, scriptLink(1L)));
-    handler.handle(camundaClient, "default", permanent.mock, job(2L, 3, scriptLink(1L)));
+    final var retryable = failed(handle(handler, job(1L, 3, scriptLink(1L))));
+    final var permanent = failed(handle(handler, job(2L, 3, scriptLink(1L))));
 
-    verify(retryable.fail).retries(2);
-    verify(retryable.failStep2).retryBackoff(BACKOFF);
-    assertThat(retryable.errorMessage()).isEqualTo("PLATFORM_UNAVAILABLE: busy");
-    verify(permanent.fail).retries(0);
-    assertThat(permanent.errorMessage()).startsWith("SCRIPT_ERROR: ").hasSize(1_024);
+    assertThat(retryable.retries()).isNull();
+    assertThat(retryable.backoff()).isEqualTo(BACKOFF);
+    assertThat(retryable.message()).isEqualTo("PLATFORM_UNAVAILABLE: busy");
+    assertThat(permanent.retries()).isZero();
+    assertThat(permanent.code()).isEqualTo("SCRIPT_ERROR");
+    assertThat(permanent.message()).startsWith("SCRIPT_ERROR: ").hasSize(1_024);
   }
 
   @Test
@@ -214,14 +220,12 @@ class ManagedScriptJobHandlerTest {
     provider.respond(
         ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false),
         ExecutionResponse.completed(Map.of("sum", 5)));
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofSeconds(5))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L)));
 
     assertThat(provider.provisionings).hasValue(2);
     assertThat(provider.requests).hasSize(2);
-    verify(jobClient.complete).variables(Map.<String, Object>of("sum", 5));
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
   }
 
   @Test
@@ -229,15 +233,13 @@ class ManagedScriptJobHandlerTest {
     provider.respond(ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false));
     provider.readyInSequence(
         CompletableFuture.completedFuture(null), new CompletableFuture<ProviderDeployment>());
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofMillis(200))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var failure = failed(handle(handler(Duration.ofMillis(200)), job(1L, 3, scriptLink(1L))));
 
     assertThat(provider.provisionings).hasValue(2);
-    verify(jobClient.fail).retries(3);
-    verify(jobClient.failStep2).retryBackoff(BACKOFF);
-    assertThat(jobClient.errorMessage()).contains("still being provisioned");
+    assertThat(failure.retries()).isEqualTo(3);
+    assertThat(failure.backoff()).isEqualTo(BACKOFF);
+    assertThat(failure.message()).contains("still being provisioned");
   }
 
   @Test
@@ -245,88 +247,74 @@ class ManagedScriptJobHandlerTest {
     final var missing =
         ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false);
     provider.respond(missing, missing);
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofSeconds(5))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))));
 
     assertThat(provider.provisionings).hasValue(2);
-    verify(jobClient.fail).retries(2);
-    assertThat(jobClient.errorMessage()).startsWith("DEPLOYMENT_MISSING");
+    assertThat(failure.retries()).isNull();
+    assertThat(failure.message()).startsWith("DEPLOYMENT_MISSING");
     assertThat(registry.find(provider.provisioned.getFirst().key())).isEmpty();
   }
 
   @Test
   void rejectsMissingOrInvalidLinkedResourcesWithoutRetries() {
     final var handler = handler(Duration.ofSeconds(5));
-    final var missing = new RecordingJobClient();
-    final var invalid = new RecordingJobClient();
-    final var noScript = new RecordingJobClient();
 
-    handler.handle(camundaClient, "default", missing.mock, job(1L, 3, null));
-    handler.handle(camundaClient, "default", invalid.mock, job(2L, 3, "not json"));
-    handler.handle(
-        camundaClient,
-        "default",
-        noScript.mock,
-        job(3L, 3, "[{\"resourceKey\":\"1\",\"linkName\":\"other\"}]"));
+    final var missing = failed(handle(handler, job(1L, 3, null)));
+    final var invalid = failed(handle(handler, job(2L, 3, "not json")));
+    final var noScript =
+        failed(handle(handler, job(3L, 3, "[{\"resourceKey\":\"1\",\"linkName\":\"other\"}]")));
 
-    verify(missing.fail).retries(0);
-    assertThat(missing.errorMessage()).contains("Missing 'linkedResources' header");
-    verify(invalid.fail).retries(0);
-    assertThat(invalid.errorMessage()).contains("not a valid JSON array");
-    verify(noScript.fail).retries(0);
-    assertThat(noScript.errorMessage()).contains("no 'script' link");
+    assertThat(missing.retries()).isZero();
+    assertThat(missing.message()).contains("Missing 'linkedResources' header");
+    assertThat(invalid.retries()).isZero();
+    assertThat(invalid.message()).contains("not a valid JSON array");
+    assertThat(noScript.retries()).isZero();
+    assertThat(noScript.message()).contains("no 'script' link");
     assertThat(provider.provisionings).hasValue(0);
   }
 
   @Test
   void rejectsLanguageThatDoesNotMatchTheScriptResource() {
-    final var jobClient = new RecordingJobClient();
     final var job = job(1L, 3, scriptLink(1L));
     when(job.getCustomHeaders())
         .thenReturn(
             Map.of("linkedResources", scriptLink(1L), "language", "python", "runtime", "python3"));
 
-    handler(Duration.ofSeconds(5)).handle(camundaClient, "default", jobClient.mock, job);
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job));
 
-    verify(jobClient.fail).retries(0);
-    assertThat(jobClient.errorMessage()).contains("must use the .py extension");
+    assertThat(failure.retries()).isZero();
+    assertThat(failure.message()).contains("must use the .py extension");
   }
 
   @Test
   void passesTheDependencyManifestToTheProvider() {
-    final var jobClient = new RecordingJobClient();
     final var links =
         "[{\"resourceKey\":\"1\",\"resourceType\":\"ManagedScript\",\"linkName\":\"script\"},"
             + "{\"resourceKey\":\"2\",\"resourceType\":\"ManagedScript\",\"linkName\":\"dependencies\"}]";
 
-    handler(Duration.ofSeconds(5))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, links));
+    final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, links));
 
     assertThat(provider.provisioned.getFirst().dependencies())
         .hasValueSatisfying(
             manifest -> assertThat(new String(manifest, StandardCharsets.UTF_8)).isEqualTo("{}"));
-    verify(jobClient.complete).variables(Map.<String, Object>of());
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of()));
   }
 
   @Test
   void resourceFetchFailureConsumesOneRetry() {
     resources.clear();
-    final var jobClient = new RecordingJobClient();
 
-    handler(Duration.ofSeconds(5))
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))));
 
-    verify(jobClient.fail, timeout(1_000)).retries(2);
-    verify(jobClient.failStep2).retryBackoff(BACKOFF);
+    assertThat(failure.retries()).isNull();
+    assertThat(failure.backoff()).isEqualTo(BACKOFF);
   }
 
   @Test
   void waitsForResourceToBecomeVisibleWithoutConsumingARetry() {
     provider.respond(ExecutionResponse.completed(Map.of("sum", 5)));
     final var script = resources.remove(1L);
-    final var jobClient = new RecordingJobClient();
     final var scriptResources =
         new ScriptResources(
             16,
@@ -340,18 +328,40 @@ class ManagedScriptJobHandlerTest {
             Duration.ofSeconds(1),
             Duration.ofMillis(10));
 
-    new ManagedScriptJobHandler(
-            provider, registry, scriptResources, objectMapper, Duration.ofSeconds(5), BACKOFF)
-        .handle(camundaClient, "default", jobClient.mock, job(1L, 3, scriptLink(1L)));
+    final var outcome =
+        handle(
+            new ManagedScriptJobHandler(
+                provider,
+                registry,
+                scriptResources,
+                objectMapper,
+                Duration.ofSeconds(5),
+                BACKOFF,
+                ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX),
+            job(1L, 3, scriptLink(1L)));
 
     assertThat(fetches).hasValue(3);
-    verify(jobClient.complete).variables(Map.<String, Object>of("sum", 5));
-    verify(jobClient.fail, never()).retries(anyInt());
+    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
+  }
+
+  private Outcome handle(ManagedScriptJobHandler handler, JobContext job) {
+    return handler.handle(camundaClient, "default", job, INPUT);
+  }
+
+  private static Outcome.Failed failed(Outcome outcome) {
+    assertThat(outcome).isInstanceOf(Outcome.Failed.class);
+    return (Outcome.Failed) outcome;
   }
 
   private ManagedScriptJobHandler handler(Duration provisioningTimeout) {
     return new ManagedScriptJobHandler(
-        provider, registry, scriptResources(), objectMapper, provisioningTimeout, BACKOFF);
+        provider,
+        registry,
+        scriptResources(),
+        objectMapper,
+        provisioningTimeout,
+        BACKOFF,
+        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX);
   }
 
   private ScriptResources scriptResources() {
@@ -378,39 +388,19 @@ class ManagedScriptJobHandlerTest {
         .formatted(resourceKey);
   }
 
-  private static ActivatedJob job(long key, int retries, String linkedResources) {
-    final var job = mock(ActivatedJob.class);
+  private static JobContext job(long key, int retries, String linkedResources) {
+    final var job = mock(JobContext.class);
     final Map<String, String> headers = new HashMap<>();
     if (linkedResources != null) {
       headers.put("linkedResources", linkedResources);
     }
     headers.put("language", "javascript");
     headers.put("runtime", "nodejs22");
-    when(job.getKey()).thenReturn(key);
+    when(job.getJobKey()).thenReturn(key);
     when(job.getRetries()).thenReturn(retries);
     when(job.getCustomHeaders()).thenReturn(headers);
     when(job.getTenantId()).thenReturn("tenant-a");
     when(job.getBpmnProcessId()).thenReturn("process");
-    when(job.getVariablesAsMap()).thenReturn(Map.of("a", 2, "b", 3));
     return job;
-  }
-
-  private static final class RecordingJobClient {
-    final JobClient mock = mock(JobClient.class);
-    final FailJobCommandStep1 fail = mock(FailJobCommandStep1.class);
-    final FailJobCommandStep2 failStep2 = mock(FailJobCommandStep2.class, RETURNS_SELF);
-    final CompleteJobCommandStep1 complete = mock(CompleteJobCommandStep1.class, RETURNS_SELF);
-
-    RecordingJobClient() {
-      when(mock.newFailCommand(any(ActivatedJob.class))).thenReturn(fail);
-      when(fail.retries(anyInt())).thenReturn(failStep2);
-      when(mock.newCompleteCommand(any(ActivatedJob.class))).thenReturn(complete);
-    }
-
-    String errorMessage() {
-      final var captor = ArgumentCaptor.forClass(String.class);
-      verify(failStep2).errorMessage(captor.capture());
-      return captor.getValue();
-    }
   }
 }

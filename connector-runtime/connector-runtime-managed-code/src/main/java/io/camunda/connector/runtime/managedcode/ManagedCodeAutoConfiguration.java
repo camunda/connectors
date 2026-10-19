@@ -17,18 +17,18 @@
 package io.camunda.connector.runtime.managedcode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Scope;
 
 @AutoConfiguration
-@AutoConfigureBefore(CamundaAutoConfiguration.class)
 @ConditionalOnProperty(
     prefix = "camunda.connector.managed-code",
     name = "enabled",
@@ -68,20 +68,31 @@ public class ManagedCodeAutoConfiguration {
         requireProvider(providers, properties), properties.provisioningConcurrency());
   }
 
-  @Bean(destroyMethod = "shutdown")
-  public ManagedScriptJobWorker managedScriptJobWorker(
+  @Bean
+  ManagedScriptJobHandler managedScriptJobHandler(
       ObjectProvider<ManagedCodeProvider> providers,
       DeploymentRegistry registry,
       ManagedCodeProperties properties) {
-    final var handler =
-        new ManagedScriptJobHandler(
-            requireProvider(providers, properties),
-            registry,
-            new ScriptResources(RESOURCE_CACHE_SIZE),
-            objectMapper,
-            properties.provisioningTimeout(),
-            properties.provisioningRetryBackoff());
-    return new ManagedScriptJobWorker(handler, properties);
+    return new ManagedScriptJobHandler(
+        requireProvider(providers, properties),
+        registry,
+        new ScriptResources(RESOURCE_CACHE_SIZE),
+        objectMapper,
+        properties.provisioningTimeout(),
+        properties.provisioningRetryBackoff(),
+        properties.deploymentNamePrefix());
+  }
+
+  /**
+   * Served by the connector runtime like any outbound connector. Prototype-scoped so that the
+   * runtime builds its instance per physical tenant through this method; every instance shares the
+   * handler, and with it the deployment registry.
+   */
+  @Bean
+  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+  public ManagedScriptFunction managedScriptFunction(
+      ManagedScriptJobHandler handler, PhysicalTenantClientSelector clients) {
+    return new ManagedScriptFunction(handler, clients);
   }
 
   /**

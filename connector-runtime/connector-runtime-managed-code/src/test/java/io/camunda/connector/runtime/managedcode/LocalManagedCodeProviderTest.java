@@ -266,6 +266,7 @@ class LocalManagedCodeProviderTest {
         "default",
         "tenant-a",
         "local",
+        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         language,
         runtime,
         resourceName,

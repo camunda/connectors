@@ -46,7 +46,9 @@ public record ArtifactSpec(
    */
   static final String BUILD_POLICY_VERSION = "1";
 
-  private static final String DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
+  /** Default prefix of provider resource names, before the prefix of a cluster is configured. */
+  static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
+
   private static final int DEPLOYMENT_NAME_HASH_LENGTH = 40;
 
   /** Deployment registry key; one provider deployment exists per key. */
@@ -56,6 +58,7 @@ public record ArtifactSpec(
       String physicalTenantId,
       String tenantId,
       String provider,
+      String deploymentNamePrefix,
       ScriptLanguage language,
       String runtime,
       String resourceName,
@@ -65,7 +68,13 @@ public record ArtifactSpec(
     final var digest = digest(language, normalizedRuntime, script, dependencies);
     final var key = new Key(physicalTenantId, tenantId, provider, digest);
     return new ArtifactSpec(
-        key, language, normalizedRuntime, resourceName, script, dependencies, deploymentName(key));
+        key,
+        language,
+        normalizedRuntime,
+        resourceName,
+        script,
+        dependencies,
+        deploymentName(deploymentNamePrefix, key));
   }
 
   public String digest() {
@@ -91,14 +100,17 @@ public record ArtifactSpec(
   /**
    * Derived from the whole registry key, not from the digest alone: identical scripts of two
    * tenants must not adopt each other's deployment, because cross-tenant reuse is not assumed.
+   *
+   * @param prefix the prefix of the cluster; the identity of the runtime may only manage provider
+   *     resources whose name starts with it. Not part of the registry key.
    */
-  static String deploymentName(Key key) {
+  static String deploymentName(String prefix, Key key) {
     final var sha256 = sha256();
     update(sha256, key.physicalTenantId().getBytes(StandardCharsets.UTF_8));
     update(sha256, key.tenantId().getBytes(StandardCharsets.UTF_8));
     update(sha256, key.provider().getBytes(StandardCharsets.UTF_8));
     update(sha256, key.digest().getBytes(StandardCharsets.UTF_8));
-    return DEPLOYMENT_NAME_PREFIX
+    return prefix
         + HexFormat.of().formatHex(sha256.digest()).substring(0, DEPLOYMENT_NAME_HASH_LENGTH);
   }
 

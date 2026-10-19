@@ -146,6 +146,7 @@ class DeploymentRegistryTest {
         "default",
         "tenant-a",
         "controlled",
+        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
         ScriptLanguage.JAVASCRIPT,
         "nodejs22",
         "script.js",

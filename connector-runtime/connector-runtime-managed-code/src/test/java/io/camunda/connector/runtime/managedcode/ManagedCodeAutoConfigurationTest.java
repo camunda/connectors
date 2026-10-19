@@ -17,18 +17,10 @@
 package io.camunda.connector.runtime.managedcode;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.worker.JobWorkerBuilderStep1;
-import io.camunda.client.api.worker.JobWorkerBuilderStep1.JobWorkerBuilderStep2;
-import io.camunda.client.api.worker.JobWorkerBuilderStep1.JobWorkerBuilderStep3;
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -50,7 +42,7 @@ class ManagedCodeAutoConfigurationTest {
               assertThat(context).hasNotFailed();
               assertThat(context).doesNotHaveBean(ManagedCodeProvider.class);
               assertThat(context).doesNotHaveBean(DeploymentRegistry.class);
-              assertThat(context).doesNotHaveBean(ManagedScriptJobWorker.class);
+              assertThat(context).doesNotHaveBean(ManagedScriptJobHandler.class);
             });
   }
 
@@ -69,44 +61,63 @@ class ManagedCodeAutoConfigurationTest {
               assertThat(context).hasNotFailed();
               assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
               assertThat(context).hasSingleBean(DeploymentRegistry.class);
-              assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
               final var properties = context.getBean(ManagedCodeProperties.class);
               assertThat(properties.local().directory())
                   .isEqualTo(Path.of("/tmp/managed-code-test"));
               assertThat(properties.local().installTimeout()).isEqualTo(Duration.ofMinutes(3));
               assertThat(properties.provisioningConcurrency()).isEqualTo(2);
-              assertThat(ManagedScriptJobWorker.jobTimeout(properties))
-                  .isEqualTo(Duration.ofSeconds(90));
+              assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
             });
   }
 
   @Test
-  void opensOneLeasedWorkerPerClientWithTimeoutCoveringProvisioning() {
+  void servesTheReservedJobTypeWithAPrototypeConnectorPerPhysicalTenant() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=local")
+        .withBean(
+            PhysicalTenantClientSelector.class, () -> mock(PhysicalTenantClientSelector.class))
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context.getBean(ManagedScriptFunction.class))
+                  .isNotSameAs(context.getBean(ManagedScriptFunction.class));
+              final var annotation =
+                  ManagedScriptFunction.class.getAnnotation(OutboundConnector.class);
+              assertThat(annotation.type()).isEqualTo("io.camunda:managed-script:1");
+              assertThat(annotation.inputVariables()).containsExactly("scriptInput");
+              assertThat(annotation.withLease()).isTrue();
+            });
+  }
+
+  @Test
+  void usesTheConfiguredDeploymentNamePrefix() {
     contextRunner
         .withPropertyValues(
             "camunda.connector.managed-code.enabled=true",
             "camunda.connector.managed-code.provider=local",
-            "camunda.connector.managed-code.invocation-concurrency=3")
+            "camunda.connector.managed-code.deployment-name-prefix=camunda-ms-c1-")
         .run(
-            context -> {
-              final var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
-              when(client.getConfiguration().getPhysicalTenantId()).thenReturn("tenant-a");
-              final var step1 = mock(JobWorkerBuilderStep1.class);
-              final var step2 = mock(JobWorkerBuilderStep2.class);
-              final var step3 = mock(JobWorkerBuilderStep3.class, RETURNS_SELF);
-              when(client.newWorker()).thenReturn(step1);
-              when(step1.jobType(anyString())).thenReturn(step2);
-              when(step2.handler(any())).thenReturn(step3);
+            context ->
+                assertThat(context.getBean(ManagedCodeProperties.class).deploymentNamePrefix())
+                    .isEqualTo("camunda-ms-c1-"));
+  }
 
-              context.getBean(ManagedScriptJobWorker.class).onStart(client, "default");
-
-              verify(step1).jobType("io.camunda:managed-script:1");
-              verify(step3).timeout(Duration.ofSeconds(160));
-              verify(step3).maxJobsActive(3);
-              verify(step3).withLease(true);
-              verify(step3).name("managed-script-worker");
-              verify(step3).open();
-            });
+  @Test
+  void rejectsAnInvalidDeploymentNamePrefix() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=local",
+            "camunda.connector.managed-code.deployment-name-prefix=Cluster_1")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("deployment-name-prefix 'Cluster_1'"));
   }
 
   @Test
@@ -146,7 +157,7 @@ class ManagedCodeAutoConfigurationTest {
             context -> {
               assertThat(context).hasNotFailed();
               assertThat(context).doesNotHaveBean(LocalManagedCodeProvider.class);
-              assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
             });
   }
 
@@ -162,7 +173,7 @@ class ManagedCodeAutoConfigurationTest {
               assertThat(context).hasNotFailed();
               assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
               assertThat(context).hasSingleBean(ControlledProvider.class);
-              assertThat(context).hasSingleBean(ManagedScriptJobWorker.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
             });
   }
 
