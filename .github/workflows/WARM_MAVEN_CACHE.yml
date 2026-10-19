@@ -111,6 +111,13 @@ jobs:
         if: steps.lookup.outputs.cache-hit != 'true'
         run: rm -rf ~/.m2/repository/io/camunda/connector
 
+      # Resolver records the source repository ID per artifact and re-verifies
+      # artifacts whose ID is absent from the consumer's settings (e.g. external PRs
+      # without the Nexus mirror). Without these files, cached artifacts are used as-is.
+      - name: Strip repository tracking files
+        if: steps.lookup.outputs.cache-hit != 'true'
+        run: find ~/.m2/repository -name '_remote.repositories' -delete
+
       - name: Save cache
         if: steps.lookup.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
