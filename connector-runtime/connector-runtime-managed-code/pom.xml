@@ -38,6 +38,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-spring</artifactId>
     </dependency>
     <dependency>
@@ -100,6 +104,10 @@
           </execution>
         </executions>
         <configuration>
+          <!-- ManagedScriptFunction implements an interface of the runtime core -->
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:connector-runtime-core</includeDependency>
+          </includeDependencies>
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.runtime.managedcode.ManagedScriptFunction</connectorClass>
