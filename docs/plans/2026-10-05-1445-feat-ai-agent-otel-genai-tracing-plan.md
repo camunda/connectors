@@ -577,6 +577,7 @@ flowchart TB
 - Event set per KTD18: job started (job identity, flavor, start time, attempt discriminator hash, agent instance key when present, the listener's previous state), tool discovery dispatched, job deferred (arrived tool results), turn started (consumed tool results with their originating calls and the time those calls were issued, derived from the issuing assistant message's id, input messages, tool definitions, system prompt, `ChatModelConfiguration`), model round (a scope the framework opens and closes: completed with response, stop reason, usage, and response id, or failed with an error type), turn completed (tool calls issued or final answer), job failed, job completed, job completion failed (SDK `JobCompletionFailure`).
 - Callback contracts per KTD16 in the javadoc: notifications are isolated and ordered; state contributions come only from the turn-completed and tool-discovery callbacks; the model-round scope cannot alter the call. The javadoc states that events carry complete data, including content, and never the lease token (KTD17).
 - Types come from `aiagent-model` and the connector SDK only; the module stays Spring-free.
+- State is a JSON-serializable `Map<String, Object>` with a documented size cap, stored under `lifecycle:<listener id>`; a listener declares an explicit `id()` (no default), so renaming a bean cannot orphan persisted state. Typed records stay in the consumer.
 
 **Patterns to follow:** `ConversationSession` and `GatewayToolHandler` in `aiagent-api` (per-job object with default no-ops; SPI registered as beans).
 
@@ -787,7 +788,7 @@ flowchart TB
 3. Record the job start time on entry and emit job started after initialization.
 4. Emit tool discovery dispatched, job deferred (with the arrived results), and turn started (with the consumed tool results, composed input, configuration, and the time the tool calls were issued, derived from the time-ordered id of the assistant message that issued them when that id is a UUIDv7) at the existing branch points in `BaseAgentRequestHandler`; emit them for both flavors.
 5. Wrap the existing chat-model call site with the model-round scope (try/finally); the handler derives the `error.type` of a rejection from the coded exception it already builds.
-6. Emit turn completed before the response is built, apply the state contributions to the agent context, and give the response a completion listener that composes the store listener with the dispatcher's job-completed and completion-failed callbacks, each isolated.
+6. Emit turn completed after `responseHandler.createResponse(...)`, apply the state contributions to `agentResponse.context()` (the conversation store already wrote its pointer, and listener state is not part of the store; on the discovery path, to the response's context), and give the response a completion listener that composes the store listener with the dispatcher's job-completed and completion-failed callbacks, each isolated.
 7. Catch exceptions around the agent work only to emit job failed, then rethrow the same exception.
 8. Build the Anthropic client with the SDK's OpenTelemetry option disabled (KTD19); confirm the builder method against the SDK version in use.
 
