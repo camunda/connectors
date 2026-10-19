@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.mcp;
+package io.camunda.connector.e2e.agenticai.aiagent.common;
 
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.List;
