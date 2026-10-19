@@ -145,6 +145,7 @@
                 <dependency>io.camunda.connector.agenticai:aiagent-mcp-integration</dependency>
                 <dependency>io.camunda.connector.agenticai:connector-a2a</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-a2a-integration</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-otel</dependency>
                 <dependency>io.camunda.connector.agenticai:connector-aiagent</dependency>
                 <dependency>com.tngtech.archunit:archunit-junit5-engine</dependency>
               </ignoredUnusedDeclaredDependencies>
