@@ -627,6 +627,7 @@ class AnthropicMessageResponseConverterTest {
                     .outputTokensDetails((OutputTokensDetails) null)
                     .serverToolUse((ServerToolUsage) null)
                     .serviceTier((Usage.ServiceTier) null)
+                    .speed(Usage.Speed.STANDARD)
                     .build())
             .build();
 

@@ -19,13 +19,31 @@ package io.camunda.connector.runtime.tenant;
 import static io.camunda.connector.runtime.TestCamundaClientProviders.clientProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import org.junit.jupiter.api.Test;
 
 /** Covers the {@code CamundaClient} resolution behind the startup failure of #8977. */
 class PhysicalTenantClientsTest {
+
+  @Test
+  void configuredPhysicalTenantIdIsNormalizedLikeTheCamundaClientDoes() {
+    assertThat(PhysicalTenantClients.configuredPhysicalTenantId(clientConfiguredWith(" tenant-a ")))
+        .isEqualTo("tenant-a");
+    assertThat(PhysicalTenantClients.configuredPhysicalTenantId(clientConfiguredWith("  ")))
+        .isNull();
+    assertThat(PhysicalTenantClients.configuredPhysicalTenantId(clientConfiguredWith(null)))
+        .isNull();
+  }
+
+  private static CamundaClient clientConfiguredWith(String physicalTenantId) {
+    var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
+    when(client.getConfiguration().getPhysicalTenantId()).thenReturn(physicalTenantId);
+    return client;
+  }
 
   @Test
   void legacyClientResolvesTheSoleOrPrimaryClient() {

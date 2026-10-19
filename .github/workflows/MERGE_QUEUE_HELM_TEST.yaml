@@ -47,7 +47,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
@@ -273,7 +273,7 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -344,7 +344,7 @@ jobs:
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -402,7 +402,7 @@ jobs:
           IMAGE_TAG: ${{ needs.build-image.outputs.connectors-version }}
         run: |
           # Use the image tag as the generation name to match filter patterns
-          # e.g., "8.10.0-main-run12345678-a1" matches "**-main-run**-a**"
+          # e.g., "8.11.0-main-run12345678-a1" matches "**-main-run**-a**"
           GEN_NAME="${IMAGE_TAG}"
 
           curl -X POST \
@@ -416,7 +416,7 @@ jobs:
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "gen_name": "'"${GEN_NAME}"'",
-                      "c8Version": "8.10",
+                      "c8Version": "8.11",
                       "zeebeVersion": "SNAPSHOT",
                       "operateVersion": "SNAPSHOT",
                       "tasklistVersion": "SNAPSHOT",
@@ -439,7 +439,7 @@ jobs:
       - name: Refresh GitHub App Token (for the second wait pass)
         id: github-token-refresh
         if: steps.wait-downstream.outputs.handoff == 'true'
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -565,7 +565,7 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@ee6f294ac4b8da0147f4544ceddaacc89b72b50d # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -634,7 +634,7 @@ jobs:
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
             secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         if: steps.changes.outputs.ai == 'true'
         with:
           distribution: temurin

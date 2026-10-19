@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
+import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -84,9 +85,8 @@ public final class PhysicalTenantIds {
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
       var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
+          PhysicalTenantClients.configuredPhysicalTenantId(
+              resolveClient(registry, name, legacyCamundaClient));
       return physicalTenantId != null ? physicalTenantId : name;
     } catch (RuntimeException e) {
       return name;

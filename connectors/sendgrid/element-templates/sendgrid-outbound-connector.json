@@ -5,7 +5,7 @@
   "description" : "Send an email via SendGrid",
   "keywords" : [ "send email", "email notification", "transactional email", "marketing email", "email campaign", "email delivery", "dynamic template", "email template" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/sendgrid/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -50,6 +50,18 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "sendGridCredential",
+    "label" : "SendGrid credential",
+    "description" : "Choose a reusable SendGrid credential, or configure a one-time API key below.",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "sendGridCredential",
+      "type" : "zeebe:input"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:sendgrid-api-key:1"
+  }, {
     "id" : "apiKey",
     "label" : "SendGrid API key",
     "optional" : false,
@@ -62,7 +74,13 @@
       "name" : "apiKey",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "condition" : {
+      "property" : "sendGridCredential",
+      "isEmpty" : true,
+      "type" : "simple"
+    },
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "from.name",
     "label" : "Name",
@@ -444,7 +462,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -528,6 +546,27 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda.connectors:sendgrid-api-key:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "SendGrid API Key",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "SendGrid API key",
+      "description" : "The SendGrid API key used to send emails.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0id2hpdGUiLz4KICAgIDxwYXRoIGQ9Ik0wLjI4NTcwNiA1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMUgwLjI4NTcwNlY1LjQwODQ3WiIgZmlsbD0iIzk5RTFGNCIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTUuNDM4MzcgMTAuNTYxMUwxMC41NjExIDEwLjU2MTZWMTUuNjg0NEg1LjQzODM3VjEwLjU2MTFaIiBmaWxsPSIjOTlFMUY0Ii8+CiAgICA8cGF0aCBkPSJNMC4yODU3MDYgMTUuNjg0Nkw1LjQzODM3IDE1LjY4NDRWMTUuNzE0M0gwLjI4NTcwNlYxNS42ODQ2Wk0wLjI4NTcwNiAxMC41NjE5SDUuNDM4MzdWMTUuNjg0NEwwLjI4NTcwNiAxNS42ODQ2VjEwLjU2MTlaIiBmaWxsPSIjMUE4MkUyIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAwLjI4NTcwNkgxMC41NjExVjUuNDA4NDdINS40MzgzN1YwLjI4NTcwNlpNMTAuNTYxNiA1LjQzODM3SDE1LjcxNDNWMTAuNTYxMUgxMC41NjE2VjUuNDM4MzdaIiBmaWxsPSIjMDBCM0UzIi8+CiAgICA8cGF0aCBkPSJNNS40MzgzNyAxMC41NjExTDEwLjU2MTEgMTAuNTYxNlY1LjQwODQ3SDUuNDM4MzdWMTAuNTYxMVoiIGZpbGw9IiMwMDlERDkiLz4KICAgIDxwYXRoIGQ9Ik0xMC41NjExIDAuMjg1NzA2SDE1LjcxNDNWNS40MDg0N0gxMC41NjExVjAuMjg1NzA2WiIgZmlsbD0iIzFBODJFMiIvPgogICAgPHBhdGggZD0iTTEwLjU2MTEgNS40MDg0N0gxNS43MTQzVjUuNDM4MzdIMTAuNTYxNkwxMC41NjExIDUuNDA4NDdaIiBmaWxsPSIjMUE4MkUyIi8+Cjwvc3ZnPg=="
