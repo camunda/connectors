@@ -99,8 +99,19 @@ jobs:
             *) base_ref_supported=false ;;
           esac
 
+          # A full re-run dispatches again, so a late result from an earlier attempt
+          # reports on tests that no longer count -- the streak scan reads only the
+          # attempt that last ran the trigger job. A re-run of only the failed jobs keeps
+          # that job, and with it this attempt's dispatch.
+          trigger=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?filter=latest&per_page=100" \
+            --jq '[.jobs[] | select(.name == "Trigger SaaS E2E tests")] | first // {}')
+          superseded=$(jq -r --argjson attempt "$SOURCE_ATTEMPT" '
+            (.run_attempt // 0) > $attempt
+            and ([.steps[]? | select(.name == "Trigger repository_dispatch for SaaS Connectors" and .conclusion == "success")] | length > 0)
+          ' <<<"$trigger")
+
           failed=false
-          [ "$CONCLUSION" != "success" ] && failed=true
+          [ "$CONCLUSION" != "success" ] && [ "$superseded" != "true" ] && failed=true
 
           {
             echo "failed=${failed}"
@@ -120,6 +131,10 @@ jobs:
             echo "**Branch:** \`${BASE_REF}\` (\`${EVENT_NAME}\`) · **Commit:** \`${SOURCE_SHA}\`"
             echo ""
             echo "[Merge queue Helm test run](${SOURCE_RUN_URL})"
+            if [ "$superseded" = "true" ]; then
+              echo ""
+              echo "Superseded: a later attempt of this pipeline run dispatched the SaaS E2E tests again, so this result is not reported."
+            fi
             if [ -n "$DOWNSTREAM_RUN_URL" ]; then
               echo ""
               echo "[SaaS E2E run in camunda/c8-cross-component-e2e-tests](${DOWNSTREAM_RUN_URL})"

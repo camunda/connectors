@@ -79,23 +79,15 @@ defaults:
     shell: bash
 
 jobs:
-  detect-streak:
-    name: Detect failure streak
-    # Per branch, because this job maintains ONE live Slack message per base ref and two
-    # concurrent updates would fight over it. Job-scoped rather than workflow-scoped: at
-    # workflow level it also governed the triage jobs below, and on a manual replay
-    # `workflow_run.head_branch` is empty, so every replay collapsed into one bucket and
-    # GitHub cancelled all but one of them -- observed, three of five replays cancelled
-    # with no job run at all. The scan must never be dropped that way.
-    concurrency:
-      # A SaaS result run executes on the default branch, so it lands in main's group.
-      # That is the branch it reports on: only main's pipeline asks for the callback,
-      # and stable-branch copies still wait for their SaaS run in-pipeline.
-      group: streak-${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-      cancel-in-progress: false
+  # Ungrouped, so an event that turns out to be irrelevant never enters a branch's
+  # concurrency group: GitHub keeps one pending job per group and replaces it with the
+  # newest, so a merge-group SaaS callback (its run sits on main) would otherwise evict
+  # a pending main scan and then skip its own.
+  streak-context:
+    name: Resolve streak context
     # Only protected-branch push runs accumulate streaks; success runs can
     # resolve an existing live message. A SaaS result run is let through here and
-    # filtered by the first step, which looks up the pipeline run it reports on.
+    # filtered by the step below, which looks up the pipeline run it reports on.
     if: >-
       github.event.workflow_run.name == 'SaaS E2E result' ||
       (github.event.workflow_run.event == 'push' &&
@@ -105,7 +97,9 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: read
-      contents: read
+    outputs:
+      relevant: ${{ steps.ctx.outputs.relevant }}
+      base_ref: ${{ steps.ctx.outputs.base_ref }}
     steps:
       - name: Resolve the pipeline run this event reports on
         id: ctx
@@ -137,12 +131,32 @@ jobs:
             echo "base_ref=${base_ref}"
           } >> "$GITHUB_OUTPUT"
 
+  detect-streak:
+    name: Detect failure streak
+    needs: streak-context
+    if: needs.streak-context.outputs.relevant == 'true'
+    # Per branch, because this job maintains ONE live Slack message per base ref and two
+    # concurrent updates would fight over it. Job-scoped rather than workflow-scoped: at
+    # workflow level it also governed the triage jobs below, and on a manual replay
+    # `workflow_run.head_branch` is empty, so every replay collapsed into one bucket and
+    # GitHub cancelled all but one of them -- observed, three of five replays cancelled
+    # with no job run at all. The scan must never be dropped that way.
+    concurrency:
+      # The branch the event reports on: a SaaS result run executes on the default
+      # branch whatever pipeline run it belongs to.
+      group: streak-${{ github.workflow }}-${{ needs.streak-context.outputs.base_ref }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
       - name: Detect failure streak on this base branch
         id: streak
-        if: steps.ctx.outputs.relevant == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_REF: ${{ steps.ctx.outputs.base_ref }}
+          BASE_REF: ${{ needs.streak-context.outputs.base_ref }}
         run: |
           set -euo pipefail
           RUNS_JSON=$(gh run list \
