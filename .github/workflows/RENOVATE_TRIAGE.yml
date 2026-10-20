@@ -33,6 +33,11 @@ on:
   workflow_run:
     workflows: [ "Test branch" ]
     types: [ completed ]
+    # Filtered by GitHub before a run is created, so other PRs and pushes do not
+    # leave skipped runs behind. The job-level `if:` repeats the check.
+    branches:
+      - 'renovate/**'
+      - 'gh-readonly-queue/**'
   workflow_dispatch:
     inputs:
       pr_number:
