@@ -23,6 +23,7 @@ public record AgentSubProcessResponse(
     @Nullable AssistantMessage responseMessage,
     @Nullable String responseText,
     @Nullable Object responseJson,
+    @Nullable SystemPromptProvenance systemPrompt,
     // the response documents by key, in call order; a LinkedHashMap because the record builder
     // copies a Map into an immutable map of unspecified iteration order
     @RecordBuilder.Initializer(

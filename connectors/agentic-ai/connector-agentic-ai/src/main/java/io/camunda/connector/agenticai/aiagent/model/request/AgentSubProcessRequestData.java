@@ -11,9 +11,16 @@ import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 public record AgentSubProcessRequestData(
-    @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
+    @Valid PromptConfiguration.@Nullable SystemPromptConfiguration systemPrompt,
     @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
     @Valid @Nullable MemoryConfiguration memory,
     @Valid @Nullable LimitsConfiguration limits,
     @Valid @Nullable EventHandlingConfiguration events,
-    @Valid @Nullable AgentSubProcessResponseConfiguration response) {}
+    @Valid @Nullable AgentSubProcessResponseConfiguration response) {
+
+  public AgentSubProcessRequestData withSystemPrompt(
+      PromptConfiguration.SystemPromptConfiguration systemPrompt) {
+    return new AgentSubProcessRequestData(
+        systemPrompt, userPrompt, memory, limits, events, response);
+  }
+}
