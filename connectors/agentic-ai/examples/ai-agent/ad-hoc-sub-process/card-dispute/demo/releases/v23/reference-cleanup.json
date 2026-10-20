@@ -1,0 +1,11 @@
+{
+  "processInstanceKey": "2251799813776363",
+  "state": "COMPLETED",
+  "acceptedReviewTaskKey": "2251799813777203",
+  "originalCapturedReviewTaskKey": "2251799813776637",
+  "sandboxId": "cc711e23-ad02-4526-a327-050cf7d8919f",
+  "remainingSandboxes": 0,
+  "providerAbsenceVerified": true,
+  "a2aConversationsTotal": 2,
+  "completionDeviation": "Initial completion sent analystAction instead of analystVerdict. Null verdict triggered an unintended agent re-entry and second A2A. Original sandbox already auto-deleted; retried calls returned SANDBOX_FAILED, no second sandbox allocated. Corrected next review with analystVerdict=accept. Initial captured proof retained separately."
+}

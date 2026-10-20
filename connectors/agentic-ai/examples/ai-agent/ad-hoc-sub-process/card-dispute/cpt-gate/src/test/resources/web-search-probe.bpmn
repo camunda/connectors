@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="CptGateWebSearchProbeDefinitions" targetNamespace="urn:cpt-gate" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="CptGateWebSearchProbe" name="Probe regional web search" isExecutable="true">
+    <bpmn:startEvent id="ProbeStart" name="Start probe">
+      <bpmn:outgoing>ProbeToAgent</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="ProbeAgent" name="Probe web search">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:task:2" retries="1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="openai" target="provider.type" />
+          <zeebe:input source="completions" target="provider.openai.api.type" />
+          <zeebe:input source="custom" target="provider.openai.backend.type" />
+          <zeebe:input source="=camunda.vars.env.cardDisputeLlm" target="provider.openai.backend.custom.openAiCustomCredential" />
+          <zeebe:input source="=[{type: &#34;web_search&#34;, parameters: {maxResults: 1, allowedDomains: [&#34;mastercard.com&#34;]}}]" target="provider.openai.api.completions.serverTools" />
+          <zeebe:input source="Use web search to find the Mastercard dispute rules. This is a regional availability probe." target="data.systemPrompt.prompt" />
+          <zeebe:input source="Search mastercard.com for current card dispute rules and cite the result." target="data.userPrompt.prompt" />
+          <zeebe:input source="=1" target="data.limits.maxModelCalls" />
+          <zeebe:input source="text" target="data.response.format.type" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="instructionSource" value="inline" />
+          <zeebe:header key="resultVariable" value="probeResult" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>ProbeToAgent</bpmn:incoming>
+      <bpmn:outgoing>ProbeToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="ProbeEnd" name="Finish probe">
+      <bpmn:incoming>ProbeToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="ProbeToAgent" sourceRef="ProbeStart" targetRef="ProbeAgent" />
+    <bpmn:sequenceFlow id="ProbeToEnd" sourceRef="ProbeAgent" targetRef="ProbeEnd" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="ProbeDiagram">
+    <bpmndi:BPMNPlane id="ProbePlane" bpmnElement="CptGateWebSearchProbe">
+      <bpmndi:BPMNShape id="ProbeStart_di" bpmnElement="ProbeStart"><dc:Bounds x="150" y="102" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ProbeAgent_di" bpmnElement="ProbeAgent"><dc:Bounds x="240" y="80" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ProbeEnd_di" bpmnElement="ProbeEnd"><dc:Bounds x="400" y="102" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="ProbeToAgent_di" bpmnElement="ProbeToAgent"><di:waypoint x="186" y="120" /><di:waypoint x="240" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="ProbeToEnd_di" bpmnElement="ProbeToEnd"><di:waypoint x="340" y="120" /><di:waypoint x="400" y="120" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

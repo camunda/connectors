@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="CardDisputeDefinitions" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.51.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="CardDispute" name="Card dispute" isExecutable="true">
+    <bpmn:startEvent id="DisputeReceived" name="Dispute received">
+      <bpmn:outgoing>Flow_ToAgentInput</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="JoinAgentInput">
+      <bpmn:incoming>Flow_ToAgentInput</bpmn:incoming>
+      <bpmn:incoming>Flow_Revise</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAgent</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:adHocSubProcess id="DisputeAgent" name="Dispute agent" zeebe:modelerTemplate="io.camunda.connectors.agenticai.ai-agent-subprocess.v2" zeebe:modelerTemplateVersion="2" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent:subprocess:2" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="openai" target="provider.type" />
+          <zeebe:input source="responses" target="provider.openai.api.type" />
+          <zeebe:input source="custom" target="provider.openai.backend.type" />
+          <zeebe:input source="=camunda.vars.env.cardDisputeLlm" target="provider.openai.backend.custom.openAiCustomCredential" />
+          <zeebe:input source="modelDefault" target="provider.openai.api.responses.effort" />
+          <zeebe:input source="={plugins: [{id: &#34;file-parser&#34;, pdf: {engine: &#34;native&#34;}}]}" target="provider.openai.backend.custom.bodyProperties" />
+          <zeebe:input source="=if is defined(followUpInput) and followUpInput != null then followUpInput else &#34;New card dispute &#34; + disputeId + &#34;. Cardholder: &#34; + cardholderName + &#34;, card ending &#34; + cardLast4 + &#34;. Claim: &#34; + claim + &#34; Disputed amount: &#34; + string(disputedAmount) + &#34;. The statement (PDF) and the transaction export (transactions-2026-09.csv) are attached as documents. Investigate with your tools. Pass the export document to the reconciliation tool by file name. Then draft a decision. Reply with only the JSON object from the policy Output section, using exactly the keys decision, refundAmount, reasonCode, policyVersion, rationale and evidence. The decision field must be exactly one of APPROVE, ESCALATE or DENY.&#34;" target="data.userPrompt.prompt" />
+          <zeebe:input source="=disputeDocuments" target="data.userPrompt.documents" />
+          <zeebe:input source="=agent.context" target="agentContext" />
+          <zeebe:input source="in-process" target="data.memory.storage.type" />
+          <zeebe:input source="=20" target="data.memory.contextWindowSize" />
+          <zeebe:input source="=12" target="data.limits.maxModelCalls" />
+          <zeebe:input source="WAIT_FOR_TOOL_CALL_RESULTS" target="data.events.behavior" />
+          <zeebe:input source="text" target="data.response.format.type" />
+          <zeebe:input source="true" target="data.response.format.parseJson" />
+          <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
+          <zeebe:input source="true" target="data.response.includeAgentContext" />
+          <zeebe:input target="agent" />
+          <zeebe:output source="=agent" target="agent" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="instructionSource" value="resource" />
+          <zeebe:header key="systemPromptBinding" value="latest" />
+          <zeebe:header key="elementTemplateVersion" value="1" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.ai-agent-subprocess.v2" />
+          <zeebe:header key="retryBackoff" value="PT30S" />
+        </zeebe:taskHeaders>
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="dispute-compliance-policy.md" resourceType="system-prompt" linkName="systemPrompt" bindingType="latest" />
+        </zeebe:linkedResources>
+        <zeebe:properties>
+          <zeebe:property name="io.camunda.agenticai.toolContainer" value="true" />
+        </zeebe:properties>
+        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult,&#10;  completedAt: now()&#10;}" />
+        <zeebe:agentDefinition agentType="aiAgentSubProcess" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToAgent</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToReview</bpmn:outgoing>
+      <bpmn:serviceTask id="FetchCardNetworkRules" name="Fetch card network rules" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+        <bpmn:documentation>Fetch the card network's dispute rules for one dispute category. Returns the rule reference, the eligibility conditions, the time limit, and the evidence required. Call this before you recommend a reason code.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="GET" target="method" />
+            <zeebe:input source="=clusterApiUrl + &#34;/v2/resources/&#34; + cardRulesKey + &#34;/content/binary?category=&#34; + fromAi(toolCall.disputeCategory, &#34;Dispute category: duplicate, not_received, fraud, or other&#34;)" target="url" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="TEXT" target="documentReturnFormat.choice" />
+            <zeebe:input source="UTF-8" target="documentReturnFormat.encoding" />
+            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=20" target="readTimeoutInSeconds" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="18" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={toolCallResult: response.body}" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:subProcess id="ReconcileTransactions" name="Reconcile transactions (document in)">
+        <bpmn:documentation>Reconcile a transaction export document for one merchant and amount. Pass the file name of the export document you hold (for example transactions-2026-09.csv). Returns the matching charges, refunds already posted for that merchant, whether a duplicate is confirmed, the days between charges, the overcharge amount, and the source document. Use this for all arithmetic over transactions.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.documentName, &#34;File name of the transaction export document, for example transactions-2026-09.csv&#34;)" target="docName" />
+            <zeebe:input source="=fromAi(toolCall.merchant, &#34;Merchant name exactly as it appears in the export, for example Northwind Electronics&#34;)" target="disputedMerchant" />
+            <zeebe:input source="=fromAi(toolCall.amount, &#34;Disputed charge amount&#34;, &#34;number&#34;)" target="disputedAmount" />
+            <zeebe:output source="=toolCallResult" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:startEvent id="Reconcile_Start" name="Tool called">
+          <bpmn:outgoing>Reconcile_F1</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:sequenceFlow id="Reconcile_F1" sourceRef="Reconcile_Start" targetRef="Reconcile_Resolve" />
+        <bpmn:serviceTask id="Reconcile_ReadDocument" name="Read export document" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18">
+          <bpmn:extensionElements>
+            <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+            <zeebe:ioMapping>
+              <zeebe:input source="noAuth" target="authentication.type" />
+              <zeebe:input source="GET" target="method" />
+              <zeebe:input source="=clusterApiUrl + &#34;/v2/documents/&#34; + sourceDocument.documentId + &#34;?storeId=&#34; + sourceDocument.storeId + &#34;&#38;contentHash=&#34; + sourceDocument.contentHash" target="url" />
+              <zeebe:input source="=false" target="followRedirects" />
+              <zeebe:input source="TEXT" target="documentReturnFormat.choice" />
+              <zeebe:input source="UTF-8" target="documentReturnFormat.encoding" />
+              <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+              <zeebe:input source="=20" target="readTimeoutInSeconds" />
+            </zeebe:ioMapping>
+            <zeebe:taskHeaders>
+              <zeebe:header key="elementTemplateVersion" value="18" />
+              <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+              <zeebe:header key="resultExpression" value="={exportCsv: response.body}" />
+              <zeebe:header key="retryBackoff" value="PT30S" />
+            </zeebe:taskHeaders>
+          </bpmn:extensionElements>
+          <bpmn:incoming>Reconcile_F0</bpmn:incoming>
+          <bpmn:outgoing>Reconcile_F2</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:sequenceFlow id="Reconcile_F0" sourceRef="Reconcile_Resolve" targetRef="Reconcile_ReadDocument" />
+        <bpmn:scriptTask id="Reconcile_Resolve" name="Resolve document handle">
+          <bpmn:extensionElements>
+            <zeebe:script expression="=disputeDocuments[metadata.fileName = docName][1]" resultVariable="sourceDocument" />
+          </bpmn:extensionElements>
+          <bpmn:incoming>Reconcile_F1</bpmn:incoming>
+          <bpmn:outgoing>Reconcile_F0</bpmn:outgoing>
+        </bpmn:scriptTask>
+        <bpmn:sequenceFlow id="Reconcile_F2" sourceRef="Reconcile_ReadDocument" targetRef="Reconcile_Compute" />
+        <bpmn:scriptTask id="Reconcile_Compute" name="Reconcile">
+          <bpmn:extensionElements>
+            <zeebe:script expression="={lines: split(exportCsv, &#34;\r?\n&#34;)[item != &#34;&#34;], header: split(lines[1], &#34;,&#34;), iId: index of(header, &#34;id&#34;)[1], iDate: index of(header, &#34;date&#34;)[1], iMerchant: index of(header, &#34;merchant&#34;)[1], iAmount: index of(header, &#34;amount&#34;)[1], rows: for line in sublist(lines, 2) return {id: split(line, &#34;,&#34;)[iId], date: split(line, &#34;,&#34;)[iDate], merchant: split(line, &#34;,&#34;)[iMerchant], amount: number(split(line, &#34;,&#34;)[iAmount])}, matches: rows[merchant = disputedMerchant and amount = disputedAmount], matchCount: count(matches), refundsPosted: rows[merchant = disputedMerchant and amount &#60; 0], refundTotal: if count(refundsPosted) = 0 then 0 else -sum(refundsPosted.amount), result: {method: &#34;Read the export document, matched on merchant and amount, then listed refunds already posted for that merchant&#34;, sourceDocumentId: sourceDocument.documentId, sourceDocument: sourceDocument.metadata.fileName, rowsRead: count(rows), matches: matches, matchCount: matchCount, refundsPosted: refundsPosted, refundTotal: refundTotal, duplicateConfirmed: matchCount &#62;= 2, daysBetweenCharges: if matchCount &#62;= 2 then (date(matches[2].date) - date(matches[1].date)).days else null, overchargeAmount: if matchCount &#62;= 2 then disputedAmount * (matchCount - 1) else 0}}.result" resultVariable="toolCallResult" />
+          </bpmn:extensionElements>
+          <bpmn:incoming>Reconcile_F2</bpmn:incoming>
+          <bpmn:outgoing>Reconcile_F3</bpmn:outgoing>
+        </bpmn:scriptTask>
+        <bpmn:sequenceFlow id="Reconcile_F3" sourceRef="Reconcile_Compute" targetRef="Reconcile_End" />
+        <bpmn:endEvent id="Reconcile_End" name="Reconciled">
+          <bpmn:incoming>Reconcile_F3</bpmn:incoming>
+        </bpmn:endEvent>
+      </bpmn:subProcess>
+      <bpmn:serviceTask id="AnalyzeInSandbox" name="Analyze in sandbox (Daytona)" zeebe:modelerTemplate="io.camunda.connectors.agenticai.sandbox.daytona.v0" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjExIiBoZWlnaHQ9IjIyMCIgdmlld0JveD0iMCAwIDIxMSAyMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHg9IjExLjE0MjgiIHk9IjE0OS4wMjUiIHdpZHRoPSI3Ni4yNDc0IiBoZWlnaHQ9IjI2LjE0MjEiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTEzLjUyMiIgeT0iNTcuNTI4NyIgd2lkdGg9Ijg3LjEzOTkiIGhlaWdodD0iMjYuMTQyMSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iOTEuNDk3MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KDAuNzA3MTA1IC0wLjcwNzEwOCAwLjcwNzEwNSAwLjcwNzEwOCA2Ny43NzM3IDY1LjU4NTgpIiBmaWxsPSIjMTYxNjE2Ii8+CjxyZWN0IHdpZHRoPSI3MC4yNjkxIiBoZWlnaHQ9IjI2LjE0MiIgdHJhbnNmb3JtPSJtYXRyaXgoLTAuNzA3MTA1IC0wLjcwNzEwOCAtMC43MDcxMDUgMC43MDcxMDggNjguMTcyOSAxMzAuOTQxKSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB3aWR0aD0iNzQuMDY5MSIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0ibWF0cml4KC0wLjcwNzEwNSAwLjcwNzEwOCAtMC43MDcxMDUgLTAuNzA3MTA4IDEzMy41MzIgMTY3LjUxMSkiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3Qgd2lkdGg9IjgyLjc4MzEiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjcwNzEwNSAwLjcwNzEwOCAwLjcwNzEwNSAtMC43MDcxMDggMTMzLjEzMyAxMDIuMTU2KSIgZmlsbD0iIzE2MTYxNiIvPgo8cmVjdCB4PSI2Ny43NzM3IiB5PSIzNy45MjI3IiB3aWR0aD0iNjMuMTc2NyIgaGVpZ2h0PSIyNi4xNDIiIHRyYW5zZm9ybT0icm90YXRlKDkwIDY3Ljc3MzcgMzcuOTIyNykiIGZpbGw9IiMxNjE2MTYiLz4KPHJlY3QgeD0iMTU5LjI3OCIgeT0iMTI5LjQxOSIgd2lkdGg9Ijc4LjQyNjIiIGhlaWdodD0iMjYuMTQyIiB0cmFuc2Zvcm09InJvdGF0ZSg5MCAxNTkuMjc4IDEyOS40MTkpIiBmaWxsPSIjMTYxNjE2Ii8+Cjwvc3ZnPgo=">
+        <bpmn:documentation>Isolated Daytona sandbox to run generated Python over imported documents. Use it for date arithmetic such as the filing deadline, and to cross-check the reconciliation.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:input source="=if is defined(daytonaApiUrl) and daytonaApiUrl != null then (if is defined(daytonaApiKey) and daytonaApiKey != null then daytonaApiKey else &#34;mock-daytona-key&#34;) else &#34;{{secrets.DAYTONA_API_KEY}}&#34;" target="data.apiKey" />
+            <zeebe:input source="=if is defined(daytonaApiUrl) and daytonaApiUrl != null then daytonaApiUrl else null" target="data.apiUrl" />
+            <zeebe:input source="DURATION" target="data.autoStop.mode" />
+            <zeebe:input source="PT5M" target="data.autoStop.duration" />
+            <zeebe:input source="DEFAULT" target="data.autoArchive.mode" />
+            <zeebe:input source="IMMEDIATELY" target="data.autoDelete.mode" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall" target="data.connectorMode.toolCall" />
+          </zeebe:ioMapping>
+          <zeebe:taskDefinition type="io.camunda.agenticai:sandboxdaytona:1" retries="3" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="1" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.sandbox.daytona.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
+            <zeebe:header key="errorExpression" value="=if error != null then bpmnError(&#34;SANDBOX_UNAVAILABLE&#34;, error.message, {sandboxError: error.message}) else null" />
+          </zeebe:taskHeaders>
+          <zeebe:properties>
+            <zeebe:property name="io.camunda.agenticai.gateway.type" value="sandbox" />
+          </zeebe:properties>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+      <bpmn:subProcess id="AskFraudRiskAgent" name="Ask fraud risk agent">
+        <bpmn:documentation>Ask the bank's external fraud risk agent for a risk opinion on this dispute, over A2A. Returns the agent's answer as text. Call this once per dispute. It waits until the agent has answered.</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.question, &#34;What you want the fraud agent to assess, including merchant, amount, dates, transaction references, and the cardholder claim&#34;)" target="text" />
+            <zeebe:input source="=null" target="a2a" />
+            <zeebe:input source="=0" target="attempt" />
+            <zeebe:output source="={taskId: a2a.taskId, state: a2a.state, answer: a2a.answer, remoteProcessInstanceKey: a2a.remoteProcessInstanceKey, remoteOperateUrl: a2a.remoteOperateUrl, evidence: {kind: &#34;a2a&#34;, agentUrl: (if is defined(fraudAgentUrl) and fraudAgentUrl != null then fraudAgentUrl else &#34;http://localhost:38090&#34;) + &#34;/a2a&#34;, authScheme: &#34;bearer&#34;, polls: attempt, remoteProcessInstanceKey: a2a.remoteProcessInstanceKey, remoteOperateUrl: a2a.remoteOperateUrl}}" target="toolCallResult" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:startEvent id="Fraud_Start" name="Question received">
+          <bpmn:outgoing>Fraud_F1</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:serviceTask id="Fraud_Send" name="Send message to fraud agent" zeebe:modelerTemplate="dev.hansel.a2a.client.v1" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMTguNSIgdmlld0JveD0iMyA5IDMwIDE4LjUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHBhdGggZD0iTTguNyAxNC43MjVDOC41MTY2NyAxNC45MDgzIDguMjgzMzMgMTUgOCAxNUM3LjcxNjY3IDE1IDcuNDc1IDE0LjkwODMgNy4yNzUgMTQuNzI1QzcuMDkxNjcgMTQuNTI1IDcgMTQuMjgzMyA3IDE0QzcgMTMuNzE2NyA3LjA5MTY3IDEzLjQ4MzMgNy4yNzUgMTMuM0M3LjQ3NSAxMy4xIDcuNzE2NjcgMTMgOCAxM0M4LjI4MzMzIDEzIDguNTE2NjcgMTMuMSA4LjcgMTMuM0M4LjkgMTMuNDgzMyA5IDEzLjcxNjcgOSAxNEM5IDE0LjI4MzMgOC45IDE0LjUyNSA4LjcgMTQuNzI1WiIgZmlsbD0iYmxhY2siLz4KICA8cGF0aCBkPSJNMTQuNyAxNC43MjVDMTQuNTE2NyAxNC45MDgzIDE0LjI4MzMgMTUgMTQgMTVDMTMuNzE2NyAxNSAxMy40NzUgMTQuOTA4MyAxMy4yNzUgMTQuNzI1QzEzLjA5MTcgMTQuNTI1IDEzIDE0LjI4MzMgMTMgMTRDMTMgMTMuNzE2NyAxMy4wOTE3IDEzLjQ4MzMgMTMuMjc1IDEzLjNDMTMuNDc1IDEzLjEgMTMuNzE2NyAxMyAxNCAxM0MxNC4yODMzIDEzIDE0LjUxNjcgMTMuMSAxNC43IDEzLjNDMTQuOSAxMy40ODMzIDE1IDEzLjcxNjcgMTUgMTRDMTUgMTQuMjgzMyAxNC45IDE0LjUyNSAxNC43IDE0LjcyNVoiIGZpbGw9ImJsYWNrIi8+CiAgPHBhdGggZD0iTTIyLjcgMTQuNzI1QzIyLjUxNjcgMTQuOTA4MyAyMi4yODMzIDE1IDIyIDE1QzIxLjcxNjcgMTUgMjEuNDc1IDE0LjkwODMgMjEuMjc1IDE0LjcyNUMyMS4wOTE3IDE0LjUyNSAyMSAxNC4yODMzIDIxIDE0QzIxIDEzLjcxNjcgMjEuMDkxNyAxMy40ODMzIDIxLjI3NSAxMy4zQzIxLjQ3NSAxMy4xIDIxLjcxNjcgMTMgMjIgMTNDMjIuMjgzMyAxMyAyMi41MTY3IDEzLjEgMjIuNyAxMy4zQzIyLjkgMTMuNDgzMyAyMyAxMy43MTY3IDIzIDE0QzIzIDE0LjI4MzMgMjIuOSAxNC41MjUgMjIuNyAxNC43MjVaIiBmaWxsPSJibGFjayIvPgogIDxwYXRoIGQ9Ik0yOC43IDE0LjcyNUMyOC41MTY3IDE0LjkwODMgMjguMjgzMyAxNSAyOCAxNUMyNy43MTY3IDE1IDI3LjQ3NSAxNC45MDgzIDI3LjI3NSAxNC43MjVDMjcuMDkxNyAxNC41MjUgMjcgMTQuMjgzMyAyNyAxNEMyNyAxMy43MTY3IDI3LjA5MTcgMTMuNDgzMyAyNy4yNzUgMTMuM0MyNy40NzUgMTMuMSAyNy43MTY3IDEzIDI4IDEzQzI4LjI4MzMgMTMgMjguNTE2NyAxMy4xIDI4LjcgMTMuM0MyOC45IDEzLjQ4MzMgMjkgMTMuNzE2NyAyOSAxNEMyOSAxNC4yODMzIDI4LjkgMTQuNTI1IDI4LjcgMTQuNzI1WiIgZmlsbD0iYmxhY2siLz4KICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTUgMTRDNSAxMi4zNDMxIDYuMzQzMTUgMTEgOCAxMUgxNEMxNC43NzYgMTEgMTUuMjg0IDExLjE1MzcgMTUuNjQgMTEuMzgxOEMxNS44NTg5IDEwLjc5NCAxNi4xNTE3IDEwLjE3MDkgMTYuNTU1IDkuNTk3OTVDMTUuODc5NyA5LjIxMTUzIDE1LjAzODYgOSAxNCA5SDhDNS4yMzg1OCA5IDMgMTEuMjM4NiAzIDE0QzMgMTYuNzYxMiA1LjIzNzU5IDE5IDcuOTk5MjYgMTlIMTRDMTUuNzYzNCAxOSAxNi45NTczIDE4LjM5MDIgMTcuNzM3NSAxNy4zNUMxOC40MjI4IDE2LjQzNjMgMTguNzE0OCAxNS4yNjYgMTguOTQ4MyAxNC4zMjk5TDE4Ljk3MDEgMTQuMjQyNUMxOS4yMzI3IDEzLjE5MjQgMTkuNDQ0MiAxMi40MDc3IDE5Ljg2MjUgMTEuODVDMjAuMjA3MyAxMS4zOTAyIDIwLjc2MzQgMTEgMjIgMTFIMjguMDAwNUMyOS42NTcyIDExIDMxIDEyLjM0MyAzMSAxNEMzMSAxNS42NTY5IDI5LjY1NjkgMTcgMjggMTdIMjJDMjEuMjI0IDE3IDIwLjcxNiAxNi44NDYzIDIwLjM2IDE2LjYxODJDMjAuMTQxMSAxNy4yMDYgMTkuODQ4MyAxNy44MjkxIDE5LjQ0NSAxOC40MDJDMjAuMTIwMyAxOC43ODg1IDIwLjk2MTQgMTkgMjIgMTlIMjhDMzAuNzYxNCAxOSAzMyAxNi43NjE0IDMzIDE0QzMzIDExLjIzODggMzAuNzYyMSA5IDI4LjAwMDUgOUgyMkMyMC4yMzY2IDkgMTkuMDQyNyA5LjYwOTc5IDE4LjI2MjUgMTAuNjVDMTcuNTc3MiAxMS41NjM3IDE3LjI4NTIgMTIuNzM0IDE3LjA1MTcgMTMuNjcwMUwxNy4wMjk5IDEzLjc1NzVDMTYuNzY3MyAxNC44MDc2IDE2LjU1NTggMTUuNTkyMyAxNi4xMzc1IDE2LjE1QzE1Ljc5MjcgMTYuNjA5OCAxNS4yMzY2IDE3IDE0IDE3SDcuOTk5MjZDNi4zNDI2NSAxNyA1IDE1LjY1NzEgNSAxNFoiIGZpbGw9ImJsYWNrIi8+CiAgPHBhdGggZD0iTTcgMjMuNUM2LjcxNjY3IDIzLjUgNi40NzUgMjMuNDA4MyA2LjI3NSAyMy4yMjVDNi4wOTE2NyAyMy4wMjUgNiAyMi43ODMzIDYgMjIuNUM2IDIyLjIxNjcgNi4wOTE2NyAyMS45ODMzIDYuMjc1IDIxLjhDNi40NzUgMjEuNiA2LjcxNjY3IDIxLjUgNyAyMS41SDEyQzEyLjI4MzMgMjEuNSAxMi41MTY3IDIxLjYgMTIuNyAyMS44QzEyLjkgMjEuOTgzMyAxMyAyMi4yMTY3IDEzIDIyLjVDMTMgMjIuNzgzMyAxMi45IDIzLjAyNSAxMi43IDIzLjIyNUMxMi41MTY3IDIzLjQwODMgMTIuMjgzMyAyMy41IDEyIDIzLjVIN1pNNSAyNy41QzQuNzE2NjcgMjcuNSA0LjQ3NSAyNy40MDgzIDQuMjc1IDI3LjIyNUM0LjA5MTY3IDI3LjAyNSA0IDI2Ljc4MzMgNCAyNi41QzQgMjYuMjE2NyA0LjA5MTY3IDI1Ljk4MzMgNC4yNzUgMjUuOEM0LjQ3NSAyNS42IDQuNzE2NjcgMjUuNSA1IDI1LjVIOEM4LjI4MzMzIDI1LjUgOC41MTY2NyAyNS42IDguNyAyNS44QzguOSAyNS45ODMzIDkgMjYuMjE2NyA5IDI2LjVDOSAyNi43ODMzIDguOSAyNy4wMjUgOC43IDI3LjIyNUM4LjUxNjY3IDI3LjQwODMgOC4yODMzMyAyNy41IDggMjcuNUg1Wk0xMiAyNy41QzExLjcxNjcgMjcuNSAxMS40NzUgMjcuNDA4MyAxMS4yNzUgMjcuMjI1QzExLjA5MTcgMjcuMDI1IDExIDI2Ljc4MzMgMTEgMjYuNUMxMSAyNi4yMTY3IDExLjA5MTcgMjUuOTgzMyAxMS4yNzUgMjUuOEMxMS40NzUgMjUuNiAxMS43MTY3IDI1LjUgMTIgMjUuNUgyMEMyMC4yODMzIDI1LjUgMjAuNTE2NyAyNS42IDIwLjcgMjUuOEMyMC45IDI1Ljk4MzMgMjEgMjYuMjE2NyAyMSAyNi41QzIxIDI2Ljc4MzMgMjAuOSAyNy4wMjUgMjAuNyAyNy4yMjVDMjAuNTE2NyAyNy40MDgzIDIwLjI4MzMgMjcuNSAyMCAyNy41SDEyWk0yOCAyNy41QzI3LjcxNjcgMjcuNSAyNy40NzUgMjcuNDA4MyAyNy4yNzUgMjcuMjI1QzI3LjA5MTcgMjcuMDI1IDI3IDI2Ljc4MzMgMjcgMjYuNUMyNyAyNi4yMTY3IDI3LjA5MTcgMjUuOTgzMyAyNy4yNzUgMjUuOEMyNy40NzUgMjUuNiAyNy43MTY3IDI1LjUgMjggMjUuNUgzMkMzMi4yODMzIDI1LjUgMzIuNTE2NyAyNS42IDMyLjcgMjUuOEMzMi45IDI1Ljk4MzMgMzMgMjYuMjE2NyAzMyAyNi41QzMzIDI2Ljc4MzMzMi45IDI3LjAyNSAzMi43IDI3LjIyNUMzMi41MTY3IDI3LjQwODMgMzIuMjgzMyAyNy41IDMyIDI3LjVIMjhaTTE2IDIzLjVDMTUuNzE2NyAyMy41IDE1LjQ3NSAyMy40MDgzIDE1LjI3NSAyMy4yMjVDMTUuMDkxNyAyMy4wMjUgMTUgMjIuNzgzMyAxNSAyMi41QzE1IDIyLjIxNjcgMTUuMDkxNyAyMS45ODMzIDE1LjI3NSAyMS44QzE1LjQ3NSAyMS42IDE1LjcxNjcgMjEuNSAxNiAyMS41QzE2LjI4MzMgMjEuNSAxNi41MTY3IDIxLjYgMTYuNyAyMS44QzE2LjkgMjEuOTgzMyAxNyAyMi4yMTY3IDE3IDIyLjVDMTcgMjIuNzgzMyAxNi45IDIzLjAyNSAxNi43IDIzLjIyNUMxNi41MTY3IDIzLjQwODMgMTYuMjgzMyAyMy41IDE2IDIzLjVaTTI0IDI3LjVDMjMuNzE2NyAyNy41IDIzLjQ3NSAyNy40MDgzIDIzLjI3NSAyNy4yMjVDMjMuMDkxNyAyNy4wMjUgMjMgMjYuNzgzMyAyMyAyNi41QzIzIDI2LjIxNjcgMjMuMDkxNyAyNS45ODMzIDIzLjI3NSAyNS44QzIzLjQ3NSAyNS42IDIzLjcxNjcgMjUuNSAyNCAyNS41QzI0LjI4MzMgMjUuNSAyNC41MTY3IDI1LjYgMjQuNyAyNS44QzI0LjkgMjUuOTgzMyAyNSAyNi4yMTY3IDI1IDI2LjVDMjUgMjYuNzgzMyAyNC45IDI3LjAyNSAyNC43IDI3LjIyNUMyNC41MTY3IDI3LjQwODMgMjQuMjgzMyAyNy41IDI0IDI3LjVaIiBmaWxsPSJibGFjayIvPgogIDxwYXRoIGQ9Ik0xOS4yNzUgMjMuMjI1QzE5LjQ3NSAyMy40MDgzIDE5LjcxNjcgMjMuNSAyMCAyMy41SDIzQzIzLjI4MzMgMjMuNSAyMy41MTY3IDIzLjQwODMgMjMuNyAyMy4yMjVDMjMuOSAyMy4wMjUgMjQgMjIuNzgzMyAyNCAyMi41QzI0IDIyLjIxNjcgMjMuOSAyMS45ODMzIDIzLjcgMjEuOEMyMy41MTY3IDIxLjYgMjMuMjgzMyAyMS41IDIzIDIxLjVIMjBDMTkuNzE2NyAyMS41IDE5LjQ3NSAyMS42IDE5LjI3NSAyMS44QzE5LjA5MTcgMjEuOTgzMyAxOSAyMi4yMTY3IDE5IDIyLjVDMTkgMjIuNzgzMyAxOS4wOTE3IDIzLjAyNSAxOS4yNzUgMjMuMjI1WiIgZmlsbD0iYmxhY2siLz4KICA8cGF0aCBkPSJNMjYuMjc1IDIzLjIyNUMyNi40NzUgMjMuNDA4MyAyNi43MTY3IDIzLjUgMjcgMjMuNUgzMEMzMC4yODMzIDIzLjUgMzAuNTE2NyAyMy40MDgzIDMwLjcgMjMuMjI1QzMwLjkgMjMuMDI1IDMxIDIyLjc4MzMgMzEgMjIuNUMzMSAyMi4yMTY3IDMwLjkgMjEuOTgzMyAzMC43IDIxLjhDMzAuNTE2NyAyMS42IDMwLjI4MzMgMjEuNSAzMCAyMS41SDI3QzI2LjcxNjcgMjEuNSAyNi40NzUgMjEuNiAyNi4yNzUgMjEuOEMyNi4wOTE3IDIxLjk4MzMgMjYgMjIuMjE2NyAyNiAyMi41QzI2IDIyLjc4MzMgMjYuMDkxNyAyMy4wMjUgMjYuMjc1IDIzLjIyNVoiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPg==">
+          <bpmn:documentation>A2A 1.0 Client, operation sendMessage. Returns at once with the task; the answer is polled below.</bpmn:documentation>
+          <bpmn:extensionElements>
+            <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+            <zeebe:ioMapping>
+              <zeebe:input source="=(if is defined(fraudAgentUrl) and fraudAgentUrl != null then fraudAgentUrl else &#34;http://localhost:38090&#34;)" target="baseUrl" />
+              <zeebe:input source="sendMessage" target="operationId" />
+              <zeebe:input source="a2a" target="rpcPath" />
+              <zeebe:input source="=&#34;/&#34;+rpcPath" target="operationPath" />
+              <zeebe:input source="=text" target="text" />
+              <zeebe:input source="bearer" target="authType" />
+              <zeebe:input source="bearer" target="authentication.type" />
+              <zeebe:input source="{{secrets.FRAUD_AGENT_TOKEN}}" target="authentication.token" />
+              <zeebe:input source="={&#34;A2A-Version&#34;: &#34;1.0&#34;, &#34;Content-Type&#34;: &#34;application/json&#34;}" target="headers" />
+              <zeebe:input source="={}" target="queryParameters" />
+              <zeebe:input source="POST" target="method" />
+              <zeebe:input source="=true" target="ignoreNullValues" />
+              <zeebe:input source="={jsonrpc: &#34;2.0&#34;, id: string(uuid()), method: &#34;SendMessage&#34;, params: {message: {messageId: string(uuid()), role: &#34;ROLE_USER&#34;, parts: [{text: text}]}, configuration: {returnImmediately: true}}}" target="body" />
+              <zeebe:input source="=baseUrl + operationPath" target="url" />
+            </zeebe:ioMapping>
+            <zeebe:taskHeaders>
+              <zeebe:header key="resultExpression" value="={a2a: if response.body.error != null then {state: &#34;ERROR&#34;, answer: response.body.error.message} else if response.body.result.task != null then {taskId: response.body.result.task.id, state: response.body.result.task.status.state, answer: response.body.result.task.status.message.parts[1].text, remoteProcessInstanceKey: response.body.result.task.metadata.camunda.processInstanceKey, remoteOperateUrl: response.body.result.task.metadata.camunda.operateUrl} else if response.body.result.status != null then {taskId: response.body.result.id, state: response.body.result.status.state, answer: response.body.result.status.message.parts[1].text, remoteProcessInstanceKey: response.body.result.metadata.camunda.processInstanceKey, remoteOperateUrl: response.body.result.metadata.camunda.operateUrl} else {state: &#34;TASK_STATE_COMPLETED&#34;, answer: response.body.result.message.parts[1].text}, attempt: if attempt = null then 1 else attempt + 1}" />
+              <zeebe:header key="retryBackoff" value="PT30S" />
+            </zeebe:taskHeaders>
+          </bpmn:extensionElements>
+          <bpmn:incoming>Fraud_F1</bpmn:incoming>
+          <bpmn:outgoing>Fraud_F2</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:exclusiveGateway id="Fraud_Join">
+          <bpmn:incoming>Fraud_F2</bpmn:incoming>
+          <bpmn:incoming>Fraud_F5</bpmn:incoming>
+          <bpmn:outgoing>Fraud_F6</bpmn:outgoing>
+        </bpmn:exclusiveGateway>
+        <bpmn:exclusiveGateway id="Fraud_Settled" name="Answer ready?" default="Fraud_FNo">
+          <bpmn:incoming>Fraud_F6</bpmn:incoming>
+          <bpmn:outgoing>Fraud_FYes</bpmn:outgoing>
+          <bpmn:outgoing>Fraud_FNo</bpmn:outgoing>
+        </bpmn:exclusiveGateway>
+        <bpmn:endEvent id="Fraud_End" name="Opinion received">
+          <bpmn:incoming>Fraud_FYes</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:intermediateCatchEvent id="Fraud_Wait" name="Wait 3 s">
+          <bpmn:incoming>Fraud_FNo</bpmn:incoming>
+          <bpmn:outgoing>Fraud_F4</bpmn:outgoing>
+          <bpmn:timerEventDefinition>
+            <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT3S</bpmn:timeDuration>
+          </bpmn:timerEventDefinition>
+        </bpmn:intermediateCatchEvent>
+        <bpmn:serviceTask id="Fraud_GetTask" name="Get task from fraud agent">
+          <bpmn:documentation>A2A 1.0 GetTask on the task that SendMessage returned.</bpmn:documentation>
+          <bpmn:extensionElements>
+            <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+            <zeebe:ioMapping>
+              <zeebe:input source="=(if is defined(fraudAgentUrl) and fraudAgentUrl != null then fraudAgentUrl else &#34;http://localhost:38090&#34;) + &#34;/a2a&#34;" target="url" />
+              <zeebe:input source="={jsonrpc: &#34;2.0&#34;, id: string(uuid()), method: &#34;GetTask&#34;, params: {id: a2a.taskId}}" target="body" />
+              <zeebe:input source="bearer" target="authType" />
+              <zeebe:input source="bearer" target="authentication.type" />
+              <zeebe:input source="{{secrets.FRAUD_AGENT_TOKEN}}" target="authentication.token" />
+              <zeebe:input source="={&#34;A2A-Version&#34;: &#34;1.0&#34;, &#34;Content-Type&#34;: &#34;application/json&#34;}" target="headers" />
+              <zeebe:input source="={}" target="queryParameters" />
+              <zeebe:input source="POST" target="method" />
+              <zeebe:input source="=true" target="ignoreNullValues" />
+            </zeebe:ioMapping>
+            <zeebe:taskHeaders>
+              <zeebe:header key="resultExpression" value="={a2a: if response.body.error != null then {state: &#34;ERROR&#34;, answer: response.body.error.message} else if response.body.result.task != null then {taskId: response.body.result.task.id, state: response.body.result.task.status.state, answer: response.body.result.task.status.message.parts[1].text, remoteProcessInstanceKey: response.body.result.task.metadata.camunda.processInstanceKey, remoteOperateUrl: response.body.result.task.metadata.camunda.operateUrl} else if response.body.result.status != null then {taskId: response.body.result.id, state: response.body.result.status.state, answer: response.body.result.status.message.parts[1].text, remoteProcessInstanceKey: response.body.result.metadata.camunda.processInstanceKey, remoteOperateUrl: response.body.result.metadata.camunda.operateUrl} else {state: &#34;TASK_STATE_COMPLETED&#34;, answer: response.body.result.message.parts[1].text}, attempt: if attempt = null then 1 else attempt + 1}" />
+              <zeebe:header key="retryBackoff" value="PT30S" />
+            </zeebe:taskHeaders>
+          </bpmn:extensionElements>
+          <bpmn:incoming>Fraud_F4</bpmn:incoming>
+          <bpmn:outgoing>Fraud_F5</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:sequenceFlow id="Fraud_F1" sourceRef="Fraud_Start" targetRef="Fraud_Send" />
+        <bpmn:sequenceFlow id="Fraud_F6" sourceRef="Fraud_Join" targetRef="Fraud_Settled" />
+        <bpmn:sequenceFlow id="Fraud_F2" sourceRef="Fraud_Send" targetRef="Fraud_Join" />
+        <bpmn:sequenceFlow id="Fraud_FYes" name="yes" sourceRef="Fraud_Settled" targetRef="Fraud_End">
+          <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=(a2a.state != "TASK_STATE_WORKING" and a2a.state != "TASK_STATE_SUBMITTED") or attempt &gt;= 40</bpmn:conditionExpression>
+        </bpmn:sequenceFlow>
+        <bpmn:sequenceFlow id="Fraud_FNo" name="no" sourceRef="Fraud_Settled" targetRef="Fraud_Wait" />
+        <bpmn:sequenceFlow id="Fraud_F4" sourceRef="Fraud_Wait" targetRef="Fraud_GetTask" />
+        <bpmn:sequenceFlow id="Fraud_F5" sourceRef="Fraud_GetTask" targetRef="Fraud_Join" />
+      </bpmn:subProcess>
+      <bpmn:boundaryEvent id="Sandbox_Error" name="Sandbox unavailable" attachedToRef="AnalyzeInSandbox">
+        <bpmn:outgoing>Sandbox_FallbackFlow1</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="Sandbox_ErrorDef" errorRef="Error_SandboxUnavailable" />
+      </bpmn:boundaryEvent>
+      <bpmn:sequenceFlow id="Sandbox_FallbackFlow1" sourceRef="Sandbox_Error" targetRef="Sandbox_FallbackRead" />
+      <bpmn:serviceTask id="Sandbox_FallbackRead" name="Read export for fallback" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="18">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=disputeDocuments[metadata.fileName = &#34;transactions-2026-09.csv&#34;][1]" target="fbDoc" />
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="GET" target="method" />
+            <zeebe:input source="=clusterApiUrl + &#34;/v2/documents/&#34; + fbDoc.documentId + &#34;?storeId=&#34; + fbDoc.storeId + &#34;&#38;contentHash=&#34; + fbDoc.contentHash" target="url" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="TEXT" target="documentReturnFormat.choice" />
+            <zeebe:input source="UTF-8" target="documentReturnFormat.encoding" />
+            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=20" target="readTimeoutInSeconds" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="18" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={fallbackCsv: response.body}" />
+            <zeebe:header key="retryBackoff" value="PT5S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Sandbox_FallbackFlow1</bpmn:incoming>
+        <bpmn:outgoing>Sandbox_FallbackFlow2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Sandbox_FallbackFlow2" sourceRef="Sandbox_FallbackRead" targetRef="Sandbox_Fallback" />
+      <bpmn:scriptTask id="Sandbox_Fallback" name="Sandbox fallback (in-process)">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={lines: split(fallbackCsv, &#34;\r?\n&#34;)[item != &#34;&#34;], header: split(lines[1], &#34;,&#34;), iDate: index of(header, &#34;date&#34;)[1], iAmount: index of(header, &#34;amount&#34;)[1], dups: sort((for line in sublist(lines, 2) return if number(split(line, &#34;,&#34;)[iAmount]) = disputedAmount then split(line, &#34;,&#34;)[iDate] else null)[item != null], function(x, y) x &#60; y), timeLimitDays: 120, lastChargeDate: dups[count(dups)], filingDeadline: string(date(lastChargeDate) + duration(&#34;P&#34; + string(timeLimitDays) + &#34;D&#34;)), daysBetweenCharges: if count(dups) &#62;= 2 then (date(dups[2]) - date(dups[1])).days else null, note: &#34;Daytona sandbox unavailable; this is an in-process fallback (FEEL), not a real sandbox run. Do not claim Python or the sandbox computed these values; label them as sandbox fallback.&#34; + (if is defined(sandboxError) and sandboxError != null then &#34; Daytona error: &#34; + sandboxError else &#34;&#34;), op: string(toolCall.operation), result: if op = &#34;CREATE&#34; then {handle: &#34;sandbox-fallback-in-process&#34;, workDir: &#34;/home/daytona&#34;} else if op = &#34;BASH&#34; then {exit_code: 0, stdout: &#34;{\&#34;timeLimitDays\&#34;: &#34; + string(timeLimitDays) + &#34;, \&#34;lastChargeDate\&#34;: \&#34;&#34; + lastChargeDate + &#34;\&#34;, \&#34;filingDeadline\&#34;: \&#34;&#34; + filingDeadline + &#34;\&#34;, \&#34;daysBetweenCharges\&#34;: &#34; + string(daysBetweenCharges) + &#34;}&#34;, timeLimitDays: timeLimitDays, lastChargeDate: lastChargeDate, filingDeadline: filingDeadline, daysBetweenCharges: daysBetweenCharges, sandboxFallback: true, note: note} else {exit_code: 0, sandboxFallback: true, note: note + &#34; Operation &#34; + op + &#34; was not executed.&#34;}}.result" resultVariable="toolCallResult" />
+          <zeebe:ioMapping>
+            <zeebe:output source="=toolCallResult" target="toolCallResult" />
+            <zeebe:output source="=true" target="sandboxFallback" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Sandbox_FallbackFlow2</bpmn:incoming>
+      </bpmn:scriptTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:userTask id="ReviewDraftedDecision" name="Review drafted decision">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="ReviewDisputeForm" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=if agent.responseJson != null then agent.responseJson else if contains(agent.responseText, &#34;```json&#34;) then from json(substring before(substring after(agent.responseText, &#34;```json&#34;), &#34;```&#34;)) else if contains(agent.responseText, &#34;{&#34;) then from json(&#34;{&#34; + substring after(agent.responseText, &#34;{&#34;)) else from json(agent.responseText)" target="draft" />
+          <zeebe:input source="=null" target="analystVerdict" />
+          <zeebe:input source="=disputeDocuments" target="sourceDocuments" />
+          <zeebe:output source="=analystVerdict" target="analystVerdict" />
+          <zeebe:output source="=if analystVerdict = &#34;revise&#34; then &#34;The human analyst sent your draft back. Feedback: &#34; + analystFeedback + &#34; Revise the decision and reply with the same JSON format. Reply with only the JSON object from the policy Output section, using exactly the keys decision, refundAmount, reasonCode, policyVersion, rationale and evidence. The decision field must be exactly one of APPROVE, ESCALATE or DENY.&#34; else null" target="followUpInput" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToReview</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="AnalystAcceptsDraft" name="Analyst accepts draft?" default="Flow_Revise">
+      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Accept</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Revise</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="DisputeDecided" name="Dispute decided">
+      <bpmn:incoming>Flow_Accept</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ToAgentInput" sourceRef="DisputeReceived" targetRef="JoinAgentInput" />
+    <bpmn:sequenceFlow id="Flow_ToAgent" sourceRef="JoinAgentInput" targetRef="DisputeAgent" />
+    <bpmn:sequenceFlow id="Flow_ToReview" sourceRef="DisputeAgent" targetRef="ReviewDraftedDecision" />
+    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="ReviewDraftedDecision" targetRef="AnalystAcceptsDraft" />
+    <bpmn:sequenceFlow id="Flow_Accept" name="Yes" sourceRef="AnalystAcceptsDraft" targetRef="DisputeDecided">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=analystVerdict = "accept"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revise" name="No, revise" sourceRef="AnalystAcceptsDraft" targetRef="JoinAgentInput" />
+    <bpmn:textAnnotation id="Note_LinkedPolicy">
+      <bpmn:text>#75 governed prompt: linked policy, version pinned per run</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_LinkedPolicy" sourceRef="DisputeAgent" targetRef="Note_LinkedPolicy" />
+    <bpmn:textAnnotation id="Note_Agent">
+      <bpmn:text>#81 documents in; #83 statement PDF parsed by file-parser (native)</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Agent" sourceRef="DisputeAgent" targetRef="Note_Agent" />
+    <bpmn:textAnnotation id="Note_WebFetch">
+      <bpmn:text>#83 web search blocked (EU-only key). REST fetch instead</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Note_Sandbox">
+      <bpmn:text>#82 sandbox: Python on the imported CSV in Daytona</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Note_A2A">
+      <bpmn:text>#113 A2A 1.0 fraud agent, bearer auth, polled with GetTask</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_WebFetch" sourceRef="FetchCardNetworkRules" targetRef="Note_WebFetch" />
+    <bpmn:textAnnotation id="Note_SandboxFallback">
+      <bpmn:text>Fallback, not Daytona: FEEL result marked sandboxFallback: true. Mock hook: daytonaApiUrl</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_SandboxFallback" sourceRef="Sandbox_Fallback" targetRef="Note_SandboxFallback" />
+    <bpmn:association id="Assoc_Sandbox" sourceRef="AnalyzeInSandbox" targetRef="Note_Sandbox" />
+    <bpmn:association id="Assoc_A2A" sourceRef="AskFraudRiskAgent" targetRef="Note_A2A" />
+  </bpmn:process>
+  <bpmn:error id="Error_SandboxUnavailable" name="Sandbox unavailable" errorCode="SANDBOX_UNAVAILABLE" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="CardDispute">
+      <bpmndi:BPMNShape id="DisputeReceived_di" bpmnElement="DisputeReceived">
+        <dc:Bounds x="172" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="149" y="285" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="JoinAgentInput_di" bpmnElement="JoinAgentInput" isMarkerVisible="true">
+        <dc:Bounds x="255" y="235" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DisputeAgent_di" bpmnElement="DisputeAgent" isExpanded="true">
+        <dc:Bounds x="340" y="150" width="860" height="360" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AnalyzeInSandbox_di" bpmnElement="AnalyzeInSandbox">
+        <dc:Bounds x="390" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="FetchCardNetworkRules_di" bpmnElement="FetchCardNetworkRules">
+        <dc:Bounds x="610" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ReconcileTransactions_di" bpmnElement="ReconcileTransactions" isExpanded="false">
+        <dc:Bounds x="830" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AskFraudRiskAgent_di" bpmnElement="AskFraudRiskAgent" isExpanded="false">
+        <dc:Bounds x="1050" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sandbox_Error_di" bpmnElement="Sandbox_Error">
+        <dc:Bounds x="422" y="282" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="462" y="322" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sandbox_FallbackRead_di" bpmnElement="Sandbox_FallbackRead">
+        <dc:Bounds x="390" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Sandbox_Fallback_di" bpmnElement="Sandbox_Fallback">
+        <dc:Bounds x="610" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ReviewDraftedDecision_di" bpmnElement="ReviewDraftedDecision">
+        <dc:Bounds x="1260" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AnalystAcceptsDraft_di" bpmnElement="AnalystAcceptsDraft" isMarkerVisible="true">
+        <dc:Bounds x="1410" y="235" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1396" y="196" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DisputeDecided_di" bpmnElement="DisputeDecided">
+        <dc:Bounds x="1522" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1501" y="285" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_LinkedPolicy_di" bpmnElement="Note_LinkedPolicy">
+        <dc:Bounds x="110" y="60" width="200" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_Sandbox_di" bpmnElement="Note_Sandbox">
+        <dc:Bounds x="360" y="60" width="200" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_WebFetch_di" bpmnElement="Note_WebFetch">
+        <dc:Bounds x="580" y="60" width="200" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_Agent_di" bpmnElement="Note_Agent">
+        <dc:Bounds x="800" y="60" width="200" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_A2A_di" bpmnElement="Note_A2A">
+        <dc:Bounds x="1020" y="60" width="200" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Note_SandboxFallback_di" bpmnElement="Note_SandboxFallback">
+        <dc:Bounds x="760" y="398" width="300" height="44" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_ToAgentInput_di" bpmnElement="Flow_ToAgentInput">
+        <di:waypoint x="208" y="260" />
+        <di:waypoint x="255" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAgent_di" bpmnElement="Flow_ToAgent">
+        <di:waypoint x="305" y="260" />
+        <di:waypoint x="340" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToReview_di" bpmnElement="Flow_ToReview">
+        <di:waypoint x="1200" y="260" />
+        <di:waypoint x="1260" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToGateway_di" bpmnElement="Flow_ToGateway">
+        <di:waypoint x="1360" y="260" />
+        <di:waypoint x="1410" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Accept_di" bpmnElement="Flow_Accept">
+        <di:waypoint x="1460" y="260" />
+        <di:waypoint x="1522" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1482" y="242" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Revise_di" bpmnElement="Flow_Revise">
+        <di:waypoint x="1435" y="285" />
+        <di:waypoint x="1435" y="560" />
+        <di:waypoint x="280" y="560" />
+        <di:waypoint x="280" y="285" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1443" y="530" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sandbox_FallbackFlow1_di" bpmnElement="Sandbox_FallbackFlow1">
+        <di:waypoint x="440" y="318" />
+        <di:waypoint x="440" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Sandbox_FallbackFlow2_di" bpmnElement="Sandbox_FallbackFlow2">
+        <di:waypoint x="490" y="420" />
+        <di:waypoint x="610" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_LinkedPolicy_di" bpmnElement="Assoc_LinkedPolicy">
+        <di:waypoint x="340" y="190" />
+        <di:waypoint x="260" y="104" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Sandbox_di" bpmnElement="Assoc_Sandbox">
+        <di:waypoint x="440" y="220" />
+        <di:waypoint x="440" y="104" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_WebFetch_di" bpmnElement="Assoc_WebFetch">
+        <di:waypoint x="660" y="220" />
+        <di:waypoint x="660" y="104" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Agent_di" bpmnElement="Assoc_Agent">
+        <di:waypoint x="900" y="150" />
+        <di:waypoint x="900" y="104" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_A2A_di" bpmnElement="Assoc_A2A">
+        <di:waypoint x="1100" y="220" />
+        <di:waypoint x="1100" y="104" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_SandboxFallback_di" bpmnElement="Assoc_SandboxFallback">
+        <di:waypoint x="710" y="420" />
+        <di:waypoint x="760" y="420" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_AskFraud">
+    <bpmndi:BPMNPlane id="BPMNPlane_AskFraud" bpmnElement="AskFraudRiskAgent">
+      <bpmndi:BPMNShape id="Fraud_Start_di" bpmnElement="Fraud_Start">
+        <dc:Bounds x="172" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fraud_Send_di" bpmnElement="Fraud_Send">
+        <dc:Bounds x="250" y="120" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fraud_Settled_di" bpmnElement="Fraud_Settled" isMarkerVisible="true">
+        <dc:Bounds x="470" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fraud_End_di" bpmnElement="Fraud_End">
+        <dc:Bounds x="710" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fraud_Wait_di" bpmnElement="Fraud_Wait">
+        <dc:Bounds x="477" y="250" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fraud_GetTask_di" bpmnElement="Fraud_GetTask">
+        <dc:Bounds x="550" y="228" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Fraud_F1_di" bpmnElement="Fraud_F1">
+        <di:waypoint x="208" y="160" />
+        <di:waypoint x="250" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fraud_F2_di" bpmnElement="Fraud_F2">
+        <di:waypoint x="350" y="160" />
+        <di:waypoint x="385" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fraud_F6_di" bpmnElement="Fraud_F6">
+        <di:waypoint x="435" y="160" />
+        <di:waypoint x="470" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Fraud_Join_di" bpmnElement="Fraud_Join" isMarkerVisible="true">
+        <dc:Bounds x="385" y="135" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Fraud_FYes_di" bpmnElement="Fraud_FYes">
+        <di:waypoint x="520" y="160" />
+        <di:waypoint x="710" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fraud_FNo_di" bpmnElement="Fraud_FNo">
+        <di:waypoint x="495" y="185" />
+        <di:waypoint x="495" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fraud_F4_di" bpmnElement="Fraud_F4">
+        <di:waypoint x="513" y="268" />
+        <di:waypoint x="550" y="268" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Fraud_F5_di" bpmnElement="Fraud_F5">
+        <di:waypoint x="600" y="228" />
+        <di:waypoint x="600" y="100" />
+        <di:waypoint x="410" y="100" />
+        <di:waypoint x="410" y="135" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Reconcile">
+    <bpmndi:BPMNPlane id="BPMNPlane_Reconcile" bpmnElement="ReconcileTransactions">
+      <bpmndi:BPMNShape id="Reconcile_Start_di" bpmnElement="Reconcile_Start">
+        <dc:Bounds x="180" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reconcile_Resolve_di" bpmnElement="Reconcile_Resolve">
+        <dc:Bounds x="270" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reconcile_ReadDocument_di" bpmnElement="Reconcile_ReadDocument">
+        <dc:Bounds x="420" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reconcile_Compute_di" bpmnElement="Reconcile_Compute">
+        <dc:Bounds x="570" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reconcile_End_di" bpmnElement="Reconcile_End">
+        <dc:Bounds x="722" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Reconcile_F1_di" bpmnElement="Reconcile_F1">
+        <di:waypoint x="216" y="178" />
+        <di:waypoint x="270" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Reconcile_F0_di" bpmnElement="Reconcile_F0">
+        <di:waypoint x="370" y="178" />
+        <di:waypoint x="420" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Reconcile_F2_di" bpmnElement="Reconcile_F2">
+        <di:waypoint x="520" y="178" />
+        <di:waypoint x="570" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Reconcile_F3_di" bpmnElement="Reconcile_F3">
+        <di:waypoint x="670" y="178" />
+        <di:waypoint x="722" y="178" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

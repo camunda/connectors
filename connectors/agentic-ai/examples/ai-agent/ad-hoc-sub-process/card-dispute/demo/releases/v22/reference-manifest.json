@@ -1,0 +1,9 @@
+{
+  "version": 22,
+  "processDefinitionKey": "2251799813767862",
+  "bpmnSha256": "dcb4471ea3b652aeaad29be3604d5dc665a6bf58437f6aed5025146dfb16ea53",
+  "coldReference": "2251799813767864",
+  "warmReference": "2251799813768614",
+  "referenceArtifacts": "../../../../logs/reference-{2251799813767864,2251799813768614}",
+  "note": "Archived fallback before configured ZIP v23. Not a claim of full v22 certification."
+}

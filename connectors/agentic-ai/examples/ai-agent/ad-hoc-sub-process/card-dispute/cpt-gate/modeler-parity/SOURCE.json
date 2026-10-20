@@ -1,0 +1,50 @@
+{
+  "modeler": {
+    "product": "Camunda Desktop Modeler",
+    "version": "5.51.1",
+    "installedApp": "/Applications/Camunda Modeler.app (Info.plist CFBundleShortVersionString 5.51.1)",
+    "sourceTag": "https://github.com/camunda/camunda-modeler/tree/v5.51.1 (commit c7c197a85c342760d000dcaac58a6dec169c2273)"
+  },
+  "bundledTemplates": {
+    "file": "bundle/camunda-modeler-5.51.1/connector-templates.json",
+    "sha256": "cb4843ebb4a609d526a1c6c7a507a4ae60a7fb76e9ebb95a3435d5360c9ef022",
+    "templates": 698,
+    "copiedFrom": "~/Library/Application Support/camunda-modeler/resources/element-templates/.camunda-connector-templates.json",
+    "fetchedBy": "Modeler 5.51.1 template updater (app/lib/template-updater/template-updater.js) from https://marketplace.cloud.camunda.io/api/v1/ootb-connectors",
+    "cacheMtimeAtCopy": "2026-10-19T11:53:53+0200",
+    "notes": [
+      "The packaged 5.51.1 app ships no element templates on disk; its OOTB connector templates are this updater cache.",
+      "resources/element-templates in the v5.51.1 git tag holds development samples only (cloud-samples.json, new-fields.json, rpa.json, samples.json, xss.json); they are not packaged and are excluded.",
+      "Personal templates in the same userData folder (custom AI Agent/LiteLLM experiments) are not part of the bundle and are excluded."
+    ]
+  },
+  "linting": {
+    "versionsFrom": "camunda-modeler v5.51.1 package-lock.json; package.json overrides pin the same resolved closure",
+    "@camunda/linting": "3.54.1",
+    "bpmnlint": "11.12.1",
+    "bpmnlint-plugin-camunda-compat": "2.59.2",
+    "bpmn-js-element-templates": "2.33.0",
+    "@bpmn-io/element-templates-validator": "2.26.0",
+    "@camunda/zeebe-element-templates-json-schema": "0.46.0",
+    "bpmn-moddle": "10.1.0",
+    "zeebe-bpmn-moddle": "1.18.0",
+    "modeler-moddle": "0.2.0",
+    "residualDifferences": [
+      "@bpmn-io/feel-analyzer 0.5.1 here vs 0.5.0 in Modeler (patch level, FEEL editor analysis, not used by lint)",
+      "Modeler-only rendering packages (canvg chain, @bpmn-io/svg-to-image) are not installed"
+    ],
+    "wiring": "client/src/app/TabsProvider.js getLinter: new Linter({ modeler: 'desktop', type: 'cloud', plugins: [ CloudElementTemplatesLinterPlugin(getCloudTemplates(templates)) ] }); executionPlatformVersion is read from the BPMN"
+  },
+  "templateLoading": {
+    "order": "app/lib/config/providers/ElementTemplatesProvider.js: <every ancestor of the diagram folder>/.camunda/element-templates/**/*.json (deepest first), then app resources (bundle)",
+    "propertiesPanel": "CloudElementTemplatesValidator keeps the first valid template per id@version",
+    "linter": "ElementTemplates.set keeps the last cloud-schema template per id@version (unvalidated)"
+  },
+  "linkedPromptReference": {
+    "file": "reference/linked-prompts-agent.element-template.json",
+    "sha256": "4a90e78311f71340dddd10299f4b81374ee738e2cd55f60045096a0bbeea5879",
+    "copiedFrom": "agentic-orchestration-pod initiatives/standalone/linked-prompts/assets/linked-prompts-runtime-prototype/resources/linked-prompts-agent.element-template.json",
+    "repoHead": "503e703bc0b0bb45a09cb60b4c4aec779af96d32 (branch docs/preserve-model-providers-session-state)",
+    "note": "The file is untracked in that repository; this copy is the pinned #75 prototype shape."
+  }
+}

@@ -1,0 +1,192 @@
+{
+  "id": "ReviewDisputeForm",
+  "type": "default",
+  "schemaVersion": 18,
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Card dispute demo (hand-authored)",
+    "version": "2.0.0"
+  },
+  "components": [
+    {
+      "id": "Text_CaseHeader",
+      "type": "text",
+      "text": "##### CARD DISPUTE \u00b7 {{disputeId}}\n### {{cardholderName}} \u00b7 card ending {{cardLast4}}\nDisputed amount **{{\"$\" + string(disputedAmount)}}** \u00b7 Synthetic demo data",
+      "layout": {
+        "row": "row_0",
+        "columns": null
+      }
+    },
+    {
+      "id": "Text_Claim",
+      "type": "text",
+      "text": "> **Cardholder claim**  \n> {{claim}}",
+      "layout": {
+        "row": "row_1",
+        "columns": null
+      }
+    },
+    {
+      "id": "Group_Recommendation",
+      "type": "group",
+      "label": "Agent recommendation",
+      "showOutline": true,
+      "layout": {
+        "row": "row_2",
+        "columns": null
+      },
+      "components": [
+        {
+          "id": "Text_Decision",
+          "type": "text",
+          "text": "Decision\n### {{draft.decision}}",
+          "layout": {
+            "row": "row_g0",
+            "columns": 4
+          }
+        },
+        {
+          "id": "Text_Refund",
+          "type": "text",
+          "text": "Refund amount\n### {{if draft.refundAmount = null then \"\u2014\" else \"$\" + string(draft.refundAmount)}}",
+          "layout": {
+            "row": "row_g0",
+            "columns": 4
+          }
+        },
+        {
+          "id": "Text_ReasonCode",
+          "type": "text",
+          "text": "Reason code\n### {{draft.reasonCode}}",
+          "layout": {
+            "row": "row_g0",
+            "columns": 4
+          }
+        },
+        {
+          "id": "Text_PolicyVersion",
+          "type": "text",
+          "text": "Compliance policy\n### {{draft.policyVersion}}",
+          "layout": {
+            "row": "row_g0",
+            "columns": 4
+          }
+        },
+        {
+          "id": "Text_DecisionMeaning",
+          "type": "text",
+          "text": "{{if draft.decision = \"APPROVE\" then \"**Within policy.** If you accept, the refund is issued to the cardholder.\" else if draft.decision = \"ESCALATE\" then \"**Outside the auto-approve limit or not LOW risk.** If you accept, the case goes to a senior analyst.\" else if draft.decision = \"DENY\" then \"**The evidence contradicts the claim.** If you accept, the cardholder is told the dispute is declined.\" else \"**The agent did not return a recognized decision.** Send it back with feedback.\"}}",
+          "layout": {
+            "row": "row_g1",
+            "columns": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "Text_Rationale",
+      "type": "text",
+      "text": "#### Rationale\n{{draft.rationale}}",
+      "layout": {
+        "row": "row_3",
+        "columns": null
+      }
+    },
+    {
+      "id": "Text_Evidence",
+      "type": "text",
+      "text": "#### Evidence cited by the agent\n{{#loop draft.evidence}}\n- {{if starts with(this, \"TX-\") then \"**\" + substring(this, 1, 7) + \"**\" + substring(this, 8) else this}}\n{{/loop}}",
+      "layout": {
+        "row": "row_4",
+        "columns": null
+      }
+    },
+    {
+      "id": "DocumentPreview_SourceFiles",
+      "type": "documentPreview",
+      "label": "Source documents",
+      "dataSource": "=sourceDocuments"
+    },
+    {
+      "id": "Group_Checks",
+      "type": "group",
+      "label": "Checks",
+      "showOutline": true,
+      "layout": {
+        "row": "row_5",
+        "columns": null
+      },
+      "components": [
+        {
+          "id": "Text_FraudOpinion",
+          "type": "text",
+          "text": "**Fraud risk opinion (external agent)**  \n{{if count((for e in draft.evidence return if contains(lower case(e), \"fraud\") then e else null)[item != null]) > 0 then ((for e in draft.evidence return if contains(lower case(e), \"fraud\") then e else null)[item != null])[1] else \"Not cited in the draft. Send it back and ask for the fraud opinion.\"}}",
+          "layout": {
+            "row": "row_c0",
+            "columns": 8
+          }
+        },
+        {
+          "id": "Text_NetworkRule",
+          "type": "text",
+          "text": "**Card network rule**  \n{{if starts with(draft.reasonCode, \"CN-DUP-01\") then \"CN-DUP-01 Duplicate processing. Dispute within 120 days of the second charge.\" else if starts with(draft.reasonCode, \"CN-NR-02\") then \"CN-NR-02 Goods or services not received. 120 days from the promised delivery date.\" else if starts with(draft.reasonCode, \"CN-FR-03\") then \"CN-FR-03 Unauthorized transaction. 120 days from the charge.\" else \"Reason code not recognized. Check it before you accept.\"}}  \n{{if count(transactions[amount = disputedAmount]) > 1 then \"Second charge: **\" + transactions[amount = disputedAmount][2].id + \"** on \" + transactions[amount = disputedAmount][2].date + \". Filing deadline: **\" + string(date(transactions[amount = disputedAmount][2].date) + duration(\"P120D\")) + \"** (computed from the export, not by the model).\" else \"\"}}",
+          "layout": {
+            "row": "row_c0",
+            "columns": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "Separator_Verdict",
+      "type": "separator",
+      "layout": {
+        "row": "row_6",
+        "columns": null
+      }
+    },
+    {
+      "id": "Radio_Verdict",
+      "type": "radio",
+      "key": "analystVerdict",
+      "label": "Your verdict",
+      "description": "The agent never issues a refund. Your verdict decides what happens next.",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Accept the draft",
+          "value": "accept"
+        },
+        {
+          "label": "Send back to the agent with feedback",
+          "value": "revise"
+        }
+      ],
+      "layout": {
+        "row": "row_7",
+        "columns": null
+      }
+    },
+    {
+      "id": "Textarea_Feedback",
+      "type": "textarea",
+      "key": "analystFeedback",
+      "label": "Feedback for the agent",
+      "description": "Say what is wrong or missing. The agent revises the draft with your feedback and returns it to this queue.",
+      "conditional": {
+        "hide": "=analystVerdict != \"revise\""
+      },
+      "validate": {
+        "required": true,
+        "minLength": 10
+      },
+      "layout": {
+        "row": "row_8",
+        "columns": null
+      }
+    }
+  ]
+}

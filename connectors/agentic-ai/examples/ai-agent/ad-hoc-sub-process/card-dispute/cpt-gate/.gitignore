@@ -1,0 +1,7 @@
+/target/
+/__pycache__/
+/src/test/resources/demo/
+/src/test/resources/agent-template.json
+/modeler-parity/node_modules/
+/modeler-parity/dist/
+/proofs/

@@ -1,0 +1,63 @@
+{
+  "name": "cpt-gate-modeler-parity",
+  "private": true,
+  "type": "module",
+  "description": "Modeler 5.51.1 parity checks for the CPT done-gate (dependency versions pinned to camunda-modeler v5.51.1 package-lock.json)",
+  "scripts": {
+    "build": "esbuild parity.mjs --bundle --platform=node --format=esm --outfile=dist/parity.mjs --log-level=error --loader:.css=empty --external:jsdom --banner:js=\"import {createRequire} from 'module';const require=createRequire(import.meta.url);\"",
+    "test": "npm run build && node --test parity.test.mjs"
+  },
+  "dependencies": {
+    "@bpmn-io/semver-compat": "0.1.0",
+    "@camunda/linting": "3.54.1",
+    "bpmn-js-element-templates": "2.33.0",
+    "bpmn-moddle": "10.1.0",
+    "modeler-moddle": "0.2.0",
+    "zeebe-bpmn-moddle": "1.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0",
+    "jsdom": "26.1.0"
+  },
+  "overrides": {
+    "@bpmn-io/properties-panel": "3.51.2",
+    "@lezer/json": "1.0.0",
+    "@bpmn-io/feel-editor": "2.7.1",
+    "w3c-keyname": "2.2.6",
+    "tabbable": "6.4.0",
+    "@lezer/highlight": "1.2.3",
+    "@codemirror/state": "6.7.0",
+    "diagram-js-grid": "2.0.1",
+    "didi": "11.0.0",
+    "focus-trap": "8.0.0",
+    "bpmn-js": "18.25.1",
+    "moddle-xml": "12.1.0",
+    "@codemirror/commands": "6.10.3",
+    "bpmn-js-executable-fix": "0.2.1",
+    "@camunda/example-data-properties-provider": "1.5.0",
+    "bpmnlint": "11.12.1",
+    "bpmn-js-create-append-anything": "2.0.0",
+    "uuid": "14.0.1",
+    "camunda-bpmn-moddle": "7.0.1",
+    "preact": "10.29.7",
+    "bpmn-js-properties-panel": "5.65.0",
+    "zeebe-bpmn-moddle": "1.18.0",
+    "bpmnlint-plugin-camunda-compat": "2.59.2",
+    "path-intersection": "4.1.0",
+    "diagram-js-minimap": "5.4.1",
+    "@codemirror/view": "6.43.4",
+    "@lezer/markdown": "1.7.2",
+    "@marijn/find-cluster-break": "1.0.2",
+    "@lezer/lr": "1.4.10",
+    "style-mod": "4.1.0",
+    "diagram-js-direct-editing": "3.5.1",
+    "crelt": "1.0.6",
+    "@lezer/common": "1.5.2",
+    "diagram-js-origin": "1.4.0",
+    "diagram-js": "15.24.1",
+    "bpmn-moddle": "10.1.0",
+    "saxen": "11.1.1",
+    "@codemirror/language": "6.12.4",
+    "@bpmn-io/feelers-editor": "1.1.1"
+  }
+}
