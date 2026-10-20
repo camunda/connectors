@@ -40,6 +40,10 @@ For A2A integration details, see [`a2a.md`](a2a.md).
 23. [Agent Instance Integration](#23-agent-instance-integration)
 24. [Architectural Invariants](#24-architectural-invariants)
 25. [Extension Points](#25-extension-playbooks)
+    - 25.1 [Add an LLM provider](#251-add-an-llm-provider)
+    - 25.2 [Add a `SystemPromptContributor`](#252-add-a-systempromptcontributor)
+    - 25.3 [Add a `ConversationStore`](#253-add-a-conversationstore)
+    - 25.4 [Observe agent execution (experimental)](#254-observe-agent-execution)
 
 ---
 
@@ -555,16 +559,27 @@ After Zeebe accepts or rejects the job-completion command, the runtime notifies 
 function via `JobCompletionListener` (from the connector SDK). Both `AgentTaskV1Function` and
 `AgentSubProcessV1Function` implement this interface (via the shared `AgentConnectorFunction` mixin) and
 delegate to an internal `AgentJobCompletionListener` carried by the response, which in turn
-invokes the conversation store's `onJobCompleted` / `onJobCompletionFailed` hooks.
+invokes the conversation store's `onJobCompleted` / `onJobCompletionFailed` hooks and then the same
+callbacks of the registered agent lifecycle listeners ([§25.4](#254-observe-agent-execution)). The
+lifecycle callbacks run even when the store hook throws.
 
 ```
 storeMessages(...)  →  Zeebe command sent  →  command future resolves  →  callback fires
-                                                                           ├─ accepted  →  store.onJobCompleted(executionContext, context)
-                                                                           └─ rejected  →  store.onJobCompletionFailed(executionContext, context, failure)
+                                                                           ├─ accepted  →  store.onJobCompleted(executionContext, context), then lifecycle onJobCompleted()
+                                                                           └─ rejected  →  store.onJobCompletionFailed(executionContext, context, failure), then lifecycle onJobCompletionFailed(failure)
 ```
 
 Carrying the callback on the response is what keeps the conversation store and agent context in
 scope: both are captured during request handling and dispatched once the Zeebe command resolves.
+Only a response that carries an `AgentJobCompletionListener` triggers the callbacks: the response of a turn
+and the response of a tool discovery dispatch do, while the no-op response of a job that waits for more tool
+results or finds no input carries none.
+
+The runtime hands the response the function returned to `onJobCompletionFailed` on every failure path that
+comes after the function returned, such as the inline size guard or the evaluation of the result or error
+expression, so the connector is notified of those failures as well. Only when the function itself threw is
+the response `null`; the callbacks are then not invoked, and the request handler reports that failure to the
+lifecycle listeners itself (`onJobFailed`).
 
 **Callback timing**: All paths are asynchronous — callbacks fire only after the corresponding
 Zeebe command (`completeJob`, `failJob`, or `throwBpmnError`) resolves. This applies uniformly
@@ -833,7 +848,9 @@ and `handleNoOp` completes the job as a no-op (the job worker waits for the next
 more results). When no input (user prompt, documents or events) is available at all, the composer returns
 `CompositionResult.NoInput`. This variant carries no error semantics — each handler decides: the job
 worker's `handleNoInput` completes without a response, while the outbound connector's `handleNoInput`
-throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`.
+throws a `ConnectorException` with `ERROR_CODE_NO_USER_MESSAGE_CONTENT`. Lifecycle listeners are told
+about the deferred case with `onJobDeferred`; a no-op job has no turn, persists nothing and receives no
+completion callbacks ([§25.4](#254-observe-agent-execution)).
 
 ### Streaming Arrived Results to Agent Instance History (ADR 011)
 
@@ -873,7 +890,7 @@ finishes — instead of only once the whole batch completes and `proceed()` runs
 **Mitigation**:
 - The `JobCallbackCommandWrapperFactory` retries up to 3 times with backoff
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
-- Superseded jobs produce a `CommandIgnored` outcome — the conversation store receives `onJobCompletionFailed` with a `CommandIgnored` failure
+- Superseded jobs produce a `CommandIgnored` outcome — the conversation store and the agent lifecycle listeners receive `onJobCompletionFailed` with a `CommandIgnored` failure
 
 **Job leasing**: All AI Agent connectors (both flavors, v1 and v2) opt into job leasing; the gateway/MCP/A2A tool connectors do not. Each activation carries a per-activation lease token that fences the connector's writes against a superseded activation of the same job — both job completion and the agent-instance turn writes. Writes from a stale activation are rejected and treated as supersession rather than retried (see [§23](#23-agent-instance-integration)). v1 is leased alongside v2 because a custom v1 template can also carry an agent definition and emit visibility data, so it needs the same fencing.
 
@@ -1011,7 +1028,9 @@ iteration calls `chatModel.execute(request)`, catches `ChatModelRejectedExceptio
 assistant message into the turn, and — only if the result was a `Continuation` — checks the
 model-call limit and starts the next continuation round on a fresh turn before looping. A `Completed`
 result ends the loop. LangChain4j always returns `Completed`, so the loop runs exactly once for it —
-behavior-identical to the pre-SPI single call.
+behavior-identical to the pre-SPI single call. Each call is announced to the agent lifecycle listeners as
+a model round ([§25.4](#254-observe-agent-execution)): `onModelRoundStarted` before it, and
+`onModelRoundCompleted` or `onModelRoundFailed` after it.
 
 Agent-instance metrics are reported **once per continuation round**, not once per job: each round's
 `applyTurnCompletion` call carries that round's own `AgentConversationTurn.metrics()` on its
@@ -1209,11 +1228,12 @@ The agentic AI connectors are wired by several Spring Boot auto-configurations, 
 | `A2aClientAgenticToolAutoConfiguration`        | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
 | `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
 | `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
-| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, the agent lifecycle dispatcher, AWS SDK and Azure HTTP proxy support) |
+| `AgentTracingAutoConfiguration` (`aiagent-otel`) | Spring Boot's `OpenTelemetrySdkAutoConfiguration`            | `AgentTracingListener`, only with `aiagent.tracing.enabled=true` and an `OpenTelemetry` bean ([OpenTelemetry tracing](opentelemetry-tracing.md)) |
 
-The AI Agent does not reference the MCP and A2A integrations. It collects every `GatewayToolHandler`
-and `SystemPromptContributor` bean through list injection, so the order of the integration
-auto-configurations does not matter.
+The AI Agent does not reference the MCP and A2A integrations or the tracing module. It collects every
+`GatewayToolHandler`, `SystemPromptContributor` and `AgentLifecycleListener` bean through list or provider
+injection, so the order of the integration auto-configurations does not matter.
 
 `AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
@@ -1238,6 +1258,9 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 | `camunda.connector.agenticai.aiagent.outbound-connector.enabled`  | `true`       | AI Agent Task connector (v1 and v2)     |
 | `camunda.connector.agenticai.aiagent.job-worker.enabled`          | `true`       | AI Agent Sub-process job worker (v1 and v2) |
 | `camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled` | `true`     | Ad-Hoc Tools Schema connector     |
+| `camunda.connector.agenticai.aiagent.tracing.enabled`             | `false`      | OpenTelemetry GenAI tracing listener; also turns off the Anthropic SDK's own OpenTelemetry spans |
+| `camunda.connector.agenticai.aiagent.tracing.capture-content`     | `false`      | Prompts, tool arguments and results, and error messages on the spans |
+| `camunda.connector.agenticai.aiagent.tracing.cluster-id`          | unset        | Optional prefix of the session id |
 
 ### Key Configuration Defaults
 
@@ -1301,6 +1324,7 @@ instance itself, so its key is invariant.
 - `AgentConversationTurnInputComposerImpl.resolveOrderedToolCallResults()` → Tool result matching & missing detection
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
+- `AgentLifecycleDispatcher.startJob()` → Announces a job to the `AgentLifecycleListener` beans and returns the `AgentJobLifecycle` that carries the callbacks of the job ([§25.4](#254-observe-agent-execution))
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
@@ -1386,6 +1410,12 @@ classDiagram
     class AgentResponseHandler {
         <<interface>>
     }
+    class AgentLifecycleDispatcher
+    class AgentLifecycleListener {
+        <<interface, experimental>>
+    }
+
+    AgentLifecycleDispatcher o-- AgentLifecycleListener : announces jobs to *
 
     BaseAgentRequestHandler --> AgentInitializer
     BaseAgentRequestHandler --> AgentConversationTurnInputComposer
@@ -1393,6 +1423,7 @@ classDiagram
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
+    BaseAgentRequestHandler --> AgentLifecycleDispatcher
     BaseAgentRequestHandler ..> AgentConversation : builds
 
     %% --- Gateway tool SPI ---
@@ -1639,6 +1670,9 @@ Gateway handlers store per-handler state in `AgentContext.properties`:
 - A2A: `properties.a2aClients = ["elementId1", "elementId2"]` — list of A2A client element IDs
 
 These are used during discovery checking and tool call result transformation.
+
+Agent lifecycle listeners keep their own state in the same map under `lifecycle:<listener id>` (for example
+`lifecycle:otel-tracing`); see [§25.4](#254-observe-agent-execution).
 
 ### Document Extraction from Tool Call Results
 
@@ -1990,7 +2024,7 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   record, and reference it from the `@TemplateSubType` id, `@JsonSubTypes.Type` name, `type()`, and the
   discriminator's `defaultValue`.
 - **Provider-namespaced metadata.** Provider-specific data a converter attaches outside a domain
-  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
+  object's mapped fields — on a content block's `metadata` ([§5](#5-data-model)) or on
   `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
   `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
@@ -2029,8 +2063,9 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 as a Spring bean. It has a stable `id()`, which names the listener's state in the agent context, and one
 callback, `onJobStarted(JobStarted)`, which returns the `AgentJobObserver` for that job (or
 `AgentJobObserver.NOOP`). The observer receives the callbacks of the job. `AgentLifecycleDispatcher`
-(`aiagent/lifecycle`) announces each job of both flavors to all listeners in registration order and hands the
-handler an `AgentJobLifecycle` for the job, which is `AgentJobLifecycle.NOOP` when no listener takes part.
+(`aiagent/lifecycle`) announces each job of both flavors to all listeners, in the order Spring resolves the
+beans (`@Order` is honored), and hands the handler an `AgentJobLifecycle` for the job, which is
+`AgentJobLifecycle.NOOP` when no listener takes part.
 Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 [OpenTelemetry tracing](opentelemetry-tracing.md) and [ADR 018](../adr/018-agent-lifecycle-listeners.md).
 
@@ -2053,7 +2088,13 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
   `null` leaves the stored state unchanged. Treat missing state as "start over": a failed, superseded or
   deferred job never persists its contribution.
 - Every started model round is closed with `onModelRoundCompleted` or `onModelRoundFailed`, and a failure is
-  rethrown unchanged.
+  rethrown unchanged. A model rejection reaches `onModelRoundFailed` as the coded connector exception that the
+  job fails with, so `errorCode` is set and the provider's rejection is its cause.
+- `onJobFailed` reports an exception that the agent work of the job threw; the handler rethrows it unchanged.
+  `onJobCompleted` and `onJobCompletionFailed` are called after the engine resolved the completion command, but
+  only for a job whose response carries them: a job that runs a turn or dispatches tool discovery. They
+  also report a failure that happens after the agent work returned, for example a result that exceeds the size
+  limit. A job that fails because its agent work threw gets `onJobFailed` and no completion callback.
 
 **How do I see X?**
 
@@ -2065,11 +2106,13 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 | All tool results are in and consumed by a turn | `TurnStarted.toolExecutions()`: a `ToolExecution` per result with its originating `call` (null for results that match no call), the `result` and a `cancelled` flag |
 | When a tool call was issued, and when it finished | `TurnStarted.toolCallsIssuedAt()`, derived from the time-ordered id of the assistant message that issued the calls (null for other ids), and `ToolExecution.result().completedAt()`, the engine's completion time (can be absent) |
 | A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and whether the provider asks for a continuation round) and `ModelRoundFailed(cause, errorCode)` |
+| The token usage of a model call | `ModelRoundCompleted.metrics().tokenUsage()`, one per round, as in the agent instance history (§23); input tokens exclude the cache read and cache creation counts, which are separate fields |
 | The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions) |
-| The job failed | `JobFailed(cause, errorCode)` |
-| The engine accepted or rejected the job completion | `onJobCompleted()` and `onJobCompletionFailed(JobCompletionFailure)` |
+| The job failed | `JobFailed(cause, errorCode)`; the error code `AGENT_INSTANCE_SUPERSEDED` marks a job whose agent instance write was rejected because a newer activation took over |
+| The engine accepted or rejected the job completion | `onJobCompleted()` and `onJobCompletionFailed(JobCompletionFailure)`; a job whose completion the engine ignores because it was superseded shows as `CommandIgnored` |
 
 The engine runs the tools, so the connector sees no tool start or end: there is no tool-started or
 tool-ended event. A tool shows up in `TurnStarted.toolExecutions()` of the turn that consumes its result, with
-the timing above. A job that only waits for gateway tool discovery results gets no events at all, and a job
-that is deferred or finds no input persists nothing.
+the timing above. A job that only waits for gateway tool discovery results gets no events at all. A job that is
+deferred, or that finds no input in the Sub-process flavor, has no turn and persists nothing: it receives
+`onJobStarted` and, when deferred, `onJobDeferred`, but no completion callback.
