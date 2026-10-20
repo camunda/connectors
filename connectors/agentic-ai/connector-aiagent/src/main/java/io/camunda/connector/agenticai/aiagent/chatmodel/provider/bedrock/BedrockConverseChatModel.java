@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -116,32 +115,24 @@ public class BedrockConverseChatModel implements ChatModel {
 
   private ConnectorException toConnectorException(Throwable cause) {
     if (cause instanceof AwsServiceException awsServiceException) {
-      final String reportedErrorCode =
+      final String errorCode =
           Optional.ofNullable(awsServiceException.awsErrorDetails())
               .map(details -> details.errorCode())
-              .orElse(null);
-      final String errorCode =
-          reportedErrorCode != null
-              ? reportedErrorCode
-              : awsServiceException.getClass().getSimpleName();
-      return new ChatModelCallFailedException(
+              .orElseGet(() -> awsServiceException.getClass().getSimpleName());
+      return new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s"
               .formatted(
                   awsServiceException.statusCode(), errorCode, awsServiceException.getMessage()),
-          awsServiceException,
-          reportedErrorCode != null ? reportedErrorCode : awsServiceException.getClass().getName());
+          awsServiceException);
     }
 
     final String detail =
         Optional.ofNullable(cause.getMessage())
             .filter(m -> !m.isBlank())
             .orElseGet(() -> cause.getClass().getSimpleName());
-    return new ChatModelCallFailedException(
-        ERROR_CODE_FAILED_MODEL_CALL,
-        "Model call failed: %s".formatted(detail),
-        cause,
-        cause.getClass().getName());
+    return new ConnectorException(
+        ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), cause);
   }
 
   @Override

@@ -28,7 +28,6 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.anthropic.services.blocking.MessageService;
 import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -185,7 +184,7 @@ class AnthropicChatModelTest {
             RateLimitException.builder().headers(Headers.builder().build()).body(body).build());
 
     assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
+        .isExactlyInstanceOf(ConnectorException.class)
         .satisfies(
             e -> {
               final var connectorException = (ConnectorException) e;
@@ -194,9 +193,6 @@ class AnthropicChatModelTest {
               assertThat(connectorException.getMessage())
                   .contains("429")
                   .contains("rate_limit_error");
-              assertThat(e).isInstanceOf(ChatModelCallFailedException.class);
-              assertThat(((ChatModelCallFailedException) e).errorType())
-                  .isEqualTo("rate_limit_error");
             });
   }
 

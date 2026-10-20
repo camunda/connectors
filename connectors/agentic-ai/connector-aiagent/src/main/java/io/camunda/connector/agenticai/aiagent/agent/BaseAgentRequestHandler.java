@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -155,9 +154,6 @@ public abstract class BaseAgentRequestHandler<
 
   /** The failure classification the provider reported, else the error code, else the class name. */
   private static String errorTypeOf(Throwable e, @Nullable String errorCode) {
-    if (e instanceof ChatModelCallFailedException callFailed) {
-      return callFailed.errorType();
-    }
     return errorCode != null ? errorCode : e.getClass().getName();
   }
 

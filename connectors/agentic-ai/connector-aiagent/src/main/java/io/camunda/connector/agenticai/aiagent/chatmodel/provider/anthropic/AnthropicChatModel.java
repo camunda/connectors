@@ -18,7 +18,6 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelCallFailedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -105,23 +104,20 @@ public class AnthropicChatModel implements ChatModel {
       final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
       return responseConverter.toResult(message, executionTime);
     } catch (AnthropicServiceException e) {
-      final String reportedErrorType = e.errorType().map(ErrorType::asString).orElse(null);
       final String errorType =
-          reportedErrorType != null ? reportedErrorType : e.getClass().getSimpleName();
-      throw new ChatModelCallFailedException(
+          e.errorType().map(ErrorType::asString).orElse(e.getClass().getSimpleName());
+      throw new ConnectorException(
           ERROR_CODE_FAILED_MODEL_CALL,
           "Model call failed with HTTP %d (%s): %s"
               .formatted(e.statusCode(), errorType, e.getMessage()),
-          e,
-          reportedErrorType != null ? reportedErrorType : e.getClass().getName());
+          e);
     } catch (ConnectorException | ChatModelRejectedException e) {
       // already coded -- a ConnectorException thrown by e.g. the OAuth token resolver, or a
       // ChatModelRejectedException thrown by the response converter for a known rejection. Let it
       // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
       throw e;
     } catch (Exception e) {
-      throw new ChatModelCallFailedException(
-          ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e, e.getClass().getName());
+      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
     }
   }
 
