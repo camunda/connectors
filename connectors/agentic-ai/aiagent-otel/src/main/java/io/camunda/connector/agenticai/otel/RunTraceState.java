@@ -24,6 +24,9 @@ import org.jspecify.annotations.Nullable;
  * @param sampled the sampling decision made once on the anchor
  * @param status whether the run continues or its final answer was given
  * @param iterationKey the turn iteration key at the time the state was written
+ * @param issuerSpanId the span id of the {@code invoke_agent} span of the job that wrote the state,
+ *     16 lowercase hex characters, which is the job that issued the tool calls a later job
+ *     consumes. Absent in a state that was written without it.
  */
 public record RunTraceState(
     int version,
@@ -31,7 +34,8 @@ public record RunTraceState(
     String anchorSpanId,
     boolean sampled,
     Status status,
-    int iterationKey) {
+    int iterationKey,
+    @Nullable String issuerSpanId) {
 
   public static final int CURRENT_VERSION = 1;
 
@@ -43,10 +47,22 @@ public record RunTraceState(
     CLOSED
   }
 
-  /** Creates a state of the current version. */
+  /** Creates a state of the current version without an issuer. */
   public static RunTraceState of(
       String traceId, String anchorSpanId, boolean sampled, Status status, int iterationKey) {
-    return new RunTraceState(CURRENT_VERSION, traceId, anchorSpanId, sampled, status, iterationKey);
+    return of(traceId, anchorSpanId, sampled, status, iterationKey, null);
+  }
+
+  /** Creates a state of the current version. */
+  public static RunTraceState of(
+      String traceId,
+      String anchorSpanId,
+      boolean sampled,
+      Status status,
+      int iterationKey,
+      @Nullable String issuerSpanId) {
+    return new RunTraceState(
+        CURRENT_VERSION, traceId, anchorSpanId, sampled, status, iterationKey, issuerSpanId);
   }
 
   /** The JSON-friendly form that is stored in the agent context. */
@@ -58,6 +74,9 @@ public record RunTraceState(
     map.put("sampled", sampled);
     map.put("status", status.name());
     map.put("iterationKey", iterationKey);
+    if (issuerSpanId != null) {
+      map.put("issuerSpanId", issuerSpanId);
+    }
     return map;
   }
 
@@ -65,7 +84,8 @@ public record RunTraceState(
    * Reads a stored state. Returns empty for anything missing, malformed, or of another version: a
    * trace or span id that is not valid, a number that is not an integer within the int range, or an
    * unknown status. Entries the current layout does not define, such as the process instance key of
-   * earlier states, are ignored.
+   * earlier states, are ignored. A missing or invalid issuer span id leaves the issuer absent and
+   * does not invalidate the state.
    */
   public static Optional<RunTraceState> fromMap(Map<String, Object> map) {
     try {
@@ -82,8 +102,16 @@ public record RunTraceState(
           || iterationKey == null) {
         return Optional.empty();
       }
+      final String issuerSpanId =
+          map.get("issuerSpanId") instanceof String id && SpanId.isValid(id) ? id : null;
       return Optional.of(
-          of(traceId, anchorSpanId, sampled, Status.valueOf(statusName), iterationKey));
+          of(
+              traceId,
+              anchorSpanId,
+              sampled,
+              Status.valueOf(statusName),
+              iterationKey,
+              issuerSpanId));
     } catch (RuntimeException e) {
       return Optional.empty();
     }

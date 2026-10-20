@@ -101,9 +101,12 @@ class AgentTracingJobObserverTest {
         discovery.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
     discovery.onJobCompleted();
 
-    assertThat(afterDiscovery).containsEntry("status", "OPEN").containsEntry("iterationKey", 0);
     final SpanData anchor = span("agent run");
     final SpanData discoveryJob = span("invoke_agent agent");
+    assertThat(afterDiscovery)
+        .containsEntry("status", "OPEN")
+        .containsEntry("iterationKey", 0)
+        .containsEntry("issuerSpanId", discoveryJob.getSpanId());
     assertThat(anchor.getParentSpanContext().isValid()).isFalse();
     assertThat(anchor.getAttributes().get(GenAiAttributes.OPERATION_NAME)).isNull();
     assertThat(discoveryJob.getParentSpanId()).isEqualTo(anchor.getSpanId());
@@ -126,8 +129,17 @@ class AgentTracingJobObserverTest {
     assertThat(exporter.getFinishedSpanItems()).hasSize(2); // chat and invoke_agent, no anchor
     assertThat(span("chat claude-x").getAttributes().get(GenAiAttributes.USAGE_INPUT_TOKENS))
         .isEqualTo(15L);
-    assertThat(span("invoke_agent agent").getParentSpanId()).isEqualTo(anchor.getSpanId());
+    final SpanData issuingJob = span("invoke_agent agent");
+    assertThat(issuingJob.getParentSpanId()).isEqualTo(anchor.getSpanId());
+    assertThat(afterFirstTurn).containsEntry("issuerSpanId", issuingJob.getSpanId());
     exporter.reset();
+
+    // job 3: only some tool results arrived, the job exports nothing and persists nothing
+    final var deferred =
+        listener.onJobStarted(
+            started(AgentJobKind.CONVERSATION, T0.plusSeconds(9), 1, afterFirstTurn));
+    deferred.onJobCompleted();
+    assertThat(exporter.getFinishedSpanItems()).isEmpty();
 
     // job 4, two days later: consumes two tool results and answers
     final Instant issuedAt = T0.plusSeconds(6);
@@ -149,6 +161,7 @@ class AgentTracingJobObserverTest {
     lastTurn.onJobCompleted();
 
     assertThat(afterLastTurn).containsEntry("status", "CLOSED").containsEntry("iterationKey", 2);
+    assertThat(afterLastTurn).containsEntry("issuerSpanId", span("invoke_agent agent").getSpanId());
     assertThat(exporter.getFinishedSpanItems())
         .hasSize(4)
         .allSatisfy(span -> assertThat(span.getTraceId()).isEqualTo(anchor.getTraceId()));
@@ -158,7 +171,9 @@ class AgentTracingJobObserverTest {
     final SpanData searchTool = span("execute_tool search");
     assertThat(searchTool.getStartEpochNanos()).isEqualTo(nanos(issuedAt));
     assertThat(searchTool.getEndEpochNanos()).isEqualTo(nanos(completedA));
-    assertThat(searchTool.getParentSpanId()).isEqualTo(invokeAgent.getSpanId());
+    assertThat(searchTool.getParentSpanId()).isEqualTo(issuingJob.getSpanId());
+    assertThat(searchTool.getStartEpochNanos())
+        .isGreaterThanOrEqualTo(issuingJob.getStartEpochNanos());
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME)).isEqualTo("completed");
     assertThat(searchTool.getAttributes().get(GenAiAttributes.AGENT_NAME)).isEqualTo("agent");
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION)).isNull();
@@ -166,6 +181,7 @@ class AgentTracingJobObserverTest {
         .isEqualTo("3");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.INPUT_MESSAGES)).isNull();
     final SpanData approvalTool = span("execute_tool approval");
+    assertThat(approvalTool.getParentSpanId()).isEqualTo(issuingJob.getSpanId());
     assertThat(approvalTool.getEndEpochNanos()).isEqualTo(nanos(completedB));
     assertThat(approvalTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME))
         .isEqualTo("cancelled");
@@ -184,6 +200,7 @@ class AgentTracingJobObserverTest {
 
     final SpanData secondAnchor = span("agent run");
     assertThat(secondAnchor.getTraceId()).isNotEqualTo(anchor.getTraceId());
+    assertThat(span("invoke_agent agent").getParentSpanId()).isEqualTo(secondAnchor.getSpanId());
     assertThat(secondAnchor.getLinks()).isEmpty();
     assertThat(secondAnchor.getAttributes().get(GenAiAttributes.SESSION_ID)).isEqualTo(SESSION);
   }
@@ -513,6 +530,139 @@ class AgentTracingJobObserverTest {
                 Map.of()));
     assertThat(withoutAgentInstance).isSameAs(AgentJobObserver.NOOP);
     assertThat(exporter.getFinishedSpanItems()).isEmpty();
+  }
+
+  @Test
+  void toolSpansOfADiscoveryIssuedCallAreParentedUnderTheDiscoveryJob() {
+    final var discovery =
+        listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
+    final var afterDiscovery =
+        discovery.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    discovery.onJobCompleted();
+    final SpanData discoveryJob = span("invoke_agent agent");
+    exporter.reset();
+
+    final var consuming =
+        listener.onJobStarted(
+            started(AgentJobKind.CONVERSATION, T0.plusSeconds(30), 0, afterDiscovery));
+    consuming.onTurnStarted(
+        turnStarted(
+            1,
+            List.of(toolExecution("call-1", "search", T0.plusSeconds(25), false)),
+            T0.plusSeconds(2)));
+    chatRound(consuming, StopReason.STOP);
+    consuming.onJobCompleted();
+
+    final SpanData consumingJob = span("invoke_agent agent");
+    final SpanData tool = span("execute_tool search");
+    assertThat(consumingJob.getSpanId()).isNotEqualTo(discoveryJob.getSpanId());
+    assertThat(tool.getParentSpanId()).isEqualTo(discoveryJob.getSpanId());
+    assertThat(tool.getTraceId()).isEqualTo(discoveryJob.getTraceId());
+    assertThat(tool.getStartEpochNanos()).isGreaterThanOrEqualTo(discoveryJob.getStartEpochNanos());
+  }
+
+  @Test
+  void toolSpansOfOneTurnShareTheIssuingJobAsParent() {
+    final var issuing =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    issuing.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(issuing, StopReason.TOOL_USE);
+    final var state = issuing.onTurnCompleted(turnCompleted(1, true));
+    issuing.onJobCompleted();
+    final SpanData issuingJob = span("invoke_agent agent");
+    exporter.reset();
+
+    final var consuming =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0.plusSeconds(60), 1, state));
+    consuming.onTurnStarted(
+        turnStarted(
+            2,
+            List.of(
+                toolExecution("call-1", "search", T0.plusSeconds(20), false),
+                toolExecution("call-2", "lookup", T0.plusSeconds(40), false),
+                toolExecution("call-3", "approval", T0.plusSeconds(50), true)),
+            T0.plusSeconds(2)));
+    chatRound(consuming, StopReason.STOP);
+    consuming.onJobCompleted();
+
+    assertThat(exporter.getFinishedSpanItems())
+        .filteredOn(span -> span.getName().startsWith("execute_tool"))
+        .hasSize(3)
+        .allSatisfy(
+            tool -> {
+              assertThat(tool.getParentSpanId()).isEqualTo(issuingJob.getSpanId());
+              assertThat(tool.getStartEpochNanos())
+                  .isGreaterThanOrEqualTo(issuingJob.getStartEpochNanos());
+            });
+  }
+
+  @Test
+  void toolSpansFallBackToTheConsumingJobWhenTheStateHasNoIssuer() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getParentSpanId())
+        .isEqualTo(span("invoke_agent agent").getSpanId());
+  }
+
+  @Test
+  void toolSpansFallBackToTheConsumingJobWhenTheIssuerIsInvalid() {
+    final Map<String, Object> state = new java.util.HashMap<>(openState(1));
+    state.put("issuerSpanId", "0".repeat(16));
+    final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, state));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getParentSpanId())
+        .isEqualTo(span("invoke_agent agent").getSpanId());
+  }
+
+  @Test
+  void aNewRunNeitherUsesNorCarriesTheIssuerOfTheEndedRun() {
+    final Map<String, Object> closed =
+        RunTraceState.of(
+                "4bf92f3577b34da6a3ce929d0e0e4736",
+                "00f067aa0ba902b7",
+                true,
+                RunTraceState.Status.CLOSED,
+                1,
+                "1111111111111111")
+            .toMap();
+    final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, closed));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.TOOL_USE);
+    final var state = observer.onTurnCompleted(turnCompleted(2, true));
+    observer.onJobCompleted();
+
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getTraceId()).isNotEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
+    assertThat(span("execute_tool search").getParentSpanId()).isEqualTo(invokeAgent.getSpanId());
+    assertThat(state).containsEntry("issuerSpanId", invokeAgent.getSpanId());
+  }
+
+  @Test
+  void aStaleStateDoesNotLendItsIssuerToANewRun() {
+    final Map<String, Object> stale = new java.util.HashMap<>(openState(1));
+    stale.put("issuerSpanId", "1111111111111111");
+    final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 5, stale));
+
+    observer.onTurnStarted(
+        turnStarted(6, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getParentSpanId())
+        .isEqualTo(span("invoke_agent agent").getSpanId());
   }
 
   // --- helpers ---

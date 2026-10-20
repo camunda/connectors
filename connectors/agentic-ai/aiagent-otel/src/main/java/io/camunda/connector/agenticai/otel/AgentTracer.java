@@ -66,14 +66,14 @@ public class AgentTracer {
   }
 
   /**
-   * The context in which the anchor of a run that started in an earlier job is the parent. The
-   * sampling decision of the anchor holds for every span of the run.
+   * The context in which a span that an earlier job exported, such as the anchor of the run, is the
+   * parent. The sampling decision of the anchor holds for every span of the run.
    */
-  public Context remoteParent(String traceId, String anchorSpanId, boolean sampled) {
+  public Context remoteParent(String traceId, String spanId, boolean sampled) {
     final SpanContext remote =
         SpanContext.createFromRemoteParent(
             traceId,
-            anchorSpanId,
+            spanId,
             sampled ? TraceFlags.getSampled() : TraceFlags.getDefault(),
             TraceState.getDefault());
     return Context.root().with(Span.wrap(remote));

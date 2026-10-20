@@ -31,6 +31,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import java.time.Instant;
@@ -38,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -75,6 +77,13 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private @Nullable Span anchor;
   private @Nullable Span invokeAgent;
   private @Nullable Context invokeAgentContext;
+
+  /**
+   * The parent of the tool spans: the {@code invoke_agent} span of the job that issued the tool
+   * calls when the run state names it, otherwise the {@code invoke_agent} span of this job.
+   */
+  private @Nullable Context toolSpanParent;
+
   private @Nullable Span chat;
 
   private boolean modelRoundStarted;
@@ -342,7 +351,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
             invokeAgentAttributes(),
             parent);
     invokeAgent = span;
-    invokeAgentContext = tracer.contextOf(span);
+    final Context agentContext = tracer.contextOf(span);
+    invokeAgentContext = agentContext;
+    toolSpanParent = issuerContext(previous).orElse(agentContext);
     final TurnStarted startedTurn = turn;
     if (captureContent && startedTurn != null) {
       final String input = GenAiAttributeMapper.inputMessagesJson(startedTurn.inputMessages());
@@ -350,6 +361,22 @@ class AgentTracingJobObserver implements AgentJobObserver {
         span.setAttribute(GenAiAttributes.INPUT_MESSAGES, input);
       }
     }
+  }
+
+  /**
+   * The context of the {@code invoke_agent} span of the job that issued the tool calls this job
+   * consumes. Only a job that continues the run has one: the state of a run that ended or went
+   * stale names a span of another trace.
+   */
+  private Optional<Context> issuerContext(@Nullable RunTraceState previous) {
+    if (!resolution.continuesRun() || previous == null) {
+      return Optional.empty();
+    }
+    final String issuerSpanId = previous.issuerSpanId();
+    if (issuerSpanId == null || !SpanId.isValid(issuerSpanId)) {
+      return Optional.empty();
+    }
+    return Optional.of(tracer.remoteParent(previous.traceId(), issuerSpanId, previous.sampled()));
   }
 
   /** The text that triggered the run, known only with content capture and a turn in this job. */
@@ -392,8 +419,18 @@ class AgentTracingJobObserver implements AgentJobObserver {
     if (current == null) {
       return null;
     }
+    final Span agentSpan = invokeAgent;
+    final String issuerSpanId =
+        agentSpan != null && agentSpan.getSpanContext().isValid()
+            ? agentSpan.getSpanContext().getSpanId()
+            : null;
     return RunTraceState.of(
-            current.traceId(), current.anchorSpanId(), current.sampled(), status, iterationKey)
+            current.traceId(),
+            current.anchorSpanId(),
+            current.sampled(),
+            status,
+            iterationKey,
+            issuerSpanId)
         .toMap();
   }
 
@@ -433,10 +470,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
           });
     }
     final Span agentSpan = invokeAgent;
-    final Context agentContext = invokeAgentContext;
-    if (tools && agentContext != null) {
+    final Context toolParent = toolSpanParent;
+    if (tools && toolParent != null) {
       try {
-        emitToolSpans(agentContext, now);
+        emitToolSpans(toolParent, now);
       } catch (Throwable t) {
         LOGGER.debug("Agent tracing could not emit the tool spans", t);
       }
@@ -487,7 +524,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
     }
   }
 
-  /** One span per tool result consumed by the turn, from the tool call issue to its completion. */
+  /**
+   * One span per tool result consumed by the turn, from the tool call issue to its completion,
+   * below the {@code invoke_agent} span of the job that issued the call.
+   */
   private void emitToolSpans(Context parent, Instant now) {
     for (final ToolExecution execution : toolExecutions) {
       try {

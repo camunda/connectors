@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.otel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.otel.RunTraceState.Status;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ class RunTraceStateTest {
 
   private static final String TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736";
   private static final String SPAN_ID = "00f067aa0ba902b7";
+  private static final String ISSUER_SPAN_ID = "53995c3f42cd8ad8";
 
   @Test
   void readsAValidStateWithAnyIntegralNumberType() {
@@ -53,6 +56,45 @@ class RunTraceStateTest {
     assertThat(RunTraceState.fromMap(stored("status", "PAUSED"))).isEmpty();
     assertThat(RunTraceState.fromMap(stored("version", 1.5d))).isEmpty();
     assertThat(RunTraceState.fromMap(Map.of())).isEmpty();
+  }
+
+  @Test
+  void roundTripsTheIssuerSpanId() {
+    final RunTraceState state =
+        RunTraceState.of(TRACE_ID, SPAN_ID, true, Status.OPEN, 2, ISSUER_SPAN_ID);
+
+    assertThat(state.toMap()).containsEntry("issuerSpanId", ISSUER_SPAN_ID);
+    assertThat(RunTraceState.fromMap(state.toMap())).contains(state);
+  }
+
+  @Test
+  void readsAStateWrittenWithoutAnIssuerSpanId() {
+    final Map<String, Object> earlier = stored("status", "OPEN");
+    assertThat(earlier).doesNotContainKey("issuerSpanId");
+
+    assertThat(RunTraceState.fromMap(earlier))
+        .hasValueSatisfying(state -> assertThat(state.issuerSpanId()).isNull());
+  }
+
+  @Test
+  void dropsAnInvalidIssuerSpanIdButKeepsTheState() {
+    for (final Object invalid :
+        new Object[] {"0".repeat(16), ISSUER_SPAN_ID + "0", ISSUER_SPAN_ID.toUpperCase(), 42}) {
+      assertThat(RunTraceState.fromMap(stored("issuerSpanId", invalid)))
+          .hasValueSatisfying(state -> assertThat(state.issuerSpanId()).isNull());
+    }
+  }
+
+  @Test
+  void aFullStateStaysWellUnderTheListenerStateLimit() throws Exception {
+    final Map<String, Object> map =
+        RunTraceState.of(TRACE_ID, SPAN_ID, true, Status.CLOSED, Integer.MAX_VALUE, ISSUER_SPAN_ID)
+            .toMap();
+
+    final int bytes =
+        new ObjectMapper().writeValueAsString(map).getBytes(StandardCharsets.UTF_8).length;
+
+    assertThat(bytes).isLessThan(256);
   }
 
   private static Map<String, Object> stored(String key, Object value) {
