@@ -21,14 +21,17 @@ import org.jspecify.annotations.Nullable;
  *   <li><b>Notifications</b> ({@code onJobDeferred}, {@code onTurnStarted}, {@code onJobFailed},
  *       {@code onJobCompleted}, {@code onJobCompletionFailed}) are failure-isolated: an exception
  *       is logged and ignored, callbacks of several listeners run in registration order on the job
- *       thread, and a notification cannot change the job.
+ *       thread, and a notification cannot change the job. The log names the listener, the callback,
+ *       and the exception class, never the event content.
  *   <li><b>State contributions</b> ({@code onToolDiscoveryDispatched}, {@code onTurnCompleted})
  *       return the listener's state, which the framework stores in the agent context under {@code
  *       lifecycle:<listener id>} and hands back in {@link JobStarted#previousState()} of the next
  *       job that reads it. A job's state is written only on the two paths that persist the agent
  *       context, and is lost together with a job that fails or is superseded. A listener must treat
- *       missing state as "start over". The state is a JSON-serializable map of limited size; an
- *       oversized or failing contribution is dropped.
+ *       missing state as "start over". The state is a map of plain JSON values only: maps with
+ *       string keys, lists, strings, booleans, finite numbers, and null. Its JSON serialization has
+ *       a size limit. An invalid, oversized, or failing contribution is dropped and the stored
+ *       state of the listener stays as it was; the job is not affected.
  *   <li><b>Model rounds</b> ({@code onModelRoundStarted}, then {@code onModelRoundCompleted} or
  *       {@code onModelRoundFailed}) are paired by the framework on the job thread: every started
  *       round is closed, even when a listener throws. A listener cannot skip or alter the call.

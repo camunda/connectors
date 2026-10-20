@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.lifecycle;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentJobInfo;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentJobKind;
@@ -31,16 +32,25 @@ public final class AgentLifecycleDispatcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentLifecycleDispatcher.class);
 
   private final List<AgentLifecycleListener> listeners;
-  private final int maxStateSize;
+  private final ObjectMapper objectMapper;
+  private final int maxStateBytes;
 
-  public AgentLifecycleDispatcher(List<AgentLifecycleListener> listeners, int maxStateSize) {
+  /**
+   * @param maxStateBytes limit of the JSON serialization, in UTF-8 bytes, of the state one listener
+   *     keeps in the agent context
+   */
+  public AgentLifecycleDispatcher(
+      List<AgentLifecycleListener> listeners, ObjectMapper objectMapper, int maxStateBytes) {
     this.listeners = List.copyOf(listeners);
-    this.maxStateSize = maxStateSize;
+    this.objectMapper = objectMapper;
+    this.maxStateBytes = maxStateBytes;
   }
 
   /**
    * Announces a job to every listener and returns the object that carries the later callbacks of
-   * the job. Returns {@link AgentJobLifecycle#NOOP} when no listener is registered.
+   * the job. Returns {@link AgentJobLifecycle#NOOP} when no listener is registered, when no
+   * listener returns an observer, or when the announcement itself fails; the lifecycle never fails
+   * the job.
    */
   public AgentJobLifecycle startJob(
       AgentFlavor flavor,
@@ -51,7 +61,20 @@ public final class AgentLifecycleDispatcher {
     if (listeners.isEmpty()) {
       return AgentJobLifecycle.NOOP;
     }
+    try {
+      return announce(flavor, kind, jobContext, agentContext, startedAt);
+    } catch (RuntimeException e) {
+      LifecycleFailureLog.eventFailed(LOGGER, "job started", e);
+      return AgentJobLifecycle.NOOP;
+    }
+  }
 
+  private AgentJobLifecycle announce(
+      AgentFlavor flavor,
+      AgentJobKind kind,
+      JobContext jobContext,
+      AgentContext agentContext,
+      Instant startedAt) {
     final var job = jobInfo(jobContext);
     final var metadata = agentContext.metadata();
     final var agentInstanceKey = metadata != null ? metadata.agentInstanceKey() : null;
@@ -72,11 +95,15 @@ public final class AgentLifecycleDispatcher {
                     lastIterationKey,
                     previousState(agentContext, listener.id())));
       } catch (RuntimeException e) {
-        LOGGER.warn("Agent lifecycle listener '{}' failed on job start", listener.id(), e);
+        LifecycleFailureLog.listenerFailed(LOGGER, listener.id(), "job started", e);
       }
-      entries.add(new AgentJobLifecycle.Entry(listener.id(), observer));
+      if (observer != AgentJobObserver.NOOP) {
+        entries.add(new AgentJobLifecycle.Entry(listener.id(), observer));
+      }
     }
-    return new AgentJobLifecycle(entries, maxStateSize);
+    return entries.isEmpty()
+        ? AgentJobLifecycle.NOOP
+        : new AgentJobLifecycle(entries, objectMapper, maxStateBytes);
   }
 
   @SuppressWarnings("unchecked")

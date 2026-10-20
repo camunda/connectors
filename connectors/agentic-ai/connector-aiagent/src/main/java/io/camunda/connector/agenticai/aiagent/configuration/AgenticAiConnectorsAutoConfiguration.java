@@ -84,8 +84,11 @@ import org.springframework.context.annotation.Scope;
 })
 public class AgenticAiConnectorsAutoConfiguration {
 
-  /** Size limit, in characters, of the state one lifecycle listener keeps in the agent context. */
-  private static final int MAX_LIFECYCLE_LISTENER_STATE_SIZE = 4096;
+  /**
+   * Size limit of the state one lifecycle listener keeps in the agent context, measured as the
+   * length of its JSON serialization in UTF-8 bytes.
+   */
+  private static final int MAX_LIFECYCLE_LISTENER_STATE_BYTES = 4096;
 
   @Bean
   @ConditionalOnMissingBean
@@ -243,9 +246,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentLifecycleDispatcher agentLifecycleDispatcher(
-      ObjectProvider<AgentLifecycleListener> listeners) {
+      ObjectProvider<AgentLifecycleListener> listeners,
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new AgentLifecycleDispatcher(
-        listeners.orderedStream().toList(), MAX_LIFECYCLE_LISTENER_STATE_SIZE);
+        listeners.orderedStream().toList(), objectMapper, MAX_LIFECYCLE_LISTENER_STATE_BYTES);
   }
 
   @Bean

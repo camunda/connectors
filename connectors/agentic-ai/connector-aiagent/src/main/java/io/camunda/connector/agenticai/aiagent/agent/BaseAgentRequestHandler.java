@@ -147,7 +147,7 @@ public abstract class BaseAgentRequestHandler<
     try {
       return work.get();
     } catch (RuntimeException e) {
-      lifecycle.jobFailed(new JobFailed(e, errorCodeOf(e)));
+      lifecycle.jobFailed(() -> new JobFailed(e, errorCodeOf(e)));
       throw e;
     }
   }
@@ -186,7 +186,7 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input ready to add, completing job without agent response");
           reportArrivedToolCallResults(
               executionContext, agentContext, arrivedResults, previousConversation);
-          lifecycle.jobDeferred(new JobDeferred(arrivedResults));
+          lifecycle.jobDeferred(() -> new JobDeferred(arrivedResults));
           yield handleNoOp(executionContext);
         }
         case CompositionResult.NoInput ignored -> {
@@ -240,7 +240,7 @@ public abstract class BaseAgentRequestHandler<
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    lifecycle.turnStarted(turnStarted(conversation, agentConfiguration));
+    lifecycle.turnStarted(() -> turnStarted(conversation, agentConfiguration));
     throwIfLimitsReached(conversation, agentConfiguration);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
@@ -276,16 +276,10 @@ public abstract class BaseAgentRequestHandler<
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
     final var createdResponse = responseHandler.createResponse(storedConversation);
-    final var completedTurn = storedConversation.currentTurn();
     final var agentResponse =
         createdResponse.withContext(
             lifecycle.turnCompleted(
-                createdResponse.context(),
-                new TurnCompleted(
-                    completedTurn.iterationKey(),
-                    completedTurn.toolCalls(),
-                    completedTurn.assistantMessage(),
-                    storedConversation.currentTurnMetrics())));
+                createdResponse.context(), () -> turnCompleted(storedConversation)));
 
     LOGGER.debug("Request processing completed with agent response, completing job");
 
@@ -365,23 +359,25 @@ public abstract class BaseAgentRequestHandler<
       AgentJobLifecycle lifecycle,
       int round) {
     lifecycle.modelRoundStarted(
-        new ModelRoundStarted(
-            round,
-            agentConfiguration.chatModel(),
-            snapshot.messages(),
-            snapshot.toolDefinitions()));
+        () ->
+            new ModelRoundStarted(
+                round,
+                agentConfiguration.chatModel(),
+                snapshot.messages(),
+                snapshot.toolDefinitions()));
     final ChatResult result;
     try {
       result = executeChatModel(chatModel, executionContext, snapshot);
     } catch (RuntimeException e) {
-      lifecycle.modelRoundFailed(new ModelRoundFailed(e, errorCodeOf(e)));
+      lifecycle.modelRoundFailed(() -> new ModelRoundFailed(e, errorCodeOf(e)));
       throw e;
     }
     lifecycle.modelRoundCompleted(
-        new ModelRoundCompleted(
-            result.assistantMessage(),
-            result.metrics(),
-            result instanceof ChatResult.Continuation));
+        () ->
+            new ModelRoundCompleted(
+                result.assistantMessage(),
+                result.metrics(),
+                result instanceof ChatResult.Continuation));
     return result;
   }
 
@@ -485,7 +481,7 @@ public abstract class BaseAgentRequestHandler<
         AgentResponse.builder()
             .context(
                 lifecycle.toolDiscoveryDispatched(
-                    agentContext, new ToolDiscoveryDispatched(discoveryToolCalls)))
+                    agentContext, () -> new ToolDiscoveryDispatched(discoveryToolCalls)))
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
     agentInstanceClient.applyToolDiscoveryStart(
@@ -517,6 +513,15 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentConversation conversation,
       @Nullable final AgentResponse agentResponse,
       @Nullable final AgentJobCompletionListener completionListener);
+
+  private static TurnCompleted turnCompleted(AgentConversation storedConversation) {
+    final var completedTurn = storedConversation.currentTurn();
+    return new TurnCompleted(
+        completedTurn.iterationKey(),
+        completedTurn.toolCalls(),
+        completedTurn.assistantMessage(),
+        storedConversation.currentTurnMetrics());
+  }
 
   private TurnStarted turnStarted(
       AgentConversation conversation, AgentConfiguration agentConfiguration) {

@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
@@ -107,7 +108,7 @@ class AgentSubProcessRequestHandlerTest {
 
   @Spy
   private AgentLifecycleDispatcher lifecycleDispatcher =
-      new AgentLifecycleDispatcher(List.of(), 4096);
+      new AgentLifecycleDispatcher(List.of(), new ObjectMapper(), 4096);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
