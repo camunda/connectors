@@ -284,6 +284,53 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
+  void anchorShowsTheRunInputInNameAndAttributesOnlyWithContentCapture() {
+    final var capturing =
+        new AgentTracingListener(
+            new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
+            new AgentTracingProperties(true, true, null));
+    final var observer =
+        capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(observer, StopReason.STOP);
+    observer.onTurnCompleted(turnCompleted(1, false));
+    observer.onJobCompleted();
+
+    final SpanData anchor = span("agent run: hi");
+    assertThat(anchor.getAttributes().get(GenAiAttributes.INPUT_VALUE)).isEqualTo("hi");
+    assertThat(anchor.getAttributes().get(GenAiAttributes.OPENINFERENCE_SPAN_KIND))
+        .isEqualTo("AGENT");
+    assertThat(anchor.getAttributes().get(GenAiAttributes.RUN_INPUT)).isEqualTo("hi");
+    exporter.reset();
+
+    final var plain = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    plain.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(plain, StopReason.STOP);
+    plain.onTurnCompleted(turnCompleted(1, false));
+    plain.onJobCompleted();
+
+    final SpanData plainAnchor = span("agent run");
+    assertThat(plainAnchor.getAttributes().get(GenAiAttributes.INPUT_VALUE)).isNull();
+    assertThat(plainAnchor.getAttributes().get(GenAiAttributes.OPENINFERENCE_SPAN_KIND)).isNull();
+    assertThat(plainAnchor.getAttributes().get(GenAiAttributes.RUN_INPUT)).isNull();
+  }
+
+  @Test
+  void anchorOfADiscoveryFirstRunStaysPlainEvenWithContentCapture() {
+    final var capturing =
+        new AgentTracingListener(
+            new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
+            new AgentTracingProperties(true, true, null));
+    final var observer =
+        capturing.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
+
+    observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    observer.onJobCompleted();
+
+    assertThat(span("agent run").getAttributes().get(GenAiAttributes.INPUT_VALUE)).isNull();
+  }
+
+  @Test
   void supersededJobCompletionKeepsItsSpansWithoutFailureStatusAndEmitsNoToolSpans() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));

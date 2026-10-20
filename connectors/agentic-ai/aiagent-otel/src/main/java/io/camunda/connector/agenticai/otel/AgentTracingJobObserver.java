@@ -304,8 +304,12 @@ class AgentTracingJobObserver implements AgentJobObserver {
     final RunTraceState previous = resolution.previous();
     final Context parent;
     if (resolution.startsRun()) {
+      final String runInput = runInput();
       final Span anchorSpan =
-          tracer.startAnchor(job.job().elementId() + " run", job.startedAt(), anchorAttributes());
+          tracer.startAnchor(
+              GenAiAttributeMapper.anchorName(job.job().elementId(), runInput),
+              job.startedAt(),
+              anchorAttributes(runInput));
       anchor = anchorSpan;
       parent = tracer.contextOf(anchorSpan);
       final SpanContext anchorContext = anchorSpan.getSpanContext();
@@ -344,7 +348,15 @@ class AgentTracingJobObserver implements AgentJobObserver {
     }
   }
 
-  private Attributes anchorAttributes() {
+  /** The text that triggered the run, known only with content capture and a turn in this job. */
+  private @Nullable String runInput() {
+    final TurnStarted startedTurn = turn;
+    return captureContent && startedTurn != null
+        ? GenAiAttributeMapper.runInput(startedTurn.inputMessages())
+        : null;
+  }
+
+  private Attributes anchorAttributes(@Nullable String runInput) {
     final AttributesBuilder builder = identity.toBuilder();
     builder.put(GenAiAttributes.AGENT_NAME, job.job().elementId());
     builder.put(
@@ -352,12 +364,11 @@ class AgentTracingJobObserver implements AgentJobObserver {
         resolution.previous() == null
             ? GenAiAttributes.RUN_TRIGGER_INITIAL
             : GenAiAttributes.RUN_TRIGGER_FOLLOW_UP);
-    final TurnStarted startedTurn = turn;
-    if (captureContent && startedTurn != null) {
-      final String input = GenAiAttributeMapper.runInput(startedTurn.inputMessages());
-      if (input != null) {
-        builder.put(GenAiAttributes.RUN_INPUT, input);
-      }
+    if (runInput != null) {
+      builder.put(GenAiAttributes.RUN_INPUT, runInput);
+      builder.put(GenAiAttributes.INPUT_VALUE, runInput);
+      builder.put(
+          GenAiAttributes.OPENINFERENCE_SPAN_KIND, GenAiAttributes.OPENINFERENCE_SPAN_KIND_AGENT);
     }
     return builder.build();
   }

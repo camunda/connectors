@@ -46,6 +46,20 @@ class GenAiAttributeMapperTest {
       };
 
   @Test
+  void anchorNameShowsTheStartOfTheRunInputAsOneLine() {
+    assertThat(GenAiAttributeMapper.anchorName("agent", null)).isEqualTo("agent run");
+    assertThat(GenAiAttributeMapper.anchorName("agent", " \n ")).isEqualTo("agent run");
+    assertThat(GenAiAttributeMapper.anchorName("agent", "Book a\n\ttable  for two"))
+        .isEqualTo("agent run: Book a table for two");
+    assertThat(GenAiAttributeMapper.anchorName("agent", "x".repeat(60)))
+        .isEqualTo("agent run: " + "x".repeat(60));
+    assertThat(GenAiAttributeMapper.anchorName("agent", "x".repeat(61)))
+        .isEqualTo("agent run: " + "x".repeat(60) + "...");
+    assertThat(GenAiAttributeMapper.anchorName("agent", "😀".repeat(70)))
+        .isEqualTo("agent run: " + "😀".repeat(60) + "...");
+  }
+
+  @Test
   void errorTypeIsTheFirstCauseThatIsNoConnectorException() {
     final Throwable sdkFailure = new java.net.SocketTimeoutException("secret prompt text");
     final Throwable wrapped =

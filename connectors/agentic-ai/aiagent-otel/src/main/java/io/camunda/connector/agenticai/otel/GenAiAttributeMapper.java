@@ -55,6 +55,8 @@ public final class GenAiAttributeMapper {
 
   private static final int MAX_CAUSE_DEPTH = 16;
 
+  private static final int ANCHOR_INPUT_LENGTH = 60;
+
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final JsonNodeFactory NODES = JSON.getNodeFactory();
 
@@ -98,6 +100,27 @@ public final class GenAiAttributeMapper {
   private static String className(Throwable throwable) {
     final String canonicalName = throwable.getClass().getCanonicalName();
     return canonicalName != null ? canonicalName : throwable.getClass().getName();
+  }
+
+  /**
+   * The name of the anchor span of a run: {@code <element> run}, followed by the start of the run
+   * input when it is given, as one line of at most 60 characters. Pass the input only with content
+   * capture, because the name is not content-gated otherwise.
+   */
+  public static String anchorName(String elementId, @Nullable String runInput) {
+    final String name = elementId + " run";
+    if (runInput == null) {
+      return name;
+    }
+    final String line = runInput.replaceAll("\\s+", " ").strip();
+    if (line.isEmpty()) {
+      return name;
+    }
+    if (line.codePointCount(0, line.length()) <= ANCHOR_INPUT_LENGTH) {
+      return name + ": " + line;
+    }
+    final int end = line.offsetByCodePoints(0, ANCHOR_INPUT_LENGTH);
+    return name + ": " + line.substring(0, end).stripTrailing() + "...";
   }
 
   /** The well-known {@code gen_ai.provider.name} of a chat model configuration. */

@@ -121,6 +121,12 @@ public final class GenAiAttributes {
   public static final AttributeKey<String> TOOL_START_TIME_SOURCE =
       AttributeKey.stringKey("camunda.agent.tool.start_time_source");
 
+  // --- OpenInference, read by Arize Phoenix and other OpenInference backends ---
+
+  public static final AttributeKey<String> INPUT_VALUE = AttributeKey.stringKey("input.value");
+  public static final AttributeKey<String> OPENINFERENCE_SPAN_KIND =
+      AttributeKey.stringKey("openinference.span.kind");
+
   // --- Values ---
 
   public static final String OPERATION_CHAT = "chat";
@@ -128,6 +134,8 @@ public final class GenAiAttributes {
   public static final String OPERATION_EXECUTE_TOOL = "execute_tool";
 
   public static final String TOOL_TYPE_FUNCTION = "function";
+
+  public static final String OPENINFERENCE_SPAN_KIND_AGENT = "AGENT";
 
   public static final String JOB_OUTCOME_COMPLETED = "completed";
   public static final String JOB_OUTCOME_FAILED = "failed";
