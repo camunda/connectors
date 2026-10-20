@@ -68,7 +68,7 @@ constraints:
   - { id: C2, name: "E2E tests for engine/BPMN wiring changes", hard: true, ref: AGENTS.md }
   - { id: C3, name: "Real-provider CPT run authorised per PR head SHA", hard: false, ref: AGENTS.md }
   - { id: C4, name: "Conversation store write-ahead and concurrency invariants", hard: true, ref: docs/reference/ai-agent.md }
-  - { id: C5, name: "ADR before implementation for significant decisions", hard: false, ref: docs/adr }
+  - { id: C5, name: "Public extension compatibility (SPIs and process-variable data model)", hard: false, ref: docs/breaking-changes.md }
   - { id: C6, name: "Module dependency direction and package ownership (ADR 015)", hard: true, ref: AGENTS.md }
 decisions: docs/adr
 

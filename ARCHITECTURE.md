@@ -46,7 +46,7 @@ consumers:
 exposes:
   - { contract: "Outbound/inbound connector SDK", spec: connector-sdk/core, policy: "Java 17; public API changes need discussion" }
   - { contract: "ServiceLoader registration (META-INF/services/io.camunda.connector.api.*)", spec: connector-sdk/core, policy: "Extension point: connectors are discovered on the runtime classpath" }
-  - { contract: "SecretProvider SPI", spec: secret-providers/secret-providers-base, policy: "Extension point: registered providers resolve {{secrets.NAME}}" }
+  - { contract: "SecretProvider SPI", spec: "connector-sdk/core (io.camunda.connector.api.secret.SecretProvider)", policy: "Extension point: registered providers resolve {{secrets.NAME}}" }
   - { contract: "Runtime Spring configuration and properties", spec: docs/connector-runtime-configurations.md, policy: "Additive changes; document in the doc" }
   - { contract: "Element template generator (annotations, Maven plugin, CLI)", spec: element-template-generator/README.md, policy: "Annotations drive templates; see ADR-0001" }
 constraints:
