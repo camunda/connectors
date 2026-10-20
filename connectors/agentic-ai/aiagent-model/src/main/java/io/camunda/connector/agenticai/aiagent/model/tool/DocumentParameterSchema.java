@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ANYOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_DESCRIPTION;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_FORMAT;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ITEMS;
+import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_ONEOF;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_PROPERTIES;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstants.TYPE_STRING;
@@ -18,22 +20,34 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Document parameters of a tool input schema. A document parameter is a string schema with the
- * format {@link #FORMAT_DOCUMENT_ID}, whose value is the {@code <doc />} tag of a known document.
- * It is found at the top level of the parameters, as array {@code items} and recursively through
- * object {@code properties} and array {@code items}. The format inside {@code $ref} does not make a
- * document parameter.
+ * Document parameters of a tool input schema. A parameter that carries a document is either
+ *
+ * <ul>
+ *   <li>a <em>document parameter</em>: a string schema with the format {@link #FORMAT_DOCUMENT_ID},
+ *       whose value is the {@code <doc />} tag of a known document, or
+ *   <li>a <em>union parameter</em>: a node with {@code anyOf} or {@code oneOf} alternatives, one of
+ *       which is such a string schema and at least one other alternative exists (typically a plain
+ *       string). Its value is a document only when it is exactly one {@code <doc />} tag; any other
+ *       value is not a document.
+ * </ul>
+ *
+ * Both are found at the top level of the parameters, as array {@code items} and recursively through
+ * object {@code properties} and array {@code items}. The alternatives of a union are not searched
+ * further: a document inside an object or array alternative is not a document parameter. The format
+ * inside {@code $ref} does not make a document parameter.
  *
  * <p>The stored schema keeps the format and the description as authored. The model sees the
- * description of a document parameter ending with {@link #HINT}; some model providers reject
- * unknown formats, so {@link #toProviderToolDefinitions} derives the schema they get by adding the
- * hint and dropping the format.
+ * description of a document parameter ending with {@link #HINT} and the description of a union
+ * parameter ending with {@link #UNION_HINT}; some model providers reject unknown formats, so {@link
+ * #toProviderToolDefinitions} derives the schema they get by adding the hint and dropping the
+ * format.
  */
 public final class DocumentParameterSchema {
 
@@ -51,6 +65,13 @@ public final class DocumentParameterSchema {
   public static final String HINT =
       "Pass the tag of a known document exactly as you read it, for example <doc id=\"...\" />.";
 
+  /** Ends the description of every union parameter. */
+  public static final String UNION_HINT =
+      "This parameter takes text or a document. To pass a document, give its tag exactly as you"
+          + " read it, for example <doc id=\"...\" />. Any other text is passed as text.";
+
+  private static final List<String> UNION_KEYWORDS = List.of(PROPERTY_ANYOF, PROPERTY_ONEOF);
+
   private DocumentParameterSchema() {}
 
   /** A step from a schema node to the schema of a nested value. */
@@ -67,18 +88,20 @@ public final class DocumentParameterSchema {
    * A document parameter of the tool arguments.
    *
    * @param path the steps from the object schema of the tool arguments to the parameter
+   * @param union {@code true} for a union parameter (text or a document), {@code false} for a
+   *     parameter that is always a document
    */
-  public record DocumentParameter(List<Step> path) {}
+  public record DocumentParameter(List<Step> path, boolean union) {}
 
-  /** Whether the input schema declares at least one document parameter. */
+  /** Whether the input schema declares at least one document parameter or union parameter. */
   public static boolean hasDocumentParameters(Map<String, Object> inputSchema) {
     return !documentParameters(inputSchema).isEmpty();
   }
 
   /**
-   * The document parameters of the object schema of the tool arguments, in schema order. The
-   * arguments of a tool call mirror the schema, so a path addresses the argument values that carry
-   * a document id.
+   * The document parameters and union parameters of the object schema of the tool arguments, in
+   * schema order. The arguments of a tool call mirror the schema, so a path addresses the argument
+   * values that carry a document id.
    */
   public static List<DocumentParameter> documentParameters(Map<String, Object> inputSchema) {
     final var parameters = new ArrayList<DocumentParameter>();
@@ -89,9 +112,20 @@ public final class DocumentParameterSchema {
   }
 
   /**
+   * Whether the schema node is a union parameter: it has {@code anyOf} or {@code oneOf}
+   * alternatives, one of them a document schema (a string schema with the format {@link
+   * #FORMAT_DOCUMENT_ID}) and at least one other.
+   */
+  public static boolean isUnionParameter(Map<?, ?> schema) {
+    return unionKeyword(schema) != null;
+  }
+
+  /**
    * Returns the tool definitions with the schema the model providers get: the description of every
-   * document parameter ends with {@link #HINT} and every document parameter is a string schema
-   * without the format. A definition without document parameters is returned as is; the others are
+   * document parameter ends with {@link #HINT} and the one of every union parameter with {@link
+   * #UNION_HINT}, every document parameter is a string schema without the format, every union
+   * parameter has its document alternative replaced by a plain string alternative (see {@link
+   * #toProviderSchema}). A definition without document parameters is returned as is; the others are
    * copies, so no stored definition is modified.
    */
   public static List<ToolDefinition> toProviderToolDefinitions(
@@ -112,12 +146,13 @@ public final class DocumentParameterSchema {
 
   /**
    * Returns the input schema with {@link #HINT} at the end of the description of every document
-   * parameter, found at the top level, as array {@code items} and through object {@code
-   * properties}. A description that already contains the hint is kept, so applying this twice
-   * changes nothing; a schema without document parameters is returned as is.
+   * parameter and {@link #UNION_HINT} at the end of the description of every union parameter, found
+   * at the top level, as array {@code items} and through object {@code properties}. A description
+   * that already contains the hint is kept, so applying this twice changes nothing; a schema
+   * without document parameters is returned as is.
    */
   static Map<String, Object> withHint(Map<String, Object> schema) {
-    return mapDocumentNodes(schema, node -> putHint(node, HINT));
+    return mapDocumentNodes(schema, node -> putHint(node, HINT), node -> putHint(node, UNION_HINT));
   }
 
   private static Map<String, Object> putHint(Map<String, Object> node, String hint) {
@@ -153,22 +188,96 @@ public final class DocumentParameterSchema {
   }
 
   /**
+   * The schema of a union parameter: text or a document, an {@code anyOf} of a plain string and the
+   * document schema.
+   */
+  public static Map<String, Object> textOrDocumentSchema(@Nullable String description) {
+    final var text = new LinkedHashMap<String, Object>();
+    text.put(PROPERTY_TYPE, TYPE_STRING);
+    final var schema = new LinkedHashMap<String, Object>();
+    if (StringUtils.isNotBlank(description)) {
+      schema.put(PROPERTY_DESCRIPTION, description);
+    }
+    schema.put(PROPERTY_ANYOF, List.of(text, documentSchema(null)));
+    return schema;
+  }
+
+  /**
    * Returns the parameter schema with every node of the shorthand type {@link #TYPE_DOCUMENT}
    * replaced by the string schema with the format {@link #FORMAT_DOCUMENT_ID}, found at the top
-   * level, as array {@code items} and through object {@code properties}. The other entries of a
-   * node keep their order and values.
+   * level, as array {@code items}, through object {@code properties} and inside {@code anyOf} and
+   * {@code oneOf} alternatives. A node whose {@code type} is an array that lists {@link
+   * #TYPE_DOCUMENT} next to other types and that has no {@code anyOf} or {@code oneOf} becomes a
+   * node with an {@code anyOf} of one alternative per type, in the place of the {@code type} entry;
+   * the document alternative is the string schema with the format. The other entries of a node keep
+   * their order and values.
    */
   public static Map<String, Object> normalizeAuthoredSchema(Map<String, Object> schema) {
-    final var result = new LinkedHashMap<>(schema);
+    var result = new LinkedHashMap<>(schema);
     if (TYPE_DOCUMENT.equals(result.get(PROPERTY_TYPE))) {
       result.put(PROPERTY_TYPE, TYPE_STRING);
       result.put(PROPERTY_FORMAT, FORMAT_DOCUMENT_ID);
+    } else if (result.get(PROPERTY_TYPE) instanceof List<?> types
+        && types.contains(TYPE_DOCUMENT)
+        && !result.containsKey(PROPERTY_ANYOF)
+        && !result.containsKey(PROPERTY_ONEOF)) {
+      result = typeArrayToAlternatives(result, types);
     }
     return mapChildren(result, Descent.ALL, (child, step) -> normalizeAuthoredSchema(child));
   }
 
+  @SuppressWarnings("unchecked")
+  private static LinkedHashMap<String, Object> typeArrayToAlternatives(
+      Map<String, Object> node, List<?> types) {
+    final var alternatives = new ArrayList<Object>();
+    for (final var type : types) {
+      final var alternative = new LinkedHashMap<String, Object>();
+      if (TYPE_DOCUMENT.equals(type)) {
+        alternative.put(PROPERTY_TYPE, TYPE_STRING);
+        alternative.put(PROPERTY_FORMAT, FORMAT_DOCUMENT_ID);
+      } else {
+        alternative.put(PROPERTY_TYPE, type);
+      }
+      alternatives.add(alternative);
+    }
+
+    final var result = new LinkedHashMap<String, Object>();
+    node.forEach(
+        (key, value) -> {
+          if (PROPERTY_TYPE.equals(key)) {
+            if (alternatives.size() == 1) {
+              result.putAll((Map<String, Object>) alternatives.getFirst());
+            } else {
+              result.put(PROPERTY_ANYOF, alternatives);
+            }
+          } else {
+            result.put(key, value);
+          }
+        });
+    return result;
+  }
+
   private static boolean isDocument(Map<?, ?> schema) {
     return FORMAT_DOCUMENT_ID.equals(schema.get(PROPERTY_FORMAT));
+  }
+
+  /**
+   * The keyword ({@code anyOf} or {@code oneOf}) that makes the node a union parameter, or {@code
+   * null}.
+   */
+  private static @Nullable String unionKeyword(Map<?, ?> schema) {
+    if (isDocument(schema)) {
+      return null;
+    }
+    for (final var keyword : UNION_KEYWORDS) {
+      if (schema.get(keyword) instanceof List<?> alternatives
+          && alternatives.size() > 1
+          && alternatives.stream()
+              .anyMatch(alternative -> alternative instanceof Map<?, ?> map && isDocument(map))) {
+        return keyword;
+      }
+    }
+    return null;
   }
 
   /** Which child schemas of a schema node {@link #mapChildren} descends into. */
@@ -178,20 +287,23 @@ public final class DocumentParameterSchema {
      * parameter of the tool arguments can sit.
      */
     PARAMETERS,
-    /** Also the items next to properties. */
+    /**
+     * Also the items next to properties and the alternatives of {@code anyOf} and {@code oneOf}.
+     */
     ALL
   }
 
   /**
    * Returns a copy of the schema node in which every child schema is replaced by what the mapper
    * returns for it, given the step to the child. The other entries keep their order and values, and
-   * so do the entries of the children that are not schemas.
+   * so do the entries of the children that are not schemas. An alternative of {@code anyOf} or
+   * {@code oneOf} describes the same value as its node, so it gets no step.
    */
   @SuppressWarnings("unchecked")
   private static LinkedHashMap<String, Object> mapChildren(
       Map<String, Object> node,
       Descent descent,
-      BiFunction<Map<String, Object>, Step, Map<String, Object>> mapper) {
+      BiFunction<Map<String, Object>, @Nullable Step, Map<String, Object>> mapper) {
     final var result = new LinkedHashMap<>(node);
     final var hasProperties = result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?>;
     if (result.get(PROPERTY_PROPERTIES) instanceof Map<?, ?> properties) {
@@ -211,24 +323,40 @@ public final class DocumentParameterSchema {
         && result.get(PROPERTY_ITEMS) instanceof Map<?, ?> items) {
       result.put(PROPERTY_ITEMS, mapper.apply((Map<String, Object>) items, new Step.Items()));
     }
+    if (descent == Descent.ALL) {
+      for (final var keyword : UNION_KEYWORDS) {
+        if (result.get(keyword) instanceof List<?> alternatives) {
+          final var mapped = new ArrayList<Object>();
+          for (final var alternative : alternatives) {
+            mapped.add(
+                alternative instanceof Map<?, ?> alternativeSchema
+                    ? mapper.apply((Map<String, Object>) alternativeSchema, null)
+                    : alternative);
+          }
+          result.put(keyword, Collections.unmodifiableList(mapped));
+        }
+      }
+    }
     return result;
   }
 
   /**
-   * Adds the document node found at or below {@code node} to {@code parameters}, in schema order. A
-   * document node is not searched further.
+   * Adds the document node and the union node found at or below {@code node} to {@code parameters},
+   * in schema order. A document or union node is not searched further.
    */
   private static void collectDocumentNodes(
       Map<String, Object> node, List<Step> path, List<DocumentParameter> parameters) {
     if (isDocument(node)) {
-      parameters.add(new DocumentParameter(path));
+      parameters.add(new DocumentParameter(path, false));
+    } else if (isUnionParameter(node)) {
+      parameters.add(new DocumentParameter(path, true));
     } else {
       mapChildren(
           node,
           Descent.PARAMETERS,
           (child, step) -> {
             final var childPath = new ArrayList<>(path);
-            childPath.add(step);
+            childPath.add(Objects.requireNonNull(step));
             collectDocumentNodes(child, Collections.unmodifiableList(childPath), parameters);
             return child;
           });
@@ -242,25 +370,35 @@ public final class DocumentParameterSchema {
   }
 
   /**
-   * Returns the schema with every document node replaced by what the function returns for a copy of
-   * it; the nodes between them are copies with the replaced children, found through the properties
-   * and the items. A schema without document nodes is returned as is.
+   * Returns the schema with every document node and union node replaced by what the matching
+   * function returns for a copy of it; the nodes between them are copies with the replaced
+   * children, found through the properties and the items. A schema without document nodes is
+   * returned as is.
    */
   private static Map<String, Object> mapDocumentNodes(
-      Map<String, Object> schema, UnaryOperator<Map<String, Object>> document) {
+      Map<String, Object> schema,
+      UnaryOperator<Map<String, Object>> document,
+      UnaryOperator<Map<String, Object>> union) {
     if (!containsDocument(schema)) {
       return schema;
     }
     if (isDocument(schema)) {
       return Collections.unmodifiableMap(document.apply(new LinkedHashMap<>(schema)));
     }
+    if (isUnionParameter(schema)) {
+      return Collections.unmodifiableMap(union.apply(new LinkedHashMap<>(schema)));
+    }
     return Collections.unmodifiableMap(
         mapChildren(
-            schema, Descent.PARAMETERS, (child, step) -> mapDocumentNodes(child, document)));
+            schema, Descent.PARAMETERS, (child, step) -> mapDocumentNodes(child, document, union)));
   }
 
   /**
    * The schema the model providers get: a document parameter is a string schema without the format.
+   * A union parameter has its document alternative replaced by a plain string alternative,
+   * identical alternatives are merged, and a single remaining alternative replaces the {@code
+   * anyOf} or {@code oneOf}: its entries take the place of the keyword in the node, next to the
+   * entries of the node, which win (the description of the node is kept).
    */
   private static Map<String, Object> toProviderSchema(Map<String, Object> schema) {
     return mapDocumentNodes(
@@ -269,6 +407,43 @@ public final class DocumentParameterSchema {
           node.remove(PROPERTY_FORMAT);
           node.put(PROPERTY_TYPE, TYPE_STRING);
           return node;
-        });
+        },
+        DocumentParameterSchema::toProviderUnion);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> toProviderUnion(Map<String, Object> schema) {
+    final var keyword = Objects.requireNonNull(unionKeyword(schema));
+    final var alternatives = new ArrayList<Object>();
+    for (final var alternative : (List<Object>) Objects.requireNonNull(schema.get(keyword))) {
+      final var provider =
+          alternative instanceof Map<?, ?> map && isDocument(map)
+              ? toProviderSchema((Map<String, Object>) map)
+              : alternative;
+      if (!alternatives.contains(provider)) {
+        alternatives.add(provider);
+      }
+    }
+
+    final var result = new LinkedHashMap<String, Object>();
+    if (alternatives.size() == 1 && alternatives.getFirst() instanceof Map<?, ?> only) {
+      schema.forEach(
+          (key, value) -> {
+            if (keyword.equals(key)) {
+              only.forEach(
+                  (onlyKey, onlyValue) -> {
+                    if (!schema.containsKey(onlyKey)) {
+                      result.put((String) onlyKey, onlyValue);
+                    }
+                  });
+            } else {
+              result.put(key, value);
+            }
+          });
+    } else {
+      result.putAll(schema);
+      result.put(keyword, Collections.unmodifiableList(alternatives));
+    }
+    return result;
   }
 }
