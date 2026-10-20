@@ -44,14 +44,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Owns the spans of one job. The spans open lazily on the first sign that the job does agent work,
- * so deferred partial-result jobs emit nothing. The {@code invoke_agent} span, and the anchor of a
- * run this job starts, are ended exactly once, by the first of job failed, job completed, and job
- * completion failed. No callback lets a failure escape.
+ * Owns the spans of one job. The spans start lazily, at the first model round (a tool discovery
+ * dispatch starts them at the dispatch, because its run state needs the anchor), so a job that
+ * never gets that far emits nothing: the write that fences a superseded activation runs before the
+ * first model round. The {@code invoke_agent} span, and the anchor of a run this job starts, end
+ * exactly once, at the first of job failed, job completed, and job completion failed. A superseded
+ * job that never started a model round ends none of its spans, so the activation that took over is
+ * the only one that exports them. No callback lets a failure escape.
  */
 class AgentTracingJobObserver implements AgentJobObserver {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentTracingJobObserver.class);
+
+  /**
+   * The error code of a write rejected because a newer activation of the job took over. It mirrors
+   * the code of the AI Agent connector, which this module cannot depend on.
+   */
+  private static final String AGENT_INSTANCE_SUPERSEDED = "AGENT_INSTANCE_SUPERSEDED";
 
   private final AgentTracer tracer;
   private final JobStarted job;
@@ -67,9 +76,12 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private @Nullable Context invokeAgentContext;
   private @Nullable Span chat;
 
+  private boolean modelRoundStarted;
+
   /** The run the spans of this job belong to. */
   private @Nullable RunTraceState run;
 
+  private @Nullable TurnStarted turn;
   private List<ToolExecution> toolExecutions = List.of();
   private @Nullable Instant toolCallsIssuedAt;
   private Map<String, ToolDefinition> toolDefinitions = Map.of();
@@ -91,7 +103,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
     return guarded(
         "tool discovery dispatched",
         () -> {
-          open(null);
+          open();
           // a discovery dispatch persists no turn, so the iteration key stays what the context
           // already holds; this also covers a re-discovery in the middle of a run
           final Integer lastIterationKey = job.lastIterationKey();
@@ -104,16 +116,11 @@ class AgentTracingJobObserver implements AgentJobObserver {
     guarded(
         "turn started",
         () -> {
+          this.turn = event;
           this.toolExecutions = List.copyOf(event.toolExecutions());
           this.toolCallsIssuedAt = event.toolCallsIssuedAt();
-          this.toolDefinitions = toolDefinitionsByName(event.toolDefinitions());
-          open(event);
-          final Span agentSpan = invokeAgent;
-          if (captureContent && agentSpan != null) {
-            final String input = GenAiAttributeMapper.inputMessagesJson(event.inputMessages());
-            if (input != null) {
-              agentSpan.setAttribute(GenAiAttributes.INPUT_MESSAGES, input);
-            }
+          if (captureContent) {
+            this.toolDefinitions = toolDefinitionsByName(event.toolDefinitions());
           }
           return null;
         });
@@ -124,7 +131,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
     guarded(
         "model round started",
         () -> {
-          open(null);
+          modelRoundStarted = true;
+          open();
           final Context parent = invokeAgentContext;
           if (parent == null || chat != null) {
             return null;
@@ -157,10 +165,15 @@ class AgentTracingJobObserver implements AgentJobObserver {
           final Span span = chat;
           if (span != null) {
             chat = null;
-            span.setAllAttributes(
-                GenAiAttributeMapper.chatResponseAttributes(
-                    event.assistantMessage(), event.metrics().tokenUsage(), captureContent));
-            tracer.end(span, Instant.now());
+            endSpan(
+                span,
+                Instant.now(),
+                () ->
+                    span.setAllAttributes(
+                        GenAiAttributeMapper.chatResponseAttributes(
+                            event.assistantMessage(),
+                            event.metrics().tokenUsage(),
+                            captureContent)));
           }
           return null;
         });
@@ -174,14 +187,18 @@ class AgentTracingJobObserver implements AgentJobObserver {
           final Span span = chat;
           if (span != null) {
             chat = null;
-            span.setAttribute(
-                GenAiAttributes.RESPONSE_FINISH_REASONS,
-                List.of(GenAiAttributes.FINISH_REASON_ERROR));
-            tracer.markError(
+            endSpan(
                 span,
-                GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
-                description(event.cause()));
-            tracer.end(span, Instant.now());
+                Instant.now(),
+                () -> {
+                  span.setAttribute(
+                      GenAiAttributes.RESPONSE_FINISH_REASONS,
+                      List.of(GenAiAttributes.FINISH_REASON_ERROR));
+                  tracer.markError(
+                      span,
+                      GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
+                      description(event.cause()));
+                });
           }
           return null;
         });
@@ -209,7 +226,14 @@ class AgentTracingJobObserver implements AgentJobObserver {
     guarded(
         "job failed",
         () -> {
-          open(null);
+          if (AGENT_INSTANCE_SUPERSEDED.equals(event.errorCode())) {
+            endAll(
+                GenAiAttributes.JOB_OUTCOME_SUPERSEDED,
+                GenAiAttributes.ERROR_TYPE_JOB_SUPERSEDED,
+                null,
+                false);
+            return null;
+          }
           endAll(
               GenAiAttributes.JOB_OUTCOME_FAILED,
               GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
@@ -270,8 +294,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
         });
   }
 
-  /** Starts the spans of the job once. A turn passes its event to capture the run input. */
-  private void open(@Nullable TurnStarted turn) {
+  /** Starts the spans of the job once. */
+  private void open() {
     if (opened || ended) {
       return;
     }
@@ -281,8 +305,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
     final Context parent;
     if (resolution.startsRun()) {
       final Span anchorSpan =
-          tracer.startAnchor(
-              job.job().elementId() + " run", job.startedAt(), anchorAttributes(turn));
+          tracer.startAnchor(job.job().elementId() + " run", job.startedAt(), anchorAttributes());
       anchor = anchorSpan;
       parent = tracer.contextOf(anchorSpan);
       final SpanContext anchorContext = anchorSpan.getSpanContext();
@@ -312,9 +335,16 @@ class AgentTracingJobObserver implements AgentJobObserver {
             parent);
     invokeAgent = span;
     invokeAgentContext = tracer.contextOf(span);
+    final TurnStarted startedTurn = turn;
+    if (captureContent && startedTurn != null) {
+      final String input = GenAiAttributeMapper.inputMessagesJson(startedTurn.inputMessages());
+      if (input != null) {
+        span.setAttribute(GenAiAttributes.INPUT_MESSAGES, input);
+      }
+    }
   }
 
-  private Attributes anchorAttributes(@Nullable TurnStarted turn) {
+  private Attributes anchorAttributes() {
     final AttributesBuilder builder = identity.toBuilder();
     builder.put(GenAiAttributes.AGENT_NAME, job.job().elementId());
     builder.put(
@@ -322,8 +352,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
         resolution.previous() == null
             ? GenAiAttributes.RUN_TRIGGER_INITIAL
             : GenAiAttributes.RUN_TRIGGER_FOLLOW_UP);
-    if (captureContent && turn != null) {
-      final String input = GenAiAttributeMapper.runInput(turn.inputMessages());
+    final TurnStarted startedTurn = turn;
+    if (captureContent && startedTurn != null) {
+      final String input = GenAiAttributeMapper.runInput(startedTurn.inputMessages());
       if (input != null) {
         builder.put(GenAiAttributes.RUN_INPUT, input);
       }
@@ -342,7 +373,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
 
   /** The state of the run after this job, or null when the run has no valid trace. */
   private @Nullable Map<String, Object> stateToContribute(Status status, int iterationKey) {
-    open(null);
+    open();
     final RunTraceState current = run;
     if (current == null) {
       return null;
@@ -352,7 +383,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
         .toMap();
   }
 
-  /** Ends the spans of the job. The first call wins. */
+  /**
+   * Ends the spans of the job. The first call wins. A superseded job that started no model round
+   * exports nothing: its spans are left unended, and the activation that took over exports them.
+   */
   private void endAll(
       String outcome, @Nullable String errorType, @Nullable String description, boolean tools) {
     if (ended) {
@@ -362,37 +396,80 @@ class AgentTracingJobObserver implements AgentJobObserver {
     if (!opened) {
       return;
     }
+    final boolean superseded = GenAiAttributes.JOB_OUTCOME_SUPERSEDED.equals(outcome);
+    if (superseded && !modelRoundStarted) {
+      return;
+    }
     final Instant now = Instant.now();
 
     final Span openChat = chat;
     if (openChat != null) {
       chat = null;
-      openChat.setAttribute(
-          GenAiAttributes.RESPONSE_FINISH_REASONS, List.of(GenAiAttributes.FINISH_REASON_ERROR));
-      tracer.markError(
+      endSpan(
           openChat,
-          errorType != null ? errorType : GenAiAttributes.ERROR_TYPE_JOB_ABANDONED,
-          description);
-      tracer.end(openChat, now);
+          now,
+          () -> {
+            openChat.setAttribute(
+                GenAiAttributes.RESPONSE_FINISH_REASONS,
+                List.of(GenAiAttributes.FINISH_REASON_ERROR));
+            tracer.markError(
+                openChat,
+                errorType != null ? errorType : GenAiAttributes.ERROR_TYPE_JOB_ABANDONED,
+                description);
+          });
     }
     final Span agentSpan = invokeAgent;
     final Context agentContext = invokeAgentContext;
     if (tools && agentContext != null) {
-      emitToolSpans(agentContext, now);
+      try {
+        emitToolSpans(agentContext, now);
+      } catch (Throwable t) {
+        LOGGER.debug("Agent tracing could not emit the tool spans", t);
+      }
     }
     if (agentSpan != null) {
-      agentSpan.setAttribute(GenAiAttributes.JOB_OUTCOME, outcome);
-      if (errorType != null) {
-        tracer.markError(agentSpan, errorType, description);
-      }
-      tracer.end(agentSpan, now);
+      endSpan(
+          agentSpan,
+          now,
+          () -> {
+            agentSpan.setAttribute(GenAiAttributes.JOB_OUTCOME, outcome);
+            markJobError(agentSpan, superseded, errorType, description);
+          });
     }
     final Span anchorSpan = anchor;
     if (anchorSpan != null) {
-      if (errorType != null) {
-        tracer.markError(anchorSpan, errorType, description);
+      endSpan(anchorSpan, now, () -> markJobError(anchorSpan, superseded, errorType, description));
+    }
+  }
+
+  /**
+   * A superseded job is not a failure of the agent: it carries the error type, and its status stays
+   * unset.
+   */
+  private void markJobError(
+      Span span, boolean superseded, @Nullable String errorType, @Nullable String description) {
+    if (errorType == null) {
+      return;
+    }
+    if (superseded) {
+      tracer.setErrorType(span, errorType);
+    } else {
+      tracer.markError(span, errorType, description);
+    }
+  }
+
+  /** Ends the span even when decorating it fails, and never lets a failure escape. */
+  private void endSpan(Span span, Instant end, Runnable decorate) {
+    try {
+      decorate.run();
+    } catch (Throwable t) {
+      LOGGER.debug("Agent tracing could not complete a span", t);
+    } finally {
+      try {
+        tracer.end(span, end);
+      } catch (Throwable t) {
+        LOGGER.debug("Agent tracing could not end a span", t);
       }
-      tracer.end(anchorSpan, now);
     }
   }
 
@@ -423,7 +500,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
 
         final String name = execution.call() != null ? execution.call().name() : result.name();
         final ToolDefinition definition = name != null ? toolDefinitions.get(name) : null;
-        if (definition != null && definition.description() != null) {
+        if (captureContent && definition != null && definition.description() != null) {
           builder.put(GenAiAttributes.TOOL_DESCRIPTION, definition.description());
         }
         final Span span =

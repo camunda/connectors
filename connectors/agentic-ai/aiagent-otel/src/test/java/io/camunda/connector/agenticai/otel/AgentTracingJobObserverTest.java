@@ -36,6 +36,7 @@ import io.camunda.connector.agenticai.otel.configuration.AgentTracingProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure.CommandFailure.CommandIgnored;
 import io.camunda.connector.api.outbound.JobCompletionFailure.ExecutionFailed;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
@@ -160,8 +161,7 @@ class AgentTracingJobObserverTest {
     assertThat(searchTool.getParentSpanId()).isEqualTo(invokeAgent.getSpanId());
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME)).isEqualTo("completed");
     assertThat(searchTool.getAttributes().get(GenAiAttributes.AGENT_NAME)).isEqualTo("agent");
-    assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION))
-        .isEqualTo("Search the web");
+    assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION)).isNull();
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.PROCESS_DEFINITION_KEY))
         .isEqualTo("3");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.INPUT_MESSAGES)).isNull();
@@ -178,6 +178,7 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(
             started(AgentJobKind.CONVERSATION, job4Start.plusSeconds(1800), 2, afterLastTurn));
     followUp.onTurnStarted(turnStarted(3, List.of(), null));
+    chatRound(followUp, StopReason.STOP);
     followUp.onTurnCompleted(turnCompleted(3, false));
     followUp.onJobCompleted();
 
@@ -265,6 +266,7 @@ class AgentTracingJobObserverTest {
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
     observer.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(observer, StopReason.STOP);
     observer.onTurnCompleted(
         new TurnCompleted(
             1,
@@ -282,20 +284,144 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
-  void supersededJobKeepsItsSpansButEmitsNoToolSpans() {
+  void supersededJobCompletionKeepsItsSpansWithoutFailureStatusAndEmitsNoToolSpans() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
     observer.onTurnStarted(
         turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.STOP);
     observer.onTurnCompleted(turnCompleted(2, false));
     observer.onJobCompletionFailed(new CommandIgnored(new RuntimeException("not found")));
 
-    assertThat(exporter.getFinishedSpanItems()).hasSize(1);
+    assertThat(exporter.getFinishedSpanItems()).hasSize(2);
     final SpanData invokeAgent = span("invoke_agent agent");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME))
         .isEqualTo("superseded");
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
         .isEqualTo("job_superseded");
+    assertThat(invokeAgent.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+  }
+
+  @Test
+  void jobSupersededByTheFencedWriteAfterAModelRoundExportsAsSupersededNotAsFailed() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    final var failure = new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded");
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(observer, StopReason.TOOL_USE);
+    observer.onJobFailed(new JobFailed(failure, "AGENT_INSTANCE_SUPERSEDED"));
+
+    assertThat(exporter.getFinishedSpanItems()).hasSize(3);
+    for (final String name : List.of("invoke_agent agent", "agent run")) {
+      final SpanData data = span(name);
+      assertThat(data.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+      assertThat(data.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isEqualTo("job_superseded");
+    }
+    assertThat(span("invoke_agent agent").getAttributes().get(GenAiAttributes.JOB_OUTCOME))
+        .isEqualTo("superseded");
+  }
+
+  @Test
+  void jobSupersededBeforeItsFirstModelRoundExportsNothing() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(
+        turnStarted(1, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    observer.onJobFailed(
+        new JobFailed(
+            new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded"),
+            "AGENT_INSTANCE_SUPERSEDED"));
+    observer.onJobCompletionFailed(new ExecutionFailed(new RuntimeException("again"), null));
+
+    assertThat(exporter.getFinishedSpanItems()).isEmpty();
+  }
+
+  @Test
+  void supersededToolDiscoveryJobExportsNothingThoughItAlreadyReportedItsRunState() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
+
+    final var state = observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    observer.onJobFailed(
+        new JobFailed(
+            new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded"),
+            "AGENT_INSTANCE_SUPERSEDED"));
+
+    assertThat(state).containsKey("traceId");
+    assertThat(exporter.getFinishedSpanItems()).isEmpty();
+  }
+
+  @Test
+  void jobsFailingOrCompletingWithoutAModelRoundExportNothing() {
+    final var failing =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    failing.onTurnStarted(turnStarted(1, List.of(), null));
+    failing.onJobFailed(
+        new JobFailed(new ConnectorException("MAX_MODEL_CALLS_EXCEEDED", "limit"), null));
+
+    final var completing =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
+    completing.onTurnStarted(turnStarted(2, List.of(), null));
+    completing.onJobCompleted();
+
+    assertThat(exporter.getFinishedSpanItems()).isEmpty();
+  }
+
+  @Test
+  void spansStartAtTheFirstModelRoundWithTheRecordedJobStart() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    chatRound(observer, StopReason.STOP);
+    final var state = observer.onTurnCompleted(turnCompleted(1, false));
+    observer.onJobCompleted();
+
+    assertThat(state).containsEntry("status", "CLOSED");
+    assertThat(span("agent run").getStartEpochNanos()).isEqualTo(nanos(T0));
+    assertThat(span("invoke_agent agent").getStartEpochNanos()).isEqualTo(nanos(T0));
+  }
+
+  @Test
+  void aFailingSpanDecorationNeverKeepsAnotherSpanFromEnding() {
+    final var failingTracer =
+        new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()) {
+          @Override
+          public void markError(Span span, String errorType, @Nullable String description) {
+            throw new IllegalStateException("decoration failed");
+          }
+        };
+    final var observer =
+        new AgentTracingListener(failingTracer, new AgentTracingProperties(true, false, null))
+            .onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onModelRoundStarted(roundStarted());
+    observer.onJobFailed(new JobFailed(new IllegalStateException("boom"), null));
+
+    assertThat(exporter.getFinishedSpanItems())
+        .extracting(SpanData::getName)
+        .containsExactlyInAnyOrder("chat claude-x", "invoke_agent agent", "agent run");
+  }
+
+  @Test
+  void toolDescriptionIsRecordedOnlyWithContentCapture() {
+    final var capturing =
+        new AgentTracingListener(
+            new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
+            new AgentTracingProperties(true, true, null));
+    final var observer =
+        capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION))
+        .isEqualTo("Search the web");
   }
 
   @Test

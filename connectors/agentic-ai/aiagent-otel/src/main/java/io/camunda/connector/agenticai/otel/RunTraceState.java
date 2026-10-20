@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.otel;
 
+import io.opentelemetry.api.trace.SpanId;
+import io.opentelemetry.api.trace.TraceId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The tracing state of one agent run, persisted by the lifecycle framework in the agent context
@@ -32,9 +34,6 @@ public record RunTraceState(
     int iterationKey) {
 
   public static final int CURRENT_VERSION = 1;
-
-  private static final Pattern TRACE_ID = Pattern.compile("[0-9a-f]{32}");
-  private static final Pattern SPAN_ID = Pattern.compile("[0-9a-f]{16}");
 
   /** Whether the run is still open. */
   public enum Status {
@@ -62,26 +61,54 @@ public record RunTraceState(
     return map;
   }
 
-  /** Reads a stored state. Returns empty for anything missing, malformed, or of another version. */
+  /**
+   * Reads a stored state. Returns empty for anything missing, malformed, or of another version: a
+   * trace or span id that is not valid, a number that is not an integer within the int range, or an
+   * unknown status. Entries the current layout does not define, such as the process instance key of
+   * earlier states, are ignored.
+   */
   public static Optional<RunTraceState> fromMap(Map<String, Object> map) {
     try {
-      if (!(map.get("version") instanceof Number version)
-          || version.intValue() != CURRENT_VERSION) {
+      if (!Integer.valueOf(CURRENT_VERSION).equals(toInt(map.get("version")))) {
         return Optional.empty();
       }
+      final Integer iterationKey = toInt(map.get("iterationKey"));
       if (!(map.get("traceId") instanceof String traceId)
-          || !TRACE_ID.matcher(traceId).matches()
+          || !TraceId.isValid(traceId)
           || !(map.get("anchorSpanId") instanceof String anchorSpanId)
-          || !SPAN_ID.matcher(anchorSpanId).matches()
+          || !SpanId.isValid(anchorSpanId)
           || !(map.get("sampled") instanceof Boolean sampled)
           || !(map.get("status") instanceof String statusName)
-          || !(map.get("iterationKey") instanceof Number iterationKey)) {
+          || iterationKey == null) {
         return Optional.empty();
       }
       return Optional.of(
-          of(traceId, anchorSpanId, sampled, Status.valueOf(statusName), iterationKey.intValue()));
+          of(traceId, anchorSpanId, sampled, Status.valueOf(statusName), iterationKey));
     } catch (RuntimeException e) {
       return Optional.empty();
     }
+  }
+
+  /** The value as an int, or null when it is not a number, not integral, or out of range. */
+  private static @Nullable Integer toInt(@Nullable Object value) {
+    if (!(value instanceof Number number)) {
+      return null;
+    }
+    if (number instanceof Integer || number instanceof Short || number instanceof Byte) {
+      return number.intValue();
+    }
+    final double asDouble = number.doubleValue();
+    if (number instanceof Long) {
+      final long asLong = number.longValue();
+      return asLong >= Integer.MIN_VALUE && asLong <= Integer.MAX_VALUE ? (int) asLong : null;
+    }
+    if (Double.isNaN(asDouble)
+        || Double.isInfinite(asDouble)
+        || asDouble != Math.rint(asDouble)
+        || asDouble < Integer.MIN_VALUE
+        || asDouble > Integer.MAX_VALUE) {
+      return null;
+    }
+    return (int) asDouble;
   }
 }
