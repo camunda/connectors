@@ -164,7 +164,8 @@ in the third-party `domain-modeling` skill (`.agents/skills/domain-modeling`).
   `SnsMessageManager` (verifies SNS webhook signatures — no v2 equivalent, see
   [aws-sdk-java-v2#1302](https://github.com/aws/aws-sdk-java-v2/issues/1302)) and for
   `SnsSubscriptionConfirmation#confirmSubscription`. This is the one accepted v1 exception in the
-  v1→v2 migration; any other new v1 usage is a regression, not precedent.
+  v1→v2 migration; any other new v1 usage is a regression, not precedent. Its version is pinned
+  locally in `connectors/aws/aws-sns/pom.xml` (`version.aws-java-sdk-sns`), not in the parent POM.
 
 ## Documentation
 
