@@ -150,7 +150,7 @@ tool start time source).
 
 - Token usage follows the semantic conventions: `gen_ai.usage.input_tokens` includes cached tokens, and the
   cache read and write counts are subsets of it. Reasoning tokens are a subset of the output tokens. The cache
-  write count is also emitted under its legacy name, because Phoenix reads only that one.
+  write count is emitted as `gen_ai.usage.cache_write.input_tokens`.
 - Message content (system instructions, input and output messages, tool definitions, tool arguments and
   results, the tool description) is recorded only with `capture-content=true`, as JSON strings or text. Documents
   appear as references, never as bytes.
@@ -202,6 +202,8 @@ note that the PoC has no redaction hook and no size limit for captured content.
   nothing to show; the final answer is on the last `invoke_agent` and `chat` spans.
 - **Late spans.** Backends that reject old spans (Datadog accepts spans up to about 18 hours old) drop the long
   tool spans.
+- **Cache-write tokens in Arize Phoenix.** Phoenix reads only the older attribute name for cache-write tokens,
+  so it does not show cache-write tokens for these spans.
 - **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
   the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
 
@@ -209,7 +211,7 @@ note that the PoC has no redaction hook and no size limit for captured content.
 
 The spans follow the GenAI semantic conventions, with a few differences that you notice in the backend. The
 full list with the reasons is in
-[ADR 019](../adr/019-opentelemetry-genai-tracing.md#conformance-with-the-genai-conventions-and-other-frameworks).
+[ADR 019](../adr/019-opentelemetry-genai-tracing.md#conformance-with-the-genai-conventions).
 
 - The root of a trace is the anchor, which has no GenAI operation and no output. The final answer is on the
   last `invoke_agent` and `chat` spans (see *No trace-level output* above).
