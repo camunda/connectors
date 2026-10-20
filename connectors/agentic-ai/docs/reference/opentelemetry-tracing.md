@@ -48,40 +48,126 @@ Only AI Agent Sub-process agents that have an agent instance are traced. Task ag
 agent instance emit nothing.
 
 - **One trace per run.** A run starts with an input (the first activation, a user message, or an event) and
-  ends with the turn whose model response has no tool calls. The next input starts a new trace, which links
-  to the previous run's anchor span.
-- **Anchor span** `<element id> run` (internal, no GenAI operation): the root of the run's trace.
-- **`invoke_agent`** per job that does agent work (tool discovery or a turn), with the job's real duration.
-- **`chat`** per model call, including provider continuation rounds: provider, models, token usage, finish
-  reason, response id.
-- **`execute_tool`** per tool result a turn consumes: from the dispatch of the tool call to the engine's
+  ends with the turn whose model response has no tool calls. The next input starts a new trace. Runs are not
+  linked to each other: the session groups the runs of one agent instance.
+- **Anchor span** `<element id> run` (internal, no GenAI operation): the root of the run's trace. With
+  `capture-content` on, the name continues with the start of the run input, `<element id> run: <first 60
+  characters of the input>`, and the span carries the full input as `input.value` and
+  `openinference.span.kind=AGENT`. The job that starts the run creates the anchor and ends it together with its
+  own `invoke_agent` span, so the anchor's duration is that of the first job and carries no meaning.
+- **`invoke_agent {element id}`** per job that does agent work (a tool discovery dispatch or a turn), with the
+  job's real duration.
+- **`chat {model}`** per model call, including provider continuation rounds: provider, models, token usage,
+  finish reason, response id. It is exported as soon as the model call ends.
+- **`execute_tool {tool}`** per tool result a turn consumes: from the dispatch of the tool call to the engine's
   completion time, so a user task that takes days appears as a long span under the consuming job. The span
-  start is derived from the time-ordered id of the assistant message that issued the call.
+  start is derived from the time-ordered id of the assistant message that issued the call. The consuming job
+  exports these spans after the engine accepted its completion.
 - **Session.** The agent instance key (prefixed `<cluster-id>:` if configured) is both `session.id` and
   `gen_ai.conversation.id` on every span, so backends group all runs of one agent instance.
 
-Jobs that only collect partial tool results emit no spans. A job that fails or is superseded exports its own
-spans with an outcome (`failed`, `superseded`, `bpmn_error`) and `error.type`, so the model calls and tokens
-it spent stay visible.
+### Which jobs export spans
+
+A job creates its spans lazily, so a job that did no agent work leaves no trace of itself:
+
+- A job that runs a turn creates its spans at its first model round, after the job has won its lease: the
+  write that fences a superseded duplicate job runs before the first model round.
+- A job that dispatches gateway tool discovery creates its `invoke_agent` span (job kind `tool_discovery`) at
+  the dispatch.
+- A conversation job that completes without a model round exports nothing. That covers a job that only
+  collects partial tool results and a job that finds no input.
+- A job that fails before its first model round, for example because the model call limit is reached,
+  exports a failed `invoke_agent` span, and the anchor when it starts the run, with status Error and
+  `error.type`.
+- A superseded job, one that fails with the superseded error or whose completion the engine ignores, exports
+  its spans only if it started a model round: then they carry outcome `superseded`,
+  `error.type=job_superseded`, and the status is left unset, so the model calls and tokens it spent stay
+  visible. A superseded duplicate job that never started a model round exports nothing, so the job that took
+  over is the only one that exports the spans.
+- A job that fails or ends with a BPMN error exports its own spans with the outcome (`failed`,
+  `bpmn_error`) and `error.type`.
+
+### The run state
+
+A later job attaches its spans to the run's anchor, which was exported by an earlier job, possibly days
+before. The tracing listener keeps what it needs in the agent context, in the listener state slot
+`lifecycle:otel-tracing`: the trace id and anchor span id, the sampling decision, whether the run is open or
+closed, and the turn iteration key. It is written by the two kinds of job that persist the agent context (tool
+discovery dispatch and turn completion), and the entry stays within the 4096 byte limit for listener state.
+
+A job continues the run when the stored run is open and its iteration key equals the agent context's last
+iteration key. Otherwise it starts a new run: when no readable state exists, when the last turn gave the final
+answer, or when the state is stale. The agent instance key identifies the execution, not the process instance
+or element instance: a job from another ad-hoc sub-process element instance that re-enters the same agent
+context continues the open run, or starts a new one if the previous run closed.
+
+## Reading the traces
+
+**One agent instance is one session.** Every span carries `session.id` and `gen_ai.conversation.id`, set to the
+agent instance key that Operate shows (prefixed `<cluster-id>:` when `cluster-id` is set). Search the backend
+for that value to find all runs of the agent instance.
+
+**One run is one trace.** Open a trace to see the anchor at the root, one `invoke_agent` span for each job that
+did agent work, and under each of those the `chat` spans of its model rounds and the `execute_tool` spans of the
+tool results it consumed. Attributes such as `camunda.process_instance.key`, `camunda.element_instance.key` and
+`camunda.job.key` tell which activation produced a span.
+
+**Token totals.** Token usage is set only on `chat` spans, so summing the `chat` spans does not count a
+call twice. The sum over a trace is the token usage of the run, and the sum over a session is the token usage
+of the agent instance; both equal the totals Operate shows for the agent instance. A model call counts as soon
+as its `chat` span is exported, so a call whose turn was rejected afterwards, because the job lost its lease,
+is still included.
+
+**Run input and final answer.** With `capture-content` on:
+
+- The anchor carries the run input: its name, `input.value`, and `openinference.span.kind=AGENT`. It is the text
+  of the last user message among the turn's input messages. A run that starts with a tool discovery dispatch
+  has no input at that point, so its anchor is named `<element id> run` and has no `input.value`.
+- The final answer is on the `invoke_agent` span of the last job of the run, as `gen_ai.output.messages`, and on
+  the `chat` span of the last model round.
+- Nothing is set as the output of the anchor.
+
+What the two backends make of this:
+
+- **Langfuse** (version 4, events-only storage) stores the input and output of the root observation as the
+  trace's input and output, and does not store `langfuse.trace.input` or `langfuse.trace.output`. The trace
+  input is therefore the anchor's run input, and the trace output stays empty because the anchor carries no
+  output.
+- **Arize Phoenix** reads `input.value` and `output.value` of the root span for the turns of a session. The
+  anchor sets `input.value`; it sets no `output.value`.
+- Neither backend stores or renders OpenTelemetry span links, which is why runs are grouped by session and not
+  linked.
 
 ## Attributes
 
 The vocabulary is pinned to a commit of the upstream
 [semantic-conventions-genai](https://github.com/open-telemetry/semantic-conventions-genai) repository, which is
 in Development status: names may change upstream, and `GenAiAttributes` is the single place to update. Camunda
-specific attributes use the `camunda.*` namespace (process instance, element, job, tenant, agent instance,
-job outcome, attempt, tool outcome).
+specific attributes use the `camunda.*` namespace (process definition, process instance, element and element
+instance, BPMN process id, tenant, agent instance, job key, job kind, job outcome, run trigger, tool outcome,
+tool start time source).
 
 - Token usage follows the semantic conventions: `gen_ai.usage.input_tokens` includes cached tokens, and the
   cache read and write counts are subsets of it. Reasoning tokens are a subset of the output tokens. The cache
   write count is also emitted under its legacy name, because Phoenix reads only that one.
 - Message content (system instructions, input and output messages, tool definitions, tool arguments and
-  results) is recorded only with `capture-content=true`, as JSON strings. Documents appear as references, never
-  as bytes.
-- Error spans carry the error status and `error.type`. Exception messages and status descriptions appear only
-  with content capture on, because provider error bodies can contain prompt text.
+  results, the tool description) is recorded only with `capture-content=true`, as JSON strings or text. Documents
+  appear as references, never as bytes.
+- Job outcomes are `completed`, `failed`, `superseded` and `bpmn_error`. A tool result has the outcome
+  `completed` or `cancelled`. The run trigger on the anchor is `initial` when no earlier run state exists and
+  `follow_up` when the run starts after an earlier one.
+- Failed spans carry the error status and `error.type`. `error.type` is the canonical class name of the first
+  exception in the cause chain that is not a connector exception, which is normally the provider SDK
+  exception, and for a model rejection the rejection class (content filter, context window, guardrail). When
+  the chain holds only connector exceptions, it is the error code, and otherwise the class name of the
+  failure. A BPMN error uses its error code, and a job that is superseded uses `job_superseded`. A model call
+  that is still open when its job ends is closed with finish reason `error` and the `error.type` of the
+  ending cause, or `job_abandoned` when the job completes. Exception messages and status descriptions appear only with content capture on, because
+  provider error bodies can contain prompt text.
 - The Anthropic SDK's own OpenTelemetry spans and trace-context headers are turned off, so they cannot
-  duplicate the agent's `chat` spans.
+  duplicate the agent's `chat` spans. This happens only when
+  `camunda.connector.agenticai.aiagent.tracing.enabled=true`; with tracing disabled the SDK keeps its default
+  behavior.
 
 ## Data handling
 
@@ -89,23 +175,40 @@ Every registered lifecycle listener receives complete event data: prompts, tool 
 With content capture on, that data reaches your tracing backend. Enable it only where that is acceptable, and
 note that the PoC has no redaction hook and no size limit for captured content.
 
-## Limitations
+## Known limitations
 
-- Spans are exported at most once. If a worker crashes after the engine accepted a job's completion, that job's
-  `invoke_agent` and tool spans are lost. If the crashed job started the run, its anchor span is lost as well,
-  and the run's later spans point at a root that never arrives.
-- Terminating the process or the sub-process while tools run ends the trace without a closing marker.
-- A failed tool is not distinguishable from a successful one: `execute_tool` shows `completed` or
-  `cancelled`, and a tool incident produces no span. A structured tool error marker is planned.
-- Backends that reject old spans (Datadog accepts spans up to about 18 hours old) drop the long tool spans.
-- The tool discovery calls of gateway tools get no `execute_tool` spans.
-- Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by the jobs
-  that persist the context. When it is lost, the next job starts a new trace.
+- **Tool span timing.** The start of an `execute_tool` span is approximate: it is the creation time of the
+  assistant message that issued the tool calls, so it precedes the engine's activation of the tool by the time
+  it took to store the conversation and complete the job. When the message id carries no time, the span has no
+  duration and `camunda.agent.tool.start_time_source` is `unknown`. The end is the engine's completion time of
+  the tool, which is exact; when the result has none, the end is the end of the consuming job.
+- **Tool outcome.** Every tool result that is not marked as interrupted shows as `completed`, whatever its
+  content, so a tool that failed or was rejected looks like a tool that succeeded. A tool incident produces no
+  span, because no result arrives.
+- **Gateway tool discovery.** The discovery calls of gateway tools get no `execute_tool` spans.
+- **Untraced work.** Failures during agent initialization, before the job starts, and jobs that complete
+  without a turn are not traced.
+- **Run input of the first run.** A run that starts with a tool discovery dispatch has no input on its anchor,
+  because no turn exists yet.
+- **At most once.** A runtime failure after the handler returned, such as an oversized result, is reported to
+  the listeners and exports the job's spans as failed. A worker that crashes after the engine accepted a job's
+  completion loses that job's `invoke_agent` and tool spans. If the crashed job started the run, its anchor
+  span is lost as well, and the run's later spans point at a root that never arrives.
+- **Termination.** Terminating the process or the sub-process while tools run ends the trace without a closing
+  marker.
+- **No span links.** Runs are not linked to each other; the session is the only connection between them.
+- **No trace-level output.** The anchor sets no output, so a backend that shows the output of the root span has
+  nothing to show; the final answer is on the last `invoke_agent` and `chat` spans.
+- **Late spans.** Backends that reject old spans (Datadog accepts spans up to about 18 hours old) drop the long
+  tool spans.
+- **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
+  the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
 
 ## Lifecycle listener API
 
 To build your own observer, implement `AgentLifecycleListener` from `aiagent-api` (package
-`aiagent.api.lifecycle`) and register it as a Spring bean. It is marked `@Experimental`: it may change in any
-release without a migration path. The callback contracts are on `AgentJobObserver`: notifications are failure
-isolated and cannot change the job, state contributions are stored in the agent context only on the two paths
-that persist it, and model rounds are always closed in pairs.
+`aiagent.api.lifecycle`) and register it as a Spring bean; the callbacks and the events are described in
+[Observe agent execution](ai-agent.md#254-observe-agent-execution). It is marked `@Experimental`: it may change
+in any release without a migration path. The callback contracts are on `AgentJobObserver`: events are built only
+when a listener exists, notifications are failure isolated and cannot change the job, state contributions are
+stored in the agent context only on the two paths that persist it, and model rounds are always closed in pairs.

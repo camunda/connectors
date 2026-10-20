@@ -1924,6 +1924,7 @@ a new provider, store, or contributor. The SPIs:
 | `SystemPromptContributor` | system-prompt contribution      | [§25.2](#252-add-a-systempromptcontributor) |
 | `ConversationStore`       | conversation memory backend     | [§25.3](#253-add-a-conversationstore) |
 | `GatewayToolHandler`      | multi-tool gateway (MCP/A2A)    | [§19](#19-gateway-tool-pattern) |
+| `AgentLifecycleListener`  | observer of agent execution (experimental) | [§25.4](#254-observe-agent-execution) |
 
 ### I5. Conversation stores follow the write-ahead, pointer-based contract
 
@@ -2001,17 +2002,6 @@ one section per provider, rather than here.
 
 <a id="252-add-a-systempromptcontributor"></a>
 
-### 25.2 Observe agent execution (experimental)
-
-**The SPI.** Implement `AgentLifecycleListener` (`aiagent-api`, package `aiagent.api.lifecycle`) and register
-it as a Spring bean; `AgentLifecycleDispatcherImpl` (`aiagent/lifecycle`) hands every job of both flavors to
-all listeners and isolates their failures. Reference implementation: `AgentTracingListener` in
-`aiagent-otel`. The API is `@Experimental`, listeners see complete prompts and tool data, and listener state
-is written into the agent context only on the paths that persist it. See
-[OpenTelemetry tracing](opentelemetry-tracing.md) and [ADR 018](../adr/018-agent-lifecycle-listeners.md).
-
-<a id="252-add-a-systempromptcontributor"></a>
-
 ### 25.2 Add a `SystemPromptContributor`
 
 Implement `SystemPromptContributor` (see [§13](#13-system-prompt-composition)).
@@ -2033,5 +2023,53 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 
 <a id="254-observe-agent-execution"></a>
 
+### 25.4 Observe agent execution (experimental)
 
+**The SPI.** Implement `AgentLifecycleListener` (`aiagent-api`, package `aiagent.api.lifecycle`) and register it
+as a Spring bean. It has a stable `id()`, which names the listener's state in the agent context, and one
+callback, `onJobStarted(JobStarted)`, which returns the `AgentJobObserver` for that job (or
+`AgentJobObserver.NOOP`). The observer receives the callbacks of the job. `AgentLifecycleDispatcher`
+(`aiagent/lifecycle`) announces each job of both flavors to all listeners in registration order and hands the
+handler an `AgentJobLifecycle` for the job, which is `AgentJobLifecycle.NOOP` when no listener takes part.
+Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
+[OpenTelemetry tracing](opentelemetry-tracing.md) and [ADR 018](../adr/018-agent-lifecycle-listeners.md).
 
+**Contract.**
+
+- The API is `@Experimental`: it can change in any release, and listeners see complete prompts and tool data.
+- Events are built lazily, only when at least one listener exists, so a job without listeners does no work for
+  them.
+- The lifecycle layer never fails a job. A failure while building an event, a listener that throws, and a
+  failure in the layer itself are logged and the callback is skipped. The warning names the listener id, the
+  callback and the exception class only, because events and exception messages can contain prompts and tool
+  results; the throwable is logged at DEBUG. A listener that throws in `onJobStarted` gets no observer for that
+  job.
+- Only `onToolDiscoveryDispatched` and `onTurnCompleted` can return state, and they run on the two paths that
+  persist the agent context. The state is stored under `lifecycle:<listener id>` in the context properties, and
+  `JobStarted.previousState()` hands it back to the listener in the next job. It must be plain JSON: maps with
+  string keys, lists, strings, booleans, finite numbers and null, at most 32 levels deep, and at most 4096 bytes
+  when serialized as UTF-8 JSON. A contribution that breaks these rules is dropped, the previously stored value
+  stays, and a single WARN names the listener id, the callback and the reason, never the state. Returning
+  `null` leaves the stored state unchanged. Treat missing state as "start over": a failed, superseded or
+  deferred job never persists its contribution.
+- Every started model round is closed with `onModelRoundCompleted` or `onModelRoundFailed`, and a failure is
+  rethrown unchanged.
+
+**How do I see X?**
+
+| I want to see… | Where |
+|---|---|
+| The agent decided to call tools | `TurnCompleted.toolCalls()` (`finalAnswer()` is true when it is empty); `ModelRoundCompleted.assistantMessage()` has the calls of each model round |
+| Gateway tool discovery was dispatched | `ToolDiscoveryDispatched.toolCalls()` |
+| A tool result arrived while others are pending | `JobDeferred.arrivedResults()` |
+| All tool results are in and consumed by a turn | `TurnStarted.toolExecutions()`: a `ToolExecution` per result with its originating `call` (null for results that match no call), the `result` and a `cancelled` flag |
+| When a tool call was issued, and when it finished | `TurnStarted.toolCallsIssuedAt()`, derived from the time-ordered id of the assistant message that issued the calls (null for other ids), and `ToolExecution.result().completedAt()`, the engine's completion time (can be absent) |
+| A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and whether the provider asks for a continuation round) and `ModelRoundFailed(cause, errorCode)` |
+| The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions) |
+| The job failed | `JobFailed(cause, errorCode)` |
+| The engine accepted or rejected the job completion | `onJobCompleted()` and `onJobCompletionFailed(JobCompletionFailure)` |
+
+The engine runs the tools, so the connector sees no tool start or end: there is no tool-started or
+tool-ended event. A tool shows up in `TurnStarted.toolExecutions()` of the turn that consumes its result, with
+the timing above. A job that only waits for gateway tool discovery results gets no events at all, and a job
+that is deferred or finds no input persists nothing.
