@@ -26,9 +26,16 @@ jobs:
             echo "MVN_CMD=mvn" >> "$GITHUB_ENV"
           fi
 
+<<<<<<< HEAD
       - name: Install Maven (wrapper-less branches)
         if: steps.resolve-maven.outputs.has-wrapper != 'true'
         uses: stCarolas/setup-maven@v5
+=======
+      # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
+      # per-PR saves don't evict it. Keep the key in sync with that workflow.
+      - name: Restore cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+>>>>>>> 8acf90a9 (ci: write Maven cache from main and restore-only on PR builds (#9544))
         with:
           maven-version: 3.10.0
 
@@ -113,11 +120,16 @@ jobs:
           PROJECTS: bundle/default-bundle
         run: $MVN_CMD --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make -T 1C '-P!autoFormat'
 
+<<<<<<< HEAD
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Harbor
         uses: docker/login-action@v3
+=======
+      - name: Restore cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+>>>>>>> 8acf90a9 (ci: write Maven cache from main and restore-only on PR builds (#9544))
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
