@@ -2336,6 +2336,29 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "provider.openai.backend.custom.openAiCustomCredential",
+    "label" : "OpenAI-compatible credential",
+    "description" : "Select a saved credential holding the endpoint, API key and model, or enter the fields below.",
+    "optional" : true,
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.backend.custom.openAiCustomCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.type",
+        "equals" : "custom",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda:agentic-ai-openai-custom-credential:1"
+  }, {
     "id" : "provider.openai.backend.custom.endpoint",
     "label" : "API endpoint",
     "description" : "Base URL of the OpenAI-compatible API. <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
@@ -2351,6 +2374,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -2374,6 +2401,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -2413,6 +2444,10 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -2446,6 +2481,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -2474,6 +2513,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -2506,6 +2549,10 @@
         "equals" : "oauth-client-credentials-flow",
         "type" : "simple"
       }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "provider.openai.backend.type",
         "equals" : "custom",
         "type" : "simple"
@@ -2532,6 +2579,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -2562,6 +2613,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -2596,6 +2651,10 @@
       "allMatch" : [ {
         "property" : "provider.openai.backend.custom.authentication.type",
         "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "provider.openai.backend.type",
@@ -4182,9 +4241,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "provider.openai.backend.custom.openAiCustomCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "openai",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Specify the model ID. On the Microsoft Foundry backend, enter the deployment name instead. It defaults to the model ID, but can be chosen freely when the deployment is created. Some features, like prompt caching, may be managed by the model provider. See the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">models documentation</a>.",
     "placeholder" : "gpt-5.5",
@@ -5606,6 +5671,52 @@
       "group" : "provider",
       "binding" : {
         "name" : "projectId",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda:agentic-ai-openai-custom-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenAI-compatible Credential",
+    "properties" : [ {
+      "id" : "endpoint",
+      "label" : "API endpoint",
+      "description" : "Base URL of the OpenAI-compatible API; <code>/chat/completions</code> or <code>/responses</code> will be appended depending on the selected API.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "endpoint",
+        "type" : "property"
+      },
+      "placeholder" : "https://api.openai.com/v1",
+      "type" : "String"
+    }, {
+      "id" : "apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "model",
+      "label" : "Model",
+      "description" : "The model ID served by the endpoint.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "provider",
+      "binding" : {
+        "name" : "model",
         "type" : "property"
       },
       "type" : "String"

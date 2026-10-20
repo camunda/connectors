@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.v1.shared.TimeoutConfiguration;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -52,7 +53,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
   @Override
   public String model() {
-    return openai.model().model();
+    return java.util.Objects.requireNonNull(openai.effectiveModel()).model();
   }
 
   @Override
@@ -64,8 +65,32 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
   public record OpenAiConnection(
       @Valid @NotNull OpenAiApi api,
       @Valid @NotNull OpenAiBackend backend,
-      @Valid @NotNull OpenAiModel model,
-      @Valid @Nullable TimeoutConfiguration timeouts) {}
+      @Valid
+          @NestedProperties(
+              condition =
+                  @TemplateProperty.PropertyCondition(
+                      property = "provider.openai.backend.custom.openAiCustomCredential",
+                      isEmpty = TemplateProperty.NullableBoolean.TRUE))
+          @Nullable OpenAiModel model,
+      @Valid @Nullable TimeoutConfiguration timeouts) {
+
+    /** The model: from the bound custom-backend credential if present, else the inline value. */
+    @JsonIgnore
+    public @Nullable OpenAiModel effectiveModel() {
+      if (backend instanceof OpenAiBackend.OpenAiCustomBackend custom
+          && custom.custom().openAiCustomCredential() != null) {
+        return new OpenAiModel(custom.custom().openAiCustomCredential().model());
+      }
+      return model;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "A model is required from the credential or element template")
+    public boolean isModelPresent() {
+      final var effective = effectiveModel();
+      return effective != null && effective.model() != null && !effective.model().isBlank();
+    }
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
@@ -503,8 +528,17 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       }
 
       public record CustomBackend(
-          @NotBlank
-              @HttpUrl
+          @Valid
+              @TemplateProperty(
+                  group = "provider",
+                  label = "OpenAI-compatible credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "openAiCustomCredential"),
+                  description =
+                      "Select a saved credential holding the endpoint, API key and model, or enter the fields below.")
+              @Nullable OpenAiCustomCredential openAiCustomCredential,
+          @HttpUrl
               @TemplateProperty(
                   group = "provider",
                   label = "API endpoint",
@@ -513,8 +547,12 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
                   placeholder = "https://api.openai.com/v1",
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String endpoint,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiCustomCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String endpoint,
           @TemplateProperty(
                   group = "advanced-provider-options",
                   label = "Headers",
@@ -537,11 +575,60 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   feel = FeelMode.required,
                   optional = true)
               @Nullable Map<String, Object> bodyProperties,
-          @Valid @NotNull OpenAiCustomEndpointAuthentication authentication) {
+          @Valid
+              @NestedProperties(
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "openAiCustomCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable OpenAiCustomEndpointAuthentication authentication) {
+
+        public CustomBackend {
+          endpoint = endpoint == null || endpoint.isBlank() ? null : endpoint;
+        }
+
+        /** Inline-only configuration, without a saved credential. */
+        public CustomBackend(
+            @Nullable String endpoint,
+            @Nullable Map<String, String> headers,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Map<String, Object> bodyProperties,
+            @Nullable OpenAiCustomEndpointAuthentication authentication) {
+          this(null, endpoint, headers, queryParameters, bodyProperties, authentication);
+        }
+
+        /** The endpoint: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveEndpoint() {
+          return openAiCustomCredential != null ? openAiCustomCredential.endpoint() : endpoint;
+        }
+
+        /** The authentication: the credential's API key if bound, else the inline variant. */
+        @JsonIgnore
+        public @Nullable OpenAiCustomEndpointAuthentication effectiveAuthentication() {
+          return openAiCustomCredential != null
+              ? new OpenAiCustomEndpointAuthentication.ApiKeyAuthentication(
+                  openAiCustomCredential.apiKey())
+              : authentication;
+        }
+
+        @JsonIgnore
+        @AssertTrue(message = "An API endpoint is required from the credential or element template")
+        public boolean isEndpointPresent() {
+          return effectiveEndpoint() != null;
+        }
+
+        @JsonIgnore
+        @AssertTrue(message = "Authentication is required from the credential or element template")
+        public boolean isAuthenticationPresent() {
+          return effectiveAuthentication() != null;
+        }
 
         @Override
         public String toString() {
-          return "CustomBackend{endpoint="
+          return "CustomBackend{openAiCustomCredential="
+              + openAiCustomCredential
+              + ", endpoint="
               + endpoint
               + ", headers="
               + redactValues(headers)
@@ -558,8 +645,7 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
   }
 
   public record OpenAiModel(
-      @NotBlank
-          @TemplateProperty(
+      @TemplateProperty(
               group = "model",
               label = "Model",
               tooltip =
