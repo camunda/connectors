@@ -56,7 +56,7 @@ class FoundryCredentialResolverTest {
     final var supplier =
         resolver.bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null),
+                null, "client-id", "client-secret", "tenant-id", null, null),
             TIMEOUT);
 
     assertThat(supplier.get()).isEqualTo("test-token");
@@ -66,7 +66,7 @@ class FoundryCredentialResolverTest {
   void buildingTheSupplierDoesNotRequestAToken() {
     resolver.bearerTokenSupplier(
         new FoundryAuthentication.ClientCredentialsAuthentication(
-            "client-id", "client-secret", "tenant-id", null, null),
+            null, "client-id", "client-secret", "tenant-id", null, null),
         TIMEOUT);
 
     verify(tokenCredential, org.mockito.Mockito.never()).getTokenSync(any());
@@ -77,6 +77,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -109,7 +110,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null),
+                null, "client-id", "client-secret", "tenant-id", null, null),
             TIMEOUT)
         .get();
 
@@ -131,6 +132,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -147,6 +149,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -163,6 +166,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
+                null,
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -191,7 +195,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, "   "),
+                null, "client-id", "client-secret", "tenant-id", null, "   "),
             TIMEOUT)
         .get();
 
@@ -212,7 +216,7 @@ class FoundryCredentialResolverTest {
       resolver
           .bearerTokenSupplier(
               new FoundryAuthentication.ClientCredentialsAuthentication(
-                  "client-id", "client-secret", "tenant-id", null, null),
+                  null, "client-id", "client-secret", "tenant-id", null, null),
               TIMEOUT)
           .get();
 
@@ -235,7 +239,7 @@ class FoundryCredentialResolverTest {
     resolver
         .bearerTokenSupplier(
             new FoundryAuthentication.ClientCredentialsAuthentication(
-                "client-id", "client-secret", "tenant-id", null, null),
+                null, "client-id", "client-secret", "tenant-id", null, null),
             null)
         .get();
 

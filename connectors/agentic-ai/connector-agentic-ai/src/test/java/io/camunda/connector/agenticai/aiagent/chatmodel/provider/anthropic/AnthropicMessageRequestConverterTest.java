@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatMode
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingDisplay;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -62,7 +63,7 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -77,7 +78,7 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -100,7 +101,7 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApiBackend.AnthropicApi(
-                    "sk-ant-test", null, headers, queryParameters, bodyProperties)),
+                    null, "sk-ant-test", null, headers, queryParameters, bodyProperties)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }
@@ -189,6 +190,54 @@ class AnthropicMessageRequestConverterTest {
         .isEqualTo("integer");
     assertThat(toolNode.path("input_schema").path("required").get(0).asText())
         .isEqualTo("quantity");
+  }
+
+  @Test
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.HINT;
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "A document."),
+                "docs",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of("type", "string", "format", "camunda-document-id"))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
+
+    final var params = converter.toMessageCreateParams(model(null), null, snapshot);
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    final var properties = toolNode.path("input_schema").path("properties");
+    assertThat(properties.path("doc").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("doc").path("description").asText())
+        .isEqualTo("A document. " + HINT);
+    assertThat(properties.path("docs").path("items").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("docs").path("items").path("description").asText()).isEqualTo(HINT);
+    assertThat(toolNode.toString()).doesNotContain("\"type\":\"document\"");
   }
 
   @Test

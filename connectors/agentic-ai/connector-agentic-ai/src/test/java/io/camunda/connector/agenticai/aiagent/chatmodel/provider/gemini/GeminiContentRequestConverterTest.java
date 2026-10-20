@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -61,7 +62,7 @@ class GeminiContentRequestConverterTest {
   private static GeminiChatModelConfiguration model(@Nullable GeminiModelParameters parameters) {
     return new GeminiChatModelConfiguration(
         new GeminiConnection(
-            new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
+            new GeminiApiBackend(new GoogleGeminiApi(null, "gm-test", null)),
             new GeminiModel("gemini-3-pro-preview", parameters),
             null));
   }
@@ -638,6 +639,63 @@ class GeminiContentRequestConverterTest {
     assertThat(declarations.get(0).name()).contains("SuperfluxProduct");
     assertThat(declarations.get(0).description()).contains("desc");
     assertThat(declarations.get(0).parametersJsonSchema()).contains(schema);
+  }
+
+  @Test
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.HINT;
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "A document."),
+                "docs",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of("type", "string", "format", "camunda-document-id"))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
+
+    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+
+    final var declaration =
+        config.tools().orElseThrow().get(0).functionDeclarations().orElseThrow().get(0);
+    assertThat(declaration.parametersJsonSchema())
+        .contains(
+            Map.of(
+                "type",
+                "object",
+                "properties",
+                Map.of(
+                    "doc",
+                    Map.of("type", "string", "description", "A document. " + HINT),
+                    "docs",
+                    Map.of(
+                        "type", "array", "items", Map.of("type", "string", "description", HINT))),
+                "required",
+                List.of("doc", "docs")));
+    assertThat(declaration.toJson()).doesNotContain("\"type\":\"document\"");
   }
 
   @Test

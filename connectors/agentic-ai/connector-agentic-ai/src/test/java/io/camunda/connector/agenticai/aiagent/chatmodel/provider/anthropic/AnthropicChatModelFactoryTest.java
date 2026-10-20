@@ -114,8 +114,13 @@ class AnthropicChatModelFactoryTest {
         apiConfig(MODEL_ID),
         customConfig(MODEL_ID),
         bedrockConfig(
-            MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")),
-        foundryConfig(MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication("foundry-key")));
+            MODEL_ID,
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                    "AKIA", "secret"))),
+        foundryConfig(
+            MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-key")));
   }
 
   @Test
@@ -127,7 +132,7 @@ class AnthropicChatModelFactoryTest {
             foundryConfig(
                 MODEL_ID,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null)));
+                    null, "client-id", "client-secret", "tenant-id", null, null)));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -152,7 +157,8 @@ class AnthropicChatModelFactoryTest {
 
     final ChatModel api =
         factory.create(
-            bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
+            bedrockConfig(
+                MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-key")));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -165,7 +171,30 @@ class AnthropicChatModelFactoryTest {
     final ChatModel api =
         factory.create(
             bedrockConfig(
-                MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
+                MODEL_ID,
+                new AwsAuthentication.AwsIamAuthentication(
+                    null,
+                    new AwsAuthentication.AwsIamAuthenticationMethod
+                        .AwsDefaultCredentialsChainAuthentication())));
+
+    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    api.close();
+  }
+
+  @Test
+  void createBuildsWorkingApiForBedrockBackendWithBoundAwsCredential() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final ChatModel api =
+        factory.create(
+            bedrockConfig(
+                MODEL_ID,
+                new AwsAuthentication.AwsIamAuthentication(
+                    new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+                        new io.camunda.connector.aws.model.impl.AwsAuthentication
+                            .AwsDefaultCredentialsChainAuthentication(),
+                        "eu-central-1"),
+                    null)));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -204,7 +233,7 @@ class AnthropicChatModelFactoryTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel(modelId, null),
             timeouts));
   }

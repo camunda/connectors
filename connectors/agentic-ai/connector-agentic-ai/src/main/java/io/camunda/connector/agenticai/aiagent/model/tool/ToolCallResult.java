@@ -46,6 +46,7 @@ public record ToolCallResult(
     implements ToolCallResultBuilder.With {
 
   public static final String PROPERTY_INTERRUPTED = "interrupted";
+
   public static final String CONTENT_NO_RESULT =
       "Tool execution succeeded, but returned no result.";
   public static final String CONTENT_CANCELLED = "Tool execution was canceled.";

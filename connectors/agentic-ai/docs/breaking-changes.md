@@ -12,6 +12,124 @@ This list is curated: it covers the obvious extension points (SPIs and replaceab
 most common code changes, not every moved class or changed signature. Compile your extension against
 the new version to find the rest.
 
+## Camunda 8.10 to 8.11
+
+Summary of what changes for a custom extension. Details follow in the linked sections.
+
+| Area                                                                          | Affects                                                        |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
+| [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers or `AgentToolsResolverImpl` |
+| [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
+| [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
+| [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records, switches over `Content`, or imports the moved classes |
+| [Persisted data](#persisted-data-8-11)                                       | Code reading stored messages or the agent context, rollbacks   |
+
+### Turn input composer and response handler
+
+`AgentConversationTurnInputComposer`:
+
+- `compose(configuration, agentContext, previousConversation, agentInput)` gains a fifth parameter,
+  `RuntimeToolCallSplit deferredCalls` (`RuntimeToolCallHandler.RuntimeToolCallSplit`): the calls of the last assistant
+  message that the agent answers itself. The composer answers them, in call order, when the tool call results of the turn
+  are composed. An implementation that delegates to `AgentConversationTurnInputComposerImpl` passes on the split it
+  received: a split that lists no answered call makes the composer wait for results of the process that never arrive. An
+  implementation that has no runtime tools can pass `RuntimeToolCallSplit.allRemaining(List.of())`.
+- New abstract method `composeDocumentContentMessage(DocumentRegistry, List<RuntimeToolCallAnswer>)`: the message that
+  carries the content of the documents the answers of the agent itself name. Return `null` if you add no content.
+- `CompositionResult.NextTurn` gains the components `documents` (the documents that entered the conversation, registered by
+  the handler) and `contextUpdates` (changes of the agent context made by the answers of the agent itself). The
+  constructors `NextTurn(messages)` and `NextTurn(messages, documents)` remain, so a pattern `NextTurn(var messages)` must
+  become `NextTurn(var messages, var documents, var contextUpdates)`. `Deferred.arrivedResults` holds only the results
+  that arrived from the process.
+
+`AgentResponseHandler` gains the abstract method `createResponse(AgentConversation, List<ToolCall> processToolCalls)`. It is
+the method the request handlers call: `processToolCalls` are the calls of the assistant message that go to the process,
+the other calls are answered by the agent itself. `createResponse(AgentConversation)` remains for all calls going to the
+process.
+
+Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
+change. If you implement the interfaces directly, add the new parameter and method and make your single-argument
+`createResponse` delegate to the two-argument one with all tool calls of the message.
+
+### Agent instance client and mappers
+
+- `AgentInstanceClient.applyTurnStart`, `applyTurnCompletion` and `applyToolCallResults` take the `AgentContext` as a last
+  parameter. Its features decide what the history shows and its document registry is what document tags are expanded with.
+- `applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>`; convert with
+  `ToolCallResultContent.from(result)`.
+- `AgentInstanceHistoryMapper`: the constructor takes a `RuntimeToolRegistry` and a `DocumentExpander`, and
+  `inputHistoryItems`, `assistantContent` and `assistantToolCalls` take the `AgentContext`.
+- `AgentInstanceToolMapper`: the constructor takes a `RuntimeToolRegistry` and `mapTools` takes the `AgentContext`. A
+  runtime tool is reported without an element id.
+
+Migration: add the parameter and pass it on. Most extensions should keep `CamundaAgentInstanceClient` and the mappers and
+decorate them instead.
+
+### Replaceable bean constructors
+
+The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
+`RuntimeToolCallHandler` and a `DocumentExpander` after the agent instance client. The constructor of
+`AgentToolsResolverImpl` takes a `RuntimeToolRegistry`. The auto-configuration provides the beans `RuntimeToolRegistry`,
+`RuntimeToolCallHandler`, `DocumentExpander` and the two built-in runtime tools, all `@ConditionalOnMissingBean`. A
+custom bean built with `new` needs the extra arguments; inject them as beans.
+
+### Conversation window
+
+`AgentConversation.window(int size)` is replaced by `window(int size, UnaryOperator<List<Message>> decorator)`. The
+decorator turns the windowed messages into the messages of the snapshot; `UnaryOperator.identity()` leaves them as they
+are. The request handler passes `DocumentExpander.windowDecorator(conversation)`. The tool definitions of the snapshot
+have the format of their document parameters removed for the model provider.
+
+### Runtime tools and tool names
+
+- Agent instances created from 8.11 on are offered the built-in runtime tools `c8__get_document` and `c8__return_document`,
+  which the agent runs itself. A tool element of the process (ad-hoc or gateway) that has the name of a registered runtime
+  tool makes tool discovery and process migration fail with the error code `RUNTIME_TOOL_NAME_CONFLICT`, whether the tool is
+  available or not. Rename the element. Agent instances created before keep their behavior: they are offered no runtime
+  tool and no name is checked.
+- To add a tool of your own, implement `RuntimeTool` (`definition`, `isAvailable`, `call`) and expose it as a Spring bean
+  (see §25.4 of the [reference](reference/ai-agent.md)). Use a vendor-specific name prefix.
+- The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the available runtime
+  tools, and the configuration fingerprint (the id of that item) is computed differently: it is a SHA-256 over a JSON
+  serialization with sorted keys. An agent instance that is in flight at the upgrade reports one additional
+  `CONFIGURATION` item.
+
+### Model classes
+
+- New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
+  builders: `AgentContext` (`documents`, `responseDocuments`, `features`), `AgentResponse` and `AgentSubProcessResponse`
+  (`responseDocuments`) and `ToolDefinition` (`documentDelivery`; the three-argument constructor remains).
+  `AgentInput.UserPrompt` has no builder: its constructor takes the `documentDelivery` as a third argument
+  (`DocumentDelivery.REFERENCE` for the earlier behavior). `PromptConfiguration.UserPromptConfiguration` gains
+  `documentDelivery` too; the two-argument constructor remains.
+- The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
+  `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
+  request is built.
+- For agent instances created from 8.11 on, documents reach a chat model provider differently. A user prompt document is a
+  tag as text, and its content is added only on request or with the delivery `content`. A document in a tool result is
+  text, its tag, instead of a `DocumentContent` or the reference JSON, and the content of a document follows in a user
+  message only when it was loaded or the delivery `content` applies. A custom `ChatModel` that handles `DocumentContent`
+  in tool results therefore sees text for these instances; instances created before keep the earlier form.
+- The `ToolDefinition` constructor appends a hint to the description of every document parameter (a string schema with the
+  format `camunda-document-id`).
+- Moved or renamed: `aiagent.model.document.DocumentHandle` is `aiagent.document.DocumentHandle`, and
+  `aiagent.model.message.DocumentReferenceXmlTag` is `aiagent.model.message.LegacyDocumentReferenceXmlTag`, which only
+  instances created before 8.11 use.
+
+<a id="persisted-data-8-11"></a>
+
+### Persisted data
+
+- `AgentContext` gains `features`, `documents` (the document registry) and `responseDocuments`, and a conversation can
+  contain `documentReference` content blocks. There is no schema version bump, and a missing field binds to its empty
+  value, so state written by 8.10 loads unchanged.
+- Rolling back to 8.10 after 8.11 wrote conversation state is not supported: an 8.10 runtime fails to read a conversation
+  that contains a `documentReference` block (an unknown content type), and it ignores the new context fields and drops
+  them on its next write.
+- Do not rely on the JSON shape of these fields in external systems.
+
 ## Camunda 8.9 to 8.10
 
 Summary of what changes for a custom extension. Details follow in the linked sections.

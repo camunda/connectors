@@ -19,8 +19,13 @@ import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +46,159 @@ class AgentToolsResolverTest {
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+    agentToolsResolver =
+        new AgentToolsResolverImpl(
+            toolsSchemaResolver,
+            gatewayToolHandlers,
+            new RuntimeToolRegistryImpl(
+                List.of(
+                    new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE),
+                    StubRuntimeTool.of(
+                        "acme_lookup", (call, executionContext, conversation) -> null))));
+  }
+
+  @Nested
+  class RuntimeToolNames {
+
+    private static final ToolDefinition CONFLICTING_TOOL =
+        ToolDefinition.builder()
+            .name("c8__return_document")
+            .description("Conflicts with the built-in tool")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    private static final ToolDefinition CONFLICTING_CUSTOM_TOOL =
+        ToolDefinition.builder().name("acme_lookup").inputSchema(Map.of("type", "object")).build();
+
+    private static final AgentContext NEW_INSTANCE_CONTEXT =
+        AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
+    private static final AgentContext RUNTIME_TOOLS_ONLY_CONTEXT =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("runtimeTools")));
+
+    private static final AgentContext DOCUMENTS_ONLY_CONTEXT =
+        AgentContext.empty().withFeatures(new LinkedHashSet<>(List.of("documents")));
+
+    @Test
+    void doesNotReserveNamesForAnAgentInstanceWithoutTheRuntimeToolsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(CONFLICTING_TOOL, CONFLICTING_CUSTOM_TOOL), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .satisfies(
+              response ->
+                  assertThat(response.toolDefinitions())
+                      .containsExactly(CONFLICTING_TOOL, CONFLICTING_CUSTOM_TOOL));
+    }
+
+    @Test
+    void rejectsAnAdHocToolWithTheNameOfARuntimeToolOnToolDiscovery() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT");
+                assertThat(e.getMessage())
+                    .contains(
+                        "c8__return_document", "runtime tool", "Rename the ad-hoc sub-process");
+              });
+    }
+
+    @Test
+    void rejectsTheNameOfACustomRuntimeToolForAnAgentInstanceWithOnlyTheRuntimeToolsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_CUSTOM_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.loadAdHocToolsSchema(
+                      executionContext, RUNTIME_TOOLS_ONLY_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT");
+                assertThat(e.getMessage()).contains("acme_lookup");
+              });
+    }
+
+    @Test
+    void treatsTheDocumentsFeatureAsImplyingTheRuntimeToolsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_CUSTOM_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.loadAdHocToolsSchema(executionContext, DOCUMENTS_ONLY_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT"));
+    }
+
+    @Test
+    void acceptsNamesInThePrefixThatAreNotRuntimeTools() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("c8__not_a_registered_tool")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
+    }
+
+    @Test
+    void acceptsNamesThatOnlyContainTheNameOfARuntimeTool() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("my_acme_lookup")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
+    }
+
+    @Test
+    void rejectsAGatewayToolWithTheNameOfARuntimeTool() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(),
+                  List.of(
+                      GatewayToolDefinition.builder()
+                          .type("mcp")
+                          .name("c8__return_document")
+                          .build())));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT"));
+    }
+
+    @Test
+    void rejectsTheNameOfARuntimeToolIntroducedByAProcessMigration() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.updateToolDefinitions(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT"));
+    }
   }
 
   @Nested
@@ -118,6 +275,55 @@ class AgentToolsResolverTest {
       assertThat(result.toolDefinitions()).hasSize(1);
       assertThat(result.toolDefinitions().get(0).description())
           .isEqualTo("Updated Tool 1 description");
+    }
+
+    @Test
+    void doesNotTreatUnchangedToolWithDocumentParametersAsChanged() {
+      final var toolWithDocuments =
+          ToolDefinition.builder()
+              .name("tool1")
+              .description("Tool 1 description")
+              .inputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
+              .build();
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
+
+      final var regenerated = toolWithDocuments.withDescription(toolWithDocuments.description());
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(regenerated), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(toolWithDocuments);
+    }
+
+    @Test
+    void updatesToolDefinitionWhenDocumentParametersChange() {
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(TOOL_1));
+      final var withDocuments =
+          TOOL_1.withInputSchema(
+              Map.of(
+                  "type",
+                  "object",
+                  "properties",
+                  Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))));
+
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(withDocuments);
     }
 
     @Test

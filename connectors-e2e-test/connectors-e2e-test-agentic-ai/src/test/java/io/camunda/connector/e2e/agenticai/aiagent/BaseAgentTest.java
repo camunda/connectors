@@ -25,16 +25,21 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AgentTestFixtures.AI_AG
 import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaAssert;
@@ -45,6 +50,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -103,7 +109,8 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
                   .keystorePassword(HTTPS_KEYSTORE_PASSWORD)
                   .keyManagerPassword(HTTPS_KEYSTORE_PASSWORD)
                   .keystoreType("PKCS12")
-                  .notifier(new ConsoleNotifier(true)))
+                  .notifier(new ConsoleNotifier(true))
+                  .extensions(new DocumentIdPlaceholderTransformer()))
           .configureStaticDsl(true)
           .build();
 
@@ -245,7 +252,15 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
 
   protected void assertToolSpecifications(
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
-    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expectedTools());
+    // the model sees the tools of the process next to the built-in c8__ tools
+    final var expected = new ArrayList<>(expectedTools());
+    final var objectMapper = new ObjectMapper();
+    expected.addAll(
+        DocumentParameterSchema.toProviderToolDefinitions(
+            List.of(
+                new ReturnDocumentTool(objectMapper).definition(),
+                new GetDocumentTool(objectMapper).definition())));
+    assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 
   protected void assertConversationMessages(

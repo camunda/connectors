@@ -24,6 +24,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownP
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -94,14 +95,26 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
       }
 
       public record GoogleGeminiApi(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "Gemini API credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "googleGeminiApiCredential"),
+                  description = "Select a saved Gemini API credential, or enter an API key below.")
+              @Nullable GoogleGeminiApiCredential googleGeminiApiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "Gemini API key",
                   type = TemplateProperty.PropertyType.String,
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String apiKey,
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "googleGeminiApiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String apiKey,
           @HttpUrl
               @TemplateProperty(
                   group = "provider",
@@ -111,9 +124,26 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
                   optional = true)
               @Nullable String endpoint) {
 
+        /** The Gemini API key: from the bound credential if present, else the inline value. */
+        @JsonIgnore
+        public @Nullable String effectiveApiKey() {
+          return googleGeminiApiCredential != null ? googleGeminiApiCredential.apiKey() : apiKey;
+        }
+
+        @JsonIgnore
+        @AssertTrue(message = "Gemini API key is required from the credential or element template")
+        public boolean isApiKeyPresent() {
+          String effective = effectiveApiKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "GoogleGeminiApi{apiKey=[REDACTED], endpoint=" + endpoint + "}";
+          return "GoogleGeminiApi{googleGeminiApiCredential="
+              + googleGeminiApiCredential
+              + ", apiKey=[REDACTED], endpoint="
+              + endpoint
+              + "}";
         }
       }
     }
@@ -193,18 +223,51 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
     sealed interface GoogleVertexAiAuthentication {
       @TemplateSubType(id = "serviceAccountCredentials", label = "Service account credentials")
       record ServiceAccountCredentialsAuthentication(
-          @NotBlank
+          @Valid
               @TemplateProperty(
+                  group = "provider",
+                  label = "Vertex AI credential",
+                  type = TemplateProperty.PropertyType.Configuration,
+                  optional = true,
+                  binding = @TemplateProperty.PropertyBinding(name = "googleVertexAiCredential"),
+                  description =
+                      "Select a saved Vertex AI credential, or enter a service account JSON key"
+                          + " below.")
+              @Nullable GoogleVertexAiCredential googleVertexAiCredential,
+          @TemplateProperty(
                   group = "provider",
                   label = "JSON key of the service account",
                   description = "This is the key of the service account in JSON format.",
                   feel = FeelMode.optional,
-                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-              String jsonKey)
+                  constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+                  condition =
+                      @TemplateProperty.PropertyCondition(
+                          property = "googleVertexAiCredential",
+                          isEmpty = TemplateProperty.NullableBoolean.TRUE))
+              @Nullable String jsonKey)
           implements GoogleVertexAiAuthentication {
+
+        /** The service-account JSON key: from the bound credential if present, else inline. */
+        @JsonIgnore
+        public @Nullable String effectiveJsonKey() {
+          return googleVertexAiCredential != null ? googleVertexAiCredential.jsonKey() : jsonKey;
+        }
+
+        @JsonIgnore
+        @AssertTrue(
+            message =
+                "Vertex AI service account JSON key is required from the credential or element"
+                    + " template")
+        public boolean isJsonKeyPresent() {
+          String effective = effectiveJsonKey();
+          return effective != null && !effective.isBlank();
+        }
+
         @Override
         public String toString() {
-          return "ServiceAccountCredentialsAuthentication{jsonKey=[REDACTED]}";
+          return "ServiceAccountCredentialsAuthentication{googleVertexAiCredential="
+              + googleVertexAiCredential
+              + ", jsonKey=[REDACTED]}";
         }
       }
 

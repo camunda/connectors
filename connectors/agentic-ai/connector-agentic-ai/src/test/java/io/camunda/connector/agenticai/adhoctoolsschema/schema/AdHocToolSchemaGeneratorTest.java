@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.adhoctoolsschema.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -392,6 +393,241 @@ class AdHocToolSchemaGeneratorTest {
           "required": ["requiredParam", "defaultRequiredParam"]
         }
         """);
+  }
+
+  @Test
+  void mapsDocumentTypeToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter("toolCall.doc", "The invoice", "document"),
+                new AdHocToolElementParameter("toolCall.note", "A note", "string")));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "doc": {
+              "type": "string",
+              "format": "camunda-document-id",
+              "description": "The invoice"
+            },
+            "note": {
+              "type": "string",
+              "description": "A note"
+            }
+          },
+          "required": ["doc", "note"]
+        }
+        """);
+  }
+
+  @Test
+  void mapsDocumentTypeToTheDocumentFormatWithoutDescription() {
+    final var element =
+        createToolElement(List.of(new AdHocToolElementParameter("toolCall.doc", null, "document")));
+
+    assertThat(generator.generateToolSchema(element))
+        .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("doc"))
+        .isEqualTo(Map.of("type", "string", "format", "camunda-document-id"));
+  }
+
+  @Test
+  void mapsDocumentTypeOfArrayItemsToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.docs",
+                    "The attachments",
+                    "array",
+                    Map.of("items", Map.of("type", "document")))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "docs": {
+              "type": "array",
+              "description": "The attachments",
+              "items": {
+                "type": "string",
+                "format": "camunda-document-id"
+              }
+            }
+          },
+          "required": ["docs"]
+        }
+        """);
+  }
+
+  @Test
+  void mapsDocumentTypesInNestedObjectsToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.request",
+                    null,
+                    "object",
+                    Map.of(
+                        "properties",
+                        Map.of(
+                            "file",
+                            Map.of("type", "document"),
+                            "list",
+                            Map.of("type", "array", "items", Map.of("type", "document")))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object",
+              "properties": {
+                "file": {"type": "string", "format": "camunda-document-id"},
+                "list": {"type": "array", "items": {"type": "string", "format": "camunda-document-id"}}
+              }
+            }
+          },
+          "required": ["request"]
+        }
+        """);
+  }
+
+  @Test
+  void mapsTheDocumentTypeInsideAlternativesToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.body",
+                    "The body",
+                    "string",
+                    Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document")))),
+                new AdHocToolElementParameter(
+                    "toolCall.value",
+                    "The value",
+                    null,
+                    Map.of(
+                        "oneOf", List.of(Map.of("type", "number"), Map.of("type", "document"))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "anyOf": [
+                {"type": "string"},
+                {"type": "string", "format": "camunda-document-id"}
+              ],
+              "type": "string",
+              "description": "The body"
+            },
+            "value": {
+              "oneOf": [
+                {"type": "number"},
+                {"type": "string", "format": "camunda-document-id"}
+              ],
+              "description": "The value"
+            }
+          },
+          "required": ["body", "value"]
+        }
+        """);
+  }
+
+  @Test
+  void mapsATypeArrayWithTheDocumentTypeToAlternativesWithoutADefaultType() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.body",
+                    "The body",
+                    null,
+                    Map.of("type", List.of("string", "document")))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "anyOf": [
+                {"type": "string"},
+                {"type": "string", "format": "camunda-document-id"}
+              ],
+              "description": "The body"
+            }
+          },
+          "required": ["body"]
+        }
+        """);
+  }
+
+  @Test
+  void mapsTheDocumentTypeInsideAlternativesNestedInObjectsAndArrays() throws Exception {
+    final var union =
+        Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document")));
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.request",
+                    null,
+                    "object",
+                    Map.of(
+                        "properties",
+                        Map.of("file", union, "list", Map.of("type", "array", "items", union))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object",
+              "properties": {
+                "file": {"anyOf": [{"type": "string"}, {"type": "string", "format": "camunda-document-id"}]},
+                "list": {"type": "array", "items": {"anyOf": [{"type": "string"}, {"type": "string", "format": "camunda-document-id"}]}}
+              }
+            }
+          },
+          "required": ["request"]
+        }
+        """);
+  }
+
+  @Test
+  void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.value",
+                    null,
+                    null,
+                    Map.of("anyOf", List.of(Map.of("type", "number"), Map.of("type", "string"))))));
+
+    assertThat(generator.generateToolSchema(element))
+        .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("value"))
+        .isEqualTo(
+            Map.of(
+                "anyOf",
+                List.of(Map.of("type", "number"), Map.of("type", "string")),
+                "type",
+                "string"));
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

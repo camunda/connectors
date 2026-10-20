@@ -1,0 +1,111 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.document;
+
+import io.camunda.connector.api.document.Document;
+import java.io.IOException;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * The guard every addition of document content to the conversation passes: the content type must be
+ * on the {@link DocumentContentLimits allowlist} and the document must not exceed the limit of its
+ * type. The size is read from the reference metadata without reading the document; when the
+ * metadata has none, at most one byte more than the limit is read.
+ *
+ * <p>A runtime tool asks for content by naming a document (see {@code
+ * RuntimeToolResult#withDocumentContent}) after it checked the document with this guard, and the
+ * agent adds it for the documents of a user prompt or of a tool result with the delivery {@code
+ * content}. All of them use this guard, so the same documents pass whoever asks.
+ */
+public final class DocumentContentGuard {
+
+  private DocumentContentGuard() {}
+
+  /**
+   * Why a document gets no content.
+   *
+   * @param reason the kind of the problem
+   * @param problem the problem as a predicate of the document, such as {@code is of type X which
+   *     cannot be loaded into the conversation}
+   * @param cause the failure behind {@link Reason#UNREADABLE}, otherwise {@code null}
+   */
+  public record Rejection(Reason reason, String problem, @Nullable Throwable cause) {
+
+    /** The kinds of problems of a document. */
+    public enum Reason {
+      /** The content type is outside the allowlist. */
+      UNSUPPORTED_TYPE,
+      /** The document is above the limit of its content type. */
+      TOO_LARGE,
+      /** The document could not be read to find out its size. */
+      UNREADABLE
+    }
+
+    /**
+     * Whether a later attempt for the same document can succeed. A document that is of an
+     * unsupported type or too large stays so.
+     */
+    public boolean retryable() {
+      return reason == Reason.UNREADABLE;
+    }
+  }
+
+  /**
+   * Returns why the content of the document must not be added to the conversation, or empty if it
+   * may.
+   */
+  public static Optional<Rejection> check(Document document) {
+    final var contentType = DocumentHandle.contentTypeFor(document);
+    if (!DocumentContentLimits.isSupported(contentType)) {
+      return Optional.of(
+          new Rejection(
+              Rejection.Reason.UNSUPPORTED_TYPE,
+              "is of type %s which cannot be loaded into the conversation".formatted(contentType),
+              null));
+    }
+
+    final var limit = DocumentContentLimits.limitFor(contentType);
+    final var size = DocumentHandle.sizeFor(document);
+    if (size != null) {
+      return size > limit
+          ? Optional.of(tooLarge("is " + kilobytes(size), limit))
+          : Optional.empty();
+    }
+
+    try {
+      return exceeds(document, limit)
+          ? Optional.of(tooLarge("is larger than " + kilobytes(limit), limit))
+          : Optional.empty();
+    } catch (IOException | RuntimeException e) {
+      return Optional.of(
+          new Rejection(
+              Rejection.Reason.UNREADABLE,
+              "could not be read to check its size: " + e.getMessage(),
+              e));
+    }
+  }
+
+  private static Rejection tooLarge(String sizeText, long limit) {
+    return new Rejection(
+        Rejection.Reason.TOO_LARGE,
+        "%s, too large to load into the conversation (limit %s)"
+            .formatted(sizeText, kilobytes(limit)),
+        null);
+  }
+
+  /** Reads at most one byte more than the limit to find out whether the document exceeds it. */
+  private static boolean exceeds(Document document, long limit) throws IOException {
+    try (final var in = document.asInputStream()) {
+      return in.readNBytes((int) limit + 1).length > limit;
+    }
+  }
+
+  private static String kilobytes(long bytes) {
+    return ((bytes + 1023) / 1024) + " KB";
+  }
+}

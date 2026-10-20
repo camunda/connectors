@@ -17,6 +17,7 @@ import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -52,6 +53,7 @@ public class OpenAiContentConverter {
                 ResponseInputContent.ofInputText(
                     ResponseInputText.builder().text(text.text()).build()));
         case DocumentContent doc -> parts.add(responsesDocumentPart(doc));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj ->
             parts.add(
                 ResponseInputContent.ofInputText(
@@ -77,8 +79,8 @@ public class OpenAiContentConverter {
    * Converts a tool result's structured content into Responses {@code function_call_output} items.
    * A document here is flattened to a JSON reference rather than emitted natively as {@code
    * input_image}/{@code input_file}, unlike {@link #toResponsesContentParts}: the document's actual
-   * bytes are already delivered to the model elsewhere for tool results, so embedding it here as
-   * well would send it twice.
+   * bytes are already sent to the model elsewhere for tool results, so embedding it here as well
+   * would send it twice.
    */
   public List<ResponseFunctionCallOutputItem> toResponsesToolResultOutputItems(
       List<Content> content) {
@@ -93,6 +95,7 @@ public class OpenAiContentConverter {
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(writeAsJson(doc.document())).build()));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(

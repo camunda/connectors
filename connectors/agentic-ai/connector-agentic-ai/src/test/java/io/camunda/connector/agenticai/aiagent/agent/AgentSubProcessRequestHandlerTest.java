@@ -19,10 +19,13 @@ import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMe
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -46,6 +49,13 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTag;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -59,22 +69,44 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -83,13 +115,41 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AgentSubProcessRequestHandlerTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .features(AgentContext.newInstanceFeatures())
+          .state(AgentState.READY)
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
+
+  private static final AgentContext CONTEXT_WITH_UPLOAD_TOOL =
+      AgentContext.builder()
+          .features(AgentContext.newInstanceFeatures())
+          .state(AgentState.READY)
+          .toolDefinitions(
+              Stream.concat(
+                      TOOL_DEFINITIONS.stream(),
+                      Stream.of(
+                          ToolDefinition.builder()
+                              .name("upload")
+                              .inputSchema(
+                                  Map.of(
+                                      "type",
+                                      "object",
+                                      "properties",
+                                      Map.of(
+                                          "doc",
+                                          Map.of(
+                                              "type", "string", "format", "camunda-document-id"))))
+                              .build()))
+                  .toList())
+          .build();
 
   private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
   private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
@@ -104,6 +164,18 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+
+  @Spy
+  private RuntimeToolCallHandler runtimeToolCallHandler =
+      new RuntimeToolCallHandlerImpl(
+          new RuntimeToolRegistryImpl(
+              List.of(
+                  new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE),
+                  new GetDocumentTool(TestObjectMapperSupplier.INSTANCE))));
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -144,7 +216,10 @@ class AgentSubProcessRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -168,7 +243,10 @@ class AgentSubProcessRequestHandlerTest {
     final var toolDiscoveryToolCalls =
         List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
     final var discoveryAgentContext =
-        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+        AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
+            .state(AgentState.TOOL_DISCOVERY)
+            .build();
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
@@ -351,7 +429,7 @@ class AgentSubProcessRequestHandlerTest {
   void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of()));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -375,11 +453,17 @@ class AgentSubProcessRequestHandlerTest {
 
     // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); the composer reports
     // "abcdef" as already arrived, correlated and gateway-transformed
+    final var knownDocument = createDocument("known", "known.txt");
+    final var knownEntry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(knownDocument, DocumentSource.toolCall("search", "call-0", null)));
     final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
     final var agentContextWithHistory =
         AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
+            .documents(List.of(knownEntry))
             .conversation(
                 InProcessConversationContext.builder("conv-1")
                     .messages(List.of(USER_MESSAGE, priorAssistantMessage))
@@ -390,7 +474,7 @@ class AgentSubProcessRequestHandlerTest {
 
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
 
     // when
@@ -403,17 +487,25 @@ class AgentSubProcessRequestHandlerTest {
 
     // and: the arrived result is reported as-is
     @SuppressWarnings("unchecked")
-    final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    final ArgumentCaptor<List<ToolCallResultContent>> resultsCaptor =
+        ArgumentCaptor.forClass(List.class);
+    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
     verify(agentInstanceClient)
-        .applyToolCallResults(eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
-    assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
+        .applyToolCallResults(
+            eq(agentExecutionContext),
+            any(),
+            resultsCaptor.capture(),
+            any(),
+            contextCaptor.capture());
+    assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
+    assertThat(contextCaptor.getValue().documentRegistry().entries()).containsExactly(knownEntry);
   }
 
   @Test
   void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NoInput());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -519,6 +611,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var contextAtLimit =
         AgentContext.builder()
+            .features(AgentContext.newInstanceFeatures())
             .state(AgentState.READY)
             .toolDefinitions(TOOL_DEFINITIONS)
             .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
@@ -560,7 +653,8 @@ class AgentSubProcessRequestHandlerTest {
     // the provider throws before ingest / history write: the turn-start batch (THINKING status +
     // input messages) is sent before the model call, but the turn-completion write and response
     // handling never happen
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -584,7 +678,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -666,7 +761,8 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
-    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
     verifyNoInteractions(responseHandler);
   }
 
@@ -707,14 +803,19 @@ class AgentSubProcessRequestHandlerTest {
     // applyTurnStart is only called once, at the top of proceed() — continuation rounds carry no
     // new input and don't restart the turn
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
 
     // one applyTurnCompletion call per round: the continuation round re-asserts THINKING with its
     // own metrics, the final round sends the terminal status with its own metrics -- no summing
     final var statusCaptor = ArgumentCaptor.forClass(AgentInstanceUpdateStatus.class);
     verify(agentInstanceClient, times(2))
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), statusCaptor.capture());
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            statusCaptor.capture(),
+            any());
     assertThat(turnCaptor.getAllValues())
         .extracting(AgentConversationTurn::assistantMessage)
         .containsExactly(partialMessage, doneMessage);
@@ -763,27 +864,761 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(1)).execute(any());
   }
 
+  @Test
+  void answersAToolCallWithAnInvalidDocumentParameterLocallyAndCallsTheModelAgainInTheSameJob() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
+
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var goodCall = new ToolCall("call-2", "upload", Map.of("doc", docTag(documentId)));
+    final var firstMessage = AssistantMessage.builder().toolCalls(List.of(badCall)).build();
+    final var secondMessage = AssistantMessage.builder().toolCalls(List.of(goodCall)).build();
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Completed(firstMessage, metrics))
+        .doReturn(new ChatResult.Completed(secondMessage, metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    // the second request carries the error result of the first round
+    final var secondRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+    assertThat(secondRequestMessages.getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(
+                        result -> {
+                          assertThat(result.id()).isEqualTo("call-1");
+                          assertThat(result.name()).isEqualTo("upload");
+                          assertThat(result.completedAt()).isNotNull();
+                          assertThat(result.content())
+                              .singleElement()
+                              .isInstanceOfSatisfying(
+                                  TextContent.class,
+                                  text ->
+                                      assertThat(text.text())
+                                          .isEqualTo(
+                                              "Parameter 'doc' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'."));
+                        }));
+
+    // the tool call of the final round goes to the process; the first round stays in the history
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(goodCall));
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(2, new TokenUsage(20, 40), 2));
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(5);
+              assertThat(c.messages().get(2)).isEqualTo(firstMessage);
+              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(4)).isEqualTo(secondMessage);
+            });
+
+    // history: start of the first turn, completion (THINKING: another round follows), start of the
+    // synthetic round with the tool result correlated to the first turn, final completion
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.THINKING),
+            any());
+    final var previousTurnCaptor = ArgumentCaptor.forClass(Optional.class);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext),
+            any(),
+            any(),
+            turnCaptor.capture(),
+            previousTurnCaptor.capture(),
+            any(),
+            any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING),
+            any());
+    inOrder.verifyNoMoreInteractions();
+    final var turns = turnCaptor.getAllValues();
+    assertThat(turns.get(2).iterationKey()).isEqualTo(2);
+    assertThat(turns.get(2).inputMessages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
+    assertThat(previousTurnCaptor.getValue())
+        .containsInstanceOf(AgentConversationTurn.class)
+        .get()
+        .extracting(turn -> ((AgentConversationTurn) turn).assistantMessage())
+        .isEqualTo(firstMessage);
+  }
+
+  @Test
+  void carriesTheContentOfADocumentRequestedByAGetDocumentCallIntoTheNextRoundOfTheSameJob() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    final var realComposer =
+        new AgentConversationTurnInputComposerImpl(mock(GatewayToolHandlerRegistry.class));
+    when(agentInputComposer.composeDocumentContentMessage(any(), any()))
+        .thenAnswer(
+            i -> realComposer.composeDocumentContentMessage(i.getArgument(0), i.getArgument(1)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var getCall =
+        new ToolCall("call-1", GetDocumentTool.NAME, Map.of("id", docTag(documentId)));
+    final var firstMessage = AssistantMessage.builder().toolCalls(List.of(getCall)).build();
+    final var secondMessage = assistantMessage("done");
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Completed(firstMessage, metrics))
+        .doReturn(new ChatResult.Completed(secondMessage, metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    // the first request shows the document as a tag only
+    final var firstRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(0).snapshot().messages();
+    assertThat(firstRequestMessages)
+        .noneMatch(
+            message ->
+                message instanceof UserMessage user
+                    && user.content().stream().anyMatch(DocumentContent.class::isInstance));
+
+    // the second request has the tool result followed by the message with the loaded content
+    final var secondRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+    assertThat(secondRequestMessages.get(secondRequestMessages.size() - 2))
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(
+                        result -> {
+                          assertThat(result.id()).isEqualTo("call-1");
+                          assertThat(result.content()).hasSize(3);
+                          assertThat(result.content().get(0))
+                              .isEqualTo(TextContent.textContent("Loaded the document."));
+                          assertThat(result.content().get(1))
+                              .isEqualTo(
+                                  TextContent.textContent(
+                                      DocumentReferenceContent.from(document).toTag()));
+                          assertThat(result.content().get(2))
+                              .isEqualTo(
+                                  TextContent.textContent(
+                                      "Its content follows in the next message."));
+                        }));
+    assertThat(secondRequestMessages.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            message -> {
+              assertThat(message.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(message.content()).hasSize(3);
+              assertThat(message.content().get(0))
+                  .isEqualTo(
+                      TextContent.textContent(
+                          AgentConversationTurnInputComposerImpl.DOCUMENT_CONTENT_PREAMBLE));
+              assertThat(message.content().get(1))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tag ->
+                          assertThat(DocumentTag.idOfSingleTag(tag.text())).isEqualTo(documentId));
+              assertThat(message.content().get(2))
+                  .isInstanceOfSatisfying(
+                      DocumentContent.class,
+                      content ->
+                          assertThat(DocumentHandle.idFor(content.document()))
+                              .isEqualTo(documentId));
+            });
+
+    // the stored conversation keeps the follow-up message as the document reference with the
+    // delivery content only
+    assertThat(response.responseValue().context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(6);
+              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(4))
+                  .isInstanceOfSatisfying(
+                      UserMessage.class,
+                      message -> {
+                        assertThat(message.content())
+                            .noneMatch(DocumentContent.class::isInstance)
+                            .hasSize(2);
+                        assertThat(message.content().get(1))
+                            .isInstanceOfSatisfying(
+                                DocumentReferenceContent.class,
+                                reference -> {
+                                  assertThat(reference.id()).isEqualTo(documentId);
+                                  assertThat(reference.delivery())
+                                      .isEqualTo(DocumentDelivery.CONTENT);
+                                });
+                      });
+            });
+
+    // the synthetic round reports both messages as input of its turn
+    verify(agentInstanceClient, times(2))
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+    assertThat(turnCaptor.getAllValues().get(1).inputMessages())
+        .hasSize(2)
+        .satisfiesExactly(
+            first -> assertThat(first).isInstanceOf(ToolCallResultMessage.class),
+            second -> assertThat(second).isInstanceOf(UserMessage.class));
+  }
+
+  @Test
+  void handsOnlyTheValidCallsOfABatchWithAnInvalidDocumentParameterToTheProcess() {
+    final var document = createDocument("report data", "report.txt");
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
+
+    final var badCall = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
+    final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var message = AssistantMessage.builder().toolCalls(List.of(badCall, otherCall)).build();
+    mockChatModelExecution(message);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // no extra model call: the valid call is handed to the process
+    verify(chatModel, times(1)).execute(any());
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.elementActivations())
+        .singleElement()
+        .satisfies(activation -> assertThat(activation.elementId()).isEqualTo("getWeather"));
+
+    // the call with the invalid document parameter is answered when the process results arrive
+    verify(responseHandler).createResponse(any(AgentConversation.class), eq(List.of(otherCall)));
+
+    // the stored assistant message keeps both calls, no results are stored yet
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(3);
+              assertThat(c.messages().get(2)).isEqualTo(message);
+            });
+
+    // history: one turn start and one completion with the status of a tool calling turn; no
+    // result is reported before the turn that follows the results of the process
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.TOOL_CALLING),
+            any());
+    inOrder.verifyNoMoreInteractions();
+    assertThat(turnCaptor.getValue().toolCalls()).containsExactly(badCall, otherCall);
+  }
+
+  @Test
+  void leavesTheReturnDocumentCallOfABatchToTheNextTurnAndHandsTheRealCallToTheProcess() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                null));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(documentId)));
+    final var otherCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(returnCall, otherCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(1)).execute(any());
+    // the built-in tool is offered, but is neither persisted nor activated
+    assertThat(chatModelRequestCaptor.getValue().snapshot().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .contains(ReturnDocumentTool.NAME);
+    final var context = response.responseValue().context();
+    assertThat(context.toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(ReturnDocumentTool.NAME);
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(otherCall));
+    assertThat(response.elementActivations()).hasSize(1);
+
+    // the call of the built-in tool runs when the process results arrive: nothing is recorded yet
+    assertThat(context.responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void answersABatchAnsweredEntirelyByRuntimeToolsInTheSameJobBecauseTheModelIsCalledAgain() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                null));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(documentId)));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("here you go"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    final var results =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().stream()
+            .filter(ToolCallResultMessage.class::isInstance)
+            .map(ToolCallResultMessage.class::cast)
+            .findFirst()
+            .orElseThrow()
+            .results();
+    assertThat(results)
+        .singleElement()
+        .satisfies(
+            result -> {
+              assertThat(result.id()).isEqualTo("call-1");
+              assertThat(result.content())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      text ->
+                          assertThat(text.text())
+                              .isEqualTo("Returned the document under the key 'report'."));
+            });
+
+    final var context = response.responseValue().context();
+    assertThat(context.responseDocuments())
+        .containsExactly(Map.entry("report", new ResponseDocumentSelection(documentId, null)));
+    assertThat(response.responseValue().toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
+  }
+
+  @Test
+  void answersAReturnDocumentCallWithAnUnknownIdWithAnErrorAndRecordsNothing() {
+    final var document = createDocument("report data", "report.txt");
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                null,
+                null,
+                null));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var returnCall =
+        new ToolCall(
+            "call-1", ReturnDocumentTool.NAME, Map.of("key", "report", "document", "bogus"));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("sorry"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var results =
+        ((ToolCallResultMessage)
+                chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+            .results();
+    assertThat(results)
+        .singleElement()
+        .satisfies(
+            result ->
+                assertThat(result.content())
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                        TextContent.class,
+                        text ->
+                            assertThat(text.text())
+                                .startsWith(
+                                    "Parameter 'document' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.")));
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void carriesTheResponseDocumentsIntoTheAgentResponseVariable() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("here you go"));
+    final var returned =
+        new ReturnedDocument(Map.<String, Object>of("camunda.document.type", "camunda"), "Report");
+    when(responseHandler.createResponse(any(AgentConversation.class), anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseText("here you go")
+                    .responseDocuments(new LinkedHashMap<>(Map.of("report", returned)))
+                    .build());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.variables().get("agent"))
+        .isInstanceOfSatisfying(
+            AgentSubProcessResponse.class,
+            agent ->
+                assertThat(agent.responseDocuments())
+                    .containsExactly(Map.entry("report", returned)));
+  }
+
+  @Test
+  void throwsWhenTheModelCallLimitIsReachedBeforeTheRetryRound() {
+    final var document = createDocument("report data", "report.txt");
+    mockSystemPrompt();
+    mockProceedWithDocument(document);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                new LimitsConfiguration(1),
+                null,
+                null));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
+
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .toolCalls(List.of(new ToolCall("call-1", "upload", Map.of("doc", "bogus"))))
+                    .build(),
+                new AgentMetrics(1, TokenUsage.empty(), 1)))
+        .when(chatModel)
+        .execute(any());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    verify(chatModel, times(1)).execute(any());
+    // no synthetic round was started
+    verify(agentInstanceClient, times(1))
+        .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void persistsDocumentsFromTheComposedTurnInTheReturnedAgentContext() {
+    final var document = createDocument("tool data", "tool.txt");
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("search", "call-1", null)))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var context = response.responseValue().context();
+    assertThat(context.documents())
+        .singleElement()
+        .satisfies(
+            entry -> {
+              assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
+              assertThat(entry.source().type()).isEqualTo(DocumentSource.Type.TOOL_CALL);
+              assertThat(entry.source().toolName()).isEqualTo("search");
+              assertThat(entry.source().toolCallId()).isEqualTo("call-1");
+              assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
+            });
+    assertThat(response.variables().get("agentContext")).isEqualTo(context);
+  }
+
+  @Test
+  void splitsTheToolCallsOfTheLastAssistantMessageForTheComposer() {
+    final var document = createDocument("report data", "report.txt");
+    final var knownEntry =
+        DocumentRegistryEntry.from(
+            new IngestedDocument(document, DocumentSource.toolCall("search", "call-0", null)));
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(knownEntry.id())));
+    final var badCall = new ToolCall("call-2", "upload", Map.of("doc", "bogus"));
+    final var processCall = new ToolCall("call-3", "getWeather", Map.of("location", "MUC"));
+    final var context =
+        CONTEXT_WITH_UPLOAD_TOOL
+            .withDocuments(List.of(knownEntry))
+            .withConversation(
+                InProcessConversationContext.builder("conv-1")
+                    .messages(
+                        List.of(
+                            USER_MESSAGE,
+                            AssistantMessage.builder()
+                                .toolCalls(List.of(returnCall, badCall, processCall))
+                                .build()))
+                    .build());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of()));
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    final var splitCaptor =
+        ArgumentCaptor.forClass(RuntimeToolCallHandler.RuntimeToolCallSplit.class);
+    verify(agentInputComposer).compose(any(), any(), any(), any(), splitCaptor.capture());
+    // the call of the built-in tool and the call rejected for its document are answered by the
+    // agent, the call of the process is not
+    assertThat(splitCaptor.getValue().answeredCalls()).containsExactly(returnCall, badCall);
+    assertThat(splitCaptor.getValue().remainingCalls()).containsExactly(processCall);
+    // the answers are computed from the split: the call of the built-in tool selects its document
+    assertThat(splitCaptor.getValue().answer().contextUpdates()).hasSize(1);
+  }
+
+  @Test
+  void splitsNothingWhenThePreviousTurnHasNoToolCalls() {
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                INITIAL_AGENT_CONTEXT.withConversation(
+                    InProcessConversationContext.builder("conv-1")
+                        .messages(List.of(USER_MESSAGE, assistantMessage("hello")))
+                        .build()),
+                List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of()));
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    final var splitCaptor =
+        ArgumentCaptor.forClass(RuntimeToolCallHandler.RuntimeToolCallSplit.class);
+    verify(agentInputComposer).compose(any(), any(), any(), any(), splitCaptor.capture());
+    assertThat(splitCaptor.getValue().answeredCalls()).isEmpty();
+    assertThat(splitCaptor.getValue().remainingCalls()).isEmpty();
+  }
+
+  @Test
+  void appliesTheContextUpdatesOfTheComposedTurnToTheAgentContext() {
+    final var document = createDocument("report data", "report.txt");
+    final var documentId = DocumentHandle.idFor(document);
+    final var selection = new ResponseDocumentSelection(documentId, null);
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("search", "call-1", null))),
+                List.of(
+                    ctx ->
+                        ctx.withResponseDocuments(
+                            new LinkedHashMap<>(Map.of("report", selection))))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().responseDocuments())
+        .containsExactly(Map.entry("report", selection));
+  }
+
+  @Test
+  void reportsTheToolsAndTheDocumentsOfTheTurnToTheAgentInstanceHistory() {
+    final var document = createDocument("tool data", "tool.txt");
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.toolCall("search", "call-1", null)))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    final var startContext = ArgumentCaptor.forClass(AgentContext.class);
+    verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), startContext.capture());
+    final var completionContext = ArgumentCaptor.forClass(AgentContext.class);
+    verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext), any(), any(), any(), any(), completionContext.capture());
+    for (final var context : List.of(startContext.getValue(), completionContext.getValue())) {
+      assertThat(context.documentRegistry().findById(DocumentHandle.idFor(document))).isPresent();
+    }
+  }
+
+  @Test
+  void keepsAnAgentInstanceWithoutTheDocumentsFeatureWithoutRegistryAndFeatures() {
+    final var historic = createDocument("historic", "historic.txt");
+    final var history =
+        List.<Message>of(
+            userMessage(List.of(DocumentContent.documentContent(historic))),
+            assistantMessage("hello"));
+    final var legacyContext =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .conversation(InProcessConversationContext.builder("conv").messages(history).build())
+            .build();
+    mockSystemPrompt();
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.NextTurn(List.of(USER_MESSAGE)));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(legacyContext, List.of()));
+    mockChatModelExecution(assistantMessage("done"));
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().documents()).isEmpty();
+    assertThat(response.responseValue().context().features()).isEmpty();
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+  }
+
+  private static String docTag(String documentId) {
+    return "<doc id=\"" + documentId + "\" />";
+  }
+
+  private Document createDocument(String content, String fileName) {
+    return new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+        .create(
+            DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+                .contentType("text/plain")
+                .fileName(fileName)
+                .build());
+  }
+
   private void mockSystemPrompt() {
     when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
   }
 
+  private void mockProceedWithDocument(Document document) {
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
+        .thenReturn(
+            new CompositionResult.NextTurn(
+                List.of(USER_MESSAGE),
+                List.of(
+                    new IngestedDocument(
+                        document, DocumentSource.userMessage(USER_MESSAGE.id().toString())))));
+  }
+
   private void mockProceed(Message... inputMessages) {
-    when(agentInputComposer.compose(any(), any(), any(), any()))
+    when(agentInputComposer.compose(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {
-    when(responseHandler.createResponse(any(AgentConversation.class)))
+    when(responseHandler.createResponse(any(AgentConversation.class), anyList()))
         .thenAnswer(
             i -> {
               final var conversation = i.getArgument(0, AgentConversation.class);
               final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
               final var toolCalls =
-                  assistantMessage.toolCalls() == null
-                      ? List.<ToolCallProcessVariable>of()
-                      : assistantMessage.toolCalls().stream()
-                          .map(ToolCallProcessVariable::from)
-                          .toList();
+                  i.<List<ToolCall>>getArgument(1).stream()
+                      .map(ToolCallProcessVariable::from)
+                      .toList();
               return AgentResponse.builder()
                   .context(conversation.toAgentContext())
                   .responseMessage(assistantMessage)
@@ -811,12 +1646,17 @@ class AgentSubProcessRequestHandlerTest {
       AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
         .applyTurnCompletion(
-            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), eq(expectedFinalStatus));
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(expectedFinalStatus),
+            any());
     assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(expectedAssistantMessage);
     assertThat(turnCaptor.getValue().metrics().withExecutionTime(null)).isEqualTo(expectedMetrics);
   }

@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseCh
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConversePromptCaching;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -56,7 +57,10 @@ class BedrockConverseRequestConverterTest {
         new BedrockConverseConnection(
             REGION,
             null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()),
             null,
             null,
             null,
@@ -73,7 +77,10 @@ class BedrockConverseRequestConverterTest {
         new BedrockConverseConnection(
             REGION,
             null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()),
             headers,
             queryParameters,
             bodyProperties,
@@ -387,6 +394,57 @@ class BedrockConverseRequestConverterTest {
       assertThat(schemaDoc.asMap().get("required").asList())
           .extracting(software.amazon.awssdk.core.document.Document::asString)
           .containsExactly("quantity");
+    }
+
+    @Test
+    void sendsDocumentParametersAsStringSchemaWithHint() {
+      final var HINT = DocumentParameterSchema.HINT;
+      final Map<String, Object> schema =
+          Map.of(
+              "type",
+              "object",
+              "properties",
+              Map.of(
+                  "doc",
+                  Map.of(
+                      "type",
+                      "string",
+                      "format",
+                      "camunda-document-id",
+                      "description",
+                      "A document."),
+                  "docs",
+                  Map.of(
+                      "type",
+                      "array",
+                      "items",
+                      Map.of("type", "string", "format", "camunda-document-id"))),
+              "required",
+              List.of("doc", "docs"));
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+              DocumentParameterSchema.toProviderToolDefinitions(
+                  List.of(
+                      ToolDefinition.builder()
+                          .name("ReadDocuments")
+                          .description("desc")
+                          .inputSchema(schema)
+                          .build())));
+
+      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+
+      final var toolSpec = request.toolConfig().tools().get(0).toolSpec();
+      final var schemaDoc = toolSpec.inputSchema().json().asMap();
+      assertThat(schemaDoc.keySet()).containsExactlyInAnyOrder("type", "properties", "required");
+      final var properties = schemaDoc.get("properties").asMap();
+      assertThat(properties.get("doc").asMap().get("type").asString()).isEqualTo("string");
+      assertThat(properties.get("doc").asMap().get("description").asString())
+          .isEqualTo("A document. " + HINT);
+      final var items = properties.get("docs").asMap().get("items").asMap();
+      assertThat(items.get("type").asString()).isEqualTo("string");
+      assertThat(items.get("description").asString()).isEqualTo(HINT);
     }
 
     @Test

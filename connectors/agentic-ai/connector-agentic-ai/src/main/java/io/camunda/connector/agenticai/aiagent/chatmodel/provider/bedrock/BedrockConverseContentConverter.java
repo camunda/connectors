@@ -12,9 +12,10 @@ import static io.camunda.connector.agenticai.aiagent.model.request.v2.BedrockCon
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -96,6 +97,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(documentContentBlock(doc));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> blocks.add(ContentBlock.fromText(writeAsJson(obj.content())));
         case ReasoningContent rc when BEDROCK_CONVERSE_ID.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlock(rc));
@@ -113,8 +115,8 @@ public class BedrockConverseContentConverter {
    *
    * <p>A document is always flattened to the same serialized JSON reference an embedded document
    * already gets here (see {@link BedrockConverseDocuments}), never embedded as a native {@code
-   * DocumentBlock}: its real bytes are delivered elsewhere, so embedding it here as well would send
-   * it twice and trip Converse's duplicate-document-name validation.
+   * DocumentBlock}: its real bytes are sent elsewhere, so embedding it here as well would send it
+   * twice and trip Converse's duplicate-document-name validation.
    */
   public List<ToolResultContentBlock> toToolResultBlocks(List<Content> content) {
     final List<ToolResultContentBlock> blocks = new ArrayList<>();
@@ -122,6 +124,7 @@ public class BedrockConverseContentConverter {
       switch (c) {
         case TextContent text -> blocks.add(ToolResultContentBlock.fromText(text.text()));
         case DocumentContent doc -> blocks.add(toolResultContentBlock(doc.document()));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj -> blocks.add(toolResultContentBlock(obj.content()));
         case ReasoningContent rc ->
             throw new ConnectorException(

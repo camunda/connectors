@@ -10,8 +10,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,9 +24,16 @@ import org.junit.jupiter.api.Test;
 
 class AgentInstanceToolMapperTest {
 
+  private final RuntimeToolRegistry runtimeToolRegistry =
+      new RuntimeToolRegistryImpl(
+          List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE)));
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
-  private final AgentInstanceToolMapper mapper = new AgentInstanceToolMapper(gatewayToolHandlers);
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentContext.newInstanceFeatures());
+
+  private final AgentInstanceToolMapper mapper =
+      new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
 
   @Test
   void adHocToolFallsBackToItsNameAsElementId() {
@@ -33,7 +45,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(List.of(tool), NEW_INSTANCE);
 
     assertThat(mapped)
         .singleElement()
@@ -43,6 +55,38 @@ class AgentInstanceToolMapperTest {
               assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
               assertThat(agentTool.getElementId()).isEqualTo("getWeather");
             });
+  }
+
+  @Test
+  void runtimeToolHasNoElementId() {
+    final var mapped =
+        mapper.mapTools(
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()),
+            NEW_INSTANCE);
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> {
+              assertThat(agentTool.getName()).isEqualTo("c8__return_document");
+              assertThat(agentTool.getDescription()).contains("Attaches one document");
+              assertThat(agentTool.getElementId()).isNull();
+            });
+  }
+
+  @Test
+  void aToolOfTheProcessWithTheNameOfARuntimeToolKeepsItsElementIdWithoutTheRuntimeToolsFeature() {
+    when(gatewayToolHandlers.resolveElementId("c8__return_document")).thenReturn(Optional.empty());
+
+    final var mapped =
+        mapper.mapTools(
+            List.of(new ReturnDocumentTool(TestObjectMapperSupplier.INSTANCE).definition()),
+            AgentContext.empty());
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> assertThat(agentTool.getElementId()).isEqualTo("c8__return_document"));
   }
 
   @Test
@@ -56,7 +100,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(List.of(tool), NEW_INSTANCE);
 
     assertThat(mapped)
         .singleElement()

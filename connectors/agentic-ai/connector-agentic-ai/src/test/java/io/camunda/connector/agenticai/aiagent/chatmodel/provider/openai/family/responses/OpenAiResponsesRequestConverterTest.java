@@ -46,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelCo
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -70,7 +71,7 @@ class OpenAiResponsesRequestConverterTest {
 
   private static OpenAiBackend defaultBackend() {
     return new OpenAiApiBackend(
-        new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+        new OpenAiApiConnection(null, "sk-test", null, null, null, null, null, null));
   }
 
   private static OpenAiChatModelConfiguration model(@Nullable ResponsesParameters parameters) {
@@ -571,6 +572,54 @@ class OpenAiResponsesRequestConverterTest {
   }
 
   @Test
+  void sendsDocumentParametersAsStringSchemaWithHint() {
+    final var HINT = DocumentParameterSchema.HINT;
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "A document."),
+                "docs",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of("type", "string", "format", "camunda-document-id"))),
+            "required",
+            List.of("doc", "docs"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            DocumentParameterSchema.toProviderToolDefinitions(
+                List.of(
+                    ToolDefinition.builder()
+                        .name("ReadDocuments")
+                        .description("desc")
+                        .inputSchema(schema)
+                        .build())));
+
+    final var params = converter.toRequest(model(null), null, snapshot);
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    final var properties = toolNode.path("parameters").path("properties");
+    assertThat(properties.path("doc").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("doc").path("description").asText())
+        .isEqualTo("A document. " + HINT);
+    assertThat(properties.path("docs").path("items").path("type").asText()).isEqualTo("string");
+    assertThat(properties.path("docs").path("items").path("description").asText()).isEqualTo(HINT);
+    assertThat(toolNode.toString()).doesNotContain("\"type\":\"document\"");
+  }
+
+  @Test
   void configuresStructuredOutputFromJsonSchema() {
     final Map<String, Object> schema =
         Map.of(
@@ -883,7 +932,7 @@ class OpenAiResponsesRequestConverterTest {
     final var backend =
         new OpenAiApiBackend(
             new OpenAiApiConnection(
-                "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
+                null, "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
@@ -927,6 +976,7 @@ class OpenAiResponsesRequestConverterTest {
     final var backend =
         new OpenAiApiBackend(
             new OpenAiApiConnection(
+                null,
                 "sk-test",
                 null,
                 null,

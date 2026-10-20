@@ -1,0 +1,22 @@
+{
+  "components": [
+    {
+      "text": "The agent called the Slow_Tool. Complete this task to return the tool result to the agent.",
+      "type": "text",
+      "layout": {
+        "row": "Row_slow1",
+        "columns": null
+      },
+      "id": "Field_slow1"
+    }
+  ],
+  "type": "default",
+  "id": "ai-agent-chat-with-documents-slow-tool",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.10.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.51.1"
+  },
+  "schemaVersion": 19
+}
