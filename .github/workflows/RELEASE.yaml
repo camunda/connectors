@@ -151,7 +151,7 @@ jobs:
             secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           # Two mirrors, because the HeroDevs NES repo is not served by the CI Nexus cache:
@@ -264,7 +264,9 @@ jobs:
       run-unit-tests: false
       maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
       build-runner: gcp-core-8-release
-      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+      # Of the agentic AI e2e modules, only the AI Agent module needs the larger runner. A release
+      # runs this file from the released branch, so the map lists only the modules of this branch.
+      runner-overrides: '{"connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
     secrets: inherit
 
 
@@ -386,7 +388,7 @@ jobs:
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:

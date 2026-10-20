@@ -1,107 +1,55 @@
 # Agentic AI element templates
 
-This directory contains the [element templates](https://docs.camunda.io/docs/components/modeler/desktop-modeler/element-templates/about-templates/)
-for the Agentic AI connectors shipped with Camunda.
+The [element templates](https://docs.camunda.io/docs/components/modeler/desktop-modeler/element-templates/about-templates/)
+of the Agentic AI connectors live in the `element-templates` folder of each connector module. This page
+is the index. Each connector module has its own README that lists the template to use for each
+Camunda minor version.
 
-The latest template of each connector lives directly in this folder. Older revisions
-that are still compatible with previous Camunda minor versions are kept in
-[`versioned/`](./versioned/).
+| Connectors | Module | Templates |
+| --- | --- | --- |
+| [AI Agent](#ai-agent-connectors) | `connector-aiagent` | [`connector-aiagent/element-templates/`](../../connector-aiagent/element-templates/README.md) |
+| [MCP Client](#mcp-client-connectors) | `connector-mcp` | [`connector-mcp/element-templates/`](../../connector-mcp/element-templates/README.md) |
+| [A2A](#a2a-connectors) | `connector-a2a` | [`connector-a2a/element-templates/`](../../connector-a2a/element-templates/README.md) |
+| [Ad-hoc tools schema](#ad-hoc-tools-schema-connector) | `connector-ad-hoc-tools-schema` | [`connector-ad-hoc-tools-schema/element-templates/`](../../connector-ad-hoc-tools-schema/element-templates/README.md) |
 
 ## Which template do I need?
 
-Pick the highest template version whose *minimum Camunda version* is less
-than or equal to the Camunda version you are running. The `engines.camunda`
-field in each JSON file captures the same information (e.g. `^8.9` means
-"requires Camunda 8.9 or later").
+Templates are versioned per Camunda minor version. For each connector, the module README lists the
+newest template for each Camunda minor version that the connector supports. The newest template lives
+directly in the `element-templates` folder of the module. Templates for older Camunda minor versions
+live in its `versioned/` folder.
 
-For example, if you are on Camunda 8.9, use the AI Agent template version `7`;
-if you are on Camunda 8.10, use version `11`.
+Pick the row with the highest minimum Camunda version that is not higher than the Camunda version you
+run. A template also works on later Camunda minor versions: the `engines.camunda` field `^8.9` means
+"Camunda 8.9 or later". For example, on Camunda 8.9 use the AI Agent Task (v1) template version `7`,
+and on Camunda 8.10 use the AI Agent Task (v2) template version `1`.
 
 ## AI Agent connectors
 
-See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
-The AI Agent ships in two flavors that share the same versioning scheme.
-
-### AI Agent Task
-
-AI Agent Task (v2) is a new, independently versioned connector type (`io.camunda.agenticai:aiagent:task:2`)
-running on the new chat-model provider SPI, not a new template version of AI Agent Task (v1). As of
-Camunda 8.10, AI Agent Task (v1) is deprecated in favor of (v2).
-
-| Connector                      | Minimum Camunda version | Template version | File |
-| --- | --- | --- | --- |
-| AI Agent Task (v2)             | 8.10 | 1  | [`agenticai-ai-agent-task.v2.json`](./agenticai-ai-agent-task.v2.json) |
-| AI Agent Task (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
-| AI Agent Task (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
-| AI Agent Task (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
-
-### AI Agent Sub-process
-
-AI Agent Sub-process (v2) is a new, independently versioned connector type
-(`io.camunda.agenticai:aiagent:subprocess:2`) running on the new chat-model provider SPI, not a new
-template version of AI Agent Sub-process (v1). As of Camunda 8.10, AI Agent Sub-process (v1) is
-deprecated in favor of (v2).
-
-| Connector                             | Minimum Camunda version | Template version | File |
-| --- | --- | --- | --- |
-| AI Agent Sub-process (v2)             | 8.10 | 1  | [`agenticai-ai-agent-subprocess.v2.json`](./agenticai-ai-agent-subprocess.v2.json) |
-| AI Agent Sub-process (v1, deprecated) | 8.10 | 13 | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
-| AI Agent Sub-process (v1)             | 8.9  | 7  | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
-| AI Agent Sub-process (v1)             | 8.8  | 5  | [`versioned/agenticai-aiagent-job-worker-5.json`](./versioned/agenticai-aiagent-job-worker-5.json) |
-
-### Provider selection in v2 templates
-
-All four v2 templates share provider/backend steps. The **OpenAI compatible** category includes
-Ollama, LM Studio, and the Camunda-provided LLM. Ollama and LM Studio select Chat Completions without
-authentication at `http://localhost:11434/v1` and `http://localhost:1234/v1`.
-
-The **Camunda-provided LLM (SaaS only)** preset selects the OpenAI-compatible Chat Completions backend
-with API-key authentication and the FEEL secret references
-`=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_ENDPOINT`,
-`=camunda.secrets.CAMUNDA_PROVIDED_LLM_API_KEY`, and
-`=camunda.secrets.CAMUNDA_PROVIDED_LLM_DEFAULT_MODEL`. See the
-[Camunda-provided LLM documentation](https://docs.camunda.io/docs/8.10/components/agentic-orchestration/camunda-provided-llm/)
-for availability and supported models.
-
-Backend IDs and labels come from the generated dropdowns. Edit preset defaults in
-`../bin/transform-ai-agent-provider-steps.groovy`, not the generated JSON.
+AI Agent Task and AI Agent Sub-process, in the (v2) and the deprecated (v1) flavor. See the
+[AI Agent templates](../../connector-aiagent/element-templates/README.md) and the
+[AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 
 ## MCP Client connectors
 
-Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
-See the [MCP Client connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client/).
-
-| Connector         | Minimum Camunda version | Template version | File |
-| --- | --- | --- | --- |
-| MCP Client        | 8.9 | 3 | [`agenticai-mcp-client-outbound-connector.json`](./agenticai-mcp-client-outbound-connector.json) |
-| MCP Client        | 8.8 | 0 | [`versioned/agenticai-mcp-client-outbound-connector-0.json`](./versioned/agenticai-mcp-client-outbound-connector-0.json) |
-| MCP Remote Client | 8.9 | 3 | [`agenticai-mcp-remote-client-outbound-connector.json`](./agenticai-mcp-remote-client-outbound-connector.json) |
-| MCP Remote Client | 8.8 | 0 | [`versioned/agenticai-mcp-remote-client-outbound-connector-0.json`](./versioned/agenticai-mcp-remote-client-outbound-connector-0.json) |
+MCP Client and MCP Remote Client, the clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
+See the [MCP Client templates](../../connector-mcp/element-templates/README.md) and the
+[MCP Client connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client/).
 
 ## A2A connectors
 
-Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
-See the [A2A Client connector documentation](https://docs.camunda.io/docs/next/components/early-access/alpha/a2a-client/).
-
-| Connector                                     | Minimum Camunda version | Template version | File |
-| --- | --- | --- | --- |
-| A2A Client (outbound)                         | 8.9 | 0 | [`agenticai-a2a-client-outbound-connector.json`](./agenticai-a2a-client-outbound-connector.json) |
-| A2A Client Polling — Intermediate Catch Event | 8.9 | 0 | [`agenticai-a2a-client-polling-inbound-connector-intermediate.json`](./agenticai-a2a-client-polling-inbound-connector-intermediate.json) |
-| A2A Client Polling — Receive Task             | 8.9 | 0 | [`agenticai-a2a-client-polling-inbound-connector-receive.json`](./agenticai-a2a-client-polling-inbound-connector-receive.json) |
-| A2A Client Webhook — Intermediate Catch Event | 8.9 | 1 | [`agenticai-a2a-client-webhook-inbound-connector-intermediate.json`](./agenticai-a2a-client-webhook-inbound-connector-intermediate.json) |
-| A2A Client Webhook — Receive Task             | 8.9 | 1 | [`agenticai-a2a-client-webhook-inbound-connector-receive.json`](./agenticai-a2a-client-webhook-inbound-connector-receive.json) |
+The A2A Client outbound connector and its polling and webhook inbound connectors, which implement the
+[Agent2Agent protocol](https://a2a-protocol.org/). See the
+[A2A templates](../../connector-a2a/element-templates/README.md) and the
+[A2A Client connector documentation](https://docs.camunda.io/docs/next/components/early-access/alpha/a2a-client/).
 
 ## Ad-hoc tools schema connector
 
-Resolves the tools available in an ad-hoc sub-process.
-See the [Ad-hoc tools schema resolver documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/).
-
-| Connector           | Minimum Camunda version | Template version | File |
-| --- | --- | --- | --- |
-| Ad-hoc tools schema | 8.8 | 2 | [`agenticai-adhoctoolsschema-outbound-connector.json`](./agenticai-adhoctoolsschema-outbound-connector.json) |
+Resolves the tools available in an ad-hoc sub-process. See the
+[ad-hoc tools schema template](../../connector-ad-hoc-tools-schema/element-templates/README.md) and the
+[Ad-hoc tools schema resolver documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/).
 
 ## Maintaining this index
 
-This index must stay in sync with the JSON files in this folder every time a template version is
-bumped or a connector is added. The latest template of each connector lives in this folder; superseded
-ones move into [`versioned/`](./versioned/) when `versionHistoryEnabled` is set.
+This folder holds only this index. Keep the table and the sections in sync with the connector modules
+when a connector is added, moved or removed. Version changes go into the README of the module.

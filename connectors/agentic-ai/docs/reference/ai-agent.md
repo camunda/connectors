@@ -278,7 +278,7 @@ process variable (Sub-process) or via `agent.context` (Task). It holds the lifec
 resolved tools, a pointer to the stored conversation, cumulative metrics, and the metadata used to
 detect process migration. Serialized as JSON, it is passed into every job activation and written back
 on every completion. Authoritative definition:
-[`AgentContext.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
+[`AgentContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentContext.java).
 
 ### AgentExecutionContext (the transient request context)
 
@@ -286,13 +286,13 @@ The transient per-invocation request context, assembled fresh for each job activ
 persisted. It carries the job metadata, the inbound `AgentContext` and tool-call results, the LLM
 provider configuration, the system- and user-prompt configurations, and the memory, limits, event, and
 response settings that shape the turn. Authoritative definition:
-[`AgentExecutionContext.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
+[`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 
 ### AgentResponse (the output)
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
 a final response to emit (text, JSON, or the full assistant message). Authoritative definition:
-[`AgentResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentResponse.java).
+[`AgentResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentResponse.java).
 
 ### AgentSubProcessConnectorResponse (job worker specific)
 
@@ -300,11 +300,11 @@ The job-worker completion directive: wraps the `AgentResponse` and tells the run
 the ad-hoc sub-process job (whether the completion condition is fulfilled, whether to cancel
 still-running tool instances, and which variables to set). Implements `AdHocSubProcessConnectorResponse`.
 Authoritative definition:
-[`AgentSubProcessConnectorResponse.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/AgentSubProcessConnectorResponse.java).
+[`AgentSubProcessConnectorResponse.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/AgentSubProcessConnectorResponse.java).
 
 ### ToolCallProcessVariable (tool call format for process variables)
 
-Definition: [`ToolCallProcessVariable.java`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/tool/ToolCallProcessVariable.java).
+Definition: [`ToolCallProcessVariable.java`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/tool/ToolCallProcessVariable.java).
 Arguments are **flattened to the top level** so BPMN expressions can access them directly as
 `toolCall.myParameter` rather than `toolCall.arguments.myParameter`. The `_meta` object holds the tool
 call ID and name.
@@ -387,7 +387,7 @@ The in-process working representation of a conversation is the immutable `AgentC
 aggregate (see [ADR 007](../adr/007-agent-conversation-turn-aggregate.md)). It is built once per
 invocation and transformed through copy-on-write methods.
 
-`AgentConversation` (package `...aiagent.model`):
+`AgentConversation` (package `...aiagent.conversation`):
 - Holds an optional `SystemMessage` (`null` when the composed system prompt is blank), a list of
   previous `AgentConversationTurn`s, the pending current turn, the durable base `AgentContext`, and the
   static `AgentConfiguration`.
@@ -411,7 +411,7 @@ invocation and transformed through copy-on-write methods.
   over the reconstructed turns, which always carry `AgentMetrics.empty()`. The model-call limit check
   (`BaseAgentRequestHandler.throwIfLimitsReached`) relies on this cumulative counter.
 
-`AgentConversationTurn` (record, `...aiagent.model`) is one LLM call:
+`AgentConversationTurn` (record, `...aiagent.conversation`) is one LLM call:
 `(int iterationKey, List<Message> inputMessages, @Nullable AssistantMessage assistantMessage,
 AgentMetrics metrics)`. `iterationKey` is 1-based across the agent lifetime; the turn is pending
 while `assistantMessage == null`.
@@ -422,7 +422,7 @@ present. The reconstructed turn count is used as a fallback when it's absent (co
 before this field was introduced) and, when a stored key is present, to cross-validate against it:
 a mismatch is logged as a warning (reconstruction drift), not thrown.
 
-`TurnReconstructor.reconstruct(messages)` (`...aiagent.model`) rebuilds the turn list and the
+`TurnReconstructor.reconstruct(messages)` (`...aiagent.conversation`) rebuilds the turn list and the
 optional system message from the persisted flat message list: the leading `SystemMessage` (if any)
 is split off, and the remaining body is grouped by `AssistantMessage` boundaries. All reconstructed
 turns carry `AgentMetrics.empty()` — per-invocation metrics are computed live from the current
@@ -430,7 +430,7 @@ turn, not read from history. This provides backward compatibility with existing 
 without a data migration, and is now also the cross-validation source for `iterationKey` drift
 detection described above.
 
-`ConversationSnapshot` (record, `...aiagent.memory`) is the transient, windowed, read-only view sent
+`ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
@@ -487,11 +487,11 @@ gateway-sourced) are separate, untouched identities — see the ADR for why they
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
-2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype on the connector runtime's `ObjectMapper` beans (e.g., via a Spring `BeanPostProcessor` calling `registerSubtypes()` on every `ObjectMapper` bean)
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and listing it in a `ConversationContextSubtypes` implementation registered in `META-INF/services/io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContextSubtypes`. Registering the subtype on the connector runtime's `ObjectMapper` beans via `registerSubtypes()` (e.g., from a Spring `BeanPostProcessor`) works as well. A broken provider or subtype (for example one without `@JsonTypeName`) is logged at ERROR level and skipped, and deserializing an unregistered type id fails with an `InvalidTypeIdException` listing the known type ids
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
 
-See the [`CustomMemoryStorageConfiguration`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
+See the [`CustomMemoryStorageConfiguration`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/request/MemoryStorageTemplateConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
 ### Storage Contract
 
@@ -973,7 +973,7 @@ Events create their payload in `toolCallResult`:
 
 ### The `ChatModel` provider SPI (ADR 009)
 
-`ChatModel` (`aiagent/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
+`ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
 the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
 `conversation.window(configuration.contextWindowSize())`). `ChatResult` is a sealed `Completed |
@@ -985,7 +985,7 @@ Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` 
 A `ChatModel` instance serves a single agent request across all of its continuation rounds and is
 resolved and closed per request (try-with-resources) via `ChatModelRegistry`, so a provider may hold
 per-invocation resources without a shared singleton lifecycle. A `ChatModelFactory`
-(`aiagent/chatmodel/ChatModelFactory.java`) exposes `supports(ChatModelConfiguration)` and
+(`aiagent/api/chatmodel/ChatModelFactory.java`) exposes `supports(ChatModelConfiguration)` and
 `create(ChatModelConfiguration)`.
 
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
@@ -997,7 +997,7 @@ The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockPr
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
 configurations through this sealed union only; request-side binding for a custom/native
 `ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `model/request/v2`), which is the extension point for both built-in native providers and
+in `request/v2`), which is the extension point for both built-in native providers and
 user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
@@ -1159,7 +1159,7 @@ On tool call iteration (tool calls present):
 ### AgentErrorCodes
 
 The codes are defined in
-[`AgentErrorCodes`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
+[`AgentErrorCodes`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
 and thrown as `ConnectorException(errorCode, message)`. To find a code's current throw site, search the
 codebase for its constant. `Value` is the externally visible error code (what BPMN error handling keys
 on).
@@ -1196,14 +1196,28 @@ For A2A error codes, see [a2a.md §15](a2a.md#15-error-codes).
 
 ## 16. Spring Auto-Configuration
 
-### AgenticAiConnectorsAutoConfiguration
+### Auto-configurations
 
-Master configuration class. Activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default.
+The agentic AI connectors are wired by several Spring Boot auto-configurations, all registered in `AutoConfiguration.imports` and each activated by `@ConditionalOnBooleanProperty("camunda.connector.agenticai.enabled", matchIfMissing=true)` — on by default. `@AutoConfiguration(after = ...)` orders them as listed:
 
-Imports:
+| Auto-configuration                             | After                                                          | Provides                                                                                  |
+|------------------------------------------------|----------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `AgenticAiCommonAutoConfiguration`             | —                                                              | `AgenticAiHttpProxySupport`, `AgenticAiHttpProperties`                                    |
+| `AgenticAiToolsSchemaAutoConfiguration`        | common                                                         | Ad-hoc tool schema generation and process definition tool element resolution              |
+| `AdHocToolsSchemaConnectorAutoConfiguration`   | tools schema                                                   | `AdHocToolsSchemaFunction` (`ad-hoc-tools-schema-resolver.enabled`)                       |
+| `A2aClientAutoConfiguration`                   | common                                                         | A2A client connector configurations (see [a2a.md §14](a2a.md#14-spring-configuration))    |
+| `A2aClientAgenticToolAutoConfiguration`        | `A2aClientAutoConfiguration`                                   | A2A gateway tool beans for the AI Agent                                                   |
+| `McpClientAutoConfiguration`                   | common                                                         | MCP client connector configurations (see [mcp.md §14](mcp.md#14-spring-configuration))    |
+| `McpClientAgenticToolAutoConfiguration`        | `McpClientAutoConfiguration`                                   | MCP gateway tool beans for the AI Agent                                                   |
+| `AgenticAiConnectorsAutoConfiguration`         | common, tools schema                                           | AI Agent beans (task and sub-process functions, handlers, conversation stores, registries, AWS SDK and Azure HTTP proxy support) |
+
+The AI Agent does not reference the MCP and A2A integrations. It collects every `GatewayToolHandler`
+and `SystemPromptContributor` bean through list injection, so the order of the integration
+auto-configurations does not matter.
+
+`AgenticAiConnectorsAutoConfiguration` imports:
 - `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain and per-provider `ChatModelFactory` beans
-- `McpDiscoveryConfiguration`, `McpClientConfiguration`, `McpRemoteClientConfiguration` — MCP (see [mcp.md §14](mcp.md#14-spring-configuration))
-- `A2aClientOutboundConnectorConfiguration`, `A2aClientAgenticToolConfiguration`, `A2aClientPollingConfiguration`, `A2aClientWebhookConfiguration` — A2A (see [a2a.md §14](a2a.md#14-spring-configuration))
+- `AgenticAiNativeProvidersConfiguration` — native provider `ChatModelFactory` beans
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly, outside of the imported LangChain4j configuration.
 
@@ -1230,8 +1244,10 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 Configurable under the `camunda.connector.agenticai.*` prefix, in three main areas: process-definition
 fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), and the chat-model
 API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
-[`AgenticAiConnectorsConfigurationProperties`](../../connector-agentic-ai/src/main/java/io/camunda/connector/agenticai/autoconfigure/AgenticAiConnectorsConfigurationProperties.java);
-each property carries its own `@DefaultValue`.
+[`ToolsSchemaProperties`](../../aiagent-tools-schema/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
+(`tools.*`) and
+[`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
+(`aiagent.*`); each property carries its own `@DefaultValue`.
 
 ---
 
@@ -1325,7 +1341,7 @@ instance itself, so its key is invariant.
 - `gemini.GeminiChatModelFactory` / `gemini.GeminiChatModel.execute()` → Drives the Google GenAI Java SDK's streaming `generateContentStream` directly, for `GeminiChatModelConfiguration`
 
 ### Configuration
-- `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
+- `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions of the AI Agent (see §16 for the other auto-configurations)
 - `ConnectorConfigurationOverrides` (connector-runtime-core) → Type/timeout overrides via env vars
 
 ### Class Diagram
@@ -1477,11 +1493,9 @@ classDiagram
 ```
 
 ### E2E Tests
-- `connectors-e2e-test/connectors-e2e-test-agentic-ai/` — Full integration tests
-- `BaseAgentSubProcessTest` — Job worker test base
-- `BaseAgentTaskTest` — Connector test base
-- `AgentSubProcessFeedbackLoopTests` — Feedback loop tests
-- `AgentSubProcessToolCallingTests` — Tool calling tests
+
+The e2e modules, their test base classes and how to run them are described in the
+[e2e tests `AGENTS.md`](../../../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md).
 
 ---
 
@@ -1524,7 +1538,7 @@ Gateway elements are identified via BPMN **extension properties**. The element t
 ```
 extensionProperties = {
   @ExtensionProperty(
-    name = "io.camunda.agenticai.gateway.type",   // GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION
+    name = "io.camunda.agenticai.gateway.type",   // GatewayToolConstants.GATEWAY_TYPE_EXTENSION
     value = "mcpClient",                            // or "a2aClient"
     condition = @PropertyCondition(property = "data.connectorMode.type", equals = "aiAgentTool"))
 }
@@ -1858,9 +1872,10 @@ completes; the duplicate row persists until `historyItemId`-based dedup lands (c
 ## 24. Architectural Invariants
 
 These are the boundaries that keep the module maintainable and framework-pluggable. They hold today
-and **must not be broken** by changes. They are documented here as the single source of truth; a
-planned ArchUnit suite (epic [#7537](https://github.com/camunda/connectors/issues/7537)) will encode
-them so violations fail the build. Until then, enforcement is by review, so respect them deliberately.
+and **must not be broken** by changes. They are documented here as the single source of truth. The
+ArchUnit rules in `agentic-ai-archunit-tests` encode I1 to I3, so violations fail the build (see the
+module's `AGENTS.md`, section "Architecture tests"). I4 and I5 are behavioral contracts: review and
+the tests of the stores and SPIs enforce them.
 
 ### I1. The agent core is framework-agnostic
 
@@ -1873,7 +1888,7 @@ Only the LangChain4j adapter package may depend on LangChain4j.
   [§12](#12-framework-abstraction)). Keeping LangChain4j behind the SPI means it can be replaced or
   extended per provider without touching orchestration, memory, or the data model.
 - **Verify**: `grep -rl "import dev.langchain4j" --include="*.java"
-  connector-agentic-ai/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
+  connector-aiagent/src/main/java/io/camunda/connector/agenticai | grep -v /chatmodel/provider/langchain4j/` returns nothing.
 
 ### I2. Domain types never leak framework types
 
@@ -1893,6 +1908,8 @@ pervasive, so follow the nearest existing pair.
 
 - **Rule**: depend on the interface (constructor injection); register the `Impl` as a Spring bean
   (typically `@ConditionalOnMissingBean` so it can be overridden). Don't inject `*Impl` directly.
+- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review
+  checks that there is a single implementation and that it is registered as an overridable bean.
 
 ### I4. Extension points are plug-in SPIs
 
@@ -1944,9 +1961,9 @@ implemented by the base class. Reference: `AnthropicChatModelFactory`
 **v2: fully native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
 `ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
 `AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration` (`model/request/v2`); the other native providers under
+`AnthropicChatModelConfiguration` (`request/v2`); the other native providers under
 `aiagent/chatmodel/provider/**` follow the same shape. A v2 provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`model/request/v2`, discriminator `custom`, Self-Managed/Hybrid
+through to `CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid
 only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
 agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
 understood only by your factory. `LangChain4JChatModelFactory` cannot be extended for it — it's bound
@@ -1995,5 +2012,8 @@ Reference implementation: `A2aSystemPromptContributor`.
 Implement `ConversationStore`, `ConversationSession`, and `ConversationContext`, following the
 write-ahead, pointer-based storage contract in [§6](#6-conversation-memory) (invariant I5).
 `ConversationStoreRegistryImpl` selects the store by `type()`. Reference implementation: the in-process
-store (`InProcessConversationStore` and its session/context). For a custom store outside this module,
+store (`InProcessConversationStore` and its session/context). Context subtypes are discovered via
+`ServiceLoader`: annotate the context with `@JsonTypeName` and list it in a `ConversationContextSubtypes`
+implementation (see `BuiltInConversationContextSubtypes`). A broken provider entry is logged at ERROR
+level and skipped; it never disables the other subtypes. For a custom store outside this module,
 see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations).
