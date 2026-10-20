@@ -218,6 +218,18 @@ class StreakDetectorTest(unittest.TestCase):
 
         self.assertEqual(out["is_streak"], "false")
         self.assertEqual(out["latest_success"], "true")
+        self.assertEqual(out["green_run_url"], f"https://github.com/{REPO}/actions/runs/103")
+
+    def test_late_failure_callback_links_the_newer_green_run(self):
+        # The scan is fired by run 101's failing callback, after 102 has already gone green.
+        out = self.detect({
+            "pipeline": [pipeline_run(101, "success"), pipeline_run(102, "success")],
+            "saas": [saas_result(102, "success", 502), saas_result(101, "failure", 503)],
+            "jobs": {"101": [dispatched_trigger()], "102": [dispatched_trigger()]},
+        })
+
+        self.assertEqual(out["latest_success"], "true")
+        self.assertEqual(out["green_run_url"], f"https://github.com/{REPO}/actions/runs/102")
 
 
 if __name__ == "__main__":

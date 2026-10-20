@@ -81,8 +81,8 @@ defaults:
 jobs:
   # Ungrouped, so an event that turns out to be irrelevant never enters a branch's
   # concurrency group: GitHub keeps one pending job per group and replaces it with the
-  # newest, so a merge-group SaaS callback (its run sits on main) would otherwise evict
-  # a pending main scan and then skip its own.
+  # newest, so a callback for a non-push pipeline run (its result run sits on main)
+  # would otherwise evict a pending main scan and then skip its own.
   streak-context:
     name: Resolve streak context
     # Only protected-branch push runs accumulate streaks; success runs can
@@ -198,13 +198,14 @@ jobs:
           # evidence: the pipeline run, or for a SaaS-only failure its result run. The
           # event that fires this job can be the other, successful, one.
           statuses=()
+          urls=()
           FAIL_ID=""; FAIL_URL=""; FAIL_KIND=""
           note_failure() {
             if [ -z "$FAIL_ID" ]; then FAIL_ID="$1"; FAIL_URL="$2"; FAIL_KIND="$3"; fi
           }
           while IFS=$'\t' read -r id conclusion url; do
             case "$conclusion" in
-              failure|timed_out|cancelled) statuses+=(failed); note_failure "$id" "$url" pipeline; continue ;;
+              failure|timed_out|cancelled) statuses+=(failed); urls+=("$url"); note_failure "$id" "$url" pipeline; continue ;;
             esac
             trigger=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}/jobs?filter=latest&per_page=100" \
               --jq '[.jobs[] | select(.name == "Trigger SaaS E2E tests")] | first // {}')
@@ -212,6 +213,7 @@ jobs:
               ([.steps[]? | select(.name == "Trigger repository_dispatch for SaaS Connectors" and .conclusion == "success")] | length > 0)
               and ([.steps[]? | select(.name | startswith("Wait for downstream"))] | length == 0)
             ' <<<"$trigger")
+            urls+=("$url")
             if [ "$dispatched" != "true" ]; then
               statuses+=(green)
               continue
@@ -231,12 +233,18 @@ jobs:
             | sort_by(.createdAt) | reverse | .[] | "\(.databaseId)\t\(.conclusion)\t\(.url)"
           ' <<<"$RUNS_JSON")
 
+          # The green run is linked from the recovery message rather than the event that
+          # fired this job: a late failure callback can be that event.
           STREAK=0
           LATEST_SUCCESS=false
-          for st in "${statuses[@]}"; do
-            case "$st" in
+          GREEN_URL=""
+          for i in "${!statuses[@]}"; do
+            case "${statuses[$i]}" in
               failed) STREAK=$((STREAK + 1)) ;;
-              green) [ "$STREAK" -eq 0 ] && LATEST_SUCCESS=true; break ;;
+              green)
+                if [ "$STREAK" -eq 0 ]; then LATEST_SUCCESS=true; GREEN_URL="${urls[$i]}"; fi
+                break
+                ;;
             esac
           done
           IS_STREAK=$([[ ${STREAK} -ge ${STREAK_THRESHOLD} ]] && echo true || echo false)
@@ -245,6 +253,7 @@ jobs:
             echo "base_ref=${BASE_REF}"
             echo "is_streak=${IS_STREAK}"
             echo "latest_success=${LATEST_SUCCESS}"
+            echo "green_run_url=${GREEN_URL}"
             echo "fail_run_id=${FAIL_ID}"
             echo "fail_run_url=${FAIL_URL}"
             echo "fail_kind=${FAIL_KIND}"
@@ -360,7 +369,7 @@ jobs:
             {
               "channel": "C0AK0AVKRL0",
               "ts": "${{ steps.find-message.outputs.existing_ts }}",
-              "text": ":white_check_mark: ${{ env.STREAK_MARKER_RESOLVED }} on ${{ steps.streak.outputs.base_ref }} — first green run after the streak.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}>\nFirst green run: ${{ github.event.workflow_run.html_url }}"
+              "text": ":white_check_mark: ${{ env.STREAK_MARKER_RESOLVED }} on ${{ steps.streak.outputs.base_ref }} — first green run after the streak.\nWorkflow: <${{ github.server_url }}/${{ github.repository }}/actions/workflows/${{ env.PARENT_WORKFLOW_FILE }}|${{ env.PARENT_WORKFLOW_FILE }}>\nFirst green run: ${{ steps.streak.outputs.green_run_url }}"
             }
 
   # The triage half. Why the decision lives here and not as an `if:` inside the
