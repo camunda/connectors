@@ -209,7 +209,10 @@ High-frequency traps (detail behind each link):
 - **Lifecycle listener state is written only on persisting paths**: a listener's state (for example the
   tracing run state under `lifecycle:<listener id>` in `AgentContext.properties`) is stored only by the two jobs
   that persist the agent context (tool discovery dispatch and turn completion). A failed, superseded, or
-  deferred job loses it, and a listener must treat missing state as "start over".
+  deferred job loses it, and a listener must treat missing state as "start over". The state must be plain JSON
+  (maps with string keys, lists, strings, booleans, finite numbers, null) and at most 4096 bytes serialized as
+  UTF-8; an invalid or oversize contribution is dropped, the previous value stays, and one WARN names the
+  listener id, the callback and the reason.
   [`opentelemetry-tracing.md`](docs/reference/opentelemetry-tracing.md).
 - **`toolCallResult = ""` scoping trick**: the empty default keeps the variable local to the tool element so it doesn't
   bubble up to the AHSP scope. `ai-agent.md` §8.
