@@ -8,9 +8,14 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
 import io.camunda.connector.agenticai.aiagent.model.request.AgentSubProcessV2Request;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.LinkedHashMap;
 
 /** AI Agent Sub-process v2 connector (LLM-provider layer). Job worker on an ad-hoc sub-process. */
 @OutboundConnector(
@@ -30,23 +35,61 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent:subprocess:2";
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
+  private final LinkedSystemPromptResolver linkedSystemPromptResolver;
 
-  public AgentSubProcessV2Function(AgentSubProcessRequestHandler agentRequestHandler) {
+  public AgentSubProcessV2Function(
+      AgentSubProcessRequestHandler agentRequestHandler,
+      LinkedSystemPromptResolver linkedSystemPromptResolver) {
     this.agentRequestHandler = agentRequestHandler;
+    this.linkedSystemPromptResolver = linkedSystemPromptResolver;
   }
 
   @Override
   public AgentSubProcessConnectorResponse execute(OutboundConnectorContext context)
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV2Request.class);
+    var inlinePrompt =
+        request.data().systemPrompt() == null ? null : request.data().systemPrompt().prompt();
+    var linkedPrompt =
+        linkedSystemPromptResolver.resolve(context.getJobContext().getCustomHeaders());
+    if (linkedPrompt == null && (inlinePrompt == null || inlinePrompt.isBlank())) {
+      throw new ConnectorException(
+          "NO_SYSTEM_PROMPT", "Provide an inline system prompt or link a system prompt resource.");
+    }
+    var composedPrompt =
+        linkedPrompt == null
+            ? null
+            : LinkedSystemPromptResolver.compose(inlinePrompt, linkedPrompt);
+    var data =
+        composedPrompt == null
+            ? request.data()
+            : request.data().withSystemPrompt(new SystemPromptConfiguration(composedPrompt));
     var executionContext =
         new AgentSubProcessExecutionContext(
             context.getJobContext(),
-            request.data(),
+            data,
             request.agentContext(),
             request.toolCallResults(),
             request.toolElements(),
             request.provider());
-    return agentRequestHandler.handleRequest(executionContext);
+    var response = agentRequestHandler.handleRequest(executionContext);
+    if (linkedPrompt == null
+        || composedPrompt == null
+        || !(response.variables().get(AgentProcessVariables.AGENT_RESPONSE)
+            instanceof AgentSubProcessResponse agentResponse)) {
+      return response;
+    }
+    // Persist which governed resource version the engine pinned, so Operate can show it.
+    var provenance =
+        new SystemPromptProvenance(
+            "linked",
+            linkedPrompt.promptId(),
+            linkedPrompt.binding(),
+            linkedPrompt.version(),
+            composedPrompt);
+    var variables = new LinkedHashMap<>(response.variables());
+    variables.put(
+        AgentProcessVariables.AGENT_RESPONSE, agentResponse.withSystemPrompt(provenance));
+    return response.withVariables(variables);
   }
 }

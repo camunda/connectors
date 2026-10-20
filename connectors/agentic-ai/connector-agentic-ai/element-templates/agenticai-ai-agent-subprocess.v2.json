@@ -356,7 +356,7 @@
     }
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "aiTools",
     "name" : "AI Tools"
@@ -5335,7 +5335,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
