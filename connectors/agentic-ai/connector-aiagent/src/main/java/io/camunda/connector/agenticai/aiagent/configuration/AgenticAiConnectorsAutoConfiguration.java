@@ -37,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
-import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcherImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -245,7 +244,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentLifecycleDispatcher agentLifecycleDispatcher(
       ObjectProvider<AgentLifecycleListener> listeners) {
-    return new AgentLifecycleDispatcherImpl(
+    return new AgentLifecycleDispatcher(
         listeners.orderedStream().toList(), MAX_LIFECYCLE_LISTENER_STATE_SIZE);
   }
 

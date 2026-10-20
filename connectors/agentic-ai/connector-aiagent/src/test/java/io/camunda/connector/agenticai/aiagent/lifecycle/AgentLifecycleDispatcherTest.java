@@ -23,13 +23,13 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-class AgentLifecycleDispatcherImplTest {
+class AgentLifecycleDispatcherTest {
 
   private final JobContext jobContext = Mockito.mock(JobContext.class);
 
   @Test
   void withoutListenersTheLifecycleDoesNothing() {
-    final var dispatcher = new AgentLifecycleDispatcherImpl(List.of(), 1000);
+    final var dispatcher = new AgentLifecycleDispatcher(List.of(), 1000);
 
     final var lifecycle = start(dispatcher);
 
@@ -74,7 +74,7 @@ class AgentLifecycleDispatcherImplTest {
             };
           }
         };
-    final var dispatcher = new AgentLifecycleDispatcherImpl(List.of(throwing, stateful), 1000);
+    final var dispatcher = new AgentLifecycleDispatcher(List.of(throwing, stateful), 1000);
     final var previous = AgentContext.empty().withProperty("lifecycle:stateful", Map.of("a", 1));
 
     final var lifecycle =
@@ -112,7 +112,7 @@ class AgentLifecycleDispatcherImplTest {
             };
           }
         };
-    final var dispatcher = new AgentLifecycleDispatcherImpl(List.of(listener), 50);
+    final var dispatcher = new AgentLifecycleDispatcher(List.of(listener), 50);
 
     final var result =
         start(dispatcher)

@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.api.lifecycle.ModelRoundFailed;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.ToolDiscoveryDispatched;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher;
-import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcherImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -103,7 +102,7 @@ class AgentLifecycleEmissionTest {
                 AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build(),
                 discoveryToolCalls));
 
-    handler(new AgentLifecycleDispatcherImpl(List.of(listener), 4096))
+    handler(new AgentLifecycleDispatcher(List.of(listener), 4096))
         .handleRequest(agentExecutionContext);
 
     assertThat(listener.discoveries).hasSize(1);
@@ -119,7 +118,7 @@ class AgentLifecycleEmissionTest {
 
     assertThatThrownBy(
             () ->
-                handler(new AgentLifecycleDispatcherImpl(List.of(listener), 4096))
+                handler(new AgentLifecycleDispatcher(List.of(listener), 4096))
                     .handleRequest(agentExecutionContext))
         .isInstanceOfSatisfying(
             ConnectorException.class,
@@ -146,7 +145,7 @@ class AgentLifecycleEmissionTest {
 
     assertThatThrownBy(
             () ->
-                handler(new AgentLifecycleDispatcherImpl(List.of(listener), 4096))
+                handler(new AgentLifecycleDispatcher(List.of(listener), 4096))
                     .handleRequest(agentExecutionContext))
         .isSameAs(failure);
 
