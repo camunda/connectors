@@ -45,12 +45,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Owns the spans of one job. The spans start lazily, at the first model round (a tool discovery
- * dispatch starts them at the dispatch, because its run state needs the anchor), so a job that
- * never gets that far emits nothing: the write that fences a superseded activation runs before the
- * first model round. The {@code invoke_agent} span, and the anchor of a run this job starts, end
- * exactly once, at the first of job failed, job completed, and job completion failed. A superseded
- * job that never started a model round ends none of its spans, so the activation that took over is
- * the only one that exports them. No callback lets a failure escape.
+ * dispatch starts them at the dispatch, because its run state needs the anchor, and a failed job
+ * starts them at the failure), so a job that completes without a model round emits nothing. The
+ * write that fences a superseded activation runs before the first model round. The {@code
+ * invoke_agent} span, and the anchor of a run this job starts, end exactly once, at the first of
+ * job failed, job completed, and job completion failed. A superseded job that never started a model
+ * round ends none of its spans, so the activation that took over is the only one that exports them.
+ * No callback lets a failure escape.
  */
 class AgentTracingJobObserver implements AgentJobObserver {
 
@@ -209,6 +210,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
     return guarded(
         "turn completed",
         () -> {
+          open();
           final Span agentSpan = invokeAgent;
           final AssistantMessage assistantMessage = event.assistantMessage();
           if (captureContent && agentSpan != null && assistantMessage != null) {
@@ -234,6 +236,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
                 false);
             return null;
           }
+          // a failure before the first model round is still a failed job worth seeing
+          open();
           endAll(
               GenAiAttributes.JOB_OUTCOME_FAILED,
               GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
@@ -365,7 +369,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
             ? GenAiAttributes.RUN_TRIGGER_INITIAL
             : GenAiAttributes.RUN_TRIGGER_FOLLOW_UP);
     if (runInput != null) {
-      builder.put(GenAiAttributes.RUN_INPUT, runInput);
       builder.put(GenAiAttributes.INPUT_VALUE, runInput);
       builder.put(
           GenAiAttributes.OPENINFERENCE_SPAN_KIND, GenAiAttributes.OPENINFERENCE_SPAN_KIND_AGENT);

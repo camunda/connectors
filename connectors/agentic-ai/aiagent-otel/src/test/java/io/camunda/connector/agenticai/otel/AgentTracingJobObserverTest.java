@@ -266,7 +266,6 @@ class AgentTracingJobObserverTest {
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
     observer.onTurnStarted(turnStarted(1, List.of(), null));
-    chatRound(observer, StopReason.STOP);
     observer.onTurnCompleted(
         new TurnCompleted(
             1,
@@ -300,7 +299,6 @@ class AgentTracingJobObserverTest {
     assertThat(anchor.getAttributes().get(GenAiAttributes.INPUT_VALUE)).isEqualTo("hi");
     assertThat(anchor.getAttributes().get(GenAiAttributes.OPENINFERENCE_SPAN_KIND))
         .isEqualTo("AGENT");
-    assertThat(anchor.getAttributes().get(GenAiAttributes.RUN_INPUT)).isEqualTo("hi");
     exporter.reset();
 
     final var plain = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
@@ -312,7 +310,6 @@ class AgentTracingJobObserverTest {
     final SpanData plainAnchor = span("agent run");
     assertThat(plainAnchor.getAttributes().get(GenAiAttributes.INPUT_VALUE)).isNull();
     assertThat(plainAnchor.getAttributes().get(GenAiAttributes.OPENINFERENCE_SPAN_KIND)).isNull();
-    assertThat(plainAnchor.getAttributes().get(GenAiAttributes.RUN_INPUT)).isNull();
   }
 
   @Test
@@ -401,13 +398,40 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
-  void jobsFailingOrCompletingWithoutAModelRoundExportNothing() {
-    final var failing =
+  void jobFailingBeforeItsFirstModelRoundExportsItsFailedSpans() {
+    final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
-    failing.onTurnStarted(turnStarted(1, List.of(), null));
-    failing.onJobFailed(
-        new JobFailed(new ConnectorException("MAX_MODEL_CALLS_EXCEEDED", "limit"), null));
+    final var failure = new ConnectorException("MAX_MODEL_CALLS_EXCEEDED", "limit");
 
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onJobFailed(new JobFailed(failure, "MAX_MODEL_CALLS_EXCEEDED"));
+
+    assertThat(exporter.getFinishedSpanItems())
+        .extracting(SpanData::getName)
+        .containsExactlyInAnyOrder("invoke_agent agent", "agent run");
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getStartEpochNanos()).isEqualTo(nanos(T0));
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME)).isEqualTo("failed");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("MAX_MODEL_CALLS_EXCEEDED");
+    assertThat(invokeAgent.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+  }
+
+  @Test
+  void jobFailingBeforeAnyTurnStartedExportsItsFailedSpans() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
+
+    observer.onJobFailed(new JobFailed(new IllegalStateException("tool resolution"), null));
+
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("java.lang.IllegalStateException");
+    assertThat(exporter.getFinishedSpanItems()).hasSize(1); // continues the run, no anchor
+  }
+
+  @Test
+  void jobCompletingWithoutAModelRoundExportsNothing() {
     final var completing =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
     completing.onTurnStarted(turnStarted(2, List.of(), null));

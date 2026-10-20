@@ -114,8 +114,6 @@ public final class GenAiAttributes {
       AttributeKey.stringKey("camunda.agent.job.outcome");
   public static final AttributeKey<String> RUN_TRIGGER =
       AttributeKey.stringKey("camunda.agent.run.trigger");
-  public static final AttributeKey<String> RUN_INPUT =
-      AttributeKey.stringKey("camunda.agent.run.input");
   public static final AttributeKey<String> TOOL_OUTCOME =
       AttributeKey.stringKey("camunda.agent.tool.outcome");
   public static final AttributeKey<String> TOOL_START_TIME_SOURCE =
