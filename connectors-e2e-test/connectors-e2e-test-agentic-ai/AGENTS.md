@@ -23,7 +23,7 @@ it tests, so it runs a runtime with only these connectors:
 | `connectors-e2e-test-agentic-ai-base`         | None. Shared test support in `src/main` (`BaseAgenticAiTest`, `BpmnUtil`, `TestUtil`, document store) |
 | `connectors-e2e-test-agentic-ai-aiagent-base` | None. Shared AI Agent test support in `src/main` (`aiagent.fixtures`, `assertj`)                      |
 | `connectors-e2e-test-agentic-ai-aiagent`      | AI Agent (both flavors), ad-hoc tools schema, MCP and A2A gateway tools                               |
-| `connectors-e2e-test-agentic-ai-real-llm`     | AI Agent against real LLM providers (CPT), with the AI Agent connector only                           |
+| `connectors-e2e-test-agentic-ai-real-llm`     | AI Agent against real LLM providers (CPT), with the AI Agent and HTTP JSON connectors only            |
 | `connectors-e2e-test-agentic-ai-mcp`          | MCP client connectors, including the authentication tests                                             |
 | `connectors-e2e-test-agentic-ai-a2a`          | A2A client connectors                                                                                 |
 
@@ -58,8 +58,10 @@ mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-t
 - Point `-pl` at the e2e module, not at `connectors-e2e-test-agentic-ai`: for the aggregator path,
   Maven builds only the aggregator and runs no tests.
 - Without `-am`, Maven takes the connector modules and the `*-base` modules from the local Maven
-  repository. Install your changes first (`mvn install -DskipTests -f connectors/agentic-ai/pom.xml`),
-  or add the `*-base` modules to `-pl`.
+  repository. Install them with your changes first:
+  `mvn install -DskipTests -am -pl <e2e module path>`. If you add `-am` to `mvn test` instead, also
+  pass `-Dsurefire.failIfNoSpecifiedTests=false`, because `-Dtest` matches no test in the upstream
+  modules.
 - Running the full e2e suite is slow. Search the e2e modules for tests relevant to your change and run
   those selectively. Ensure that all e2e tests pass after completing a major work item.
 
@@ -152,8 +154,8 @@ To select the structured-output class instead, replace `-Dgroups=core-smoke` in 
 `-Dit.test=RealProviderStructuredOutputE2ETestIT`.
 
 For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
-Set the same environment variables in **Run configuration → Environment variables**, keep the working
-directory at the repository root, and use the `connectors-e2e-test-agentic-ai-real-llm` module classpath. Check
+Set the same environment variables in **Run configuration → Environment variables**, set the working
+directory to the `connectors-e2e-test-agentic-ai-real-llm` module directory, and use its module classpath. Check
 the test output for skipped parameterized invocations before treating a green IDE run as full provider
 coverage.
 

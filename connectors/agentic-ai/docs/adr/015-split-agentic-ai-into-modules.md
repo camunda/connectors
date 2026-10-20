@@ -230,8 +230,8 @@ The decision comprises:
 * Check on every build that a runtime with only the AI Agent connector starts and runs. The MCP and
   A2A client connectors have e2e modules that depend only on their own connector. The AI Agent e2e
   module also tests the ad-hoc tools schema connector and the MCP and A2A gateway tools, so it
-  depends on all connectors and integrations. The real LLM e2e module runs the AI Agent connector
-  only, but its tests call paid providers and run on demand. Done when a stubbed e2e test runs the
+  depends on all connectors and integrations. The real LLM e2e module runs only the AI Agent and
+  HTTP JSON connectors, but its tests call paid providers and run on demand. Done when a stubbed e2e test runs the
   AI Agent on a runtime without the other connector modules.
 * Remove the dependency of `connector-a2a` on the webhook connector. The A2A webhook uses the webhook
   authorization and HMAC verification of `connector-webhook`, so anyone who depends on the A2A client

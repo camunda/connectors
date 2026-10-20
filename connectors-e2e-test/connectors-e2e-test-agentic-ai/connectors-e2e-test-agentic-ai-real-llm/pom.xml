@@ -56,7 +56,7 @@
     </profile>
   </profiles>
 
-  <!-- The in-process tests run the AI Agent connector only. The bundle test runs the agent and
+  <!-- The in-process tests run only the AI Agent and HTTP JSON connectors. The bundle test runs the agent and
        its tools in the connectors bundle image instead. -->
   <dependencies>
     <dependency>
