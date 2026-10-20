@@ -15,6 +15,8 @@ import io.camunda.connector.api.validation.ConfigurationValidator;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Validates a stored {@link RabbitMqConnectionConfiguration} by opening and closing a connection,
@@ -23,6 +25,8 @@ import java.security.GeneralSecurityException;
  */
 public class RabbitMqConnectionValidator
     implements ConfigurationValidator<RabbitMqConnectionConfiguration> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(RabbitMqConnectionValidator.class);
 
   static final int TIMEOUT_MILLIS = 10_000;
   static final String INVALID_INPUT_MESSAGE = "The RabbitMQ connection configuration is invalid.";
@@ -60,13 +64,22 @@ public class RabbitMqConnectionValidator
     factory.setConnectionTimeout(TIMEOUT_MILLIS);
     factory.setHandshakeTimeout(TIMEOUT_MILLIS);
 
-    try (Connection ignored = factory.newConnection()) {
-      return ConfigurationValidationResult.success();
+    final Connection connection;
+    try {
+      connection = factory.newConnection();
     } catch (AuthenticationFailureException e) {
       return ConfigurationValidationResult.failure(ErrorCode.UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
     } catch (Exception e) {
       return ConfigurationValidationResult.failure(ErrorCode.ERROR, ERROR_MESSAGE);
     }
+    // The connect and handshake timeouts don't bound close(), so it gets its own. The broker has
+    // already accepted the credential by now, so a failed close doesn't change the result.
+    try {
+      connection.close(TIMEOUT_MILLIS);
+    } catch (Exception e) {
+      LOG.debug("Failed to close the RabbitMQ validation connection", e);
+    }
+    return ConfigurationValidationResult.success();
   }
 
   private static boolean isAuthenticationComplete(RabbitMqAuthentication authentication) {

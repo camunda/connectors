@@ -8,6 +8,7 @@ package io.camunda.connector.rabbitmq.common.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,6 +24,8 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class RabbitMqConnectionValidatorTest {
 
@@ -46,7 +49,7 @@ class RabbitMqConnectionValidatorTest {
     when(factory.newConnection()).thenReturn(connection);
 
     assertThat(validator.validate(VALID)).isEqualTo(ConfigurationValidationResult.success());
-    verify(connection).close();
+    verify(connection).close(RabbitMqConnectionValidator.TIMEOUT_MILLIS);
     verify(factory).setAutomaticRecoveryEnabled(false);
     verify(factory).setConnectionTimeout(RabbitMqConnectionValidator.TIMEOUT_MILLIS);
   }
@@ -78,6 +81,35 @@ class RabbitMqConnectionValidatorTest {
     assertThat(
             validator.validate(
                 new RabbitMqConnectionConfiguration(new UriAuthentication("amqp://x"), null)))
+        .isEqualTo(invalidInput());
+  }
+
+  @Test
+  void stillSucceedsWhenClosingFails() throws Exception {
+    var connection = mock(Connection.class);
+    when(factory.newConnection()).thenReturn(connection);
+    doThrow(new IOException("close timed out"))
+        .when(connection)
+        .close(RabbitMqConnectionValidator.TIMEOUT_MILLIS);
+
+    assertThat(validator.validate(VALID)).isEqualTo(ConfigurationValidationResult.success());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "amqps://user:pw@my-host:notaport/",
+        "amqps://user:pw@my_rabbit:5671/",
+        "amqps://user:pw@bad host:5671/",
+        "amqps://user:pw@my-host:5671/%zz"
+      })
+  void reportsUriWithoutUsableHostAsInvalidInput(String uri) {
+    // the real supplier: these URIs used to fall back to localhost/guest and report ERROR
+    var realValidator = new RabbitMqConnectionValidator(new ConnectionFactorySupplier());
+
+    assertThat(
+            realValidator.validate(
+                new RabbitMqConnectionConfiguration(new UriAuthentication(uri), null)))
         .isEqualTo(invalidInput());
   }
 
