@@ -24,10 +24,10 @@ package io.camunda.connector.runtime.managedcode;
  * context)}, into what the platform invokes, usually a generated entrypoint next to the user
  * script. The built-in providers keep it in a package-private packager class.
  *
- * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec, ScriptPackage)} idempotent
- * for {@link ArtifactSpec#deploymentName()}: the name is deterministic, creation is
- * create-if-absent, and an existing deployment with that name is adopted instead of being created
- * again. Several runtime instances may call it concurrently for the same artifact.
+ * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec)} idempotent for {@link
+ * ArtifactSpec#deploymentName()}: the name is deterministic, creation is create-if-absent, and an
+ * existing deployment with that name is adopted instead of being created again. Several runtime
+ * instances may call it concurrently for the same artifact.
  */
 public interface ManagedCodeProvider {
 

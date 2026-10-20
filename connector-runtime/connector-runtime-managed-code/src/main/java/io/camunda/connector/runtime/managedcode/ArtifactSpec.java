@@ -27,10 +27,11 @@ import java.util.Optional;
 /**
  * Everything a provider needs to build and deploy one script artifact.
  *
- * @param digest SHA-256 over script, language, runtime, dependency manifest, build policy version
- *     and the build version of the provider, which covers the generated entrypoint; identical
- *     inputs always produce the same digest
- * @param deploymentName deterministic provider resource name, see {@link #deploymentName(Key)}
+ * @param key deployment registry key; its digest is the SHA-256 over script, language, runtime,
+ *     dependency manifest, build policy version and the build version of the provider, which covers
+ *     the generated entrypoint; identical inputs always produce the same digest
+ * @param deploymentName deterministic provider resource name, see {@link #deploymentName(String,
+ *     Key)}
  */
 public record ArtifactSpec(
     Key key,
