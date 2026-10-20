@@ -265,12 +265,12 @@ High-frequency traps (detail behind each link):
   (`DocumentContentGuard`, limits in
   `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
   turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
-  into an error result, no incident. Passing a tag to a tool never adds content. A tool parameter of the type `document`
-  of `fromAi` holds a tag the model passed; `DocumentParameterResolver` turns it into the Camunda document reference for a
-  process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for a runtime tool (`RuntimeToolsImpl`), and the stored
-  messages and the history keep the tag. A process tool call whose value is not the tag of a known document is rejected at
-  tagging; a runtime tool call with such a value gets an error result and the tool is not called.
-  [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
+  into an error result, no incident. Passing a tag to a tool never adds content. A tool parameter of the type `document` of `fromAi` holds a tag the model passed, and a parameter that takes text or a
+  document (an `anyOf` or `oneOf` with a document alternative) holds a tag only when the model passed exactly one tag, and
+  text otherwise; `DocumentParameterResolver` turns the tag into the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for
+  a runtime tool (`RuntimeToolsImpl`), and the stored messages and the history keep the tag. A process tool call whose
+  value is not the tag of a known document is rejected at tagging; a runtime tool call with such a value gets an error
+  result and the tool is not called. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
