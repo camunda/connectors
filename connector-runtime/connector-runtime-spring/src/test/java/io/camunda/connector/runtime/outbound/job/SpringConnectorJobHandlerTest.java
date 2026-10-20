@@ -92,6 +92,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -3249,6 +3250,53 @@ class SpringConnectorJobHandlerTest {
           .containsEntry("connectorResultFunction", leakedNonce)
           .containsEntry("value", attackerBase64);
       assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
+
+    @Test
+    void deletesResultExpressionDocumentWhenErrorExpressionWins() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"discarded\")"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet()).isEqualTo(documentsBefore);
+    }
+
+    @Test
+    void keepsResultExpressionDocumentReferencedByTheError() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"kept\", {doc: response.myDoc})"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+          .hasSize(documentsBefore.size() + 1);
     }
   }
 }

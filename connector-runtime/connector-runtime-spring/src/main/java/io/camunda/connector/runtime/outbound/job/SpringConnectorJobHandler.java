@@ -36,7 +36,9 @@ import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.InlineSizeGuard;
 import io.camunda.connector.api.outbound.ConnectorResponse;
@@ -55,6 +57,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.CamundaDocument;
 import io.camunda.connector.runtime.core.document.DocumentReturnProcessor;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
@@ -78,9 +81,13 @@ import io.grpc.StatusRuntimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -258,7 +265,8 @@ public class SpringConnectorJobHandler implements JobHandler {
                     retryBackoff,
                     secretFilter,
                     context.getSecretHandler().getResolvedValues()),
-                deadline)
+                deadline,
+                List.of())
             : getConnectorResult(job, context, secretFilter, deadline, retryBackoff);
     processFinalResult(
         client,
@@ -267,16 +275,19 @@ public class SpringConnectorJobHandler implements JobHandler {
         resultWithDeadline.result(),
         counterMetricsContext,
         secretFilter,
-        resultWithDeadline.deadline());
+        resultWithDeadline.deadline(),
+        resultWithDeadline.createdDocuments());
   }
 
   /**
    * Pairs a {@link ConnectorResult} with the deadline that should be used for the completion
    * command that follows it — the job's original activation deadline, or an updated one if {@link
    * #updateJobTimeoutIfPresent} applied a {@code jobTimeout} header. The updated deadline is not
-   * necessarily later: a short {@code jobTimeout} can move it earlier than the original.
+   * necessarily later: a short {@code jobTimeout} can move it earlier than the original. Also
+   * carries the documents the result expression created via {@code createDocument()}.
    */
-  private record ResultWithDeadline(ConnectorResult result, long deadline) {}
+  private record ResultWithDeadline(
+      ConnectorResult result, long deadline, List<Document> createdDocuments) {}
 
   private ResultWithDeadline getConnectorResult(
       ActivatedJob job,
@@ -284,6 +295,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       SecretFilter secretFilter,
       long deadline,
       Duration retryBackoff) {
+    List<Document> createdDocuments = new ArrayList<>();
     try {
       var connectorResponse = getConnectorResponse(context);
 
@@ -291,7 +303,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(ahsp.variables()).length);
         // AHSP responses provide their own variables; skip result expression evaluation
         return new ResultWithDeadline(
-            new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline);
+            new ConnectorResult.SuccessResult(connectorResponse, Map.of()), deadline, List.of());
       }
 
       var responseVariables =
@@ -299,17 +311,21 @@ public class SpringConnectorJobHandler implements JobHandler {
               connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD),
-              job.getPhysicalTenantId());
+              job.getPhysicalTenantId(),
+              createdDocuments);
       if (!responseVariables.isEmpty()) {
         InlineSizeGuard.check(objectMapper.writeValueAsBytes(responseVariables).length);
       }
       return new ResultWithDeadline(
-          new ConnectorResult.SuccessResult(connectorResponse, responseVariables), deadline);
+          new ConnectorResult.SuccessResult(connectorResponse, responseVariables),
+          deadline,
+          createdDocuments);
     } catch (Exception e) {
       return new ResultWithDeadline(
           outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
               e, job, retryBackoff, secretFilter, context.getSecretHandler().getResolvedValues()),
-          deadline);
+          deadline,
+          createdDocuments);
     }
   }
 
@@ -461,7 +477,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext,
       SecretFilter secretFilter,
-      long deadline) {
+      long deadline,
+      List<Document> createdDocuments) {
     try {
       Optional<ConnectorError> optionalConnectorError =
           connectorResultHandler.examineErrorExpression(
@@ -471,16 +488,18 @@ public class SpringConnectorJobHandler implements JobHandler {
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())),
               job.getPhysicalTenantId());
       optionalConnectorError.ifPresentOrElse(
-          error ->
-              handleConnectorError(
-                  client,
-                  job,
-                  context,
-                  finalResult,
-                  error,
-                  counterMetricsContext,
-                  secretFilter,
-                  deadline),
+          error -> {
+            deleteDocumentsDiscardedByError(createdDocuments, error, job);
+            handleConnectorError(
+                client,
+                job,
+                context,
+                finalResult,
+                error,
+                counterMetricsContext,
+                secretFilter,
+                deadline);
+          },
           () ->
               handleFinalResult(
                   client, job, context, finalResult, counterMetricsContext, deadline));
@@ -516,6 +535,56 @@ public class SpringConnectorJobHandler implements JobHandler {
           context,
           connectorResponseOrNull(finalResult),
           completionFailure -> new ExecutionFailed(ex, completionFailure));
+    }
+  }
+
+  /**
+   * The error expression won, so the result expression's variables are discarded and the documents
+   * its {@code createDocument()} calls created would be left stored but unreferenced. Deletes
+   * those, except any the error's own variables still reference. Best effort: a failed delete is
+   * logged and never changes the job outcome.
+   */
+  private void deleteDocumentsDiscardedByError(
+      List<Document> createdDocuments, ConnectorError error, ActivatedJob job) {
+    if (createdDocuments.isEmpty()) {
+      return;
+    }
+    Set<String> referencedValues = new HashSet<>();
+    collectValues(errorVariables(error), referencedValues);
+    for (Document document : createdDocuments) {
+      if (document instanceof CamundaDocument camundaDocument
+          && camundaDocument.reference() instanceof CamundaDocumentReference reference
+          && !referencedValues.contains(reference.getDocumentId())) {
+        try {
+          camundaDocument.delete();
+        } catch (Exception e) {
+          LOGGER.warn(
+              "Failed to delete document {} created by the result expression of job {}",
+              reference.getDocumentId(),
+              job.getKey(),
+              e);
+        }
+      }
+    }
+  }
+
+  private static Map<String, Object> errorVariables(ConnectorError error) {
+    return switch (error) {
+      case BpmnError bpmnError -> bpmnError.variables();
+      case JobError jobError -> jobError.variables();
+      case IgnoreError ignoreError -> ignoreError.variables();
+    };
+  }
+
+  private static void collectValues(Object value, Set<String> values) {
+    switch (value) {
+      case Document document
+          when document.reference() instanceof CamundaDocumentReference reference ->
+          values.add(reference.getDocumentId());
+      case Map<?, ?> map -> map.values().forEach(child -> collectValues(child, values));
+      case Collection<?> collection -> collection.forEach(child -> collectValues(child, values));
+      case null -> {}
+      default -> values.add(String.valueOf(value));
     }
   }
 
