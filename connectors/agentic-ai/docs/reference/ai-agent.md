@@ -756,7 +756,8 @@ and with the hint `Pass the tag of a known document exactly as you read it, for 
 the description of every document parameter, at the top level, in `items` and in nested objects
 (`DocumentParameterSchema.toProviderToolDefinitions`, applied by `AgentConversation.window`); nothing persisted is
 rewritten. Document parameters are found at the top level, as array `items` and through object `properties` at any
-depth (`DocumentParameterSchema.documentParameters`); a format behind `$ref` is not a document parameter.
+depth (`DocumentParameterSchema.documentParameters`); a document inside an `anyOf` or `oneOf` alternative that is an
+object or array, and a format behind `$ref`, is not a document parameter.
 
 The model passes the tag of a known document as the value. A value resolves only when it is exactly one
 `<doc id="..." />` tag, surrounded by whitespace at most; the XML-unescaped `id` attribute is the id and the other
@@ -785,7 +786,32 @@ stored conversation and the history keep what the model sent:
   when a value is invalid. It answers the call of a tool of the process that was tagged `RUNTIME` for its document
   parameters the same way, from the tool definition of the agent context, so no state about the rejection is stored.
 
-The output of the Ad-Hoc Tools Schema Resolver carries the format `camunda-document-id`, so another LLM connector that sends it
+A parameter that takes text or a document (a union parameter) is declared with the schema argument of `fromAi()`, an
+`anyOf` (or `oneOf`) with a plain alternative and a `document` alternative. Leave the type argument out with named
+arguments, so the type of the other alternatives stays valid:
+
+```feel
+fromAi(
+  value: toolCall.body,
+  description: "The body of the message.",
+  schema: {"anyOf": [{"type": "string"}, {"type": "document"}]}
+)
+```
+
+The type array form `schema: {"type": ["string", "document"]}` is rewritten to the same `anyOf`. A union parameter gets its own
+hint, `This parameter takes text or a document. To pass a document, give its tag exactly as you read it, for example
+<doc id="..." />. Any other text is passed as text.`: only a value that is exactly one `<doc />` tag is a document, and the
+tool receives the Camunda document reference. Every other value is passed as it is: a plain string, also one that equals
+the id of a known document (a bare id is text here, also for a runtime tool, which receives a `String` for it and a
+`DocumentId` for a tag), text with a tag inside it, a number or an object. A tag with an
+unknown id is answered with `Parameter 'body' holds a <doc /> tag with the id 'x'. That is not a known document. Pass the
+tag of a document exactly as you read it, or pass other text.` and the tool does not run. A union parameter is found and
+resolved by the same `DocumentParameterResolver`, at the same three places as a document parameter: a call of a tool of the
+process with such a tag is tagged `ToolKind.RUNTIME` and answered by the executor, and a runtime tool receives a `DocumentId`
+for a tag and the value the model sent otherwise. For `anyOf: [string, document]` the model provider gets
+`{"type": "string", "description": "..."}` with the hint. A union is stored as it is authored and is not searched for documents
+inside its alternatives that are objects or arrays, because a value cannot be assigned to one alternative reliably. The
+output of the Ad-Hoc Tools Schema Resolver carries the format `camunda-document-id`, so another LLM connector that sends it
 to its provider needs the same rewrite. The shorthand type `document` is normalized only for `fromAi()` parameters. See
 [ADR 017](../adr/017-document-flow.md).
 
@@ -1755,7 +1781,7 @@ round trips of the agent context with every conversation store. A
 conversation persisted by Camunda 8.10 pins the behavior of instances without the `documents` feature. End-to-end tests
 run against a WireMock model, with a placeholder transformer that lets scripted tool calls name the ids of documents the
 store generated. The sub-process flavor runs the detailed scenarios: the round trip of a document through a tool and the
-final response with each conversation store, a document parameter, loading a document, unknown tags, eviction, a runtime
+final response with each conversation store, a document parameter, union parameters, loading a document, unknown tags, eviction, a runtime
 tool that returns a document, mixed batches with `c8__return_document`, response documents that accumulate over several
 turns, and the history audit. The task flavor keeps the round trip, one mixed-batch scenario, the accumulation of response
 documents, the user prompt document tests and the tests of instances without the feature. A shared assertion checks every recorded model request for
@@ -1909,7 +1935,8 @@ These are used during discovery checking and tool call result transformation.
 
 A gateway handler that defines its tools itself can declare document parameters in them. The tool definitions
 a handler returns from `handleToolDiscoveryResults` are stored as they are, so a handler writes the stored form of a document
-parameter (`DocumentParameterSchema.documentSchema(...)`: a string schema with the format `camunda-document-id`); the
+parameter (`DocumentParameterSchema.documentSchema(...)`: a string schema with the format `camunda-document-id`) or of a
+union parameter (`DocumentParameterSchema.textOrDocumentSchema(...)`); the
 shorthand type `document` is normalized only for `fromAi()` parameters. The agent resolves the document parameters of a call
 on the model's tool call, by the definition the model saw, before `transformToolCalls()`, so the handler receives the
 Camunda document references in the arguments it wraps into its envelope. A call with an invalid document value is answered
@@ -1969,7 +1996,7 @@ documents loaded for the tool results above follows.` and a reference with the d
 metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
 tag text and the content are added from the registry when the conversation is windowed. Passing the tag of a document to
 a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
-reference.
+reference. The same holds for a parameter that takes text or a document, when the model passes a tag.
 
 **Returning documents: `c8__return_document`.** The model calls it once per document with `key` (required, matching
 `[A-Za-z_][A-Za-z0-9_-]*`), `document` (required, the tag of a known document, a document parameter) and `description`
@@ -2497,9 +2524,11 @@ public interface RuntimeTool {
 ```
 
 - `RuntimeToolCall` (implemented by the framework): `id()`, `name()`, the `arguments()` in the order the model sent them
-  and `argumentsAs(Class<A>)`, which binds them to a record. A document parameter holds a `DocumentId`: a property typed
-  `DocumentId` receives the document, a property typed `String` the text of the id. Binding ignores arguments the type has
-  no property for and throws a `RuntimeToolException` (`Invalid arguments for tool '<name>'.`, the cause is logged) when the
+  and `argumentsAs(Class<A>)`, which binds them to a record. A document parameter holds a `DocumentId`; a union parameter
+  (text or a document) holds a `DocumentId` when the model passed exactly one tag and the value it passed, usually a
+  `String`, otherwise: a property typed `DocumentId` receives the document, a property typed `Object` receives the
+  `DocumentId` or the `String`, a property typed `String` the text of the id. Binding ignores arguments the type has no
+  property for and throws a `RuntimeToolException` (`Invalid arguments for tool '<name>'.`, the cause is logged) when the
   arguments do not fit.
 - `RuntimeToolContext` (implemented by the framework): `executionContext()`, the read-only `agentContext()` as of the
   call and `documents()`, the documents the agent knows when the batch of calls starts (the documents the calls of the
@@ -2509,8 +2538,8 @@ public interface RuntimeTool {
   the tag of a known document (the framework fills in the attributes). An `AgentDocument` is a read-only view with the
   `id()`, the `source()`, `contentInConversation()` (the model reads the content as of the start of the batch) and the live
   connector `document()`; the store id, the content hash and the URL stay behind it.
-- `RuntimeToolSchemas.document(description)` creates the schema of a document parameter, so nobody writes the format by
-  hand.
+- `RuntimeToolSchemas.document(description)` and `textOrDocument(description)` create the schemas of a document parameter
+  and of a text-or-document union parameter, so nobody writes the format by hand.
 - `RuntimeToolResult` (a sealed interface with the records `Success` and `Error`, built with `success(String)`,
   `success(List<Content>)` or `error(String)`): the content is a list of `Content` blocks. An error is plain text content
   for the model; there is no error flag. A `DocumentContent` block, also one nested in an `ObjectContent`, is a new
@@ -2638,8 +2667,8 @@ final class AcmeLookupTool implements RuntimeTool {
 }
 ```
 
-- **Document parameters.** Declare a parameter with `RuntimeToolSchemas.document(...)`; the framework checks the tag the
-  model sent against the documents the agent knows. The tool receives a `DocumentId` and looks the document up with
+- **Document parameters.** Declare a parameter with `RuntimeToolSchemas.document(...)` (or `textOrDocument(...)`); the
+  framework checks the tag the model sent against the documents the agent knows. The tool receives a `DocumentId` and looks the document up with
   `context.documents().find(id)`; a process tool receives the document references instead. An invalid value answers the
   call with an error result and the tool does not run. Document parameters need an agent instance with the `documents`
   feature.
