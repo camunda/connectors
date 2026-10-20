@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversationTurn;
@@ -113,4 +114,14 @@ public interface AgentInstanceClient {
       List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn,
       AgentContext agentContext);
+
+  /** Records the real assistant completion with evidence of compaction during snapshot storage. */
+  void applyTurnCompletion(
+      AgentExecutionContext executionContext,
+      @Nullable AgentInstanceKey agentInstanceKey,
+      AgentConversationTurn turn,
+      OffsetDateTime producedAt,
+      AgentInstanceUpdateStatus status,
+      AgentContext agentContext,
+      @Nullable ConversationCompactionEvent compactionEvent);
 }

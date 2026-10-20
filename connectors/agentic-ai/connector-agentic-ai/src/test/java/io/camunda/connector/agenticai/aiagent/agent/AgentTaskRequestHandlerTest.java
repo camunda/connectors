@@ -21,6 +21,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -39,9 +41,15 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.CaseLedger;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConversation;
@@ -245,6 +253,57 @@ class AgentTaskRequestHandlerTest {
     assertThat(response.agentResponse()).isNull();
 
     verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
+  }
+
+  @Test
+  void commitsCompactionWithTheFinalAssistantOnlyAfterTheSnapshotWasStored() {
+    mockConfiguration();
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistant = assistantMessage("Review complete.");
+    mockChatModelExecution(assistant);
+    mockResponseHandler();
+    final var store = mock(ConversationStore.class);
+    final var session = mock(ConversationSession.class);
+    reset(conversationStoreRegistry);
+    doReturn(store).when(conversationStoreRegistry).getConversationStore(any(), any());
+    when(store.createSession(any(), any())).thenReturn(session);
+    when(session.loadMessages(any())).thenReturn(ConversationLoadResult.empty());
+    final var event =
+        new ConversationCompactionEvent("event-123", null, "Masked older tool results.");
+    final var stored =
+        ObservationMaskingConversationContext.builder()
+            .conversationId("conversation")
+            .snapshotId("snapshot")
+            .storeUrl("http://localhost/memory/conversation/snapshot")
+            .messages(List.of())
+            .ledger(CaseLedger.empty())
+            .compactionEvent(event)
+            .build();
+    when(session.storeMessages(any(), any())).thenReturn(stored);
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    final var ordered = inOrder(session, agentInstanceClient);
+    ordered.verify(session).storeMessages(any(), any());
+    final var turnCaptor = ArgumentCaptor.forClass(AgentConversationTurn.class);
+    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
+    ordered
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.IDLE),
+            contextCaptor.capture(),
+            eq(event));
+    assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(assistant);
+    assertThat(contextCaptor.getValue().conversation()).isSameAs(stored);
+    verify(agentInstanceClient, never())
+        .applyTurnCompletion(any(), any(), any(), any(), any(), any());
   }
 
   @Test

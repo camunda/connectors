@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.GuardrailInterventionExc
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionAware;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -279,6 +280,29 @@ public abstract class BaseAgentRequestHandler<
             ConversationStoreRequest.of(updatedConversation.allMessages()));
 
     final var storedConversation = updatedConversation.withStoredConversation(storedRef);
+    final var compactionEvent =
+        storedRef instanceof ConversationCompactionAware compactionAware
+            ? compactionAware.compactionEvent()
+            : null;
+    final var status = nextAgentInstanceState(storedConversation.currentTurnMetrics().toolCalls());
+    if (compactionEvent == null) {
+      agentInstanceClient.applyTurnCompletion(
+          executionContext,
+          storedConversation.agentInstanceKey(),
+          storedConversation.currentTurn(),
+          outcome.producedAt(),
+          status,
+          storedConversation.toAgentContext());
+    } else {
+      agentInstanceClient.applyTurnCompletion(
+          executionContext,
+          storedConversation.agentInstanceKey(),
+          storedConversation.currentTurn(),
+          outcome.producedAt(),
+          status,
+          storedConversation.toAgentContext(),
+          compactionEvent);
+    }
     final var agentResponse =
         responseHandler.createResponse(storedConversation, outcome.processToolCalls());
 
@@ -295,7 +319,7 @@ public abstract class BaseAgentRequestHandler<
    * that go to the process.
    */
   private record ContinuationOutcome(
-      AgentConversation conversation, List<ToolCall> processToolCalls) {}
+      AgentConversation conversation, List<ToolCall> processToolCalls, OffsetDateTime producedAt) {}
 
   /**
    * Drives the given chat model until it returns a {@code Completed} result whose tool calls (if
@@ -315,6 +339,7 @@ public abstract class BaseAgentRequestHandler<
     var workingConversation = conversation;
     RuntimeToolCallSplit split;
     boolean anotherRound;
+    OffsetDateTime producedAt;
     do {
       LOGGER.debug(
           "Sending turn (iterationKey={}) to the model",
@@ -347,17 +372,17 @@ public abstract class BaseAgentRequestHandler<
       // within this job re-asserts THINKING alongside its assistant item, the final round sends its
       // terminal status instead. Every tool call the model requested counts as a tool call of the
       // turn, runtime or not.
-      final var status =
-          anotherRound
-              ? AgentInstanceUpdateStatus.THINKING
-              : nextAgentInstanceState(workingConversation.currentTurnMetrics().toolCalls());
-      agentInstanceClient.applyTurnCompletion(
-          executionContext,
-          agentInstanceKey,
-          workingConversation.currentTurn(),
-          OffsetDateTime.now(),
-          status,
-          workingConversation.toAgentContext());
+      producedAt = OffsetDateTime.now();
+      // Store the final round first so its assistant item can carry real compaction evidence.
+      if (anotherRound) {
+        agentInstanceClient.applyTurnCompletion(
+            executionContext,
+            agentInstanceKey,
+            workingConversation.currentTurn(),
+            producedAt,
+            AgentInstanceUpdateStatus.THINKING,
+            workingConversation.toAgentContext());
+      }
 
       if (continued) {
         LOGGER.debug(
@@ -396,7 +421,7 @@ public abstract class BaseAgentRequestHandler<
             split.remainingCalls().size());
       }
     } while (anotherRound);
-    return new ContinuationOutcome(workingConversation, split.remainingCalls());
+    return new ContinuationOutcome(workingConversation, split.remainingCalls(), producedAt);
   }
 
   /**

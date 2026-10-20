@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.connector.agenticai.aiagent.LinkedSystemPromptResolver.ResolvedLinkedSystemPrompt;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -51,6 +52,14 @@ public final class AgentHistoryEvidence {
 
   public static Map<String, Object> wrap(Map<String, Object> evidence) {
     return Map.of(EVIDENCE_KEY, evidence);
+  }
+
+  public static Map<String, Object> compaction(ConversationCompactionEvent event) {
+    final Map<String, Object> evidence = new LinkedHashMap<>();
+    evidence.put("kind", "compaction");
+    putIfPresent(evidence, "savedTokens", event.savedTokens());
+    putIfPresent(evidence, "message", event.message());
+    return wrap(evidence);
   }
 
   public static Map<String, Object> configuration(

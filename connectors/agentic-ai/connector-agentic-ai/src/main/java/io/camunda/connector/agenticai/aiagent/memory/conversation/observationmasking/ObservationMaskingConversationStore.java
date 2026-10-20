@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.observationma
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCompactionEvent;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -369,8 +370,12 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
       final var ledger =
           (previousContext != null ? previousContext.ledger() : CaseLedger.empty())
               .merge(CaseLedger.fromMessages(request.messages()));
-      final var maskedMessages =
+      final var maskingResult =
           maskOlderResults(conversationId, snapshotId, storeUrl, request.messages());
+      final var compactionEvent =
+          compactionEvent(
+              conversationId, maskingResult.maskedCallIds(), maskingResult.maskedToolNames());
+      final var maskedMessages = maskingResult.messages();
       final var snapshot =
           new Snapshot(conversationId, snapshotId, storeUrl, maskedMessages, ledger);
       snapshots.put(snapshotKey(conversationId, snapshotId), snapshot);
@@ -380,10 +385,11 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
           .storeUrl(storeUrl)
           .messages(maskedMessages)
           .ledger(ledger)
+          .compactionEvent(compactionEvent)
           .build();
     }
 
-    private List<Message> maskOlderResults(
+    private MaskingResult maskOlderResults(
         String conversationId, String snapshotId, String storeUrl, List<Message> messages) {
       int fullResultCount = 0;
       for (final var message : messages) {
@@ -394,6 +400,8 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
       }
       int resultIndex = 0;
       final List<Message> masked = new ArrayList<>(messages.size());
+      final List<String> maskedCallIds = new ArrayList<>();
+      final List<String> maskedToolNames = new ArrayList<>();
       for (final var message : messages) {
         if (!(message instanceof ToolCallResultMessage results)) {
           masked.add(message);
@@ -416,6 +424,10 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
           archivedResults
               .computeIfAbsent(conversationId, ignored -> new ConcurrentHashMap<>())
               .putIfAbsent(callId, result);
+          maskedCallIds.add(callId);
+          if (result.name() != null && !result.name().isBlank()) {
+            maskedToolNames.add(result.name());
+          }
           final String pointer =
               storeUrl + "/results?callId=" + URLEncoder.encode(callId, StandardCharsets.UTF_8);
           final String maskedText =
@@ -439,8 +451,27 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
         }
         masked.add(results.withResults(updatedResults));
       }
-      return List.copyOf(masked);
+      return new MaskingResult(
+          List.copyOf(masked), List.copyOf(maskedCallIds), List.copyOf(maskedToolNames));
     }
+  }
+
+  private static @Nullable ConversationCompactionEvent compactionEvent(
+      String conversationId, List<String> callIds, List<String> toolNames) {
+    if (callIds.isEmpty()) {
+      return null;
+    }
+    final String eventId =
+        UUID.nameUUIDFromBytes(
+                (conversationId + ":compaction:" + String.join(",", callIds))
+                    .getBytes(StandardCharsets.UTF_8))
+            .toString();
+    final var names = new java.util.LinkedHashSet<>(toolNames);
+    final String message =
+        names.isEmpty()
+            ? "Masked older tool results."
+            : "Masked older tool results from tools: " + String.join(", ", names) + ".";
+    return new ConversationCompactionEvent(eventId, null, message);
   }
 
   private static boolean isMasked(ToolCallResultContent result) {
@@ -453,4 +484,7 @@ public class ObservationMaskingConversationStore implements ConversationStore, A
       String storeUrl,
       List<Message> messages,
       CaseLedger ledger) {}
+
+  private record MaskingResult(
+      List<Message> messages, List<String> maskedCallIds, List<String> maskedToolNames) {}
 }
