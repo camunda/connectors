@@ -77,8 +77,7 @@ public class RabbitMqConnectionValidator
     try {
       connection.close(TIMEOUT_MILLIS);
     } catch (Exception e) {
-      LOG.debug(
-          "Failed to close the RabbitMQ validation connection ({})", e.getClass().getName());
+      LOG.debug("Failed to close the RabbitMQ validation connection ({})", e.getClass().getName());
     }
     return ConfigurationValidationResult.success();
   }
