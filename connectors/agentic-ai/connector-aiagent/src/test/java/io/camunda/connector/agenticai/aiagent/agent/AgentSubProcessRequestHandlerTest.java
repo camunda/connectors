@@ -160,6 +160,25 @@ class AgentSubProcessRequestHandlerTest {
                               Map.of(
                                   "doc",
                                   Map.of("type", "string", "format", "camunda-document-id"))))
+                      .build(),
+                  ToolDefinition.builder()
+                      .name("send")
+                      .inputSchema(
+                          Map.of(
+                              "type",
+                              "object",
+                              "properties",
+                              Map.of(
+                                  "body",
+                                  Map.of(
+                                      "anyOf",
+                                      List.of(
+                                          Map.of("type", "string"),
+                                          Map.of(
+                                              "type",
+                                              "string",
+                                              "format",
+                                              "camunda-document-id"))))))
                       .build()))
           .toList();
 
@@ -2706,6 +2725,36 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
+  void rejectsTheCallWithATagOfAnUnknownDocumentInAUnionParameter() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
+
+    final var badCall = new ToolCall("call-1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    final var textCall = new ToolCall("call-2", "send", Map.of("body", "plain text"));
+    final var message = AssistantMessage.builder().toolCalls(List.of(badCall, textCall)).build();
+    mockChatModelExecution(message);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // a call with text in the union parameter goes to the process, the rejected one does not
+    verify(chatModel, times(1)).execute(any());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(textCall));
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertThat(c.messages().get(2))
+                    .isEqualTo(
+                        message.withToolCalls(List.of(rejectedForUnknownBody(badCall), textCall))));
+  }
+
+  @Test
   void answersTheRejectedCallOfAMixedBatchInTheJobThatFollowsTheResultsOfTheProcess() {
     final var run =
         runMixedBatchInTwoJobs(
@@ -2999,6 +3048,12 @@ class AgentSubProcessRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  private static ToolCall rejectedForUnknownBody(ToolCall call) {
+    return call.withRejection(
+        "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
+            + " Pass the tag of a document exactly as you read it, or pass other text.");
   }
 
   private static ToolCall rejectedForBogusDocument(ToolCall call) {

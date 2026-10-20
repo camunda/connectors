@@ -608,6 +608,10 @@ class RuntimeToolsImplTest {
   private static final String BOGUS_FILE =
       "Parameter 'file' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
 
+  private static final String UNKNOWN_BODY =
+      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
+          + " Pass the tag of a document exactly as you read it, or pass other text.";
+
   private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
     return ToolDefinition.runtime(name, null, Map.of("type", "object", "properties", properties));
   }
@@ -704,6 +708,52 @@ class RuntimeToolsImplTest {
           assertThat(execution.toolCallResult().id()).isEqualTo("r1");
           assertThat(text(execution)).isEqualTo(BOGUS_FILE);
         });
+  }
+
+  @Test
+  void handsTheIdOfATagInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    record Args(Object body) {}
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            (context, call) -> {
+              received.add(call.argumentsAs(Args.class).body());
+              return RuntimeToolResult.success("sent");
+            });
+
+    toolsOf(tool)
+        .execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(report),
+            List.of(
+                runtimeCall("r1", "c8__send", Map.of("body", tagOf(report))),
+                runtimeCall("r2", "c8__send", Map.of("body", "hello"))));
+
+    assertThat(received).containsExactly(DocumentHandle.idFor(report), "hello");
+  }
+
+  @Test
+  void answersATagOfAnUnknownDocumentInAUnionParameterOfARuntimeToolWithAnErrorAndDoesNotRunIt() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            (context, call) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("sent");
+            });
+
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(),
+                List.of(runtimeCall("r1", "c8__send", Map.of("body", "<doc id=\"nope\" />"))));
+
+    assertThat(runs).hasValue(0);
+    assertThat(text(executions.getFirst())).isEqualTo(UNKNOWN_BODY);
   }
 
   @Test
