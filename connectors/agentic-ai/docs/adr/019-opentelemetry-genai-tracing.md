@@ -108,7 +108,11 @@ The decision comprises:
   * **`chat {model}`** spans cover every model call round, including provider continuation rounds, with
     the provider, requested and response model, token usage, finish reason, and response id. Token usage is
     set only on `chat` spans, so that summing over a trace or a session counts every model call once and
-    covers the same calls as the metrics of the agent instance.
+    covers the same calls as the metrics of the agent instance. Input tokens include the cache read and
+    cache write tokens, as the conventions define them, whereas the agent instance metrics report the input
+    tokens apart from their cache counts. The totals of a trace and a session therefore equal the sum of all
+    token categories of the agent instance metrics (input, output, cache read and cache write); only the
+    place where cache and reasoning tokens are displayed differs.
   * **`execute_tool {tool}`** spans cover one consumed tool result, from the time the tool calls were
     issued to the engine's completion of the tool, and are emitted by the job that consumes the result. The
     issue time is derived from the time-ordered id of the assistant message that issued the calls (ADR
@@ -283,6 +287,8 @@ process.
 
 * A run is one trace that backends can score, grouped into sessions per conversation.
 * Failed jobs and the token spend of every model call are visible, and no span is emitted twice.
+* The token totals of a run and of a session equal the sum of all token categories that the agent instance
+  metrics report, so the backend and Operate agree on the spend.
 * The default application and the AI Agent connector take on no OpenTelemetry SDK; customers opt in
   with Spring's standard configuration.
 * The same lifecycle events serve other consumers.

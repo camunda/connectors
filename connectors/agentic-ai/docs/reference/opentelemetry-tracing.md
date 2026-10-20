@@ -114,10 +114,15 @@ tool results it consumed. Attributes such as `camunda.process_instance.key`, `ca
 
 **Token totals.** Token usage is set only on `chat` spans, so summing the `chat` spans does not count a
 call twice. The sum over a trace is the token usage of the run, and the sum over a session is the token usage
-of the agent instance. Input tokens on a span include the cache read and cache write tokens, as the semantic
-conventions define them, whereas the agent instance history reports the new input tokens apart from its cache
-counts. A model call counts as soon as its `chat` span is exported, so a call whose turn was rejected
-afterwards, because the job lost its lease, is still included.
+of the agent instance. The totals equal the token usage that the agent instance history reports when all
+categories are summed: input, output, cache read and cache write tokens. They differ only in where the cache
+and reasoning tokens are shown. The semantic conventions count cached tokens inside `gen_ai.usage.input_tokens`,
+so on a span the input tokens are the agent instance's `inputTokens` plus its cache read and cache creation
+tokens, whereas `inputTokens` of the agent instance history excludes the cache tokens. The output tokens are the
+same in both and include the reasoning tokens. Backends that split the cache read, cache write and reasoning
+tokens off the input and output tokens, such as Langfuse, show the agent instance's own split and price the cache
+tokens separately; no cache amount is counted twice. A model call counts as soon as its `chat` span is exported,
+so a call whose turn was rejected afterwards, because the job lost its lease, is still included.
 
 **Run input and final answer.** With `capture-content` on:
 
@@ -202,8 +207,15 @@ note that the PoC has no redaction hook and no size limit for captured content.
   nothing to show; the final answer is on the last `invoke_agent` and `chat` spans.
 - **Late spans.** Backends that reject old spans (Datadog accepts spans up to about 18 hours old) drop the long
   tool spans.
-- **Cache-write tokens in Arize Phoenix.** Phoenix reads only the older attribute name for cache-write tokens,
-  so it does not show cache-write tokens for these spans.
+- **Cache-write tokens in Arize Phoenix.** Phoenix may not show cache-write tokens, because it reads an older
+  attribute name for them; the spans carry the name that the conventions define.
+- **Run root span duration.** The run's root span is exported by the first job of the run and ends with it, so
+  its duration is that of the first job, and the later jobs and tool spans extend beyond it. The trace latency
+  that a backend shows for the root therefore understates the run; the session view and the sum of the spans
+  show the real extent.
+- **Tool span position.** An `execute_tool` span starts when the model requested the tool, which is before the
+  start of the job whose `invoke_agent` span is its parent, because the tool runs in the engine between jobs. The
+  waiting time of a tool, for example a human task, is the duration of its span.
 - **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
   the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
 
