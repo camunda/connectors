@@ -56,6 +56,12 @@ class DocumentParameterResolverTest {
         + " got '%s'.".formatted(value);
   }
 
+  private static String unionProblem(String path, String id) {
+    return "Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
+            .formatted(path, id)
+        + " Pass the tag of a document exactly as you read it, or pass other text.";
+  }
+
   private Map<String, Object> reference(DocumentId id) {
     return registry.findById(id).orElseThrow().reference();
   }
@@ -380,6 +386,227 @@ class DocumentParameterResolverTest {
         .isEqualTo(DocumentParameterResolver.resolveProcessCall(context, call));
   }
 
+  @Test
+  void aUnionParameterResolvesAValueThatIsExactlyOneTag() {
+    final var tag = "<doc id=\"" + firstId + "\" fileName=\"first.txt\" />";
+    final var spaced = "\n <doc id=\"" + secondId + "\"/> \t";
+
+    assertThat(resolve(Map.of("a", tag, "b", spaced), object("a", UNION, "b", ONE_OF_UNION)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("a", reference(firstId), "b", reference(secondId))));
+  }
+
+  @Test
+  void aUnionParameterKeepsAPlainStringAsItIs() {
+    final var arguments = Map.<String, Object>of("a", "hello", "b", "", "c", "  padded  ");
+
+    assertThat(resolve(arguments, object("a", UNION, "b", UNION, "c", UNION)))
+        .isEqualTo(new Resolution.Resolved(arguments));
+  }
+
+  @Test
+  void aUnionParameterKeepsABareKnownIdAsText() {
+    final var arguments = Map.<String, Object>of("a", firstId.value(), "b", " " + secondId + "\n");
+
+    assertThat(resolve(arguments, object("a", UNION, "b", UNION)))
+        .isEqualTo(new Resolution.Resolved(arguments));
+  }
+
+  @Test
+  void aUnionParameterReportsATagWithAnUnknownIdWithItsOwnText() {
+    final var tag = "<doc id=\"nope\" fileName=\"x\" />";
+
+    assertThat(resolve(Map.of("doc", tag), object("doc", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("doc", "nope"))));
+    assertThat(resolve(Map.of("doc", tag), object("doc", DOC)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", tag))));
+  }
+
+  @Test
+  void aUnionParameterLeavesValuesThatAreNotStringsAlone() {
+    final var arguments = new java.util.HashMap<String, Object>();
+    arguments.put("number", 42);
+    arguments.put("flag", true);
+    arguments.put("object", Map.of("documentId", firstId.value()));
+    arguments.put("list", List.of(firstId.value(), "x"));
+    arguments.put("nothing", null);
+
+    assertThat(
+            resolve(
+                arguments,
+                object(
+                    "number", UNION, "flag", UNION, "object", UNION, "list", UNION, "nothing",
+                    UNION)))
+        .isEqualTo(new Resolution.Resolved(arguments));
+  }
+
+  @Test
+  void aUnionParameterInAnArrayResolvesEveryElementThatIsATag() {
+    final var tag = "<doc id=\"" + secondId + "\" />";
+    final var elements =
+        Arrays.<Object>asList(tag, "text", 7, firstId.value(), null, Map.of("k", "v"));
+
+    final var result = resolve(Map.of("items", elements), object("items", array(UNION)));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            Resolution.Resolved.class,
+            resolved ->
+                assertThat(resolved.arguments().get("items"))
+                    .isEqualTo(
+                        Arrays.<Object>asList(
+                            reference(secondId),
+                            "text",
+                            7,
+                            firstId.value(),
+                            null,
+                            Map.of("k", "v"))));
+  }
+
+  @Test
+  void aUnionParameterInAnArrayReportsTheIndexOfATagWithAnUnknownId() {
+    final var result =
+        resolve(
+            Map.of("items", List.of("text", "<doc id=\"nope\" />")), object("items", array(UNION)));
+
+    assertThat(result).isEqualTo(new Resolution.Invalid(List.of(unionProblem("items[1]", "nope"))));
+  }
+
+  @Test
+  void aUnionParameterInsideObjectsResolvesLikeATopLevelOne() {
+    final var tag = "<doc id=\"" + firstId + "\" />";
+    final var arguments =
+        Map.<String, Object>of(
+            "req",
+            Map.of("file", tag, "note", "n"),
+            "rows",
+            List.of(Map.of("file", firstId.value())));
+
+    final var result =
+        resolve(
+            arguments,
+            object(
+                "req",
+                object("file", UNION, "note", string()),
+                "rows",
+                array(object("file", UNION))));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "req",
+                    Map.of("file", reference(firstId), "note", "n"),
+                    "rows",
+                    List.of(Map.of("file", firstId.value())))));
+  }
+
+  @Test
+  void aDocumentParameterKeepsItsRulesNextToAUnionParameter() {
+    final var arguments = Map.<String, Object>of("doc", firstTag, "text", firstId.value());
+
+    assertThat(resolve(arguments, object("doc", DOC, "text", UNION)))
+        .isEqualTo(
+            new Resolution.Resolved(Map.of("doc", reference(firstId), "text", firstId.value())));
+    assertThat(
+            resolve(
+                Map.of("doc", firstId.value(), "text", firstId.value()),
+                object("doc", DOC, "text", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", firstId.value()))));
+    assertThat(resolve(Map.of("doc", "nope", "text", "nope"), object("doc", DOC, "text", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(problem("doc", "nope"))));
+  }
+
+  @Test
+  void resolveIdsHandsAUnionParameterThePlainIdOfATagAndKeepsTextAsText() {
+    final var tag = "<doc id=\"" + secondId + "\" fileName=\"x\" />";
+    final var arguments =
+        Map.<String, Object>of(
+            "tagged",
+            tag,
+            "bare",
+            firstId.value(),
+            "text",
+            "hello",
+            "list",
+            List.of(tag, "hello", 3),
+            "doc",
+            tag);
+
+    final var result =
+        resolveIds(
+            arguments,
+            object(
+                "tagged", UNION, "bare", UNION, "text", UNION, "list", array(UNION), "doc", DOC));
+
+    assertThat(result)
+        .isEqualTo(
+            new Resolution.Resolved(
+                Map.of(
+                    "tagged",
+                    secondId,
+                    "bare",
+                    firstId.value(),
+                    "text",
+                    "hello",
+                    "list",
+                    List.of(secondId, "hello", 3),
+                    "doc",
+                    secondId)));
+    assertThat(resolveIds(Map.of("tagged", "<doc id=\"nope\" />"), object("tagged", UNION)))
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("tagged", "nope"))));
+  }
+
+  @Test
+  void resolvesAUnionParameterOfTheCallOfAToolOfTheProcessToTheReferenceOfATag() {
+    final var tagged = new ToolCall("call", "send", Map.of("body", firstTag, "other", "kept"));
+    final var text = new ToolCall("call", "send", Map.of("body", "hello"));
+
+    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), tagged))
+        .isEqualTo(new Resolution.Resolved(Map.of("body", reference(firstId), "other", "kept")));
+    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), text))
+        .isEqualTo(new Resolution.Resolved(Map.of("body", "hello")));
+  }
+
+  @Test
+  void rejectsTheCallOfAToolOfTheProcessWithATagOfAnUnknownDocumentInAUnionParameter() {
+    final var call = new ToolCall("call", "send", Map.of("body", tag(DocumentId.of("none"))));
+
+    assertThat(DocumentParameterResolver.resolveProcessCall(agentContext(), call))
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
+  }
+
+  @Test
+  void resolvesAUnionParameterOfTheCallOfARuntimeToolToTheIdOfATagAndKeepsTextAsText() {
+    final var definition = definition("c8__send", object("body", UNION));
+    final var tagged = new ToolCall("call", "c8__send", Map.of("body", firstTag));
+    final var text = new ToolCall("call", "c8__send", Map.of("body", firstId.value()));
+
+    assertThat(DocumentParameterResolver.resolveRuntimeCall(agentContext(), tagged, definition))
+        .isEqualTo(new Resolution.Resolved(Map.of("body", firstId)));
+    assertThat(DocumentParameterResolver.resolveRuntimeCall(agentContext(), text, definition))
+        .isEqualTo(new Resolution.Resolved(Map.of("body", firstId.value())));
+  }
+
+  @Test
+  void rejectsTheCallOfARuntimeToolWithATagOfAnUnknownDocumentInAUnionParameter() {
+    final var call = new ToolCall("call", "c8__send", Map.of("body", tag(DocumentId.of("none"))));
+
+    assertThat(
+            DocumentParameterResolver.resolveRuntimeCall(
+                agentContext(), call, definition("c8__send", object("body", UNION))))
+        .isEqualTo(new Resolution.Invalid(List.of(unionProblem("body", "none"))));
+  }
+
+  @Test
+  void anAgentInstanceWithoutTheDocumentsFeatureHasNoUnionParameters() {
+    final var call = new ToolCall("call", "send", Map.of("body", firstTag));
+    final var withoutDocuments = agentContext().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS));
+
+    assertThat(DocumentParameterResolver.resolveProcessCall(withoutDocuments, call))
+        .isEqualTo(new Resolution.Resolved(call.arguments()));
+  }
+
   private AgentContext agentContext() {
     return AgentContext.empty()
         .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
@@ -388,6 +615,7 @@ class DocumentParameterResolverTest {
             List.of(
                 definition("upload", object("doc", DOC)),
                 definition("upload-many", object("docs", array(DOC))),
+                definition("send", object("body", UNION)),
                 definition("weather", object("doc", Map.of("type", "string")))));
   }
 
@@ -397,6 +625,16 @@ class DocumentParameterResolverTest {
 
   private static final Map<String, Object> DOC =
       Map.of("type", "string", "format", "camunda-document-id");
+
+  private static final Map<String, Object> UNION =
+      Map.of("anyOf", List.of(Map.of("type", "string"), DOC));
+
+  private static final Map<String, Object> ONE_OF_UNION =
+      Map.of("oneOf", List.of(Map.of("type", "string"), DOC, Map.of("type", "number")));
+
+  private static Map<String, Object> string() {
+    return Map.of("type", "string");
+  }
 
   private static Map<String, Object> array(Map<String, Object> items) {
     return Map.of("type", "array", "items", items);

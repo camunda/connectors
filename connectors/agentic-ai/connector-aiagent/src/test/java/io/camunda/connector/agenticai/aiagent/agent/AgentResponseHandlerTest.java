@@ -427,6 +427,22 @@ class AgentResponseHandlerTest {
                     "properties",
                     Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
             .build();
+    private static final ToolDefinition SEND =
+        ToolDefinition.builder()
+            .name("send")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of(
+                        "body",
+                        Map.of(
+                            "anyOf",
+                            List.of(
+                                Map.of("type", "string"),
+                                Map.of("type", "string", "format", "camunda-document-id"))))))
+            .build();
     private static final ToolDefinition WEATHER =
         ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
 
@@ -443,7 +459,7 @@ class AgentResponseHandlerTest {
               .withState(AgentState.READY)
               .withFeatures(features)
               .withDocumentRegistry(registry)
-              .withToolDefinitions(List.of(UPLOAD, WEATHER));
+              .withToolDefinitions(List.of(UPLOAD, SEND, WEATHER));
       return AgentConversation.rehydrate(
               new AgentConfiguration(
                   TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
@@ -475,6 +491,31 @@ class AgentResponseHandlerTest {
                 assertThat(toolCall.arguments())
                     .containsEntry("doc", registry.findById(reportId).orElseThrow().reference());
               });
+    }
+
+    @Test
+    void handsTheCamundaDocumentReferenceOfATagInAUnionParameterAndKeepsTextAsText() {
+      final var tagged =
+          new ToolCall("s1", "send", Map.of("body", "<doc id=\"" + reportId + "\" />"));
+      final var text = new ToolCall("s2", "send", Map.of("body", "hello " + reportId));
+
+      final var response = responseHandler.createResponse(conversation(tagged, text));
+
+      assertThat(response.toolCalls())
+          .extracting(call -> call.metadata().id(), call -> call.arguments().get("body"))
+          .containsExactly(
+              tuple("s1", registry.findById(reportId).orElseThrow().reference()),
+              tuple("s2", "hello " + reportId));
+    }
+
+    @Test
+    void failsForACallWithATagOfAnUnknownDocumentInAUnionParameterThatIsHandedToTheProcess() {
+      final var call = new ToolCall("s1", "send", Map.of("body", "<doc id=\"nope\" />"));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("'s1'")
+          .hasMessageContaining("'send'");
     }
 
     @Test
