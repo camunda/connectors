@@ -51,20 +51,28 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private final AnthropicMessageResponseConverter responseConverter;
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
   private final FoundryCredentialResolver foundryCredentialResolver;
+  private final boolean agentTracingEnabled;
 
+  /**
+   * @param agentTracingEnabled whether the AI Agent emits its own OpenTelemetry spans. When it
+   *     does, the SDK's own spans and trace headers are switched off so that they do not duplicate
+   *     the agent's; otherwise the SDK keeps its default behavior.
+   */
   public AnthropicChatModelFactory(
       ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      FoundryCredentialResolver foundryCredentialResolver,
+      boolean agentTracingEnabled) {
     this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
     this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
     this.foundryCredentialResolver = foundryCredentialResolver;
+    this.agentTracingEnabled = agentTracingEnabled;
   }
 
   @Override
@@ -85,7 +93,8 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
             timeout,
             httpProxySupport,
             oAuthClientCredentialsTokenResolver,
-            foundryCredentialResolver);
+            foundryCredentialResolver,
+            agentTracingEnabled);
     return new AnthropicChatModel(client, model, requestConverter, responseConverter);
   }
 
@@ -94,9 +103,13 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      FoundryCredentialResolver foundryCredentialResolver) {
-    // the SDK's own OpenTelemetry spans and trace headers would duplicate the agent's tracing
-    final var builder = AnthropicOkHttpClient.builder().openTelemetry(false);
+      FoundryCredentialResolver foundryCredentialResolver,
+      boolean agentTracingEnabled) {
+    final var builder = AnthropicOkHttpClient.builder();
+    if (agentTracingEnabled) {
+      // the SDK's own OpenTelemetry spans and trace headers would duplicate the agent's tracing
+      builder.openTelemetry(false);
+    }
 
     switch (backend) {
       case AnthropicApiBackend apiBackend -> applyApiBackend(builder, apiBackend);

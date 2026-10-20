@@ -108,6 +108,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -181,6 +182,14 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
         .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"true", "false"})
+  void whenAgentTracingIsConfigured_thenTheAnthropicChatModelFactoryIsCreated(String enabled) {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.aiagent.tracing.enabled=" + enabled)
+        .run(context -> assertThat(context).hasSingleBean(AnthropicChatModelFactory.class));
   }
 
   @Test
@@ -752,7 +761,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
               mock(AnthropicMessageRequestConverter.class),
               mock(AnthropicMessageResponseConverter.class),
               mock(OAuthClientCredentialsTokenResolver.class),
-              mock(FoundryCredentialResolver.class));
+              mock(FoundryCredentialResolver.class),
+              false);
         }
 
         @Override

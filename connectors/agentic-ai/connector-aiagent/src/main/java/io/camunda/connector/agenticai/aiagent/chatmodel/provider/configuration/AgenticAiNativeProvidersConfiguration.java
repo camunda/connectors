@@ -46,6 +46,7 @@ import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,7 +61,9 @@ public class AgenticAiNativeProvidersConfiguration {
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       FoundryCredentialResolver foundryCredentialResolver,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      @Value("${camunda.connector.agenticai.aiagent.tracing.enabled:false}")
+          boolean agentTracingEnabled) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
@@ -70,7 +73,8 @@ public class AgenticAiNativeProvidersConfiguration {
         requestConverter,
         responseConverter,
         oAuthClientCredentialsTokenResolver,
-        foundryCredentialResolver);
+        foundryCredentialResolver,
+        agentTracingEnabled);
   }
 
   @Bean

@@ -8,12 +8,15 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.core.opentelemetry.OpenTelemetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
@@ -83,7 +86,8 @@ class AnthropicChatModelFactoryTest {
             new FoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+            false);
   }
 
   @ParameterizedTest
@@ -187,6 +191,55 @@ class AnthropicChatModelFactoryTest {
       verify(clientBuilder).timeout(expectedTimeout);
       api.close();
     }
+  }
+
+  @Test
+  void leavesTheSdkOpenTelemetrySettingUntouchedWhenAgentTracingIsDisabled() {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+
+    final var clientBuilder = spy(AnthropicOkHttpClient.builder());
+    try (MockedStatic<AnthropicOkHttpClient> clientMock =
+        mockStatic(AnthropicOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(AnthropicOkHttpClient::builder).thenReturn(clientBuilder);
+
+      final ChatModel api = factory.create(apiConfig(MODEL_ID));
+
+      verify(clientBuilder, never()).openTelemetry(anyBoolean());
+      verify(clientBuilder, never()).openTelemetry(any(OpenTelemetryOptions.class));
+      api.close();
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("configs")
+  void switchesOffTheSdkSpansWhenAgentTracingIsEnabled(AnthropicChatModelConfiguration config) {
+    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
+    final var tracingFactory = factoryWithAgentTracing(true);
+
+    final var clientBuilder = spy(AnthropicOkHttpClient.builder());
+    try (MockedStatic<AnthropicOkHttpClient> clientMock =
+        mockStatic(AnthropicOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
+      clientMock.when(AnthropicOkHttpClient::builder).thenReturn(clientBuilder);
+
+      final ChatModel api = tracingFactory.create(config);
+
+      verify(clientBuilder).openTelemetry(false);
+      api.close();
+    }
+  }
+
+  private AnthropicChatModelFactory factoryWithAgentTracing(boolean agentTracingEnabled) {
+    return new AnthropicChatModelFactory(
+        chatModelProperties,
+        httpProxySupport,
+        new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
+        new AnthropicMessageResponseConverter(objectMapper),
+        oAuthClientCredentialsTokenResolver,
+        new FoundryCredentialResolver(
+            new EntraIdTokenCredentialFactory(
+                new AzureHttpProxySupport(ProxyConfiguration.NONE),
+                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+        agentTracingEnabled);
   }
 
   static Stream<Arguments> timeoutConfigurations() {

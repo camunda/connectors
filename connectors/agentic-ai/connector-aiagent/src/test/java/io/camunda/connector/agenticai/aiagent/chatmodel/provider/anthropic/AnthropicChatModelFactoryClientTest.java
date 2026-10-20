@@ -487,7 +487,8 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
             oAuthClientCredentialsTokenResolver(),
-            foundryCredentialResolver);
+            foundryCredentialResolver,
+            false);
     final var configuration =
         new AnthropicChatModelConfiguration(
             new AnthropicConnection(
