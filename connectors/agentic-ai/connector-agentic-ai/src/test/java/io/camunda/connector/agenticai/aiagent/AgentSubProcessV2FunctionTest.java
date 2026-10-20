@@ -128,7 +128,7 @@ class AgentSubProcessV2FunctionTest {
     when(linkedSystemPromptResolver.resolve(HEADERS))
         .thenReturn(
             new ResolvedLinkedSystemPrompt(
-                LINKED_PROMPT, "dispute-compliance-policy.md", "latest", 3));
+                LINKED_PROMPT, "dispute-compliance-policy.md", "latest", 3, 42L));
   }
 
   private String capturedSystemPrompt() {

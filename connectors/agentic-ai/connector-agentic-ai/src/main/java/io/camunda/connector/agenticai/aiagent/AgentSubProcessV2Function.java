@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentHistoryEvidence;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.SystemPromptProvenance;
@@ -66,12 +67,14 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
             : request.data().withSystemPrompt(new SystemPromptConfiguration(composedPrompt));
     var executionContext =
         new AgentSubProcessExecutionContext(
-            context.getJobContext(),
-            data,
-            request.agentContext(),
-            request.toolCallResults(),
-            request.toolElements(),
-            request.provider());
+                context.getJobContext(),
+                data,
+                request.agentContext(),
+                request.toolCallResults(),
+                request.toolElements(),
+                request.provider())
+            .withConfigurationEvidence(
+                AgentHistoryEvidence.configuration(request.provider(), linkedPrompt));
     var response = agentRequestHandler.handleRequest(executionContext);
     if (linkedPrompt == null
         || composedPrompt == null
@@ -88,8 +91,7 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
             linkedPrompt.version(),
             composedPrompt);
     var variables = new LinkedHashMap<>(response.variables());
-    variables.put(
-        AgentProcessVariables.AGENT_RESPONSE, agentResponse.withSystemPrompt(provenance));
+    variables.put(AgentProcessVariables.AGENT_RESPONSE, agentResponse.withSystemPrompt(provenance));
     return response.withVariables(variables);
   }
 }
