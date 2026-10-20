@@ -107,8 +107,8 @@ The decision comprises:
     the job's real duration.
   * **`chat {model}`** spans cover every model call round, including provider continuation rounds, with
     the provider, requested and response model, token usage, finish reason, and response id. Token usage is
-    set only on `chat` spans, so that the totals of a trace and of a session equal the totals Operate shows
-    for the agent instance.
+    set only on `chat` spans, so that summing over a trace or a session counts every model call once and
+    covers the same calls as the metrics of the agent instance.
   * **`execute_tool {tool}`** spans cover one consumed tool result, from the time the tool calls were
     issued to the engine's completion of the tool, and are emitted by the job that consumes the result. The
     issue time is derived from the time-ordered id of the assistant message that issued the calls (ADR
@@ -241,6 +241,55 @@ two persist points of ADR 018 and only there:
 
 The session identifier, the process instance key, span identities of the other span kinds, attributes,
 content, tool timing, and the lease token are not stored. A closed entry stays until the next run replaces it.
+
+### Conformance with the GenAI conventions and other frameworks
+
+**What the conventions say.** The GenAI semantic conventions define one span per operation: `chat` for a
+model call, `invoke_agent` for an agent invocation (internal kind when the agent runs in the same process),
+and `execute_tool` for a tool execution, with `create_agent`, `invoke_workflow`, and `plan` next to them. They
+ask that a span covers the duration of its operation and that the attributes important for sampling, such as
+the operation, the agent name, and the tool name, are set when the span is created. `gen_ai.conversation.id` is
+set when the instrumented library or the application has an identifier readily available, and never from a
+generated fallback such as a new UUID or the trace id. Message content, system instructions, tool definitions,
+and tool arguments and results are opt-in and off by default. Input token counts include cached tokens, and a
+failed operation gets an `error.type` and no synthesized output. The conventions have no notion of trace-level
+input or output, and they say nothing about a wrapper root span, span links, or a run that is resumed in a later
+process.
+
+**What other frameworks do.** The behavior below is as these frameworks document it at the time of writing.
+
+* **OpenAI Agents SDK**: one trace per run, with a group id that ties the traces of a conversation together. It
+  persists the trace id in the run state and reattaches to it when a run is resumed, and it creates a
+  synthetic trace root that is not a GenAI operation.
+* **Vercel AI SDK**: an `invoke_agent` root span per call that carries the final answer, and `execute_tool`
+  spans built from the before and after hooks of a tool.
+* **Strands**: an `invoke_agent` root span, the session carried through user attributes, and a span per tool
+  built from its before and after events.
+* **Pydantic AI**: an `invoke_agent` root span per run with the conversation id. A run that resumes after a
+  deferred tool is a separate run, correlated with the first by the conversation id.
+* **LangSmith**: one trace per turn, with a thread id on every run of the thread.
+* **OpenInference with Arize Phoenix, and Langfuse v4**: the input and output of a trace come from the root
+  span or root observation, not from a trace-level attribute.
+
+The pattern is the same everywhere: a trace is one run or turn, a conversation is a session attribute on every
+run, and the trace-level input and output are those of the root. The AI Agent follows it with a root that it has
+to create itself, because no single process sees a run from the input to the final answer.
+
+**Deviations.** Where the AI Agent differs from the conventions, and why:
+
+| Area | Conventions or common practice | AI Agent | Reason |
+|---|---|---|---|
+| Root of a run | `invoke_agent` is the root and carries the input and the final answer | A synthetic anchor `<element id> run` without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last round | The anchor is created by the first job and ends with it, so its duration carries no meaning and the final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
+| Agent invocations | One `invoke_agent` span per invocation | One `invoke_agent` span per job, so a run has several | A run is spread over several stateless jobs, and each span covers one job's real duration |
+| Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, and an explicit start derived from the id of the assistant message that issued the call; the end is the engine's completion time | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job |
+| Tool failures | A failed operation has error status and `error.type` | Not distinguishable: a tool result shows `completed`, or `cancelled` when interrupted, and a tool incident has no span | A tool result carries no structured error signal today (see Follow-up) |
+| Agent name | `gen_ai.agent.name` is the name of the agent, and a stable agent id is recommended only for hosted agents | `gen_ai.agent.name` is the BPMN element id, and there is no `gen_ai.agent.id` | The element id is the stable name in the process model. Agent instance keys are transient, so they are no agent id |
+| Conversation id | Set from an identifier that is readily available | The agent instance key, prefixed with the operator-set cluster id when one is configured | Conforms: the engine assigns the key, and it links to Operate. The prefix keeps clusters apart in one backend project |
+| Content | Opt-in | Opt-in through one switch for all content | Conforms, with a coarser granularity than per attribute; redaction is a production-milestone item |
+| Token usage | Usage attributes are defined for model calls | Only on `chat` spans, never on `invoke_agent` or the anchor | Sums over a trace or session count each call once |
+| Span links | Not addressed | None. Runs are connected by the session only | Neither target backend stores or renders span links |
+| Cache write count | `gen_ai.usage.cache_write.input_tokens` | Emitted next to the legacy `gen_ai.usage.cache_creation.input_tokens` | Phoenix reads only the legacy name |
+| Session | `gen_ai.conversation.id` | `session.id` is set next to it with the same value | OpenInference-native tools read `session.id`, and Langfuse reads either attribute |
 
 ### Non-goals
 
