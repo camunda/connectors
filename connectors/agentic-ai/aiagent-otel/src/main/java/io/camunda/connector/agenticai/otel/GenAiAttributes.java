@@ -109,8 +109,6 @@ public final class GenAiAttributes {
       AttributeKey.stringKey("camunda.agent.run.trigger");
   public static final AttributeKey<String> TOOL_OUTCOME =
       AttributeKey.stringKey("camunda.agent.tool.outcome");
-  public static final AttributeKey<String> TOOL_START_TIME_SOURCE =
-      AttributeKey.stringKey("camunda.agent.tool.start_time_source");
 
   // --- OpenInference, read by Arize Phoenix and other OpenInference backends ---
 
@@ -135,12 +133,6 @@ public final class GenAiAttributes {
 
   public static final String TOOL_OUTCOME_COMPLETED = "completed";
   public static final String TOOL_OUTCOME_CANCELLED = "cancelled";
-
-  /** The tool call start was derived from the time-ordered id of the message that issued it. */
-  public static final String START_TIME_SOURCE_MESSAGE_ID = "message_id";
-
-  /** The tool call start is unknown; the span has no duration. */
-  public static final String START_TIME_SOURCE_UNKNOWN = "unknown";
 
   public static final String RUN_TRIGGER_INITIAL = "initial";
   public static final String RUN_TRIGGER_FOLLOW_UP = "follow_up";

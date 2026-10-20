@@ -46,6 +46,7 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -94,6 +95,7 @@ class AgentTracingJobObserverTest {
 
   @Test
   void tracesARunAcrossJobsAndEmitsToolSpansWithTheirRealTimes() {
+    final Instant testStart = Instant.now().truncatedTo(ChronoUnit.MILLIS);
     // job 1: tool discovery starts the run
     final var discovery =
         listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
@@ -117,7 +119,7 @@ class AgentTracingJobObserverTest {
     final var firstTurn =
         listener.onJobStarted(
             started(AgentJobKind.CONVERSATION, T0.plusSeconds(1), null, afterDiscovery));
-    firstTurn.onTurnStarted(turnStarted(1, List.of(), null));
+    firstTurn.onTurnStarted(turnStarted(1, List.of()));
     chatRound(firstTurn, StopReason.TOOL_USE);
     final var afterFirstTurn = firstTurn.onTurnCompleted(turnCompleted(1, true));
     firstTurn.onJobCompleted();
@@ -132,6 +134,7 @@ class AgentTracingJobObserverTest {
     final SpanData issuingJob = span("invoke_agent agent");
     assertThat(issuingJob.getParentSpanId()).isEqualTo(anchor.getSpanId());
     assertThat(afterFirstTurn).containsEntry("issuerSpanId", issuingJob.getSpanId());
+    assertThat(issuedAtOf(afterFirstTurn)).isBetween(testStart, Instant.now());
     exporter.reset();
 
     // job 3: only some tool results arrived, the job exports nothing and persists nothing
@@ -141,20 +144,22 @@ class AgentTracingJobObserverTest {
     deferred.onJobCompleted();
     assertThat(exporter.getFinishedSpanItems()).isEmpty();
 
-    // job 4, two days later: consumes two tool results and answers
+    // job 4, two days later: consumes two tool results and answers; the state it reads holds the
+    // dispatch time the issuing job recorded
     final Instant issuedAt = T0.plusSeconds(6);
+    final Map<String, Object> issuedStateFromJob2 = withIssuedAt(afterFirstTurn, issuedAt);
     final Instant completedA = T0.plusSeconds(8);
     final Instant completedB = T0.plusSeconds(2 * 24 * 3600);
     final Instant job4Start = T0.plusSeconds(2 * 24 * 3600 + 1);
     final var lastTurn =
-        listener.onJobStarted(started(AgentJobKind.CONVERSATION, job4Start, 1, afterFirstTurn));
+        listener.onJobStarted(
+            started(AgentJobKind.CONVERSATION, job4Start, 1, issuedStateFromJob2));
     lastTurn.onTurnStarted(
         turnStarted(
             2,
             List.of(
                 toolExecution("call-1", "search", completedA, false),
-                toolExecution("call-2", "approval", completedB, true)),
-            issuedAt));
+                toolExecution("call-2", "approval", completedB, true))));
     chatRound(lastTurn, StopReason.STOP);
     final var afterLastTurn = lastTurn.onTurnCompleted(turnCompleted(2, false));
     assertThat(exporter.getFinishedSpanItems()).hasSize(1); // chat ended, nothing else yet
@@ -162,6 +167,7 @@ class AgentTracingJobObserverTest {
 
     assertThat(afterLastTurn).containsEntry("status", "CLOSED").containsEntry("iterationKey", 2);
     assertThat(afterLastTurn).containsEntry("issuerSpanId", span("invoke_agent agent").getSpanId());
+    assertThat(afterLastTurn).doesNotContainKey("issuedAt");
     assertThat(exporter.getFinishedSpanItems())
         .hasSize(4)
         .allSatisfy(span -> assertThat(span.getTraceId()).isEqualTo(anchor.getTraceId()));
@@ -175,6 +181,9 @@ class AgentTracingJobObserverTest {
     assertThat(searchTool.getStartEpochNanos())
         .isGreaterThanOrEqualTo(issuingJob.getStartEpochNanos());
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME)).isEqualTo("completed");
+    assertThat(searchTool.getAttributes().asMap().keySet())
+        .extracting(Object::toString)
+        .doesNotContain("camunda.agent.tool.start_time_source");
     assertThat(searchTool.getAttributes().get(GenAiAttributes.AGENT_NAME)).isEqualTo("agent");
     assertThat(searchTool.getAttributes().get(GenAiAttributes.TOOL_DESCRIPTION)).isNull();
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.PROCESS_DEFINITION_KEY))
@@ -182,6 +191,7 @@ class AgentTracingJobObserverTest {
     assertThat(invokeAgent.getAttributes().get(GenAiAttributes.INPUT_MESSAGES)).isNull();
     final SpanData approvalTool = span("execute_tool approval");
     assertThat(approvalTool.getParentSpanId()).isEqualTo(issuingJob.getSpanId());
+    assertThat(approvalTool.getStartEpochNanos()).isEqualTo(nanos(issuedAt));
     assertThat(approvalTool.getEndEpochNanos()).isEqualTo(nanos(completedB));
     assertThat(approvalTool.getAttributes().get(GenAiAttributes.TOOL_OUTCOME))
         .isEqualTo("cancelled");
@@ -193,7 +203,7 @@ class AgentTracingJobObserverTest {
     final var followUp =
         listener.onJobStarted(
             started(AgentJobKind.CONVERSATION, job4Start.plusSeconds(1800), 2, afterLastTurn));
-    followUp.onTurnStarted(turnStarted(3, List.of(), null));
+    followUp.onTurnStarted(turnStarted(3, List.of()));
     chatRound(followUp, StopReason.STOP);
     followUp.onTurnCompleted(turnCompleted(3, false));
     followUp.onJobCompleted();
@@ -212,7 +222,7 @@ class AgentTracingJobObserverTest {
     final var failure =
         new ConnectorException("MODEL_CONTEXT_WINDOW_EXCEEDED", "prompt text that must not leak");
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onModelRoundStarted(roundStarted());
     observer.onModelRoundFailed(new ModelRoundFailed(failure, "MODEL_CONTEXT_WINDOW_EXCEEDED"));
     observer.onJobFailed(new JobFailed(failure, "MODEL_CONTEXT_WINDOW_EXCEEDED"));
@@ -247,7 +257,7 @@ class AgentTracingJobObserverTest {
     final var providerFailure = new java.net.SocketTimeoutException("prompt text");
     final var failure = new ConnectorException("FAILED_MODEL_CALL", "prompt text", providerFailure);
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onModelRoundStarted(roundStarted());
     observer.onModelRoundFailed(new ModelRoundFailed(failure, "FAILED_MODEL_CALL"));
     observer.onJobFailed(new JobFailed(failure, "FAILED_MODEL_CALL"));
@@ -264,7 +274,7 @@ class AgentTracingJobObserverTest {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onModelRoundStarted(roundStarted());
     observer.onJobCompletionFailed(new CommandIgnored(new RuntimeException("not found")));
 
@@ -284,7 +294,7 @@ class AgentTracingJobObserverTest {
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onTurnCompleted(
         new TurnCompleted(
             1,
@@ -309,7 +319,7 @@ class AgentTracingJobObserverTest {
             new AgentTracingProperties(true, true, null));
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     chatRound(observer, StopReason.STOP);
     observer.onTurnCompleted(turnCompleted(1, false));
     observer.onJobCompleted();
@@ -321,7 +331,7 @@ class AgentTracingJobObserverTest {
     exporter.reset();
 
     final var plain = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
-    plain.onTurnStarted(turnStarted(1, List.of(), null));
+    plain.onTurnStarted(turnStarted(1, List.of()));
     chatRound(plain, StopReason.STOP);
     plain.onTurnCompleted(turnCompleted(1, false));
     plain.onJobCompleted();
@@ -351,7 +361,7 @@ class AgentTracingJobObserverTest {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
     observer.onTurnStarted(
-        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.STOP);
     observer.onTurnCompleted(turnCompleted(2, false));
     observer.onJobCompletionFailed(new CommandIgnored(new RuntimeException("not found")));
@@ -371,7 +381,7 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
     final var failure = new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded");
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     chatRound(observer, StopReason.TOOL_USE);
     observer.onJobFailed(new JobFailed(failure, "AGENT_INSTANCE_SUPERSEDED"));
 
@@ -394,7 +404,7 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
     observer.onTurnStarted(
-        turnStarted(1, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(1, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     observer.onJobFailed(
         new JobFailed(
             new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded"),
@@ -425,7 +435,7 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
     final var failure = new ConnectorException("MAX_MODEL_CALLS_EXCEEDED", "limit");
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onJobFailed(new JobFailed(failure, "MAX_MODEL_CALLS_EXCEEDED"));
 
     assertThat(exporter.getFinishedSpanItems())
@@ -456,7 +466,7 @@ class AgentTracingJobObserverTest {
   void jobCompletingWithoutAModelRoundExportsNothing() {
     final var completing =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
-    completing.onTurnStarted(turnStarted(2, List.of(), null));
+    completing.onTurnStarted(turnStarted(2, List.of()));
     completing.onJobCompleted();
 
     assertThat(exporter.getFinishedSpanItems()).isEmpty();
@@ -467,7 +477,7 @@ class AgentTracingJobObserverTest {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     chatRound(observer, StopReason.STOP);
     final var state = observer.onTurnCompleted(turnCompleted(1, false));
     observer.onJobCompleted();
@@ -482,7 +492,7 @@ class AgentTracingJobObserverTest {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onModelRoundStarted(roundStarted());
     // the marker is exported as soon as the first model round starts, whatever the job does next
     assertThat(exporter.getFinishedSpanItems())
@@ -529,7 +539,7 @@ class AgentTracingJobObserverTest {
         new AgentTracingListener(failingTracer, new AgentTracingProperties(true, false, null))
             .onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onTurnStarted(turnStarted(1, List.of()));
     observer.onModelRoundStarted(roundStarted());
     observer.onJobFailed(new JobFailed(new IllegalStateException("boom"), null));
 
@@ -548,7 +558,7 @@ class AgentTracingJobObserverTest {
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
 
     observer.onTurnStarted(
-        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.STOP);
     observer.onJobCompleted();
 
@@ -586,14 +596,12 @@ class AgentTracingJobObserverTest {
     final SpanData discoveryJob = span("invoke_agent agent");
     exporter.reset();
 
+    assertThat(afterDiscovery).doesNotContainKey("issuedAt");
     final var consuming =
         listener.onJobStarted(
             started(AgentJobKind.CONVERSATION, T0.plusSeconds(30), 0, afterDiscovery));
     consuming.onTurnStarted(
-        turnStarted(
-            1,
-            List.of(toolExecution("call-1", "search", T0.plusSeconds(25), false)),
-            T0.plusSeconds(2)));
+        turnStarted(1, List.of(toolExecution("call-1", "search", T0.plusSeconds(25), false))));
     chatRound(consuming, StopReason.STOP);
     consuming.onJobCompleted();
 
@@ -609,23 +617,25 @@ class AgentTracingJobObserverTest {
   void toolSpansOfOneTurnShareTheIssuingJobAsParent() {
     final var issuing =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
-    issuing.onTurnStarted(turnStarted(1, List.of(), null));
+    issuing.onTurnStarted(turnStarted(1, List.of()));
     chatRound(issuing, StopReason.TOOL_USE);
     final var state = issuing.onTurnCompleted(turnCompleted(1, true));
     issuing.onJobCompleted();
     final SpanData issuingJob = span("invoke_agent agent");
     exporter.reset();
+    final Instant issuedAt = T0.plusSeconds(2);
 
     final var consuming =
-        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0.plusSeconds(60), 1, state));
+        listener.onJobStarted(
+            started(
+                AgentJobKind.CONVERSATION, T0.plusSeconds(60), 1, withIssuedAt(state, issuedAt)));
     consuming.onTurnStarted(
         turnStarted(
             2,
             List.of(
                 toolExecution("call-1", "search", T0.plusSeconds(20), false),
                 toolExecution("call-2", "lookup", T0.plusSeconds(40), false),
-                toolExecution("call-3", "approval", T0.plusSeconds(50), true)),
-            T0.plusSeconds(2)));
+                toolExecution("call-3", "approval", T0.plusSeconds(50), true))));
     chatRound(consuming, StopReason.STOP);
     consuming.onJobCompleted();
 
@@ -635,9 +645,113 @@ class AgentTracingJobObserverTest {
         .allSatisfy(
             tool -> {
               assertThat(tool.getParentSpanId()).isEqualTo(issuingJob.getSpanId());
-              assertThat(tool.getStartEpochNanos())
-                  .isGreaterThanOrEqualTo(issuingJob.getStartEpochNanos());
+              assertThat(tool.getStartEpochNanos()).isEqualTo(nanos(issuedAt));
             });
+  }
+
+  @Test
+  void aTurnThatIssuesToolCallsRecordsWhenItIsPersisted() {
+    final Instant before = Instant.now();
+    final var issuing =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    issuing.onTurnStarted(turnStarted(1, List.of()));
+    chatRound(issuing, StopReason.TOOL_USE);
+    final var state = issuing.onTurnCompleted(turnCompleted(1, true));
+    issuing.onJobCompleted();
+
+    assertThat(issuedAtOf(state)).isBetween(before.truncatedTo(ChronoUnit.MILLIS), Instant.now());
+    assertThat(RunTraceState.fromMap(state))
+        .hasValueSatisfying(parsed -> assertThat(parsed.issuedAt()).isEqualTo(issuedAtOf(state)));
+  }
+
+  @Test
+  void aFinalAnswerAndAToolDiscoveryRecordNoIssueTime() {
+    final var answering =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    answering.onTurnStarted(turnStarted(1, List.of()));
+    chatRound(answering, StopReason.STOP);
+    final var afterAnswer = answering.onTurnCompleted(turnCompleted(1, false));
+    answering.onJobCompleted();
+
+    final var discovery =
+        listener.onJobStarted(
+            started(AgentJobKind.TOOL_DISCOVERY, T0.plusSeconds(10), null, Map.of()));
+    final var afterDiscovery =
+        discovery.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    discovery.onJobCompleted();
+
+    assertThat(afterAnswer).containsEntry("status", "CLOSED").doesNotContainKey("issuedAt");
+    assertThat(afterDiscovery).doesNotContainKey("issuedAt");
+  }
+
+  @Test
+  void aToolSpanNeverStartsAfterItsEnd() {
+    final Instant completed = T0.plusSeconds(5);
+    final var observer =
+        listener.onJobStarted(
+            started(
+                AgentJobKind.CONVERSATION,
+                T0.plusSeconds(60),
+                1,
+                withIssuedAt(openStateWithIssuer(1), completed.plusSeconds(3))));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", completed, false))));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    final SpanData tool = span("execute_tool search");
+    assertThat(tool.getStartEpochNanos()).isEqualTo(nanos(completed));
+    assertThat(tool.getEndEpochNanos()).isEqualTo(nanos(completed));
+  }
+
+  @Test
+  void toolSpansStartAtTheConsumingJobWhenTheStateHasNoIssueTime() {
+    final Instant jobStart = T0.plusSeconds(60);
+    final Instant completedBefore = T0.plusSeconds(20);
+    final Instant completedAfter = T0.plusSeconds(90);
+    final var observer =
+        listener.onJobStarted(
+            started(AgentJobKind.CONVERSATION, jobStart, 1, openStateWithIssuer(1)));
+
+    observer.onTurnStarted(
+        turnStarted(
+            2,
+            List.of(
+                toolExecution("call-1", "search", completedBefore, false),
+                toolExecution("call-2", "lookup", completedAfter, false))));
+    chatRound(observer, StopReason.STOP);
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getStartEpochNanos()).isEqualTo(nanos(completedBefore));
+    assertThat(span("execute_tool lookup").getStartEpochNanos()).isEqualTo(nanos(jobStart));
+    assertThat(span("execute_tool lookup").getEndEpochNanos()).isEqualTo(nanos(completedAfter));
+  }
+
+  @Test
+  void aStateOfAnEndedOrStaleRunLendsNoIssueTimeToANewRun() {
+    final Instant issuedAt = T0.minusSeconds(3600);
+    final Map<String, Object> closed =
+        withIssuedAt(
+            RunTraceState.of(
+                    "4bf92f3577b34da6a3ce929d0e0e4736",
+                    "00f067aa0ba902b7",
+                    true,
+                    RunTraceState.Status.CLOSED,
+                    1,
+                    "1111111111111111")
+                .toMap(),
+            issuedAt);
+    final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, closed));
+
+    observer.onTurnStarted(
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
+    chatRound(observer, StopReason.TOOL_USE);
+    final var state = observer.onTurnCompleted(turnCompleted(2, true));
+    observer.onJobCompleted();
+
+    assertThat(span("execute_tool search").getStartEpochNanos()).isEqualTo(nanos(T0));
+    assertThat(issuedAtOf(state)).isAfter(issuedAt);
   }
 
   @Test
@@ -646,7 +760,7 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
 
     observer.onTurnStarted(
-        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.STOP);
     observer.onJobCompleted();
 
@@ -661,7 +775,7 @@ class AgentTracingJobObserverTest {
     final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, state));
 
     observer.onTurnStarted(
-        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.STOP);
     observer.onJobCompleted();
 
@@ -683,7 +797,7 @@ class AgentTracingJobObserverTest {
     final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, closed));
 
     observer.onTurnStarted(
-        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(2, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.TOOL_USE);
     final var state = observer.onTurnCompleted(turnCompleted(2, true));
     observer.onJobCompleted();
@@ -701,7 +815,7 @@ class AgentTracingJobObserverTest {
     final var observer = listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 5, stale));
 
     observer.onTurnStarted(
-        turnStarted(6, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false)), T0));
+        turnStarted(6, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     chatRound(observer, StopReason.STOP);
     observer.onJobCompleted();
 
@@ -721,6 +835,28 @@ class AgentTracingJobObserverTest {
         .toMap();
   }
 
+  private Map<String, Object> openStateWithIssuer(int iterationKey) {
+    return RunTraceState.of(
+            "4bf92f3577b34da6a3ce929d0e0e4736",
+            "00f067aa0ba902b7",
+            true,
+            RunTraceState.Status.OPEN,
+            iterationKey,
+            "53995c3f42cd8ad8")
+        .toMap();
+  }
+
+  private static Map<String, Object> withIssuedAt(Map<String, Object> state, Instant issuedAt) {
+    final Map<String, Object> copy = new java.util.HashMap<>(state);
+    copy.put("issuedAt", issuedAt.toEpochMilli());
+    return copy;
+  }
+
+  private static Instant issuedAtOf(@Nullable Map<String, Object> state) {
+    assertThat(state).containsKey("issuedAt");
+    return Instant.ofEpochMilli((Long) state.get("issuedAt"));
+  }
+
   private static void chatRound(AgentJobObserver observer, StopReason stopReason) {
     observer.onModelRoundStarted(roundStarted());
     observer.onModelRoundCompleted(
@@ -738,14 +874,12 @@ class AgentTracingJobObserverTest {
     return new ModelRoundStarted(1, CHAT_MODEL, List.of(), List.of());
   }
 
-  private static TurnStarted turnStarted(
-      int iterationKey, List<ToolExecution> executions, @Nullable Instant issuedAt) {
+  private static TurnStarted turnStarted(int iterationKey, List<ToolExecution> executions) {
     final List<Message> input =
         List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build());
     return new TurnStarted(
         iterationKey,
         executions,
-        issuedAt,
         input,
         null,
         CHAT_MODEL,

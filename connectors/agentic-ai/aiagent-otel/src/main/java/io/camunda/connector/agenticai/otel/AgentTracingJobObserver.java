@@ -94,7 +94,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
 
   private @Nullable TurnStarted turn;
   private List<ToolExecution> toolExecutions = List.of();
-  private @Nullable Instant toolCallsIssuedAt;
   private Map<String, ToolDefinition> toolDefinitions = Map.of();
 
   AgentTracingJobObserver(
@@ -118,7 +117,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
           // a discovery dispatch persists no turn, so the iteration key stays what the context
           // already holds; this also covers a re-discovery in the middle of a run
           final Integer lastIterationKey = job.lastIterationKey();
-          return stateToContribute(Status.OPEN, lastIterationKey != null ? lastIterationKey : 0);
+          return stateToContribute(
+              Status.OPEN, lastIterationKey != null ? lastIterationKey : 0, null);
         });
   }
 
@@ -129,7 +129,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
         () -> {
           this.turn = event;
           this.toolExecutions = List.copyOf(event.toolExecutions());
-          this.toolCallsIssuedAt = event.toolCallsIssuedAt();
           if (captureContent) {
             this.toolDefinitions = toolDefinitionsByName(event.toolDefinitions());
           }
@@ -230,7 +229,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
                 GenAiAttributeMapper.outputMessagesJson(assistantMessage));
           }
           return stateToContribute(
-              event.finalAnswer() ? Status.CLOSED : Status.OPEN, event.iterationKey());
+              event.finalAnswer() ? Status.CLOSED : Status.OPEN,
+              event.iterationKey(),
+              event.finalAnswer() ? null : Instant.now());
         });
   }
 
@@ -414,8 +415,13 @@ class AgentTracingJobObserver implements AgentJobObserver {
     return builder.build();
   }
 
-  /** The state of the run after this job, or null when the run has no valid trace. */
-  private @Nullable Map<String, Object> stateToContribute(Status status, int iterationKey) {
+  /**
+   * The state of the run after this job, or null when the run has no valid trace.
+   *
+   * @param issuedAt when the turn of this job issued tool calls, null for a state that issues none
+   */
+  private @Nullable Map<String, Object> stateToContribute(
+      Status status, int iterationKey, @Nullable Instant issuedAt) {
     open();
     final RunTraceState current = run;
     if (current == null) {
@@ -432,7 +438,8 @@ class AgentTracingJobObserver implements AgentJobObserver {
             current.sampled(),
             status,
             iterationKey,
-            issuerSpanId)
+            issuerSpanId,
+            issuedAt)
         .toMap();
   }
 
@@ -537,16 +544,29 @@ class AgentTracingJobObserver implements AgentJobObserver {
   }
 
   /**
-   * One span per tool result consumed by the turn, from the tool call issue to its completion,
-   * below the {@code invoke_agent} span of the job that issued the call.
+   * The time the tool calls consumed by this job were dispatched: the time the issuing job recorded
+   * its turn, or the start of this job when the run state does not hold one.
+   */
+  private Instant toolCallsIssuedAt() {
+    final RunTraceState previous = resolution.previous();
+    final Instant recorded =
+        resolution.continuesRun() && previous != null ? previous.issuedAt() : null;
+    return recorded != null ? recorded : job.startedAt();
+  }
+
+  /**
+   * One span per tool result consumed by the turn, from the dispatch of the tool call to its
+   * completion, below the {@code invoke_agent} span of the job that issued the call. The start
+   * never lies after the end, because the clock of the worker that recorded the dispatch can differ
+   * from the one of the engine that recorded the completion.
    */
   private void emitToolSpans(Context parent, Instant now) {
+    final Instant issuedAt = toolCallsIssuedAt();
     for (final ToolExecution execution : toolExecutions) {
       try {
         final var result = execution.result();
         final Instant end = result.completedAt() != null ? result.completedAt().toInstant() : now;
-        final Instant issuedAt = toolCallsIssuedAt;
-        final Instant start = issuedAt != null && issuedAt.isBefore(end) ? issuedAt : end;
+        final Instant start = issuedAt.isBefore(end) ? issuedAt : end;
 
         final AttributesBuilder builder = identity.toBuilder();
         builder.putAll(GenAiAttributeMapper.toolIdentityAttributes(execution.call(), result));
@@ -556,11 +576,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
             execution.cancelled()
                 ? GenAiAttributes.TOOL_OUTCOME_CANCELLED
                 : GenAiAttributes.TOOL_OUTCOME_COMPLETED);
-        builder.put(
-            GenAiAttributes.TOOL_START_TIME_SOURCE,
-            issuedAt != null
-                ? GenAiAttributes.START_TIME_SOURCE_MESSAGE_ID
-                : GenAiAttributes.START_TIME_SOURCE_UNKNOWN);
         builder.putAll(
             GenAiAttributeMapper.toolContentAttributes(execution.call(), result, captureContent));
 

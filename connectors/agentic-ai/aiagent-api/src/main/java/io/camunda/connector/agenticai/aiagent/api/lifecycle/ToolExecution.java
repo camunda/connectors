@@ -13,7 +13,9 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A tool call result consumed by a turn, with the tool call that originated it when it can be
- * resolved.
+ * resolved. The time the tool completed is {@code result().completedAt()}. The event carries no
+ * start time: a listener that needs the time the tool calls were dispatched records it itself when
+ * the turn that issued them completes.
  *
  * @param call the originating tool call, absent when it cannot be correlated
  * @param cancelled whether the tool was interrupted instead of completed

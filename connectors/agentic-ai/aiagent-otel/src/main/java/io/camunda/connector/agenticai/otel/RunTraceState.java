@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.otel;
 
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.TraceId;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,9 @@ import org.jspecify.annotations.Nullable;
  * @param issuerSpanId the span id of the {@code invoke_agent} span of the job that wrote the state,
  *     16 lowercase hex characters, which is the job that issued the tool calls a later job
  *     consumes. Absent in a state that was written without it.
+ * @param issuedAt when the job that wrote the state recorded the turn that issued the tool calls a
+ *     later job consumes, with millisecond precision. Absent when the job did not issue tool calls
+ *     or the state was written without it.
  */
 public record RunTraceState(
     int version,
@@ -35,7 +39,8 @@ public record RunTraceState(
     boolean sampled,
     Status status,
     int iterationKey,
-    @Nullable String issuerSpanId) {
+    @Nullable String issuerSpanId,
+    @Nullable Instant issuedAt) {
 
   public static final int CURRENT_VERSION = 1;
 
@@ -61,8 +66,27 @@ public record RunTraceState(
       Status status,
       int iterationKey,
       @Nullable String issuerSpanId) {
+    return of(traceId, anchorSpanId, sampled, status, iterationKey, issuerSpanId, null);
+  }
+
+  /** Creates a state of the current version. */
+  public static RunTraceState of(
+      String traceId,
+      String anchorSpanId,
+      boolean sampled,
+      Status status,
+      int iterationKey,
+      @Nullable String issuerSpanId,
+      @Nullable Instant issuedAt) {
     return new RunTraceState(
-        CURRENT_VERSION, traceId, anchorSpanId, sampled, status, iterationKey, issuerSpanId);
+        CURRENT_VERSION,
+        traceId,
+        anchorSpanId,
+        sampled,
+        status,
+        iterationKey,
+        issuerSpanId,
+        issuedAt);
   }
 
   /** The JSON-friendly form that is stored in the agent context. */
@@ -77,6 +101,9 @@ public record RunTraceState(
     if (issuerSpanId != null) {
       map.put("issuerSpanId", issuerSpanId);
     }
+    if (issuedAt != null) {
+      map.put("issuedAt", issuedAt.toEpochMilli());
+    }
     return map;
   }
 
@@ -84,8 +111,8 @@ public record RunTraceState(
    * Reads a stored state. Returns empty for anything missing, malformed, or of another version: a
    * trace or span id that is not valid, a number that is not an integer within the int range, or an
    * unknown status. Entries the current layout does not define, such as the process instance key of
-   * earlier states, are ignored. A missing or invalid issuer span id leaves the issuer absent and
-   * does not invalidate the state.
+   * earlier states, are ignored. A missing or invalid issuer span id or issue time, stored as epoch
+   * milliseconds, leaves it absent and does not invalidate the state.
    */
   public static Optional<RunTraceState> fromMap(Map<String, Object> map) {
     try {
@@ -104,6 +131,7 @@ public record RunTraceState(
       }
       final String issuerSpanId =
           map.get("issuerSpanId") instanceof String id && SpanId.isValid(id) ? id : null;
+      final Long issuedAtMillis = toLong(map.get("issuedAt"));
       return Optional.of(
           of(
               traceId,
@@ -111,10 +139,33 @@ public record RunTraceState(
               sampled,
               Status.valueOf(statusName),
               iterationKey,
-              issuerSpanId));
+              issuerSpanId,
+              issuedAtMillis != null ? Instant.ofEpochMilli(issuedAtMillis) : null));
     } catch (RuntimeException e) {
       return Optional.empty();
     }
+  }
+
+  /** The value as a non-negative long, or null when it is not a number or not integral. */
+  private static @Nullable Long toLong(@Nullable Object value) {
+    if (!(value instanceof Number number)) {
+      return null;
+    }
+    if (number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte) {
+      return number.longValue() >= 0 ? number.longValue() : null;
+    }
+    final double asDouble = number.doubleValue();
+    if (Double.isNaN(asDouble)
+        || Double.isInfinite(asDouble)
+        || asDouble != Math.rint(asDouble)
+        || asDouble < 0
+        || asDouble >= Long.MAX_VALUE) {
+      return null;
+    }
+    return (long) asDouble;
   }
 
   /** The value as an int, or null when it is not a number, not integral, or out of range. */

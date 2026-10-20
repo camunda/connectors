@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.otel.RunTraceState.Status;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -86,9 +87,54 @@ class RunTraceStateTest {
   }
 
   @Test
+  void roundTripsTheIssueTimeAsEpochMilliseconds() {
+    final Instant issuedAt = Instant.parse("2026-10-19T09:00:06.123Z");
+    final RunTraceState state =
+        RunTraceState.of(TRACE_ID, SPAN_ID, true, Status.OPEN, 2, ISSUER_SPAN_ID, issuedAt);
+
+    assertThat(state.toMap()).containsEntry("issuedAt", issuedAt.toEpochMilli());
+    assertThat(RunTraceState.fromMap(state.toMap())).contains(state);
+  }
+
+  @Test
+  void readsTheIssueTimeFromAnyIntegralNumberType() {
+    final long millis = Instant.parse("2026-10-19T09:00:06.123Z").toEpochMilli();
+    for (final Object stored : new Object[] {millis, (double) millis, new BigDecimal(millis)}) {
+      assertThat(RunTraceState.fromMap(stored("issuedAt", stored)))
+          .hasValueSatisfying(
+              state -> assertThat(state.issuedAt()).isEqualTo(Instant.ofEpochMilli(millis)));
+    }
+  }
+
+  @Test
+  void readsAStateWrittenWithoutAnIssueTime() {
+    final Map<String, Object> earlier = stored("status", "OPEN");
+    assertThat(earlier).doesNotContainKey("issuedAt");
+
+    assertThat(RunTraceState.fromMap(earlier))
+        .hasValueSatisfying(state -> assertThat(state.issuedAt()).isNull());
+  }
+
+  @Test
+  void dropsAnInvalidIssueTimeButKeepsTheState() {
+    for (final Object invalid :
+        new Object[] {"1760864406123", -1L, 1.5d, Double.NaN, new BigDecimal("1.5"), true}) {
+      assertThat(RunTraceState.fromMap(stored("issuedAt", invalid)))
+          .hasValueSatisfying(state -> assertThat(state.issuedAt()).isNull());
+    }
+  }
+
+  @Test
   void aFullStateStaysWellUnderTheListenerStateLimit() throws Exception {
     final Map<String, Object> map =
-        RunTraceState.of(TRACE_ID, SPAN_ID, true, Status.CLOSED, Integer.MAX_VALUE, ISSUER_SPAN_ID)
+        RunTraceState.of(
+                TRACE_ID,
+                SPAN_ID,
+                true,
+                Status.CLOSED,
+                Integer.MAX_VALUE,
+                ISSUER_SPAN_ID,
+                Instant.parse("2026-10-19T09:00:06.123Z"))
             .toMap();
 
     final int bytes =

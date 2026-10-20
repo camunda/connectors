@@ -61,7 +61,6 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -547,24 +546,13 @@ public abstract class BaseAgentRequestHandler<
                                 result.properties().get(ToolCallResult.PROPERTY_INTERRUPTED))))
             .toList();
 
-    final var issuedAt =
-        toolExecutions.isEmpty() || previousTurn == null || previousTurn.assistantMessage() == null
-            ? null
-            : timestampOf(previousTurn.assistantMessage().id().value());
-
     return new TurnStarted(
         currentTurn.iterationKey(),
         toolExecutions,
-        issuedAt,
         currentTurn.inputMessages(),
         conversation.systemMessage(),
         agentConfiguration.chatModel(),
         agentConfiguration.toolDefinitions());
-  }
-
-  /** The creation time encoded in a time-ordered (version 7) UUID, null for any other version. */
-  private static @Nullable Instant timestampOf(UUID id) {
-    return id.version() == 7 ? Instant.ofEpochMilli(id.getMostSignificantBits() >>> 16) : null;
   }
 
   /**

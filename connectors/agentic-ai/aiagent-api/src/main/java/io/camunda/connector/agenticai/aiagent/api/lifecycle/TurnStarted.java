@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfigura
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.time.Instant;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -20,15 +19,11 @@ import org.jspecify.annotations.Nullable;
  * content, including prompts and tool results.
  *
  * @param toolExecutions the tool results consumed by this turn
- * @param toolCallsIssuedAt when the tool calls that these results answer were issued, derived from
- *     the time-ordered id of the assistant message that issued them. Absent when there are no tool
- *     results or the id is not time-based.
  */
 @Experimental
 public record TurnStarted(
     int iterationKey,
     List<ToolExecution> toolExecutions,
-    @Nullable Instant toolCallsIssuedAt,
     List<Message> inputMessages,
     @Nullable SystemMessage systemMessage,
     ChatModelConfiguration chatModel,
