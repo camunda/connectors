@@ -1,0 +1,12 @@
+{
+  "name": "Card dispute",
+  "resourceName": "card-dispute.bpmn",
+  "version": 24,
+  "versionTag": null,
+  "processDefinitionId": "CardDispute",
+  "tenantId": "<default>",
+  "processDefinitionKey": "2251799813777504",
+  "hasStartForm": false,
+  "state": "ACTIVE",
+  "bpmnSha256": "d8f1d32687f61a74d5e791da00bd3a9d74e4fef4abe9b87bbef49adaa567b6f1"
+}

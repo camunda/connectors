@@ -1,0 +1,37 @@
+{
+  "id": "StartDisputeForm",
+  "type": "default",
+  "schemaVersion": 18,
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Card dispute demo (hand-authored)",
+    "version": "3.0.0"
+  },
+  "components": [
+    {
+      "id": "Text_StartInstructions",
+      "type": "text",
+      "text": "## Start a card dispute\n\n**Unsupported prototype. Synthetic data only.** Upload the PDF statement and paste the cardholder's dispute text. This demo uses Jordan Avery, card ending 4417, disputed amount $482.17 and filing date 2026-10-20. Transactions are extracted from your PDF; no transaction CSV is preloaded. The deadline skill is supplied by configuration.\n\nSynthetic copy-paste text is stored on **Dispute received > Example output** in Modeler, under `claim`. Example output is documentation, not a runtime default.",
+      "layout": { "row": "row_0", "columns": null }
+    },
+    {
+      "id": "Field_Statement",
+      "type": "filepicker",
+      "key": "statementDocuments",
+      "label": "PDF statement",
+      "accept": ".pdf",
+      "validate": { "required": true },
+      "layout": { "row": "row_1", "columns": null }
+    },
+    {
+      "id": "Field_DisputeText",
+      "type": "textarea",
+      "key": "claim",
+      "label": "Dispute text",
+      "description": "Paste the cardholder's claim. Do not include real personal or financial data.",
+      "validate": { "required": true },
+      "layout": { "row": "row_2", "columns": null }
+    }
+  ]
+}

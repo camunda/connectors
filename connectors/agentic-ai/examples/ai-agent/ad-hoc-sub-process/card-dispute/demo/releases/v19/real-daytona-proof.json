@@ -1,0 +1,84 @@
+{
+  "bpmnSha256": "59808148662e5bba020330e7932c3d18aaca876fd302022c0d5f2a03abcf6698",
+  "processDefinitionKey": "2251799813761682",
+  "processDefinitionVersion": 19,
+  "sandboxRetries": "1",
+  "runtime": {
+    "pid": 83190,
+    "jarPath": "/Users/eric.lundberg/GitHub/card-dispute-proto/source-cluster/connectors/apps/bundle/default-bundle/target/connector-runtime-bundle-8.11.0-SNAPSHOT-with-dependencies.jar",
+    "sha256": "1999a4920c9902c5cbe350acf70fe69661768c783bd0bdcbfee417b297bc0223",
+    "startedAt": "2026-10-19T14:51:16.685742+00:00"
+  },
+  "gateSourceSha256": "d05f71c83211d9f5f20385e154417fb7c9c0fccd18923c5531a017f6ea473d7f",
+  "inputManifestSha256": "17ffa70577d166ebd220788f0c3b576033e72b8f3492fd62907ea22123d482e4",
+  "cluster": {
+    "restUrl": "http://localhost:8280",
+    "installation": "/Users/eric.lundberg/GitHub/card-dispute-proto/source-cluster",
+    "brokers": [
+      {
+        "nodeId": 0,
+        "host": "127.0.0.1",
+        "port": 26711
+      }
+    ],
+    "gatewayVersion": "8.11.0-SNAPSHOT"
+  },
+  "schemaVersion": 1,
+  "succeededAt": "2026-10-19T15:05:00.452862+00:00",
+  "execution": {
+    "transactionDocumentId": "7d09244c-bb97-4b65-90fd-6f8772f9e613",
+    "filingDeadline": "2027-01-13",
+    "processInstanceKey": "2251799813764859",
+    "stdoutArtifact": "proofs/artifacts/2251799813764859-stdout.txt",
+    "realDaytona": true,
+    "mockOverride": false,
+    "finalOutcome": "COMPLETED",
+    "remotePython": true,
+    "reconciliation": {
+      "method": "Read the export document, matched on merchant and amount, then listed refunds already posted for that merchant",
+      "daysBetweenCharges": 1,
+      "matchCount": 2,
+      "matches": [
+        {
+          "id": "TX-0911",
+          "date": "2026-09-14",
+          "merchant": "Northwind Electronics",
+          "amount": 482.17
+        },
+        {
+          "id": "TX-0912",
+          "date": "2026-09-15",
+          "merchant": "Northwind Electronics",
+          "amount": 482.17
+        }
+      ],
+      "overchargeAmount": 482.17,
+      "duplicateConfirmed": true,
+      "sourceDocument": "transactions-2026-09.csv",
+      "rowsRead": 18,
+      "sourceDocumentId": "7d09244c-bb97-4b65-90fd-6f8772f9e613",
+      "refundTotal": 34.99,
+      "refundsPosted": [
+        {
+          "id": "TX-0914",
+          "date": "2026-09-19",
+          "merchant": "Northwind Electronics",
+          "amount": -34.99
+        }
+      ]
+    },
+    "processDefinitionKey": "2251799813761682",
+    "sandboxCleanup": true,
+    "sandboxAllocation": {
+      "cpu": 1,
+      "memory": 1,
+      "disk": 3
+    },
+    "sandboxId": "e38f46c1-5077-4c81-99cb-6c07141abf92",
+    "sandboxCreateCount": 1,
+    "fraudConversationCount": 1,
+    "instanceCleanup": true,
+    "fallback": false,
+    "stdoutSha256": "d3c1d0a4f9374752c93caaa5e6a07ad7c5d3a70c4c9bf4b3037819b080e0b422"
+  }
+}

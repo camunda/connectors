@@ -1,0 +1,54 @@
+{
+  "processInstanceKey": "2251799813777523",
+  "processDefinitionKey": "2251799813777504",
+  "version": 24,
+  "reviewTaskKey": "2251799813777706",
+  "state": "COMPLETED",
+  "sandboxId": "f3a6e711-cea3-41b2-ba1e-d70bec61299f",
+  "sandboxCount": 1,
+  "a2aCount": 1,
+  "remoteFraudInstance": "2251799813793118",
+  "decision": "APPROVE",
+  "refundAmount": 482.17,
+  "postedRefundTotal": 34.99,
+  "filingDeadline": "2027-01-13",
+  "eligible": true,
+  "scriptSha256": "816444bd5c28a64e7ff99c7de4bb6c706e42b3bfe56acc1c98e9089c07fa8416",
+  "skillSha256": "6659ba6a5da95882485b9c5d3b5c74997f17cc2d28971ab41f29048c8e28935a",
+  "zipSha256": "a986fcf4a2252186514ea9722300f52690aa29b3fb7f297244f23db924f428e1",
+  "readResults": [
+    {
+      "key": "2251799813777652",
+      "time": "2026-10-19T18:23:48.655Z",
+      "path": "/home/daytona/.agents/skills/chargeback-deadline/SKILL.md"
+    },
+    {
+      "key": "2251799813777656",
+      "time": "2026-10-19T18:23:48.759Z",
+      "path": "/home/daytona/.agents/skills/chargeback-deadline/references/network-rules.md"
+    }
+  ],
+  "executionResult": {
+    "key": "2251799813777690",
+    "time": "2026-10-19T18:24:01.434Z",
+    "command": "cd /home/daytona && printf '%s  %s\\n' '816444bd5c28a64e7ff99c7de4bb6c706e42b3bfe56acc1c98e9089c07fa8416' '.agents/skills/chargeback-deadline/scripts/deadline.py' | sha256sum -c - && python3 .agents/skills/chargeback-deadline/scripts/deadline.py --charge-date 2026-09-14 --charge-date 2026-09-15 --reason-code CN-DUP-01 --filed-on 2026-10-20 && sha256sum .agents/skills/chargeback-deadline/scripts/deadline.py",
+    "stdout": ".agents/skills/chargeback-deadline/scripts/deadline.py: OK\n{\"anchorBasis\": \"last_duplicate_charge\", \"anchorDate\": \"2026-09-15\", \"chargeDates\": [\"2026-09-14\", \"2026-09-15\"], \"daysBetweenCharges\": 1, \"eligibilityScope\": \"filing_window_only\", \"eligible\": true, \"filedOn\": \"2026-10-20\", \"filingDeadline\": \"2027-01-13\", \"lastChargeDate\": \"2026-09-15\", \"reasonCode\": \"CN-DUP-01\", \"scriptSha256\": \"816444bd5c28a64e7ff99c7de4bb6c706e42b3bfe56acc1c98e9089c07fa8416\", \"skill\": \"chargeback-deadline\", \"timeLimitDays\": 120}\n816444bd5c28a64e7ff99c7de4bb6c706e42b3bfe56acc1c98e9089c07fa8416  .agents/skills/chargeback-deadline/scripts/deadline.py"
+  },
+  "createCatalog": [
+    {
+      "name": "chargeback-deadline",
+      "description": "Use when a synthetic card dispute needs a filing deadline and filing-window eligibility from charge dates and a network reason code.",
+      "location": "/home/daytona/.agents/skills/chargeback-deadline/SKILL.md"
+    }
+  ],
+  "documentReferencesVerified": 6,
+  "noReplacementImportsOrWrites": true,
+  "fullJsonVerbatimInDraft": true,
+  "acceptedUsingValidatedHelper": true,
+  "agentHistoryUnchangedAfterAcceptance": true,
+  "remainingSandboxes": 0,
+  "providerAbsenceVerified": true,
+  "latestPolicyVersion": 79,
+  "latestPolicyVariant": "cold",
+  "activeCardDisputeInstances": 0
+}

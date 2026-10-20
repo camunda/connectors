@@ -1,0 +1,8 @@
+{
+  "version": 23,
+  "processDefinitionKey": "2251799813776318",
+  "bpmnSha256": "2e63ca989315d07243426f94c6563d6638ed5fc192871cc77b844496e00bbaf6",
+  "reference": "2251799813776363",
+  "initialCaptureOnly": true,
+  "completionDeviation": "Wrong initial completion field caused unintended re-entry/second A2A; final run completed, sandbox absent. See reference-cleanup.json."
+}

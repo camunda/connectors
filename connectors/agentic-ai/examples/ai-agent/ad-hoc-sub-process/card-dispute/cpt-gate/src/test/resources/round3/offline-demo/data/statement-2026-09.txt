@@ -1,0 +1,45 @@
+ALDER & PINE BANK (FICTIONAL) - REWARDS CARD STATEMENT - synthetic demo data
+
+Cardholder: Jordan Avery              Card: **** **** **** 4417
+Statement period: 2026-09-01 to 2026-09-30   Closing date: 2026-09-30
+Payment due date: 2026-10-25           Minimum payment due: 35.00
+Credit limit: 5000.00                  Available credit: 3298.00
+
+Account summary
+Previous balance               1240.18
+Payments received          -   1240.18
+Purchases                      1736.99
+Credits and refunds        -     34.99
+Interest charged                  0.00
+Fees charged                      0.00
+New balance                    1702.00
+
+Payments
+Trans date  Post date   Ref       Description                          Amount
+2026-09-20  2026-09-21  PMT-0920  PAYMENT RECEIVED - THANK YOU       -1240.18
+
+Purchases, credits, and refunds
+Trans date  Post date   Ref       Description                          Amount
+2026-09-01  2026-09-02  TX-0901   GREENLEAF GROCERY #212               86.42
+2026-09-02  2026-09-03  TX-0902   METRO TRANSIT AUTOPAY                45.00
+2026-09-03  2026-09-04  TX-0903   BLUE HERON COFFEE                     6.75
+2026-09-05  2026-09-06  TX-0904   STREAMLY SUBSCRIPTION                15.99
+2026-09-07  2026-09-08  TX-0905   GREENLEAF GROCERY #212              112.08
+2026-09-08  2026-09-09  TX-0906   PINECREST PHARMACY                   23.10
+2026-09-10  2026-09-11  TX-0907   BLUE HERON COFFEE                     5.25
+2026-09-11  2026-09-12  TX-0908   HARBOR FUEL 0381                     58.60
+2026-09-12  2026-09-13  TX-0909   NORTHWIND ELECTRONICS ONLINE         34.99
+2026-09-13  2026-09-14  TX-0910   GREENLEAF GROCERY #212               74.31
+2026-09-14  2026-09-15  TX-0911   NORTHWIND ELECTRONICS ONLINE        482.17
+2026-09-15  2026-09-16  TX-0912   NORTHWIND ELECTRONICS ONLINE        482.17
+2026-09-17  2026-09-18  TX-0913   BLUE HERON COFFEE                     6.75
+2026-09-19  2026-09-20  TX-0914   NORTHWIND ELECTRONICS REFUND        -34.99
+2026-09-22  2026-09-23  TX-0915   HARBOR FUEL 0381                     61.20
+2026-09-24  2026-09-25  TX-0916   CITY UTILITIES AUTOPAY              132.55
+2026-09-27  2026-09-28  TX-0917   GREENLEAF GROCERY #212               93.67
+2026-09-29  2026-09-30  TX-0918   STREAMLY SUBSCRIPTION                15.99
+
+Questions about a charge? Call 1-800-555-0144 or dispute it in online banking.
+Dispute a charge within 120 days. See your cardholder agreement for details.
+
+This statement is synthetic. No real person, account, bank, or merchant is represented.

@@ -1,0 +1,164 @@
+[
+ {
+  "id": "TX-0901",
+  "date": "2026-09-01",
+  "postedDate": "2026-09-02",
+  "description": "GREENLEAF GROCERY #212",
+  "merchant": "Greenleaf Grocery",
+  "category": "groceries",
+  "amount": 86.42
+ },
+ {
+  "id": "TX-0902",
+  "date": "2026-09-02",
+  "postedDate": "2026-09-03",
+  "description": "METRO TRANSIT AUTOPAY",
+  "merchant": "Metro Transit",
+  "category": "transport",
+  "amount": 45.0
+ },
+ {
+  "id": "TX-0903",
+  "date": "2026-09-03",
+  "postedDate": "2026-09-04",
+  "description": "BLUE HERON COFFEE",
+  "merchant": "Blue Heron Coffee",
+  "category": "dining",
+  "amount": 6.75
+ },
+ {
+  "id": "TX-0904",
+  "date": "2026-09-05",
+  "postedDate": "2026-09-06",
+  "description": "STREAMLY SUBSCRIPTION",
+  "merchant": "Streamly",
+  "category": "subscriptions",
+  "amount": 15.99
+ },
+ {
+  "id": "TX-0905",
+  "date": "2026-09-07",
+  "postedDate": "2026-09-08",
+  "description": "GREENLEAF GROCERY #212",
+  "merchant": "Greenleaf Grocery",
+  "category": "groceries",
+  "amount": 112.08
+ },
+ {
+  "id": "TX-0906",
+  "date": "2026-09-08",
+  "postedDate": "2026-09-09",
+  "description": "PINECREST PHARMACY",
+  "merchant": "Pinecrest Pharmacy",
+  "category": "health",
+  "amount": 23.1
+ },
+ {
+  "id": "TX-0907",
+  "date": "2026-09-10",
+  "postedDate": "2026-09-11",
+  "description": "BLUE HERON COFFEE",
+  "merchant": "Blue Heron Coffee",
+  "category": "dining",
+  "amount": 5.25
+ },
+ {
+  "id": "TX-0908",
+  "date": "2026-09-11",
+  "postedDate": "2026-09-12",
+  "description": "HARBOR FUEL 0381",
+  "merchant": "Harbor Fuel",
+  "category": "transport",
+  "amount": 58.6
+ },
+ {
+  "id": "TX-0909",
+  "date": "2026-09-12",
+  "postedDate": "2026-09-13",
+  "description": "NORTHWIND ELECTRONICS ONLINE",
+  "merchant": "Northwind Electronics",
+  "category": "electronics",
+  "amount": 34.99
+ },
+ {
+  "id": "TX-0910",
+  "date": "2026-09-13",
+  "postedDate": "2026-09-14",
+  "description": "GREENLEAF GROCERY #212",
+  "merchant": "Greenleaf Grocery",
+  "category": "groceries",
+  "amount": 74.31
+ },
+ {
+  "id": "TX-0911",
+  "date": "2026-09-14",
+  "postedDate": "2026-09-15",
+  "description": "NORTHWIND ELECTRONICS ONLINE",
+  "merchant": "Northwind Electronics",
+  "category": "electronics",
+  "amount": 482.17
+ },
+ {
+  "id": "TX-0912",
+  "date": "2026-09-15",
+  "postedDate": "2026-09-16",
+  "description": "NORTHWIND ELECTRONICS ONLINE",
+  "merchant": "Northwind Electronics",
+  "category": "electronics",
+  "amount": 482.17
+ },
+ {
+  "id": "TX-0913",
+  "date": "2026-09-17",
+  "postedDate": "2026-09-18",
+  "description": "BLUE HERON COFFEE",
+  "merchant": "Blue Heron Coffee",
+  "category": "dining",
+  "amount": 6.75
+ },
+ {
+  "id": "TX-0914",
+  "date": "2026-09-19",
+  "postedDate": "2026-09-20",
+  "description": "NORTHWIND ELECTRONICS REFUND",
+  "merchant": "Northwind Electronics",
+  "category": "electronics",
+  "amount": -34.99
+ },
+ {
+  "id": "TX-0915",
+  "date": "2026-09-22",
+  "postedDate": "2026-09-23",
+  "description": "HARBOR FUEL 0381",
+  "merchant": "Harbor Fuel",
+  "category": "transport",
+  "amount": 61.2
+ },
+ {
+  "id": "TX-0916",
+  "date": "2026-09-24",
+  "postedDate": "2026-09-25",
+  "description": "CITY UTILITIES AUTOPAY",
+  "merchant": "City Utilities",
+  "category": "utilities",
+  "amount": 132.55
+ },
+ {
+  "id": "TX-0917",
+  "date": "2026-09-27",
+  "postedDate": "2026-09-28",
+  "description": "GREENLEAF GROCERY #212",
+  "merchant": "Greenleaf Grocery",
+  "category": "groceries",
+  "amount": 93.67
+ },
+ {
+  "id": "TX-0918",
+  "date": "2026-09-29",
+  "postedDate": "2026-09-30",
+  "description": "STREAMLY SUBSCRIPTION",
+  "merchant": "Streamly",
+  "category": "subscriptions",
+  "amount": 15.99
+ }
+]
