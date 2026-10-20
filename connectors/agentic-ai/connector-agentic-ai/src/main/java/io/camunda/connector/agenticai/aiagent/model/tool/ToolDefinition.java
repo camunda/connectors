@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.tool;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.common.AgenticAiRecord;
@@ -32,17 +34,40 @@ public record ToolDefinition(
     String name,
     @Nullable String description,
     Map<String, Object> inputSchema,
-    @Nullable DocumentDelivery documentDelivery)
+    @Nullable DocumentDelivery documentDelivery,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements ToolDefinitionBuilder.With {
+
+  /** Metadata key carrying the gateway type (e.g. "sandbox") for gateway-managed tools. */
+  public static final String METADATA_GATEWAY_TYPE = "gatewayType";
+
+  /** Metadata key carrying the target BPMN element id a sandbox tool call routes to. */
+  public static final String METADATA_ELEMENT_ID = "elementId";
 
   public ToolDefinition {
     inputSchema = DocumentParameterSchema.withHint(inputSchema);
+    metadata = (metadata != null) ? metadata : Map.of();
+  }
+
+  public ToolDefinition(
+      String name,
+      @Nullable String description,
+      Map<String, Object> inputSchema,
+      @Nullable DocumentDelivery documentDelivery) {
+    this(name, description, inputSchema, documentDelivery, null);
+  }
+
+  @JsonIgnore
+  public @Nullable String gatewayType() {
+    final var meta = metadata();
+    final var value = meta != null ? meta.get(METADATA_GATEWAY_TYPE) : null;
+    return value instanceof String s ? s : null;
   }
 
   /** Creates a tool definition with the document delivery {@code reference}. */
   public ToolDefinition(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
-    this(name, description, inputSchema, null);
+    this(name, description, inputSchema, null, null);
   }
 
   public static ToolDefinitionBuilder builder() {

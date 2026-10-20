@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRes
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.sandbox.discovery.SandboxToolNames;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -57,6 +59,8 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
             .map(this::createToolDefinition)
             .toList();
 
+    validateNoSandboxReservedNames(toolDefinitions);
+
     return new AdHocToolsSchemaResponse(toolDefinitions, gatewayToolDefinitions);
   }
 
@@ -67,6 +71,25 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
         .inputSchema(schemaGenerator.generateToolSchema(element))
         .documentDelivery(documentDelivery(element))
         .build();
+  }
+
+  private static void validateNoSandboxReservedNames(List<ToolDefinition> toolDefinitions) {
+    final var reservedNames =
+        toolDefinitions.stream()
+            .map(ToolDefinition::name)
+            .filter(name -> name.startsWith(SandboxToolNames.RESERVED_PREFIX))
+            .toList();
+
+    if (!reservedNames.isEmpty()) {
+      final var nameList =
+          reservedNames.stream().map("'%s'"::formatted).collect(Collectors.joining(", "));
+      throw new ConnectorException(
+          "SANDBOX_RESERVED_TOOL_NAME",
+          ("Reserved tool name(s) detected: [%s]. The 'sandbox_' prefix is reserved for sandbox"
+                  + " gateway tools and must not be used for modeled BPMN tool activities. Please"
+                  + " rename the affected activities.")
+              .formatted(nameList));
+    }
   }
 
   private static @Nullable DocumentDelivery documentDelivery(AdHocToolElement element) {
