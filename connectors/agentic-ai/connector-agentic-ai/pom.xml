@@ -40,6 +40,7 @@ io.camunda.connectors.agenticai.aiagent.v1-hybrid=${project.basedir}/element-tem
 io.camunda.connectors.agenticai.aiagent.jobworker.v1=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
 io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/element-template-overrides/v1-legacy-system-prompt.txt
     </systemPromptOverrides>
+    <version.daytona-sdk>0.189.0</version.daytona-sdk>
   </properties>
 
   <licenses>
@@ -305,6 +306,13 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
 
     <dependency>
+      <groupId>io.daytona</groupId>
+      <artifactId>sdk</artifactId>
+      <version>${version.daytona-sdk}</version>
+    </dependency>
+
+
+    <dependency>
       <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-common</artifactId>
       <version>${version.a2asdk}</version>
@@ -391,6 +399,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
 
     <!-- Compile scope: javac (running with -XDaddTypeAnnotationsToSymbol=true) needs Guava's
@@ -656,6 +669,17 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
               </features>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.sandbox.daytona.SandboxDaytonaFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.sandbox.daytona.v0</templateId>
+                  <templateFileName>agenticai-sandbox-daytona-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>

@@ -74,6 +74,16 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
 
   /**
+   * Allows a handler to contribute durable state to the {@link AgentContext} when its tool
+   * discovery results are handled (e.g. an opaque sandbox handle returned by a CREATE operation).
+   * The default is a no-op.
+   */
+  default AgentContext contributeDiscoveryContext(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults) {
+    return agentContext;
+  }
+
+  /**
    * Extracts {@link Document} instances from a tool call result managed by this handler. Called
    * after {@link #transformToolCallResults} so the {@code toolCallResult.content()} carries this
    * handler's transformed shape (typically a typed domain object).
