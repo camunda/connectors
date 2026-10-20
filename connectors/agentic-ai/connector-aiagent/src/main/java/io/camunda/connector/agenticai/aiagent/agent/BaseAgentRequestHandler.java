@@ -152,11 +152,6 @@ public abstract class BaseAgentRequestHandler<
     }
   }
 
-  /** The failure classification the provider reported, else the error code, else the class name. */
-  private static String errorTypeOf(Throwable e, @Nullable String errorCode) {
-    return errorCode != null ? errorCode : e.getClass().getName();
-  }
-
   private static @Nullable String errorCodeOf(Throwable e) {
     return e instanceof ConnectorException connectorException
         ? connectorException.getErrorCode()
@@ -379,8 +374,7 @@ public abstract class BaseAgentRequestHandler<
     try {
       result = executeChatModel(chatModel, executionContext, snapshot);
     } catch (RuntimeException e) {
-      final var errorCode = errorCodeOf(e);
-      lifecycle.modelRoundFailed(new ModelRoundFailed(errorTypeOf(e, errorCode), errorCode, e));
+      lifecycle.modelRoundFailed(new ModelRoundFailed(e, errorCodeOf(e)));
       throw e;
     }
     lifecycle.modelRoundCompleted(
@@ -491,7 +485,7 @@ public abstract class BaseAgentRequestHandler<
         AgentResponse.builder()
             .context(
                 lifecycle.toolDiscoveryDispatched(
-                    agentContext, new ToolDiscoveryDispatched(discoveryToolCalls.size())))
+                    agentContext, new ToolDiscoveryDispatched(discoveryToolCalls)))
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
     agentInstanceClient.applyToolDiscoveryStart(

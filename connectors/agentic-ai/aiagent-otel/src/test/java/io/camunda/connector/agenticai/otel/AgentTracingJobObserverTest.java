@@ -95,7 +95,8 @@ class AgentTracingJobObserverTest {
     // job 1: tool discovery starts the run
     final var discovery =
         listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
-    final var afterDiscovery = discovery.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(1));
+    final var afterDiscovery =
+        discovery.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
     discovery.onJobCompleted();
 
     assertThat(afterDiscovery).containsEntry("status", "OPEN").containsEntry("iterationKey", 0);
@@ -195,8 +196,7 @@ class AgentTracingJobObserverTest {
 
     observer.onTurnStarted(turnStarted(1, List.of(), null));
     observer.onModelRoundStarted(roundStarted());
-    observer.onModelRoundFailed(
-        new ModelRoundFailed("MODEL_CONTEXT_WINDOW_EXCEEDED", null, failure));
+    observer.onModelRoundFailed(new ModelRoundFailed(failure, "MODEL_CONTEXT_WINDOW_EXCEEDED"));
     observer.onJobFailed(new JobFailed(failure, "MODEL_CONTEXT_WINDOW_EXCEEDED"));
     // the SDK reports the failed completion afterwards; the first end wins
     observer.onJobCompletionFailed(new ExecutionFailed(failure, null));
@@ -372,7 +372,7 @@ class AgentTracingJobObserverTest {
   }
 
   private static AgentJobInfo jobInfo() {
-    return new AgentJobInfo(7, PROCESS_INSTANCE_KEY, 3, 4, "agent", "process", "<default>", "ab12");
+    return new AgentJobInfo(7, PROCESS_INSTANCE_KEY, 3, 4, "agent", "process", "<default>");
   }
 
   private static JobStarted started(

@@ -127,7 +127,7 @@ class RunTraceStateResolverTest {
       @Nullable Integer lastIterationKey,
       Map<String, Object> previousState) {
     return new JobStarted(
-        new AgentJobInfo(1, PROCESS_INSTANCE_KEY, 3, 4, "agent", "process", "<default>", null),
+        new AgentJobInfo(1, PROCESS_INSTANCE_KEY, 3, 4, "agent", "process", "<default>"),
         flavor,
         AgentJobKind.CONVERSATION,
         Instant.parse("2026-10-19T10:00:00Z"),

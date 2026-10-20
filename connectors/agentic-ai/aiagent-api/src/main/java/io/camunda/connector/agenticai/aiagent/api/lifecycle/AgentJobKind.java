@@ -13,8 +13,6 @@ import io.camunda.connector.agenticai.aiagent.api.Experimental;
 public enum AgentJobKind {
   /** The job dispatches gateway tool discovery calls and completes. */
   TOOL_DISCOVERY,
-  /** Tool discovery was dispatched earlier and its results are still incomplete. */
-  DISCOVERY_PENDING,
   /**
    * The job is ready to converse. It either runs a turn, or completes without one when it only
    * collects partial tool results.

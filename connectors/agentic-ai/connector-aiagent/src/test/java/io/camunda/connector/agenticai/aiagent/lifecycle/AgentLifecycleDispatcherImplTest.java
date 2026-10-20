@@ -84,7 +84,8 @@ class AgentLifecycleDispatcherImplTest {
             jobContext,
             previous,
             Instant.now());
-    final var result = lifecycle.toolDiscoveryDispatched(previous, new ToolDiscoveryDispatched(1));
+    final var result =
+        lifecycle.toolDiscoveryDispatched(previous, new ToolDiscoveryDispatched(List.of()));
 
     assertThat(seen.getFirst().previousState()).containsEntry("a", 1);
     assertThat(result.properties())
@@ -115,7 +116,7 @@ class AgentLifecycleDispatcherImplTest {
 
     final var result =
         start(dispatcher)
-            .toolDiscoveryDispatched(AgentContext.empty(), new ToolDiscoveryDispatched(1));
+            .toolDiscoveryDispatched(AgentContext.empty(), new ToolDiscoveryDispatched(List.of()));
 
     assertThat(result.properties()).isEmpty();
   }

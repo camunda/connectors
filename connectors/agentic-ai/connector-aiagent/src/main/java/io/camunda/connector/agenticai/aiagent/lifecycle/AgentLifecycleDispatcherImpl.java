@@ -14,15 +14,10 @@ import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentLifecycleListen
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.JobStarted;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.api.outbound.JobContext;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,21 +91,6 @@ public class AgentLifecycleDispatcherImpl implements AgentLifecycleDispatcher {
         jobContext.getElementInstanceKey(),
         jobContext.getElementId(),
         jobContext.getBpmnProcessId(),
-        jobContext.getTenantId(),
-        attemptDiscriminator(jobContext.getLeaseToken()));
-  }
-
-  /** Short, non-reversible discriminator of the lease token; the token itself is never exposed. */
-  private static @Nullable String attemptDiscriminator(@Nullable String leaseToken) {
-    if (leaseToken == null) {
-      return null;
-    }
-    try {
-      final var digest =
-          MessageDigest.getInstance("SHA-256").digest(leaseToken.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest, 0, 4);
-    } catch (NoSuchAlgorithmException e) {
-      return null;
-    }
+        jobContext.getTenantId());
   }
 }

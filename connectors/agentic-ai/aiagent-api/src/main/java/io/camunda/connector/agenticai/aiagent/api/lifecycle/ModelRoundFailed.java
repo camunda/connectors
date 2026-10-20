@@ -10,11 +10,10 @@ import io.camunda.connector.agenticai.aiagent.api.Experimental;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A call to the chat model failed.
+ * A call to the chat model failed. The handler rethrows the same exception afterwards.
  *
- * @param errorType a low-cardinality classification: the error code of a model rejection, else the
- *     class name of the failure
- * @param errorCode the error code of a rejection, absent for other failures
+ * @param cause the failure of the call
+ * @param errorCode the error code of a connector exception, absent for other failures
  */
 @Experimental
-public record ModelRoundFailed(String errorType, @Nullable String errorCode, Throwable cause) {}
+public record ModelRoundFailed(Throwable cause, @Nullable String errorCode) {}

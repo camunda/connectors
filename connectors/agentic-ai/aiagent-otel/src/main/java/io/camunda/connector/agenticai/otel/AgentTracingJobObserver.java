@@ -176,7 +176,9 @@ class AgentTracingJobObserver implements AgentJobObserver {
             span.setAttribute(
                 GenAiAttributes.RESPONSE_FINISH_REASONS,
                 List.of(GenAiAttributes.FINISH_REASON_ERROR));
-            tracer.markError(span, event.errorType(), description(event.cause()));
+            final String errorType =
+                event.errorCode() != null ? event.errorCode() : event.cause().getClass().getName();
+            tracer.markError(span, errorType, description(event.cause()));
             tracer.end(span, Instant.now());
           }
           return null;
@@ -335,10 +337,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
     builder.put(GenAiAttributes.AGENT_NAME, job.job().elementId());
     builder.put(GenAiAttributes.JOB_KEY, Long.toString(job.job().jobKey()));
     builder.put(GenAiAttributes.JOB_KIND, job.kind().name().toLowerCase(Locale.ROOT));
-    final String attempt = job.job().attempt();
-    if (attempt != null) {
-      builder.put(GenAiAttributes.JOB_ATTEMPT, attempt);
-    }
     return builder.build();
   }
 

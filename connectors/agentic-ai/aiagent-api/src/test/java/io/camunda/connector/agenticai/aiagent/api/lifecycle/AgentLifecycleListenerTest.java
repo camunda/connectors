@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.api.lifecycle;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ class AgentLifecycleListenerTest {
   @Test
   void listenerWithoutOverridesYieldsNoopObserver() {
     final AgentLifecycleListener listener = () -> "test";
-    final var job = new AgentJobInfo(1, 2, 3, 4, "agent", "process", "<default>", null);
+    final var job = new AgentJobInfo(1, 2, 3, 4, "agent", "process", "<default>");
     final var event =
         new JobStarted(
             job,
@@ -31,7 +32,7 @@ class AgentLifecycleListenerTest {
     final var observer = listener.onJobStarted(event);
 
     assertThat(observer).isSameAs(AgentJobObserver.NOOP);
-    assertThat(observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(1))).isNull();
+    assertThat(observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()))).isNull();
     assertThat(observer.onTurnCompleted(null)).isNull();
   }
 }

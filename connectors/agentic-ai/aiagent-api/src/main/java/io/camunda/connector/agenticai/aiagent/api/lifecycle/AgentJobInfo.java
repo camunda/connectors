@@ -7,13 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.api.lifecycle;
 
 import io.camunda.connector.agenticai.aiagent.api.Experimental;
-import org.jspecify.annotations.Nullable;
 
-/**
- * Identity of the job activation. The lease token is a fencing credential and is never exposed;
- * {@code attempt} is a short, non-reversible discriminator derived from it, absent when the job was
- * activated without a lease.
- */
+/** Identity of the job activation. The lease token is a fencing credential and is never exposed. */
 @Experimental
 public record AgentJobInfo(
     long jobKey,
@@ -22,5 +17,4 @@ public record AgentJobInfo(
     long elementInstanceKey,
     String elementId,
     String bpmnProcessId,
-    String tenantId,
-    @Nullable String attempt) {}
+    String tenantId) {}
