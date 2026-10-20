@@ -21,6 +21,10 @@ on:
         type: string
         required: false
         default: 'ubuntu-latest'
+      # Only the AI Agent e2e module needs the larger runner. The agentic AI A2A, MCP and real LLM
+      # e2e modules use ubuntu-latest. The connectors-e2e-test-agentic-ai key is for stable branches
+      # that still have one agentic AI e2e module. The nightly run uses this workflow from main to
+      # test every stable branch.
       runner-overrides:
         description: 'JSON map from E2E module names to runner labels'
         type: string
@@ -177,7 +181,8 @@ jobs:
           prepare_repository() {
             module="$1"
             repository="$2"
-            [ -f "$module/pom.xml" ] || return 0
+            # Skip modules that this branch does not have, and aggregators without tests.
+            [ -d "$module/src/test" ] || return 0
 
             mkdir -p "$RUNNER_TEMP/$repository/repository"
             $MVN_CMD --batch-mode \
@@ -189,17 +194,16 @@ jobs:
               -pl "$module"
           }
 
-          # Branches with the agentic AI e2e tests split into modules prepare the AI Agent module
-          # only. Older branches have a single agentic AI e2e module at the parent path.
-          if [ -f connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent/pom.xml ]; then
-            prepare_repository \
-              connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
-              m2-agentic
-          else
-            prepare_repository \
-              connectors-e2e-test/connectors-e2e-test-agentic-ai \
-              m2-agentic
-          fi
+          # Only the AI Agent e2e module runs on the larger runner, so only it gets its own agentic
+          # AI repository. Stable branches that still have one agentic AI e2e module prepare that
+          # module at the parent path instead. On other branches the parent is an aggregator, and
+          # prepare_repository skips it.
+          prepare_repository \
+            connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            m2-agentic
+          prepare_repository \
+            connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent \
+            m2-agentic
           prepare_repository \
             connectors-e2e-test/connectors-e2e-test-inbound-runtime \
             m2-inbound-runtime
@@ -338,6 +342,8 @@ jobs:
         run: |
           echo "branch=${BRANCH//\//-}" >> "$GITHUB_OUTPUT"
           echo "module=${MODULE//\//-}" >> "$GITHUB_OUTPUT"
+          # The single agentic AI e2e module of older stable branches and the AI Agent e2e module
+          # share the agentic AI repository. The other agentic AI e2e modules use the full one.
           case "$MODULE" in
             connectors-e2e-test-agentic-ai|connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent)
               repository_artifact=m2-repo-agentic

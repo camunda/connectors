@@ -264,7 +264,9 @@ jobs:
       run-unit-tests: false
       maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
       build-runner: gcp-core-8-release
-      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+      # Of the agentic AI e2e modules, only the AI Agent module needs the larger runner. A release
+      # runs this file from the released branch, so the map lists only the modules of this branch.
+      runner-overrides: '{"connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
     secrets: inherit
 
 
