@@ -265,10 +265,12 @@ High-frequency traps (detail behind each link):
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
   documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order. A tool
-  parameter of the type `document` of `fromAi` holds a handle the model passed; `DocumentParameterResolver` turns it into
-  the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a
-  runtime tool (`RuntimeTools`), and the stored messages and the history keep the handle. A call whose value is not the
-  handle of a known document is rejected at admission (`ToolCallAdmission`), for a call of either kind.
+  parameter of the type `document` of `fromAi` holds a handle the model passed, and a parameter that takes text or a
+  document (an `anyOf` or `oneOf` with a document alternative) holds a handle only when the model passed exactly one
+  handle, and text otherwise; `DocumentParameterResolver` turns the handle into the Camunda document reference for a
+  process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a runtime tool (`RuntimeTools`), and the
+  stored messages and the history keep the handle. A tool call of either kind whose value is not the handle of a known
+  document is rejected at admission (`ToolCallAdmission`).
   [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
