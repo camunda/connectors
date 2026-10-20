@@ -61,8 +61,8 @@ The provider SPI has two parts, both selected by the name in
 
 The connector keeps everything else: the digest, the registry, the wait that consumes no retry,
 re-provisioning on `DEPLOYMENT_MISSING`, limits and secrets. A provider can also come from a jar
-added to the runtime classpath, with one bean of each part, so a provider can also come from a jar added to the
-runtime classpath, such as `/opt/custom` in the Docker image; this has not been tested. The SPI
+added to the runtime classpath, such as `/opt/custom` in the Docker image, with one bean of each
+part; this has not been tested. The SPI
 has no compatibility guarantee yet.
 
 ## Consequences
