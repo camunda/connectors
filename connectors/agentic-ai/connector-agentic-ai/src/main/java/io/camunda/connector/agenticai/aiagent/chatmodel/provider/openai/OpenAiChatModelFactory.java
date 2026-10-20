@@ -39,6 +39,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -149,13 +150,13 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private static void applyApiBackend(
       OpenAIOkHttpClient.Builder builder, OpenAiApiBackend apiBackend) {
     final var openai = apiBackend.openai();
-    builder.apiKey(openai.apiKey());
+    builder.apiKey(openai.effectiveApiKey());
 
-    if (openai.organizationId() != null && !openai.organizationId().isBlank()) {
-      builder.organization(openai.organizationId());
+    if (openai.effectiveOrganizationId() != null && !openai.effectiveOrganizationId().isBlank()) {
+      builder.organization(openai.effectiveOrganizationId());
     }
-    if (openai.projectId() != null && !openai.projectId().isBlank()) {
-      builder.project(openai.projectId());
+    if (openai.effectiveProjectId() != null && !openai.effectiveProjectId().isBlank()) {
+      builder.project(openai.effectiveProjectId());
     }
     if (openai.endpoint() != null) {
       builder.baseUrl(openai.endpoint());
@@ -217,7 +218,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
     switch (foundry.authentication()) {
       case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
-          builder.credential(AzureApiKeyCredential.create(apiKeyAuth.apiKey()));
+          builder.credential(
+              AzureApiKeyCredential.create(Objects.requireNonNull(apiKeyAuth.effectiveApiKey())));
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           builder.credential(
               BearerTokenCredential.create(

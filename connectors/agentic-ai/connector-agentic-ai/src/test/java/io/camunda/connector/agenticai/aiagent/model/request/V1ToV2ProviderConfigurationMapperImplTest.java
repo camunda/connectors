@@ -101,7 +101,12 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
                     new AnthropicApi(
-                        "anthropic-api-key", "https://custom.anthropic.example", null, null, null)),
+                        null,
+                        "anthropic-api-key",
+                        "https://custom.anthropic.example",
+                        null,
+                        null,
+                        null)),
                 new AnthropicChatModelConfiguration.AnthropicModel(
                     "claude-sonnet-4-6",
                     new AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters(
@@ -127,7 +132,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
         new AnthropicChatModelConfiguration(
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
-                    new AnthropicApi("anthropic-api-key", null, null, null, null)),
+                    new AnthropicApi(null, "anthropic-api-key", null, null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
@@ -151,7 +156,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new AnthropicChatModelConfiguration.AnthropicConnection(
                 new AnthropicApiBackend(
                     new AnthropicApi(
-                        "anthropic-api-key", "https://proxy.example.com", null, null, null)),
+                        null, "anthropic-api-key", "https://proxy.example.com", null, null, null)),
                 new AnthropicChatModelConfiguration.AnthropicModel("claude-3", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 
@@ -176,7 +181,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                 new OpenAiCompletionsApi(new CompletionsParameters(2048, null, 0.7, 0.8)),
                 new OpenAiApiBackend(
                     new OpenAiApiConnection(
-                        "openai-key", "org-1", "proj-1", null, null, null, null)),
+                        null, "openai-key", "org-1", "proj-1", null, null, null, null)),
                 new OpenAiModel("gpt-4o"),
                 new TimeoutConfiguration(Duration.ofSeconds(45))));
 
@@ -411,8 +416,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new BedrockConverseConnection(
                 "eu-west-1",
                 "https://vpce.example",
-                new AwsAuthentication.AwsStaticCredentialsAuthentication(
-                    "AKIA-access", "secret-key"),
+                new AwsAuthentication.AwsIamAuthentication(
+                    null,
+                    new AwsAuthentication.AwsIamAuthenticationMethod
+                        .AwsStaticCredentialsAuthentication("AKIA-access", "secret-key")),
                 null,
                 null,
                 null,
@@ -442,8 +449,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
             new BedrockConverseConnection(
                 "us-east-1",
                 null,
-                new AwsAuthentication.AwsStaticCredentialsAuthentication(
-                    "AKIA-access", "secret-key"),
+                new AwsAuthentication.AwsIamAuthentication(
+                    null,
+                    new AwsAuthentication.AwsIamAuthenticationMethod
+                        .AwsStaticCredentialsAuthentication("AKIA-access", "secret-key")),
                 null,
                 null,
                 null,
@@ -468,7 +477,10 @@ class V1ToV2ProviderConfigurationMapperImplTest {
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
         .isEqualTo(
-            new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA-access", "secret-key"));
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                    "AKIA-access", "secret-key")));
   }
 
   @Test
@@ -485,7 +497,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
     final var result = mapper.map(source);
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
-        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication("bedrock-api-key"));
+        .isEqualTo(new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-api-key"));
   }
 
   @Test
@@ -502,7 +514,11 @@ class V1ToV2ProviderConfigurationMapperImplTest {
     final var result = mapper.map(source);
 
     assertThat(((BedrockConverseChatModelConfiguration) result).bedrock().authentication())
-        .isEqualTo(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+        .isEqualTo(
+            new AwsAuthentication.AwsIamAuthentication(
+                null,
+                new AwsAuthentication.AwsIamAuthenticationMethod
+                    .AwsDefaultCredentialsChainAuthentication()));
   }
 
   @Test
@@ -526,7 +542,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     new FoundryBackend(
                         "https://my-resource.openai.azure.com",
                         null,
-                        new FoundryAuthentication.ApiKeyAuthentication("azure-api-key"),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "azure-api-key"),
                         null,
                         null,
                         null)),
@@ -558,6 +574,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "https://my-resource.openai.azure.com",
                         null,
                         new FoundryAuthentication.ClientCredentialsAuthentication(
+                            null,
                             "client-id",
                             "client-secret",
                             "tenant-id",
@@ -592,7 +609,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                     new FoundryBackend(
                         "https://my-resource.openai.azure.com",
                         null,
-                        new FoundryAuthentication.ApiKeyAuthentication("azure-api-key"),
+                        new FoundryAuthentication.ApiKeyAuthentication(null, "azure-api-key"),
                         null,
                         null,
                         null)),
@@ -632,7 +649,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "us-central1",
                         null,
                         new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-                            "{\"type\":\"service_account\"}"))),
+                            null, "{\"type\":\"service_account\"}"))),
                 new GeminiModel(
                     "gemini-3-pro-preview",
                     new GeminiModelParameters(
@@ -697,7 +714,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
                         "us-central1",
                         null,
                         new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication(
-                            "{\"type\":\"service_account\"}"))),
+                            null, "{\"type\":\"service_account\"}"))),
                 new GeminiModel("gemini-3-pro-preview", null),
                 new TimeoutConfiguration(DEFAULT_TIMEOUT)));
 

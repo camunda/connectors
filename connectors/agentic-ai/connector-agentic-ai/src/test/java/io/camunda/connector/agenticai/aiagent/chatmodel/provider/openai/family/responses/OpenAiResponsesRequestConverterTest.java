@@ -71,7 +71,7 @@ class OpenAiResponsesRequestConverterTest {
 
   private static OpenAiBackend defaultBackend() {
     return new OpenAiApiBackend(
-        new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
+        new OpenAiApiConnection(null, "sk-test", null, null, null, null, null, null));
   }
 
   private static OpenAiChatModelConfiguration model(@Nullable ResponsesParameters parameters) {
@@ -932,7 +932,7 @@ class OpenAiResponsesRequestConverterTest {
     final var backend =
         new OpenAiApiBackend(
             new OpenAiApiConnection(
-                "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
+                null, "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
@@ -976,6 +976,7 @@ class OpenAiResponsesRequestConverterTest {
     final var backend =
         new OpenAiApiBackend(
             new OpenAiApiConnection(
+                null,
                 "sk-test",
                 null,
                 null,

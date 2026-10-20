@@ -369,7 +369,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                 new AnthropicConnection(
                     new AnthropicApiBackend(
                         new AnthropicApiBackend.AnthropicApi(
-                            "sk-ant-test", null, null, null, null)),
+                            null, "sk-ant-test", null, null, null, null)),
                     new AnthropicModel("claude-sonnet-5", null),
                     null)),
             AnthropicChatModelFactory.class),
@@ -378,7 +378,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             new GeminiChatModelConfiguration(
                 new GeminiConnection(
                     new GeminiApiBackend(
-                        new GeminiApiBackend.GoogleGeminiApi("test-api-key", null)),
+                        new GeminiApiBackend.GoogleGeminiApi(null, "test-api-key", null)),
                     new GeminiModel("gemini-3-pro-preview", null),
                     null)),
             GeminiChatModelFactory.class),
@@ -434,7 +434,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                     new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend(
                         new OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend
                             .OpenAiApiConnection(
-                            "sk-openai-test", null, null, null, null, null, null)),
+                            null, "sk-openai-test", null, null, null, null, null, null)),
                     new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
                     null)),
             OpenAiChatModelFactory.class),

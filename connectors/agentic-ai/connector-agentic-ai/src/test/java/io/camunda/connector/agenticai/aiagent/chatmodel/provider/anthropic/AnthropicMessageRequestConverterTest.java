@@ -63,7 +63,7 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -78,7 +78,7 @@ class AnthropicMessageRequestConverterTest {
     return new AnthropicChatModelConfiguration(
         new AnthropicConnection(
             new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicApiBackend.AnthropicApi(null, "sk-ant-test", null, null, null, null)),
             new AnthropicModel("claude-sonnet-4-6", parameters),
             null));
   }
@@ -101,7 +101,7 @@ class AnthropicMessageRequestConverterTest {
         new AnthropicConnection(
             new AnthropicApiBackend(
                 new AnthropicApiBackend.AnthropicApi(
-                    "sk-ant-test", null, headers, queryParameters, bodyProperties)),
+                    null, "sk-ant-test", null, headers, queryParameters, bodyProperties)),
             new AnthropicModel("claude-sonnet-4-6", null),
             null));
   }

@@ -31,10 +31,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.v2.FoundryAuthentica
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -126,7 +128,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
   private static void applyApiBackend(
       AnthropicOkHttpClient.Builder builder, AnthropicApiBackend apiBackend) {
-    builder.apiKey(apiBackend.anthropic().apiKey());
+    builder.apiKey(Objects.requireNonNull(apiBackend.anthropic().effectiveApiKey()));
 
     if (apiBackend.anthropic().endpoint() != null) {
       builder.baseUrl(apiBackend.anthropic().endpoint());
@@ -170,17 +172,33 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
     }
 
     switch (awsBedrockMantle.authentication()) {
-      case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
-          backendBuilder
-              .awsAccessKey(staticAuth.accessKey())
-              .awsSecretAccessKey(staticAuth.secretKey());
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
-          backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
+      case AwsAuthentication.AwsIamAuthentication iam ->
+          applyIamAuthentication(iam, backendBuilder);
       case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
-          backendBuilder.apiKey(apiKeyAuth.apiKey());
+          backendBuilder.apiKey(Objects.requireNonNull(apiKeyAuth.effectiveApiKey()));
     }
 
     builder.backend(backendBuilder.build());
+  }
+
+  private static void applyIamAuthentication(
+      AwsAuthentication.AwsIamAuthentication iam, BedrockMantleBackend.Builder backendBuilder) {
+    if (iam.awsCredential() != null) {
+      backendBuilder.awsCredentialsProvider(
+          CredentialsProviderSupportV2.credentialsProvider(iam.awsCredential().authentication()));
+      return;
+    }
+
+    switch (Objects.requireNonNull(iam.awsIam())) {
+      case AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication
+              staticAuth ->
+          backendBuilder
+              .awsAccessKey(staticAuth.accessKey())
+              .awsSecretAccessKey(staticAuth.secretKey());
+      case AwsAuthentication.AwsIamAuthenticationMethod.AwsDefaultCredentialsChainAuthentication(
+              ) ->
+          backendBuilder.awsCredentialsProvider(DefaultCredentialsProvider.builder().build());
+    }
   }
 
   /**
@@ -197,7 +215,7 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
 
     switch (foundry.authentication()) {
       case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
-          backendBuilder.apiKey(apiKeyAuth.apiKey());
+          backendBuilder.apiKey(Objects.requireNonNull(apiKeyAuth.effectiveApiKey()));
       case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
           backendBuilder.bearerTokenSupplier(
               foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout));

@@ -55,6 +55,16 @@ Entra ID variant supplies `Authorization: Bearer <token>` from a `Supplier<Strin
 request. Authentication config and Entra ID token handling are shared with the OpenAI provider — see
 [Microsoft Foundry authentication](#microsoft-foundry-authentication).
 
+### Credentials
+
+`anthropic-api` supports a saved `io.camunda:agentic-ai-anthropic-api-credential:1` credential
+(`apiKey` only); the escape hatches (`endpoint`/`headers`/`queryParameters`/`bodyProperties`) stay
+inline and always visible regardless. `foundry`'s credentials are shared with OpenAI — see
+[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials).
+`aws-bedrock-mantle`'s credentials are shared with Bedrock Converse — see
+[AWS credentials](#aws-credentials). See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
+
 ### Reasoning
 
 `AnthropicModelParameters.thinking` (`ENABLED`/`ADAPTIVE`/`DISABLED`) maps onto the SDK's
@@ -107,7 +117,12 @@ assistant message and metrics already built for the turn as the exception's `Par
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
 backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
-(static credentials, API key, or the default credentials chain) and an optional custom endpoint.
+(AWS IAM, or Bedrock's own bearer API key — see [AWS credentials](#aws-credentials)) and an optional
+custom endpoint.
+
+### Credentials
+
+Shared with Anthropic's `aws-bedrock-mantle` backend — see [AWS credentials](#aws-credentials).
 
 ### HTTP overrides
 
@@ -262,6 +277,15 @@ which is also why the Entra ID token scope is fixed per Azure cloud rather than 
 through the SDK's dedicated `azureServiceVersion(...)` builder method; the unified surface otherwise
 uses implicit versioning.
 
+### Credentials
+
+`openai-api` supports a saved `io.camunda:agentic-ai-openai-api-credential:1` credential (`apiKey`,
+`organizationId`, `projectId` — all three together); the escape hatches (`endpoint`/`headers`/
+`queryParameters`/`bodyProperties`) stay inline and always visible regardless. `foundry`'s credentials
+are shared with Anthropic — see
+[Microsoft Foundry authentication § Foundry credentials](#foundry-credentials). See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
+
 ### Reasoning effort
 
 One nullable `OpenAiEffort` enum per family. Completions maps it to `reasoningEffort` (input-only; no
@@ -352,9 +376,9 @@ An over-length request is rejected outright with an HTTP 400 (`BadRequestExcepti
 
 ## Gemini
 
-One backend today, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
-Google GenAI Java SDK's Developer API. A second backend, `google-vertex-ai`, is added on a stacked
-branch and shares every converter described below unchanged.
+Two backends, `GeminiBackend.GeminiApiBackend` (`google-gemini-api`, API-key auth) against the
+Google GenAI Java SDK's Developer API and `GeminiBackend.GeminiVertexAiBackend`
+(`google-vertex-ai`), sharing every converter described below unchanged.
 
 ### Backends
 
@@ -362,6 +386,15 @@ branch and shares every converter described below unchanged.
 custom-backend variant (no user-configurable headers/query params, unlike Anthropic/OpenAI's
 `*CustomBackend`). `descriptiveProvider()` reports this backend too, e.g.
 `google-gemini/google-vertex-ai`.
+
+### Credentials
+
+`google-gemini-api` supports a saved `io.camunda:agentic-ai-google-gemini-api-credential:1`
+credential (`apiKey` only); the `endpoint` escape hatch stays inline and always visible regardless.
+`google-vertex-ai`'s `serviceAccountCredentials` authentication supports a saved
+`io.camunda:agentic-ai-google-vertex-ai-credential:1` credential (`jsonKey` only);
+`applicationDefaultCredentials` has no scalars to save. See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
 
 ### Reasoning
 
@@ -537,6 +570,18 @@ final wrapping into its vendor SDK's credential type, since those types are vend
 SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
 tenant.
 
+### Foundry credentials
+
+`ApiKeyAuthentication` supports a saved `io.camunda:agentic-ai-foundry-api-key-credential:1`
+credential (`apiKey` only). `ClientCredentialsAuthentication` supports a saved
+`io.camunda:agentic-ai-foundry-client-credentials-credential:1` credential (`clientId`,
+`clientSecret`, `tenantId`, `authorityHost`). `authorityHost` travels with this credential rather than
+staying inline like the other escape hatches: it identifies which Entra ID authority the credential's
+identity belongs to, so it's part of the credential's own identity, not diagram-level configuration.
+`entraIdScope` and the `foundry.endpoint` escape hatch stay inline and always visible regardless.
+`ManagedIdentityAuthentication` has no scalars to save. See
+[ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.
+
 ### Entra ID token scope
 
 The scope is fixed per Azure cloud rather than derived per endpoint: `https://ai.azure.com/.default`
@@ -589,3 +634,23 @@ different timeouts get their own credential rather than silently sharing whichev
 When no connection timeout is supplied, the factories use the configured
 `chat-model.api.default-timeout`; therefore the credential still receives a configured HTTP client
 even when no proxy is present.
+
+## AWS credentials
+
+Shared by [Bedrock Converse](#bedrock-converse) and Anthropic's `aws-bedrock-mantle` backend: both
+authenticate the same way, so `AwsAuthentication` (`model.request.v2`) is one sealed interface bound
+per provider at `provider.<provider>.backend.<...>.authentication.*`. It has two top-level families —
+`AwsIamAuthentication` and `AwsApiKeyAuthentication` — kept as separate variants rather than one flat
+list of options, for the same reason each has its own credential type below.
+
+`AwsIamAuthentication` either binds the same `io.camunda:aws-credential:1` credential the other AWS
+connectors already use, or takes static keys/the default credentials chain entered directly. That
+credential already carries its own static-keys-vs-default-chain choice internally
+(`AwsCredentialConfiguration.authentication`), so nesting the inline choice inside the IAM family
+(rather than flattening credential-or-inline and static-vs-default-chain into one three-way list)
+keeps "default credentials chain" reachable in exactly one place instead of two. The credential's own
+`region` field is never consulted here: both backends' own `region` stays required and independent of
+any bound credential. `AwsApiKeyAuthentication` is Bedrock's own bearer API key, structurally
+unrelated to IAM, with its own dedicated `io.camunda:agentic-ai-bedrock-api-key-credential:1`
+credential (`apiKey` only). See [ADR 015](../adr/015-v2-provider-credential-templates.md) for the
+general rationale.

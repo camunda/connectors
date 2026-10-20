@@ -139,7 +139,7 @@ class AnthropicChatModelFactoryClientTest {
     executeAgainst(
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
-                "anthropic-api-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
+                null, "anthropic-api-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/v1/messages"))
@@ -151,6 +151,7 @@ class AnthropicChatModelFactoryClientTest {
     executeAgainst(
         new AnthropicApiBackend(
             new AnthropicApiBackend.AnthropicApi(
+                null,
                 "anthropic-api-secret-key",
                 wireMock.getHttpBaseUrl(),
                 Map.of("X-Hidden-Header", "hidden-value"),
@@ -235,7 +236,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 // FoundryBackend appends "/anthropic/v1/messages", matched by setUp()'s pattern.
                 wireMock.getHttpBaseUrl(),
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 null,
                 null,
                 null)));
@@ -251,7 +252,7 @@ class AnthropicChatModelFactoryClientTest {
         new AnthropicFoundryBackend(
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
-                new FoundryAuthentication.ApiKeyAuthentication("foundry-secret-key"),
+                new FoundryAuthentication.ApiKeyAuthentication(null, "foundry-secret-key"),
                 Map.of("X-Hidden-Header", "hidden-value"),
                 Map.of("hidden-param", "hidden-value"),
                 Map.of("hidden_field", "hidden_value"))));
@@ -276,7 +277,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)));
@@ -322,7 +323,7 @@ class AnthropicChatModelFactoryClientTest {
             new AnthropicFoundryBackend.FoundryBackend(
                 wireMock.getHttpBaseUrl(),
                 new FoundryAuthentication.ClientCredentialsAuthentication(
-                    "client-id", "client-secret", "tenant-id", null, null),
+                    null, "client-id", "client-secret", "tenant-id", null, null),
                 null,
                 null,
                 null)),
@@ -345,7 +346,7 @@ class AnthropicChatModelFactoryClientTest {
           new AnthropicFoundryBackend(
               new AnthropicFoundryBackend.FoundryBackend(
                   "http://192.0.2.1:1",
-                  new FoundryAuthentication.ApiKeyAuthentication("direct-secret-key"),
+                  new FoundryAuthentication.ApiKeyAuthentication(null, "direct-secret-key"),
                   null,
                   null,
                   null)));
@@ -358,8 +359,26 @@ class AnthropicChatModelFactoryClientTest {
   void bedrockBackendWithStaticCredentialsSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
         wireMock,
-        new AwsAuthentication.AwsStaticCredentialsAuthentication(
-            "AKIAEXAMPLE", "secretExampleKey"));
+        new AwsAuthentication.AwsIamAuthentication(
+            null,
+            new AwsAuthentication.AwsIamAuthenticationMethod.AwsStaticCredentialsAuthentication(
+                "AKIAEXAMPLE", "secretExampleKey")));
+
+    verify(
+        postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
+            .withHeader("Authorization", matching("AWS4-HMAC-SHA256.*")));
+  }
+
+  @Test
+  void bedrockBackendWithBoundAwsCredentialSignsRequestWithSigV4(WireMockRuntimeInfo wireMock) {
+    executeAgainstBedrock(
+        wireMock,
+        new AwsAuthentication.AwsIamAuthentication(
+            new io.camunda.connector.aws.model.impl.AwsCredentialConfiguration(
+                new io.camunda.connector.aws.model.impl.AwsAuthentication
+                    .AwsStaticCredentialsAuthentication("AKIABOUND", "secretBoundKey"),
+                "eu-central-1"),
+            null));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))
@@ -369,7 +388,7 @@ class AnthropicChatModelFactoryClientTest {
   @Test
   void bedrockBackendWithApiKeyAuthenticationSendsBearerToken(WireMockRuntimeInfo wireMock) {
     executeAgainstBedrock(
-        wireMock, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-secret-key"));
+        wireMock, new AwsAuthentication.AwsApiKeyAuthentication(null, "bedrock-secret-key"));
 
     verify(
         postRequestedFor(urlPathEqualTo("/anthropic/v1/messages"))

@@ -197,7 +197,7 @@ class GeminiChatModelFactoryClientTest {
     final var configuration =
         new GeminiChatModelConfiguration(
             new GeminiConnection(
-                new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
+                new GeminiApiBackend(new GoogleGeminiApi(null, API_KEY, endpoint)),
                 new GeminiModel(MODEL_ID, null),
                 null));
 
