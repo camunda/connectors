@@ -47,13 +47,6 @@ public final class GenAiAttributes {
   public static final AttributeKey<Long> USAGE_CACHE_WRITE_INPUT_TOKENS =
       AttributeKey.longKey("gen_ai.usage.cache_write.input_tokens");
 
-  /**
-   * The former name of {@link #USAGE_CACHE_WRITE_INPUT_TOKENS}, deprecated upstream. It is emitted
-   * next to the current name because Arize Phoenix reads only this one.
-   */
-  public static final AttributeKey<Long> USAGE_CACHE_CREATION_INPUT_TOKENS =
-      AttributeKey.longKey("gen_ai.usage.cache_creation.input_tokens");
-
   public static final AttributeKey<Long> USAGE_REASONING_OUTPUT_TOKENS =
       AttributeKey.longKey("gen_ai.usage.reasoning.output_tokens");
 

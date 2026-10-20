@@ -173,9 +173,6 @@ public final class GenAiAttributeMapper {
     if (usage.cacheCreationTokenCount() > 0) {
       builder.put(
           GenAiAttributes.USAGE_CACHE_WRITE_INPUT_TOKENS, (long) usage.cacheCreationTokenCount());
-      builder.put(
-          GenAiAttributes.USAGE_CACHE_CREATION_INPUT_TOKENS,
-          (long) usage.cacheCreationTokenCount());
     }
     if (usage.reasoningTokenCount() > 0) {
       builder.put(

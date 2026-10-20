@@ -104,7 +104,6 @@ class GenAiAttributeMapperTest {
     assertThat(attributes.get(GenAiAttributes.USAGE_INPUT_TOKENS)).isEqualTo(150L);
     assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_READ_INPUT_TOKENS)).isEqualTo(40L);
     assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_WRITE_INPUT_TOKENS)).isEqualTo(10L);
-    assertThat(attributes.get(GenAiAttributes.USAGE_CACHE_CREATION_INPUT_TOKENS)).isEqualTo(10L);
     assertThat(attributes.get(GenAiAttributes.USAGE_OUTPUT_TOKENS)).isEqualTo(50L);
     assertThat(attributes.get(GenAiAttributes.USAGE_REASONING_OUTPUT_TOKENS)).isEqualTo(20L);
   }
