@@ -44,7 +44,7 @@ public class ConnectionFactorySupplier {
    */
   static URI parseUri(final String uri) throws URISyntaxException {
     final var parsed = new URI(uri);
-    if (parsed.getHost() == null) {
+    if (parsed.getRawAuthority() != null && parsed.getHost() == null) {
       throw new IllegalArgumentException(
           "The RabbitMQ URI must contain a valid host name and, if set, a numeric port");
     }
