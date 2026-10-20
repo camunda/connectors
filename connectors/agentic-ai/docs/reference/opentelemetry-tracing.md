@@ -114,9 +114,10 @@ tool results it consumed. Attributes such as `camunda.process_instance.key`, `ca
 
 **Token totals.** Token usage is set only on `chat` spans, so summing the `chat` spans does not count a
 call twice. The sum over a trace is the token usage of the run, and the sum over a session is the token usage
-of the agent instance; both equal the totals Operate shows for the agent instance. A model call counts as soon
-as its `chat` span is exported, so a call whose turn was rejected afterwards, because the job lost its lease,
-is still included.
+of the agent instance. Input tokens on a span include the cache read and cache write tokens, as the semantic
+conventions define them, whereas the agent instance history reports the new input tokens apart from its cache
+counts. A model call counts as soon as its `chat` span is exported, so a call whose turn was rejected
+afterwards, because the job lost its lease, is still included.
 
 **Run input and final answer.** With `capture-content` on:
 
@@ -203,6 +204,20 @@ note that the PoC has no redaction hook and no size limit for captured content.
   tool spans.
 - **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
   the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
+
+### Differences from the GenAI conventions
+
+The spans follow the GenAI semantic conventions, with a few differences that you notice in the backend. The
+full list with the reasons is in
+[ADR 019](../adr/019-opentelemetry-genai-tracing.md#conformance-with-the-genai-conventions-and-other-frameworks).
+
+- The root of a trace is the anchor, which has no GenAI operation and no output. The final answer is on the
+  last `invoke_agent` and `chat` spans (see *No trace-level output* above).
+- A run has one `invoke_agent` span for each job that did agent work, not one for the whole run.
+- `gen_ai.agent.name` is the BPMN element id of the agent, and there is no `gen_ai.agent.id`.
+- The start of a tool span is approximate, and a tool that failed shows as completed (see *Tool span timing*
+  and *Tool outcome* above).
+- Runs are connected through the session only, with no span links (see *No span links* above).
 
 ## Lifecycle listener API
 
