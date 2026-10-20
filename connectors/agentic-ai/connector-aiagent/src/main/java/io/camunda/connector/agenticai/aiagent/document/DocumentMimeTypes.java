@@ -16,10 +16,10 @@ import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
 /**
- * MIME-type primitives shared by every provider's document content-type classification: the parts
- * that are byte-identical everywhere. How a provider buckets a document from there - which native
- * block/part shape a MIME type maps to - differs per provider and stays in that provider's own
- * classifier.
+ * MIME-type primitives shared by every provider's document content-type classification and by the
+ * {@link DocumentContentGuard}: the parts that are byte-identical everywhere. How a provider
+ * buckets a document from there - which native block/part shape a MIME type maps to - differs per
+ * provider and stays in that provider's own classifier.
  */
 public final class DocumentMimeTypes {
 
