@@ -83,6 +83,7 @@
       "automerge": true
     },
     {
+      "description": "GitHub Actions version bumps change what runs in CI, so they always get a human review instead of automerging.",
       "matchManagers": [
         "github-actions"
       ],
@@ -92,6 +93,18 @@
         "patch"
       ],
       "automerge": false
+    },
+    {
+      "description": "Keep GitHub Actions minor/patch bumps out of the 'all non-major dependencies' group, so their manual review does not block automerge of the Maven and Docker updates.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "github actions non-major",
+      "groupSlug": "github-actions-minor-patch"
     },
     {
       "matchBaseBranches": [
