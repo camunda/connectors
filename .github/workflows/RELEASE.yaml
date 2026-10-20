@@ -151,7 +151,7 @@ jobs:
             secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           # Two mirrors, because the HeroDevs NES repo is not served by the CI Nexus cache:
@@ -386,7 +386,7 @@ jobs:
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:

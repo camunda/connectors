@@ -1,0 +1,160 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
+
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.ProxyOptions;
+import com.azure.core.util.HttpClientOptions;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
+import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
+import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import java.time.Duration;
+import java.util.Optional;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Resolves and caches azure-identity {@link TokenCredential} instances for Microsoft Entra ID
+ * authentication (client-credentials and managed-identity flows). Returns a plain {@link
+ * TokenCredential}; wrapping it for a particular vendor SDK is the caller's responsibility.
+ *
+ * <p>A provider's {@code ChatModel} is typically rebuilt on every agent turn, so without caching, a
+ * fresh {@code ClientSecretCredential}/{@code ManagedIdentityCredential} would be constructed every
+ * turn, discarding azure-identity's own credential-instance-level token cache and forcing a full
+ * Entra ID token request per turn (and risking IMDS throttling for managed identity). Only the
+ * credential <em>object</em> is cached here, never a token: azure-identity's credentials already
+ * cache and auto-refresh their own tokens internally.
+ *
+ * <p>The cache key is derived via {@link HashedCacheKey} so that raw credential material such as a
+ * client secret is never stored in plain text as a map key.
+ *
+ * <p>The client-credentials flow also routes its token-exchange request to Microsoft Entra ID
+ * through the configured HTTP proxy ({@link AzureHttpProxySupport}), so a Foundry deployment that
+ * requires an egress proxy for its OpenAI API calls doesn't unexpectedly bypass it for the token
+ * exchange too. Managed identity does not: see {@link #buildManagedIdentityCredential(String,
+ * Duration)}.
+ *
+ * <p>The caller's configured request timeout reaches the token exchange as well as the model call
+ * itself, applied as the credential HTTP client's connect and response timeout. That is a
+ * per-attempt bound, not an overall deadline: azure-identity's own retries start a fresh attempt,
+ * so a retrying token exchange can outlast a single timeout. Because the timeout is baked into the
+ * credential's HTTP client, it is also part of the cache key: two otherwise identical
+ * configurations with different timeouts get their own credential.
+ */
+public class EntraIdTokenCredentialFactory {
+
+  private final Cache<String, TokenCredential> cache;
+  private final AzureHttpProxySupport azureHttpProxySupport;
+
+  public EntraIdTokenCredentialFactory(
+      AzureHttpProxySupport azureHttpProxySupport, CredentialCacheProperties properties) {
+    this.azureHttpProxySupport = azureHttpProxySupport;
+    final long maximumSize = properties.enabled() ? properties.maximumSize() : 0;
+    this.cache =
+        Caffeine.newBuilder()
+            .maximumSize(maximumSize)
+            .expireAfterAccess(properties.expireAfterAccess())
+            .build();
+  }
+
+  /**
+   * Returns the cached (or newly built and cached) {@link TokenCredential} for a Microsoft Entra ID
+   * client-credentials (app registration + secret) flow.
+   */
+  public TokenCredential clientCredentials(
+      String tenantId,
+      String clientId,
+      String clientSecret,
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
+    final var key =
+        HashedCacheKey.of(tenantId, clientId, clientSecret, authorityHost, timeoutKeyPart(timeout));
+    return cache.get(
+        key,
+        k ->
+            buildClientSecretCredential(
+                azureHttpProxySupport, tenantId, clientId, clientSecret, authorityHost, timeout));
+  }
+
+  /**
+   * Returns the cached (or newly built and cached) {@link TokenCredential} for a Microsoft Entra ID
+   * managed-identity flow. {@code clientId} selects a user-assigned identity; {@code null} resolves
+   * the system-assigned identity.
+   */
+  public TokenCredential managedIdentity(@Nullable String clientId, @Nullable Duration timeout) {
+    final var key = HashedCacheKey.of(clientId, timeoutKeyPart(timeout));
+    return cache.get(key, k -> buildManagedIdentityCredential(clientId, timeout));
+  }
+
+  private static TokenCredential buildClientSecretCredential(
+      AzureHttpProxySupport azureHttpProxySupport,
+      String tenantId,
+      String clientId,
+      String clientSecret,
+      @Nullable String authorityHost,
+      @Nullable Duration timeout) {
+    final var clientSecretCredentialBuilder =
+        new ClientSecretCredentialBuilder()
+            .clientId(clientId)
+            .clientSecret(clientSecret)
+            .tenantId(tenantId);
+    if (authorityHost != null && !authorityHost.isBlank()) {
+      clientSecretCredentialBuilder.authorityHost(authorityHost);
+    }
+    httpClientFor(
+            azureHttpProxySupport.proxyOptions(ProxyConfiguration.SCHEME_HTTPS).orElse(null),
+            timeout)
+        .ifPresent(clientSecretCredentialBuilder::httpClient);
+    return clientSecretCredentialBuilder.build();
+  }
+
+  /**
+   * The managed-identity token request never goes through the configured proxy: it targets the
+   * link-local IMDS endpoint ({@code 169.254.169.254}) or an environment-provided local sidecar
+   * endpoint, neither of which is reachable via an internet-facing egress proxy -- Microsoft's own
+   * IMDS guidance explicitly calls out bypassing any configured proxy for this address.
+   */
+  private static TokenCredential buildManagedIdentityCredential(
+      @Nullable String clientId, @Nullable Duration timeout) {
+    final var managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
+    if (clientId != null && !clientId.isBlank()) {
+      managedIdentityCredentialBuilder.clientId(clientId);
+    }
+    httpClientFor(null, timeout).ifPresent(managedIdentityCredentialBuilder::httpClient);
+    return managedIdentityCredentialBuilder.build();
+  }
+
+  /**
+   * Builds the credential's HTTP client only when there is something to configure on it, so a
+   * deployment with neither a proxy nor a configured timeout keeps azure-identity's own default
+   * client. The timeout bounds each attempt's connection establishment and response wait, not the
+   * overall token acquisition.
+   */
+  private static Optional<HttpClient> httpClientFor(
+      @Nullable ProxyOptions proxyOptions, @Nullable Duration timeout) {
+    if (proxyOptions == null && timeout == null) {
+      return Optional.empty();
+    }
+    final var httpClientOptions = new HttpClientOptions();
+    if (proxyOptions != null) {
+      httpClientOptions.setProxyOptions(proxyOptions);
+    }
+    if (timeout != null) {
+      httpClientOptions.setConnectTimeout(timeout).setResponseTimeout(timeout);
+    }
+    return Optional.of(HttpClient.createDefault(httpClientOptions));
+  }
+
+  private static @Nullable String timeoutKeyPart(@Nullable Duration timeout) {
+    return timeout == null ? null : timeout.toString();
+  }
+}

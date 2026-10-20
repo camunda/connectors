@@ -29,6 +29,92 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - Repo-root [`AGENTS.md`](../../AGENTS.md): repo-wide build, commit, PR, CI, spotless, license, and
   element-template conventions. These are not duplicated here.
 
+## Modules
+
+The module is split into Maven modules with a fixed dependency direction
+([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md)):
+
+| Module                          | Package root                         | Contents                                                       | Depends on (agentic AI modules)   |
+|---------------------------------|--------------------------------------|----------------------------------------------------------------|-----------------------------------|
+| `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                              |
+| `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
+| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
+| `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
+| `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
+| `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
+| `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
+| `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
+| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
+| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
+| `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
+
+Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
+or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
+put new classes under the root of their module, and no Java package spans several modules. Each module has its own
+auto-configuration, element templates and icons.
+All artifacts use the group `io.camunda.connector.agenticai`. Runtimes that ship all agentic AI connectors (the
+bundles, the e2e tests) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connector or integration there.
+Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
+
+### Architecture tests
+
+`agentic-ai-archunit-tests` holds the ArchUnit rules (`archunit-junit5`) for the production classes of
+all modules, in package `io.camunda.connector.agenticai.archunit`:
+
+- `ModuleLayersArchTest`: the dependency direction between the package roots (layers) of the modules.
+- `ModulePackageOwnershipArchTest`: every class of a package root is loaded from the module owning it,
+  and every module contains only classes of its own package root.
+- `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
+- `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
+- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
+  except `azure` and `configuration`) do not depend on each other, except for the allowed
+  dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
+  and `aiagent.configuration`) does not depend on the providers.
+- `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
+  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+- `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
+  `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
+  in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
+  resolves to an `@AutoConfiguration` class.
+- `ConfigurationPropertyNamesArchTest`: property keys in `@ConfigurationProperties` prefixes,
+  `@ConditionalOnProperty`, `@ConditionalOnBooleanProperty` and `@Value` placeholders are kebab-case.
+  Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
+- `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
+- `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
+- `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
+  `ConversationContext` implementation is annotated with `@JsonTypeName`.
+- `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
+  `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
+- `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
+  and between the sub-packages of the A2A client and of the tools schema. The first-level packages of the AI Agent
+  connector and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
+  When you break a cycle, delete its entry; never add one.
+- `ElementTemplateAnnotationsArchTest`: the library modules do not use the element template generator annotations,
+  except the records listed in the test (the ADR 015 follow-up). The list must only shrink.
+- `RegistryEncapsulationArchTest`: concrete `ConversationStore` implementations are only used by
+  `aiagent.memory.conversation` and `aiagent.configuration`; concrete `ChatModelFactory` implementations are only
+  used by `aiagent.chatmodel` and `aiagent.configuration`.
+- `GeneralCodingRulesArchTest`: no access to the standard streams, no `java.util.logging`.
+- `NamingConventionsArchTest`: a class named `FooImpl` implements the interface `Foo`.
+- `ModuleInventoryTest` (plain JUnit): every Maven module of `connectors/agentic-ai` is registered in
+  `AgenticAiModules` and the other way round, and `agentic-ai-bundle` depends on exactly the connector and
+  integration modules.
+
+`AgenticAiModules` maps modules to package roots and kinds (library, connector, integration). When you add
+a module, a package root or a dependency between modules, update it and the layer rules; a new connector or
+integration also goes into `agentic-ai-bundle`. Run only the architecture tests with:
+
+```bash
+./mvnw test -f connectors/agentic-ai/pom.xml -pl agentic-ai-archunit-tests -am \
+  '-Dtest=*ArchTest,ModuleInventoryTest' -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+`-am` builds the modules the tests read from their current sources. Keep `-f connectors/agentic-ai/pom.xml`:
+it limits `-am` to the modules of `connectors/agentic-ai`. Without `-am`, the `agentic-ai-archunit-tests`
+module reads the jars of the other modules from the local Maven repository, so it checks the last install
+and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` runs the architecture tests too.
+
 ## Start here, navigation
 
 > **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
@@ -133,8 +219,8 @@ High-frequency traps (detail behind each link):
 ## Architectural invariants
 
 Do not break these (full statement and rationale in
-[§24](docs/reference/ai-agent.md#24-architectural-invariants)). They are the rules a future ArchUnit
-suite will enforce (epic #7537):
+[§24](docs/reference/ai-agent.md#24-architectural-invariants)). The
+[architecture tests](#architecture-tests) enforce the first three:
 
 - **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
   The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
@@ -144,8 +230,9 @@ suite will enforce (epic #7537):
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others) with a single
-  `*Impl`. Wire impls as Spring beans, depend on the interface.
+  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
+  `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
+  named `FooImpl` implements the interface `Foo`; review checks the rest.
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
@@ -167,16 +254,16 @@ mvn test -f connectors/agentic-ai/pom.xml                        # unit / integr
 **Prerequisite**: the e2e tests require `element-templates-cli` on your PATH. The e2e harness shells out
 to it (`BpmnFile.apply`) to apply templates, so it must be installed even though no pom declares it.
 Template generation itself uses the `element-template-generator-maven-plugin` and needs no CLI. When it
-is missing, e2e tests fail with errors that can look unrelated to your change. Install it once with
-`npm i -g element-templates-cli`.
+is missing, e2e tests fail with errors that can look unrelated to your change. Follow the pinned-version
+prerequisites in the [E2E runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md).
 
 Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
 existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
 see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
 
-E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios plus WireMock
-LLM stubs). Extend `BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task
-flavor).
+See the [E2E runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) for test
+ownership, local commands, paid-provider authorization, and how to verify that tests ran. Extend
+`BaseAgentSubProcessTest` (sub-process flavor) or `BaseAgentTaskTest` (task flavor).
 
 ```bash
 mvn test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai -Dtest=<TestClassName>
@@ -200,9 +287,10 @@ Real-provider / real-LLM acceptance coverage for this module lives in
 
    Applying the label authorizes one run for the PR's current head SHA. After every push or other
    head-SHA change, remove and reapply the label to authorize a run for the new SHA. Fork PRs do not
-   receive Vault-backed credentials. The workflow also runs a paths filter first, so it only pays
-   for images or real providers when Agentic AI code, Agentic AI e2e tests, the CPT registry, or its
-   workflow inputs changed. Matrix execution is capped at four concurrent legs.
+   receive Vault-backed credentials. The workflow first classifies changes using the curated impact
+   map, including shared dependencies and test infrastructure. Classification does not authorize
+   paid execution. See the runbook for the three reported states. Matrix execution is capped at
+   four concurrent legs.
 2. **Provider capabilities**: `RealProviderApiSmokeSupport.ProviderConfig` declares each provider/model row
    together with the capabilities it supports (`STRUCTURED_OUTPUT`, `REASONING`, `PROMPT_CACHING`,
    `MULTIMODAL_USER_MESSAGE`). Capability scenarios must read this matrix instead of hard-coding
@@ -226,19 +314,7 @@ Use `REAL_LLM_PROVIDER_GROUP` (`openai`, `vertex`, `bedrock`, `anthropic`, `mist
 run only one provider group locally or in CI. Keep `RealProviderSelectionTest` updated when changing
 shard-only behavior, disabled rows, or provider group membership.
 
-To run a capability suite locally, set `RUN_NATIVE_LLM_E2E=true`, `REAL_LLM_PROVIDER_GROUP`, and the
-credentials for the provider group you want to exercise. Provider rows whose required environment
-variables are missing are skipped locally; set `REQUIRE_NATIVE_LLM_PROVIDER=true` to fail instead
-when no provider row is selected.
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dgroups=core-smoke
-```
+Use the runbook's host command with strict provider selection and an explicitly chosen provider group.
 
 Use the corresponding group name (`structured-output`, `reasoning`, or `multimodal-documents`) to
 run another capability suite. Bedrock prompt caching runs in its provider shard. OpenAI and Gemini
@@ -248,14 +324,8 @@ prompt caching remain manual because their cache placement is opportunistic: uns
 `-Dit.test`; native capability legs, including `DocumentToolCallResultsIT`, are selected by their
 JUnit groups.
 
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm \
-  -Dit.test=RealProviderStructuredOutputE2ETestIT
-```
+To select the structured-output class instead, replace `-Dgroups=core-smoke` in that command with
+`-Dit.test=RealProviderStructuredOutputE2ETestIT`.
 
 For JetBrains IDEs, create a JUnit run configuration for the capability-specific `*E2ETestIT` class.
 Set the same environment variables in **Run configuration → Environment variables**, keep the working
@@ -271,15 +341,8 @@ document scenarios to `DocumentToolCallResultsIT`, which owns compatibility cove
 v1 and native v2 provider paths. Run it locally with `-Dgroups=document-tool-results` and set
 whichever provider credentials you want its rows to exercise. Always set
 `REAL_LLM_PROVIDER_GROUP` to the intended provider group; otherwise, every row whose credentials are
-available can run. For example, select only the OpenAI rows:
-
-```bash
-export RUN_NATIVE_LLM_E2E=true
-export REAL_LLM_PROVIDER_GROUP=openai
-export OPENAI_API_KEY=...
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
-  -Pit-real-llm -Dgroups=document-tool-results
-```
+available can run. Use the runbook's host command with `-Dgroups=document-tool-results` to select
+only the OpenAI document rows.
 
 Running the full e2e suite is slow. Search the e2e directory for tests relevant to your change and run
 those selectively. Ensure that all e2e tests pass after completing a major work item.
@@ -317,12 +380,13 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
 - Fix null-safety errors by handling the null. Never suppress them.
 - `@NullUnmarked` is a named deferral only. Add a comment explaining why; file a follow-up issue.
 - For third-party APIs without nullability annotations, inspect their source to determine the actual contract.
-- After adding a new package, run `connector-agentic-ai/bin/generate-package-info.groovy` to fill in any
-  missing `package-info.java` (it's idempotent and scans every package under `src/main/java`, so it also
-  catches pre-existing gaps, not just the one you added):
+- After adding a new package, run `connector-aiagent/bin/generate-package-info.groovy` in the module
+  that got the package to fill in any missing `package-info.java` (it's idempotent and scans every
+  package under that module's `src/main/java`, so it also catches pre-existing gaps, not just the one
+  you added):
   ```bash
-  cd connectors/agentic-ai/connector-agentic-ai
-  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/bin/generate-package-info.groovy"
+  cd connectors/agentic-ai/<module>
+  mvn org.codehaus.gmavenplus:gmavenplus-plugin:5.1.0:execute -Dscripts="file:///$(pwd)/../connector-aiagent/bin/generate-package-info.groovy"
   ```
   Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
   commit the generated file(s).
@@ -356,14 +420,19 @@ The JSON element templates are **generated**, not hand-edited. They are produced
 fields), so the source of truth is the Java, not the JSON. The template version comes from the
 annotation's `version` attribute on the connector function; bumping it there bumps the generated
 template. The AI Agent Sub-process template is in turn derived from the AI Agent Task
-template via `connector-agentic-ai/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
+template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groovy` (gmavenplus-plugin, `process-classes`
 phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
 [element template generator documentation](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-sdk/#element-template-generation).
-When a version is bumped, a template moves into `versioned/`, or a connector is added, also update
-[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md) following these rules:
+When a version is bumped, a template moves into `versioned/`, or a connector is added, also update the
+README in the `element-templates` folder of the connector module (for example
+[`connector-aiagent/element-templates/README.md`](connector-aiagent/element-templates/README.md)) following
+these rules. The index of all modules is
+[`connector-agentic-ai/element-templates/README.md`](connector-agentic-ai/element-templates/README.md). It
+stays at the path the templates had before the module split because external documentation links to it,
+and the `element-templates` symlink in this directory points to it.
 
 1. **Identify the new minimum Camunda version** by checking the `engines.camunda` field of the new
    template (e.g. `^8.10`).
@@ -373,8 +442,11 @@ When a version is bumped, a template moves into `versioned/`, or a connector is 
 3. **Higher minimum than the current top row**: insert a new top row with the new minimum Camunda
    version and template version, and move the previous top row's link under `versioned/`.
 4. **AI Agent has two tables** (Task and Sub-process) sharing the same version numbers. Update both.
-5. **New connector**: add a section in the same order as the existing ones (AI Agent, MCP Client, A2A,
-   Ad-hoc tools schema) with an intro paragraph linking to the `docs.camunda.io` overview page.
+5. **New connector**: in an existing module, add a section to the README of the module with an intro
+   paragraph linking to the `docs.camunda.io` overview page. In a new module, add a README like the
+   existing ones, including the "Which template do I need?" section, and add the module to the table
+   and the sections of the index in the same order as the existing ones (AI Agent, MCP Client, A2A,
+   Ad-hoc tools schema).
 
 Do not list `hybrid/` templates in the README. They are intentionally omitted.
 
@@ -484,8 +556,9 @@ properties, error codes, behavioral contracts), update the matching doc in the s
   packages, persisted data, job types, configuration). Add an entry in the same change that
   introduces the break, under the section of the release in development, with the old and new API
   and a migration hint. The public docs link to it.
-- **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new connectors
-  (maintenance rules are in the Element templates section above).
+- **`<connector module>/element-templates/README.md`** and the index
+  **`connector-agentic-ai/element-templates/README.md`**: template version bumps, moves to `versioned/`, or new
+  connectors (maintenance rules are in the Element templates section above).
 
 > `CLAUDE.md` in this directory imports this file via `@AGENTS.md`, giving a single source of truth.
 > Edit `AGENTS.md`; never add content directly to `CLAUDE.md`.

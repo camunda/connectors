@@ -12,6 +12,179 @@ This list is curated: it covers the obvious extension points (SPIs and replaceab
 most common code changes, not every moved class or changed signature. Compile your extension against
 the new version to find the rest.
 
+## Camunda 8.10 to 8.11
+
+Summary of what changes for a custom extension. Details follow in the linked sections.
+
+| Area                            | Affects                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
+| [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
+| [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+
+### Module split
+
+The agentic AI connectors are split into several Maven modules, and each module owns its Java
+packages ([ADR 015](adr/015-split-agentic-ai-into-modules.md)). The split keeps job types, element
+templates, configuration properties and persisted data.
+
+#### Artifacts
+
+The `io.camunda.connector:connector-agentic-ai` artifact is replaced by the following artifacts in the
+new group `io.camunda.connector.agenticai`:
+
+| Artifact | Package root | Contents |
+| ------------------------------- | --- | ------------------------------------------------------------------------- |
+| `connector-aiagent` | `aiagent` (except `model`, `api`) | AI Agent connectors, chat model providers, conversation stores |
+| `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
+| `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
+| `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
+| `connector-mcp` | `mcp.client` | MCP client connectors |
+| `aiagent-mcp-integration` | `mcp.integration` | MCP client as AI Agent gateway tool |
+| `connector-a2a` | `a2a.client` | A2A client connectors |
+| `aiagent-a2a-integration` | `a2a.integration` | A2A client as AI Agent gateway tool |
+| `agentic-ai-common` | `common` | Shared helpers and HTTP support |
+| `agentic-ai-bundle` | – | All of the above (`pom` packaging, depend on it with `<type>pom</type>`) |
+
+An extension that replaces beans of the AI Agent connector depends on `connector-aiagent`, which
+brings the API, model, tools schema and common libraries. It does not bring the Ad-hoc tools schema
+connector. Add `connector-ad-hoc-tools-schema`, or use the bundle, when processes use that connector. An extension that only implements an
+extension point can depend on `aiagent-api` alone. The MCP and A2A modules are separate
+dependencies. A custom runtime that runs all agentic AI connectors, like the previous
+`connector-agentic-ai` dependency did, depends on the bundle:
+
+```xml
+<dependency>
+  <groupId>io.camunda.connector.agenticai</groupId>
+  <artifactId>agentic-ai-bundle</artifactId>
+  <version>${version.connectors}</version>
+  <type>pom</type>
+</dependency>
+```
+
+#### Moved and renamed classes
+
+| 8.10 (`io.camunda.connector.agenticai`)                                      | 8.11 (`io.camunda.connector.agenticai`)        |
+| ---------------------------------------------------------------------------- | ---------------------------------------------- |
+| `adhoctoolsschema.schema.AdHocToolsSchemaResolver(Impl)`, `AdHocToolSchemaGenerator(Impl)`, `AdHocToolSchemaGenerationException` | `tools.schema.*` |
+| `adhoctoolsschema.processdefinition.*`                                       | `tools.schema.processdefinition.*`             |
+| `adhoctoolsschema.model.AdHocToolsSchemaRequest`, `AdHocToolsSchemaResponse` | `tools.schema.model.*`                         |
+| `a2a.client.agentic.tool.*`                                                  | `a2a.integration.*`                            |
+| `a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration`    | `a2a.integration.configuration.A2aClientAgenticToolAutoConfiguration` |
+| `mcp.discovery.*`                                                            | `mcp.integration.*`                            |
+| `mcp.discovery.configuration.McpDiscoveryConfiguration`                      | `mcp.integration.configuration.McpClientAgenticToolAutoConfiguration` |
+| `aiagent.tool`: `GatewayToolHandler`, `GatewayToolCallTransformer`, `GatewayToolDefinitionUpdates`, `GatewayToolDiscoveryInitiationResult`, `GatewayToolDiscoveryResult`; `adhoctoolsschema.schema`: `GatewayToolDefinitionResolver`, `TypePropertyBasedGatewayToolDefinitionResolver` | `aiagent.api.tool.*` |
+| `aiagent.chatmodel`: `ChatModel`, `ChatModelFactory`, `ChatRequest`, `ChatResult`, `ChatModelRejectedException`, `ContentFilteredException`, `ContextWindowExceededException`, `GuardrailInterventionException` | `aiagent.api.chatmodel.*` |
+| `aiagent.memory.conversation`: `ConversationStore`, `ConversationSession`, `ConversationLoadResult`, `ConversationStoreRequest`; `aiagent.memory`: `ConversationSnapshot` | `aiagent.api.conversation.*` |
+| `aiagent.systemprompt`: `SystemPromptContributor`                            | `aiagent.api.systemprompt.*`                   |
+| `aiagent.agent`: `ContentTreeDocumentWalker`                                 | `aiagent.api.document.*`                       |
+| `aiagent.chatmodel`: `ChatModelConfiguration`                                | `aiagent.model.chatmodel.*`                    |
+| `aiagent.memory.conversation`: `ConversationContext`, `ConversationContextTypeResolverBuilder` | `aiagent.model.conversation.*` |
+| `adhoctoolsschema.model`: `AdHocToolElement`, `AdHocToolElementParameter`    | `aiagent.model.tool.*`                         |
+| `aiagent.model.request`: `AgentSubProcessRequestData`, `AgentSubProcessResponseConfiguration`, `AgentSubProcessV1Request`, `AgentSubProcessV2Request`, `AgentTaskRequestData`, `AgentTaskResponseConfiguration`, `AgentTaskV1Request`, `AgentTaskV2Request`, `MemoryStorageTemplateConfiguration`, `MemoryTemplateConfiguration`, `ToolsConfiguration`, `V1ToV2ProviderConfigurationMapper(Impl)` | `aiagent.request.*` |
+| `aiagent.model.request.v1.*`                                                 | `aiagent.request.v1.*`                         |
+| `aiagent.model.request.v1.shared.TimeoutConfiguration`                       | `aiagent.request.shared.TimeoutConfiguration`  |
+| `aiagent.model.request.v1.shared.HttpUrl`                                    | `common.validation.HttpUrl`                    |
+| `aiagent.model.request.v2.*`                                                 | `aiagent.request.v2.*`                         |
+| `aiagent.model`: `AgentConversation`, `AgentConversationTurn`, `TurnReconstructor`, `PreviousConversation`, `AgentInput` | `aiagent.conversation.*` |
+| `aiagent.model`: `AgentResponse`, `AgentSubProcessResponse`, `AgentTaskExecutionContext`, `AgentSubProcessExecutionContext` | `aiagent.agent.*` |
+| `aiagent.model.document.DocumentHandle`, `aiagent.model.message.DocumentReferenceXmlTag` | `aiagent.document.*`               |
+| `aiagent.model.tool.ToolCallProcessVariable`                                 | `aiagent.tool.ToolCallProcessVariable`         |
+| `aiagent.model.versioning.*`                                                 | `aiagent.memory.versioning.*`                  |
+| `aiagent.util.JacksonExceptionMessageExtractor`                              | `common.json.JacksonExceptionMessageExtractor` |
+| `autoconfigure`: `AgenticAiConnectorsAutoConfiguration`, `AgenticAiConnectorsConfigurationProperties` | `aiagent.configuration.*` |
+| `mcp.McpClientErrorCodes`                                                    | `mcp.client.McpClientErrorCodes`               |
+| `AgenticAiConnectorsConfigurationProperties.RetriesProperties`               | `common.retry.RetriesProperties`               |
+| `AgenticAiConnectorsConfigurationProperties.HttpProperties`                  | `common.configuration.AgenticAiHttpProperties` |
+| `AgenticAiConnectorsConfigurationProperties.ToolsProperties`                 | `tools.schema.configuration.ToolsSchemaProperties` |
+| `common.AgenticAiRecord`                                                     | `common.annotation.AgenticAiRecord`            |
+| `common.AgenticAiHttpProxySupport`                                           | `common.http.AgenticAiHttpProxySupport`        |
+| `common.JsonSchemaConstants`                                                 | `common.jsonschema.JsonSchemaConstants`        |
+| `common.util`: `ObjectMapperConstants`, `FeelOffsetDateTimeParser`, `FeelOffsetDateTimeSerializer`, `FeelOffsetDateTimeDeserializer` | `common.json.*`                                |
+| `common.util.retry.*`                                                        | `common.retry.*`                               |
+| `common.util.BpmnUtils`                                                      | `tools.schema.processdefinition.BpmnUtils`     |
+| `a2a.client.common.convert.A2aPartToContentConverter(Impl)`                  | `a2a.client.common.convert.A2aPartConverter(Impl)` |
+| `common.AgenticAiHttpProxySupport` AWS SDK methods (`createAwsHttpClientBuilder`, `createAwsAsyncHttpClientBuilder`) | `aiagent.proxy.aws.AwsSdkHttpProxySupport` (`httpClientBuilder`, `asyncHttpClientBuilder`), a separate bean |
+| `common.AgenticAiHttpProxySupport.azureProxyOptions`                         | `aiagent.proxy.azure.AzureHttpProxySupport.proxyOptions`, a separate bean |
+| `common.AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl`                 | Google GenAI base URL helper of the Gemini provider (`aiagent.chatmodel.provider.gemini`) |
+
+`AgenticAiConnectorsConfigurationProperties` keeps only the `aiagent` properties.
+
+A2A messages and artifacts (`A2aMessage.contents()`, `A2aArtifact.contents()`) hold `A2aPart`
+records (`A2aTextPart`, `A2aDataPart`, `A2aDocumentPart` in `a2a.client.common.model.part`) instead of the AI Agent message content
+types. The serialized JSON is unchanged.
+
+#### Memory and custom provider configuration
+
+- `aiagent.model.request.MemoryConfiguration` is an interface. The element template record is
+  `MemoryTemplateConfiguration`.
+- `aiagent.model.request.MemoryStorageConfiguration` is renamed to
+  `MemoryStorageTemplateConfiguration`. Its nested records keep their names.
+- New interfaces `ConversationStoreConfiguration` and `CustomConversationStoreConfiguration` in
+  `aiagent.model.request`. `MemoryConfiguration.storage()` returns a `ConversationStoreConfiguration`.
+  A custom store reads its parameters through `CustomConversationStoreConfiguration` instead of
+  casting to the template record.
+- New interface `aiagent.model.chatmodel.CustomChatModelConfiguration`, implemented by
+  `CustomProviderConfiguration`. A custom `ChatModelFactory` can match and read its configuration
+  through the interface.
+
+#### Conversation context subtypes
+
+`ConversationContext` subtypes are discovered with `java.util.ServiceLoader`. Annotate the custom
+context with `@JsonTypeName`, list it in an implementation of
+`aiagent.model.conversation.ConversationContextSubtypes`, and register that implementation in
+`META-INF/services/io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContextSubtypes`.
+Registering the subtype on the runtime's `ObjectMapper` beans, as described for 8.10, still works.
+
+#### Auto-configuration
+
+`AgenticAiConnectorsAutoConfiguration` keeps only the AI Agent beans. The other beans moved to
+auto-configurations of their own modules:
+
+| Beans                                                        | Auto-configuration                         |
+| ------------------------------------------------------------ | ------------------------------------------ |
+| HTTP proxy support                                           | `AgenticAiCommonAutoConfiguration`         |
+| Tools schema resolution, process definition lookup           | `AgenticAiToolsSchemaAutoConfiguration`    |
+| Ad-hoc tools schema connector                                | `AdHocToolsSchemaConnectorAutoConfiguration` |
+| MCP client connectors                                        | `McpClientAutoConfiguration`               |
+| MCP gateway tool integration                                 | `McpClientAgenticToolAutoConfiguration`    |
+| A2A client connectors                                        | `A2aClientAutoConfiguration`               |
+| A2A gateway tool integration                                 | `A2aClientAgenticToolAutoConfiguration`    |
+
+Bean names, conditions and property names are unchanged, except for the
+[MCP gateway tool property](#mcp-gateway-tool-property). To exclude an auto-configuration by name,
+for example with `spring.autoconfigure.exclude`, use the new class names.
+
+The beans of the outbound connector functions of the MCP Client, MCP Remote Client, A2A Client and
+ad-hoc tools schema connectors are prototype-scoped, like the AI Agent functions. A custom bean that
+replaces one of them must be prototype-scoped too.
+
+### MCP gateway tool property
+
+The property that disables the MCP Client connectors as AI Agent tools follows the naming of the
+A2A Client connector:
+
+| 8.10                                                | 8.11                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| `camunda.connector.agenticai.mcp.discovery.enabled` | `camunda.connector.agenticai.mcp.client.agentic.tool.enabled` |
+
+The old property is a deprecated alias and will be removed in a future release. Setting either
+property to `false` disables the MCP Client connectors as AI Agent tools. The runtime logs a warning
+at startup while the old property is set. Replace it with the new property.
+
+### Server URL validation
+
+The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpUrl`):
+
+- The `url` of the MCP Remote Client connector (Streamable HTTP and SSE).
+- The `http.url` and `sse.url` of MCP clients configured in the runtime properties
+  (`camunda.connector.agenticai.mcp.client.clients`).
+- The A2A server URL of the A2A Client connectors.
+
+A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
+client in its properties does not start.
+
 ## Camunda 8.9 to 8.10
 
 Summary of what changes for a custom extension. Details follow in the linked sections.
@@ -183,5 +356,5 @@ functions that return SDK `ConnectorResponse` types.
   hybrid element template (see [hybrid mode](https://docs.camunda.io/docs/components/connectors/use-connectors-in-hybrid-mode/)). The legacy variables (`CONNECTOR_AI_AGENT_TYPE`,
   `CONNECTOR_AI_AGENT_JOB_WORKER_TYPE`) only affect the legacy job workers.
 - Use only the `v2` hybrid element templates for new custom runtimes:
-  [AI Agent Task](../connector-agentic-ai/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
-  [AI Agent Sub-process](../connector-agentic-ai/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json).
+  [AI Agent Task](../connector-aiagent/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json) and
+  [AI Agent Sub-process](../connector-aiagent/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json).
