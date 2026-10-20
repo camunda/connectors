@@ -65,16 +65,24 @@ The decision comprises:
   their own modules.** A consumer is a Spring bean that implements the listener interface. At the start
   of a job the listener returns an observer for that job, which receives the job's callbacks. The AI
   Agent connector emits the events from its shared request handler for both flavors and carries the
-  flavor in the event. A consumer module depends on the API and model libraries only, never on the AI
+  flavor in the event. Two concrete classes in the connector carry the emission: a dispatcher announces a
+  job to the listeners, and the object it returns carries the later callbacks of that job. That object is
+  a shared no-op instance when no listener takes part in the job. A consumer module depends on the API and model libraries only, never on the AI
   Agent connector, and is shipped in the agentic AI bundle when it is part of the product.
 
 * **D2 — Callbacks fall into three categories, each with its own contract.**
 
   | Category | Callbacks | Contract |
   |---|---|---|
-  | Notifications | job started, tool discovery dispatched, job deferred, turn started, model round started and outcome, job failed, job completed, job completion failed | Failure-isolated: the dispatcher catches and logs every consumer exception, keeps registration order, and runs consumers on the job thread. A notification cannot change the job. |
-  | State contribution | tool discovery dispatched, turn completed | Returns a value only. The framework writes it into the consumer's own namespace of the agent context, only on paths that already persist the context. An error drops the contribution. |
+  | Notifications | job started, tool discovery dispatched, job deferred, turn started, model round started and outcome, job failed, job completed, job completion failed | Failure-isolated: the framework catches and logs every consumer exception, keeps registration order, and runs consumers on the job thread. A notification cannot change the job. |
+  | State contribution | tool discovery dispatched, turn completed | Returns a value only. The framework checks it and writes it into the consumer's own namespace of the agent context, only on paths that already persist the context. An exception or an invalid value drops the contribution. |
   | Model-round pairing | model round started, then completed or failed | Owned by the framework with try/finally on the same thread. A consumer can neither skip nor alter the model call, and a throwing consumer still gets its round closed. |
+
+  Events are built lazily: the framework builds an event only when at least one listener takes part in the
+  job, so a job without listeners does no work for them. Nothing in the lifecycle layer can fail a job. A
+  failure while building an event, in a listener, or in the layer itself is logged and the affected callback
+  is skipped. Events and exception messages can contain prompts and tool results, so the log names only the
+  listener, the callback and the exception class at WARN, and carries the throwable at DEBUG.
 
 * **D3 — Consumer state rides on the two existing persist points and nowhere else.** The agent context
   is persisted by the completion command of exactly two paths: the dispatch of gateway tool discovery,
@@ -82,9 +90,13 @@ The decision comprises:
   results, no input) persist nothing, and a failed or superseded job's completion never lands. A
   consumer's state is therefore written only where the framework already writes, and is lost together
   with the job that produced it. A consumer must treat lost state as "start over", which for tracing
-  means starting a new run. State is a JSON-serializable map under a key derived from an explicit
-  consumer id, with a documented size cap, so renaming a bean cannot orphan persisted state. Older
-  connector versions keep unknown context entries, so the slot is additive.
+  means starting a new run. State is a map of plain JSON values (maps with string keys, lists, strings,
+  booleans, finite numbers and null) under a key derived from an explicit consumer id, so renaming a bean
+  cannot orphan persisted state. Its serialization is limited to 4096 bytes of UTF-8. The framework checks
+  every contribution and stores a deep copy. A contribution that is not plain JSON, nests too deeply, or
+  exceeds the limit is dropped: the previously stored value stays, and one warning names the listener, the
+  callback and the reason, never the state. Older connector versions keep unknown context entries, so the
+  slot is additive.
 
   | Path | Persists the agent context | State contribution |
   |---|---|---|
@@ -98,7 +110,7 @@ The decision comprises:
   arguments, and tool results, because only the consumer knows what it may keep. Capture switches,
   redaction, and size limits are the consumer's job. The documentation of the extension point says
   that every registered listener sees this data. Events never carry the job's lease token, which is a
-  fencing credential; they carry a short attempt discriminator instead.
+  fencing credential.
 
 * **D5 — The event surface follows the earlier taxonomy and the history client's call sites, limited
   to what the first consumer needs.** A small public job-kind enumeration replaces the internal
