@@ -80,7 +80,7 @@ Reference implementations: `http/rest` (outbound), `webhook` (inbound), `kafka` 
 `microsoft/azure-blobstorage` (documents). `salesforce` generates its template via a manual
 `GenerateElementTemplate`; `operate` and `power-automate` templates are hand-maintained.
 Dependencies point at the SDK with `provided` scope; connectors share code only through base modules (`aws/aws-base`, `http/http-base`, `google/google-base`, `microsoft/common`).
-Known exception: `agentic-ai/connector-agentic-ai` depends on `webhook` (authorization and HMAC signature utilities) and on `connector-runtime-{core,spring}` (SYSTEM.md DR2/DR3); do not add new cross-connector dependencies.
+Known exception: `agentic-ai/connector-a2a` depends on `webhook` (authorization and HMAC signature utilities) and the `agentic-ai` modules on `connector-runtime-{core,spring}` (SYSTEM.md DR2/DR3); do not add new cross-connector dependencies.
 
 ## 4. Binding decisions
 [ADR index](../docs/adr/README.md): ADR-0001, 0002, 0003, 0004 (templates and operations), 0005 (storage connector flexibility), 0006 (createDocument FEEL function).
