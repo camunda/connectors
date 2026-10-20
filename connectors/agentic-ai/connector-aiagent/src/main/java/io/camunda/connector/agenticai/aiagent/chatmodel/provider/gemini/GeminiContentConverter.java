@@ -16,6 +16,7 @@ import com.google.genai.types.Blob;
 import com.google.genai.types.FunctionResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.UnexpandedAgentDocumentException;
+import io.camunda.connector.agenticai.aiagent.document.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.AgentDocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -60,12 +61,6 @@ public class GeminiContentConverter {
           ContentType.IMAGE_PNG,
           ContentType.IMAGE_GIF,
           ContentType.IMAGE_WEBP);
-
-  private static final List<ContentType> ADDITIONAL_TEXT_FILE_CONTENT_TYPES =
-      List.of(
-          ContentType.APPLICATION_JSON,
-          ContentType.APPLICATION_XML,
-          ContentType.create("application/yaml"));
 
   private final ObjectMapper objectMapper;
 
@@ -270,12 +265,7 @@ public class GeminiContentConverter {
       return DocumentPartKind.PDF;
     }
 
-    final var mime = parsed.getMimeType();
-    if (mime.startsWith("text/")
-        || isCompatibleWithAnyOf(parsed, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)
-        || mime.equals("application/x-yaml")
-        || mime.endsWith("+json")
-        || mime.endsWith("+xml")) {
+    if (DocumentMimeTypes.isTextIsh(parsed)) {
       return DocumentPartKind.TEXT;
     }
     return DocumentPartKind.UNSUPPORTED;
