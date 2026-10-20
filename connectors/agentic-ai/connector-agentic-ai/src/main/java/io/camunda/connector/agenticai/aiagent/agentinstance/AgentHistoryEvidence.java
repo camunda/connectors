@@ -8,7 +8,11 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import io.camunda.connector.agenticai.aiagent.LinkedSystemPromptResolver.ResolvedLinkedSystemPrompt;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
@@ -139,6 +143,43 @@ public final class AgentHistoryEvidence {
       evidence.put("pdfEngine", "provider default");
     }
     evidence.put("documents", documents);
+    return evidence;
+  }
+
+  /** Evidence that the observation-masking memory strategy produced this stored snapshot. */
+  public static @Nullable Map<String, Object> customMemory(AgentContext agentContext) {
+    if (!(agentContext.conversation() instanceof ObservationMaskingConversationContext context)) {
+      return null;
+    }
+    final Map<String, Object> evidence = new LinkedHashMap<>();
+    evidence.put("kind", "customMemory");
+    evidence.put("strategy", "observation masking with pinned case ledger");
+    evidence.put("storeUrl", context.storeUrl());
+    evidence.put("reconciliationFacts", context.ledger().reconciliationFacts());
+    evidence.put(
+        "maskedToolResults",
+        context.messages().stream()
+            .filter(ToolCallResultMessage.class::isInstance)
+            .map(ToolCallResultMessage.class::cast)
+            .flatMap(resultMessage -> resultMessage.results().stream())
+            .filter(
+                result ->
+                    Boolean.TRUE.equals(
+                        result
+                            .properties()
+                            .get(ObservationMaskingConversationStore.MASKED_RESULT_PROPERTY)))
+            .count());
+    evidence.put(
+        "pinnedLedger",
+        Map.of(
+            "matchedTransactionIds",
+            context.ledger().matchedTransactionIds(),
+            "overchargeAmount",
+            context.ledger().overchargeAmount() == null ? "" : context.ledger().overchargeAmount(),
+            "fraudVerdict",
+            context.ledger().fraudVerdict() == null ? "" : context.ledger().fraudVerdict(),
+            "deadline",
+            context.ledger().deadline() == null ? "" : context.ledger().deadline()));
     return evidence;
   }
 

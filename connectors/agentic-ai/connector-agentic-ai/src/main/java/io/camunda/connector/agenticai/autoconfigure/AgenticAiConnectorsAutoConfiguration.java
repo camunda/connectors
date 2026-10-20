@@ -61,6 +61,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.D
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingSystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.model.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
@@ -273,6 +275,24 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public InProcessConversationStore aiAgentInProcessConversationStore() {
     return new InProcessConversationStore();
+  }
+
+  @Bean(destroyMethod = "close")
+  @ConditionalOnMissingBean
+  public ObservationMaskingConversationStore aiAgentObservationMaskingConversationStore(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new ObservationMaskingConversationStore(
+        objectMapper,
+        ObservationMaskingConversationStore.configuredPort(),
+        ObservationMaskingConversationStore.configuredBindAddress(),
+        ObservationMaskingConversationStore.configuredHost());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ObservationMaskingSystemPromptContributor.class)
+  public ObservationMaskingSystemPromptContributor
+      aiAgentObservationMaskingSystemPromptContributor() {
+    return new ObservationMaskingSystemPromptContributor();
   }
 
   @Bean

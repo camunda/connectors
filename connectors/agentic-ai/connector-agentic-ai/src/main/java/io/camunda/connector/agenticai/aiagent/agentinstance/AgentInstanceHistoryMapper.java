@@ -115,10 +115,11 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  withDocumentParsingEvidence(
+                  withInputEvidence(
                       userContentBlocks(userMessage.content(), agentContext),
                       userMessage,
-                      documentParsing),
+                      documentParsing,
+                      agentContext),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -214,17 +215,24 @@ public class AgentInstanceHistoryMapper {
     return withEvidence;
   }
 
-  private List<AgentInstanceHistoryContent> withDocumentParsingEvidence(
+  private List<AgentInstanceHistoryContent> withInputEvidence(
       List<AgentInstanceHistoryContent> content,
       UserMessage userMessage,
-      @Nullable Object documentParsing) {
-    final var evidence =
+      @Nullable Object documentParsing,
+      AgentContext agentContext) {
+    final var documentParsingEvidence =
         AgentHistoryEvidence.documentParsing(userMessage.content(), documentParsing);
-    if (evidence == null) {
+    final var memoryEvidence = AgentHistoryEvidence.customMemory(agentContext);
+    if (documentParsingEvidence == null && memoryEvidence == null) {
       return content;
     }
     final List<AgentInstanceHistoryContent> withEvidence = new ArrayList<>(content);
-    withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(evidence)));
+    if (documentParsingEvidence != null) {
+      withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(documentParsingEvidence)));
+    }
+    if (memoryEvidence != null) {
+      withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(memoryEvidence)));
+    }
     return withEvidence;
   }
 

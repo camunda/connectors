@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.observationmasking.ObservationMaskingConversationContext;
 
 /**
  * Storage cursor for a conversation. Contains all data needed to locate and load the conversation
@@ -25,7 +26,10 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 @JsonSubTypes({
   @JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process"),
   @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document"),
-  @JsonSubTypes.Type(value = AwsAgentCoreConversationContext.class, name = "aws-agentcore")
+  @JsonSubTypes.Type(value = AwsAgentCoreConversationContext.class, name = "aws-agentcore"),
+  @JsonSubTypes.Type(
+      value = ObservationMaskingConversationContext.class,
+      name = "observation-masking")
 })
 public interface ConversationContext {
   String conversationId();
