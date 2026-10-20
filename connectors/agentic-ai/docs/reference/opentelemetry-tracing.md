@@ -50,11 +50,14 @@ agent instance emit nothing.
 - **One trace per run.** A run starts with an input (the first activation, a user message, or an event) and
   ends with the turn whose model response has no tool calls. The next input starts a new trace. Runs are not
   linked to each other: the session groups the runs of one agent instance.
-- **Anchor span** `<element id> run` (internal, no GenAI operation): the root of the run's trace. With
+- **Anchor span** `<element id> run` (internal, no GenAI operation): the root of the run's trace, a marker
+  without duration. With
   `capture-content` on, the name continues with the start of the run input, `<element id> run: <first 60
   characters of the input>`, and the span carries the full input as `input.value` and
-  `openinference.span.kind=AGENT`. The job that starts the run creates the anchor and ends it together with its
-  own `invoke_agent` span, so the anchor's duration is that of the first job and carries no meaning.
+  `openinference.span.kind=AGENT`. The job that starts the run exports the anchor with its start and end both
+  at the start of that job, the instant its first `invoke_agent` span starts, so it shows as a point. It
+  carries only what is known at the start of the run (name, input, trigger, session); the outcome and the
+  error of a job are on the `invoke_agent` span.
 - **`invoke_agent {element id}`** per job that does agent work (a tool discovery dispatch or a turn), with the
   job's real duration.
 - **`chat {model}`** per model call, including provider continuation rounds: provider, models, token usage,
@@ -73,19 +76,20 @@ agent instance emit nothing.
 A job creates its spans lazily, so a job that did no agent work leaves no trace of itself:
 
 - A job that runs a turn creates its spans at its first model round, after the job has won its lease: the
-  write that fences a superseded duplicate job runs before the first model round.
+  write that fences a superseded duplicate job runs before the first model round. The anchor of a run that
+  this job starts is exported at that point.
 - A job that dispatches gateway tool discovery creates its `invoke_agent` span (job kind `tool_discovery`) at
-  the dispatch.
+  the dispatch. When it starts the run, its anchor is exported when the job ends.
 - A conversation job that completes without a model round exports nothing. That covers a job that only
   collects partial tool results and a job that finds no input.
 - A job that fails before its first model round, for example because the model call limit is reached,
-  exports a failed `invoke_agent` span, and the anchor when it starts the run, with status Error and
-  `error.type`.
+  exports a failed `invoke_agent` span with status Error and `error.type`, and the anchor when it starts
+  the run; the anchor carries no status.
 - A superseded job, one that fails with the superseded error or whose completion the engine ignores, exports
   its spans only if it started a model round: then they carry outcome `superseded`,
   `error.type=job_superseded`, and the status is left unset, so the model calls and tokens it spent stay
   visible. A superseded duplicate job that never started a model round exports nothing, so the job that took
-  over is the only one that exports the spans.
+  over is the only one that exports the spans, the anchor included.
 - A job that fails or ends with a BPMN error exports its own spans with the outcome (`failed`,
   `bpmn_error`) and `error.type`.
 
@@ -112,7 +116,7 @@ context continues the open run, or starts a new one if the previous run closed.
 agent instance key that Operate shows (prefixed `<cluster-id>:` when `cluster-id` is set). Search the backend
 for that value to find all runs of the agent instance.
 
-**One run is one trace.** Open a trace to see the anchor at the root, one `invoke_agent` span for each job that
+**One run is one trace.** Open a trace to see the anchor marker at the root, one `invoke_agent` span for each job that
 did agent work, and under each of those the `chat` spans of its model rounds and the `execute_tool` spans of the
 tool calls it issued, which are exported by the job that consumes their results. Attributes such as `camunda.process_instance.key`, `camunda.element_instance.key` and
 `camunda.job.key` tell which activation produced a span.
@@ -216,10 +220,10 @@ note that the PoC has no redaction hook and no size limit for captured content.
   tool spans.
 - **Cache-write tokens in Arize Phoenix.** Phoenix may not show cache-write tokens, because it reads an older
   attribute name for them; the spans carry the name that the conventions define.
-- **Run root span duration.** The run's root span is exported by the first job of the run and ends with it, so
-  its duration is that of the first job, and the later jobs and tool spans extend beyond it. The trace latency
-  that a backend shows for the root therefore understates the run; the session view and the sum of the spans
-  show the real extent.
+- **Run root is a start marker.** The run's root span is a zero-duration marker at the start of the run, because
+  the module cannot extend a span that an earlier job exported. The extent of a run is shown by the child
+  spans and by the trace window, so a backend shows the root bar as a point, and its trace latency comes from
+  the span window and not from the root. Trace-level output is not set (see *No trace-level output*).
 - **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
   the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
 
@@ -229,7 +233,7 @@ The spans follow the GenAI semantic conventions, with a few differences that you
 full list with the reasons is in
 [ADR 019](../adr/019-opentelemetry-genai-tracing.md#conformance-with-the-genai-conventions).
 
-- The root of a trace is the anchor, which has no GenAI operation and no output. The final answer is on the
+- The root of a trace is the anchor, a start marker without duration, with no GenAI operation and no output. The final answer is on the
   last `invoke_agent` and `chat` spans (see *No trace-level output* above).
 - A run has one `invoke_agent` span for each job that did agent work, not one for the whole run.
 - `gen_ai.agent.name` is the BPMN element id of the agent, and there is no `gen_ai.agent.id`.

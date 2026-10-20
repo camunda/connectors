@@ -57,12 +57,12 @@ emit traces that these backends render correctly, without enabling OpenTelemetry
 1. Reconstruct traces on the cluster side from agent instance history records.
 2. Emit one trace per job, grouped only by a session identifier.
 3. Emit one trace per run, with a root span emitted after the fact when the run completes.
-4. Emit one trace per run with an anchor root span that the run-starting job exports early, and later
-   jobs attach their spans to it.
+4. Emit one trace per run with a zero-duration run-start marker as root span that the run-starting job
+   exports at the start of the run, and later jobs attach their spans to it.
 
 ## Decision Outcome
 
-Chosen option: **Option 4 — one trace per run with an early-exported anchor root, emitted by a
+Chosen option: **Option 4 — one trace per run with a run-start marker as root, emitted by a
 tracing consumer of the agent lifecycle listeners**, because it keeps a run in one trace without
 holding any span open across jobs, avoids orphaned children when a run is cancelled, and keeps the
 sampling decision consistent across jobs.
@@ -82,8 +82,8 @@ The decision comprises:
 
 * **D2 — One trace is one agent run.** A run starts with the first job after an input (first
   activation, user message, or event) and ends with the turn whose model response has no tool calls.
-  The next input starts a new run. The run-starting job starts an anchor root span, which it exports when
-  it ends. Later jobs attach their spans to the anchor through the trace identity kept in the consumer's
+  The next input starts a new run. The run-starting job exports an anchor root span at once, as a marker
+  without duration at the start of the run. Later jobs attach their spans to the anchor through the trace identity kept in the consumer's
   state slot (ADR 018 D3), and inherit its sampling decision, so a run is all-in or all-out. Trace and span
   identities are assigned by the OpenTelemetry SDK. The state exists so that a later job can reattach to
   the trace of a run that an earlier job started.
@@ -102,7 +102,10 @@ The decision comprises:
     `openinference.span.kind=AGENT`, so that a backend that takes the input of a trace from its root shows
     the run input. A run that starts with a tool discovery dispatch has no input yet and keeps the plain
     name. It has no GenAI operation, so it does not distort `invoke_agent` durations or backend type mapping.
-    It ends with the job that started the run, so its duration carries no meaning.
+    It is a marker without duration: it starts and ends at the start of the run-starting job, and it carries
+    only what is known at the start of the run (name, input, trigger, identities). The outcome, the error, and
+    the final answer are on the `invoke_agent` and `chat` spans. The extent of a run is shown by its child
+    spans and by the trace window.
   * **`invoke_agent {element id}`** spans cover one job doing agent work (tool discovery or a turn), with
     the job's real duration.
   * **`chat {model}`** spans cover every model call round, including provider continuation rounds, with
@@ -133,10 +136,12 @@ The decision comprises:
   lazily: at its first model round, at a tool discovery dispatch, or at a failure. A job that completes
   without a model round, such as a partial-results job, exports nothing. A failed activation, including one
   that fails before its first model round (for example at the model call limit), ends its `invoke_agent`
-  span, and the anchor when it started the run, with its outcome and error type, and its model calls and
-  token usage remain visible. A superseded activation is not a failure of the agent. The write that fences a
+  span with its outcome and error type, and exports the anchor when it started the run, and its model calls
+  and token usage remain visible. A superseded activation is not a failure of the agent. The write that fences a
   superseded activation runs before the first model round, so a duplicate that never started a model round
-  exports nothing and the activation that took over is the only one that exports the spans. A job that is
+  exports nothing, not even an anchor, and the activation that took over is the only one that exports the
+  spans. The anchor of a run is exported at the first model round of the run-starting job, and when that job
+  has none, when the job ends. A job that is
   superseded after a model round, or whose completion the engine ignores, ends its spans with outcome
   `superseded` and `error.type=job_superseded` and leaves the status unset, so its wasted spend stays
   visible. `chat` spans are exported when their model call ends, so the token usage of a call counts even
@@ -155,10 +160,10 @@ The decision comprises:
   |---|---|---|
   | Model rejection (content filter, context window, guardrail) | `chat` and its `invoke_agent` | Error; the class of the rejection |
   | Other provider or transport exception | `chat` and its `invoke_agent` | Error; the class of the provider SDK exception, else the error code |
-  | Limit hit, other agent failure | `invoke_agent`, and the anchor of a run-starting job | Error; error code, or the class name of the failure |
-  | BPMN error raised by the agent | `invoke_agent`, and the anchor of a run-starting job | Error; outcome `bpmn_error`; the BPMN error code |
-  | Failure of the job completion in the runtime | `invoke_agent`, and the anchor of a run-starting job | Error; outcome `failed`; the class of the cause |
-  | Job superseded, or completion ignored by the engine | `invoke_agent`, and the anchor of a run-starting job | Outcome `superseded`; `job_superseded`; status unset; only if the job started a model round |
+  | Limit hit, other agent failure | `invoke_agent` | Error; error code, or the class name of the failure |
+  | BPMN error raised by the agent | `invoke_agent` | Error; outcome `bpmn_error`; the BPMN error code |
+  | Failure of the job completion in the runtime | `invoke_agent` | Error; outcome `failed`; the class of the cause |
+  | Job superseded, or completion ignored by the engine | `invoke_agent` | Outcome `superseded`; `job_superseded`; status unset; only if the job started a model round |
   | Tool completed or cancelled | `execute_tool` | Outcome only; status unset |
   | Tool failed | `execute_tool` | Not distinguishable today (see Follow-up) |
   | Tool incident | none | The result never arrives |
@@ -205,7 +210,7 @@ discovery is on.
 
 | Job | Trigger | Persists the context | Spans exported | Run state after |
 |---|---|---|---|---|
-| 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes | Anchor (0.4 s), `invoke_agent` (discovery) | Open, new trace T1, issuer job 1 |
+| 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes | Anchor (marker without duration), `invoke_agent` (discovery) | Open, new trace T1, issuer job 1 |
 | 2, Mon 09:00:01 | Discovery results, first turn | Yes | `invoke_agent`, `chat` round 1 (4 s, tokens, finish reason tool call) | Open, issuer job 2 |
 | 3, Mon 09:00:08 | Tool A completes | No (deferred) | None | Unchanged |
 | 4, Wed 09:00 | Tool B completes after two days | Yes | `invoke_agent`, `chat` round 1 (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00), both below job 2's `invoke_agent` | Closed |
@@ -213,7 +218,7 @@ discovery is on.
 
 ```text
 Session prod-eu:2251799813685260
-Trace T1  "travel_helper run" (anchor)
+Trace T1  "travel_helper run" (run-start marker, no duration)
 ├─ invoke_agent travel_helper  job 1 (tool discovery)
 ├─ invoke_agent travel_helper  job 2
 │  ├─ chat  round 1  (tokens, finish=tool call)
@@ -227,8 +232,8 @@ Trace T2  "travel_helper run"  (same session, no link)
 
 `chat` spans are exported when each model round ends. The `execute_tool` spans are exported by job 4, the job
 that consumes the results, but they hang below job 2, which issued the calls, and start after it started.
-`invoke_agent` and the anchor are exported when the job ends: after the engine accepted the job completion, or when the job fails or its completion is
-rejected. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
+`invoke_agent` is exported when the job ends: after the engine accepted the job completion, or when the job fails or its completion is
+rejected. The anchor is exported with the job's first model round, or, for job 1, which has none, when the job ends. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
 `chat` span with its tokens and persists nothing; the retry exports a second `invoke_agent` and `chat` and
 the two `execute_tool` spans once. If job 1's first attempt fails, it exports its own failed trace in the
 same session, and the retry starts the run's trace. A duplicate activation of job 4 that is superseded
@@ -269,7 +274,7 @@ process.
 
 | Area | Conventions | AI Agent | Reason |
 |---|---|---|---|
-| Root of a run | One `invoke_agent` span covers an agent invocation, and no wrapper root span is defined | A synthetic anchor `<element id> run` without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last round | The anchor is created by the first job and ends with it, so its duration carries no meaning and the final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
+| Root of a run | One `invoke_agent` span covers an agent invocation, and no wrapper root span is defined | A synthetic anchor `<element id> run`, a zero-duration marker at the start of the run, without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last round | A module that depends only on the OpenTelemetry API cannot export a span under an id it handed out earlier and cannot extend a span it exported, so the root cannot cover the run: it marks the start. The final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
 | Agent invocations | One `invoke_agent` span per invocation | One `invoke_agent` span per job, so a run has several | A run is spread over several stateless jobs, and each span covers one job's real duration |
 | Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, as a child of the `invoke_agent` span of the job that issued the call, with an explicit start derived from the id of the assistant message that issued the call; the end is the engine's completion time | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job, and the span outlives its parent |
 | Tool failures | A failed operation has error status and `error.type` | Not distinguishable: a tool result shows `completed`, or `cancelled` when interrupted, and a tool incident has no span | A tool result carries no structured error signal today (see Follow-up) |
@@ -303,8 +308,9 @@ process.
 
 * Customers on the stock image must add and version-match the OpenTelemetry and Spring OpenTelemetry
   libraries, and exclude the Observation bridge to keep other connectors untraced.
-* The anchor root's duration is meaningless, and tool spans can end days after their `invoke_agent`
-  parent, which backends may render awkwardly (an exit criterion of the proof of concept).
+* The root of a run is a marker without duration, so a backend shows it as a point, and the latency columns
+  of a trace come from the span window and not from the root. Tool spans can end days after their
+  `invoke_agent` parent, which backends may render awkwardly (an exit criterion of the proof of concept).
 * The start of a tool span is approximate, and the anchor sets no output, so a backend that shows the output
   of the root span has nothing to show for a run.
 * A run that starts with a tool discovery dispatch has no input on its anchor.
@@ -338,13 +344,13 @@ process.
 * Bad, because the root must be emitted by the last job, so children arrive before their parent, and a
   cancelled run never gets a root and leaves orphaned children.
 
-### Option 4: One trace per run with an early-exported anchor root (chosen)
+### Option 4: One trace per run with a run-start marker as root (chosen)
 
 * Good, because the run stays in one trace, nothing is held open across jobs, and sampling is
   consistent.
 * Good, because a cancelled run keeps its anchor and the spans of completed jobs.
-* Bad, because the anchor's duration is not the run's duration, and it depends on how backends render
-  late children.
+* Bad, because the root is a point and not the run's extent, and it depends on how backends render late
+  children.
 
 ## Follow-up
 
