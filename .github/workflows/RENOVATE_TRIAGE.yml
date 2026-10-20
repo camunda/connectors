@@ -49,6 +49,12 @@ on:
         required: false
         default: ''
         type: string
+      mode:
+        description: 'What this run may do (overrides RENOVATE_TRIAGE_MODE)'
+        required: false
+        default: comment
+        type: choice
+        options: [ comment, report, fix ]
 
 permissions: { }
 
@@ -105,7 +111,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          MODE: ${{ vars.RENOVATE_TRIAGE_MODE || 'fix' }}
+          MODE: ${{ inputs.mode || vars.RENOVATE_TRIAGE_MODE || 'fix' }}
           EVENT_NAME: ${{ github.event_name }}
           INPUT_PR: ${{ inputs.pr_number }}
           INPUT_RUN_ID: ${{ inputs.run_id }}
@@ -189,17 +195,31 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout main for tooling
+      # The skill and brief come from the same commit as this workflow file (main for
+      # workflow_run, the chosen ref for a dispatch), so they always match it.
+      - name: Checkout tooling
         if: steps.resolve.outputs.skip == 'false'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           path: tooling
           fetch-depth: 1
           sparse-checkout: |
             .claude/skills/connectors-renovate-triage
             docs/renovate-triage
-            renovate.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # renovate.json always comes from main: that is the copy Renovate reads, and the
+      # one a config PR is opened against.
+      - name: Checkout main renovate.json
+        if: steps.resolve.outputs.skip == 'false'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: main-config
+          fetch-depth: 1
+          sparse-checkout: renovate.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
@@ -231,7 +251,7 @@ jobs:
           mkdir -p "$data" agent-workspace/.claude/skills agent-workspace/renovate-config
           cp -R tooling/.claude/skills/connectors-renovate-triage agent-workspace/.claude/skills/
           cp tooling/docs/renovate-triage/AGENT.md agent-workspace/AGENT.md
-          cp tooling/renovate.json agent-workspace/renovate-config/renovate.json
+          cp main-config/renovate.json agent-workspace/renovate-config/renovate.json
           cp /tmp/pr.json "$data/pr.json"
           jq -r '.files[].path' /tmp/pr.json | sort -u > /tmp/pr-files.txt
 
@@ -357,7 +377,7 @@ jobs:
           git -C agent-workspace/connectors diff --cached --name-status > /tmp/fix-files.txt
           git -C agent-workspace/connectors diff --cached --numstat > /tmp/fix-numstat.txt
 
-          if ! cmp -s tooling/renovate.json agent-workspace/renovate-config/renovate.json; then
+          if ! cmp -s main-config/renovate.json agent-workspace/renovate-config/renovate.json; then
             cp agent-workspace/renovate-config/renovate.json out/renovate.json
           fi
 
@@ -431,7 +451,7 @@ jobs:
           config_pr=false
           if [ "$configured" = true ]; then
             jq -e . out/renovate.json >/dev/null || escalate "The proposed renovate.json is not valid JSON."
-            [ "$(jq -S 'del(.packageRules)' out/renovate.json)" = "$(jq -S 'del(.packageRules)' tooling/renovate.json)" ] \
+            [ "$(jq -S 'del(.packageRules)' out/renovate.json)" = "$(jq -S 'del(.packageRules)' main-config/renovate.json)" ] \
               || escalate "The proposed renovate.json changes more than packageRules."
             config_pr=true
           fi
