@@ -14,7 +14,7 @@ import com.openai.models.responses.ResponseInputFile;
 import com.openai.models.responses.ResponseInputImage;
 import com.openai.models.responses.ResponseInputText;
 import com.openai.models.responses.ResponseInputTextContent;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.document.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
