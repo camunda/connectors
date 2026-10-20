@@ -281,7 +281,11 @@ uses implicit versioning.
 
 `openai-api` supports a saved `io.camunda:agentic-ai-openai-api-credential:1` credential (`apiKey`,
 `organizationId`, `projectId` — all three together); the escape hatches (`endpoint`/`headers`/
-`queryParameters`/`bodyProperties`) stay inline and always visible regardless. `foundry`'s credentials
+`queryParameters`/`bodyProperties`) stay inline and always visible regardless. `custom` supports a
+saved `io.camunda:agentic-ai-openai-custom-credential:1` credential (`endpoint`, `apiKey`, `model`
+— all three together). When bound, it supplies the endpoint, an API-key authentication and the
+model, and hides those inline fields (including OAuth and the model name); `headers`,
+`queryParameters` and `bodyProperties` stay inline. `foundry`'s credentials
 are shared with Anthropic — see
 [Microsoft Foundry authentication § Foundry credentials](#foundry-credentials). See
 [ADR 015](../adr/015-v2-provider-credential-templates.md) for the general rationale.

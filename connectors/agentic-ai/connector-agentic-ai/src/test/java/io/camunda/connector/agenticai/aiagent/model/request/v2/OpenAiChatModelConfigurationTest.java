@@ -62,8 +62,9 @@ class OpenAiChatModelConfigurationTest {
     assertThat(validator.validate(config))
         .anySatisfy(
             v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.model.model");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.modelPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("A model is required from the credential or element template");
             });
   }
 
@@ -230,8 +231,9 @@ class OpenAiChatModelConfigurationTest {
         .anySatisfy(
             v -> {
               assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
+                  .isEqualTo("openai.backend.custom.endpointPresent");
+              assertThat(v.getMessage())
+                  .isEqualTo("An API endpoint is required from the credential or element template");
             })
         .anySatisfy(
             v -> {
@@ -957,6 +959,115 @@ class OpenAiChatModelConfigurationTest {
 
     assertThat(parsed.openai().api()).isInstanceOf(OpenAiResponsesApi.class);
     assertThat(parsed.openai().backend()).isInstanceOf(OpenAiApiBackend.class);
+  }
+
+  @Test
+  void customBackendResolvesEndpointApiKeyAndModelFromCredentialWithNoViolations() {
+    final var config = customCredentialConfiguration(null, null, null);
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(config.model()).isEqualTo("credential-model");
+    final var custom = ((OpenAiCustomBackend) config.openai().backend()).custom();
+    assertThat(custom.effectiveEndpoint()).isEqualTo("https://llm.example.com/v1");
+    assertThat(custom.effectiveAuthentication())
+        .isEqualTo(new ApiKeyAuthentication("sk-from-credential"));
+  }
+
+  @Test
+  void customBackendCredentialTakesPrecedenceOverInlineFields() {
+    final var config =
+        customCredentialConfiguration(
+            "https://inline.example.com", new ApiKeyAuthentication("sk-inline"), "inline-model");
+
+    assertThat(validator.validate(config)).isEmpty();
+    assertThat(config.model()).isEqualTo("credential-model");
+    final var custom = ((OpenAiCustomBackend) config.openai().backend()).custom();
+    assertThat(custom.effectiveEndpoint()).isEqualTo("https://llm.example.com/v1");
+    assertThat(custom.effectiveAuthentication())
+        .isEqualTo(new ApiKeyAuthentication("sk-from-credential"));
+  }
+
+  @Test
+  void customBackendRejectsMissingCredentialAndInlineFields() {
+    final var config =
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                responsesApi(),
+                new OpenAiCustomBackend(new CustomBackend(null, null, null, null, null, null)),
+                null,
+                null));
+
+    assertThat(validator.validate(config))
+        .extracting(v -> v.getPropertyPath().toString())
+        .contains(
+            "openai.modelPresent",
+            "openai.backend.custom.endpointPresent",
+            "openai.backend.custom.authenticationPresent");
+  }
+
+  @Test
+  void customCredentialRedactsApiKeyInToString() {
+    final var credential =
+        new OpenAiCustomCredential("https://llm.example.com/v1", "sk-super-secret", "m");
+
+    assertThat(credential.toString()).contains("[REDACTED]").doesNotContain("sk-super-secret");
+    assertThat(customCredentialConfiguration(null, null, null).toString())
+        .doesNotContain("sk-from-credential");
+  }
+
+  @Test
+  void deserialisesCustomBackendWithCredentialAndRoundTrips() throws Exception {
+    final String json =
+        """
+        {
+          "type": "openai",
+          "openai": {
+            "api": { "type": "responses", "responses": {} },
+            "backend": {
+              "type": "custom",
+              "custom": {
+                "openAiCustomCredential": {
+                  "endpoint": "https://llm.example.com/v1",
+                  "apiKey": "sk-from-credential",
+                  "model": "credential-model"
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    final var parsed =
+        (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
+
+    assertThat(validator.validate(parsed)).isEmpty();
+    assertThat(parsed.model()).isEqualTo("credential-model");
+    final var custom = ((OpenAiCustomBackend) parsed.openai().backend()).custom();
+    assertThat(custom.endpoint()).isNull();
+    assertThat(custom.effectiveEndpoint()).isEqualTo("https://llm.example.com/v1");
+
+    final String reserialised = mapper.writeValueAsString(parsed);
+    assertThat(mapper.readValue(reserialised, ProviderConfiguration.class)).isEqualTo(parsed);
+  }
+
+  private static OpenAiChatModelConfiguration customCredentialConfiguration(
+      String inlineEndpoint,
+      OpenAiCustomEndpointAuthentication inlineAuthentication,
+      String inlineModel) {
+    return new OpenAiChatModelConfiguration(
+        new OpenAiConnection(
+            responsesApi(),
+            new OpenAiCustomBackend(
+                new CustomBackend(
+                    new OpenAiCustomCredential(
+                        "https://llm.example.com/v1", "sk-from-credential", "credential-model"),
+                    inlineEndpoint,
+                    null,
+                    null,
+                    null,
+                    inlineAuthentication)),
+            inlineModel == null ? null : new OpenAiModel(inlineModel),
+            null));
   }
 
   private static OpenAiChatModelConfiguration configuration(
