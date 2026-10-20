@@ -24,20 +24,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class AgentTracerImplTest {
+class AgentTracerTest {
 
   private static final Instant T0 = Instant.parse("2026-10-19T09:00:00Z");
 
   private final InMemorySpanExporter exporter = InMemorySpanExporter.create();
   private SdkTracerProvider tracerProvider;
-  private AgentTracerImpl tracer;
+  private AgentTracer tracer;
 
   @BeforeEach
   void setUp() {
     tracerProvider =
         SdkTracerProvider.builder().addSpanProcessor(SimpleSpanProcessor.create(exporter)).build();
-    tracer =
-        new AgentTracerImpl(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build());
+    tracer = new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build());
   }
 
   @AfterEach
@@ -47,7 +46,7 @@ class AgentTracerImplTest {
 
   @Test
   void childOfRebuiltRemoteParentJoinsTheAnchorTrace() {
-    final Span anchor = tracer.startAnchor("agent run", T0, Attributes.empty(), null);
+    final Span anchor = tracer.startAnchor("agent run", T0, Attributes.empty());
     final SpanContext anchorContext = anchor.getSpanContext();
     tracer.end(anchor, T0.plusSeconds(1));
 
@@ -69,7 +68,7 @@ class AgentTracerImplTest {
 
   @Test
   void toolSpanKeepsItsStartBeforeTheParentStart() {
-    final Span anchor = tracer.startAnchor("agent run", T0, Attributes.empty(), null);
+    final Span anchor = tracer.startAnchor("agent run", T0, Attributes.empty());
     final Span job =
         tracer.startChild(
             "invoke_agent",
@@ -107,22 +106,32 @@ class AgentTracerImplTest {
   }
 
   @Test
-  void anchorLinksToThePreviousAnchorAndNeverEndedAnchorIsNotExported() {
-    final Span first = tracer.startAnchor("first", T0, Attributes.empty(), null);
-    final Span second =
-        tracer.startAnchor("second", T0.plusSeconds(5), Attributes.empty(), first.getSpanContext());
+  void anchorHasNoParentAndNeverEndedAnchorIsNotExported() {
+    final Span first = tracer.startAnchor("first", T0, Attributes.empty());
+    final Span second = tracer.startAnchor("second", T0.plusSeconds(5), Attributes.empty());
     tracer.end(second, T0.plusSeconds(6));
 
+    assertThat(first.getSpanContext().isValid()).isTrue();
     assertThat(exporter.getFinishedSpanItems()).hasSize(1);
     final SpanData secondData = span("second");
-    assertThat(secondData.getLinks()).hasSize(1);
-    assertThat(secondData.getLinks().get(0).getSpanContext().getSpanId())
-        .isEqualTo(first.getSpanContext().getSpanId());
+    assertThat(secondData.getParentSpanContext().isValid()).isFalse();
+    assertThat(secondData.getLinks()).isEmpty();
+  }
+
+  @Test
+  void errorTypeAloneLeavesTheStatusUnset() {
+    final Span plain = tracer.startAnchor("plain", T0, Attributes.empty());
+    tracer.setErrorType(plain, "job_superseded");
+    tracer.end(plain, T0.plusSeconds(1));
+
+    final SpanData data = span("plain");
+    assertThat(data.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+    assertThat(data.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isEqualTo("job_superseded");
   }
 
   @Test
   void marksErrorsWithoutDescriptionUnlessGiven() {
-    final Span plain = tracer.startAnchor("plain", T0, Attributes.empty(), null);
+    final Span plain = tracer.startAnchor("plain", T0, Attributes.empty());
     tracer.markError(plain, "job_superseded", null);
     tracer.end(plain, T0.plusSeconds(1));
 

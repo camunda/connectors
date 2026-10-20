@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.otel.configuration.AgentTracingProperties;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure.CommandFailure.CommandIgnored;
 import io.camunda.connector.api.outbound.JobCompletionFailure.ExecutionFailed;
 import io.opentelemetry.api.trace.StatusCode;
@@ -82,7 +83,7 @@ class AgentTracingJobObserverTest {
     final var openTelemetry = OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build();
     listener =
         new AgentTracingListener(
-            new AgentTracerImpl(openTelemetry), new AgentTracingProperties(true, false, "prod-eu"));
+            new AgentTracer(openTelemetry), new AgentTracingProperties(true, false, "prod-eu"));
   }
 
   @AfterEach
@@ -172,7 +173,7 @@ class AgentTracingJobObserverTest {
     assertThat(approvalTool.getAttributes().get(GenAiAttributes.TOOL_CALL_RESULT)).isNull();
     exporter.reset();
 
-    // the next input starts a new run in the same session, linked to the first anchor
+    // the next input starts a new run in the same session
     final var followUp =
         listener.onJobStarted(
             started(AgentJobKind.CONVERSATION, job4Start.plusSeconds(1800), 2, afterLastTurn));
@@ -182,9 +183,7 @@ class AgentTracingJobObserverTest {
 
     final SpanData secondAnchor = span("agent run");
     assertThat(secondAnchor.getTraceId()).isNotEqualTo(anchor.getTraceId());
-    assertThat(secondAnchor.getLinks()).hasSize(1);
-    assertThat(secondAnchor.getLinks().get(0).getSpanContext().getSpanId())
-        .isEqualTo(anchor.getSpanId());
+    assertThat(secondAnchor.getLinks()).isEmpty();
     assertThat(secondAnchor.getAttributes().get(GenAiAttributes.SESSION_ID)).isEqualTo(SESSION);
   }
 
@@ -192,7 +191,8 @@ class AgentTracingJobObserverTest {
   void failedRunStartingJobEndsItsSpansOnceAsFailedWithoutMessages() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
-    final var failure = new IllegalStateException("prompt text that must not leak");
+    final var failure =
+        new ConnectorException("MODEL_CONTEXT_WINDOW_EXCEEDED", "prompt text that must not leak");
 
     observer.onTurnStarted(turnStarted(1, List.of(), null));
     observer.onModelRoundStarted(roundStarted());
@@ -221,6 +221,25 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
+  void failedModelRoundIsTypedByTheProviderExceptionBehindTheConnectorWrapper() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    final var providerFailure = new java.net.SocketTimeoutException("prompt text");
+    final var failure = new ConnectorException("FAILED_MODEL_CALL", "prompt text", providerFailure);
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onModelRoundStarted(roundStarted());
+    observer.onModelRoundFailed(new ModelRoundFailed(failure, "FAILED_MODEL_CALL"));
+    observer.onJobFailed(new JobFailed(failure, "FAILED_MODEL_CALL"));
+
+    assertThat(span("chat claude-x").getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("java.net.SocketTimeoutException");
+    assertThat(span("invoke_agent agent").getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("java.net.SocketTimeoutException");
+    assertThat(span("chat claude-x").getStatus().getDescription()).isEmpty();
+  }
+
+  @Test
   void chatSpanStillOpenWhenTheJobEndsIsEndedAsFailed() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
@@ -240,8 +259,7 @@ class AgentTracingJobObserverTest {
   void agentSpanCarriesTheTurnMessagesOnlyWithContentCapture() {
     final var capturing =
         new AgentTracingListener(
-            new AgentTracerImpl(
-                OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
+            new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
             new AgentTracingProperties(true, true, "prod-eu"));
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
@@ -308,8 +326,7 @@ class AgentTracingJobObserverTest {
             "00f067aa0ba902b7",
             true,
             RunTraceState.Status.OPEN,
-            iterationKey,
-            PROCESS_INSTANCE_KEY)
+            iterationKey)
         .toMap();
   }
 

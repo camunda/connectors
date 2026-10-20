@@ -22,7 +22,6 @@ import java.util.regex.Pattern;
  * @param sampled the sampling decision made once on the anchor
  * @param status whether the run continues or its final answer was given
  * @param iterationKey the turn iteration key at the time the state was written
- * @param processInstanceKey the process instance the run belongs to
  */
 public record RunTraceState(
     int version,
@@ -30,8 +29,7 @@ public record RunTraceState(
     String anchorSpanId,
     boolean sampled,
     Status status,
-    int iterationKey,
-    long processInstanceKey) {
+    int iterationKey) {
 
   public static final int CURRENT_VERSION = 1;
 
@@ -48,14 +46,8 @@ public record RunTraceState(
 
   /** Creates a state of the current version. */
   public static RunTraceState of(
-      String traceId,
-      String anchorSpanId,
-      boolean sampled,
-      Status status,
-      int iterationKey,
-      long processInstanceKey) {
-    return new RunTraceState(
-        CURRENT_VERSION, traceId, anchorSpanId, sampled, status, iterationKey, processInstanceKey);
+      String traceId, String anchorSpanId, boolean sampled, Status status, int iterationKey) {
+    return new RunTraceState(CURRENT_VERSION, traceId, anchorSpanId, sampled, status, iterationKey);
   }
 
   /** The JSON-friendly form that is stored in the agent context. */
@@ -67,7 +59,6 @@ public record RunTraceState(
     map.put("sampled", sampled);
     map.put("status", status.name());
     map.put("iterationKey", iterationKey);
-    map.put("processInstanceKey", processInstanceKey);
     return map;
   }
 
@@ -84,18 +75,11 @@ public record RunTraceState(
           || !SPAN_ID.matcher(anchorSpanId).matches()
           || !(map.get("sampled") instanceof Boolean sampled)
           || !(map.get("status") instanceof String statusName)
-          || !(map.get("iterationKey") instanceof Number iterationKey)
-          || !(map.get("processInstanceKey") instanceof Number processInstanceKey)) {
+          || !(map.get("iterationKey") instanceof Number iterationKey)) {
         return Optional.empty();
       }
       return Optional.of(
-          of(
-              traceId,
-              anchorSpanId,
-              sampled,
-              Status.valueOf(statusName),
-              iterationKey.intValue(),
-              processInstanceKey.longValue()));
+          of(traceId, anchorSpanId, sampled, Status.valueOf(statusName), iterationKey.intValue()));
     } catch (RuntimeException e) {
       return Optional.empty();
     }

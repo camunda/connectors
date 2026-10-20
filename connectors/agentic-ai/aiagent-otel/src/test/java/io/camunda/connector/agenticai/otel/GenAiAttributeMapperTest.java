@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import io.opentelemetry.api.common.Attributes;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,43 @@ class GenAiAttributeMapperTest {
           return "claude-x";
         }
       };
+
+  @Test
+  void errorTypeIsTheFirstCauseThatIsNoConnectorException() {
+    final Throwable sdkFailure = new java.net.SocketTimeoutException("secret prompt text");
+    final Throwable wrapped =
+        new ConnectorException(
+            "FAILED_MODEL_CALL",
+            "wrapper message",
+            new ConnectorException("INNER", "inner", sdkFailure));
+
+    assertThat(GenAiAttributeMapper.errorTypeOf(wrapped, "FAILED_MODEL_CALL"))
+        .isEqualTo("java.net.SocketTimeoutException")
+        .doesNotContain("secret");
+  }
+
+  @Test
+  void errorTypeOfConnectorExceptionsOnlyIsTheErrorCodeElseTheClass() {
+    final Throwable coded = new ConnectorException("MAX_MODEL_CALLS_EXCEEDED", "limit");
+
+    assertThat(GenAiAttributeMapper.errorTypeOf(coded, "MAX_MODEL_CALLS_EXCEEDED"))
+        .isEqualTo("MAX_MODEL_CALLS_EXCEEDED");
+    assertThat(GenAiAttributeMapper.errorTypeOf(coded, null))
+        .isEqualTo("io.camunda.connector.api.error.ConnectorException");
+  }
+
+  @Test
+  void errorTypeOfAnUnwrappedFailureIsItsCanonicalClassName() {
+    assertThat(GenAiAttributeMapper.errorTypeOf(new IllegalStateException("x"), "IGNORED"))
+        .isEqualTo("java.lang.IllegalStateException");
+    assertThat(GenAiAttributeMapper.errorTypeOf(new Nested(), null))
+        .isEqualTo(Nested.class.getCanonicalName());
+    assertThat(new Object() {}.getClass().getCanonicalName()).isNull();
+    assertThat(GenAiAttributeMapper.errorTypeOf(new RuntimeException() {}, null))
+        .startsWith(GenAiAttributeMapperTest.class.getName() + "$");
+  }
+
+  private static final class Nested extends RuntimeException {}
 
   @Test
   void usageTotalIncludesCachedTokensAndReportsSubsets() {

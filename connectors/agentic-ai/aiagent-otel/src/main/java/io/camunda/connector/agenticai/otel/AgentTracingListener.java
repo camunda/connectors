@@ -31,7 +31,7 @@ public class AgentTracingListener implements AgentLifecycleListener {
   private final boolean captureContent;
 
   public AgentTracingListener(OpenTelemetry openTelemetry, AgentTracingProperties properties) {
-    this(new AgentTracerImpl(openTelemetry), properties);
+    this(new AgentTracer(openTelemetry), properties);
   }
 
   AgentTracingListener(AgentTracer tracer, AgentTracingProperties properties) {

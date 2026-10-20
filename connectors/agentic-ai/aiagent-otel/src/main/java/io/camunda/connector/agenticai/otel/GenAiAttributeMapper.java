@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.error.ConnectorException;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import java.util.ArrayList;
@@ -51,6 +52,8 @@ import org.jspecify.annotations.Nullable;
 public final class GenAiAttributeMapper {
 
   private static final String METADATA_RESPONSE_ID = "responseId";
+
+  private static final int MAX_CAUSE_DEPTH = 16;
 
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final JsonNodeFactory NODES = JSON.getNodeFactory();
@@ -73,6 +76,28 @@ public final class GenAiAttributeMapper {
       builder.put(GenAiAttributes.AGENT_INSTANCE_KEY, Long.toString(agentInstanceKey));
     }
     return builder.build();
+  }
+
+  /**
+   * The low-cardinality {@code error.type} of a failure: the class of the first throwable in the
+   * cause chain that is not a {@link ConnectorException}, typically the provider SDK exception. A
+   * chain of connector exceptions only is typed by the given error code, else by the class of the
+   * failure. Exception messages never take part.
+   */
+  public static String errorTypeOf(Throwable cause, @Nullable String errorCode) {
+    Throwable current = cause;
+    for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+      if (!(current instanceof ConnectorException)) {
+        return className(current);
+      }
+      current = current.getCause();
+    }
+    return errorCode != null ? errorCode : className(cause);
+  }
+
+  private static String className(Throwable throwable) {
+    final String canonicalName = throwable.getClass().getCanonicalName();
+    return canonicalName != null ? canonicalName : throwable.getClass().getName();
   }
 
   /** The well-known {@code gen_ai.provider.name} of a chat model configuration. */

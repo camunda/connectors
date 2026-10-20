@@ -28,8 +28,9 @@ public class RunTraceStateResolver {
    *
    * @param sessionId the session identifier of the conversation, the same for every job and run
    * @param continuesRun whether the job continues the run described by {@code previous}
-   * @param previous the state of the previous run: the run to continue, or the anchor a new run
-   *     links to. Absent when no readable state exists.
+   * @param previous the readable persisted state: the run to continue when {@code continuesRun},
+   *     the run that ended otherwise. Absent when no readable state exists, which makes the job
+   *     start the first run.
    */
   public record Resolution(
       String sessionId, boolean continuesRun, @Nullable RunTraceState previous) {
@@ -53,7 +54,6 @@ public class RunTraceStateResolver {
     final boolean continues =
         previous != null
             && previous.status() == RunTraceState.Status.OPEN
-            && previous.processInstanceKey() == event.job().processInstanceKey()
             && previous.iterationKey() == iterationKeyOf(event);
     return Optional.of(new Resolution(sessionId, continues, previous));
   }

@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.otel.RunTraceState.Status;
 import io.camunda.connector.agenticai.otel.RunTraceStateResolver.Resolution;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.api.outbound.JobCompletionFailure.BpmnErrorThrown;
 import io.camunda.connector.api.outbound.JobCompletionFailure.CommandFailure.CommandFailed;
@@ -176,9 +177,10 @@ class AgentTracingJobObserver implements AgentJobObserver {
             span.setAttribute(
                 GenAiAttributes.RESPONSE_FINISH_REASONS,
                 List.of(GenAiAttributes.FINISH_REASON_ERROR));
-            final String errorType =
-                event.errorCode() != null ? event.errorCode() : event.cause().getClass().getName();
-            tracer.markError(span, errorType, description(event.cause()));
+            tracer.markError(
+                span,
+                GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
+                description(event.cause()));
             tracer.end(span, Instant.now());
           }
           return null;
@@ -208,9 +210,11 @@ class AgentTracingJobObserver implements AgentJobObserver {
         "job failed",
         () -> {
           open(null);
-          final String errorType =
-              event.errorCode() != null ? event.errorCode() : event.cause().getClass().getName();
-          endAll(GenAiAttributes.JOB_OUTCOME_FAILED, errorType, description(event.cause()), false);
+          endAll(
+              GenAiAttributes.JOB_OUTCOME_FAILED,
+              GenAiAttributeMapper.errorTypeOf(event.cause(), event.errorCode()),
+              description(event.cause()),
+              false);
           return null;
         });
   }
@@ -246,13 +250,13 @@ class AgentTracingJobObserver implements AgentJobObserver {
             case ExecutionFailed executionFailed ->
                 endAll(
                     GenAiAttributes.JOB_OUTCOME_FAILED,
-                    executionFailed.cause().getClass().getName(),
+                    errorTypeOf(executionFailed.cause()),
                     description(executionFailed.cause()),
                     false);
             case CommandFailed commandFailed ->
                 endAll(
                     GenAiAttributes.JOB_OUTCOME_FAILED,
-                    commandFailed.cause().getClass().getName(),
+                    errorTypeOf(commandFailed.cause()),
                     description(commandFailed.cause()),
                     false);
             case JobErrorRaised errorRaised ->
@@ -278,10 +282,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
     if (resolution.startsRun()) {
       final Span anchorSpan =
           tracer.startAnchor(
-              job.job().elementId() + " run",
-              job.startedAt(),
-              anchorAttributes(turn),
-              previous != null ? linkTarget(previous) : null);
+              job.job().elementId() + " run", job.startedAt(), anchorAttributes(turn));
       anchor = anchorSpan;
       parent = tracer.contextOf(anchorSpan);
       final SpanContext anchorContext = anchorSpan.getSpanContext();
@@ -292,8 +293,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
                   anchorContext.getSpanId(),
                   anchorContext.isSampled(),
                   Status.OPEN,
-                  0,
-                  job.job().processInstanceKey())
+                  0)
               : null;
     } else if (previous != null) {
       parent = tracer.remoteParent(previous.traceId(), previous.anchorSpanId(), previous.sampled());
@@ -340,12 +340,6 @@ class AgentTracingJobObserver implements AgentJobObserver {
     return builder.build();
   }
 
-  private SpanContext linkTarget(RunTraceState previous) {
-    return Span.fromContext(
-            tracer.remoteParent(previous.traceId(), previous.anchorSpanId(), previous.sampled()))
-        .getSpanContext();
-  }
-
   /** The state of the run after this job, or null when the run has no valid trace. */
   private @Nullable Map<String, Object> stateToContribute(Status status, int iterationKey) {
     open(null);
@@ -354,12 +348,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
       return null;
     }
     return RunTraceState.of(
-            current.traceId(),
-            current.anchorSpanId(),
-            current.sampled(),
-            status,
-            iterationKey,
-            job.job().processInstanceKey())
+            current.traceId(), current.anchorSpanId(), current.sampled(), status, iterationKey)
         .toMap();
   }
 
@@ -458,6 +447,12 @@ class AgentTracingJobObserver implements AgentJobObserver {
       byName.putIfAbsent(definition.name(), definition);
     }
     return byName;
+  }
+
+  /** The error type of a failure that has no error code of its own. */
+  private static String errorTypeOf(Throwable cause) {
+    return GenAiAttributeMapper.errorTypeOf(
+        cause, cause instanceof ConnectorException ce ? ce.getErrorCode() : null);
   }
 
   /** The exception message, only with content capture: it can contain prompt or tool content. */

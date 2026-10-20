@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.api.lifecycle.JobStarted;
 import io.camunda.connector.agenticai.otel.RunTraceState.Status;
 import io.camunda.connector.agenticai.otel.RunTraceStateResolver.Resolution;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class RunTraceStateResolverTest {
 
   @Test
   void continuesOpenRunOfTheSameIteration() {
-    final RunTraceState state = state(Status.OPEN, 1, PROCESS_INSTANCE_KEY);
+    final RunTraceState state = state(Status.OPEN, 1);
 
     final Resolution resolution = resolve(1, state.toMap());
 
@@ -56,15 +57,14 @@ class RunTraceStateResolverTest {
 
   @Test
   void toolDiscoveryStateContinuesIntoTheFirstTurn() {
-    final Resolution resolution =
-        resolve(null, state(Status.OPEN, 0, PROCESS_INSTANCE_KEY).toMap());
+    final Resolution resolution = resolve(null, state(Status.OPEN, 0).toMap());
 
     assertThat(resolution.continuesRun()).isTrue();
   }
 
   @Test
-  void closedRunStartsNewRunLinkedToThePreviousAnchor() {
-    final RunTraceState state = state(Status.CLOSED, 2, PROCESS_INSTANCE_KEY);
+  void closedRunStartsNewRun() {
+    final RunTraceState state = state(Status.CLOSED, 2);
 
     final Resolution resolution = resolve(2, state.toMap());
 
@@ -74,12 +74,40 @@ class RunTraceStateResolverTest {
 
   @Test
   void staleStateStartsNewRun() {
-    final RunTraceState otherIteration = state(Status.OPEN, 1, PROCESS_INSTANCE_KEY);
-    final RunTraceState otherProcess = state(Status.OPEN, 1, PROCESS_INSTANCE_KEY + 1);
+    final RunTraceState otherIteration = state(Status.OPEN, 1);
 
     assertThat(resolve(3, otherIteration.toMap()).startsRun()).isTrue();
-    assertThat(resolve(1, otherProcess.toMap()).startsRun()).isTrue();
     assertThat(resolve(3, otherIteration.toMap()).previous()).isEqualTo(otherIteration);
+  }
+
+  @Test
+  void stateOfAnotherElementInstanceOrProcessInstanceContinuesTheRun() {
+    final RunTraceState state = state(Status.OPEN, 1);
+
+    final Resolution resolution =
+        resolver
+            .resolve(
+                new JobStarted(
+                    new AgentJobInfo(9, PROCESS_INSTANCE_KEY + 1, 3, 44, "agent", "process", "<t>"),
+                    AgentFlavor.SUB_PROCESS,
+                    AgentJobKind.CONVERSATION,
+                    Instant.parse("2026-10-19T10:00:00Z"),
+                    AGENT_INSTANCE_KEY,
+                    1,
+                    state.toMap()))
+            .orElseThrow();
+
+    assertThat(resolution.continuesRun()).isTrue();
+    assertThat(resolution.previous()).isEqualTo(state);
+  }
+
+  @Test
+  void legacyProcessInstanceKeyEntryIsIgnored() {
+    final Map<String, Object> legacy = new HashMap<>(state(Status.OPEN, 1).toMap());
+    legacy.put("processInstanceKey", PROCESS_INSTANCE_KEY + 7);
+
+    assertThat(RunTraceState.fromMap(legacy)).contains(state(Status.OPEN, 1));
+    assertThat(state(Status.OPEN, 1).toMap()).doesNotContainKey("processInstanceKey");
   }
 
   @Test
@@ -94,7 +122,7 @@ class RunTraceStateResolverTest {
 
   @Test
   void stateRoundTripsThroughItsMapForm() {
-    final RunTraceState state = state(Status.OPEN, 4, PROCESS_INSTANCE_KEY);
+    final RunTraceState state = state(Status.OPEN, 4);
 
     assertThat(RunTraceState.fromMap(state.toMap())).contains(state);
   }
@@ -117,8 +145,8 @@ class RunTraceStateResolverTest {
         .orElseThrow();
   }
 
-  private static RunTraceState state(Status status, int iterationKey, long processInstanceKey) {
-    return RunTraceState.of(TRACE_ID, SPAN_ID, true, status, iterationKey, processInstanceKey);
+  private static RunTraceState state(Status status, int iterationKey) {
+    return RunTraceState.of(TRACE_ID, SPAN_ID, true, status, iterationKey);
   }
 
   private static JobStarted started(
