@@ -235,7 +235,9 @@ class AgentTracingJobObserverTest {
         .isEqualTo("MODEL_CONTEXT_WINDOW_EXCEEDED");
     assertThat(invokeAgent.getStatus().getDescription()).isEmpty();
     final SpanData anchor = span("agent run");
-    assertThat(anchor.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+    assertThat(anchor.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+    assertThat(anchor.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isNull();
+    assertThat(anchor.getAttributes().get(GenAiAttributes.JOB_OUTCOME)).isNull();
   }
 
   @Test
@@ -374,13 +376,16 @@ class AgentTracingJobObserverTest {
     observer.onJobFailed(new JobFailed(failure, "AGENT_INSTANCE_SUPERSEDED"));
 
     assertThat(exporter.getFinishedSpanItems()).hasSize(3);
-    for (final String name : List.of("invoke_agent agent", "agent run")) {
-      final SpanData data = span(name);
-      assertThat(data.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
-      assertThat(data.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isEqualTo("job_superseded");
-    }
-    assertThat(span("invoke_agent agent").getAttributes().get(GenAiAttributes.JOB_OUTCOME))
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("job_superseded");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME))
         .isEqualTo("superseded");
+    final SpanData anchor = span("agent run");
+    assertThat(anchor.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
+    assertThat(anchor.getAttributes().get(GenAiAttributes.ERROR_TYPE)).isNull();
+    assertThat(anchor.getAttributes().get(GenAiAttributes.JOB_OUTCOME)).isNull();
   }
 
   @Test
@@ -470,6 +475,45 @@ class AgentTracingJobObserverTest {
     assertThat(state).containsEntry("status", "CLOSED");
     assertThat(span("agent run").getStartEpochNanos()).isEqualTo(nanos(T0));
     assertThat(span("invoke_agent agent").getStartEpochNanos()).isEqualTo(nanos(T0));
+  }
+
+  @Test
+  void anchorIsAZeroDurationMarkerAtTheStartOfTheRunStartingJob() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onTurnStarted(turnStarted(1, List.of(), null));
+    observer.onModelRoundStarted(roundStarted());
+    // the marker is exported as soon as the first model round starts, whatever the job does next
+    assertThat(exporter.getFinishedSpanItems())
+        .extracting(SpanData::getName)
+        .containsExactly("agent run");
+
+    assertThat(span("agent run").getEndEpochNanos()).isEqualTo(nanos(T0));
+    observer.onJobCompleted();
+
+    final SpanData anchor = span("agent run");
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(anchor.getStartEpochNanos())
+        .isEqualTo(anchor.getEndEpochNanos())
+        .isEqualTo(invokeAgent.getStartEpochNanos())
+        .isEqualTo(nanos(T0));
+    assertThat(invokeAgent.getEndEpochNanos()).isGreaterThan(nanos(T0));
+  }
+
+  @Test
+  void anchorOfADiscoveryFirstRunIsAZeroDurationMarker() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
+
+    observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    observer.onJobCompleted();
+
+    final SpanData anchor = span("agent run");
+    assertThat(anchor.getStartEpochNanos())
+        .isEqualTo(anchor.getEndEpochNanos())
+        .isEqualTo(span("invoke_agent agent").getStartEpochNanos())
+        .isEqualTo(nanos(T0));
   }
 
   @Test

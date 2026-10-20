@@ -35,8 +35,9 @@ public class AgentTracer {
   }
 
   /**
-   * Starts the root span of a run. Its trace id, span id, and sampling decision are assigned by the
-   * SDK and are read from the returned span.
+   * Starts the root span of a run, which the caller ends at its start time to export it as a
+   * marker. Its trace id, span id, and sampling decision are assigned by the SDK and are read from
+   * the returned span.
    */
   public Span startAnchor(String name, Instant start, Attributes attributes) {
     return tracer

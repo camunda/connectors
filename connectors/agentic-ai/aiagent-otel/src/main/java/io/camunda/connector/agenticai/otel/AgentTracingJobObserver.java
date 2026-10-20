@@ -50,10 +50,11 @@ import org.slf4j.LoggerFactory;
  * dispatch starts them at the dispatch, because its run state needs the anchor, and a failed job
  * starts them at the failure), so a job that completes without a model round emits nothing. The
  * write that fences a superseded activation runs before the first model round. The {@code
- * invoke_agent} span, and the anchor of a run this job starts, end exactly once, at the first of
- * job failed, job completed, and job completion failed. A superseded job that never started a model
- * round ends none of its spans, so the activation that took over is the only one that exports them.
- * No callback lets a failure escape.
+ * invoke_agent} span ends exactly once, at the first of job failed, job completed, and job
+ * completion failed. The anchor of a run this job starts is a zero-duration marker at the job
+ * start: it ends at the first model round, or, when the job has none, when the job ends. A
+ * superseded job that never started a model round ends none of its spans, so the activation that
+ * took over is the only one that exports them. No callback lets a failure escape.
  */
 class AgentTracingJobObserver implements AgentJobObserver {
 
@@ -143,6 +144,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
         () -> {
           modelRoundStarted = true;
           open();
+          endAnchor();
           final Context parent = invokeAgentContext;
           if (parent == null || chat != null) {
             return null;
@@ -487,9 +489,19 @@ class AgentTracingJobObserver implements AgentJobObserver {
             markJobError(agentSpan, superseded, errorType, description);
           });
     }
+    endAnchor();
+  }
+
+  /**
+   * Exports the anchor of the run this job starts as a marker without duration: it ends at the job
+   * start. The anchor carries only what is known at the start of the run, the outcome of the job is
+   * on the {@code invoke_agent} span.
+   */
+  private void endAnchor() {
     final Span anchorSpan = anchor;
     if (anchorSpan != null) {
-      endSpan(anchorSpan, now, () -> markJobError(anchorSpan, superseded, errorType, description));
+      anchor = null;
+      endSpan(anchorSpan, job.startedAt(), () -> {});
     }
   }
 
