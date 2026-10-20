@@ -352,6 +352,46 @@ process.
 * Bad, because the root is a point and not the run's extent, and it depends on how backends render late
   children.
 
+## Alternatives for the run root
+
+The root of a run's trace could be built in several ways. The criteria were: token totals per run that match
+the agent instance metrics, a dependency on the OpenTelemetry API only, support for the OpenTelemetry Java agent
+and any SDK configuration, spans visible while a run is in progress, and simplicity.
+
+1. **Start marker (chosen).** The run-starting job exports a root span without duration at the start of the
+   run. It needs only the API, works with the Java agent and any SDK setup, and the spans of a run appear live.
+   The extent of a run is visible through its child spans and the trace window. The costs are that the root
+   shows as a point and that it carries no trace-level output: backends that read the trace input and output
+   from the root span, or the turns of a session from the input and output of its root, show the run input but
+   not the answer, which is on the closing `invoke_agent` and `chat` spans.
+2. **Deferred root exported when the run closes, with ids decided at run start.** It gives the correct root
+   duration, input, and output in the backends. It needs the OpenTelemetry SDK, either a custom id generator
+   with a thread-local override or a hand-built span record pushed to an exporter, and in Spring Boot a
+   tracer-provider customizer bean. That is ignored when the application defines its own tracer provider,
+   competes for the single id generator slot, and does not work with the OpenTelemetry Java agent, whose SDK is
+   isolated from the application classpath, so a second export pipeline would be needed. The root is also
+   missing while a run is open, and forever for an abandoned run (a terminated process instance, an unresolved
+   incident). Rejected as too invasive and brittle for customers.
+3. **No anchor, the `invoke_agent` span of the first job as root.** It saves one span, but the root is as
+   short as the first job, later jobs are nested under a job they do not run inside, a backend shows the
+   output of the first job (the tool call message) as the trace output, the trace name is generic, and the
+   session turns show no input or output. The hierarchy is worse.
+4. **One trace per job.** Each root has its true duration and no synthetic root exists, but a run is split
+   over several traces, so there is no waterfall or token and cost total per run, and the waiting time of a
+   tool falls outside any trace window.
+5. **One trace per agent instance with a long-lived root.** The root cannot be closed, because the end of the
+   instance is not observable by the connector, the trace grows without bound, and runs cannot be told apart.
+6. **Re-exporting the first anchor span with the same ids at the end of the run.** Backends treat a second
+   export of a span id differently: some keep the first write when the exports are seconds apart, others
+   replace or duplicate it depending on timing. It is unreliable.
+7. **Span links between runs instead of the shared session.** The target backends neither store nor render
+   links, and the session identifier already groups the runs.
+8. **Rebuilding the whole trace at the end of the run from the conversation or the agent instance history.**
+   The conversation holds no per-round usage and timing, live visibility is lost, failed model calls and
+   per-job detail are lost, and every span is lost when the closing job fails. It is a much larger rewrite.
+9. **Keeping the span object open in process memory until the run closes.** It breaks as soon as another
+   worker or a restart handles the closing job, and it leaks for an abandoned run.
+
 ## Follow-up
 
 * **Tool error signal**: a failed tool cannot be told from a successful one, because a tool result
