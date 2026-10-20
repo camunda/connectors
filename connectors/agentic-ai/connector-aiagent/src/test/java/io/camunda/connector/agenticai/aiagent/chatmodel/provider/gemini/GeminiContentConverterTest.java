@@ -14,6 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.genai.types.FunctionCall;
+import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -31,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class GeminiContentConverterTest {
 
@@ -154,6 +157,23 @@ class GeminiContentConverterTest {
 
       assertThat(parts).hasSize(1);
       assertThat(parts.get(0).text()).contains("plain text content");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+          "application/yaml",
+          "application/x-yaml",
+          "application/vnd.oai.openapi+yaml",
+          "application/ld+json",
+          "application/atom+xml"
+        })
+    void mapsAStructuredTextDocumentToTextPart(String contentType) {
+      final var doc = mockDocument(contentType, "openapi: 3.1.0".getBytes(StandardCharsets.UTF_8));
+
+      final var parts = converter.toParts(List.of(new DocumentContent(doc, null)));
+
+      assertThat(parts).containsExactly(Part.fromText("openapi: 3.1.0"));
     }
 
     @Test
