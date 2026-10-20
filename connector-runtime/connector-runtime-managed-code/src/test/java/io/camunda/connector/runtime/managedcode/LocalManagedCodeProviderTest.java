@@ -163,6 +163,7 @@ class LocalManagedCodeProviderTest {
   @Test
   void installsPipRequirementsIntoTheDeployment() throws Exception {
     assumeInterpreter(ScriptLanguage.PYTHON);
+    assumePip();
     final var wheel =
         writeWheel(packages, "greet", "def greet(name):\n    return f'Hello {name}'\n");
     final var script =
@@ -243,6 +244,21 @@ class LocalManagedCodeProviderTest {
   private static void assumeInterpreter(ScriptLanguage language) {
     final var status = INTERPRETERS.statuses().get(language);
     assumeTrue(status.available(), status.diagnostic());
+  }
+
+  private static void assumePip() throws Exception {
+    final var python =
+        INTERPRETERS.statuses().get(ScriptLanguage.PYTHON).executable().orElseThrow();
+    final var process =
+        new ProcessBuilder(python.toString(), "-m", "pip", "--version")
+            .redirectErrorStream(true)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .start();
+    final var finished = process.waitFor(30, TimeUnit.SECONDS);
+    if (!finished) {
+      process.destroyForcibly();
+    }
+    assumeTrue(finished && process.exitValue() == 0, "pip is not available for " + python);
   }
 
   private static ExecutionRequest request(Map<String, Object> variables) {
