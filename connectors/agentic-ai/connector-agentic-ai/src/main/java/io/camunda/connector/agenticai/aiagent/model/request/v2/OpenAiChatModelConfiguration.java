@@ -32,6 +32,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
@@ -234,7 +235,25 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
                   type = TemplateProperty.PropertyType.Number,
                   feel = FeelMode.required,
                   optional = true)
-              @Nullable Double topP) {}
+              @Nullable Double topP,
+          @Valid
+              @TemplateProperty(
+                  group = "model-options",
+                  label = "Server tools",
+                  tooltip =
+                      "List of tools that the model provider runs inside the model call, for example <code>[{type: \"web_search\", parameters: {allowedDomains: [\"example.com\"]}}]</code>. Sent as <code>openrouter:&lt;type&gt;</code> tools, so this works only with OpenRouter.",
+                  feel = FeelMode.required,
+                  optional = true)
+              @Nullable List<OpenAiServerTool> serverTools) {
+
+        public CompletionsParameters(
+            @Nullable Integer maxCompletionTokens,
+            @Nullable OpenAiEffort effort,
+            @Nullable Double temperature,
+            @Nullable Double topP) {
+          this(maxCompletionTokens, effort, temperature, topP, null);
+        }
+      }
     }
   }
 

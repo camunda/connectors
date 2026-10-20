@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -28,4 +30,25 @@ public record CompletionsRequestSpec(
     @Nullable Double temperature,
     @Nullable Double topP,
     @Nullable String reasoningEffort,
-    OpenAiRequestCustomizations customizations) {}
+    OpenAiRequestCustomizations customizations,
+    @Nullable List<OpenAiServerTool> serverTools) {
+
+  public CompletionsRequestSpec(
+      String model,
+      @Nullable Long maxCompletionTokens,
+      @Nullable Long maxTokens,
+      @Nullable Double temperature,
+      @Nullable Double topP,
+      @Nullable String reasoningEffort,
+      OpenAiRequestCustomizations customizations) {
+    this(
+        model,
+        maxCompletionTokens,
+        maxTokens,
+        temperature,
+        topP,
+        reasoningEffort,
+        customizations,
+        null);
+  }
+}

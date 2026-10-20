@@ -699,4 +699,21 @@ class OpenAiCompletionsResponseConverterTest {
     assertThat(result.assistantMessage().stopReason())
         .isEqualTo(new StopReason.UnknownStopReason("some_future_reason"));
   }
+
+  @Test
+  void keepsUrlCitationsInMetadataAndEmitsNoToolCall() {
+    final var completion =
+        baseCompletion(
+            """
+            {"role": "assistant", "content": "120 days.", "refusal": null,
+             "annotations": [{"type": "url_citation", "url_citation": {"url": "https://example.com/rules", "title": "Rules", "start_index": 0, "end_index": 3}}]}
+            """);
+
+    final var message =
+        ((ChatResult.Completed) converter.toResult(completion, Duration.ofMillis(100)))
+            .assistantMessage();
+
+    assertThat(message.toolCalls()).isEmpty();
+    assertThat(message.metadata().toString()).contains("https://example.com/rules", "citations");
+  }
 }

@@ -84,4 +84,33 @@ class OpenAiCompletionsStreamAssemblerTest {
     assertThat(assembled.choices()).hasSize(1);
     assertThat(assembled.choices().get(0).message().content()).contains("Hello there");
   }
+
+  @Test
+  void keepsUrlCitationAnnotationsFromStreamedDeltas() {
+    final ChatCompletionChunk contentChunk =
+        chunkFromJson(
+            """
+            {"role": "assistant", "content": "The limit is 120 days."}
+            """,
+            "null");
+    final ChatCompletionChunk annotationChunk =
+        chunkFromJson(
+            """
+            {"annotations": [{"type": "url_citation", "url_citation": {"url": "https://example.com/rules", "title": "Rules", "content": "x", "start_index": 0, "end_index": 5}}]}
+            """,
+            "null");
+    final ChatCompletionChunk finishChunk = chunkFromJson("{}", "\"stop\"");
+
+    @SuppressWarnings("unchecked")
+    final StreamResponse<ChatCompletionChunk> stream = mock(StreamResponse.class);
+    when(stream.stream()).thenReturn(Stream.of(contentChunk, annotationChunk, finishChunk));
+
+    final var message = assembler.assemble(stream).choices().get(0).message();
+
+    assertThat(message.content()).contains("The limit is 120 days.");
+    assertThat(message.annotations()).isPresent();
+    assertThat(message.annotations().get()).hasSize(1);
+    assertThat(message.annotations().get().get(0).urlCitation().url())
+        .isEqualTo("https://example.com/rules");
+  }
 }

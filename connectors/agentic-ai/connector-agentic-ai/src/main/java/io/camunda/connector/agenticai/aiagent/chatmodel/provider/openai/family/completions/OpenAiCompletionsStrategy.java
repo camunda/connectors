@@ -85,7 +85,8 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
         params == null ? null : params.temperature(),
         params == null ? null : params.topP(),
         effort(params),
-        connection.backend().requestCustomizations());
+        connection.backend().requestCustomizations(),
+        params == null ? null : params.serverTools());
   }
 
   /**
