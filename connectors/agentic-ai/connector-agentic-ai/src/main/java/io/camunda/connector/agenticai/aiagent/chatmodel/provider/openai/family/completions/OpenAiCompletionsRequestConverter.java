@@ -10,6 +10,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.core.JsonValue;
+import com.openai.core.ObjectMappers;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
 import com.openai.models.ReasoningEffort;
@@ -44,10 +45,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiRequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool;
+import io.camunda.connector.agenticai.aiagent.model.request.v2.OpenAiServerTool.WebSearchParameters;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,6 +115,7 @@ public class OpenAiCompletionsRequestConverter {
     applyReasoning(builder, spec);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
+    applyServerTools(builder, spec);
     applyStructuredOutput(builder, response);
     applyRequestCustomizations(builder, spec.customizations());
 
@@ -310,6 +315,48 @@ public class OpenAiCompletionsRequestConverter {
           ChatCompletionTool.ofFunction(
               ChatCompletionFunctionTool.builder().function(functionBuilder.build()).build()));
     }
+  }
+
+  /**
+   * Adds each configured provider server tool to {@code tools} in OpenRouter's wire shape, {@code
+   * {"type":"openrouter:<type>","parameters":{...}}}. The provider runs it inside the model call,
+   * so it is never a client tool call.
+   */
+  private void applyServerTools(
+      ChatCompletionCreateParams.Builder builder, CompletionsRequestSpec spec) {
+    if (spec.serverTools() == null) {
+      return;
+    }
+    for (final OpenAiServerTool serverTool : spec.serverTools()) {
+      final Map<String, Object> wire = new LinkedHashMap<>();
+      switch (serverTool.type()) {
+        case WEB_SEARCH -> {
+          wire.put("type", "openrouter:web_search");
+          final Map<String, Object> parameters = webSearchParameters(serverTool.parameters());
+          if (!parameters.isEmpty()) {
+            wire.put("parameters", parameters);
+          }
+        }
+      }
+      builder.addTool(ObjectMappers.jsonMapper().convertValue(wire, ChatCompletionTool.class));
+    }
+  }
+
+  private Map<String, Object> webSearchParameters(@Nullable WebSearchParameters parameters) {
+    final Map<String, Object> wire = new LinkedHashMap<>();
+    if (parameters == null) {
+      return wire;
+    }
+    if (parameters.engine() != null) {
+      wire.put("engine", parameters.engine());
+    }
+    if (parameters.maxResults() != null) {
+      wire.put("max_results", parameters.maxResults());
+    }
+    if (parameters.allowedDomains() != null && !parameters.allowedDomains().isEmpty()) {
+      wire.put("allowed_domains", parameters.allowedDomains());
+    }
+    return wire;
   }
 
   private void applyStructuredOutput(
