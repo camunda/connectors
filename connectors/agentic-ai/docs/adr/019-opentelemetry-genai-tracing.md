@@ -5,14 +5,14 @@
 
 ## Status
 
-**Proposed**. Delivered as a proof of concept first. The trace shape is validated against Langfuse and
-Arize Phoenix before the production hardening is planned, and the topology can change if the
+**Proposed**. Delivered as a proof of concept first. The trace shape is validated against LLM observability backends
+before the production hardening is planned, and the topology can change if the
 validation shows it cannot work.
 
 ## Context and Problem Statement
 
-Customers ask to see Camunda AI Agent executions in Arize Phoenix and Langfuse, the LLM observability
-tools their AI teams already use for tracing and evaluation, and the team needs the same view to
+Customers ask to see Camunda AI Agent executions in LLM observability backends (for example Langfuse or
+Arize Phoenix), the tools their AI teams already use for tracing and evaluation, and the team needs the same view to
 evaluate agent behavior. Today the only structured record is the agent instance history shown in
 Operate, which is Camunda-internal and records only the committed path of an agent. Camunda has no
 trace propagation through jobs (camunda/camunda#9742 "As a Zeebe user, I want to see Open Telemetry
@@ -25,8 +25,8 @@ executions, possibly on different runtime instances. Tool calls are BPMN activit
 days (user tasks). Parallel tool results produce partial-result jobs that do no agent work. Jobs fail,
 retry, time out, and are superseded. A design that holds spans open, re-emits spans, or assumes one
 process sees the whole run either loses data or produces duplicates and broken trees in the backends
-the customers named: Langfuse requires each span to be exported once and complete, and Phoenix keeps
-the first write for a span id.
+the customers named: some require each span to be exported once and complete, and some keep the first
+write for a span id.
 
 Reconstructing traces from the history records, on the cluster side, was assessed as an alternative.
 The records lack data the traces need: model call start times, stop reasons, response models, request
@@ -37,7 +37,7 @@ emit traces that these backends render correctly, without enabling OpenTelemetry
 ## Decision Drivers
 
 * **LLM observability backends are the acceptance bar**: strict OpenTelemetry GenAI semantic
-  conventions, so Langfuse and Phoenix render span types, model input and output, tool calls, tokens,
+  conventions, so the backends render span types, model input and output, tool calls, tokens,
   and sessions. A valid span tree for generic backends follows from the same shape.
 * **The run is the evaluation unit**: backends attach scores to a trace, so one trace should be one
   agent run from an input to the final answer.
@@ -87,8 +87,8 @@ The decision comprises:
   state slot (ADR 018 D3), and inherit its sampling decision, so a run is all-in or all-out. Trace and span
   identities are assigned by the OpenTelemetry SDK. The state exists so that a later job can reattach to
   the trace of a run that an earlier job started.
-  Runs are not linked to each other: the session groups the runs of one agent instance, and neither
-  target backend stores or renders span links. A job continues the run when the stored state is open and
+  Runs are not linked to each other: the session groups the runs of one agent instance, and the
+  target backends neither store nor render span links. A job continues the run when the stored state is open and
   its iteration key equals the last iteration key of the agent context. When the state is missing, closed,
   or stale, for example after a rolling upgrade, the next job starts a new run and succeeds. The stored
   state holds no process instance key: the agent instance identifies the execution, so a job from another
@@ -192,7 +192,7 @@ The decision comprises:
   attribute names are documented as following upstream.
 
 * **D10 — A proof of concept validates the topology first.** The proof of concept covers the Sub-process
-  flavor and validates the shape in local Langfuse and Phoenix. Exit criteria: backends render a run
+  flavor and validates the shape in two local LLM observability backends. Exit criteria: backends render a run
   whose child spans arrive hours or days after the anchor, including tool spans that end long after their
   `invoke_agent` parent; spans stay findable when a parent was never exported (a lost job or a lost
   anchor); runs of one conversation group into one session; span types, model input and output, tool calls,
@@ -282,8 +282,8 @@ process.
 | Conversation id | Set from an identifier that is readily available | The agent instance key, prefixed with the operator-set cluster id when one is configured | Conforms: the engine assigns the key, and it links to Operate. The prefix keeps clusters apart in one backend project |
 | Content | Opt-in | Opt-in through one switch for all content | Conforms, with a coarser granularity than per attribute; redaction is a production-milestone item |
 | Token usage | Usage attributes are defined for model calls | Only on `chat` spans, never on `invoke_agent` or the anchor | Sums over a trace or session count each call once |
-| Span links | Not addressed | None. Runs are connected by the session only | Neither target backend stores or renders span links |
-| Session | `gen_ai.conversation.id` | `session.id` is set next to it with the same value | OpenInference-native tools read `session.id`, and Langfuse reads either attribute |
+| Span links | Not addressed | None. Runs are connected by the session only | The target backends neither store nor render span links |
+| Session | `gen_ai.conversation.id` | `session.id` is set next to it with the same value | Some tools read `session.id` and others the conversation id, so both are set |
 
 ### Non-goals
 
@@ -318,9 +318,8 @@ process.
   spans pointing at a root that never arrives. A lost issuing job does the same to the tool spans that
   answer its calls.
 * A run that ends because the process or the sub-process is terminated has no closing marker.
-* Backends with an ingest window shorter than a tool's duration drop the long `execute_tool` spans (for
-  example, Datadog rejects spans that started more than 18 hours ago); they are not acceptance
-  backends.
+* Backends with an ingest window shorter than a tool's duration drop the long `execute_tool` spans; they
+  are not acceptance backends.
 * Attribute names may change when the upstream conventions change.
 
 ## Pros and Cons of the Options
