@@ -55,9 +55,8 @@ import java.util.concurrent.TimeoutException;
  *   <li>A deleted directory is reported as {@link ExecutionResponse#DEPLOYMENT_MISSING}.
  * </ul>
  *
- * <p>Provisioning completes synchronously, before {@link #ensureProvisioned(ArtifactSpec,
- * ScriptPackage)} returns. A cloud provider returns once the provider accepted the work and
- * completes the handle later.
+ * <p>Provisioning completes synchronously, before {@link #ensureProvisioned(ArtifactSpec)} returns.
+ * A cloud provider returns once the provider accepted the work and completes the handle later.
  */
 public final class LocalManagedCodeProvider implements ManagedCodeProvider {
 
@@ -74,6 +73,7 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
   private record DeploymentMetadata(
       String language, String runtime, String digest, String entrypoint, List<String> files) {}
 
+  private final LocalScriptPackager packager = new LocalScriptPackager();
   private final LocalProcessScriptExecutor executor;
   private final LocalInterpreterDiscovery.DiscoveryReport interpreters;
   private final ObjectMapper objectMapper;
@@ -99,11 +99,16 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
   }
 
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
+  public String buildVersion() {
+    return packager.buildVersion();
+  }
+
+  @Override
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
     final var deployment = new ProviderDeployment(NAME, artifact.deploymentName());
     final var target = deploymentDirectory(artifact.deploymentName());
     if (!Files.isRegularFile(target.resolve(METADATA_FILE))) {
-      build(artifact, scriptPackage, target);
+      build(artifact, packager.packageFor(artifact), target);
     }
     return new ProvisioningHandle(
         artifact.deploymentName(), CompletableFuture.completedFuture(deployment));

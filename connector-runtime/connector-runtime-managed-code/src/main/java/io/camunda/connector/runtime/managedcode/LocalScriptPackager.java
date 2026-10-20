@@ -23,26 +23,20 @@ import java.util.Map;
  * Packages a script for the local provider: the user script next to a wrapper that reads the
  * request from {@code request.json} and writes the response to standard output.
  */
-public final class LocalScriptPackager implements ScriptPackager {
+final class LocalScriptPackager {
 
   private static final byte[] PYTHON_WRAPPER =
-      ScriptPackager.resource(LocalScriptPackager.class, "/managed-code-local/python_wrapper.py");
+      ScriptPackage.resource(LocalScriptPackager.class, "/managed-code-local/python_wrapper.py");
   private static final byte[] NODE_WRAPPER =
-      ScriptPackager.resource(LocalScriptPackager.class, "/managed-code-local/node_wrapper.mjs");
-  private static final String BUILD_VERSION = ScriptPackager.sha256(PYTHON_WRAPPER, NODE_WRAPPER);
+      ScriptPackage.resource(LocalScriptPackager.class, "/managed-code-local/node_wrapper.mjs");
+  private static final String BUILD_VERSION = ScriptPackage.sha256(PYTHON_WRAPPER, NODE_WRAPPER);
 
-  @Override
-  public String provider() {
-    return LocalManagedCodeProvider.NAME;
-  }
-
-  @Override
-  public String buildVersion() {
+  /** Hash of the generated entrypoints, part of the artifact digest. */
+  String buildVersion() {
     return BUILD_VERSION;
   }
 
-  @Override
-  public ScriptPackage packageFor(ArtifactSpec artifact) {
+  ScriptPackage packageFor(ArtifactSpec artifact) {
     return new ScriptPackage(
         files(artifact.language(), artifact.script()),
         entrypoint(artifact.language()),

@@ -17,8 +17,12 @@
 package io.camunda.connector.runtime.managedcode;
 
 /**
- * Provider SPI for managed-script execution: provisions an artifact on first use and invokes it.
- * The {@link ScriptPackager} of the same name turns the script into the files the provider deploys.
+ * Provider SPI for managed-script execution: packages an artifact for the platform, provisions it
+ * on first use, invokes it and deletes it.
+ *
+ * <p>Packaging turns a script written for the Camunda contract, {@code execute(variables,
+ * context)}, into what the platform invokes, usually a generated entrypoint next to the user
+ * script. The built-in providers keep it in a package-private packager class.
  *
  * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec, ScriptPackage)} idempotent
  * for {@link ArtifactSpec#deploymentName()}: the name is deterministic, creation is
@@ -31,14 +35,20 @@ public interface ManagedCodeProvider {
   String name();
 
   /**
-   * Creates the provider deployment of the package if absent, or adopts an existing one. The call
-   * returns once the provider accepted the work; {@link ProvisioningHandle#ready()} completes when
-   * the deployment can be invoked.
-   *
-   * @param scriptPackage the artifact as packaged by the {@link ScriptPackager} of this provider
-   * @throws ProvisioningException when the artifact cannot be built or deployed
+   * Version of the code the provider generates around a script, such as its entrypoint. It is part
+   * of the artifact digest: a change gives every script a new digest, so its next job provisions a
+   * new deployment instead of reusing one built with the old code.
    */
-  ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage);
+  String buildVersion();
+
+  /**
+   * Packages the artifact and creates its provider deployment if absent, or adopts an existing one.
+   * The call returns once the provider accepted the work; {@link ProvisioningHandle#ready()}
+   * completes when the deployment can be invoked.
+   *
+   * @throws ProvisioningException when the artifact cannot be packaged, built or deployed
+   */
+  ProvisioningHandle ensureProvisioned(ArtifactSpec artifact);
 
   /**
    * Invokes a ready deployment with an execution contract request. Script and platform failures are

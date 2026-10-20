@@ -54,8 +54,7 @@ class ManagedScriptJobHandlerTest {
   private final AtomicInteger fetches = new AtomicInteger();
   private final ControlledProvider provider = new ControlledProvider();
   private final DeploymentRegistry registry =
-      new DeploymentRegistry(
-          provider, new ControlledPackager(), Executors.newFixedThreadPool(2), Clock.systemUTC());
+      new DeploymentRegistry(provider, Executors.newFixedThreadPool(2), Clock.systemUTC());
 
   {
     resources.put(1L, resource("sum.js", SCRIPT));

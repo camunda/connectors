@@ -49,21 +49,22 @@ after a restart. A dependency manifest is installed once while provisioning (`pi
 --target`, `npm install --ignore-scripts`), never during an invocation. Execution runs in local
 Node.js or Python subprocesses with the Connector Runtime operating-system identity.
 
-The provider SPI has two parts, both selected by the name in
+The provider SPI is one interface, `ManagedCodeProvider`, selected by its name in
 `camunda.connector.managed-code.provider`:
 
-- `ScriptPackager` turns a script written for the Camunda contract, `execute(variables, context)`,
-  into what the provider invokes: a generated entrypoint next to the user script, with the
-  provider's runtime id (`packageFor`). Its `buildVersion`, a hash of the generated code, is part of
-  the artifact digest, so a new entrypoint gives every script a new deployment.
-- `ManagedCodeProvider` runs the lifecycle of a packaged artifact on the platform:
-  `ensureProvisioned(artifact, package)`, `invoke`, `delete`.
+- `ensureProvisioned(artifact)` packages the script for the platform and creates the deployment if
+  absent, or adopts it. Packaging turns a script written for the Camunda contract,
+  `execute(variables, context)`, into what the platform invokes, usually a generated entrypoint
+  next to the user script;
+- `buildVersion()`, a hash of that generated code, is part of the artifact digest, so a new
+  entrypoint gives every script a new deployment;
+- `invoke` and `delete` run the rest of the lifecycle.
 
-The connector keeps everything else: the digest, the registry, the wait that consumes no retry,
-re-provisioning on `DEPLOYMENT_MISSING`, limits and secrets. A provider can also come from a jar
-added to the runtime classpath, such as `/opt/custom` in the Docker image, with one bean of each
-part; this has not been tested. The SPI
-has no compatibility guarantee yet.
+The built-in providers keep packaging in package-private classes. The connector keeps everything
+else: the digest, the registry, the wait that consumes no retry, re-provisioning on
+`DEPLOYMENT_MISSING`, limits and secrets. A provider can also come from a jar added to the runtime
+classpath, such as `/opt/custom` in the Docker image, as one bean; this has not been tested. The
+SPI has no compatibility guarantee yet.
 
 ## Consequences
 

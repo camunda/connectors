@@ -246,7 +246,7 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   private ProvisioningHandle provision(ArtifactSpec artifact) {
-    return provider.ensureProvisioned(artifact, packager.packageFor(artifact));
+    return provider.ensureProvisioned(artifact);
   }
 
   @Test

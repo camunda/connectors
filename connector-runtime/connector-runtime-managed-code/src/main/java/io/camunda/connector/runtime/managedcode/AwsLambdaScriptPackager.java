@@ -24,26 +24,20 @@ import java.util.Map;
  * Packages a script for AWS Lambda: the user script next to a generated handler that receives the
  * contract request as the Lambda event and returns the contract response.
  */
-public final class AwsLambdaScriptPackager implements ScriptPackager {
+final class AwsLambdaScriptPackager {
 
   private static final byte[] PYTHON_HANDLER =
-      ScriptPackager.resource(AwsLambdaScriptPackager.class, "/managed-code-aws/python_handler.py");
+      ScriptPackage.resource(AwsLambdaScriptPackager.class, "/managed-code-aws/python_handler.py");
   private static final byte[] NODE_HANDLER =
-      ScriptPackager.resource(AwsLambdaScriptPackager.class, "/managed-code-aws/node_handler.mjs");
-  private static final String BUILD_VERSION = ScriptPackager.sha256(PYTHON_HANDLER, NODE_HANDLER);
+      ScriptPackage.resource(AwsLambdaScriptPackager.class, "/managed-code-aws/node_handler.mjs");
+  private static final String BUILD_VERSION = ScriptPackage.sha256(PYTHON_HANDLER, NODE_HANDLER);
 
-  @Override
-  public String provider() {
-    return AwsLambdaManagedCodeProvider.NAME;
-  }
-
-  @Override
-  public String buildVersion() {
+  /** Hash of the generated entrypoints, part of the artifact digest. */
+  String buildVersion() {
     return BUILD_VERSION;
   }
 
-  @Override
-  public ScriptPackage packageFor(ArtifactSpec artifact) {
+  ScriptPackage packageFor(ArtifactSpec artifact) {
     if (artifact.dependencies().isPresent()) {
       throw new ProvisioningException(
           "UNSUPPORTED_DEPENDENCIES", "Dependencies are not supported on AWS Lambda", false);

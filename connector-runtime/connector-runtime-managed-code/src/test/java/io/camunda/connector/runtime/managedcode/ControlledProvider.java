@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** Test provider whose provisioning and invocation outcomes are controlled by the test. */
 final class ControlledProvider implements ManagedCodeProvider {
 
+  static final String BUILD_VERSION = "controlled-build-1";
+
   final AtomicInteger provisionings = new AtomicInteger();
   final List<ProviderDeployment> deleted = new CopyOnWriteArrayList<>();
   final List<ArtifactSpec> provisioned = new CopyOnWriteArrayList<>();
@@ -71,7 +73,12 @@ final class ControlledProvider implements ManagedCodeProvider {
   }
 
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
+  public String buildVersion() {
+    return BUILD_VERSION;
+  }
+
+  @Override
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
     provisionings.incrementAndGet();
     provisioned.add(artifact);
     if (provisioningFailure != null) {

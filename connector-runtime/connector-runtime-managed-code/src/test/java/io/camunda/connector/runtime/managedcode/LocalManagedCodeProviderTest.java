@@ -234,7 +234,7 @@ class LocalManagedCodeProviderTest {
   private static ProviderDeployment provision(
       LocalManagedCodeProvider provider, ArtifactSpec artifact) throws Exception {
     return provider
-        .ensureProvisioned(artifact, new LocalScriptPackager().packageFor(artifact))
+        .ensureProvisioned(artifact)
         .ready()
         .toCompletableFuture()
         .get(1, TimeUnit.SECONDS);

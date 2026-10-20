@@ -67,6 +67,7 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
   private static final long FIXED_ZIP_TIME = 315_532_800_000L;
   private static final int MAX_PUBLISH_ATTEMPTS = 20;
 
+  private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
   private final LambdaClient lambda;
   private final ObjectMapper objectMapper;
   private final String executionRoleArn;
@@ -97,9 +98,15 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     return NAME;
   }
 
+  @Override
+  public String buildVersion() {
+    return packager.buildVersion();
+  }
+
   /** Runs on the provisioning executor of the registry, so it creates and waits synchronously. */
   @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact, ScriptPackage scriptPackage) {
+  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
+    final var scriptPackage = packager.packageFor(artifact);
     final var name = artifact.deploymentName();
     final var code = SdkBytes.fromByteArray(zip(scriptPackage));
     try {
