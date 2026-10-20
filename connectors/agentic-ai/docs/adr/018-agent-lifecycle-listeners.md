@@ -117,7 +117,12 @@ The decision comprises:
   initialization and composition result types, so the internal state machine does not leak into the
   API. Events fire for both flavors; the flavor is part of the event so that a consumer can restrict
   itself. A deferred partial-result job has its own event, which most consumers ignore, so that "open
-  lazily" decisions stay in the consumer.
+  lazily" decisions stay in the consumer. The tool results consumed by a turn carry the engine's
+  completion time and no start time, because the engine runs tools as BPMN activities and the connector
+  sees neither their start nor their end. A consumer that needs the time the tool calls were dispatched
+  records it itself when it contributes state at the completion of the issuing turn. Tools that the
+  connector runtime will answer itself inside the job are not BPMN activities: they will need their own
+  event with measured start and end, emitted by the job that runs them.
 
 * **D6 — The extension point is experimental.** A marker annotation in `aiagent-api` flags every type
   of it. The types are excluded from the planned API compatibility check of `aiagent-api` and

@@ -2104,7 +2104,7 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 | Gateway tool discovery was dispatched | `ToolDiscoveryDispatched.toolCalls()` |
 | A tool result arrived while others are pending | `JobDeferred.arrivedResults()` |
 | All tool results are in and consumed by a turn | `TurnStarted.toolExecutions()`: a `ToolExecution` per result with its originating `call` (null for results that match no call), the `result` and a `cancelled` flag |
-| When a tool call was issued, and when it finished | `TurnStarted.toolCallsIssuedAt()`, derived from the time-ordered id of the assistant message that issued the calls (null for other ids), and `ToolExecution.result().completedAt()`, the engine's completion time (can be absent) |
+| When a tool finished | `ToolExecution.result().completedAt()`, the engine's completion time (can be absent). The event carries no start time: a listener that needs the time the tool calls were dispatched records it itself in `onTurnCompleted` and keeps it in its listener state |
 | A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and whether the provider asks for a continuation round) and `ModelRoundFailed(cause, errorCode)` |
 | The token usage of a model call | `ModelRoundCompleted.metrics().tokenUsage()`, one per round, as in the agent instance history (§23); input tokens exclude the cache read and cache creation counts, which are separate fields |
 | The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions) |
@@ -2113,6 +2113,8 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 
 The engine runs the tools, so the connector sees no tool start or end: there is no tool-started or
 tool-ended event. A tool shows up in `TurnStarted.toolExecutions()` of the turn that consumes its result, with
-the timing above. A job that only waits for gateway tool discovery results gets no events at all. A job that is
+the completion time above. Tools that the connector runtime will answer itself inside the job are not BPMN
+activities and will need their own lifecycle event with measured start and end, emitted by the job that runs
+them; the dispatch time that a listener records applies to tools that run as BPMN activities. A job that only waits for gateway tool discovery results gets no events at all. A job that is
 deferred, or that finds no input in the Sub-process flavor, has no turn and persists nothing: it receives
 `onJobStarted` and, when deferred, `onJobDeferred`, but no completion callback.
