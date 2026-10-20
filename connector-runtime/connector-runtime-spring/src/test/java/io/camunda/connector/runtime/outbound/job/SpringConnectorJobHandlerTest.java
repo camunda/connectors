@@ -28,9 +28,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -3065,6 +3067,53 @@ class SpringConnectorJobHandlerTest {
                 assertThat(failure.cause()).hasMessage("execute exploded");
                 assertThat(failure.commandFailure()).isNull();
               });
+    }
+
+    @Test
+    void listenerNotifiedWithOriginalResponseWhenResultVariableExceedsSizeLimit() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var largeValue =
+          "x".repeat((int) io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES + 1);
+      var response = StandardConnectorResponse.of(largeValue);
+      var handler =
+          newConnectorJobHandler(
+              new TestListenerFunction(response, listener),
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      JobBuilder.create()
+          .withRetries(3)
+          .withResultVariableHeader("result")
+          .executeAndCaptureResult(handler, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), same(response), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              ExecutionFailed.class, failure -> assertThat(failure.commandFailure()).isNull());
+      verify(listener, never()).onJobCompleted(any(), any());
+    }
+
+    @Test
+    void listenerNotifiedWithOriginalResponseWhenResultExpressionFails() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = StandardConnectorResponse.of(Map.of("key", "value"));
+      var handler =
+          newConnectorJobHandler(
+              new TestListenerFunction(response, listener),
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      // an expression that does not evaluate to a context makes createOutputVariables throw after
+      // the function already returned its response
+      JobBuilder.create()
+          .withResultExpressionHeader("=\"not a context\"")
+          .executeAndCaptureResult(handler, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(any(), same(response), captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              ExecutionFailed.class, failure -> assertThat(failure.commandFailure()).isNull());
+      verify(listener, never()).onJobCompleted(any(), any());
     }
 
     @Test
