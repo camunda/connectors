@@ -60,9 +60,11 @@ agent instance emit nothing.
 - **`chat {model}`** per model call, including provider continuation rounds: provider, models, token usage,
   finish reason, response id. It is exported as soon as the model call ends.
 - **`execute_tool {tool}`** per tool result a turn consumes: from the dispatch of the tool call to the engine's
-  completion time, so a user task that takes days appears as a long span under the consuming job. The span
-  start is derived from the time-ordered id of the assistant message that issued the call. The consuming job
-  exports these spans after the engine accepted its completion.
+  completion time, so a user task that takes days appears as a long span. It is a child of the `invoke_agent`
+  span of the job that issued the call (for a gateway tool discovery call, the job that dispatched the
+  discovery): it starts right after that job's model call and ends when the engine completes the tool, after
+  its parent ended. The span start is derived from the time-ordered id of the assistant message that issued
+  the call. The job that consumes the results exports these spans after the engine accepted its completion.
 - **Session.** The agent instance key (prefixed `<cluster-id>:` if configured) is both `session.id` and
   `gen_ai.conversation.id` on every span, so backends group all runs of one agent instance.
 
@@ -92,12 +94,15 @@ A job creates its spans lazily, so a job that did no agent work leaves no trace 
 A later job attaches its spans to the run's anchor, which was exported by an earlier job, possibly days
 before. The tracing listener keeps what it needs in the agent context, in the listener state slot
 `lifecycle:otel-tracing`: the trace id and anchor span id, the sampling decision, whether the run is open or
-closed, and the turn iteration key. It is written by the two kinds of job that persist the agent context (tool
+closed, the turn iteration key, and the span id of the `invoke_agent` span of the job that wrote the state,
+which is the job that issued the tool calls that a later job consumes. It is written by the two kinds of job that persist the agent context (tool
 discovery dispatch and turn completion), and the entry stays within the 4096 byte limit for listener state.
 
 A job continues the run when the stored run is open and its iteration key equals the agent context's last
 iteration key. Otherwise it starts a new run: when no readable state exists, when the last turn gave the final
-answer, or when the state is stale. The agent instance key identifies the execution, not the process instance
+answer, or when the state is stale. A job that starts a new run does not use the issuer of the earlier state.
+A state without a valid issuer span id, such as one written before the field existed, makes the tool spans
+children of the consuming job's `invoke_agent` span. The agent instance key identifies the execution, not the process instance
 or element instance: a job from another ad-hoc sub-process element instance that re-enters the same agent
 context continues the open run, or starts a new one if the previous run closed.
 
@@ -109,7 +114,7 @@ for that value to find all runs of the agent instance.
 
 **One run is one trace.** Open a trace to see the anchor at the root, one `invoke_agent` span for each job that
 did agent work, and under each of those the `chat` spans of its model rounds and the `execute_tool` spans of the
-tool results it consumed. Attributes such as `camunda.process_instance.key`, `camunda.element_instance.key` and
+tool calls it issued, which are exported by the job that consumes their results. Attributes such as `camunda.process_instance.key`, `camunda.element_instance.key` and
 `camunda.job.key` tell which activation produced a span.
 
 **Token totals.** Token usage is set only on `chat` spans, so summing the `chat` spans does not count a
@@ -187,7 +192,9 @@ note that the PoC has no redaction hook and no size limit for captured content.
   assistant message that issued the tool calls, so it precedes the engine's activation of the tool by the time
   it took to store the conversation and complete the job. When the message id carries no time, the span has no
   duration and `camunda.agent.tool.start_time_source` is `unknown`. The end is the engine's completion time of
-  the tool, which is exact; when the result has none, the end is the end of the consuming job.
+  the tool, which is exact; when the result has none, the end is the end of the consuming job. The span
+  outlives its parent, the `invoke_agent` span of the issuing job, because the tool runs in the engine after
+  that job ended; the waiting time of a tool, for example a human task, is the duration of its span.
 - **Tool outcome.** Every tool result that is not marked as interrupted shows as `completed`, whatever its
   content, so a tool that failed or was rejected looks like a tool that succeeded. A tool incident produces no
   span, because no result arrives.
@@ -213,9 +220,6 @@ note that the PoC has no redaction hook and no size limit for captured content.
   its duration is that of the first job, and the later jobs and tool spans extend beyond it. The trace latency
   that a backend shows for the root therefore understates the run; the session view and the sum of the spans
   show the real extent.
-- **Tool span position.** An `execute_tool` span starts when the model requested the tool, which is before the
-  start of the job whose `invoke_agent` span is its parent, because the tool runs in the engine between jobs. The
-  waiting time of a tool, for example a human task, is the duration of its span.
 - **Lost state.** Tracing state lives in the agent context under `lifecycle:otel-tracing` and is written only by
   the jobs that persist the context. When it is lost or cannot be read, the next job starts a new trace.
 

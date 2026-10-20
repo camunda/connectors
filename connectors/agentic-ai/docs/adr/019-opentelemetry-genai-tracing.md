@@ -114,9 +114,13 @@ The decision comprises:
     token categories of the agent instance metrics (input, output, cache read and cache write); only the
     place where cache and reasoning tokens are displayed differs.
   * **`execute_tool {tool}`** spans cover one consumed tool result, from the time the tool calls were
-    issued to the engine's completion of the tool, and are emitted by the job that consumes the result. The
-    issue time is derived from the time-ordered id of the assistant message that issued the calls (ADR
-    012); an id that is not time-based yields a zero-length span at completion with a marker attribute.
+    issued to the engine's completion of the tool, and are emitted by the job that consumes the result.
+    Each is a child of the `invoke_agent` span of the job that issued the call (for a gateway tool
+    discovery call, the job that dispatched the discovery), so it starts inside its parent and ends after
+    it, the shape of an asynchronous operation. The issue time is derived from the time-ordered id of the
+    assistant message that issued the calls (ADR 012); an id that is not time-based yields a zero-length
+    span at completion with a marker attribute. When the state does not name the issuing job, the span is a
+    child of the `invoke_agent` span of the consuming job.
 
 * **D4 — The session is the agent instance, and only Sub-process agents with an agent instance are
   traced.** Every span carries the agent instance key, prefixed with an operator-configured cluster id when
@@ -184,7 +188,7 @@ The decision comprises:
 
 * **D10 — A proof of concept validates the topology first.** The proof of concept covers the Sub-process
   flavor and validates the shape in local Langfuse and Phoenix. Exit criteria: backends render a run
-  whose child spans arrive hours or days after the anchor, including tool spans that start before their
+  whose child spans arrive hours or days after the anchor, including tool spans that end long after their
   `invoke_agent` parent; spans stay findable when a parent was never exported (a lost job or a lost
   anchor); runs of one conversation group into one session; span types, model input and output, tool calls,
   tokens, and finish reasons render correctly with content on; a single run can be scored in both backends
@@ -201,10 +205,10 @@ discovery is on.
 
 | Job | Trigger | Persists the context | Spans exported | Run state after |
 |---|---|---|---|---|
-| 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes | Anchor (0.4 s), `invoke_agent` (discovery) | Open, new trace T1 |
-| 2, Mon 09:00:01 | Discovery results, first turn | Yes | `invoke_agent`, `chat` round 1 (4 s, tokens, finish reason tool call) | Open |
+| 1, Mon 09:00:00 | Activation, tool discovery dispatched | Yes | Anchor (0.4 s), `invoke_agent` (discovery) | Open, new trace T1, issuer job 1 |
+| 2, Mon 09:00:01 | Discovery results, first turn | Yes | `invoke_agent`, `chat` round 1 (4 s, tokens, finish reason tool call) | Open, issuer job 2 |
 | 3, Mon 09:00:08 | Tool A completes | No (deferred) | None | Unchanged |
-| 4, Wed 09:00 | Tool B completes after two days | Yes | `invoke_agent`, `chat` round 1 (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00) | Closed |
+| 4, Wed 09:00 | Tool B completes after two days | Yes | `invoke_agent`, `chat` round 1 (final answer), `execute_tool` A (Mon 09:00:06 to 09:00:08), `execute_tool` B (Mon 09:00:06 to Wed 09:00), both below job 2's `invoke_agent` | Closed |
 | 5, Wed 09:30 | Event message | Yes | New anchor, `invoke_agent`, `chat` | Open, new trace T2, same session |
 
 ```text
@@ -212,17 +216,18 @@ Session prod-eu:2251799813685260
 Trace T1  "travel_helper run" (anchor)
 ├─ invoke_agent travel_helper  job 1 (tool discovery)
 ├─ invoke_agent travel_helper  job 2
-│  └─ chat  round 1  (tokens, finish=tool call)
+│  ├─ chat  round 1  (tokens, finish=tool call)
+│  ├─ execute_tool  Search flights   (Mon 09:00:06 → 09:00:08)
+│  └─ execute_tool  Manager approval (Mon 09:00:06 → Wed 09:00)
 └─ invoke_agent travel_helper  job 4 (Wed)
-   ├─ execute_tool  Search flights   (Mon 09:00:06 → 09:00:08)
-   ├─ execute_tool  Manager approval (Mon 09:00:06 → Wed 09:00)
    └─ chat  round 1  (finish=stop, final answer)
 Trace T2  "travel_helper run"  (same session, no link)
 └─ invoke_agent travel_helper  job 5 → chat
 ```
 
-`chat` spans are exported when each model round ends. `invoke_agent` and the anchor are exported when the
-job ends: after the engine accepted the job completion, or when the job fails or its completion is
+`chat` spans are exported when each model round ends. The `execute_tool` spans are exported by job 4, the job
+that consumes the results, but they hang below job 2, which issued the calls, and start after it started.
+`invoke_agent` and the anchor are exported when the job ends: after the engine accepted the job completion, or when the job fails or its completion is
 rejected. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
 `chat` span with its tokens and persists nothing; the retry exports a second `invoke_agent` and `chat` and
 the two `execute_tool` spans once. If job 1's first attempt fails, it exports its own failed trace in the
@@ -241,6 +246,7 @@ two persist points of ADR 018 and only there:
 | Sampled flag | The sampling decision is made once on the anchor and inherited. |
 | Run status (open or closed) | A closed run means the next job starts a new run. |
 | Iteration key | Detect stale state after a migration or an older connector: a run continues only when it equals the last iteration key of the agent context. |
+| Issuer span id | The span id of the `invoke_agent` span of the job that wrote the state, which is the job that issued the tool calls the next consuming job reports. It is the parent of their `execute_tool` spans. Optional: a missing or invalid id, or a state of a run that ended, makes the tool spans children of the consuming job's `invoke_agent` span. |
 
 The session identifier, the process instance key, span identities of the other span kinds, attributes,
 content, tool timing, and the lease token are not stored. A closed entry stays until the next run replaces it.
@@ -265,7 +271,7 @@ process.
 |---|---|---|---|
 | Root of a run | One `invoke_agent` span covers an agent invocation, and no wrapper root span is defined | A synthetic anchor `<element id> run` without `gen_ai.operation.name` and without an output; the final answer is on the last `invoke_agent` span and on the `chat` span of the last round | The anchor is created by the first job and ends with it, so its duration carries no meaning and the final answer is not known to it. A GenAI operation on it would distort the durations of `invoke_agent` |
 | Agent invocations | One `invoke_agent` span per invocation | One `invoke_agent` span per job, so a run has several | A run is spread over several stateless jobs, and each span covers one job's real duration |
-| Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, and an explicit start derived from the id of the assistant message that issued the call; the end is the engine's completion time | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job |
+| Tool span timing | The span covers the real execution, and its attributes are set at creation | The span is created by the job that consumes the result, with its name and attributes, as a child of the `invoke_agent` span of the job that issued the call, with an explicit start derived from the id of the assistant message that issued the call; the end is the engine's completion time | The connector sees neither the start nor the end of a tool, because the engine runs it. The start is early by the time it takes to store the conversation and complete the job, and the span outlives its parent |
 | Tool failures | A failed operation has error status and `error.type` | Not distinguishable: a tool result shows `completed`, or `cancelled` when interrupted, and a tool incident has no span | A tool result carries no structured error signal today (see Follow-up) |
 | Agent name | `gen_ai.agent.name` is the name of the agent, and a stable agent id is recommended only for hosted agents | `gen_ai.agent.name` is the BPMN element id, and there is no `gen_ai.agent.id` | The element id is the stable name in the process model. Agent instance keys are transient, so they are no agent id |
 | Conversation id | Set from an identifier that is readily available | The agent instance key, prefixed with the operator-set cluster id when one is configured | Conforms: the engine assigns the key, and it links to Operate. The prefix keeps clusters apart in one backend project |
@@ -297,13 +303,14 @@ process.
 
 * Customers on the stock image must add and version-match the OpenTelemetry and Spring OpenTelemetry
   libraries, and exclude the Observation bridge to keep other connectors untraced.
-* The anchor root's duration is meaningless, and tool spans can start days before their `invoke_agent`
+* The anchor root's duration is meaningless, and tool spans can end days after their `invoke_agent`
   parent, which backends may render awkwardly (an exit criterion of the proof of concept).
 * The start of a tool span is approximate, and the anchor sets no output, so a backend that shows the output
   of the root span has nothing to show for a run.
 * A run that starts with a tool discovery dispatch has no input on its anchor.
 * A worker crash after a job commits loses that job's spans, and a lost run-starting job leaves later
-  spans pointing at a root that never arrives.
+  spans pointing at a root that never arrives. A lost issuing job does the same to the tool spans that
+  answer its calls.
 * A run that ends because the process or the sub-process is terminated has no closing marker.
 * Backends with an ingest window shorter than a tool's duration drop the long `execute_tool` spans (for
   example, Datadog rejects spans that started more than 18 hours ago); they are not acceptance
