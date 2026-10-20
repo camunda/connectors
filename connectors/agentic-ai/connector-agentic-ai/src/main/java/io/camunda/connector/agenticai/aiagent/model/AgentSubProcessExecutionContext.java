@@ -25,6 +25,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final List<ToolCallResult> initialToolCallResults;
   private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
+  private java.util.Map<String, Object> configurationEvidence = java.util.Map.of();
 
   public AgentSubProcessExecutionContext(
       final JobContext jobContext, final AgentSubProcessV1Request request) {
@@ -88,6 +89,17 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   @Override
   public AgentConfiguration configuration() {
     return configuration;
+  }
+
+  @Override
+  public java.util.Map<String, Object> configurationEvidence() {
+    return configurationEvidence;
+  }
+
+  public AgentSubProcessExecutionContext withConfigurationEvidence(
+      java.util.Map<String, Object> configurationEvidence) {
+    this.configurationEvidence = configurationEvidence;
+    return this;
   }
 
   /**

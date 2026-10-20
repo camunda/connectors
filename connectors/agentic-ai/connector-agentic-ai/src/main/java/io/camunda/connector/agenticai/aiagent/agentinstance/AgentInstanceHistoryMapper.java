@@ -97,12 +97,28 @@ public class AgentInstanceHistoryMapper {
       Map<String, ToolCall> toolCallsById,
       OffsetDateTime turnIngestionTimestamp,
       AgentContext agentContext) {
+    return inputHistoryItems(message, toolCallsById, turnIngestionTimestamp, agentContext, null);
+  }
+
+  /**
+   * @param documentParsing the {@code documentParsing} configuration evidence, used to record which
+   *     engine parsed the PDF documents attached to a user message (prototype)
+   */
+  public List<InputHistoryItem> inputHistoryItems(
+      Message message,
+      Map<String, ToolCall> toolCallsById,
+      OffsetDateTime turnIngestionTimestamp,
+      AgentContext agentContext,
+      @Nullable Object documentParsing) {
     return switch (message) {
       case UserMessage userMessage ->
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  userContentBlocks(userMessage.content(), agentContext),
+                  withDocumentParsingEvidence(
+                      userContentBlocks(userMessage.content(), agentContext),
+                      userMessage,
+                      documentParsing),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -123,13 +139,28 @@ public class AgentInstanceHistoryMapper {
       AgentContext agentContext) {
     // tool-call result id/name are nullable on the model (and partial/malformed results may omit
     // them); default to empty strings, which the client model accepts
+    final ToolCall toolCall = result.id() == null ? null : toolCallsById.get(result.id());
+    // gateway tools (e.g. the sandbox) report the element id as the result name; prefer the tool
+    // name the model called so the result matches its tool call
+    final String toolName = toolCall != null ? toolCall.name() : result.name();
+    final List<AgentInstanceHistoryContent> content =
+        new ArrayList<>(toolResultContent(result.content(), agentContext));
+    final var sandboxState =
+        agentContext.properties() == null
+            ? null
+            : agentContext.properties().get(AgentHistoryEvidence.SANDBOX_PROPERTY);
+    final var sandboxEvidence =
+        AgentHistoryEvidence.sandbox(toolCall, result.elementId(), sandboxState, result.content());
+    if (sandboxEvidence != null) {
+      content.add(objectHistoryContent(AgentHistoryEvidence.wrap(sandboxEvidence)));
+    }
     return new InputHistoryItem(
         AgentInstanceHistoryRole.TOOL_RESULT,
-        toolResultContent(result.content(), agentContext),
+        content,
         List.of(
             new AgentInstanceHistoryToolCall()
                 .toolCallId(StringUtils.defaultString(result.id()))
-                .toolName(StringUtils.defaultString(result.name()))
+                .toolName(StringUtils.defaultString(toolName))
                 .elementId(elementIdFor(result.elementId(), result.name(), agentContext))
                 .arguments(argumentsForResult(result, toolCallsById))),
         requireCompletedAt(result),
@@ -173,7 +204,28 @@ public class AgentInstanceHistoryMapper {
 
   public List<AgentInstanceHistoryContent> assistantContent(
       AssistantMessage assistantMessage, AgentContext agentContext) {
-    return contentBlocks(assistantMessage.content(), agentContext);
+    final var content = contentBlocks(assistantMessage.content(), agentContext);
+    final var serverToolEvidence = AgentHistoryEvidence.serverToolUse(assistantMessage);
+    if (serverToolEvidence == null) {
+      return content;
+    }
+    final List<AgentInstanceHistoryContent> withEvidence = new ArrayList<>(content);
+    withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(serverToolEvidence)));
+    return withEvidence;
+  }
+
+  private List<AgentInstanceHistoryContent> withDocumentParsingEvidence(
+      List<AgentInstanceHistoryContent> content,
+      UserMessage userMessage,
+      @Nullable Object documentParsing) {
+    final var evidence =
+        AgentHistoryEvidence.documentParsing(userMessage.content(), documentParsing);
+    if (evidence == null) {
+      return content;
+    }
+    final List<AgentInstanceHistoryContent> withEvidence = new ArrayList<>(content);
+    withEvidence.add(objectHistoryContent(AgentHistoryEvidence.wrap(evidence)));
+    return withEvidence;
   }
 
   public @Nullable List<AgentInstanceHistoryToolCall> assistantToolCalls(

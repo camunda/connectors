@@ -29,4 +29,12 @@ public interface AgentExecutionContext {
 
   /** Static per-invocation configuration (provider, prompts, memory, limits, events, response). */
   AgentConfiguration configuration();
+
+  /**
+   * Prototype (unsupported): provenance recorded on the CONFIGURATION history item (linked prompt,
+   * credential mode, server tools). Never contains secret values.
+   */
+  default java.util.Map<String, Object> configurationEvidence() {
+    return java.util.Map.of();
+  }
 }

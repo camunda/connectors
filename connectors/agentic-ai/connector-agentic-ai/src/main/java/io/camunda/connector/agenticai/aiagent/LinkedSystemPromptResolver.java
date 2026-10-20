@@ -79,10 +79,12 @@ public class LinkedSystemPromptResolver {
       var resource = camundaClient.newResourceGetRequest(resourceKey).execute();
       var prompt = camundaClient.newResourceContentBinaryGetRequest(resourceKey).execute();
       return new ResolvedLinkedSystemPrompt(
-          prompt, resource.getResourceId(), binding, resource.getVersion());
+          prompt, resource.getResourceId(), binding, resource.getVersion(), resourceKey);
     } catch (Exception e) {
       throw new ConnectorException(
-          ERROR_CODE, "Failed to retrieve linked system prompt resource %d.".formatted(resourceKey), e);
+          ERROR_CODE,
+          "Failed to retrieve linked system prompt resource %d.".formatted(resourceKey),
+          e);
     }
   }
 
@@ -90,5 +92,5 @@ public class LinkedSystemPromptResolver {
   private record LinkedResource(@Nullable Long resourceKey, String resourceType, String linkName) {}
 
   public record ResolvedLinkedSystemPrompt(
-      String prompt, String promptId, String binding, int version) {}
+      String prompt, String promptId, String binding, int version, long resourceKey) {}
 }
