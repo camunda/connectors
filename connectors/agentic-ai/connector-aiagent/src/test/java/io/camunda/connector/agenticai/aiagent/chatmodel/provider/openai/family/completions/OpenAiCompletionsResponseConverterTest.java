@@ -25,7 +25,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -108,7 +107,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofMillis(100)))
+    assertThatThrownBy(() -> converter.toResult(completion))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL));
@@ -122,7 +121,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": "Hello there"}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().content())
@@ -141,14 +140,14 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": "   "}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().content()).isEmpty();
   }
 
   @Test
   void throwsContentFilteredExceptionForRefusal() {
-    assertThatThrownBy(() -> converter.toResult(completionWithRefusal(), Duration.ofMillis(100)))
+    assertThatThrownBy(() -> converter.toResult(completionWithRefusal()))
         .isInstanceOfSatisfying(
             ContentFilteredException.class,
             e -> {
@@ -185,7 +184,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().content()).isEmpty();
@@ -217,7 +216,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().toolCalls())
         .containsExactly(
@@ -249,7 +248,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     // No provider-neutral representation exists for a custom tool call, so it is preserved
     // losslessly as ProviderContent instead of being silently dropped and losing the model's
@@ -288,7 +287,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("Hello there"));
@@ -317,7 +316,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion);
 
     assertThat(result.assistantMessage().content())
         .containsExactly(
@@ -340,7 +339,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion);
 
     assertThat(result.assistantMessage().content())
         .containsExactly(
@@ -371,7 +370,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = mistralConverter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = mistralConverter.toResult(completion);
 
     final var reasoning = (ReasoningContent) result.assistantMessage().content().get(0);
     assertThat(reasoning.text()).isEqualTo("5 + 7 is 12.");
@@ -400,7 +399,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().content())
         .singleElement()
@@ -423,7 +422,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().content())
         .containsExactly(
@@ -449,14 +448,13 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(250));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
 
     final AgentMetrics metrics = result.metrics();
     assertThat(metrics.modelCalls()).isEqualTo(1);
     assertThat(metrics.toolCalls()).isZero();
-    assertThat(metrics.executionTime()).isEqualTo(Duration.ofMillis(250));
     // prompt_tokens (100) includes the 20 cached tokens; inputTokenCount must exclude them so it
     // reflects only new, non-cached input tokens (see AgentMetrics.TokenUsage javadoc).
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(80);
@@ -481,7 +479,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final var tokenUsage = converter.toResult(completion, Duration.ZERO).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(completion).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(50);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(20);
@@ -510,7 +508,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final var tokenUsage = converter.toResult(completion, Duration.ZERO).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(completion).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isZero();
   }
@@ -531,7 +529,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.metrics().tokenUsage().reasoningTokenCount()).isEqualTo(128);
   }
@@ -551,7 +549,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.metrics().tokenUsage().reasoningTokenCount()).isZero();
   }
@@ -564,7 +562,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": "Hi"}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.metrics().tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
   }
@@ -578,7 +576,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": "Hello there"}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
@@ -603,7 +601,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
@@ -618,7 +616,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": null}
             """);
 
-    assertThatThrownBy(() -> converter.toResult(completion, Duration.ofSeconds(1)))
+    assertThatThrownBy(() -> converter.toResult(completion))
         .isInstanceOfSatisfying(
             ContentFilteredException.class, e -> assertThat(e.partialResult()).isNotNull());
   }
@@ -635,7 +633,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.LENGTH);
@@ -652,7 +650,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": null}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.TOOL_USE);
@@ -677,7 +675,7 @@ class OpenAiCompletionsResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
@@ -693,7 +691,7 @@ class OpenAiCompletionsResponseConverterTest {
             {"role": "assistant", "content": "Hi"}
             """);
 
-    final ChatResult result = converter.toResult(completion, Duration.ZERO);
+    final ChatResult result = converter.toResult(completion);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason())

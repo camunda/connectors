@@ -18,7 +18,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
-import java.time.Duration;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -54,7 +53,6 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
           "OpenAI Chat Completions API request: {}", LoggingSupport.toJson(MAPPER, params._body()));
     }
 
-    final long startNanos = System.nanoTime();
     final ChatCompletion completion;
     try (StreamResponse<ChatCompletionChunk> stream =
         client.chat().completions().createStreaming(params)) {
@@ -64,8 +62,7 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
       LOG.trace(
           "OpenAI Chat Completions API response: {}", LoggingSupport.toJson(MAPPER, completion));
     }
-    final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-    return responseConverter.toResult(completion, executionTime);
+    return responseConverter.toResult(completion);
   }
 
   /**

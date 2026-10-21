@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -121,7 +122,7 @@ class OpenAiChatModelFactoryTest {
 
     final ChatModel api = create(config);
 
-    assertThat(api).isNotNull().isInstanceOf(OpenAiChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(OpenAiChatModel.class);
     api.close();
   }
 

@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -19,20 +18,14 @@ import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.openai.client.OpenAIClient;
 import com.openai.core.ObjectMappers;
-import com.openai.core.http.Headers;
 import com.openai.core.http.StreamResponse;
-import com.openai.errors.BadRequestException;
-import com.openai.models.ErrorObject;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.services.blocking.ChatService;
 import com.openai.services.blocking.chat.ChatCompletionService;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
@@ -43,7 +36,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +104,7 @@ class MistralChatModelTest {
     when(chatService.completions()).thenReturn(chatCompletionService);
     when(chatCompletionService.createStreaming(params)).thenReturn(stream);
     when(streamAssembler.assemble(stream)).thenReturn(canningCompletion());
-    when(responseConverter.toResult(any(), any())).thenReturn(expectedResult);
+    when(responseConverter.toResult(any())).thenReturn(expectedResult);
   }
 
   @Test
@@ -184,75 +176,6 @@ class MistralChatModelTest {
     verify(requestConverter).toRequest(specCaptor.capture(), any(), any());
     final RequestCustomizations customizations = specCaptor.getValue().customizations();
     assertThat(customizations.headers()).containsEntry("X-Custom", "value");
-  }
-
-  @Test
-  void rethrowsConnectorExceptionFromResponseConverterVerbatim() {
-    final var thrown = new ConnectorException("SOME_OTHER_ERROR_CODE", "unsupported content type");
-    stubHappyPath(null);
-    when(responseConverter.toResult(any(), any())).thenThrow(thrown);
-
-    assertThatThrownBy(() -> model.execute(request)).isSameAs(thrown);
-  }
-
-  @Test
-  void propagatesChatModelRejectedExceptionUnwrapped() {
-    final var rejection = new ContentFilteredException("blocked by content filtering", null);
-    stubHappyPath(null);
-    when(responseConverter.toResult(any(), any())).thenThrow(rejection);
-
-    assertThatThrownBy(() -> model.execute(request)).isSameAs(rejection);
-  }
-
-  @Test
-  void wrapsUnexpectedSdkFailureAsConnectorException() {
-    when(requestConverter.toRequest(any(), any(), any())).thenThrow(new RuntimeException("boom"));
-
-    assertThatThrownBy(() -> model.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void mapsContextLengthExceededBadRequestToContextWindowExceeded() {
-    final var error =
-        ErrorObject.builder()
-            .code("context_length_exceeded")
-            .message("Context length exceeded.")
-            .param((String) null)
-            .type("invalid_request_error")
-            .build();
-    final var thrown =
-        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
-    when(requestConverter.toRequest(any(), any(), any())).thenThrow(thrown);
-
-    assertThatThrownBy(() -> model.execute(request))
-        .isInstanceOfSatisfying(
-            ContextWindowExceededException.class,
-            e -> {
-              assertThat(e.partialResult()).isNull();
-              assertThat(e.getCause()).isSameAs(thrown);
-            });
-  }
-
-  @Test
-  void wrapsOtherBadRequestAsGenericFailedModelCall() {
-    final var error =
-        ErrorObject.builder()
-            .code("invalid_api_key")
-            .message("Incorrect API key provided.")
-            .param((String) null)
-            .type("invalid_request_error")
-            .build();
-    final var thrown =
-        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
-    when(requestConverter.toRequest(any(), any(), any())).thenThrow(thrown);
-
-    assertThatThrownBy(() -> model.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test

@@ -43,7 +43,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -723,8 +722,6 @@ class GeminiContentRequestConverterTest {
                         .content(Content.builder().role("model").parts(List.of(parts)).build())
                         .build()))
             .build();
-    return new GeminiContentResponseConverter()
-        .toResult(response, Duration.ZERO)
-        .assistantMessage();
+    return new GeminiContentResponseConverter().toResult(response).assistantMessage();
   }
 }

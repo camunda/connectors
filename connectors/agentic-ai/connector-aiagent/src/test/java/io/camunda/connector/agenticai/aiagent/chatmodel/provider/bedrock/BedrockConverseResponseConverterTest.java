@@ -23,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -57,8 +56,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.ToolUseType;
  */
 class BedrockConverseResponseConverterTest {
 
-  private static final Duration EXECUTION_TIME = Duration.ofMillis(42);
-
   private final BedrockConverseResponseConverter converter = new BedrockConverseResponseConverter();
   private final BedrockConverseContentConverter contentConverter =
       new BedrockConverseContentConverter(new ObjectMapper());
@@ -80,7 +77,7 @@ class BedrockConverseResponseConverterTest {
                 Message.builder().role(ConversationRole.ASSISTANT).content(content).build()))
         .stopReason(rawStopReason)
         .usage(usage)
-        // Deliberately large and distinct from EXECUTION_TIME so tests can assert it's ignored.
+        // Deliberately large so tests can assert it's ignored.
         .metrics(ConverseMetrics.builder().latencyMs(999_999L).build())
         .build();
   }
@@ -104,7 +101,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.TOOL_USE,
             usage(10, 20));
 
-    final ChatResult result = converter.toResult(response, EXECUTION_TIME);
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
 
@@ -123,7 +120,6 @@ class BedrockConverseResponseConverterTest {
     assertThat(metrics.toolCalls()).isEqualTo(1);
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(10);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(20);
-    assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
   }
 
   @Test
@@ -131,7 +127,7 @@ class BedrockConverseResponseConverterTest {
     final var response =
         response(List.of(ContentBlock.fromText("hi")), StopReason.END_TURN, usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var content = converter.toResult(response).assistantMessage().content();
 
     assertThat(content).hasSize(1);
     final var textContent = (TextContent) content.get(0);
@@ -154,7 +150,7 @@ class BedrockConverseResponseConverterTest {
             .build();
     final var response = response(List.of(block), StopReason.END_TURN, usage(1, 1));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
     final var content = assistantMessage.content();
 
     assertThat(content).hasSize(1);
@@ -181,8 +177,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.TOOL_USE,
             usage(1, 1));
 
-    final var toolCalls =
-        converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls();
+    final var toolCalls = converter.toResult(response).assistantMessage().toolCalls();
 
     assertThat(toolCalls).hasSize(1);
     final var toolCall = toolCalls.get(0);
@@ -206,8 +201,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.TOOL_USE,
             usage(1, 1));
 
-    final var toolCalls =
-        converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls();
+    final var toolCalls = converter.toResult(response).assistantMessage().toolCalls();
 
     assertThat(toolCalls).containsExactly(new ToolCall("tooluse_now", "now", Map.of(), null));
   }
@@ -233,8 +227,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.TOOL_USE,
             usage(1, 1));
 
-    final var toolCalls =
-        converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls();
+    final var toolCalls = converter.toResult(response).assistantMessage().toolCalls();
 
     assertThat(toolCalls).containsExactly(new ToolCall("tooluse_now", "now", Map.of(), null));
   }
@@ -249,7 +242,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.END_TURN,
             usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var content = converter.toResult(response).assistantMessage().content();
 
     assertThat(content)
         .containsExactly(
@@ -272,7 +265,7 @@ class BedrockConverseResponseConverterTest {
 
     final var response = response(List.of(emptyUnion), StopReason.END_TURN, usage(1, 1));
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("unknown to this SDK version");
   }
@@ -292,7 +285,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.END_TURN,
             usage(1, 1));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
     final var content = assistantMessage.content();
 
     assertThat(content).hasSize(2);
@@ -319,7 +312,7 @@ class BedrockConverseResponseConverterTest {
             StopReason.END_TURN,
             usage(1, 1));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
     final var content = assistantMessage.content();
 
     assertThat(content).hasSize(1);
@@ -342,7 +335,7 @@ class BedrockConverseResponseConverterTest {
                     .build()));
     final var response = response(List.of(original), StopReason.END_TURN, usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var content = converter.toResult(response).assistantMessage().content();
     assertThat(content).hasSize(1);
     final var reasoningContent = content.get(0);
 
@@ -359,7 +352,7 @@ class BedrockConverseResponseConverterTest {
                 SdkBytes.fromUtf8String("opaque-encrypted-reasoning-payload")));
     final var response = response(List.of(original), StopReason.END_TURN, usage(1, 1));
 
-    final var content = converter.toResult(response, EXECUTION_TIME).assistantMessage().content();
+    final var content = converter.toResult(response).assistantMessage().content();
     final var reasoningContent = content.get(0);
 
     final var rebuilt = contentConverter.toContentBlocks(List.of(reasoningContent));
@@ -378,7 +371,7 @@ class BedrockConverseResponseConverterTest {
             .build();
     final var response = response(List.of(ContentBlock.fromText("ok")), StopReason.END_TURN, usage);
 
-    final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(100);
     assertThat(tokenUsage.outputTokenCount()).isEqualTo(50);
@@ -389,16 +382,15 @@ class BedrockConverseResponseConverterTest {
   }
 
   @Test
-  void usesPassedInExecutionTimeNotServerSideLatency() {
+  void leavesExecutionTimeUnsetRatherThanUsingServerSideLatency() {
     final var response =
         response(List.of(ContentBlock.fromText("ok")), StopReason.END_TURN, usage(1, 1));
 
-    final var metrics = converter.toResult(response, EXECUTION_TIME).metrics();
+    final var metrics = converter.toResult(response).metrics();
 
-    // ConverseMetrics.latencyMs on the fixture is 999_999ms; the converter must ignore it entirely
-    // and use the externally-measured wall-clock duration instead.
-    assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
-    assertThat(metrics.executionTime()).isNotEqualTo(Duration.ofMillis(999_999L));
+    // ConverseMetrics.latencyMs on the fixture is 999_999ms; the converter must ignore it, the
+    // execution time is the wall-clock duration measured around the call.
+    assertThat(metrics.executionTime()).isNull();
   }
 
   static Stream<Arguments> stopReasons() {
@@ -430,7 +422,7 @@ class BedrockConverseResponseConverterTest {
     final var response =
         response(List.of(ContentBlock.fromText("x")), vendorStopReason, usage(1, 1));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.stopReason()).isEqualTo(expected);
     assertThat(assistantMessage.metadata())
@@ -462,7 +454,7 @@ class BedrockConverseResponseConverterTest {
     final var response =
         response(List.of(ContentBlock.fromText("as far as I got")), vendorStopReason, usage(7, 3));
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOfSatisfying(
             expectedType,
             e -> {
@@ -482,7 +474,7 @@ class BedrockConverseResponseConverterTest {
     final var response =
         response(List.of(ContentBlock.fromText("x")), vendorStopReason, usage(1, 1));
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -505,7 +497,7 @@ class BedrockConverseResponseConverterTest {
         responseWithRawStopReason(
             List.of(ContentBlock.fromText("x")), "some_new_vendor_stop_reason", usage(1, 1));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.stopReason())
         .isEqualTo(new UnknownStopReason("some_new_vendor_stop_reason"));

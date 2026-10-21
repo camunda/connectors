@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
@@ -51,7 +52,9 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (AnthropicConfiguration) configuration;
     final var client = buildClient(model.backend(), model.timeout());
-    return new AnthropicChatModel(client, model, requestConverter, responseConverter);
+    return new ModelCallEnvelope(
+        new AnthropicChatModel(client, model, requestConverter, responseConverter),
+        new AnthropicSdkFailureMapper());
   }
 
   private AnthropicClient buildClient(Backend backend, Duration timeout) {

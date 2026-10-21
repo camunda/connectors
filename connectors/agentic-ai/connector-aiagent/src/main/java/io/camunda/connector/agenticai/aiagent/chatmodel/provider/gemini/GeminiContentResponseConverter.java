@@ -32,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -87,10 +86,9 @@ public class GeminiContentResponseConverter {
    *     SPII}, or an {@code IMAGE_*} variant. Carries the {@link
    *     ChatModelRejectedException.PartialResult} built so far.
    */
-  public ChatResult toResult(GenerateContentResponse response, Duration executionTime) {
+  public ChatResult toResult(GenerateContentResponse response) {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
-    final AgentMetrics metrics =
-        toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
+    final AgentMetrics metrics = toMetrics(response, assistantMessage.toolCalls().size());
 
     final boolean blockedPrompt = response.candidates().filter(c -> !c.isEmpty()).isEmpty();
     final FinishReason finishReason =
@@ -311,8 +309,7 @@ public class GeminiContentResponseConverter {
     return Base64.getEncoder().encodeToString(signature);
   }
 
-  private AgentMetrics toMetrics(
-      GenerateContentResponse response, int toolCalls, Duration executionTime) {
+  private AgentMetrics toMetrics(GenerateContentResponse response, int toolCalls) {
     final Optional<GenerateContentResponseUsageMetadata> usage = response.usageMetadata();
     final int promptTokens =
         usage.flatMap(GenerateContentResponseUsageMetadata::promptTokenCount).orElse(0);
@@ -334,12 +331,7 @@ public class GeminiContentResponseConverter {
             .reasoningTokenCount(thoughtsTokens)
             .build();
 
-    return AgentMetrics.builder()
-        .modelCalls(1)
-        .toolCalls(toolCalls)
-        .tokenUsage(tokenUsage)
-        .executionTime(executionTime)
-        .build();
+    return AgentMetrics.builder().modelCalls(1).toolCalls(toolCalls).tokenUsage(tokenUsage).build();
   }
 
   /**

@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -129,7 +128,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().content())
@@ -173,7 +172,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().content())
         .satisfiesExactly(
@@ -222,7 +221,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().content())
         .containsExactly(TextContent.textContent("First"), TextContent.textContent("Second"));
@@ -259,7 +258,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().content())
         .singleElement()
@@ -313,7 +312,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().content()).isEmpty();
     assertThat(result.assistantMessage().toolCalls())
@@ -327,7 +326,7 @@ class OpenAiResponsesResponseConverterTest {
 
   @Test
   void throwsContentFilteredExceptionForRefusal() {
-    assertThatThrownBy(() -> converter.toResult(responseWithRefusal(), Duration.ofMillis(100)))
+    assertThatThrownBy(() -> converter.toResult(responseWithRefusal()))
         .isInstanceOfSatisfying(
             ContentFilteredException.class,
             e -> {
@@ -368,7 +367,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    assertThatThrownBy(() -> converter.toResult(response, Duration.ofMillis(100)))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOfSatisfying(
             ContentFilteredException.class,
             e ->
@@ -406,7 +405,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().content())
         .filteredOn(TextContent.class::isInstance)
@@ -440,7 +439,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().content()).isEmpty();
@@ -487,7 +486,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().toolCalls())
         .containsExactly(
@@ -502,7 +501,7 @@ class OpenAiResponsesResponseConverterTest {
 
   @Test
   void mapsReasoningItemToReasoningContentWithProviderPayload() {
-    final ChatResult result = converter.toResult(responseWithReasoning(), Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(responseWithReasoning());
 
     assertThat(result.assistantMessage().content()).hasSize(1);
     final ReasoningContent reasoningContent =
@@ -530,7 +529,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     final ReasoningContent reasoningContent =
         (ReasoningContent) result.assistantMessage().content().get(0);
@@ -558,7 +557,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     final ReasoningContent reasoningContent =
         (ReasoningContent) result.assistantMessage().content().get(0);
@@ -579,11 +578,7 @@ class OpenAiResponsesResponseConverterTest {
     // SDK's own com.openai.core.ObjectMappers#jsonMapper()) to serialize the raw item leaked a
     // spurious "valid":true property (the Kotlin-generated isValid() property) onto the wire during
     // a real-API run. This must never come back.
-    final var content =
-        converter
-            .toResult(responseWithReasoning(), Duration.ofMillis(100))
-            .assistantMessage()
-            .content();
+    final var content = converter.toResult(responseWithReasoning()).assistantMessage().content();
 
     assertThat(content)
         .filteredOn(ReasoningContent.class::isInstance)
@@ -617,7 +612,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     final var content = result.assistantMessage().content();
     assertThat(content).hasSize(2);
@@ -649,7 +644,7 @@ class OpenAiResponsesResponseConverterTest {
             ]
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(100));
+    final ChatResult result = converter.toResult(response);
 
     final var content = result.assistantMessage().content();
     assertThat(content).hasSize(1);
@@ -680,7 +675,7 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().modelId()).isEqualTo("my-custom-fine-tuned-model");
   }
@@ -700,14 +695,13 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(250));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
 
     final AgentMetrics metrics = result.metrics();
     assertThat(metrics.modelCalls()).isEqualTo(1);
     assertThat(metrics.toolCalls()).isZero();
-    assertThat(metrics.executionTime()).isEqualTo(Duration.ofMillis(250));
     // input_tokens (100) includes the 20 cached tokens; inputTokenCount must exclude them so it
     // reflects only new, non-cached input tokens (see AgentMetrics.TokenUsage javadoc).
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(80);
@@ -731,7 +725,7 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(50);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(20);
@@ -759,7 +753,7 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    final var tokenUsage = converter.toResult(response, Duration.ZERO).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isZero();
   }
@@ -768,14 +762,14 @@ class OpenAiResponsesResponseConverterTest {
   void returnsEmptyTokenUsageWhenUsageAbsent() {
     final Response response = baseResponse("[]");
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.metrics().tokenUsage()).isEqualTo(AgentMetrics.TokenUsage.empty());
   }
 
   @Test
   void mapsTruncatedResponseToLengthWithoutThrowing() {
-    final ChatResult result = converter.toResult(truncatedResponse(), Duration.ofSeconds(1));
+    final ChatResult result = converter.toResult(truncatedResponse());
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(((ChatResult.Completed) result).assistantMessage().stopReason())
@@ -784,7 +778,7 @@ class OpenAiResponsesResponseConverterTest {
 
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
-    assertThatThrownBy(() -> converter.toResult(contentFilteredResponse(), Duration.ofSeconds(1)))
+    assertThatThrownBy(() -> converter.toResult(contentFilteredResponse()))
         .isInstanceOfSatisfying(
             ContentFilteredException.class, e -> assertThat(e.partialResult()).isNotNull());
   }
@@ -802,7 +796,7 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    assertThatThrownBy(() -> converter.toResult(response, Duration.ofSeconds(1)))
+    assertThatThrownBy(() -> converter.toResult(response))
         .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
         .satisfies(
             e -> {
@@ -814,7 +808,7 @@ class OpenAiResponsesResponseConverterTest {
 
   @Test
   void stampsTimestampAndRawIncompleteDetailsReasonMetadata() {
-    final ChatResult result = converter.toResult(truncatedResponse(), Duration.ofSeconds(1));
+    final ChatResult result = converter.toResult(truncatedResponse());
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
@@ -833,7 +827,7 @@ class OpenAiResponsesResponseConverterTest {
             }
             """);
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)
@@ -844,7 +838,7 @@ class OpenAiResponsesResponseConverterTest {
   void stampsResponseIdWithoutStopReasonWhenNoneAvailable() {
     final Response response = baseResponse("[]");
 
-    final ChatResult result = converter.toResult(response, Duration.ofMillis(10));
+    final ChatResult result = converter.toResult(response);
 
     assertThat(result.assistantMessage().metadata())
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY)

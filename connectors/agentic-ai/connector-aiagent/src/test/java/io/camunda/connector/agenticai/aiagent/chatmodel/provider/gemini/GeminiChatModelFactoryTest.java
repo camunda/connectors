@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,7 +121,7 @@ class GeminiChatModelFactoryTest {
 
     final ChatModel model = factory.create(apiConfig(null, null));
 
-    assertThat(model).isNotNull().isInstanceOf(GeminiChatModel.class);
+    assertThat(delegateOf(model)).isInstanceOf(GeminiChatModel.class);
 
     final HttpOptions httpOptions = httpOptionsOf(model);
     // the SDK fills in its production default base URL when no override is configured
@@ -404,8 +405,8 @@ class GeminiChatModelFactoryTest {
       clientMock.when(Client::builder).thenReturn(clientBuilder);
 
       final ChatModel model = factory.create(config);
-      assertThat(model).isNotNull().isInstanceOf(GeminiChatModel.class);
-      assertThat(ReflectionTestUtils.getField(model, "client")).isSameAs(client);
+      assertThat(delegateOf(model)).isInstanceOf(GeminiChatModel.class);
+      assertThat(ReflectionTestUtils.getField(delegateOf(model), "client")).isSameAs(client);
       model.close();
     }
 
@@ -425,7 +426,7 @@ class GeminiChatModelFactoryTest {
   }
 
   private static Client clientOf(ChatModel model) {
-    return (Client) ReflectionTestUtils.getField(model, "client");
+    return (Client) ReflectionTestUtils.getField(delegateOf(model), "client");
   }
 
   private static ApiClient apiClientOf(ChatModel model) {

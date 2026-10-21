@@ -18,7 +18,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
-import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,6 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
       LOG.trace("OpenAI Responses API request: {}", LoggingSupport.toJson(MAPPER, params._body()));
     }
 
-    final long startNanos = System.nanoTime();
     final Response response;
     try (StreamResponse<ResponseStreamEvent> stream = client.responses().createStreaming(params)) {
       response = streamAssembler.assemble(stream);
@@ -67,7 +65,6 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
     if (LOG.isTraceEnabled()) {
       LOG.trace("OpenAI Responses API response: {}", LoggingSupport.toJson(MAPPER, response));
     }
-    final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-    return responseConverter.toResult(response, executionTime);
+    return responseConverter.toResult(response);
   }
 }

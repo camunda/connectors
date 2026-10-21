@@ -6,27 +6,19 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
-import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-
 import com.openai.client.OpenAIClient;
 import com.openai.core.http.StreamResponse;
-import com.openai.errors.BadRequestException;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
-import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.Locale;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,13 +34,6 @@ import org.slf4j.LoggerFactory;
 public class MistralChatModel implements ChatModel {
 
   private static final Logger LOG = LoggerFactory.getLogger(MistralChatModel.class);
-
-  // Mistral's error codes are plain strings on the wire, mirrored the same way OpenAI's are (see
-  // OpenAiChatModel) -- this is the only one requiring dedicated handling.
-  private static final String MISTRAL_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED =
-      "context_length_exceeded";
-
-  private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
 
   private final OpenAIClient client;
   private final MistralConfiguration configuration;
@@ -71,30 +56,17 @@ public class MistralChatModel implements ChatModel {
 
   @Override
   public ChatResult execute(ChatRequest request) {
-    try {
-      final CompletionsRequestSpec spec = toSpec(configuration);
-      final ChatCompletionCreateParams params =
-          requestConverter.toRequest(
-              spec, request.executionContext().configuration().response(), request.snapshot());
+    final CompletionsRequestSpec spec = toSpec(configuration);
+    final ChatCompletionCreateParams params =
+        requestConverter.toRequest(
+            spec, request.executionContext().configuration().response(), request.snapshot());
 
-      final long startNanos = System.nanoTime();
-      final ChatCompletion completion;
-      try (StreamResponse<ChatCompletionChunk> stream =
-          client.chat().completions().createStreaming(params)) {
-        completion = streamAssembler.assemble(stream);
-      }
-      final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-      return responseConverter.toResult(completion, executionTime);
-    } catch (ConnectorException | ChatModelRejectedException e) {
-      throw e;
-    } catch (BadRequestException e) {
-      if (MISTRAL_ERROR_CODE_CONTEXT_LENGTH_EXCEEDED.equals(e.code().orElse(null))) {
-        throw new ContextWindowExceededException(failureMessage(e), e, null);
-      }
-      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
-    } catch (Exception e) {
-      throw new ConnectorException(ERROR_CODE_FAILED_MODEL_CALL, failureMessage(e), e);
+    final ChatCompletion completion;
+    try (StreamResponse<ChatCompletionChunk> stream =
+        client.chat().completions().createStreaming(params)) {
+      completion = streamAssembler.assemble(stream);
     }
+    return responseConverter.toResult(completion);
   }
 
   /** Maps this provider's own configuration onto the shared Chat Completions request spec. */
@@ -109,27 +81,6 @@ public class MistralChatModel implements ChatModel {
             ? null
             : configuration.effort().name().toLowerCase(Locale.ROOT),
         configuration.backend().customizations());
-  }
-
-  private static String failureMessage(Exception e) {
-    final String outerMessage = e.getMessage();
-    final boolean preferCause =
-        outerMessage == null
-            || outerMessage.isBlank()
-            || GENERIC_SDK_FAILURE_MESSAGE.equals(outerMessage);
-    if (!preferCause) {
-      return "Model call failed: %s".formatted(outerMessage);
-    }
-    final Throwable cause = e.getCause();
-    final String detail =
-        cause != null
-            ? Optional.ofNullable(cause.getMessage())
-                .filter(m -> !m.isBlank())
-                .orElseGet(() -> cause.getClass().getSimpleName())
-            : outerMessage != null && !outerMessage.isBlank()
-                ? outerMessage
-                : e.getClass().getSimpleName();
-    return "Model call failed: %s".formatted(detail);
   }
 
   @Override

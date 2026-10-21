@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
@@ -62,8 +63,10 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (BedrockConfiguration) configuration;
     final var client = buildAsyncClient(model);
-    return new BedrockConverseChatModel(
-        client, model, requestConverter, responseConverter, objectMapper);
+    return new ModelCallEnvelope(
+        new BedrockConverseChatModel(
+            client, model, requestConverter, responseConverter, objectMapper),
+        new BedrockSdkFailureMapper());
   }
 
   /**

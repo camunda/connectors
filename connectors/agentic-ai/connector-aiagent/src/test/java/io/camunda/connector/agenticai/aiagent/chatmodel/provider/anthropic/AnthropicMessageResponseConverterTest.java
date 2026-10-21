@@ -41,14 +41,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AnthropicMessageResponseConverterTest {
-
-  private static final Duration EXECUTION_TIME = Duration.ofMillis(42);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AnthropicMessageResponseConverter converter =
@@ -81,7 +78,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
+    final var result = converter.toResult(message);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
 
@@ -101,7 +98,6 @@ class AnthropicMessageResponseConverterTest {
     assertThat(metrics.toolCalls()).isEqualTo(1);
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(10);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(20);
-    assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
   }
 
   @Test
@@ -124,7 +120,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content()).isEmpty();
     assertThat(assistantMessage.toolCalls())
@@ -146,7 +142,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.metadata())
         .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
@@ -168,7 +164,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
+    final var result = converter.toResult(message);
 
     assertThat(result).isInstanceOf(ChatResult.Continuation.class);
     // pause_turn still surfaces as a stop reason on the assistant message (there's no dedicated
@@ -198,7 +194,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -230,7 +226,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -262,7 +258,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -293,7 +289,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -340,7 +336,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -406,7 +402,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var assistantMessage = converter.toResult(message, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(message).assistantMessage();
 
     assertThat(assistantMessage.toolCalls())
         .containsExactly(new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
@@ -435,7 +431,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var tokenUsage = converter.toResult(message, EXECUTION_TIME).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(message).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(100);
     assertThat(tokenUsage.outputTokenCount()).isEqualTo(50);
@@ -473,8 +469,8 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var endTurnResult = converter.toResult(endTurn, EXECUTION_TIME);
-    final var maxTokensResult = converter.toResult(maxTokens, EXECUTION_TIME);
+    final var endTurnResult = converter.toResult(endTurn);
+    final var maxTokensResult = converter.toResult(maxTokens);
 
     assertThat(endTurnResult).isInstanceOf(ChatResult.Completed.class);
     assertThat(endTurnResult.assistantMessage().stopReason()).isEqualTo(StopReason.STOP);
@@ -499,7 +495,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    assertThatThrownBy(() -> converter.toResult(message, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(message))
         .isInstanceOfSatisfying(
             ContentFilteredException.class,
             e -> {
@@ -526,7 +522,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    assertThatThrownBy(() -> converter.toResult(message, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(message))
         .isInstanceOfSatisfying(
             ContextWindowExceededException.class,
             e -> {
@@ -556,7 +552,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
+    final var result = converter.toResult(message);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason())
@@ -585,7 +581,7 @@ class AnthropicMessageResponseConverterTest {
             }
             """);
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
+    final var result = converter.toResult(message);
 
     assertThat(result.assistantMessage().toolCalls())
         .containsExactly(new ToolCall("toolu_1", "now", Map.of()));
@@ -598,7 +594,7 @@ class AnthropicMessageResponseConverterTest {
     // crash), rather than exercising the buffered deserialization path above.
     final Message message = accumulateNoArgumentToolUseMessage();
 
-    final var result = converter.toResult(message, EXECUTION_TIME);
+    final var result = converter.toResult(message);
 
     assertThat(result.assistantMessage().toolCalls())
         .containsExactly(new ToolCall("toolu_1", "now", Map.of()));

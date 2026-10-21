@@ -26,6 +26,35 @@ provider factory only adapts the result to the client builder of its SDK:
 `ChatModelConnectionContractTest` runs every provider factory against a stub endpoint and holds the behavior
 together: the timeout is enforced, the call goes through the proxy, and a non-proxy host bypasses it.
 
+## Model call envelope
+
+`ModelCallEnvelope` (`aiagent/chatmodel/envelope`) wraps the `ChatModel` of every native provider, so the provider
+implements the wire mapping only. The factory of each provider creates the envelope with an `SdkFailureMapper`
+for the failures of its SDK. The envelope:
+
+- records the execution time of the call in the `AgentMetrics` of the result.
+- passes on a `ConnectorException` and a `ChatModelRejectedException` unchanged, and unwraps the
+  `CompletionException` of an asynchronous call (Bedrock).
+- maps every other failure to `ERROR_CODE_FAILED_MODEL_CALL`. For an error response of the provider the message is
+  `Model call failed with HTTP <status> (<type>): <message>`; for any other failure it is
+  `Model call failed: <detail>`, where the detail is the message of the failure, or of its cause if the message is
+  blank or the generic "Request failed" of an SDK exception that wraps an `IOException`.
+- maps a request that exceeds the context window of the model to `ContextWindowExceededException`.
+
+`SdkFailureMapper` recognizes the exception of the SDK and extracts the status, the type and the message, and
+whether the error means an exceeded context window:
+
+| Provider  | SDK exception               | Type                        | Context window exceeded                                                     |
+|-----------|-----------------------------|-----------------------------|-----------------------------------------------------------------------------|
+| OpenAI    | `OpenAIServiceException`    | `code`, else `type`         | `BadRequestException` with `context_length_exceeded`                        |
+| Mistral   | `OpenAIServiceException`    | `code`, else `type`         | `BadRequestException` with `context_length_exceeded`                        |
+| Anthropic | `AnthropicServiceException` | `errorType`                 | the stop reason of the response, not an error                               |
+| Gemini    | `ApiException`              | `status`                    | HTTP 400 with "exceeds the maximum number of tokens allowed" in the message |
+| Bedrock   | `AwsServiceException`       | `awsErrorDetails.errorCode` | the stop reason of the response, not an error                               |
+
+`ChatModelFailureContractTest` drives every provider factory against a stub endpoint which answers with an error in
+the shape of the provider, and holds the message format and the context window mapping together.
+
 ## Token usage
 
 Every provider maps its usage report onto the same disjoint buckets of `AgentMetrics.TokenUsage`, so
@@ -442,11 +471,10 @@ reason falls back to `UnknownStopReason` with the raw value preserved.
 
 Gemini has no context-window-specific error signal, unlike OpenAI's `BadRequestException` with
 `code=context_length_exceeded`: an over-length prompt surfaces as a plain `ApiException` (HTTP 400,
-`status="INVALID_ARGUMENT"`, shared with many unrelated validation failures). `GeminiChatModel
-#isContextWindowExceeded` matches on the one stable, distinctive substring of the message text
-("exceeds the maximum number of tokens allowed", confirmed identical across the Developer API and
-Vertex AI backends) to throw `ContextWindowExceededException` instead of the generic
-`ERROR_CODE_FAILED_MODEL_CALL` — message-matching is inherently brittle against upstream wording
+`status="INVALID_ARGUMENT"`, shared with many unrelated validation failures). `GeminiSdkFailureMapper` matches on
+the one stable, distinctive substring of the message text ("exceeds the maximum number of tokens allowed",
+confirmed identical across the Developer API and Vertex AI backends) to report an exceeded context window instead
+of the generic `ERROR_CODE_FAILED_MODEL_CALL` — message-matching is inherently brittle against upstream wording
 changes, but the SDK exposes no more reliable signal for this condition.
 
 ### Timeout and retry

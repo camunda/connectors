@@ -31,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -79,11 +78,10 @@ public class OpenAiCompletionsResponseConverter {
     this.contentDialect = contentDialect;
   }
 
-  public ChatResult toResult(ChatCompletion completion, Duration executionTime) {
+  public ChatResult toResult(ChatCompletion completion) {
     final ChatCompletion.Choice choice = firstChoice(completion);
     final AssistantMessage assistantMessage = toAssistantMessage(completion, choice);
-    final AgentMetrics metrics =
-        toMetrics(completion, assistantMessage.toolCalls().size(), executionTime);
+    final AgentMetrics metrics = toMetrics(completion, assistantMessage.toolCalls().size());
 
     if (hasRefusal(choice)
         || (assistantMessage.stopReason() instanceof UnknownStopReason unknown
@@ -246,16 +244,11 @@ public class OpenAiCompletionsResponseConverter {
         .convertValue(call, new TypeReference<Map<String, Object>>() {});
   }
 
-  private AgentMetrics toMetrics(ChatCompletion completion, int toolCalls, Duration executionTime) {
+  private AgentMetrics toMetrics(ChatCompletion completion, int toolCalls) {
     final AgentMetrics.TokenUsage tokenUsage =
         completion.usage().map(this::toTokenUsage).orElseGet(AgentMetrics.TokenUsage::empty);
 
-    return AgentMetrics.builder()
-        .modelCalls(1)
-        .toolCalls(toolCalls)
-        .tokenUsage(tokenUsage)
-        .executionTime(executionTime)
-        .build();
+    return AgentMetrics.builder().modelCalls(1).toolCalls(toolCalls).tokenUsage(tokenUsage).build();
   }
 
   private AgentMetrics.TokenUsage toTokenUsage(CompletionUsage usage) {

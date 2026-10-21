@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -165,7 +166,7 @@ class BedrockConverseChatModelFactoryTest {
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
       final ChatModel chatModel = factory.create(translate(bedrockConfig));
       try {
-        assertThat(chatModel).isInstanceOf(BedrockConverseChatModel.class);
+        assertThat(delegateOf(chatModel)).isInstanceOf(BedrockConverseChatModel.class);
       } finally {
         chatModel.close();
       }

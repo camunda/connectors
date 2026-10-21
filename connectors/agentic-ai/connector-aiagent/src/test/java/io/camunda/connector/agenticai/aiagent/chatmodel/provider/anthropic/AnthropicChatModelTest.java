@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -20,18 +19,13 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import com.anthropic.client.AnthropicClient;
-import com.anthropic.core.JsonValue;
-import com.anthropic.core.http.Headers;
 import com.anthropic.core.http.StreamResponse;
-import com.anthropic.errors.RateLimitException;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.anthropic.services.blocking.MessageService;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -41,9 +35,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfi
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,7 +89,7 @@ class AnthropicChatModelTest {
     when(client.messages()).thenReturn(messageService);
     when(messageService.createStreaming(params)).thenReturn(streamResponse);
     when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
-    when(responseConverter.toResult(eq(assembledMessage), any())).thenReturn(expected);
+    when(responseConverter.toResult(eq(assembledMessage))).thenReturn(expected);
 
     final var result = api.execute(request);
 
@@ -109,126 +101,6 @@ class AnthropicChatModelTest {
     verify(streamAssembler).assemble(streamResponse);
     verify(streamResponse).close();
     verify(client, never()).close();
-  }
-
-  @Test
-  void wrapsSdkFailureAsConnectorException() {
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    when(client.messages()).thenThrow(new RuntimeException("boom"));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    // mirrors AnthropicIoException("Request failed", cause): the SDK's own IO-wrapper exception
-    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
-    when(client.messages())
-        .thenThrow(
-            new RuntimeException(
-                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Read timed out")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void fallsBackToCauseClassNameWhenCauseHasNoMessage() {
-    // if the cause's own message is blank (e.g. a bare EOFException), falling back to the outer
-    // "Request failed" wrapper text would silently reproduce the exact generic message this logic
-    // is meant to replace.
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    when(client.messages())
-        .thenThrow(new RuntimeException("Request failed", new java.io.EOFException()));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("EOFException")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void retainsOuterMessageWhenItIsNotTheGenericSdkWrapperMessage() {
-    // the cause-first rule is scoped to the SDK's known generic wrapper message only - any other
-    // outer message is useful operation context and must be kept, not replaced by the cause.
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    when(client.messages())
-        .thenThrow(
-            new IllegalStateException(
-                "Failed to build request", new RuntimeException("Unexpected token 'foo'")));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Failed to build request")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void wrapsAnthropicServiceExceptionWithStatusCodeAndErrorType() {
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    final var body =
-        JsonValue.from(Map.of("error", Map.of("type", "rate_limit_error", "message", "slow down")));
-    when(client.messages())
-        .thenThrow(
-            RateLimitException.builder().headers(Headers.builder().build()).body(body).build());
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode())
-                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("rate_limit_error");
-            });
-  }
-
-  @Test
-  void propagatesChatModelRejectedExceptionFromResponseConverterUnwrapped() {
-    final var params = mock(MessageCreateParams.class);
-    final var rejection = new ContentFilteredException("blocked by content filtering", null);
-
-    when(requestConverter.toMessageCreateParams(any(), any(), any())).thenReturn(params);
-    when(client.messages()).thenReturn(messageService);
-    when(messageService.createStreaming(params)).thenReturn(streamResponse);
-    when(streamAssembler.assemble(streamResponse)).thenReturn(assembledMessage);
-    when(responseConverter.toResult(eq(assembledMessage), any())).thenThrow(rejection);
-
-    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
-    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
-    // BaseAgentRequestHandler
-    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
-  }
-
-  @Test
-  void propagatesConnectorExceptionFromFailedTokenExchangeUnwrapped() {
-    final var tokenExchangeFailure =
-        new ConnectorException("OAUTH_TOKEN_EXCHANGE_FAILED", "invalid_client");
-
-    when(requestConverter.toMessageCreateParams(any(), any(), any()))
-        .thenReturn(mock(MessageCreateParams.class));
-    when(client.messages()).thenThrow(tokenExchangeFailure);
-
-    // must escape execute() as-is - a plain catch (Exception) would flatten the OAuth interceptor's
-    // ConnectorException (with its own error code and response variables) into a generic
-    // FAILED_MODEL_CALL, losing the token-exchange diagnostics.
-    assertThatThrownBy(() -> api.execute(request)).isSameAs(tokenExchangeFailure);
   }
 
   @Test

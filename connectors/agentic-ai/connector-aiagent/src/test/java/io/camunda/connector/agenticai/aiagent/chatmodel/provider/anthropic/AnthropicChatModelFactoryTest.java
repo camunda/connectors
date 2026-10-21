@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -94,7 +95,7 @@ class AnthropicChatModelFactoryTest {
 
     final ChatModel api = create(config);
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -122,7 +123,7 @@ class AnthropicChatModelFactoryTest {
                 new FoundryAuthentication.ClientCredentialsAuthentication(
                     "client-id", "client-secret", "tenant-id", null, null)));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -135,7 +136,7 @@ class AnthropicChatModelFactoryTest {
             foundryConfig(
                 MODEL_ID, new FoundryAuthentication.ManagedIdentityAuthentication(null, null)));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -147,7 +148,7 @@ class AnthropicChatModelFactoryTest {
         create(
             bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
@@ -160,7 +161,7 @@ class AnthropicChatModelFactoryTest {
             bedrockConfig(
                 MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
 
-    assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
+    assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 

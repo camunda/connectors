@@ -34,7 +34,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,6 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class GeminiContentResponseConverterTest {
 
-  private static final Duration EXECUTION_TIME = Duration.ofMillis(42);
   private static final byte[] THOUGHT_SIGNATURE = "signature".getBytes(StandardCharsets.UTF_8);
   private static final String THOUGHT_SIGNATURE_BASE64 =
       Base64.getEncoder().encodeToString(THOUGHT_SIGNATURE);
@@ -73,7 +71,7 @@ class GeminiContentResponseConverterTest {
                     .build())
             .build();
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    final var result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
 
@@ -92,7 +90,6 @@ class GeminiContentResponseConverterTest {
     assertThat(metrics.toolCalls()).isZero();
     assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(10);
     assertThat(metrics.tokenUsage().outputTokenCount()).isEqualTo(20);
-    assertThat(metrics.executionTime()).isEqualTo(EXECUTION_TIME);
   }
 
   @Test
@@ -110,7 +107,7 @@ class GeminiContentResponseConverterTest {
                 fileDataPart,
                 Part.fromText("after")));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.content())
         .containsExactly(
@@ -139,7 +136,7 @@ class GeminiContentResponseConverterTest {
 
     final var content =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, inlineDataPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, inlineDataPart)))
             .assistantMessage()
             .content();
 
@@ -165,7 +162,7 @@ class GeminiContentResponseConverterTest {
 
     final var content =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, textPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, textPart)))
             .assistantMessage()
             .content();
 
@@ -182,7 +179,7 @@ class GeminiContentResponseConverterTest {
 
     final var content =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, textPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, textPart)))
             .assistantMessage()
             .content();
 
@@ -208,7 +205,7 @@ class GeminiContentResponseConverterTest {
                 Part.fromText("   "),
                 Part.fromText("the answer")));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.content()).containsExactly(TextContent.textContent("the answer"));
   }
@@ -221,8 +218,7 @@ class GeminiContentResponseConverterTest {
 
     final var content =
         converter
-            .toResult(
-                response(candidate(FinishReason.Known.STOP, signatureOnlyPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, signatureOnlyPart)))
             .assistantMessage()
             .content();
 
@@ -238,7 +234,7 @@ class GeminiContentResponseConverterTest {
     final var response =
         response(Candidate.builder().finishReason(FinishReason.Known.SAFETY).build());
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -260,7 +256,7 @@ class GeminiContentResponseConverterTest {
     // which throws for every finish reason outside {UNSPECIFIED, STOP, MAX_TOKENS}.
     assertThatThrownBy(response::parts).isInstanceOf(IllegalArgumentException.class);
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -286,7 +282,7 @@ class GeminiContentResponseConverterTest {
                 Part.fromText("Checking the weather"),
                 functionCallPart("call-1", "get_weather", Map.of("city", "Berlin"))));
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    final var result = converter.toResult(response);
     final var assistantMessage = result.assistantMessage();
 
     assertThat(assistantMessage.toolCalls())
@@ -306,7 +302,7 @@ class GeminiContentResponseConverterTest {
         response(
             Candidate.builder().content(contentOf(functionCallPart(null, "now", null))).build());
 
-    assertThat(converter.toResult(response, EXECUTION_TIME).assistantMessage().stopReason())
+    assertThat(converter.toResult(response).assistantMessage().stopReason())
         .isEqualTo(StopReason.TOOL_USE);
   }
 
@@ -322,8 +318,7 @@ class GeminiContentResponseConverterTest {
                 functionCallPart(null, "get_weather", Map.of("city", "Berlin")),
                 functionCallPart(null, "get_weather", Map.of("city", "Hamburg"))));
 
-    final var toolCalls =
-        converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls();
+    final var toolCalls = converter.toResult(response).assistantMessage().toolCalls();
 
     assertThat(toolCalls).hasSize(2);
     assertThat(toolCalls).extracting(ToolCall::id).doesNotContainNull().doesNotHaveDuplicates();
@@ -339,7 +334,7 @@ class GeminiContentResponseConverterTest {
     final var response =
         response(candidate(FinishReason.Known.STOP, functionCallPart("call-1", "now", null)));
 
-    assertThat(converter.toResult(response, EXECUTION_TIME).assistantMessage().toolCalls())
+    assertThat(converter.toResult(response).assistantMessage().toolCalls())
         .containsExactly(new ToolCall("call-1", "now", Map.of()));
   }
 
@@ -351,7 +346,7 @@ class GeminiContentResponseConverterTest {
                 FinishReason.Known.STOP,
                 Part.builder().functionCall(FunctionCall.builder().args(Map.of("a", 1))).build()));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.toolCalls()).isEmpty();
     assertThat(assistantMessage.content()).singleElement().isInstanceOf(ProviderContent.class);
@@ -368,7 +363,7 @@ class GeminiContentResponseConverterTest {
 
     final var toolCalls =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, part)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, part)))
             .assistantMessage()
             .toolCalls();
 
@@ -400,8 +395,7 @@ class GeminiContentResponseConverterTest {
         converter
             .toResult(
                 response(
-                    candidate(FinishReason.Known.STOP, thoughtPart, Part.fromText("the answer"))),
-                EXECUTION_TIME)
+                    candidate(FinishReason.Known.STOP, thoughtPart, Part.fromText("the answer"))))
             .assistantMessage();
 
     assertThat(assistantMessage.content()).hasSize(2);
@@ -432,7 +426,7 @@ class GeminiContentResponseConverterTest {
 
     final var content =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)))
             .assistantMessage()
             .content();
 
@@ -456,7 +450,7 @@ class GeminiContentResponseConverterTest {
 
     final var assistantMessage =
         converter
-            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
+            .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)))
             .assistantMessage();
 
     assertThat(assistantMessage.content())
@@ -478,7 +472,7 @@ class GeminiContentResponseConverterTest {
 
     assertThat(
             converter
-                .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)), EXECUTION_TIME)
+                .toResult(response(candidate(FinishReason.Known.STOP, thoughtPart)))
                 .assistantMessage()
                 .content())
         .containsExactly(
@@ -494,7 +488,7 @@ class GeminiContentResponseConverterTest {
     final var response =
         response(candidate(FinishReason.Known.MAX_TOKENS, Part.fromText("cut off")));
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    final var result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.LENGTH);
@@ -522,7 +516,7 @@ class GeminiContentResponseConverterTest {
                 .content(contentOf(Part.fromText("filtered")))
                 .build());
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -545,7 +539,7 @@ class GeminiContentResponseConverterTest {
                 FinishReason.Known.SAFETY,
                 functionCallPart("call-1", "get_weather", Map.of("city", "Berlin"))));
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class);
   }
 
@@ -567,7 +561,7 @@ class GeminiContentResponseConverterTest {
                 .content(contentOf(Part.fromText("??")))
                 .build());
 
-    final var result = converter.toResult(response, EXECUTION_TIME);
+    final var result = converter.toResult(response);
 
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason())
@@ -581,7 +575,7 @@ class GeminiContentResponseConverterTest {
     final var response =
         response(Candidate.builder().content(contentOf(Part.fromText("partial answer"))).build());
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.stopReason()).isNull();
     assertThat(assistantMessage.metadata())
@@ -607,7 +601,7 @@ class GeminiContentResponseConverterTest {
                 GenerateContentResponseUsageMetadata.builder().promptTokenCount(7).build())
             .build();
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -642,7 +636,7 @@ class GeminiContentResponseConverterTest {
                     .build())
             .build();
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -658,7 +652,7 @@ class GeminiContentResponseConverterTest {
   void explainsAResponseWithoutCandidatesEvenWithoutABlockReason() {
     final var response = GenerateContentResponse.builder().build();
 
-    assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
+    assertThatThrownBy(() -> converter.toResult(response))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
         .satisfies(
@@ -692,7 +686,7 @@ class GeminiContentResponseConverterTest {
                     .build())
             .build();
 
-    final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(97 + 7);
     assertThat(tokenUsage.cacheReadTokenCount()).isEqualTo(3);
@@ -712,7 +706,7 @@ class GeminiContentResponseConverterTest {
   void defaultsEveryTokenCountToZeroWhenUsageMetadataIsMissing() {
     final var response = response(candidate(FinishReason.Known.STOP, Part.fromText("ok")));
 
-    final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isZero();
     assertThat(tokenUsage.outputTokenCount()).isZero();
@@ -729,7 +723,7 @@ class GeminiContentResponseConverterTest {
                 GenerateContentResponseUsageMetadata.builder().promptTokenCount(11).build())
             .build();
 
-    final var tokenUsage = converter.toResult(response, EXECUTION_TIME).metrics().tokenUsage();
+    final var tokenUsage = converter.toResult(response).metrics().tokenUsage();
 
     assertThat(tokenUsage.inputTokenCount()).isEqualTo(11);
     assertThat(tokenUsage.outputTokenCount()).isZero();
@@ -741,7 +735,7 @@ class GeminiContentResponseConverterTest {
   void leavesMessageIdAndModelIdUnsetWhenTheResponseDoesNotReportThem() {
     final var response = response(candidate(FinishReason.Known.STOP, Part.fromText("ok")));
 
-    final var assistantMessage = converter.toResult(response, EXECUTION_TIME).assistantMessage();
+    final var assistantMessage = converter.toResult(response).assistantMessage();
 
     assertThat(assistantMessage.messageId()).isNull();
     assertThat(assistantMessage.modelId()).isNull();

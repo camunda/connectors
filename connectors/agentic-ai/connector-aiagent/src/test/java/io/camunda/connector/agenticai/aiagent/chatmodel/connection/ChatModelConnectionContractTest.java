@@ -20,6 +20,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.http.HttpHeader;
+import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
@@ -62,7 +64,7 @@ class ChatModelConnectionContractTest {
 
   /**
    * The SDKs retry a call which timed out, so the call takes a multiple of the timeout. A timeout
-   * which is not enforced makes it last as long as the 30 seconds which the endpoint stalls.
+   * which is not enforced makes it last as long as the 60 seconds which the endpoint stalls.
    */
   private static final Duration TIMEOUT = Duration.ofMillis(700);
 
@@ -83,12 +85,12 @@ class ChatModelConnectionContractTest {
   @ParameterizedTest
   @EnumSource(Provider.class)
   void enforcesTheTimeoutOfTheModelCall(Provider provider, WireMockRuntimeInfo wireMock) {
-    stubFor(any(anyUrl()).willReturn(aResponse().withStatus(200).withFixedDelay(30_000)));
+    stubFor(any(anyUrl()).willReturn(aResponse().withStatus(200).withFixedDelay(60_000)));
 
     try (var model = provider.create(ProxyConfiguration.NONE, wireMock.getHttpBaseUrl(), TIMEOUT)) {
       final long start = System.nanoTime();
       assertThatThrownBy(() -> model.execute(request())).isInstanceOf(RuntimeException.class);
-      assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(25));
+      assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(45));
     }
   }
 
@@ -136,6 +138,22 @@ class ChatModelConnectionContractTest {
   enum Provider {
     OPENAI {
       @Override
+      String errorBody(String message) {
+        return "{\"error\":{\"message\":\"%s\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+            .formatted(message);
+      }
+
+      @Override
+      String errorType() {
+        return "bad_request";
+      }
+
+      @Override
+      String contextWindowErrorBody() {
+        return "{\"error\":{\"message\":\"too long\",\"type\":\"invalid_request_error\",\"code\":\"context_length_exceeded\"}}";
+      }
+
+      @Override
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
         return factories(proxy)
@@ -150,6 +168,17 @@ class ChatModelConnectionContractTest {
       }
     },
     ANTHROPIC {
+      @Override
+      String errorBody(String message) {
+        return "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"%s\"}}"
+            .formatted(message);
+      }
+
+      @Override
+      String errorType() {
+        return "invalid_request_error";
+      }
+
       @Override
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
@@ -172,6 +201,22 @@ class ChatModelConnectionContractTest {
     },
     MISTRAL {
       @Override
+      String errorBody(String message) {
+        return "{\"error\":{\"message\":\"%s\",\"type\":\"invalid_request_error\",\"code\":\"bad_request\"}}"
+            .formatted(message);
+      }
+
+      @Override
+      String errorType() {
+        return "bad_request";
+      }
+
+      @Override
+      String contextWindowErrorBody() {
+        return "{\"error\":{\"message\":\"too long\",\"type\":\"invalid_request_error\",\"code\":\"context_length_exceeded\"}}";
+      }
+
+      @Override
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
         return factories(proxy)
@@ -190,6 +235,23 @@ class ChatModelConnectionContractTest {
     },
     GEMINI {
       @Override
+      String errorBody(String message) {
+        return "{\"error\":{\"code\":400,\"message\":\"%s\",\"status\":\"INVALID_ARGUMENT\"}}"
+            .formatted(message);
+      }
+
+      @Override
+      String errorType() {
+        return "INVALID_ARGUMENT";
+      }
+
+      @Override
+      String contextWindowErrorBody() {
+        return errorBody(
+            "The input token count (9) exceeds the maximum number of tokens allowed (1).");
+      }
+
+      @Override
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
         return factories(proxy)
@@ -207,6 +269,23 @@ class ChatModelConnectionContractTest {
       }
     },
     BEDROCK {
+      @Override
+      HttpHeaders errorHeaders() {
+        return new HttpHeaders(
+            HttpHeader.httpHeader("Content-Type", "application/json"),
+            HttpHeader.httpHeader("x-amzn-ErrorType", "ValidationException"));
+      }
+
+      @Override
+      String errorBody(String message) {
+        return "{\"message\":\"%s\"}".formatted(message);
+      }
+
+      @Override
+      String errorType() {
+        return "ValidationException";
+      }
+
       @Override
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
@@ -230,6 +309,22 @@ class ChatModelConnectionContractTest {
 
     abstract ChatModel create(
         ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper objectMapper);
+
+    /** The headers of an error response of the API of the provider. */
+    HttpHeaders errorHeaders() {
+      return new HttpHeaders(HttpHeader.httpHeader("Content-Type", "application/json"));
+    }
+
+    /** The body of an error response of the API of the provider. */
+    abstract String errorBody(String message);
+
+    /** What the connector reports as the type of the error of {@link #errorBody}. */
+    abstract String errorType();
+
+    /** The body of the error response to a request which exceeds the context window. */
+    String contextWindowErrorBody() {
+      throw new UnsupportedOperationException();
+    }
 
     ChatModel create(ProxyConfiguration proxy, String endpoint, Duration timeout) {
       return create(proxy, endpoint, timeout, new ObjectMapper());

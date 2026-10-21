@@ -48,8 +48,8 @@ import org.junit.jupiter.api.Test;
  * ContentFilteredException}, caught by {@code BaseAgentRequestHandler#driveContinuationLoop} and
  * mapped to a terminal {@code ConnectorException} ({@code MODEL_RESPONSE_CONTENT_FILTERED}). These
  * tests pin down that both wire shapes reach that throw rather than crashing the converter first —
- * a crash instead surfaces {@code "Model call failed: ..."} from {@code GeminiChatModel}'s
- * catch-all, which the asserted message discriminates against.
+ * a crash instead surfaces {@code "Model call failed: ..."} from the model call envelope, which the
+ * asserted message discriminates against.
  *
  * <p>{@link #completesNormallyWhenTruncatedByMaxTokens()} is the deliberate control: it proves the
  * filtered cases fail <em>because</em> they are filtered, not merely because the finish reason was

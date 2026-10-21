@@ -7,12 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
-import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -24,14 +21,11 @@ import ch.qos.logback.classic.Level;
 import com.google.genai.Client;
 import com.google.genai.Models;
 import com.google.genai.ResponseStream;
-import com.google.genai.errors.ClientException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -43,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,7 +99,7 @@ class GeminiChatModelTest {
     when(models.generateContentStream(configuration.model(), contents, config))
         .thenReturn(responseStream);
     when(streamAssembler.assemble(responseStream)).thenReturn(assembledResponse);
-    when(responseConverter.toResult(eq(assembledResponse), any())).thenReturn(expected);
+    when(responseConverter.toResult(eq(assembledResponse))).thenReturn(expected);
 
     final var result = api.execute(request);
 
@@ -118,105 +111,6 @@ class GeminiChatModelTest {
     verify(streamAssembler).assemble(responseStream);
     verify(responseStream).close();
     verify(client, never()).close();
-  }
-
-  @Test
-  void propagatesContentFilteredExceptionFromResponseConverterUnwrapped() {
-    final var responseConfiguration = mock(ResponseConfiguration.class);
-    when(agentConfiguration.response()).thenReturn(responseConfiguration);
-
-    final var config = GenerateContentConfig.builder().build();
-    final List<Content> contents = List.of();
-    final var assembledResponse = GenerateContentResponse.builder().build();
-    final var rejection =
-        new ContentFilteredException(
-            "Model response was blocked by provider content filtering.", null);
-
-    when(requestConverter.toGenerateContentConfig(any(), any(), any())).thenReturn(config);
-    when(requestConverter.toContents(any())).thenReturn(contents);
-    when(models.generateContentStream(configuration.model(), contents, config))
-        .thenReturn(responseStream);
-    when(streamAssembler.assemble(responseStream)).thenReturn(assembledResponse);
-    when(responseConverter.toResult(eq(assembledResponse), any())).thenThrow(rejection);
-
-    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
-
-    verify(responseStream).close();
-  }
-
-  @Test
-  void wrapsSdkFailureAsConnectorException() {
-    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
-        .thenReturn(GenerateContentConfig.builder().build());
-    when(requestConverter.toContents(any())).thenReturn(List.of());
-    when(models.generateContentStream(any(), anyList(), any()))
-        .thenThrow(new RuntimeException("boom"));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void wrapsApiExceptionWithStatusCodeAndStatus() {
-    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
-        .thenReturn(GenerateContentConfig.builder().build());
-    when(requestConverter.toContents(any())).thenReturn(List.of());
-    when(models.generateContentStream(any(), anyList(), any()))
-        .thenThrow(new ClientException(429, "RESOURCE_EXHAUSTED", "slow down"));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("RESOURCE_EXHAUSTED")
-                  .contains("slow down");
-            });
-  }
-
-  @Test
-  void throwsContextWindowExceededExceptionForOverLengthPrompt() {
-    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
-        .thenReturn(GenerateContentConfig.builder().build());
-    when(requestConverter.toContents(any())).thenReturn(List.of());
-    when(models.generateContentStream(any(), anyList(), any()))
-        .thenThrow(
-            new ClientException(
-                400,
-                "INVALID_ARGUMENT",
-                "The input token count (1236488) exceeds the maximum number of tokens allowed"
-                    + " (1048576)."));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ContextWindowExceededException.class)
-        .satisfies(
-            e -> {
-              final var cwe = (ContextWindowExceededException) e;
-              assertThat(cwe.partialResult()).isNull();
-              assertThat(cwe.getCause()).isInstanceOf(ClientException.class);
-            });
-  }
-
-  @Test
-  void wrapsAssemblerIllegalStateExceptionAsConnectorExceptionRatherThanSpecialCasingIt() {
-    when(requestConverter.toGenerateContentConfig(any(), any(), any()))
-        .thenReturn(GenerateContentConfig.builder().build());
-    when(requestConverter.toContents(any())).thenReturn(List.of());
-    when(models.generateContentStream(any(), anyList(), any())).thenReturn(responseStream);
-    when(streamAssembler.assemble(responseStream))
-        .thenThrow(new IllegalStateException("Gemini streaming response contained no chunks"));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-
-    verify(responseStream).close();
   }
 
   @Test

@@ -6,27 +6,19 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
-import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
 import com.google.genai.JsonSerializable;
 import com.google.genai.ResponseStream;
-import com.google.genai.errors.ApiException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentParameters;
 import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
-import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,62 +76,15 @@ public class GeminiChatModel implements ChatModel {
                   .build()));
     }
 
-    final long startNanos = System.nanoTime();
-    try {
-      final GenerateContentResponse response;
-      try (ResponseStream<GenerateContentResponse> stream =
-          client.models.generateContentStream(configuration.model(), contents, config)) {
-        response = streamAssembler.assemble(stream);
-      }
-      if (LOG.isTraceEnabled()) {
-        LOG.trace("Gemini generateContent response: {}", LoggingSupport.toJson(MAPPER, response));
-      }
-      final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-      return responseConverter.toResult(response, executionTime);
-    } catch (ChatModelRejectedException e) {
-      // Rethrown unwrapped so the catch-all below does not flatten it into a generic
-      // ConnectorException.
-      throw e;
-    } catch (ApiException e) {
-      if (isContextWindowExceeded(e)) {
-        throw new ContextWindowExceededException(
-            "Model's context window was exceeded before it could finish generating a response.",
-            e,
-            null);
-      }
-      final String status =
-          Optional.ofNullable(e.status())
-              .filter(s -> !s.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      final String message =
-          Optional.ofNullable(e.message())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL,
-          "Model call failed with HTTP %d (%s): %s".formatted(e.code(), status, message),
-          e);
-    } catch (Exception e) {
-      final String detail =
-          Optional.ofNullable(e.getMessage())
-              .filter(m -> !m.isBlank())
-              .orElseGet(() -> e.getClass().getSimpleName());
-      throw new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), e);
+    final GenerateContentResponse response;
+    try (ResponseStream<GenerateContentResponse> stream =
+        client.models.generateContentStream(configuration.model(), contents, config)) {
+      response = streamAssembler.assemble(stream);
     }
-  }
-
-  /**
-   * Gemini has no dedicated exception type or error code for an over-length prompt -- {@code
-   * ApiException.code()}/{@code status()} (400, {@code INVALID_ARGUMENT}) are shared with many
-   * unrelated validation failures, so detection falls back to matching this specific, stable
-   * substring of the message text. Confirmed identical across the Developer API and Vertex AI
-   * backends; the surrounding token counts vary per request and are excluded from the match.
-   */
-  private boolean isContextWindowExceeded(ApiException e) {
-    return e.code() == 400
-        && e.message() != null
-        && e.message().contains("exceeds the maximum number of tokens allowed");
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Gemini generateContent response: {}", LoggingSupport.toJson(MAPPER, response));
+    }
+    return responseConverter.toResult(response);
   }
 
   @Override

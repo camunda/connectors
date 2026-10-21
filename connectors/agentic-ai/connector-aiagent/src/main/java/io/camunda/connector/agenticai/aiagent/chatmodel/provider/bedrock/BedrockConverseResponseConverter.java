@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,10 +58,9 @@ public class BedrockConverseResponseConverter {
 
   private static final String METADATA_STOP_REASON = "stopReason";
 
-  public ChatResult toResult(ConverseResponse response, Duration executionTime) {
+  public ChatResult toResult(ConverseResponse response) {
     final AssistantMessage assistantMessage = toAssistantMessage(response);
-    final AgentMetrics metrics =
-        toMetrics(response, assistantMessage.toolCalls().size(), executionTime);
+    final AgentMetrics metrics = toMetrics(response, assistantMessage.toolCalls().size());
 
     throwIfRejected(response.stopReason(), new PartialResult(assistantMessage, metrics));
 
@@ -89,8 +87,7 @@ public class BedrockConverseResponseConverter {
               "Model response was blocked by a provider-side guardrail policy.", partialResult);
       case MODEL_CONTEXT_WINDOW_EXCEEDED ->
           throw new ContextWindowExceededException(
-              "Model's context window was exceeded before it could finish generating a response.",
-              partialResult);
+              ContextWindowExceededException.DEFAULT_MESSAGE, partialResult);
       case MALFORMED_MODEL_OUTPUT, MALFORMED_TOOL_USE ->
           throw new ConnectorException(
               ERROR_CODE_FAILED_MODEL_CALL,
@@ -247,7 +244,7 @@ public class BedrockConverseResponseConverter {
     return raw.isEmpty() ? null : Map.of(BEDROCK_CONVERSE_ID, raw);
   }
 
-  private AgentMetrics toMetrics(ConverseResponse response, int toolCalls, Duration executionTime) {
+  private AgentMetrics toMetrics(ConverseResponse response, int toolCalls) {
     final TokenUsage usage = response.usage();
     final var tokenUsage =
         AgentMetrics.TokenUsage.builder()
@@ -259,12 +256,7 @@ public class BedrockConverseResponseConverter {
             .reasoningTokenCount(0)
             .build();
 
-    return AgentMetrics.builder()
-        .modelCalls(1)
-        .toolCalls(toolCalls)
-        .tokenUsage(tokenUsage)
-        .executionTime(executionTime)
-        .build();
+    return AgentMetrics.builder().modelCalls(1).toolCalls(toolCalls).tokenUsage(tokenUsage).build();
   }
 
   private static int orZero(@Nullable Integer value) {

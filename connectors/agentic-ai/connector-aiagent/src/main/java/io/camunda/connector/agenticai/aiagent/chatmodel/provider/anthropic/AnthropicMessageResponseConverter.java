@@ -32,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,15 +60,14 @@ public class AnthropicMessageResponseConverter {
     this.objectMapper = objectMapper;
   }
 
-  public ChatResult toResult(Message message, Duration executionTime) {
+  public ChatResult toResult(Message message) {
     final AssistantMessage assistantMessage = toAssistantMessage(message);
-    final AgentMetrics metrics =
-        toMetrics(message, assistantMessage.toolCalls().size(), executionTime);
+    final AgentMetrics metrics = toMetrics(message, assistantMessage.toolCalls().size());
 
     if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
         && StopReason.MODEL_CONTEXT_WINDOW_EXCEEDED.asString().equals(unknown.value())) {
       throw new ContextWindowExceededException(
-          "Model's context window was exceeded before it could finish generating a response.",
+          ContextWindowExceededException.DEFAULT_MESSAGE,
           new PartialResult(assistantMessage, metrics));
     }
     if (assistantMessage.stopReason() instanceof UnknownStopReason unknown
@@ -170,7 +168,7 @@ public class AnthropicMessageResponseConverter {
     return arguments != null ? arguments : Map.of();
   }
 
-  private AgentMetrics toMetrics(Message message, int toolCalls, Duration executionTime) {
+  private AgentMetrics toMetrics(Message message, int toolCalls) {
     final Usage usage = message.usage();
     final var tokenUsage =
         AgentMetrics.TokenUsage.builder()
@@ -182,12 +180,7 @@ public class AnthropicMessageResponseConverter {
                 usage.outputTokensDetails().map(d -> (int) d.thinkingTokens()).orElse(0))
             .build();
 
-    return AgentMetrics.builder()
-        .modelCalls(1)
-        .toolCalls(toolCalls)
-        .tokenUsage(tokenUsage)
-        .executionTime(executionTime)
-        .build();
+    return AgentMetrics.builder().modelCalls(1).toolCalls(toolCalls).tokenUsage(tokenUsage).build();
   }
 
   private io.camunda.connector.agenticai.aiagent.model.message.@Nullable StopReason mapStopReason(

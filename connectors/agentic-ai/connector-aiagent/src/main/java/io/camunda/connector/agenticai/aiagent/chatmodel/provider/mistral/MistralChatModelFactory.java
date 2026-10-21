@@ -16,7 +16,9 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiSdkFailureMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
@@ -66,8 +68,9 @@ public class MistralChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (MistralConfiguration) configuration;
     final var client = buildClient(model.backend(), model.timeout());
-    return new MistralChatModel(
-        client, model, requestConverter, responseConverter, streamAssembler);
+    return new ModelCallEnvelope(
+        new MistralChatModel(client, model, requestConverter, responseConverter, streamAssembler),
+        new OpenAiSdkFailureMapper());
   }
 
   private OpenAIClient buildClient(Backend backend, Duration timeout) {

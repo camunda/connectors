@@ -15,6 +15,7 @@ import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Authentication.ServiceAccountKey;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
@@ -64,7 +65,9 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (GeminiConfiguration) configuration;
     final var client = buildClient(model.backend(), model.timeout());
-    return new GeminiChatModel(client, model, requestConverter, responseConverter);
+    return new ModelCallEnvelope(
+        new GeminiChatModel(client, model, requestConverter, responseConverter),
+        new GeminiSdkFailureMapper());
   }
 
   /**

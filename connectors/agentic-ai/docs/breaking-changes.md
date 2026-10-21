@@ -232,6 +232,23 @@ client in its properties does not start.
   - The OpenAI, Anthropic and Mistral providers skip the proxy for a host which matches a non-proxy host pattern, like
     the Gemini and Bedrock providers did.
   - `OAuthBearerTokenInterceptor.create` takes a `Supplier<String>` for the token.
+- The native providers share the model call concerns in `ModelCallEnvelope` (`aiagent.chatmodel.envelope`), which the
+  factory of each provider wraps around its chat model together with an `SdkFailureMapper` for the failures of its
+  SDK. The chat models of the providers no longer time the call or map failures, and the `toResult` methods of the
+  response converters no longer take the execution time: the envelope records it in the metrics of the result. The
+  metrics in the `partialResult()` of a rejection carry no execution time. A `ChatModel` which is not created by one
+  of these factories measures the execution time itself. The message of a failed model call has one format now:
+  - `Model call failed with HTTP <status> (<type>): <message>` for an error response of the provider, with the error
+    code or type of the provider. The OpenAI and Mistral providers used `Model call failed: <message>` before.
+  - `Model call failed: <detail>` for any other failure.
+  - A request which exceeds the context window of the model fails with `ContextWindowExceededException` and the
+    message of `ContextWindowExceededException.DEFAULT_MESSAGE` on every provider. The OpenAI and Mistral providers
+    used `Model call failed: <message>` and the Gemini provider used the same text as the default message.
+  - A coded `ConnectorException` thrown by a response converter (for example Bedrock `MALFORMED_MODEL_OUTPUT`) passes
+    on unchanged on every provider. The Gemini and Bedrock providers wrapped it in `Model call failed: <message>`.
+  - A failure to convert the request (Anthropic, Gemini, Bedrock) is reported as `ERROR_CODE_FAILED_MODEL_CALL`
+    instead of escaping as the raw exception.
+  - The execution time covers the conversion of the request and the response as well as the call.
 
 ### V1 provider configuration
 

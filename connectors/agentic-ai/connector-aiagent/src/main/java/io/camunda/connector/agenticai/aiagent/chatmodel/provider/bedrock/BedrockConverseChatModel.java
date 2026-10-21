@@ -6,21 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
-import io.camunda.connector.api.error.ConnectorException;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkPojo;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
@@ -73,32 +65,15 @@ public class BedrockConverseChatModel implements ChatModel {
             request.snapshot());
     logTrace("request", converseStreamRequest);
 
-    final long startNanos = System.nanoTime();
-    try {
-      final BedrockConverseStreamAssembler streamAssembler =
-          new BedrockConverseStreamAssembler(objectMapper);
-      final ConverseStreamResponseHandler handler =
-          ConverseStreamResponseHandler.builder().subscriber(streamAssembler).build();
-      client.converseStream(converseStreamRequest, handler).join();
+    final BedrockConverseStreamAssembler streamAssembler =
+        new BedrockConverseStreamAssembler(objectMapper);
+    final ConverseStreamResponseHandler handler =
+        ConverseStreamResponseHandler.builder().subscriber(streamAssembler).build();
+    client.converseStream(converseStreamRequest, handler).join();
 
-      final ConverseResponse response = streamAssembler.converseResponse();
-      logTrace("response", response);
-      final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
-      return responseConverter.toResult(response, executionTime);
-    } catch (CompletionException e) {
-      // CompletableFuture#join() always wraps the underlying failure in a CompletionException; the
-      // real cause (typically an AwsServiceException) is unwrapped here so it can be translated the
-      // same way a synchronously-thrown AwsServiceException would be below.
-      throw toConnectorException(e.getCause() != null ? e.getCause() : e);
-    } catch (AwsServiceException e) {
-      throw toConnectorException(e);
-    } catch (ChatModelRejectedException e) {
-      // thrown directly by the response converter when it recognizes a known rejection - let it
-      // propagate as-is rather than flattening it into a generic FAILED_MODEL_CALL below.
-      throw e;
-    } catch (Exception e) {
-      throw toConnectorException(e);
-    }
+    final ConverseResponse response = streamAssembler.converseResponse();
+    logTrace("response", response);
+    return responseConverter.toResult(response);
   }
 
   // Generic Jackson introspection can't see the SDK's builder-only accessors, so route the POJO
@@ -110,28 +85,6 @@ public class BedrockConverseChatModel implements ChatModel {
           label,
           LoggingSupport.toJson(objectMapper, BedrockConverseSdkPojoCodec.capture(pojo)));
     }
-  }
-
-  private ConnectorException toConnectorException(Throwable cause) {
-    if (cause instanceof AwsServiceException awsServiceException) {
-      final String errorCode =
-          Optional.ofNullable(awsServiceException.awsErrorDetails())
-              .map(details -> details.errorCode())
-              .orElseGet(() -> awsServiceException.getClass().getSimpleName());
-      return new ConnectorException(
-          ERROR_CODE_FAILED_MODEL_CALL,
-          "Model call failed with HTTP %d (%s): %s"
-              .formatted(
-                  awsServiceException.statusCode(), errorCode, awsServiceException.getMessage()),
-          awsServiceException);
-    }
-
-    final String detail =
-        Optional.ofNullable(cause.getMessage())
-            .filter(m -> !m.isBlank())
-            .orElseGet(() -> cause.getClass().getSimpleName());
-    return new ConnectorException(
-        ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(detail), cause);
   }
 
   @Override

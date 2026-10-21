@@ -88,14 +88,17 @@ class ChatModelProviderIndependenceArchTest {
           .because("the AI agent reaches the chat model providers only through the chat model API");
 
   @ArchTest
-  static final ArchRule THE_CONNECTION_SETTINGS_KNOW_ONLY_THE_SUPPORT_OF_THE_PROVIDERS =
+  static final ArchRule THE_PROVIDER_SUPPORT_KNOWS_NO_VENDOR_PROVIDER =
       noClasses()
           .that()
-          .resideInAPackage(AgenticAiModules.pkg("aiagent.chatmodel.connection.."))
+          .resideInAnyPackage(
+              AgenticAiModules.pkg("aiagent.chatmodel.connection.."),
+              AgenticAiModules.pkg("aiagent.chatmodel.envelope.."))
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(vendorPackages())
-          .because("the connection settings are shared by all providers");
+          .because(
+              "the connection settings and the model call envelope are shared by all providers");
 
   @ArchTest
   static final ArchRule CHAT_MODEL_PROVIDERS_DO_NOT_USE_THE_REQUEST_RECORDS =

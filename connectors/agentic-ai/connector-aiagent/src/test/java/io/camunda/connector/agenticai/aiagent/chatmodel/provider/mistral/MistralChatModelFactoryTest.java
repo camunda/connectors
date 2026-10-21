@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -100,7 +101,7 @@ class MistralChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
 
     try (ChatModel chatModel = factory.create(config(MODEL_ID, Duration.ofMinutes(3)))) {
-      assertThat(chatModel).isInstanceOf(MistralChatModel.class);
+      assertThat(delegateOf(chatModel)).isInstanceOf(MistralChatModel.class);
     }
   }
 

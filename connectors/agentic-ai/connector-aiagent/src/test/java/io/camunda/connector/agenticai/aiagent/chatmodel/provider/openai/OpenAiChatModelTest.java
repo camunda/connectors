@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,14 +17,8 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import com.openai.client.OpenAIClient;
-import com.openai.core.http.Headers;
-import com.openai.errors.BadRequestException;
-import com.openai.models.ErrorObject;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -38,7 +30,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OpenAiApiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,126 +79,6 @@ class OpenAiChatModelTest {
     assertThat(result).isSameAs(expected);
     verify(strategy).call(client, configuration, request);
     verify(client, never()).close();
-  }
-
-  @Test
-  void rethrowsConnectorExceptionFromStrategyVerbatim() {
-    final var thrown = new ConnectorException("SOME_OTHER_ERROR_CODE", "unsupported content type");
-    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
-
-    assertThatThrownBy(() -> api.execute(request)).isSameAs(thrown);
-  }
-
-  @Test
-  void propagatesChatModelRejectedExceptionFromStrategyUnwrapped() {
-    final var rejection = new ContentFilteredException("blocked by content filtering", null);
-    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(rejection);
-
-    // must escape execute() as-is - a plain catch (Exception) would flatten it into a generic
-    // FAILED_MODEL_CALL ConnectorException, losing the typed rejection before it ever reaches
-    // BaseAgentRequestHandler
-    assertThatThrownBy(() -> api.execute(request)).isSameAs(rejection);
-  }
-
-  @Test
-  void wrapsUnexpectedSdkFailureAsConnectorException() {
-    when(strategy.call(eq(client), eq(configuration), eq(request)))
-        .thenThrow(new RuntimeException("boom"));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void wrapsSdkFailureUsingCauseMessageWhenWrapperMessageIsGeneric() {
-    // mirrors OpenAIIoException("Request failed", cause): the SDK's own IO-wrapper exception
-    // carries a fixed, uninformative message, and the actual failure detail lives on the cause.
-    when(strategy.call(eq(client), eq(configuration), eq(request)))
-        .thenThrow(
-            new RuntimeException(
-                "Request failed", new java.net.SocketTimeoutException("Read timed out")));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Read timed out")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void fallsBackToCauseClassNameWhenCauseHasNoMessage() {
-    // if the cause's own message is blank (e.g. a bare EOFException), falling back to the outer
-    // "Request failed" wrapper text would silently reproduce the exact generic message this logic
-    // is meant to replace.
-    when(strategy.call(eq(client), eq(configuration), eq(request)))
-        .thenThrow(new RuntimeException("Request failed", new java.io.EOFException()));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("EOFException")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void retainsOuterMessageWhenItIsNotTheGenericSdkWrapperMessage() {
-    // mirrors OpenAiToolCallArguments.parse: IllegalStateException("Failed to parse tool call
-    // arguments", cause) - the outer message is useful operation context, not a generic SDK
-    // wrapper, so it must be kept rather than replaced by the low-level cause message.
-    when(strategy.call(eq(client), eq(configuration), eq(request)))
-        .thenThrow(
-            new IllegalStateException(
-                "Failed to parse tool call arguments",
-                new RuntimeException("Unexpected token 'foo'")));
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Failed to parse tool call arguments")
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
-  }
-
-  @Test
-  void mapsContextLengthExceededBadRequestToContextWindowExceeded() {
-    final var error =
-        ErrorObject.builder()
-            .code("context_length_exceeded")
-            .message("This model's maximum context length is 128000 tokens.")
-            .param((String) null)
-            .type("invalid_request_error")
-            .build();
-    final var thrown =
-        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
-    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOfSatisfying(
-            ContextWindowExceededException.class,
-            e -> {
-              assertThat(e.partialResult()).isNull();
-              assertThat(e.getCause()).isSameAs(thrown);
-            });
-  }
-
-  @Test
-  void wrapsOtherBadRequestAsGenericFailedModelCall() {
-    final var error =
-        ErrorObject.builder()
-            .code("invalid_api_key")
-            .message("Incorrect API key provided.")
-            .param((String) null)
-            .type("invalid_request_error")
-            .build();
-    final var thrown =
-        BadRequestException.builder().headers(Headers.builder().build()).error(error).build();
-    when(strategy.call(eq(client), eq(configuration), eq(request))).thenThrow(thrown);
-
-    assertThatThrownBy(() -> api.execute(request))
-        .isInstanceOf(ConnectorException.class)
-        .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test

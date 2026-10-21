@@ -44,7 +44,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,11 +56,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * Unit tests for the {@code Chat Completions} family strategy's wiring: that it drives {@code
  * client.chat().completions().createStreaming(...)} (rather than the Responses accessor), assembles
- * and closes the stream, and threads the assembled completion plus an execution {@link Duration}
- * into the response converter. The vendor request/response objects returned by the mocked
- * converters and assembler are opaque canned instances here -- their own conversion logic is
- * covered by {@code OpenAiCompletionsRequestConverterTest} / {@code
- * OpenAiCompletionsResponseConverterTest}.
+ * and closes the stream, and passes the assembled completion to the response converter. The vendor
+ * request/response objects returned by the mocked converters and assembler are opaque canned
+ * instances here -- their own conversion logic is covered by {@code
+ * OpenAiCompletionsRequestConverterTest} / {@code OpenAiCompletionsResponseConverterTest}.
  */
 @ExtendWith(MockitoExtension.class)
 class OpenAiCompletionsStrategyTest {
@@ -118,17 +116,14 @@ class OpenAiCompletionsStrategyTest {
     when(chatService.completions()).thenReturn(chatCompletionService);
     when(chatCompletionService.createStreaming(params)).thenReturn(stream);
     when(streamAssembler.assemble(stream)).thenReturn(completion);
-    when(responseConverter.toResult(eq(completion), any(Duration.class))).thenReturn(expected);
+    when(responseConverter.toResult(eq(completion))).thenReturn(expected);
 
     final ChatResult result = strategy.call(client, configuration, request);
 
     assertThat(result).isSameAs(expected);
     verify(chatCompletionService).createStreaming(params);
     verify(stream).close();
-
-    final ArgumentCaptor<Duration> durationCaptor = ArgumentCaptor.forClass(Duration.class);
-    verify(responseConverter).toResult(eq(completion), durationCaptor.capture());
-    assertThat(durationCaptor.getValue()).isNotNull();
+    verify(responseConverter).toResult(completion);
   }
 
   // --- Configuration -> CompletionsRequestSpec mapping ----------------------------------------
@@ -280,7 +275,7 @@ class OpenAiCompletionsStrategyTest {
     when(chatService.completions()).thenReturn(chatCompletionService);
     when(chatCompletionService.createStreaming(params)).thenReturn(stream);
     when(streamAssembler.assemble(stream)).thenReturn(canningCompletion());
-    when(responseConverter.toResult(any(), any()))
+    when(responseConverter.toResult(any()))
         .thenReturn(
             new ChatResult.Completed(
                 AssistantMessage.builder().build(), AgentMetrics.builder().build()));

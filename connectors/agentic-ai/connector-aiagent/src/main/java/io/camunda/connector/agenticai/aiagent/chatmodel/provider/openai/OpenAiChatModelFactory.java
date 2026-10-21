@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
@@ -68,7 +69,8 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (OpenAiConfiguration) configuration;
     final var client = buildClient(model.backend(), model.timeout());
-    return new OpenAiChatModel(client, model, strategyFor(model.api()));
+    return new ModelCallEnvelope(
+        new OpenAiChatModel(client, model, strategyFor(model.api())), new OpenAiSdkFailureMapper());
   }
 
   private OpenAiApiFamilyStrategy strategyFor(OpenAiConfiguration.Api api) {
