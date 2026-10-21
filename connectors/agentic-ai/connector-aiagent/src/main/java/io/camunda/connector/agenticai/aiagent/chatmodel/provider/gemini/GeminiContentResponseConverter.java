@@ -22,6 +22,7 @@ import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessageBuilder;
@@ -31,7 +32,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
-import org.springframework.util.StringUtils;
 
 /**
  * Maps the assembled Gemini SDK {@link GenerateContentResponse} (see {@link
@@ -272,7 +272,7 @@ public class GeminiContentResponseConverter {
   private ReasoningContent toReasoningContent(Part part) {
     final Map<String, Object> raw = new LinkedHashMap<>(rawPart(part));
 
-    final String text = part.text().filter(StringUtils::hasText).orElse(null);
+    final String text = part.text().filter(StringUtils::isNotBlank).orElse(null);
     if (text != null) {
       raw.remove("text");
     }

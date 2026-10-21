@@ -42,6 +42,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
 | `aiagent-azure-support` | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support |
 | `aiagent-aws-support` | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support |
+| `aiagent-provider-openai` | `aiagent.chatmodel.provider.openai` | Native OpenAI provider |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -231,7 +232,7 @@ client in its properties does not start.
   is removed.
 - `EntraIdTokenCredentialFactory` takes `CredentialCacheSettings` (`aiagent.chatmodel.provider.azure`) instead of the
   `CredentialCacheProperties` of the configuration properties. The property names do not change.
-- `DocumentMimeTypes` and `LoggingSupport` moved to `aiagent.chatmodel.wire` of `aiagent-provider-support`.
+- `DocumentMimeTypes`, `LoggingSupport` and `AssistantMessageMetadata` moved to `aiagent.chatmodel.wire` of `aiagent-provider-support`.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 - The connection settings of the native providers are resolved by `ConnectionResolver` in
   `aiagent.chatmodel.connection`. The `ChatModelFactory` of the OpenAI, Anthropic, Mistral, Gemini and Bedrock

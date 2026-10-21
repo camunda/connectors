@@ -40,6 +40,7 @@ class ModuleLayersArchTest {
             names(
                 AgenticAiModules.API,
                 AgenticAiModules.PROVIDER_SUPPORT,
+                AgenticAiModules.PROVIDER_OPENAI,
                 AgenticAiModules.TOOLS_SCHEMA,
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
@@ -49,16 +50,21 @@ class ModuleLayersArchTest {
         .mayOnlyBeAccessedByLayers(
             names(
                 AgenticAiModules.PROVIDER_SUPPORT,
+                AgenticAiModules.PROVIDER_OPENAI,
                 AgenticAiModules.TOOLS_SCHEMA,
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
                 AgenticAiModules.A2A_INTEGRATION,
                 AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.PROVIDER_SUPPORT.layerName())
-        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
+        .mayOnlyBeAccessedByLayers(
+            names(AgenticAiModules.PROVIDER_OPENAI, AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.AZURE_SUPPORT.layerName())
-        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
+        .mayOnlyBeAccessedByLayers(
+            names(AgenticAiModules.PROVIDER_OPENAI, AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.AWS_SUPPORT.layerName())
+        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
+        .whereLayer(AgenticAiModules.PROVIDER_OPENAI.layerName())
         .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.TOOLS_SCHEMA.layerName())
         .mayOnlyBeAccessedByLayers(

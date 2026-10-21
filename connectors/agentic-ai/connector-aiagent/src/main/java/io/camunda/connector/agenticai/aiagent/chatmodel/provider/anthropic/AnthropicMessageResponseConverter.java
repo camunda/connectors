@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
@@ -31,13 +32,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
-import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated Anthropic SDK {@link Message} response to the domain {@link
@@ -138,7 +138,7 @@ public class AnthropicMessageResponseConverter {
     // the request side; see AnthropicContentConverter, which merges the text back in
     final Map<String, Object> raw = new LinkedHashMap<>(rawBlock(block));
     final String text =
-        block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::hasText).orElse(null);
+        block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::isNotBlank).orElse(null);
     if (text == null) {
       return new ReasoningContent(PROVIDER, raw, null, null);
     }

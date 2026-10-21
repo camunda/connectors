@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -22,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

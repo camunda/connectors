@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiToolCallArguments;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -35,7 +36,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -44,8 +44,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
-import org.springframework.util.StringUtils;
 
 /**
  * Maps an accumulated OpenAI Responses API SDK {@link Response} to the domain {@link
@@ -105,7 +105,7 @@ public class OpenAiResponsesResponseConverter {
         .flatMap(message -> message.content().stream())
         .flatMap(content -> content.refusal().stream())
         .map(ResponseOutputRefusal::refusal)
-        .anyMatch(StringUtils::hasText);
+        .anyMatch(StringUtils::isNotBlank);
   }
 
   /**
@@ -180,10 +180,10 @@ public class OpenAiResponsesResponseConverter {
         message.content().stream()
             .flatMap(messageContent -> messageContent.outputText().stream())
             .map(ResponseOutputText::text)
-            .filter(StringUtils::hasText)
+            .filter(StringUtils::isNotBlank)
             .collect(Collectors.joining("\n"));
     return new ProviderContent(
-        PROVIDER, toRawMap(item), StringUtils.hasText(text) ? text : null, null);
+        PROVIDER, toRawMap(item), StringUtils.isNotBlank(text) ? text : null, null);
   }
 
   private Stream<ResponseOutputMessage> responseMessages(Response response) {
@@ -315,7 +315,7 @@ public class OpenAiResponsesResponseConverter {
         reasoning.summary().stream()
             .map(ResponseReasoningItem.Summary::text)
             .collect(Collectors.joining("\n"));
-    return StringUtils.hasText(joined) ? joined : null;
+    return StringUtils.isNotBlank(joined) ? joined : null;
   }
 
   /**

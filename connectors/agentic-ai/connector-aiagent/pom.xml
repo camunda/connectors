@@ -18,8 +18,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.91.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -74,6 +72,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-aws-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-openai</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
