@@ -26,7 +26,6 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.process.test.api.ZeebeTestEngine;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import io.camunda.zeebe.spring.test.ZeebeTestThreadSupport;
 import jakarta.mail.Message;
 import java.io.File;
@@ -45,7 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "spring.main.allow-bean-definition-overriding=true",
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class OutboundEmailTests extends BaseEmailTest {
 
