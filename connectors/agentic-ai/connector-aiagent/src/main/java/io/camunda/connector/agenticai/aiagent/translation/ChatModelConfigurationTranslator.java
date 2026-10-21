@@ -7,11 +7,18 @@
 package io.camunda.connector.agenticai.aiagent.translation;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
@@ -62,6 +69,9 @@ public class ChatModelConfigurationTranslator {
     if (provider instanceof GeminiChatModelConfiguration gemini) {
       return translateGemini(gemini);
     }
+    if (provider instanceof BedrockConverseChatModelConfiguration bedrock) {
+      return translateBedrock(bedrock);
+    }
     return provider;
   }
 
@@ -89,6 +99,37 @@ public class ChatModelConfigurationTranslator {
         parameters == null ? null : mistralEffort(parameters.effort()),
         parameters == null ? null : parameters.temperature(),
         parameters == null ? null : parameters.topP());
+  }
+
+  private BedrockConfiguration translateBedrock(
+      BedrockConverseChatModelConfiguration configuration) {
+    final var connection = configuration.bedrock();
+    final var parameters = connection.model().parameters();
+    return new BedrockConfiguration(
+        connection.region(),
+        connection.endpoint(),
+        awsAuthentication(connection.authentication()),
+        RequestCustomizations.of(
+            connection.headers(), connection.queryParameters(), connection.bodyProperties()),
+        timeout(connection.timeouts()),
+        connection.model().model(),
+        parameters != null
+            && parameters.promptCaching() != null
+            && Boolean.TRUE.equals(parameters.promptCaching().enabled()),
+        parameters == null ? null : parameters.maxTokens(),
+        parameters == null ? null : parameters.temperature(),
+        parameters == null ? null : parameters.topP());
+  }
+
+  private static AwsAuthentication awsAuthentication(
+      io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication authentication) {
+    return switch (authentication) {
+      case AwsStaticCredentialsAuthentication credentials ->
+          new AwsAuthentication.StaticCredentials(credentials.accessKey(), credentials.secretKey());
+      case AwsApiKeyAuthentication apiKey -> new AwsAuthentication.ApiKey(apiKey.apiKey());
+      case AwsDefaultCredentialsChainAuthentication ignored ->
+          new AwsAuthentication.DefaultCredentialsChain();
+    };
   }
 
   private GeminiConfiguration translateGemini(GeminiChatModelConfiguration configuration) {

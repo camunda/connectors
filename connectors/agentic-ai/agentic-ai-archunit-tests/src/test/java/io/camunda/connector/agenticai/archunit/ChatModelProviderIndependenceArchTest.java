@@ -33,10 +33,10 @@ class ChatModelProviderIndependenceArchTest {
 
   /**
    * Packages below the provider root that are not vendor slices: support shared by all providers
-   * ({@code azure}) and the Spring wiring of the providers ({@code configuration}). Classes in the
-   * provider root package itself are shared support as well.
+   * ({@code azure}, {@code aws}) and the Spring wiring of the providers ({@code configuration}).
+   * Classes in the provider root package itself are shared support as well.
    */
-  private static final Set<String> NON_VENDOR_PACKAGES = Set.of("azure", "configuration");
+  private static final Set<String> NON_VENDOR_PACKAGES = Set.of("azure", "aws", "configuration");
 
   /** A vendor provider that is allowed to use the classes of another one. */
   private record AllowedDependency(String provider, String dependsOnProvider) {}

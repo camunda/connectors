@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -105,7 +106,7 @@ class BedrockConverseChatModelFactoryTest {
 
   private final BedrockConverseChatModelFactory factory =
       new BedrockConverseChatModelFactory(
-          config, proxySupport, requestConverter, responseConverter, new ObjectMapper());
+          proxySupport, requestConverter, responseConverter, new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
 
@@ -122,7 +123,7 @@ class BedrockConverseChatModelFactoryTest {
 
   @Test
   void supportsBedrockV2Config() {
-    assertThat(factory.supports(bedrockConfig(defaultCredentialsAuth(), null))).isTrue();
+    assertThat(factory.supports(translate(bedrockConfig(defaultCredentialsAuth(), null)))).isTrue();
   }
 
   @Test
@@ -148,7 +149,7 @@ class BedrockConverseChatModelFactoryTest {
       clientMock.when(BedrockRuntimeAsyncClient::builder).thenReturn(clientBuilder);
 
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
-      final ChatModel chatModel = factory.create(bedrockConfig);
+      final ChatModel chatModel = factory.create(translate(bedrockConfig));
       try {
         assertThat(chatModel).isInstanceOf(BedrockConverseChatModel.class);
       } finally {
@@ -297,7 +298,8 @@ class BedrockConverseChatModelFactoryTest {
         mockStatic(BedrockRuntimeAsyncClient.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(BedrockRuntimeAsyncClient::builder).thenReturn(clientBuilder);
 
-      try (var client = factory.buildAsyncClient(bedrockConfig.bedrock())) {
+      try (var client =
+          factory.buildAsyncClient(translate(bedrockConfig, BedrockConfiguration.class))) {
         assertThat(client).isNotNull();
         assertions.accept(clientBuilder);
       }

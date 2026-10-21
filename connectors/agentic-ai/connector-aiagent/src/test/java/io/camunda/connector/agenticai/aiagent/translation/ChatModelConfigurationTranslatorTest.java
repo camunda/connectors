@@ -11,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
@@ -18,6 +20,11 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsC
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
+import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConversePromptCaching;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
@@ -309,5 +316,110 @@ class ChatModelConfigurationTranslatorTest {
                 "us-central1",
                 "https://endpoint",
                 new GeminiConfiguration.Authentication.ApplicationDefaultCredentials()));
+  }
+
+  private BedrockConfiguration bedrock(
+      @Nullable BedrockConverseModelParameters parameters,
+      @Nullable TimeoutConfiguration timeouts,
+      @Nullable Map<String, String> headers,
+      @Nullable Map<String, String> queryParameters,
+      @Nullable Map<String, Object> bodyProperties) {
+    return (BedrockConfiguration)
+        translator.translate(
+            new BedrockConverseChatModelConfiguration(
+                new BedrockConverseConnection(
+                    "us-east-1",
+                    null,
+                    new io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication
+                        .AwsDefaultCredentialsChainAuthentication(),
+                    headers,
+                    queryParameters,
+                    bodyProperties,
+                    timeouts,
+                    new BedrockConverseModel("nova-x", parameters))));
+  }
+
+  @Test
+  void bedrockUnsetOptionsStayAbsentAndPromptCachingIsOff() {
+    final var configuration = bedrock(null, null, null, null, null);
+
+    assertThat(configuration.timeout()).isEqualTo(DEFAULT_TIMEOUT);
+    assertThat(configuration.promptCaching()).isFalse();
+    assertThat(configuration.maxTokens()).isNull();
+    assertThat(configuration.temperature()).isNull();
+    assertThat(configuration.topP()).isNull();
+    assertThat(configuration.customizations()).isEqualTo(RequestCustomizations.NONE);
+    assertThat(configuration.authentication())
+        .isEqualTo(new AwsAuthentication.DefaultCredentialsChain());
+  }
+
+  @Test
+  void bedrockPromptCachingIsOnlyEnabledWhenExplicitlyEnabled() {
+    assertThat(
+            bedrock(
+                    new BedrockConverseModelParameters(
+                        new BedrockConversePromptCaching(null), null, null, null),
+                    null,
+                    null,
+                    null,
+                    null)
+                .promptCaching())
+        .isFalse();
+    assertThat(
+            bedrock(
+                    new BedrockConverseModelParameters(
+                        new BedrockConversePromptCaching(false), null, null, null),
+                    null,
+                    null,
+                    null,
+                    null)
+                .promptCaching())
+        .isFalse();
+  }
+
+  @Test
+  void bedrockKeepsConfiguredValuesAndTranslatesEveryAuthentication() {
+    final var configuration =
+        bedrock(
+            new BedrockConverseModelParameters(
+                new BedrockConversePromptCaching(true), 512, 0.3, 0.7),
+            new TimeoutConfiguration(Duration.ofSeconds(5)),
+            Map.of("h", "v"),
+            Map.of("q", "1"),
+            Map.of("b", 2));
+
+    assertThat(configuration.promptCaching()).isTrue();
+    assertThat(configuration.maxTokens()).isEqualTo(512);
+    assertThat(configuration.temperature()).isEqualTo(0.3);
+    assertThat(configuration.topP()).isEqualTo(0.7);
+    assertThat(configuration.timeout()).isEqualTo(Duration.ofSeconds(5));
+    assertThat(configuration.customizations())
+        .isEqualTo(new RequestCustomizations(Map.of("h", "v"), Map.of("q", "1"), Map.of("b", 2)));
+
+    for (final var authentication :
+        java.util.List.<io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication>of(
+            new io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication
+                .AwsStaticCredentialsAuthentication("AKIA-1234", "s3cr3t-value"),
+            new io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication
+                .AwsApiKeyAuthentication("token-9876"))) {
+      final var translated =
+          (BedrockConfiguration)
+              translator.translate(
+                  new BedrockConverseChatModelConfiguration(
+                      new BedrockConverseConnection(
+                          "us-east-1",
+                          "https://endpoint",
+                          authentication,
+                          null,
+                          null,
+                          null,
+                          null,
+                          new BedrockConverseModel("nova-x", null))));
+      assertThat(translated.endpoint()).isEqualTo("https://endpoint");
+      assertThat(translated.authentication().toString())
+          .doesNotContain("AKIA-1234")
+          .doesNotContain("s3cr3t-value")
+          .doesNotContain("token-9876");
+    }
   }
 }

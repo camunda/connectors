@@ -84,11 +84,7 @@ public class AgenticAiNativeProvidersConfiguration {
         new BedrockConverseRequestConverter(contentConverter, objectMapper);
     final var responseConverter = new BedrockConverseResponseConverter();
     return new BedrockConverseChatModelFactory(
-        configuration.aiagent().chatModel(),
-        awsSdkHttpProxySupport,
-        requestConverter,
-        responseConverter,
-        objectMapper);
+        awsSdkHttpProxySupport, requestConverter, responseConverter, objectMapper);
   }
 
   @Bean

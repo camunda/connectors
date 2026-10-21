@@ -7,21 +7,15 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.CONNECT_TIMEOUT;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import java.net.URI;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -38,25 +32,19 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
  */
 public class BedrockConverseChatModelFactory implements ChatModelFactory {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(BedrockConverseChatModelFactory.class);
-
   private static final String SIGV4_AUTH_SCHEME = "sigv4";
   private static final String BEARER_AUTH_SCHEME = "httpBearerAuth";
 
-  private final ChatModelProperties config;
   private final AwsSdkHttpProxySupport awsHttpProxySupport;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
   public BedrockConverseChatModelFactory(
-      ChatModelProperties config,
       AwsSdkHttpProxySupport awsHttpProxySupport,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
-    this.config = config;
     this.awsHttpProxySupport = awsHttpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -65,28 +53,27 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof BedrockConverseChatModelConfiguration;
+    return configuration instanceof BedrockConfiguration;
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var model = (BedrockConverseChatModelConfiguration) configuration;
-    final var client = buildAsyncClient(model.bedrock());
+    final var model = (BedrockConfiguration) configuration;
+    final var client = buildAsyncClient(model);
     return new BedrockConverseChatModel(
         client, model, requestConverter, responseConverter, objectMapper);
   }
 
   /**
-   * Builds the {@link BedrockRuntimeAsyncClient} for the given connection.
+   * Builds the {@link BedrockRuntimeAsyncClient} for the given configuration.
    *
    * <p>Package-private seam: exposed so tests can verify client construction (region, endpoint
    * override, credentials per {@link AwsAuthentication} variant, proxy, timeouts) independently of
    * {@link #create(ChatModelConfiguration)}, which wires the client this returns into a {@link
    * BedrockConverseChatModel}.
    */
-  BedrockRuntimeAsyncClient buildAsyncClient(BedrockConverseConnection connection) {
-    final var apiTimeout =
-        deriveTimeoutSetting("Bedrock model call", config, connection.timeouts(), LOGGER);
+  BedrockRuntimeAsyncClient buildAsyncClient(BedrockConfiguration connection) {
+    final var apiTimeout = connection.timeout();
 
     final BedrockRuntimeAsyncClientBuilder builder =
         BedrockRuntimeAsyncClient.builder().region(Region.of(connection.region()));
@@ -134,20 +121,20 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
   private static void applyAuthentication(
       AwsAuthentication authentication, BedrockRuntimeAsyncClientBuilder builder) {
     switch (authentication) {
-      case AwsAuthentication.AwsStaticCredentialsAuthentication staticAuth ->
+      case AwsAuthentication.StaticCredentials staticAuth ->
           builder
               .credentialsProvider(
                   StaticCredentialsProvider.create(
                       AwsBasicCredentials.create(staticAuth.accessKey(), staticAuth.secretKey())))
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));
-      case AwsAuthentication.AwsApiKeyAuthentication apiKeyAuth ->
+      case AwsAuthentication.ApiKey apiKeyAuth ->
           // Native "Bedrock API keys" support: a bearer token, not sigv4 credentials. Without the
           // pin, sigv4 stays ahead of httpBearerAuth (the SDK's default order) and the token would
           // never be sent.
           builder
               .tokenProvider(StaticTokenProvider.create(apiKeyAuth::apiKey))
               .authSchemeProvider(preferring(BEARER_AUTH_SCHEME));
-      case AwsAuthentication.AwsDefaultCredentialsChainAuthentication ignored ->
+      case AwsAuthentication.DefaultCredentialsChain ignored ->
           builder
               .credentialsProvider(DefaultCredentialsProvider.builder().build())
               .authSchemeProvider(preferring(SIGV4_AUTH_SCHEME));

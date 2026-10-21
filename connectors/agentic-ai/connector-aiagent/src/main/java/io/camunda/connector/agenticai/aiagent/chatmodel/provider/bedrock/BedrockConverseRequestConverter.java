@@ -13,6 +13,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -25,9 +26,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,16 +76,12 @@ public class BedrockConverseRequestConverter {
   }
 
   public ConverseStreamRequest toConverseStreamRequest(
-      BedrockConverseChatModelConfiguration configuration,
+      BedrockConfiguration configuration,
       ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final var connection = configuration.bedrock();
-    final var model = connection.model();
-    final var params = model.parameters();
+    final var builder = ConverseStreamRequest.builder().modelId(configuration.model());
 
-    final var builder = ConverseStreamRequest.builder().modelId(model.model());
-
-    applyInferenceConfig(builder, params);
+    applyInferenceConfig(builder, configuration);
 
     final List<SystemContentBlock> system = buildSystemPrompt(snapshot);
     final List<Message> messages = buildMessages(snapshot);
@@ -97,7 +91,7 @@ public class BedrockConverseRequestConverter {
     // checkpoint placement can inspect the fully-built prefix - a single
     // sequential pass of builder calls can't express "checkpoint at the end of whichever of
     // system/tools is present" without first knowing both are final.
-    applyPromptCaching(params, system, tools, messages);
+    applyPromptCaching(configuration.promptCaching(), system, tools, messages);
 
     if (!system.isEmpty()) {
       builder.system(system);
@@ -108,7 +102,7 @@ public class BedrockConverseRequestConverter {
     }
 
     applyOutputConfig(builder, response);
-    applyRequestCustomizations(builder, connection);
+    applyRequestCustomizations(builder, configuration.customizations());
 
     return builder.build();
   }
@@ -116,23 +110,19 @@ public class BedrockConverseRequestConverter {
   // temperature()/topP() narrow Double -> Float at this mapping site; maxTokens
   // stays Integer -> Integer. Each is applied only when non-null, independently of the others.
   private void applyInferenceConfig(
-      ConverseStreamRequest.Builder builder, @Nullable BedrockConverseModelParameters params) {
-    if (params == null) {
-      return;
-    }
-
+      ConverseStreamRequest.Builder builder, BedrockConfiguration configuration) {
     final var inferenceConfigBuilder = InferenceConfiguration.builder();
     boolean any = false;
-    if (params.maxTokens() != null) {
-      inferenceConfigBuilder.maxTokens(params.maxTokens());
+    if (configuration.maxTokens() != null) {
+      inferenceConfigBuilder.maxTokens(configuration.maxTokens());
       any = true;
     }
-    if (params.temperature() != null) {
-      inferenceConfigBuilder.temperature(params.temperature().floatValue());
+    if (configuration.temperature() != null) {
+      inferenceConfigBuilder.temperature(configuration.temperature().floatValue());
       any = true;
     }
-    if (params.topP() != null) {
-      inferenceConfigBuilder.topP(params.topP().floatValue());
+    if (configuration.topP() != null) {
+      inferenceConfigBuilder.topP(configuration.topP().floatValue());
       any = true;
     }
     if (any) {
@@ -258,12 +248,11 @@ public class BedrockConverseRequestConverter {
    * is disabled (or unset), no checkpoint is emitted anywhere.
    */
   private void applyPromptCaching(
-      @Nullable BedrockConverseModelParameters params,
+      boolean promptCaching,
       List<SystemContentBlock> system,
       List<Tool> tools,
       List<Message> messages) {
-    final var promptCaching = params == null ? null : params.promptCaching();
-    if (promptCaching == null || !Boolean.TRUE.equals(promptCaching.enabled())) {
+    if (!promptCaching) {
       return;
     }
 
@@ -345,24 +334,16 @@ public class BedrockConverseRequestConverter {
   }
 
   private void applyRequestCustomizations(
-      ConverseStreamRequest.Builder builder, BedrockConverseConnection connection) {
-    final Map<String, Object> bodyProperties = connection.bodyProperties();
-    if (bodyProperties != null && !bodyProperties.isEmpty()) {
-      builder.additionalModelRequestFields(toAwsDocument(bodyProperties));
+      ConverseStreamRequest.Builder builder, RequestCustomizations customizations) {
+    if (!customizations.bodyProperties().isEmpty()) {
+      builder.additionalModelRequestFields(toAwsDocument(customizations.bodyProperties()));
     }
 
-    final Map<String, String> headers = connection.headers();
-    final Map<String, String> queryParameters = connection.queryParameters();
-    if ((headers != null && !headers.isEmpty())
-        || (queryParameters != null && !queryParameters.isEmpty())) {
+    if (!customizations.headers().isEmpty() || !customizations.queryParameters().isEmpty()) {
       builder.overrideConfiguration(
           c -> {
-            if (headers != null) {
-              headers.forEach(c::putHeader);
-            }
-            if (queryParameters != null) {
-              queryParameters.forEach(c::putRawQueryParameter);
-            }
+            customizations.headers().forEach(c::putHeader);
+            customizations.queryParameters().forEach(c::putRawQueryParameter);
           });
     }
   }

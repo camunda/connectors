@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -51,35 +52,38 @@ class BedrockConverseRequestConverterTest {
   private final BedrockConverseRequestConverter converter =
       new BedrockConverseRequestConverter(contentConverter, objectMapper);
 
-  private static BedrockConverseChatModelConfiguration model(
-      @Nullable BedrockConverseModelParameters parameters) {
-    return new BedrockConverseChatModelConfiguration(
-        new BedrockConverseConnection(
-            REGION,
-            null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-            null,
-            null,
-            null,
-            null,
-            new BedrockConverseModel(MODEL_ID, parameters)));
+  private static BedrockConfiguration model(@Nullable BedrockConverseModelParameters parameters) {
+    return translate(
+        new BedrockConverseChatModelConfiguration(
+            new BedrockConverseConnection(
+                REGION,
+                null,
+                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                null,
+                null,
+                null,
+                null,
+                new BedrockConverseModel(MODEL_ID, parameters))),
+        BedrockConfiguration.class);
   }
 
   /** Builds a model with only the given headers/query/body properties set on the connection. */
-  private static BedrockConverseChatModelConfiguration connectionOverridesModel(
+  private static BedrockConfiguration connectionOverridesModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> bodyProperties) {
-    return new BedrockConverseChatModelConfiguration(
-        new BedrockConverseConnection(
-            REGION,
-            null,
-            new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-            headers,
-            queryParameters,
-            bodyProperties,
-            null,
-            new BedrockConverseModel(MODEL_ID, null)));
+    return translate(
+        new BedrockConverseChatModelConfiguration(
+            new BedrockConverseConnection(
+                REGION,
+                null,
+                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                headers,
+                queryParameters,
+                bodyProperties,
+                null,
+                new BedrockConverseModel(MODEL_ID, null))),
+        BedrockConfiguration.class);
   }
 
   private static BedrockConverseModelParameters promptCachingParams(@Nullable Boolean enabled) {

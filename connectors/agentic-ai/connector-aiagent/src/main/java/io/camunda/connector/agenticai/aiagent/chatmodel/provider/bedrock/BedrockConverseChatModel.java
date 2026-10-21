@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -47,14 +46,14 @@ public class BedrockConverseChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(BedrockConverseChatModel.class);
 
   private final BedrockRuntimeAsyncClient client;
-  private final BedrockConverseChatModelConfiguration configuration;
+  private final BedrockConfiguration configuration;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
   public BedrockConverseChatModel(
       BedrockRuntimeAsyncClient client,
-      BedrockConverseChatModelConfiguration configuration,
+      BedrockConfiguration configuration,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
