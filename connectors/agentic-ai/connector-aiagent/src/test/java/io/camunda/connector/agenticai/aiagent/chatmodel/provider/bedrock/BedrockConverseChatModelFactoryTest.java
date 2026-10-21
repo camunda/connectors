@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -17,6 +18,8 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -32,6 +35,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
@@ -106,7 +111,14 @@ class BedrockConverseChatModelFactoryTest {
 
   private final BedrockConverseChatModelFactory factory =
       new BedrockConverseChatModelFactory(
-          proxySupport, requestConverter, responseConverter, new ObjectMapper());
+          new ConnectionResolver(
+              new AgenticAiHttpProxySupport(proxyConfiguration),
+              mock(OAuthClientCredentialsTokenResolver.class),
+              mock(FoundryCredentialResolver.class)),
+          proxySupport,
+          requestConverter,
+          responseConverter,
+          new ObjectMapper());
 
   @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderCaptor;
 

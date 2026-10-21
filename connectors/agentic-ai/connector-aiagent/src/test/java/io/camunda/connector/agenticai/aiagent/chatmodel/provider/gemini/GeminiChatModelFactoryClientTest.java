@@ -32,6 +32,8 @@ import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -47,6 +49,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
@@ -191,7 +194,10 @@ class GeminiChatModelFactoryClientTest {
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, String endpoint) {
     final var factory =
         new GeminiChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                mock(OAuthClientCredentialsTokenResolver.class),
+                mock(FoundryCredentialResolver.class)),
             new GeminiContentRequestConverter(new GeminiContentConverter(objectMapper)),
             new GeminiContentResponseConverter());
     final var configuration =

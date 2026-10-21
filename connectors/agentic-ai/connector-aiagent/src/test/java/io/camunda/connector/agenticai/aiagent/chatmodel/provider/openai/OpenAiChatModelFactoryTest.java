@@ -11,14 +11,11 @@ import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
@@ -65,9 +62,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,7 +82,13 @@ class OpenAiChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new OpenAiChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                oAuthClientCredentialsTokenResolver,
+                new FoundryCredentialResolver(
+                    new EntraIdTokenCredentialFactory(
+                        new AzureHttpProxySupport(ProxyConfiguration.NONE),
+                        new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))))),
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
                     OPENAI_ID,
@@ -101,12 +102,7 @@ class OpenAiChatModelFactoryTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()),
-            new FoundryCredentialResolver(
-                new EntraIdTokenCredentialFactory(
-                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
-            oAuthClientCredentialsTokenResolver);
+                OpenAiResponsesStreamAssembler.accumulating()));
   }
 
   @Test
@@ -141,30 +137,6 @@ class OpenAiChatModelFactoryTest {
         foundryApiKeyConfig(MODEL_ID),
         foundryClientCredentialsConfig(MODEL_ID),
         foundryManagedIdentityConfig(MODEL_ID));
-  }
-
-  @ParameterizedTest
-  @MethodSource("timeoutConfigurations")
-  void appliesDerivedTimeoutToClient(TimeoutConfiguration timeouts, Duration expectedTimeout) {
-    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
-
-    final var clientBuilder = spy(OpenAIOkHttpClient.builder());
-    try (MockedStatic<OpenAIOkHttpClient> clientMock =
-        mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
-      clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
-
-      final ChatModel api = create(responsesApiConfig(MODEL_ID, timeouts));
-      verify(clientBuilder).timeout(expectedTimeout);
-      api.close();
-    }
-  }
-
-  static Stream<Arguments> timeoutConfigurations() {
-    return Stream.of(
-        Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),
-        Arguments.of(null, Duration.ofMinutes(3)),
-        Arguments.of(new TimeoutConfiguration(null), Duration.ofMinutes(3)),
-        Arguments.of(new TimeoutConfiguration(Duration.ZERO), Duration.ofMinutes(3)));
   }
 
   private static OpenAiChatModelConfiguration responsesApiConfig(String modelId) {

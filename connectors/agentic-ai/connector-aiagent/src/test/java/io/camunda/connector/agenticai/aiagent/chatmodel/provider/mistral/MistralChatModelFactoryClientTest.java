@@ -28,6 +28,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -309,7 +311,10 @@ class MistralChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new MistralChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                oAuthClientCredentialsTokenResolver(),
+                mock(FoundryCredentialResolver.class)),
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
                 contentConverter,
@@ -318,8 +323,7 @@ class MistralChatModelFactoryClientTest {
                 new MistralReasoningContentDialect()),
             new OpenAiCompletionsResponseConverter(
                 MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
-            new MistralCompletionsStreamAssembler(),
-            oAuthClientCredentialsTokenResolver());
+            new MistralCompletionsStreamAssembler());
     final var configuration =
         new ChatModelConfigurationTranslator(
                 new V1ToV2ProviderConfigurationMapperImpl(chatModelProperties),

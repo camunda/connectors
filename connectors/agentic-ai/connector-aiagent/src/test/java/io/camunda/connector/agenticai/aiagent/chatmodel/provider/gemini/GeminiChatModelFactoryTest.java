@@ -27,6 +27,8 @@ import com.google.genai.Client;
 import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -46,7 +48,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.client.proxy.NonProxyHosts;
+import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -91,7 +93,10 @@ class GeminiChatModelFactoryTest {
   void setUp() {
     factory =
         new GeminiChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                mock(OAuthClientCredentialsTokenResolver.class),
+                mock(FoundryCredentialResolver.class)),
             new GeminiContentRequestConverter(new GeminiContentConverter(new ObjectMapper())),
             new GeminiContentResponseConverter());
   }
@@ -140,35 +145,6 @@ class GeminiChatModelFactoryTest {
     verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTP);
 
     model.close();
-  }
-
-  @Test
-  void createSkipsProxyWhenDefaultGeminiApiHostIsNonProxyHost() {
-    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
-      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
-
-      final ChatModel model = factory.create(apiConfig(null, null));
-
-      nonProxyHostsMock.verify(
-          () -> NonProxyHosts.isNonProxyHost("generativelanguage.googleapis.com"));
-      verify(httpProxySupport, never()).okHttpProxy(any());
-
-      model.close();
-    }
-  }
-
-  @Test
-  void createSkipsProxyWhenConfiguredEndpointHostIsNonProxyHost() {
-    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
-      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
-
-      final ChatModel model = factory.create(apiConfig("http://localhost:8080", null));
-
-      nonProxyHostsMock.verify(() -> NonProxyHosts.isNonProxyHost("localhost"));
-      verify(httpProxySupport, never()).okHttpProxy(any());
-
-      model.close();
-    }
   }
 
   @Test
@@ -254,21 +230,6 @@ class GeminiChatModelFactoryTest {
 
     final var customHttpClient = clientOptionsOf(model).orElseThrow().customHttpClient();
     assertThat(customHttpClient.get().proxyAuthenticator()).isEqualTo(Authenticator.NONE);
-
-    model.close();
-  }
-
-  @Test
-  void createSetsConnectTimeoutIndependentlyOfOverallTimeout() {
-    noProxyConfigured();
-
-    final ChatModel model = factory.create(apiConfig(null, null));
-
-    final Optional<ClientOptions> clientOptions = clientOptionsOf(model);
-    assertThat(clientOptions).isPresent();
-    final var customHttpClient = clientOptions.get().customHttpClient();
-    assertThat(customHttpClient).isPresent();
-    assertThat(customHttpClient.get().connectTimeoutMillis()).isEqualTo(10_000);
 
     model.close();
   }
@@ -376,20 +337,6 @@ class GeminiChatModelFactoryTest {
     assertThat(customHttpClient.get().proxyAuthenticator()).isNotEqualTo(Authenticator.NONE);
 
     verify(httpProxySupport).okHttpProxy(ProxyConfiguration.SCHEME_HTTPS);
-  }
-
-  @Test
-  void createSkipsProxyWhenDefaultVertexAiHostIsNonProxyHost() {
-    try (MockedStatic<NonProxyHosts> nonProxyHostsMock = mockStatic(NonProxyHosts.class)) {
-      nonProxyHostsMock.when(() -> NonProxyHosts.isNonProxyHost(any())).thenReturn(true);
-
-      createVertexAiChatModel(
-          vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
-
-      nonProxyHostsMock.verify(
-          () -> NonProxyHosts.isNonProxyHost(REGION + "-aiplatform.googleapis.com"));
-      verify(httpProxySupport, never()).okHttpProxy(any());
-    }
   }
 
   @Test

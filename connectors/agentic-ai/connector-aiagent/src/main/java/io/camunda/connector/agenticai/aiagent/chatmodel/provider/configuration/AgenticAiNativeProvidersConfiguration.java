@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.PROVIDER;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
@@ -56,25 +57,17 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
-      AgenticAiHttpProxySupport httpProxySupport,
-      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      FoundryCredentialResolver foundryCredentialResolver,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      ConnectionResolver connectionResolver, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new AnthropicContentConverter(objectMapper);
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
-    return new AnthropicChatModelFactory(
-        httpProxySupport,
-        requestConverter,
-        responseConverter,
-        oAuthClientCredentialsTokenResolver,
-        foundryCredentialResolver);
+    return new AnthropicChatModelFactory(connectionResolver, requestConverter, responseConverter);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public BedrockConverseChatModelFactory aiAgentBedrockConverseChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
+      ConnectionResolver connectionResolver,
       AwsSdkHttpProxySupport awsSdkHttpProxySupport,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new BedrockConverseContentConverter(objectMapper);
@@ -82,7 +75,11 @@ public class AgenticAiNativeProvidersConfiguration {
         new BedrockConverseRequestConverter(contentConverter, objectMapper);
     final var responseConverter = new BedrockConverseResponseConverter();
     return new BedrockConverseChatModelFactory(
-        awsSdkHttpProxySupport, requestConverter, responseConverter, objectMapper);
+        connectionResolver,
+        awsSdkHttpProxySupport,
+        requestConverter,
+        responseConverter,
+        objectMapper);
   }
 
   @Bean
@@ -103,11 +100,18 @@ public class AgenticAiNativeProvidersConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+  public ConnectionResolver aiAgentConnectionResolver(
       AgenticAiHttpProxySupport httpProxySupport,
-      FoundryCredentialResolver foundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      FoundryCredentialResolver foundryCredentialResolver) {
+    return new ConnectionResolver(
+        httpProxySupport, oAuthClientCredentialsTokenResolver, foundryCredentialResolver);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
+      ConnectionResolver connectionResolver, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
@@ -125,25 +129,17 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
-    return new OpenAiChatModelFactory(
-        httpProxySupport,
-        completionsStrategy,
-        responsesStrategy,
-        foundryCredentialResolver,
-        oAuthClientCredentialsTokenResolver);
+    return new OpenAiChatModelFactory(connectionResolver, completionsStrategy, responsesStrategy);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public MistralChatModelFactory aiAgentMistralChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
-      AgenticAiHttpProxySupport httpProxySupport,
-      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      ConnectionResolver connectionResolver, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var mistralReasoningContentDialect = new MistralReasoningContentDialect();
     return new MistralChatModelFactory(
-        httpProxySupport,
+        connectionResolver,
         new OpenAiCompletionsRequestConverter(
             MistralConfiguration.PROVIDER,
             contentConverter,
@@ -152,19 +148,16 @@ public class AgenticAiNativeProvidersConfiguration {
             mistralReasoningContentDialect),
         new OpenAiCompletionsResponseConverter(
             MistralConfiguration.PROVIDER, objectMapper, mistralReasoningContentDialect),
-        new MistralCompletionsStreamAssembler(),
-        oAuthClientCredentialsTokenResolver);
+        new MistralCompletionsStreamAssembler());
   }
 
   @Bean
   @ConditionalOnMissingBean
   public GeminiChatModelFactory aiAgentGeminiChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
-      AgenticAiHttpProxySupport httpProxySupport,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      ConnectionResolver connectionResolver, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     final var contentConverter = new GeminiContentConverter(objectMapper);
     final var requestConverter = new GeminiContentRequestConverter(contentConverter);
     final var responseConverter = new GeminiContentResponseConverter();
-    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
+    return new GeminiChatModelFactory(connectionResolver, requestConverter, responseConverter);
   }
 }

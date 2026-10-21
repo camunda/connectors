@@ -31,6 +31,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
@@ -484,11 +485,10 @@ class AnthropicChatModelFactoryClientTest {
       @Nullable Duration timeout) {
     final var factory =
         new AnthropicChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport, oAuthClientCredentialsTokenResolver(), foundryCredentialResolver),
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
-            new AnthropicMessageResponseConverter(objectMapper),
-            oAuthClientCredentialsTokenResolver(),
-            foundryCredentialResolver);
+            new AnthropicMessageResponseConverter(objectMapper));
     final var configuration =
         translate(
             new AnthropicChatModelConfiguration(

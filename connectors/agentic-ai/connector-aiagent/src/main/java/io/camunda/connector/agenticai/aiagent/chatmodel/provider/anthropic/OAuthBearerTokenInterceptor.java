@@ -7,8 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import com.anthropic.core.http.Interceptor;
-import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
-import org.jspecify.annotations.Nullable;
+import java.util.function.Supplier;
 
 /**
  * Injects a resolved bearer token per-request via {@link Interceptor#syncOnly}. Synchronous only:
@@ -18,26 +17,13 @@ public final class OAuthBearerTokenInterceptor {
 
   private OAuthBearerTokenInterceptor() {}
 
-  public static Interceptor create(
-      OAuthClientCredentialsTokenResolver tokenResolver,
-      String oauthTokenEndpoint,
-      String clientId,
-      String clientSecret,
-      @Nullable String audience,
-      String clientAuthentication,
-      @Nullable String scopes) {
+  public static Interceptor create(Supplier<String> bearerToken) {
     return Interceptor.syncOnly(
         (client, request, requestOptions) -> {
-          final var accessToken =
-              tokenResolver.resolveAccessToken(
-                  oauthTokenEndpoint,
-                  clientId,
-                  clientSecret,
-                  audience,
-                  clientAuthentication,
-                  scopes);
           final var authorizedRequest =
-              request.toBuilder().replaceHeaders("Authorization", "Bearer " + accessToken).build();
+              request.toBuilder()
+                  .replaceHeaders("Authorization", "Bearer " + bearerToken.get())
+                  .build();
           return client.execute(authorizedRequest, requestOptions);
         });
   }

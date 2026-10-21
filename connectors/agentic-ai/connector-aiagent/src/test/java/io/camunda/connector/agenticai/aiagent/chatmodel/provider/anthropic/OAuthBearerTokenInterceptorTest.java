@@ -40,13 +40,14 @@ class OAuthBearerTokenInterceptorTest {
   void setUp() {
     interceptor =
         OAuthBearerTokenInterceptor.create(
-            tokenResolver,
-            "https://auth.example.com/oauth/token",
-            "my-client-id",
-            "my-client-secret",
-            null,
-            OAuthConstants.BASIC_AUTH_HEADER,
-            null);
+            () ->
+                tokenResolver.resolveAccessToken(
+                    "https://auth.example.com/oauth/token",
+                    "my-client-id",
+                    "my-client-secret",
+                    null,
+                    OAuthConstants.BASIC_AUTH_HEADER,
+                    null));
   }
 
   @Test

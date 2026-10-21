@@ -54,6 +54,9 @@ public record MistralConfiguration(
     /** The identifier of the backend, which is part of the descriptive provider. */
     String type();
 
+    /** The base URL of the endpoint. */
+    String endpoint();
+
     RequestCustomizations customizations();
 
     /** The Mistral API, or a deployment of it at another endpoint. */

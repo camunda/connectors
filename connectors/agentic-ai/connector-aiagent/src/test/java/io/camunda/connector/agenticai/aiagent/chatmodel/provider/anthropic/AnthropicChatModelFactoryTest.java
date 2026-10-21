@@ -9,14 +9,11 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
@@ -45,11 +42,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,14 +62,15 @@ class AnthropicChatModelFactoryTest {
   void setUp() {
     factory =
         new AnthropicChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                oAuthClientCredentialsTokenResolver,
+                new FoundryCredentialResolver(
+                    new EntraIdTokenCredentialFactory(
+                        new AzureHttpProxySupport(ProxyConfiguration.NONE),
+                        new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))))),
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
-            new AnthropicMessageResponseConverter(objectMapper),
-            oAuthClientCredentialsTokenResolver,
-            new FoundryCredentialResolver(
-                new EntraIdTokenCredentialFactory(
-                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))));
+            new AnthropicMessageResponseConverter(objectMapper));
   }
 
   @ParameterizedTest
@@ -167,30 +162,6 @@ class AnthropicChatModelFactoryTest {
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
-  }
-
-  @ParameterizedTest
-  @MethodSource("timeoutConfigurations")
-  void appliesDerivedTimeoutToClient(TimeoutConfiguration timeouts, Duration expectedTimeout) {
-    when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
-
-    final var clientBuilder = spy(AnthropicOkHttpClient.builder());
-    try (MockedStatic<AnthropicOkHttpClient> clientMock =
-        mockStatic(AnthropicOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
-      clientMock.when(AnthropicOkHttpClient::builder).thenReturn(clientBuilder);
-
-      final ChatModel api = create(apiConfig(MODEL_ID, timeouts));
-      verify(clientBuilder).timeout(expectedTimeout);
-      api.close();
-    }
-  }
-
-  static Stream<Arguments> timeoutConfigurations() {
-    return Stream.of(
-        Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),
-        Arguments.of(null, Duration.ofMinutes(3)),
-        Arguments.of(new TimeoutConfiguration(null), Duration.ofMinutes(3)),
-        Arguments.of(new TimeoutConfiguration(Duration.ZERO), Duration.ofMinutes(3)));
   }
 
   private static AnthropicChatModelConfiguration apiConfig(String modelId) {

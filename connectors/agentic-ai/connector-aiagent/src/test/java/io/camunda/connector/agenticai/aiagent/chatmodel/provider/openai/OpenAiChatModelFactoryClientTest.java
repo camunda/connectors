@@ -31,6 +31,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
@@ -564,7 +565,8 @@ class OpenAiChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport, oAuthClientCredentialsTokenResolver(), foundryCredentialResolver),
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
                     OPENAI_ID,
@@ -578,9 +580,7 @@ class OpenAiChatModelFactoryClientTest {
             new OpenAiResponsesStrategy(
                 new OpenAiResponsesRequestConverter(contentConverter, objectMapper),
                 new OpenAiResponsesResponseConverter(objectMapper),
-                OpenAiResponsesStreamAssembler.accumulating()),
-            foundryCredentialResolver,
-            oAuthClientCredentialsTokenResolver());
+                OpenAiResponsesStreamAssembler.accumulating()));
     final var configuration =
         translate(
             new OpenAiChatModelConfiguration(

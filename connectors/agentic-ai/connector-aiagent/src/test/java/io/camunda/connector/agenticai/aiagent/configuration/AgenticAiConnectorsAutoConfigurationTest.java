@@ -26,10 +26,10 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -67,7 +67,6 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.CachingProc
 import io.camunda.connector.agenticai.tools.schema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
-import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
@@ -400,11 +399,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomAnthropicChatModelFactory() {
           super(
-              mock(AgenticAiHttpProxySupport.class),
+              mock(ConnectionResolver.class),
               mock(AnthropicMessageRequestConverter.class),
-              mock(AnthropicMessageResponseConverter.class),
-              mock(OAuthClientCredentialsTokenResolver.class),
-              mock(FoundryCredentialResolver.class));
+              mock(AnthropicMessageResponseConverter.class));
         }
 
         @Override
@@ -424,11 +421,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomOpenAiChatModelFactory() {
           super(
-              mock(AgenticAiHttpProxySupport.class),
+              mock(ConnectionResolver.class),
               mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiApiFamilyStrategy.class),
-              mock(FoundryCredentialResolver.class),
-              mock(OAuthClientCredentialsTokenResolver.class));
+              mock(OpenAiApiFamilyStrategy.class));
         }
 
         @Override

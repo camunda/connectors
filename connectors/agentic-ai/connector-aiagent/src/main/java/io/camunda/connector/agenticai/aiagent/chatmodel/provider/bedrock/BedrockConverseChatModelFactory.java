@@ -9,11 +9,11 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -31,22 +31,22 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
  */
 public class BedrockConverseChatModelFactory implements ChatModelFactory {
 
-  /** TCP connect timeout of the HTTP client, independent of the duration of a model call. */
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
-
   private static final String SIGV4_AUTH_SCHEME = "sigv4";
   private static final String BEARER_AUTH_SCHEME = "httpBearerAuth";
 
+  private final ConnectionResolver connectionResolver;
   private final AwsSdkHttpProxySupport awsHttpProxySupport;
   private final BedrockConverseRequestConverter requestConverter;
   private final BedrockConverseResponseConverter responseConverter;
   private final ObjectMapper objectMapper;
 
   public BedrockConverseChatModelFactory(
+      ConnectionResolver connectionResolver,
       AwsSdkHttpProxySupport awsHttpProxySupport,
       BedrockConverseRequestConverter requestConverter,
       BedrockConverseResponseConverter responseConverter,
       ObjectMapper objectMapper) {
+    this.connectionResolver = connectionResolver;
     this.awsHttpProxySupport = awsHttpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -75,7 +75,12 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
    * BedrockConverseChatModel}.
    */
   BedrockRuntimeAsyncClient buildAsyncClient(BedrockConfiguration connection) {
-    final var apiTimeout = connection.timeout();
+    final var settings =
+        connectionResolver.resolve(
+            connection.timeout(),
+            connection.endpoint(),
+            "https://bedrock-runtime.%s.amazonaws.com".formatted(connection.region()));
+    final var apiTimeout = settings.timeout();
 
     final BedrockRuntimeAsyncClientBuilder builder =
         BedrockRuntimeAsyncClient.builder().region(Region.of(connection.region()));
@@ -98,7 +103,7 @@ public class BedrockConverseChatModelFactory implements ChatModelFactory {
     builder.httpClientBuilder(
         awsHttpProxySupport
             .asyncHttpClientBuilder(endpointOverride)
-            .connectionTimeout(CONNECT_TIMEOUT)
+            .connectionTimeout(settings.connectTimeout())
             .readTimeout(apiTimeout));
 
     return builder.build();

@@ -79,12 +79,23 @@ class ChatModelProviderIndependenceArchTest {
           .and()
           .resideOutsideOfPackages(
               PROVIDER_ROOT + "..",
+              AgenticAiModules.pkg("aiagent.chatmodel.connection.."),
               AgenticAiModules.pkg("aiagent.configuration.."),
               AgenticAiModules.pkg("aiagent.translation.."))
           .should()
           .dependOnClassesThat()
           .resideInAPackage(PROVIDER_ROOT + "..")
           .because("the AI agent reaches the chat model providers only through the chat model API");
+
+  @ArchTest
+  static final ArchRule THE_CONNECTION_SETTINGS_KNOW_ONLY_THE_SUPPORT_OF_THE_PROVIDERS =
+      noClasses()
+          .that()
+          .resideInAPackage(AgenticAiModules.pkg("aiagent.chatmodel.connection.."))
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(vendorPackages())
+          .because("the connection settings are shared by all providers");
 
   @ArchTest
   static final ArchRule CHAT_MODEL_PROVIDERS_DO_NOT_USE_THE_REQUEST_RECORDS =
@@ -99,6 +110,17 @@ class ChatModelProviderIndependenceArchTest {
           .because(
               "the providers read their own domain configuration, which the translation builds"
                   + " from the request records");
+
+  private static String[] vendorPackages() {
+    return new String[] {
+      PROVIDER_ROOT + ".anthropic..",
+      PROVIDER_ROOT + ".bedrock..",
+      PROVIDER_ROOT + ".gemini..",
+      PROVIDER_ROOT + ".langchain4j..",
+      PROVIDER_ROOT + ".mistral..",
+      PROVIDER_ROOT + ".openai.."
+    };
+  }
 
   private static ArchRule providersIndependent() {
     SliceRule rule =

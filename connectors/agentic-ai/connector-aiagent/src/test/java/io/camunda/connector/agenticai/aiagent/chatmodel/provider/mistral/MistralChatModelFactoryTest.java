@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -18,7 +19,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -54,7 +57,10 @@ class MistralChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new MistralChatModelFactory(
-            httpProxySupport,
+            new ConnectionResolver(
+                httpProxySupport,
+                oAuthClientCredentialsTokenResolver,
+                mock(FoundryCredentialResolver.class)),
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
                 contentConverter,
@@ -63,8 +69,7 @@ class MistralChatModelFactoryTest {
                 new MistralReasoningContentDialect()),
             new OpenAiCompletionsResponseConverter(
                 MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
-            new MistralCompletionsStreamAssembler(),
-            oAuthClientCredentialsTokenResolver);
+            new MistralCompletionsStreamAssembler());
   }
 
   private static MistralConfiguration config(String modelId, Duration timeout) {
@@ -96,21 +101,6 @@ class MistralChatModelFactoryTest {
 
     try (ChatModel chatModel = factory.create(config(MODEL_ID, Duration.ofMinutes(3)))) {
       assertThat(chatModel).isInstanceOf(MistralChatModel.class);
-    }
-  }
-
-  @Test
-  void createAppliesConfiguredTimeout() {
-    when(httpProxySupport.okHttpProxy(anyString())).thenReturn(Optional.empty());
-
-    final var clientBuilder = spy(OpenAIOkHttpClient.builder());
-    try (MockedStatic<OpenAIOkHttpClient> clientMock =
-        mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
-      clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
-
-      try (ChatModel chatModel = factory.create(config(MODEL_ID, Duration.ofSeconds(7)))) {
-        verify(clientBuilder).timeout(Duration.ofSeconds(7));
-      }
     }
   }
 

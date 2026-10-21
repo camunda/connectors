@@ -14,19 +14,16 @@ import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Authentication.ServiceAccountKey;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport.OkHttpProxy;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.client.proxy.NonProxyHosts;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Optional;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.jspecify.annotations.Nullable;
@@ -39,44 +36,21 @@ public class GeminiChatModelFactory implements ChatModelFactory {
    */
   private static final Duration MAX_GEMINI_TIMEOUT = Duration.ofMillis(Integer.MAX_VALUE);
 
-  /**
-   * The SDK's own default {@link OkHttpClient} (built when no {@code customHttpClient} is supplied)
-   * sets {@code connectTimeout}/{@code readTimeout}/{@code writeTimeout} to zero (unbounded) and
-   * relies solely on {@link HttpOptions#timeout} as an overall {@code callTimeout} -- a hung TCP
-   * connect would otherwise consume the whole, often much longer, configured request budget before
-   * failing. Bounding connect separately, at OkHttp's own upstream default, lets a genuinely
-   * unreachable host fail fast regardless of how generous the configured overall timeout is.
-   *
-   * <p>Supplying a {@code customHttpClient} at all changes {@code ApiClient#createHttpClient}'s
-   * behavior beyond just the timeouts: on that branch, the SDK skips applying {@code
-   * HttpOptions#timeout} and {@code ClientOptions#proxyOptions} entirely and trusts the supplied
-   * client as-is. {@link #buildClient} therefore applies the overall timeout and proxy directly on
-   * this custom client instead of through those SDK options.
-   *
-   * <p>A bare {@code new OkHttpClient.Builder()}, unlike the SDK's own default client, does not
-   * default {@code readTimeout}/{@code writeTimeout} to zero -- it defaults them to OkHttp's own
-   * stock 10-second value. Left alone, a Gemini SSE stream with a longer gap between chunks (e.g.
-   * during an extended thinking phase) would abort mid-stream regardless of how generous the
-   * configured overall timeout is, so {@link #buildClient} explicitly zeroes both, leaving only
-   * connect bounded and {@code callTimeout} governing the overall budget.
-   */
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
-
   private static final String GOOGLE_CLOUD_PLATFORM_SCOPE =
       "https://www.googleapis.com/auth/cloud-platform";
 
   private static final String DEFAULT_GEMINI_API_BASE_URL =
       "https://generativelanguage.googleapis.com";
 
-  private final AgenticAiHttpProxySupport httpProxySupport;
+  private final ConnectionResolver connectionResolver;
   private final GeminiContentRequestConverter requestConverter;
   private final GeminiContentResponseConverter responseConverter;
 
   public GeminiChatModelFactory(
-      AgenticAiHttpProxySupport httpProxySupport,
+      ConnectionResolver connectionResolver,
       GeminiContentRequestConverter requestConverter,
       GeminiContentResponseConverter responseConverter) {
-    this.httpProxySupport = httpProxySupport;
+    this.connectionResolver = connectionResolver;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
   }
@@ -89,13 +63,26 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
     final var model = (GeminiConfiguration) configuration;
-    final var client = buildClient(model.backend(), model.timeout(), httpProxySupport);
+    final var client = buildClient(model.backend(), model.timeout());
     return new GeminiChatModel(client, model, requestConverter, responseConverter);
   }
 
-  private static Client buildClient(
-      Backend backend, Duration timeout, AgenticAiHttpProxySupport httpProxySupport) {
+  /**
+   * Builds the client around a custom {@link OkHttpClient}: with a {@code customHttpClient}, the
+   * SDK skips applying {@link HttpOptions#timeout} and {@code ClientOptions#proxyOptions} and
+   * trusts the supplied client as-is, so the connect timeout, the overall call timeout and the
+   * proxy of the resolved connection settings are applied on this client directly.
+   *
+   * <p>A bare {@code OkHttpClient.Builder} defaults {@code readTimeout} and {@code writeTimeout} to
+   * ten seconds. Left alone, a Gemini SSE stream with a longer gap between chunks (for example
+   * during an extended thinking phase) would abort mid-stream however generous the configured
+   * timeout is, so both are zeroed and only the connect and the overall call timeout bound the
+   * call.
+   */
+  private Client buildClient(Backend backend, Duration timeout) {
     final String endpointOverride = configuredEndpoint(backend);
+    final var settings =
+        connectionResolver.resolve(timeout, endpointOverride, defaultEndpoint(backend));
 
     final var httpOptionsBuilder = HttpOptions.builder();
     if (endpointOverride != null) {
@@ -112,19 +99,12 @@ public class GeminiChatModelFactory implements ChatModelFactory {
 
     final var okHttpClientBuilder =
         new OkHttpClient.Builder()
-            .connectTimeout(CONNECT_TIMEOUT)
+            .connectTimeout(settings.connectTimeout())
             .readTimeout(Duration.ZERO)
             .writeTimeout(Duration.ZERO);
     okHttpClientBuilder.callTimeout(Duration.ofMillis(toGeminiTimeoutMillis(timeout)));
 
-    final String scheme =
-        Optional.ofNullable(endpointOverride).map(url -> URI.create(url).getScheme()).orElse(null);
-    final String targetHost = resolveTargetHost(backend, endpointOverride);
-    if (!NonProxyHosts.isNonProxyHost(targetHost)) {
-      httpProxySupport
-          .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-          .ifPresent(proxy -> applyProxy(okHttpClientBuilder, proxy));
-    }
+    settings.proxy().ifPresent(proxy -> applyProxy(okHttpClientBuilder, proxy));
 
     clientBuilder.clientOptions(
         ClientOptions.builder().customHttpClient(okHttpClientBuilder.build()).build());
@@ -145,22 +125,12 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     };
   }
 
-  /**
-   * Resolves the host the SDK will actually target, so the proxy can be skipped when it matches a
-   * configured non-proxy host pattern. {@code com.google.genai.types.ProxyOptions} -- the SDK's own
-   * proxy mechanism, which does understand a bypass list -- is never used here, because supplying a
-   * {@code customHttpClient} (required for the timeout/streaming behavior documented on {@link
-   * #CONNECT_TIMEOUT}) makes the SDK ignore it entirely, so the same bypass has to be reimplemented
-   * against the raw OkHttp client instead.
-   */
-  private static String resolveTargetHost(Backend backend, @Nullable String endpointOverride) {
-    if (endpointOverride != null) {
-      return URI.create(endpointOverride).getHost();
-    }
+  /** The endpoint which the SDK connects to when the configuration does not set one. */
+  private static String defaultEndpoint(Backend backend) {
     return switch (backend) {
-      case Backend.Api ignored -> URI.create(DEFAULT_GEMINI_API_BASE_URL).getHost();
+      case Backend.Api ignored -> DEFAULT_GEMINI_API_BASE_URL;
       case Backend.VertexAi vertexAi ->
-          URI.create(GeminiEndpoints.defaultGoogleGenAiBaseUrl(vertexAi.region())).getHost();
+          GeminiEndpoints.defaultGoogleGenAiBaseUrl(vertexAi.region());
     };
   }
 
@@ -190,13 +160,11 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   }
 
   /**
-   * Resolution and logging are shared with the Anthropic/OpenAI providers via {@link
-   * AgenticAiHttpProxySupport#okHttpProxy}; only the authenticator differs, since those providers'
-   * SDKs accept a {@code Proxy} directly while Gemini's raw {@link OkHttpClient.Builder} needs its
-   * own {@link okhttp3.Authenticator}.
+   * The proxy is resolved with the connection settings; only the authenticator differs from the
+   * other OkHttp based providers, since their SDKs accept a {@code Proxy} directly while Gemini's
+   * raw {@link OkHttpClient.Builder} needs its own {@link okhttp3.Authenticator}.
    */
-  private static void applyProxy(
-      OkHttpClient.Builder builder, AgenticAiHttpProxySupport.OkHttpProxy proxy) {
+  private static void applyProxy(OkHttpClient.Builder builder, OkHttpProxy proxy) {
     builder.proxy(proxy.proxy());
 
     if (proxy.hasCredentials()) {

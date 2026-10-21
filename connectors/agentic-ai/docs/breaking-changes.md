@@ -222,6 +222,16 @@ client in its properties does not start.
   `FoundryCredentialResolver.bearerTokenSupplier` takes `FoundryAuthentication.ClientCredentials` or
   `FoundryAuthentication.ManagedIdentity`. `ChatModelTimeouts` is removed.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
+- The connection settings of the native providers are resolved by `ConnectionResolver` in
+  `aiagent.chatmodel.connection`. The `ChatModelFactory` of the OpenAI, Anthropic, Mistral, Gemini and Bedrock
+  providers take a `ConnectionResolver` instead of the proxy support, the OAuth token resolver and the
+  `FoundryCredentialResolver`. The behavior of the connections is the same for all providers now:
+  - The connect timeout is 15 seconds, or the timeout of the model call if that is shorter. The OpenAI, Anthropic and
+    Mistral clients used the timeout of the model call (3 minutes by default) as their connect timeout. The Gemini
+    client used 10 seconds.
+  - The OpenAI, Anthropic and Mistral providers skip the proxy for a host which matches a non-proxy host pattern, like
+    the Gemini and Bedrock providers did.
+  - `OAuthBearerTokenInterceptor.create` takes a `Supplier<String>` for the token.
 
 ### V1 provider configuration
 
