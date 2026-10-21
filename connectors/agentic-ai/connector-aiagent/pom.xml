@@ -200,32 +200,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <version>${version.openai-java}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.openai</groupId>
-      <artifactId>openai-java-client-okhttp</artifactId>
-      <version>${version.openai-java}</version>
-      <scope>test</scope>
-    </dependency>
 
-    <!--
-      OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
-      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. Both anthropic-java
-      and openai-java's okhttp clients (Stainless-generated) only depend on the empty `okhttp`
-      shell, so their builders throw NoClassDefFoundError at runtime unless we add `okhttp-jvm`
-      explicitly (same pattern as connectors/slack and connectors/microsoft/common).
-    -->
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>bedrockruntime</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockagentcore</artifactId>
@@ -238,30 +213,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-core</artifactId>
     </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>regions</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>apache-client</artifactId>
-      <version>${version.aws-sdk2}</version>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>netty-nio-client</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>http-client-spi</artifactId>
-      <version>${version.aws-sdk2}</version>
-    </dependency>
-
     <!-- needed on the compile classpath for javac to resolve the AWS client builder types of the
          Bedrock providers; main code has no bytecode reference to it -->
     <dependency>
@@ -269,11 +220,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>http-auth-spi</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.google.auth</groupId>
-      <artifactId>google-auth-library-oauth2-http</artifactId>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>org.apache.commons</groupId>
