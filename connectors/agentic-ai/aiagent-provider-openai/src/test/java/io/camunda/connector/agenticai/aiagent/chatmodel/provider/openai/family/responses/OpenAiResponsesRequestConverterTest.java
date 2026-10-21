@@ -690,44 +690,6 @@ class OpenAiResponsesRequestConverterTest {
     assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
     assertThat(params.include().orElseThrow())
         .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
-  }
-
-  @Test
-  void requestsEncryptedReasoningButOmitsEffortParamWhenModelDefault() {
-    // The "default" dropdown choice binds to Effort.MODEL_DEFAULT rather than an unset
-    // value; it must still be treated as "don't send the effort dial".
-    final var parameters = new Api.Responses(null, null, null, null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
-
-    assertThat(params.reasoning()).isEmpty();
-    assertThat(params.include().orElseThrow())
-        .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
-  }
-
-  /**
-   * Regression test: {@code responses} itself (not just its fields) can be {@code null} - every one
-   * of its fields is optional, so real job binding produces a {@code null} object, not one with
-   * all-null fields, whenever a modeler leaves every option under the family unset (caught by e2e
-   * running against the real job-input binding path).
-   */
-  @Test
-  void handlesNullResponsesParametersWithoutError() {
-    final var config =
-        new OpenAiConfiguration(
-            new Api.Responses(null, null, null, null),
-            defaultBackend(),
-            "gpt-5",
-            Duration.ofMinutes(3));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toRequest(config, DEFAULT_RESPONSE, snapshot);
-
-    assertThat(params.reasoning()).isEmpty();
-    assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
-    assertThat(params.include().orElseThrow())
-        .contains(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
     assertThat(params.maxOutputTokens()).isEmpty();
     assertThat(params.temperature()).isEmpty();
     assertThat(params.topP()).isEmpty();

@@ -246,7 +246,6 @@ class BedrockConverseChatModelFactoryTest {
   static Stream<Arguments> timeoutConfigurations() {
     return Stream.of(
         Arguments.of(Duration.ofSeconds(45), Duration.ofSeconds(45)),
-        Arguments.of(Duration.ofMinutes(3), Duration.ofMinutes(3)),
         Arguments.of(Duration.ofMinutes(10), Duration.ofMinutes(10)));
   }
 

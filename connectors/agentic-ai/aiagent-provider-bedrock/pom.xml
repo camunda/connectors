@@ -109,7 +109,6 @@
       <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
-      <!-- the compiler needs the auth scheme SPI types the Bedrock runtime client builder exposes -->
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
       <version>${version.aws-sdk2}</version>
@@ -154,6 +153,8 @@
             <id>analyze-dependencies</id>
             <configuration>
               <ignoredNonTestScopedDependencies combine.children="append">
+                <!-- the Bedrock runtime client builder exposes the auth scheme types of this SPI, so the
+                     compiler needs it for the main sources although only the tests reference them -->
                 <dependency>software.amazon.awssdk:http-auth-spi</dependency>
               </ignoredNonTestScopedDependencies>
             </configuration>

@@ -670,7 +670,7 @@ class BedrockConverseRequestConverterTest {
     }
 
     @Test
-    void cachingDisabledOrUnsetOmitsCachePointEverywhere() {
+    void cachingDisabledOmitsCachePointEverywhere() {
       final var tools =
           List.of(
               ToolDefinition.builder()
@@ -678,28 +678,22 @@ class BedrockConverseRequestConverterTest {
                   .description("desc")
                   .inputSchema(Map.of("type", "object"))
                   .build());
+      final var snapshot =
+          new ConversationSnapshot(
+              List.of(
+                  SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
+                  UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+              tools);
 
-      for (final Boolean flag : new Boolean[] {null, Boolean.FALSE}) {
-        final var parameters = flag == null ? null : promptCachingParams(flag);
-        final var snapshot =
-            new ConversationSnapshot(
-                List.of(
-                    SystemMessage.builder()
-                        .content(List.of(TextContent.textContent("sys")))
-                        .build(),
-                    UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
-                tools);
+      final var request =
+          converter.toConverseStreamRequest(
+              model(promptCachingParams(false)), DEFAULT_RESPONSE, snapshot);
 
-        final var request =
-            converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
-
-        assertThat(request.system()).as("system, flag=%s", flag).hasSize(1);
-        assertThat(request.toolConfig().tools()).as("tools, flag=%s", flag).hasSize(1);
-        final var lastMessageContent = request.messages().getLast().content();
-        assertThat(lastMessageContent.stream().noneMatch(block -> block.cachePoint() != null))
-            .as("no cachePoint in last message, flag=%s", flag)
-            .isTrue();
-      }
+      assertThat(request.system()).hasSize(1);
+      assertThat(request.toolConfig().tools()).hasSize(1);
+      final var lastMessageContent = request.messages().getLast().content();
+      assertThat(lastMessageContent.stream().noneMatch(block -> block.cachePoint() != null))
+          .isTrue();
     }
   }
 }

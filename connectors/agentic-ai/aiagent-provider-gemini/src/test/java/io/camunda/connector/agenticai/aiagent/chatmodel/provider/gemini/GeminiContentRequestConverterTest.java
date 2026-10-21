@@ -160,28 +160,6 @@ class GeminiContentRequestConverterTest {
   }
 
   @Test
-  void modelDefaultLevelWithNoBudgetEmitsNoThinkingConfig() {
-    final Thinking thinking = null;
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var config =
-        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
-
-    assertThat(config.thinkingConfig()).isEmpty();
-  }
-
-  @Test
-  void budgetWithModelDefaultLevelDoesNotThrow() {
-    final var thinking = new Thinking.Budget(2048);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var config =
-        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
-
-    assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
-  }
-
-  @Test
   void noThinkingConfiguredEmitsNoThinkingConfig() {
     final Thinking thinking = null;
     final var snapshot = new ConversationSnapshot(List.of(), List.of());

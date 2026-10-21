@@ -143,27 +143,6 @@ class OpenAiCompletionsStrategyTest {
   }
 
   @Test
-  void modelDefaultEffortOmitsReasoningEffortFromSpec() {
-    // The "default" dropdown choice binds to Effort.MODEL_DEFAULT rather than an unset
-    // value; it must still be treated as "don't send reasoning_effort".
-    final var config =
-        new OpenAiConfiguration(
-            new Api.Completions(null, null, null, null),
-            new Backend.Api(
-                "sk-test", null, null, null, RequestCustomizations.of(null, null, null)),
-            "gpt-4o",
-            Duration.ofMinutes(3));
-    stubHappyPath();
-
-    strategy.call(client, config, request);
-
-    final ArgumentCaptor<CompletionsRequestSpec> specCaptor =
-        ArgumentCaptor.forClass(CompletionsRequestSpec.class);
-    verify(requestConverter).toRequest(specCaptor.capture(), any(), any());
-    assertThat(specCaptor.getValue().reasoningEffort()).isNull();
-  }
-
-  @Test
   void mapsEachEffortLevelToItsLowercaseWireValue() {
     for (final var entry :
         Map.of(
@@ -193,13 +172,8 @@ class OpenAiCompletionsStrategyTest {
     }
   }
 
-  /**
-   * Regression test: {@code completions} itself (not just its fields) can be {@code null} - every
-   * one of its fields is optional, so real job binding produces a {@code null} object, not one with
-   * all-null fields, whenever a modeler leaves every option under the family unset.
-   */
   @Test
-  void handlesNullCompletionsParametersWithoutError() {
+  void omitsUnsetParametersFromSpec() {
     final var config =
         new OpenAiConfiguration(
             new Api.Completions(null, null, null, null),

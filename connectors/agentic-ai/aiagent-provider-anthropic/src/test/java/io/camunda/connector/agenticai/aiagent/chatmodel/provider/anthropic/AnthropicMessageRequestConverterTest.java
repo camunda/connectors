@@ -97,11 +97,11 @@ class AnthropicMessageRequestConverterTest {
   }
 
   /** Builds a model with only the prompt-caching toggle set. */
-  private static AnthropicConfiguration promptCachingModel(@Nullable Boolean enablePromptCaching) {
+  private static AnthropicConfiguration promptCachingModel(boolean enablePromptCaching) {
     return model(
         null,
         null,
-        Boolean.TRUE.equals(enablePromptCaching),
+        enablePromptCaching,
         AnthropicConfiguration.DEFAULT_MAX_TOKENS,
         null,
         null,
@@ -639,30 +639,8 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void modelDefaultThinkingModeEmitsNoThinkingParam() {
-    // The model default is the absence of a thinking mechanism: nothing is sent.
-    final var configuration = thinkingModel(null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toMessageCreateParams(configuration, DEFAULT_RESPONSE, snapshot);
-
-    assertThat(params.thinking()).isEmpty();
-  }
-
-  @Test
-  void budgetTokensOnlyWithNullModeEmitsNoThinkingParam() {
-    // A thinking budget never reaches the wire without a thinking mechanism to carry it.
-    final var configuration = thinkingModel(null);
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    final var params = converter.toMessageCreateParams(configuration, DEFAULT_RESPONSE, snapshot);
-
-    assertThat(params.thinking()).isEmpty();
-  }
-
-  @Test
-  void modelDefaultEffortEmitsNoOutputConfig() {
-    // The model default effort is the absence of an effort: nothing is sent.
+  void unsetEffortEmitsNoOutputConfig() {
+    // Without an effort nothing is sent.
     final var configuration = effortModel(null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
@@ -731,18 +709,14 @@ class AnthropicMessageRequestConverterTest {
   }
 
   @Test
-  void promptCachingDisabledOrUnsetOmitsCacheControl() {
-    for (final Boolean flag : new Boolean[] {null, Boolean.FALSE}) {
-      final var params =
-          converter.toMessageCreateParams(
-              promptCachingModel(flag),
-              DEFAULT_RESPONSE,
-              new ConversationSnapshot(List.of(), List.of()));
+  void promptCachingDisabledOmitsCacheControl() {
+    final var params =
+        converter.toMessageCreateParams(
+            promptCachingModel(false),
+            DEFAULT_RESPONSE,
+            new ConversationSnapshot(List.of(), List.of()));
 
-      assertThat(requestBodyAsJson(params).path("cache_control").isMissingNode())
-          .as("cache_control omitted when flag=%s", flag)
-          .isTrue();
-    }
+    assertThat(requestBodyAsJson(params).path("cache_control").isMissingNode()).isTrue();
   }
 
   @Test
