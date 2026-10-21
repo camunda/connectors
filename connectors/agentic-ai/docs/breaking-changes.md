@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom factories for the v1 provider types |
 
 ### Module split
 
@@ -184,6 +185,12 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+### V1 provider configuration
+
+The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is removed. v1 provider
+configurations (legacy element templates) are always rewritten to their v2 equivalent and run on the native providers.
+A runtime that set the switch to `false` must remove the property and move to the native providers.
 
 ## Camunda 8.9 to 8.10
 

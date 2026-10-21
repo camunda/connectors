@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -27,17 +26,6 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final List<ToolCallResult> initialToolCallResults;
   private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
-
-  public AgentSubProcessExecutionContext(
-      final JobContext jobContext, final AgentSubProcessV1Request request) {
-    this(
-        jobContext,
-        request.data(),
-        request.agentContext(),
-        request.toolCallResults(),
-        request.toolElements(),
-        request.provider());
-  }
 
   public AgentSubProcessExecutionContext(
       JobContext jobContext,

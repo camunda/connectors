@@ -46,15 +46,12 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
   private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
-  private final boolean rewriteV1ProviderConfigToV2;
 
   public AgentSubProcessV1Function(
       AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper,
-      boolean rewriteV1ProviderConfigToV2) {
+      V1ToV2ProviderConfigurationMapper providerConfigurationMapper) {
     this.agentRequestHandler = agentRequestHandler;
     this.providerConfigurationMapper = providerConfigurationMapper;
-    this.rewriteV1ProviderConfigToV2 = rewriteV1ProviderConfigToV2;
   }
 
   @Override
@@ -67,17 +64,13 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   private AgentSubProcessExecutionContext buildExecutionContext(
       JobContext jobContext, AgentSubProcessV1Request request) {
-    if (rewriteV1ProviderConfigToV2) {
-      var nativeConfig = providerConfigurationMapper.map(request.provider());
-      return new AgentSubProcessExecutionContext(
-          jobContext,
-          request.data(),
-          request.agentContext(),
-          request.toolCallResults(),
-          request.toolElements(),
-          nativeConfig);
-    }
-
-    return new AgentSubProcessExecutionContext(jobContext, request);
+    var nativeConfig = providerConfigurationMapper.map(request.provider());
+    return new AgentSubProcessExecutionContext(
+        jobContext,
+        request.data(),
+        request.agentContext(),
+        request.toolCallResults(),
+        request.toolElements(),
+        nativeConfig);
   }
 }
