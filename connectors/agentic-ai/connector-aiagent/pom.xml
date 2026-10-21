@@ -91,6 +91,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-gemini</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -173,6 +178,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>com.google.genai</groupId>
       <artifactId>google-genai</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <!-- the tests of the providers use the model classes of the vendor SDKs; the providers bring
@@ -207,6 +213,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
       <version>${version.okhttp}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -263,6 +270,7 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>com.google.auth</groupId>
       <artifactId>google-auth-library-oauth2-http</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

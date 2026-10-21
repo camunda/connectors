@@ -54,6 +54,11 @@ enum AgenticAiModules {
       "ProviderAnthropic",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.anthropic")),
+  PROVIDER_GEMINI(
+      "aiagent-provider-gemini",
+      "ProviderGemini",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.gemini")),
   TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
