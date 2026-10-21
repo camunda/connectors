@@ -129,10 +129,7 @@ public class OpenAiCompletionsResponseConverter {
     // A refusal has no dedicated domain content type; kept as TextContent so the declination stays
     // visible in the partial result once toResult() throws ContentFilteredException for it (see
     // hasRefusal).
-    message
-        .refusal()
-        .filter(refusal -> !refusal.isBlank())
-        .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
+    TextContent.ofNonBlank(message.refusal().orElse(null)).ifPresent(content::add);
 
     final List<ToolCall> toolCalls = new ArrayList<>();
     message
@@ -181,10 +178,7 @@ public class OpenAiCompletionsResponseConverter {
       mapChunkedContent(chunkedContent.get(), content);
       return;
     }
-    message
-        .content()
-        .filter(text -> !text.isBlank())
-        .ifPresent(text -> content.add(TextContent.textContent(text)));
+    TextContent.ofNonBlank(message.content().orElse(null)).ifPresent(content::add);
   }
 
   /**
@@ -214,9 +208,8 @@ public class OpenAiCompletionsResponseConverter {
 
   private void mapGenericChunk(Map<String, Object> raw, List<Content> content) {
     if ("text".equals(raw.get("type"))) {
-      if (raw.get("text") instanceof String text && !text.isBlank()) {
-        content.add(TextContent.textContent(text));
-      }
+      TextContent.ofNonBlank(raw.get("text") instanceof String text ? text : null)
+          .ifPresent(content::add);
     } else {
       content.add(ProviderContent.providerContent(providerId, raw));
     }

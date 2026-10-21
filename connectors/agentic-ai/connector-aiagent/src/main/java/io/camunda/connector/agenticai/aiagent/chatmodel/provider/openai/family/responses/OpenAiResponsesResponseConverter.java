@@ -214,19 +214,13 @@ public class OpenAiResponsesResponseConverter {
 
   private void appendMessageContent(ResponseOutputMessage message, List<Content> content) {
     for (final ResponseOutputMessage.Content messageContent : message.content()) {
-      // Blank text/refusal carries no information; skip it instead of failing TextContent.
-      messageContent
-          .outputText()
-          .map(ResponseOutputText::text)
-          .filter(StringUtils::hasText)
-          .ifPresent(text -> content.add(TextContent.textContent(text)));
+      TextContent.ofNonBlank(messageContent.outputText().map(ResponseOutputText::text).orElse(null))
+          .ifPresent(content::add);
       // A refusal has no dedicated domain content type; kept as TextContent so it survives into
       // ContentFilteredException's partial result instead of being dropped (see hasRefusal).
-      messageContent
-          .refusal()
-          .map(ResponseOutputRefusal::refusal)
-          .filter(StringUtils::hasText)
-          .ifPresent(refusal -> content.add(TextContent.textContent(refusal)));
+      TextContent.ofNonBlank(
+              messageContent.refusal().map(ResponseOutputRefusal::refusal).orElse(null))
+          .ifPresent(content::add);
     }
   }
 

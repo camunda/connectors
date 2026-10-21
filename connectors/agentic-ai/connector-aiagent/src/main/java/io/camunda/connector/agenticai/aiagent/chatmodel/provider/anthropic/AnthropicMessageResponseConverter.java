@@ -121,9 +121,7 @@ public class AnthropicMessageResponseConverter {
 
   private @Nullable Content toContent(ContentBlock block) {
     if (block.isText()) {
-      // Blank text carries no information; skip it instead of failing TextContent.
-      final String text = block.text().orElseThrow().text();
-      return StringUtils.hasText(text) ? TextContent.textContent(text) : null;
+      return TextContent.ofNonBlank(block.text().orElseThrow().text()).orElse(null);
     } else if (block.isThinking()) {
       return toReasoningContent(block);
     } else if (block.isRedactedThinking()) {

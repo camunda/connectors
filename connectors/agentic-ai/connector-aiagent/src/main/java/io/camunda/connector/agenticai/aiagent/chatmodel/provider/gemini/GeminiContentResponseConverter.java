@@ -256,9 +256,10 @@ public class GeminiContentResponseConverter {
     // whichever part the reasoning continuity belongs to, including a plain answer text part. Since
     // every assistant message is replayed back into the next request, dropping it here would break
     // the same follow-up requests the function-call handling above protects.
-    final String text = part.text().filter(StringUtils::hasText).orElse(null);
-    if (text != null) {
-      return new TextContent(text, thoughtSignatureMetadata(part));
+    final var answer =
+        TextContent.ofNonBlank(part.text().orElse(null), thoughtSignatureMetadata(part));
+    if (answer.isPresent()) {
+      return answer.get();
     }
 
     // Fallback for any Gemini part shape not explicitly handled above (including a signature-only
