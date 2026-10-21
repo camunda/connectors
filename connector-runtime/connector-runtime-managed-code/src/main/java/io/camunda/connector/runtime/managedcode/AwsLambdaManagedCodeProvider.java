@@ -24,15 +24,19 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
 import software.amazon.awssdk.services.lambda.model.FunctionCode;
-import software.amazon.awssdk.services.lambda.model.GetFunctionConfigurationResponse;
+import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 import software.amazon.awssdk.services.lambda.model.InvocationType;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
@@ -52,7 +56,13 @@ import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
  *   <li>The {@link AwsLambdaScriptPackager} provides the generated handler and the user script,
  *       zipped here deterministically, so that the code hash is stable and publishing the version
  *       returns the same number to every instance.
- *   <li>The execution role is attached to customer code and must grant nothing beyond logging.
+ *   <li>The execution role is attached to customer code and must grant nothing beyond writing to
+ *       the log group of its function, which this provider creates with a retention period before
+ *       the function and deletes with it. Lambda would otherwise create it with no expiry, and
+ *       deleting a function leaves its log group behind.
+ *   <li>Status is read with {@code GetFunction}, which has its own quota, rather than {@code
+ *       GetFunctionConfiguration}, which shares the 15 calls per second of the control plane with
+ *       every other runtime of the account.
  * </ul>
  */
 public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
@@ -69,25 +79,31 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
 
   private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
   private final LambdaClient lambda;
+  private final CloudWatchLogsClient logs;
   private final ObjectMapper objectMapper;
   private final String executionRoleArn;
   private final int memoryMb;
+  private final int logRetentionDays;
   private final Duration executionTimeout;
   private final Duration provisioningTimeout;
   private final Duration pollInterval;
 
   public AwsLambdaManagedCodeProvider(
       LambdaClient lambda,
+      CloudWatchLogsClient logs,
       ObjectMapper objectMapper,
       String executionRoleArn,
       int memoryMb,
+      int logRetentionDays,
       Duration executionTimeout,
       Duration provisioningTimeout,
       Duration pollInterval) {
     this.lambda = lambda;
+    this.logs = logs;
     this.objectMapper = objectMapper;
     this.executionRoleArn = executionRoleArn;
     this.memoryMb = memoryMb;
+    this.logRetentionDays = logRetentionDays;
     this.executionTimeout = executionTimeout;
     this.provisioningTimeout = provisioningTimeout;
     this.pollInterval = pollInterval;
@@ -109,6 +125,7 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     final var scriptPackage = packager.packageFor(artifact);
     final var name = artifact.deploymentName();
     final var code = SdkBytes.fromByteArray(zip(scriptPackage));
+    ensureLogGroup(name);
     try {
       final var created =
           call(
@@ -189,13 +206,46 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     } catch (ResourceNotFoundException e) {
       // Already deleted.
     }
+    // After the function, so that it never runs without its log group.
+    try {
+      call(() -> logs.deleteLogGroup(r -> r.logGroupName(logGroupName(name))));
+    } catch (software.amazon.awssdk.services.cloudwatchlogs.model.ResourceNotFoundException e) {
+      // Already deleted, or the function never logged.
+    }
   }
 
-  private GetFunctionConfigurationResponse awaitActive(String name) {
+  static String logGroupName(String functionName) {
+    return "/aws/lambda/" + functionName;
+  }
+
+  /** Idempotent, so that concurrent instances and re-provisioning converge on one log group. */
+  private void ensureLogGroup(String functionName) {
+    final var logGroup = logGroupName(functionName);
+    try {
+      call(() -> logs.createLogGroup(r -> r.logGroupName(logGroup)));
+    } catch (ResourceAlreadyExistsException e) {
+      LOG.debug("Log group '{}' already exists", logGroup);
+    }
+    call(
+        () ->
+            logs.putRetentionPolicy(
+                r -> r.logGroupName(logGroup).retentionInDays(logRetentionDays)));
+  }
+
+  private FunctionConfiguration awaitActive(String name) {
     final long deadline = System.nanoTime() + provisioningTimeout.toNanos();
     while (true) {
-      final var configuration =
-          call(() -> lambda.getFunctionConfiguration(r -> r.functionName(name)));
+      final FunctionConfiguration configuration;
+      try {
+        configuration = call(() -> lambda.getFunction(r -> r.functionName(name))).configuration();
+      } catch (ProvisioningException e) {
+        if (!e.retryable() || System.nanoTime() > deadline) {
+          throw e;
+        }
+        // Throttled or unavailable: keep waiting rather than fail the job.
+        sleep(backoff(e.getCause()));
+        continue;
+      }
       if (configuration.state() == State.FAILED
           || configuration.lastUpdateStatus() == LastUpdateStatus.FAILED) {
         throw new ProvisioningException(
@@ -220,8 +270,27 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
                 .formatted(name, configuration.state(), configuration.lastUpdateStatus()),
             true);
       }
-      sleep(pollInterval);
+      sleep(withJitter(pollInterval));
     }
+  }
+
+  /** Honours the {@code Retry-After} of a throttling response, otherwise twice the interval. */
+  private Duration backoff(Throwable cause) {
+    if (cause instanceof TooManyRequestsException throttled
+        && throttled.retryAfterSeconds() != null) {
+      try {
+        return withJitter(Duration.ofSeconds(Long.parseLong(throttled.retryAfterSeconds())));
+      } catch (NumberFormatException ignored) {
+        // Fall back to the interval.
+      }
+    }
+    return withJitter(pollInterval.multipliedBy(2));
+  }
+
+  /** Up to 50% more, so that runtimes started together do not poll in step. */
+  private static Duration withJitter(Duration duration) {
+    final long millis = Math.max(1, duration.toMillis());
+    return Duration.ofMillis(millis + ThreadLocalRandom.current().nextLong(millis / 2 + 1));
   }
 
   /**
@@ -250,11 +319,15 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
   private static <T> T call(java.util.function.Supplier<T> operation) {
     try {
       return operation.get();
-    } catch (ResourceConflictException | ResourceNotFoundException e) {
+    } catch (ResourceConflictException
+        | ResourceNotFoundException
+        | ResourceAlreadyExistsException
+        | software.amazon.awssdk.services.cloudwatchlogs.model.ResourceNotFoundException e) {
       throw e;
-    } catch (TooManyRequestsException e) {
-      throw new ProvisioningException("PLATFORM_THROTTLED", safeMessage(e), true, e);
-    } catch (LambdaException e) {
+    } catch (AwsServiceException e) {
+      if (e instanceof TooManyRequestsException || e.isThrottlingException()) {
+        throw new ProvisioningException("PLATFORM_THROTTLED", safeMessage(e), true, e);
+      }
       final var status = e.statusCode();
       // 4xx other than throttling means the request or the permissions are wrong.
       throw new ProvisioningException(

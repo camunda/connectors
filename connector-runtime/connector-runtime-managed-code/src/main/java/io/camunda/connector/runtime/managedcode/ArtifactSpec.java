@@ -51,7 +51,11 @@ public record ArtifactSpec(
   /** Default prefix of provider resource names, before the prefix of a cluster is configured. */
   static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
 
-  private static final int DEPLOYMENT_NAME_HASH_LENGTH = 40;
+  /**
+   * 128 bits. Leaves 31 characters for the prefix within the 63 characters of a Cloud Run service
+   * name (Lambda allows 64), enough for the fixed-length prefix {@code ce-<24 hex>-} of SaaS.
+   */
+  static final int DEPLOYMENT_NAME_HASH_LENGTH = 32;
 
   /** Deployment registry key; one provider deployment exists per key. */
   public record Key(String physicalTenantId, String tenantId, String provider, String digest) {}

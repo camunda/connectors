@@ -35,15 +35,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.zip.ZipInputStream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DeleteLogGroupRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DeleteLogGroupResponse;
+import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyResponse;
+import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
 import software.amazon.awssdk.services.lambda.model.CreateFunctionResponse;
 import software.amazon.awssdk.services.lambda.model.DeleteFunctionRequest;
-import software.amazon.awssdk.services.lambda.model.GetFunctionConfigurationRequest;
-import software.amazon.awssdk.services.lambda.model.GetFunctionConfigurationResponse;
+import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
+import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.GetFunctionResponse;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
@@ -52,23 +62,40 @@ import software.amazon.awssdk.services.lambda.model.PublishVersionResponse;
 import software.amazon.awssdk.services.lambda.model.ResourceConflictException;
 import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.lambda.model.State;
+import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 
 class AwsLambdaManagedCodeProviderTest {
 
   private static final String ROLE = "arn:aws:iam::000000000000:role/test";
 
   private final LambdaClient lambda = mock(LambdaClient.class, CALLS_REAL_METHODS);
+  private final CloudWatchLogsClient logs = mock(CloudWatchLogsClient.class, CALLS_REAL_METHODS);
   private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AwsLambdaManagedCodeProvider provider =
       new AwsLambdaManagedCodeProvider(
           lambda,
+          logs,
           objectMapper,
           ROLE,
           256,
+          14,
           Duration.ofSeconds(30),
           Duration.ofSeconds(5),
           Duration.ofMillis(1));
+
+  @BeforeEach
+  void stubLogGroups() {
+    doReturn(CreateLogGroupResponse.builder().build())
+        .when(logs)
+        .createLogGroup(any(CreateLogGroupRequest.class));
+    doReturn(PutRetentionPolicyResponse.builder().build())
+        .when(logs)
+        .putRetentionPolicy(any(PutRetentionPolicyRequest.class));
+    doReturn(DeleteLogGroupResponse.builder().build())
+        .when(logs)
+        .deleteLogGroup(any(DeleteLogGroupRequest.class));
+  }
 
   @Test
   void createsAndPublishesAFunctionNamedAfterTheArtifact() throws IOException {
@@ -78,7 +105,7 @@ class AwsLambdaManagedCodeProviderTest {
         .createFunction(any(CreateFunctionRequest.class));
     doReturn(configuration(State.ACTIVE, LastUpdateStatus.SUCCESSFUL))
         .when(lambda)
-        .getFunctionConfiguration(any(GetFunctionConfigurationRequest.class));
+        .getFunction(any(GetFunctionRequest.class));
     doReturn(PublishVersionResponse.builder().version("1").build())
         .when(lambda)
         .publishVersion(any(PublishVersionRequest.class));
@@ -102,6 +129,37 @@ class AwsLambdaManagedCodeProviderTest {
     final var publish = ArgumentCaptor.forClass(PublishVersionRequest.class);
     verify(lambda).publishVersion(publish.capture());
     assertThat(publish.getValue().codeSha256()).isEqualTo("sha");
+    final var logGroup = ArgumentCaptor.forClass(CreateLogGroupRequest.class);
+    verify(logs).createLogGroup(logGroup.capture());
+    assertThat(logGroup.getValue().logGroupName())
+        .isEqualTo("/aws/lambda/" + artifact.deploymentName());
+    final var retention = ArgumentCaptor.forClass(PutRetentionPolicyRequest.class);
+    verify(logs).putRetentionPolicy(retention.capture());
+    assertThat(retention.getValue().retentionInDays()).isEqualTo(14);
+  }
+
+  @Test
+  void keepsPollingWhenTheStatusReadIsThrottled() {
+    final var artifact = artifact(ScriptLanguage.JAVASCRIPT, "nodejs", "sum.js");
+    doThrow(ResourceAlreadyExistsException.builder().message("exists").build())
+        .when(logs)
+        .createLogGroup(any(CreateLogGroupRequest.class));
+    doReturn(CreateFunctionResponse.builder().version("1").build())
+        .when(lambda)
+        .createFunction(any(CreateFunctionRequest.class));
+    doThrow(TooManyRequestsException.builder().message("slow down").build())
+        .doReturn(configuration(State.ACTIVE, LastUpdateStatus.SUCCESSFUL))
+        .when(lambda)
+        .getFunction(any(GetFunctionRequest.class));
+    doReturn(PublishVersionResponse.builder().version("2").build())
+        .when(lambda)
+        .publishVersion(any(PublishVersionRequest.class));
+
+    final var handle = provision(artifact);
+
+    assertThat(handle.ready().toCompletableFuture().join().deploymentId())
+        .isEqualTo(artifact.deploymentName() + ":2");
+    verify(logs).putRetentionPolicy(any(PutRetentionPolicyRequest.class));
   }
 
   @Test
@@ -115,7 +173,7 @@ class AwsLambdaManagedCodeProviderTest {
             configuration(State.ACTIVE, LastUpdateStatus.IN_PROGRESS),
             configuration(State.ACTIVE, LastUpdateStatus.SUCCESSFUL))
         .when(lambda)
-        .getFunctionConfiguration(any(GetFunctionConfigurationRequest.class));
+        .getFunction(any(GetFunctionRequest.class));
     doThrow(ResourceConflictException.builder().message("in progress").build())
         .doReturn(PublishVersionResponse.builder().version("3").build())
         .when(lambda)
@@ -134,12 +192,15 @@ class AwsLambdaManagedCodeProviderTest {
         .when(lambda)
         .createFunction(any(CreateFunctionRequest.class));
     doReturn(
-            GetFunctionConfigurationResponse.builder()
-                .state(State.FAILED)
-                .stateReason("role cannot be assumed")
+            GetFunctionResponse.builder()
+                .configuration(
+                    FunctionConfiguration.builder()
+                        .state(State.FAILED)
+                        .stateReason("role cannot be assumed")
+                        .build())
                 .build())
         .when(lambda)
-        .getFunctionConfiguration(any(GetFunctionConfigurationRequest.class));
+        .getFunction(any(GetFunctionRequest.class));
 
     final var failure =
         catchThrowableOfType(ProvisioningException.class, () -> provision(artifact));
@@ -233,16 +294,25 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
-  void deletesIdempotently() {
+  void deletesTheFunctionAndItsLogGroupIdempotently() {
     doThrow(ResourceNotFoundException.builder().message("gone").build())
         .when(lambda)
         .deleteFunction(any(DeleteFunctionRequest.class));
+    doThrow(
+            software.amazon.awssdk.services.cloudwatchlogs.model.ResourceNotFoundException.builder()
+                .message("gone")
+                .build())
+        .when(logs)
+        .deleteLogGroup(any(DeleteLogGroupRequest.class));
 
     provider.delete(new ProviderDeployment("aws", "camunda-ms-abc:4"));
 
     final var request = ArgumentCaptor.forClass(DeleteFunctionRequest.class);
     verify(lambda).deleteFunction(request.capture());
     assertThat(request.getValue().functionName()).isEqualTo("camunda-ms-abc");
+    final var logGroup = ArgumentCaptor.forClass(DeleteLogGroupRequest.class);
+    verify(logs).deleteLogGroup(logGroup.capture());
+    assertThat(logGroup.getValue().logGroupName()).isEqualTo("/aws/lambda/camunda-ms-abc");
   }
 
   private ProvisioningHandle provision(ArtifactSpec artifact) {
@@ -288,12 +358,14 @@ class AwsLambdaManagedCodeProviderTest {
         Optional.empty());
   }
 
-  private static GetFunctionConfigurationResponse configuration(
-      State state, LastUpdateStatus lastUpdateStatus) {
-    return GetFunctionConfigurationResponse.builder()
-        .state(state)
-        .lastUpdateStatus(lastUpdateStatus)
-        .codeSha256("sha")
+  private static GetFunctionResponse configuration(State state, LastUpdateStatus lastUpdateStatus) {
+    return GetFunctionResponse.builder()
+        .configuration(
+            FunctionConfiguration.builder()
+                .state(state)
+                .lastUpdateStatus(lastUpdateStatus)
+                .codeSha256("sha")
+                .build())
         .build();
   }
 

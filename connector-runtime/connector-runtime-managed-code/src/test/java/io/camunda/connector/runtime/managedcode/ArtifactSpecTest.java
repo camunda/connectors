@@ -57,7 +57,7 @@ class ArtifactSpecTest {
     assertThat(tenantB.deploymentName())
         .isNotEqualTo(tenantA.deploymentName())
         .startsWith("camunda-ms-")
-        .hasSize("camunda-ms-".length() + 40);
+        .hasSize("camunda-ms-".length() + 32);
   }
 
   @Test

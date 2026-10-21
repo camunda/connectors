@@ -43,8 +43,15 @@ public record ManagedCodeProperties(
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
-  /** Lambda function names have at most 64 characters, 40 of which are the name hash. */
-  private static final Pattern DEPLOYMENT_NAME_PREFIX = Pattern.compile("[a-z][a-z0-9-]{0,23}");
+  /**
+   * Cloud Run service names have at most 63 characters, Lambda function names 64; the name hash
+   * takes {@value ArtifactSpec#DEPLOYMENT_NAME_HASH_LENGTH} of them.
+   */
+  private static final int MAX_DEPLOYMENT_NAME_PREFIX_LENGTH =
+      63 - ArtifactSpec.DEPLOYMENT_NAME_HASH_LENGTH;
+
+  private static final Pattern DEPLOYMENT_NAME_PREFIX =
+      Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
 
   private static final int DEFAULT_PROVISIONING_CONCURRENCY = 2;
   private static final Duration DEFAULT_LOCAL_INSTALL_TIMEOUT = Duration.ofMinutes(5);
@@ -58,8 +65,8 @@ public record ManagedCodeProperties(
     if (!DEPLOYMENT_NAME_PREFIX.matcher(deploymentNamePrefix).matches()) {
       throw new IllegalArgumentException(
           ("camunda.connector.managed-code.deployment-name-prefix '%s' must start with a lowercase"
-                  + " letter and contain at most 24 lowercase letters, digits and hyphens")
-              .formatted(deploymentNamePrefix));
+                  + " letter and contain at most %d lowercase letters, digits and hyphens")
+              .formatted(deploymentNamePrefix, MAX_DEPLOYMENT_NAME_PREFIX_LENGTH));
     }
     executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
     provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
@@ -68,7 +75,7 @@ public record ManagedCodeProperties(
     provisioningConcurrency =
         provisioningConcurrency > 0 ? provisioningConcurrency : DEFAULT_PROVISIONING_CONCURRENCY;
     local = local == null ? new Local(null, null) : local;
-    aws = aws == null ? new Aws(null, null, 0, null) : aws;
+    aws = aws == null ? new Aws(null, null, 0, 0, null) : aws;
   }
 
   /**
@@ -93,11 +100,19 @@ public record ManagedCodeProperties(
    * @param region region of the functions; the default region of the chain when absent
    * @param executionRoleArn role attached to the functions, granting nothing beyond logging
    * @param memoryMb memory of each function
+   * @param logRetentionDays retention of the log group created for each function, one of the values
+   *     CloudWatch Logs accepts
    * @param pollInterval interval between status reads while a function is created
    */
-  public record Aws(String region, String executionRoleArn, int memoryMb, Duration pollInterval) {
+  public record Aws(
+      String region,
+      String executionRoleArn,
+      int memoryMb,
+      int logRetentionDays,
+      Duration pollInterval) {
 
     private static final int DEFAULT_MEMORY_MB = 256;
+    private static final int DEFAULT_LOG_RETENTION_DAYS = 14;
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(2);
 
     public Aws {
@@ -105,6 +120,7 @@ public record ManagedCodeProperties(
       executionRoleArn =
           executionRoleArn == null || executionRoleArn.isBlank() ? null : executionRoleArn.strip();
       memoryMb = memoryMb > 0 ? memoryMb : DEFAULT_MEMORY_MB;
+      logRetentionDays = logRetentionDays > 0 ? logRetentionDays : DEFAULT_LOG_RETENTION_DAYS;
       pollInterval = positive(pollInterval, DEFAULT_POLL_INTERVAL);
     }
   }

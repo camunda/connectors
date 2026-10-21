@@ -106,6 +106,20 @@ class ManagedCodeAutoConfigurationTest {
   }
 
   @Test
+  void acceptsTheFixedLengthPrefixOfSaas() {
+    final var prefix = "ce-0123456789abcdef01234567-";
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=local",
+            "camunda.connector.managed-code.deployment-name-prefix=" + prefix)
+        .run(
+            context ->
+                assertThat(context.getBean(ManagedCodeProperties.class).deploymentNamePrefix())
+                    .isEqualTo(prefix));
+  }
+
+  @Test
   void rejectsAnInvalidDeploymentNamePrefix() {
     contextRunner
         .withPropertyValues(

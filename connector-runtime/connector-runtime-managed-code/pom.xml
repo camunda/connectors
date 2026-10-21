@@ -54,6 +54,11 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>cloudwatchlogs</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>regions</artifactId>
     </dependency>
     <dependency>

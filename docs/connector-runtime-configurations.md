@@ -39,7 +39,11 @@ camunda.connector.managed-code.local.install-timeout=5m
 ```
 
 `deployment-name-prefix` starts every provider resource name, one prefix per cluster, so that the
-identity of the runtime can be limited to its own resources.
+identity of the runtime can be limited to its own resources. It has at most 31 lowercase letters,
+digits and hyphens, followed by a 32-character hash. In a cloud account shared by several clusters,
+use prefixes of one fixed length that are not prefixes of each other, such as `ce-` followed by 24
+hexadecimal characters and `-`: with `a-` and `a-b-`, the identity of the first cluster could
+create names of the second.
 
 The job timeout must cover `provisioning-timeout + execution-timeout`. The default job timeout of
 the runtime, 5 minutes, does; set `CONNECTOR_MANAGED_SCRIPT_TIMEOUT` (milliseconds) or the job
@@ -57,7 +61,7 @@ Unlike other connectors, the runtime does not replace legacy `{{secrets.<name>}}
 the script input: the script receives them as literal text. A script gets a secret only through
 `camunda.secrets.<name>` in its input mapping, which the engine resolves.
 
-The only built-in provider is `local`. It deploys each script to its own subdirectory of
+The `local` provider deploys each script to its own subdirectory of
 `local.directory` (by default `camunda-managed-code` in the Java temporary directory), adopts
 existing deployments after a restart, and executes scripts in local Node.js 20+ or Python 3.10+
 subprocesses discovered from `PATH`. A linked `requirements.txt` or `package.json` is installed
@@ -74,13 +78,27 @@ camunda.connector.managed-code.provider=aws
 camunda.connector.managed-code.aws.region=eu-central-1
 camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::<account>:role/<execution-role>
 camunda.connector.managed-code.aws.memory-mb=256
+camunda.connector.managed-code.aws.log-retention-days=14
+camunda.connector.managed-code.aws.poll-interval=2s
 ```
 
 Credentials come from the default AWS credentials chain, for example `AWS_PROFILE` or a workload
-identity. That identity needs `lambda:CreateFunction`, `GetFunctionConfiguration`,
-`PublishVersion`, `InvokeFunction` and `DeleteFunction` on the functions of the prefix, and
-`iam:PassRole` on the execution role. The execution role runs customer code and must grant nothing
-beyond writing logs. The function timeout is `execution-timeout`. A function is created with the
+identity. That identity needs:
+
+- `lambda:CreateFunction`, `GetFunction`, `PublishVersion`, `InvokeFunction`, `DeleteFunction` and
+  `TagResource` on `function:<prefix>*`;
+- `logs:CreateLogGroup`, `logs:PutRetentionPolicy` and `logs:DeleteLogGroup` on
+  `log-group:/aws/lambda/<prefix>*`;
+- `iam:PassRole` on the execution role only, conditioned on `iam:PassedToService` being
+  `lambda.amazonaws.com`.
+
+It needs no `lambda:ListFunctions`, which cannot be limited to a prefix and returns the environment
+variables of every function in the account. The provider creates the log group of each function
+with `log-retention-days` before the function, and deletes it after the function. The execution
+role runs customer code and must grant nothing beyond `logs:CreateLogStream` and
+`logs:PutLogEvents` on its log group. Status is read with `GetFunction`, which has its own quota,
+every `poll-interval` with jitter; a throttled read is retried until `provisioning-timeout`. The
+function timeout is `execution-timeout`. A function is created with the
 first job of its script, which waits until it is active; later jobs invoke the published version.
 Concurrent instances converge on one function: a create that conflicts adopts the existing one.
 Dependencies are not supported. Networking, such as denying egress, is not configured by the

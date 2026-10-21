@@ -28,6 +28,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 
 @AutoConfiguration
@@ -80,8 +81,10 @@ public class ManagedCodeAutoConfiguration {
             .overrideConfiguration(
                 // the synchronous invocation must outlive the function timeout
                 o -> o.apiCallAttemptTimeout(properties.executionTimeout().plusSeconds(30)));
+    final var logs = CloudWatchLogsClient.builder();
     if (aws.region() != null) {
       builder.region(Region.of(aws.region()));
+      logs.region(Region.of(aws.region()));
     }
     LOG.info(
         "Managed-code provider 'aws' is enabled: scripts are deployed as AWS Lambda functions"
@@ -89,9 +92,11 @@ public class ManagedCodeAutoConfiguration {
         properties.deploymentNamePrefix());
     return new AwsLambdaManagedCodeProvider(
         builder.build(),
+        logs.build(),
         objectMapper,
         aws.executionRoleArn(),
         aws.memoryMb(),
+        aws.logRetentionDays(),
         properties.executionTimeout(),
         properties.provisioningTimeout(),
         aws.pollInterval());
