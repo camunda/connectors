@@ -18,6 +18,12 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch_name }}
 
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
       - name: install-uniquet
         run: |
           ./mvnw -U install -DskipTests -pl element-template-generator/uniquet -am

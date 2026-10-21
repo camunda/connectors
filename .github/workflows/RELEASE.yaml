@@ -122,6 +122,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
       - name: Install Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -264,7 +271,9 @@ jobs:
       run-unit-tests: false
       maven-cache-key: ${{ needs.setup.outputs.mavenCacheKey }}
       build-runner: gcp-core-8-release
-      runner-overrides: '{"connectors-e2e-test-agentic-ai":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
+      # Of the agentic AI e2e modules, only the AI Agent module needs the larger runner. A release
+      # runs this file from the released branch, so the map lists only the modules of this branch.
+      runner-overrides: '{"connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-aiagent":"gcp-core-8-release","connectors-e2e-test-inbound-runtime":"gcp-core-8-release"}'
     secrets: inherit
 
 
@@ -418,6 +427,13 @@ jobs:
           key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
 
       - name: Log Maven deployment target
         run: |
