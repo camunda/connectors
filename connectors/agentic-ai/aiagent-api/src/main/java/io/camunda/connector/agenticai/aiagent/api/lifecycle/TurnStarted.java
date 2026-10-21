@@ -15,8 +15,9 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A turn starts: its input is composed and the model is about to be called. Carries complete
- * content, including prompts and tool results.
+ * A turn starts: its input is composed, the lease-fenced agent instance write of the turn start
+ * succeeded, and the model is about to be called. Carries complete content, including prompts and
+ * tool results.
  *
  * @param toolExecutions the tool results consumed by this turn
  */

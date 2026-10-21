@@ -11,7 +11,8 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.List;
 
 /**
- * The job dispatches gateway tool discovery calls and persists the agent context.
+ * The job dispatches gateway tool discovery calls and persists the agent context. Reported after
+ * the lease-fenced agent instance write succeeded.
  *
  * @param toolCalls the gateway tool discovery tool calls the job issues
  */

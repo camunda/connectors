@@ -399,12 +399,10 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
-  void jobSupersededBeforeItsFirstModelRoundExportsNothing() {
+  void jobSupersededBeforeItsTurnStartedExportsNothing() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
-    observer.onTurnStarted(
-        turnStarted(1, List.of(toolExecution("call-1", "search", T0.plusSeconds(5), false))));
     observer.onJobFailed(
         new JobFailed(
             new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded"),
@@ -415,18 +413,34 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
-  void supersededToolDiscoveryJobExportsNothingThoughItAlreadyReportedItsRunState() {
+  void toolDiscoveryJobSupersededBeforeItsDispatchExportsNothing() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
 
-    final var state = observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
     observer.onJobFailed(
         new JobFailed(
             new ConnectorException("AGENT_INSTANCE_SUPERSEDED", "job superseded"),
             "AGENT_INSTANCE_SUPERSEDED"));
+    observer.onJobCompletionFailed(new ExecutionFailed(new RuntimeException("again"), null));
 
-    assertThat(state).containsKey("traceId");
     assertThat(exporter.getFinishedSpanItems()).isEmpty();
+  }
+
+  @Test
+  void toolDiscoveryJobSupersededAfterItsDispatchExportsAsSuperseded() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
+
+    observer.onToolDiscoveryDispatched(new ToolDiscoveryDispatched(List.of()));
+    observer.onJobCompletionFailed(new CommandIgnored(new RuntimeException("not found")));
+
+    assertThat(exporter.getFinishedSpanItems())
+        .extracting(SpanData::getName)
+        .containsExactlyInAnyOrder("invoke_agent agent", "agent run");
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME))
+        .isEqualTo("superseded");
+    assertThat(invokeAgent.getStatus().getStatusCode()).isEqualTo(StatusCode.UNSET);
   }
 
   @Test
@@ -450,6 +464,31 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
+  void runStartingJobFailingBeforeItsTurnStartedExportsItsAnchorAndFailedSpan() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+
+    observer.onJobFailed(
+        new JobFailed(
+            new ConnectorException("MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED", "limit"),
+            "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED"));
+    observer.onJobCompletionFailed(new ExecutionFailed(new RuntimeException("again"), null));
+
+    assertThat(exporter.getFinishedSpanItems())
+        .extracting(SpanData::getName)
+        .containsExactlyInAnyOrder("invoke_agent agent", "agent run");
+    final SpanData anchor = span("agent run");
+    final SpanData invokeAgent = span("invoke_agent agent");
+    assertThat(invokeAgent.getParentSpanId()).isEqualTo(anchor.getSpanId());
+    assertThat(invokeAgent.getStartEpochNanos()).isEqualTo(nanos(T0));
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.JOB_OUTCOME)).isEqualTo("failed");
+    assertThat(invokeAgent.getAttributes().get(GenAiAttributes.ERROR_TYPE))
+        .isEqualTo("MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED");
+    assertThat(invokeAgent.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+    assertThat(anchor.getEndEpochNanos()).isEqualTo(nanos(T0));
+  }
+
+  @Test
   void jobFailingBeforeAnyTurnStartedExportsItsFailedSpans() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
@@ -463,17 +502,7 @@ class AgentTracingJobObserverTest {
   }
 
   @Test
-  void jobCompletingWithoutAModelRoundExportsNothing() {
-    final var completing =
-        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
-    completing.onTurnStarted(turnStarted(2, List.of()));
-    completing.onJobCompleted();
-
-    assertThat(exporter.getFinishedSpanItems()).isEmpty();
-  }
-
-  @Test
-  void spansStartAtTheFirstModelRoundWithTheRecordedJobStart() {
+  void spansStartAtTheTurnStartWithTheRecordedJobStart() {
     final var observer =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
@@ -493,13 +522,13 @@ class AgentTracingJobObserverTest {
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
     observer.onTurnStarted(turnStarted(1, List.of()));
-    observer.onModelRoundStarted(roundStarted());
-    // the marker is exported as soon as the first model round starts, whatever the job does next
+    // the marker is exported as soon as the turn starts, whatever the job does next
     assertThat(exporter.getFinishedSpanItems())
         .extracting(SpanData::getName)
         .containsExactly("agent run");
 
     assertThat(span("agent run").getEndEpochNanos()).isEqualTo(nanos(T0));
+    observer.onModelRoundStarted(roundStarted());
     observer.onJobCompleted();
 
     final SpanData anchor = span("agent run");
@@ -524,6 +553,17 @@ class AgentTracingJobObserverTest {
         .isEqualTo(anchor.getEndEpochNanos())
         .isEqualTo(span("invoke_agent agent").getStartEpochNanos())
         .isEqualTo(nanos(T0));
+  }
+
+  @Test
+  void aJobContinuingARunExportsNoSpanBeforeItsJobEnds() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
+
+    observer.onTurnStarted(turnStarted(2, List.of()));
+    observer.onModelRoundStarted(roundStarted());
+
+    assertThat(exporter.getFinishedSpanItems()).isEmpty();
   }
 
   @Test

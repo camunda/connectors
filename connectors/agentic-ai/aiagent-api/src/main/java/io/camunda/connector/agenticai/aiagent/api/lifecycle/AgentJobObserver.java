@@ -50,7 +50,8 @@ public interface AgentJobObserver {
   default void onJobDeferred(JobDeferred event) {}
 
   /**
-   * The job dispatches tool discovery and persists the agent context.
+   * The job dispatches tool discovery and persists the agent context. Runs after the lease-fenced
+   * agent instance write succeeded, so only a job that holds the lease reports it.
    *
    * @return state to store in the agent context, or null to leave the stored state unchanged
    */
@@ -58,7 +59,12 @@ public interface AgentJobObserver {
     return null;
   }
 
-  /** A turn starts. */
+  /**
+   * A turn starts. Runs after the lease-fenced agent instance write of the turn start succeeded, so
+   * only a job that holds the lease reports it. A job that fails before that write, for example
+   * because it reached the model call limit or was superseded, reports {@link #onJobFailed} without
+   * a turn start.
+   */
   default void onTurnStarted(TurnStarted event) {}
 
   default void onModelRoundStarted(ModelRoundStarted event) {}
