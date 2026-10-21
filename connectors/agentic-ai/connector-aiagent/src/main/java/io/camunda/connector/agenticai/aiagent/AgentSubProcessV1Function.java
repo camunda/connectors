@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentProcessVariables;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;

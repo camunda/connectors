@@ -51,6 +51,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider | provider-support, aws-support, api, model, common |
 | `aiagent-provider-langchain4j`  | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge (converters, chat model adapter, wiring). Opt-in: not in the bundle, not a dependency of `connector-aiagent` | provider-support, api, model, common |
 | `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store | aws-support, api, model, common |
+| `aiagent-core` | `aiagent.agent`, `aiagent.agentinstance`, `aiagent.conversation`, `aiagent.document`, `aiagent.memory` (except the AgentCore store), `aiagent.systemprompt`, `aiagent.tool`, `aiagent.util` and the package `aiagent.chatmodel` | Agent loop: request handlers, initializer, conversation turn composer, memory stores, system prompt composition, tool call handling, agent instance client, chat model registry | tools-schema, api, model, common |
 | `aiagent-test-support` | `aiagent.testsupport` | Fixtures for the tests of the AI Agent modules (messages, agent configurations, object mapper, envelope and log helpers). Test scope only, never published | provider-support, api, model, common |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
@@ -58,7 +59,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
-| `connector-aiagent`             | `aiagent` (except `model`, `api` and the roots of the support modules) | AI Agent connectors, providers, stores, agent instance client  | provider-mistral, provider-openai, azure-support, aws-support, provider-support, tools-schema, api, model, common  |
+| `connector-aiagent`             | `aiagent` (except `model`, `api` and the roots of the support modules) | AI Agent connectors, request records and translation, wiring   | core, provider-mistral, provider-openai, azure-support, aws-support, provider-support, memory-agentcore, provider-anthropic, provider-gemini, provider-bedrock, tools-schema, api, model, common  |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 

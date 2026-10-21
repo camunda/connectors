@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent;
+package io.camunda.connector.agenticai.aiagent.agent;
 
 /** Well-known process variable names used by the AI Agent connectors. */
 public final class AgentProcessVariables {

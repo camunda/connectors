@@ -11,6 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessConnectorResponse;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;

@@ -6,9 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
-import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse;
-import io.camunda.connector.agenticai.aiagent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;

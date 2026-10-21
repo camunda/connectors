@@ -4,10 +4,8 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent;
+package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentJobCompletionListener;
-import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;

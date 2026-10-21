@@ -111,6 +111,12 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-core</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-test-support</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -200,6 +206,7 @@
                 <dependency>io.camunda.connector.agenticai:aiagent-model</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-api</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-support</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-core</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-memory-agentcore</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-langchain4j</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-bedrock</dependency>

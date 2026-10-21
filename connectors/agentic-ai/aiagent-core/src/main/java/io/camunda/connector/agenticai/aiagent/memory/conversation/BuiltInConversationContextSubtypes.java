@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
@@ -18,9 +17,6 @@ public class BuiltInConversationContextSubtypes implements ConversationContextSu
 
   @Override
   public List<Class<? extends ConversationContext>> subtypes() {
-    return List.of(
-        InProcessConversationContext.class,
-        CamundaDocumentConversationContext.class,
-        AwsAgentCoreConversationContext.class);
+    return List.of(InProcessConversationContext.class, CamundaDocumentConversationContext.class);
   }
 }

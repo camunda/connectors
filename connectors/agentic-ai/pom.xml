@@ -45,6 +45,7 @@
   <modules>
     <module>agentic-ai-common</module>
     <module>aiagent-model</module>
+    <module>aiagent-core</module>
     <module>aiagent-api</module>
     <module>aiagent-provider-support</module>
     <module>aiagent-test-support</module>

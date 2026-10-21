@@ -101,12 +101,17 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
-      <artifactId>aiagent-tools-schema</artifactId>
+      <artifactId>aiagent-memory-agentcore</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
-      <artifactId>aiagent-memory-agentcore</artifactId>
+      <artifactId>aiagent-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -132,14 +137,16 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -213,14 +220,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-collections4</artifactId>
     </dependency>
 
     <dependency>
@@ -359,7 +358,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-          <includeDependencies>io.camunda.connector.agenticai:aiagent-model</includeDependencies>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector.agenticai:aiagent-model</includeDependency>
+            <includeDependency>io.camunda.connector.agenticai:aiagent-core</includeDependency>
+          </includeDependencies>
         </configuration>
       </plugin>
       <plugin>

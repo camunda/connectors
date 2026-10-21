@@ -34,7 +34,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
-import io.camunda.connector.agenticai.aiagent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;

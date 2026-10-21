@@ -74,6 +74,23 @@ enum AgenticAiModules {
       "MemoryAgentCore",
       Kind.LIBRARY,
       under("aiagent.memory.conversation.awsagentcore")),
+  CORE(
+      "aiagent-core",
+      "Core",
+      Kind.LIBRARY,
+      DescribedPredicate.describe(
+          "reside in the agent loop package roots, outside the roots of the other modules",
+          javaClass ->
+              (under("aiagent.agent").test(javaClass)
+                      || under("aiagent.agentinstance").test(javaClass)
+                      || under("aiagent.conversation").test(javaClass)
+                      || under("aiagent.document").test(javaClass)
+                      || under("aiagent.memory").test(javaClass)
+                      || under("aiagent.systemprompt").test(javaClass)
+                      || under("aiagent.tool").test(javaClass)
+                      || under("aiagent.util").test(javaClass)
+                      || resideInAPackage(pkg("aiagent.chatmodel")).test(javaClass))
+                  && !MEMORY_AGENTCORE.root.test(javaClass))),
   TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
