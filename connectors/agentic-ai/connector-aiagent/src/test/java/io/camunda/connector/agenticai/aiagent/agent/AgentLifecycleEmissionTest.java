@@ -15,7 +15,13 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMes
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,12 +51,14 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +69,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -241,6 +250,143 @@ class AgentLifecycleEmissionTest {
               assertThat(execution.result().id()).isEqualTo("call_1");
               assertThat(execution.cancelled()).isFalse();
             });
+  }
+
+  @Test
+  void toolDiscoveryDispatchIsReportedAfterTheFencedHistoryWrite() {
+    final var discoveryContext = AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new DiscoverTools(
+                discoveryContext, List.of(ToolCall.builder().id("d1").name("Gateway").build())));
+    final var observer = mock(AgentJobObserver.class);
+
+    handler(dispatcher(listenerOf(observer))).handleRequest(agentExecutionContext);
+
+    final InOrder inOrder = inOrder(agentInstanceClient, observer);
+    inOrder.verify(agentInstanceClient).applyToolDiscoveryStart(eq(agentExecutionContext), any());
+    inOrder.verify(observer).onToolDiscoveryDispatched(any(ToolDiscoveryDispatched.class));
+  }
+
+  @Test
+  void supersededToolDiscoveryWriteReportsNoDispatch() {
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new DiscoverTools(
+                AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build(),
+                List.of(ToolCall.builder().id("d1").name("Gateway").build())));
+    doThrow(superseded())
+        .when(agentInstanceClient)
+        .applyToolDiscoveryStart(eq(agentExecutionContext), any());
+
+    assertThatThrownBy(() -> handler(dispatcher(listener)).handleRequest(agentExecutionContext))
+        .isInstanceOf(ConnectorRetryException.class);
+
+    assertThat(listener.discoveries).isEmpty();
+    assertThat(listener.jobFailures)
+        .singleElement()
+        .satisfies(
+            event ->
+                assertThat(event.errorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED));
+  }
+
+  @Test
+  void turnStartIsReportedAfterTheFencedHistoryWrite() {
+    readyToConverse();
+    completeTurnWithAnswer();
+    final var observer = mock(AgentJobObserver.class);
+
+    handler(dispatcher(listenerOf(observer))).handleRequest(agentExecutionContext);
+
+    final InOrder inOrder = inOrder(agentInstanceClient, observer);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+    inOrder.verify(observer).onTurnStarted(any(TurnStarted.class));
+    inOrder.verify(observer).onModelRoundStarted(any(ModelRoundStarted.class));
+  }
+
+  @Test
+  void supersededTurnStartWriteReportsNoTurnStartAndNoModelRound() {
+    readyToConverse();
+    doThrow(superseded())
+        .when(agentInstanceClient)
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+
+    assertThatThrownBy(() -> handler(dispatcher(listener)).handleRequest(agentExecutionContext))
+        .isInstanceOf(ConnectorRetryException.class);
+
+    assertThat(listener.turnStarts).isEmpty();
+    assertThat(listener.modelRoundStarts).isZero();
+    assertThat(listener.jobFailures)
+        .singleElement()
+        .satisfies(
+            event ->
+                assertThat(event.errorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED));
+    verifyNoInteractions(chatModelRegistry, chatModel);
+  }
+
+  @Test
+  void modelCallLimitFailureReportsTheFailedJobWithoutATurnStart() {
+    when(systemPromptComposer.compose(any(), any())).thenReturn("You are a helpful assistant.");
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.NextTurn(List.of(userMessage("hello"))));
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                AgentContext.builder()
+                    .state(AgentState.READY)
+                    .toolDefinitions(TOOL_DEFINITIONS)
+                    .metrics(new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), 0))
+                    .build(),
+                List.of()));
+    doReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
+                null,
+                new LimitsConfiguration(1),
+                null,
+                null))
+        .when(agentExecutionContext)
+        .configuration();
+
+    assertThatThrownBy(() -> handler(dispatcher(listener)).handleRequest(agentExecutionContext))
+        .isInstanceOf(ConnectorException.class);
+
+    assertThat(listener.turnStarts).isEmpty();
+    assertThat(listener.jobFailures)
+        .singleElement()
+        .satisfies(
+            event ->
+                assertThat(event.errorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+    verifyNoInteractions(agentInstanceClient);
+  }
+
+  private static ConnectorRetryException superseded() {
+    return ConnectorRetryException.builder()
+        .errorCode(AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED)
+        .message("superseded")
+        .retries(0)
+        .build();
+  }
+
+  private static AgentLifecycleListener listenerOf(AgentJobObserver observer) {
+    return new AgentLifecycleListener() {
+      @Override
+      public String id() {
+        return "observed";
+      }
+
+      @Override
+      public AgentJobObserver onJobStarted(JobStarted event) {
+        return observer;
+      }
+    };
   }
 
   private void readyToConverseWithToolResultThatFailsWhenInspected() {

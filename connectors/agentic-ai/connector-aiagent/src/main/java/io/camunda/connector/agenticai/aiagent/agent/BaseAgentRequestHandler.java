@@ -239,7 +239,6 @@ public abstract class BaseAgentRequestHandler<
         AgentConversation.rehydrate(
             agentConfiguration, agentContext, previousConversation, systemMessage, inputMessages);
 
-    lifecycle.turnStarted(() -> turnStarted(conversation, agentConfiguration));
     throwIfLimitsReached(conversation, agentConfiguration);
 
     final var agentInstanceKey = conversation.agentInstanceKey();
@@ -254,6 +253,10 @@ public abstract class BaseAgentRequestHandler<
         conversation.currentTurn(),
         conversation.lastTurn(),
         OffsetDateTime.now());
+
+    // after the write that fences a superseded activation, so only a job holding the lease reports
+    // the start of its turn
+    lifecycle.turnStarted(() -> turnStarted(conversation, agentConfiguration));
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -476,6 +479,10 @@ public abstract class BaseAgentRequestHandler<
       AgentContext agentContext,
       List<ToolCall> discoveryToolCalls,
       AgentJobLifecycle lifecycle) {
+    agentInstanceClient.applyToolDiscoveryStart(
+        executionContext, AgentInstanceKey.from(agentContext.metadata()));
+    // after the write that fences a superseded activation, so only a job holding the lease reports
+    // the dispatch
     var response =
         AgentResponse.builder()
             .context(
@@ -483,8 +490,6 @@ public abstract class BaseAgentRequestHandler<
                     agentContext, () -> new ToolDiscoveryDispatched(discoveryToolCalls)))
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    agentInstanceClient.applyToolDiscoveryStart(
-        executionContext, AgentInstanceKey.from(agentContext.metadata()));
     return buildConnectorResponse(executionContext, null, response, withLifecycle(null, lifecycle));
   }
 
