@@ -387,6 +387,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${version.guava}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>spring-cloud-gcp-starter-logging</artifactId>
         <version>${version.spring-cloud-gcp-starter-logging}</version>
