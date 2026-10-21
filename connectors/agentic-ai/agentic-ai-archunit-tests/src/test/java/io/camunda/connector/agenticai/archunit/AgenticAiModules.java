@@ -74,6 +74,7 @@ enum AgenticAiModules {
       "MemoryAgentCore",
       Kind.LIBRARY,
       under("aiagent.memory.conversation.awsagentcore")),
+  TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   CORE(
       "aiagent-core",
       "Core",
@@ -91,7 +92,6 @@ enum AgenticAiModules {
                       || under("aiagent.util").test(javaClass)
                       || resideInAPackage(pkg("aiagent.chatmodel")).test(javaClass))
                   && !MEMORY_AGENTCORE.root.test(javaClass))),
-  TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),

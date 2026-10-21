@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
+import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.AgentInstanceHistoryContent;

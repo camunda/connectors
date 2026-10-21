@@ -1170,7 +1170,9 @@ On tool call iteration (tool calls present):
 ### AgentErrorCodes
 
 The codes are defined in
-[`AgentErrorCodes`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
+[`AgentErrorCodes`](../../aiagent-core/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java),
+for the agent instance in
+[`AgentInstanceErrorCodes`](../../aiagent-core/src/main/java/io/camunda/connector/agenticai/aiagent/agentinstance/AgentInstanceErrorCodes.java)
 and, for a failed or rejected model call, in
 [`ChatModelErrorCodes`](../../aiagent-api/src/main/java/io/camunda/connector/agenticai/aiagent/api/chatmodel/ChatModelErrorCodes.java),
 and thrown as `ConnectorException(errorCode, message)`. To find a code's current throw site, search the

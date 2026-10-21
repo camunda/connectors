@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
@@ -65,10 +64,13 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
   private static final String AUTHORIZATION_HEADER = "Authorization";
   private static final String BEARER_PREFIX = "Bearer ";
 
-  private final ChatModelProperties chatModelProperties;
+  private final Duration defaultTimeout;
 
-  public V1ToV2ProviderConfigurationMapperImpl(ChatModelProperties chatModelProperties) {
-    this.chatModelProperties = chatModelProperties;
+  /**
+   * @param defaultTimeout the timeout of a model call which the request does not configure
+   */
+  public V1ToV2ProviderConfigurationMapperImpl(Duration defaultTimeout) {
+    this.defaultTimeout = defaultTimeout;
   }
 
   @Override
@@ -361,7 +363,7 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
         Optional.ofNullable(timeouts)
             .map(TimeoutConfiguration::timeout)
             .filter(Duration::isPositive)
-            .orElseGet(() -> chatModelProperties.api().defaultTimeout());
+            .orElse(defaultTimeout);
     return new TimeoutConfiguration(timeout);
   }
 

@@ -16,8 +16,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.Bedrock
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
@@ -59,11 +57,9 @@ class ChatModelConfigurationTranslatorTest {
 
   private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(3);
 
-  private final ChatModelProperties properties =
-      new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null);
   private final ChatModelConfigurationTranslator translator =
       new ChatModelConfigurationTranslator(
-          new V1ToV2ProviderConfigurationMapperImpl(properties), DEFAULT_TIMEOUT);
+          new V1ToV2ProviderConfigurationMapperImpl(DEFAULT_TIMEOUT), DEFAULT_TIMEOUT);
 
   private MistralConfiguration mistral(
       MistralBackend backend,

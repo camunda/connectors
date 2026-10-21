@@ -8,96 +8,84 @@ package io.camunda.connector.agenticai.archunit;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.CompositeArchRule;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Enforces that each vendor SDK is only used by the packages that integrate it: the chat model
- * provider, the conversation store, the HTTP proxy support, or the client of the protocol.
+ * Enforces that each vendor SDK is only used by the modules that integrate it: the chat model
+ * provider, the conversation store, the HTTP proxy support, or the client of the protocol. The
+ * connector sees all SDKs on its class path through the provider modules, so the modules' own
+ * dependencies do not keep the SDKs out of it.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class VendorSdkArchTest {
-
-  private static final String ANTHROPIC =
-      AgenticAiModules.pkg("aiagent.chatmodel.provider.anthropic..");
-  private static final String OPENAI = AgenticAiModules.pkg("aiagent.chatmodel.provider.openai..");
-  // Mistral uses the OpenAI SDK through its OpenAI-compatible wire mapping.
-  private static final String MISTRAL =
-      AgenticAiModules.pkg("aiagent.chatmodel.provider.mistral..");
-  private static final String GEMINI = AgenticAiModules.pkg("aiagent.chatmodel.provider.gemini..");
-  private static final String BEDROCK =
-      AgenticAiModules.pkg("aiagent.chatmodel.provider.bedrock..");
-  private static final String AZURE = AgenticAiModules.pkg("aiagent.chatmodel.provider.azure..");
-  private static final String LANGCHAIN4J =
-      AgenticAiModules.pkg("aiagent.chatmodel.provider.langchain4j..");
-  private static final String AWS_AGENTCORE_MEMORY =
-      AgenticAiModules.pkg("aiagent.memory.conversation.awsagentcore..");
-  private static final String PROXY = AgenticAiModules.pkg("aiagent.proxy..");
-  private static final String A2A_CLIENT = AgenticAiModules.pkg("a2a.client..");
-  private static final String MCP_CLIENT_FRAMEWORK = AgenticAiModules.pkg("mcp.client.framework..");
 
   private static final List<VendorSdk> VENDOR_SDKS =
       List.of(
           new VendorSdk(
               "Anthropic SDK",
               "com.anthropic..",
-              "the Anthropic provider can be extracted into its own module",
-              ANTHROPIC),
+              "the Anthropic provider is a module of its own",
+              AgenticAiModules.PROVIDER_ANTHROPIC),
+          // Mistral uses the OpenAI SDK through its OpenAI-compatible wire mapping.
           new VendorSdk(
               "OpenAI SDK",
               "com.openai..",
-              "the OpenAI-compatible providers can be extracted into their own modules",
-              OPENAI,
-              MISTRAL),
+              "the OpenAI-compatible providers are modules of their own",
+              AgenticAiModules.PROVIDER_OPENAI,
+              AgenticAiModules.PROVIDER_MISTRAL),
           new VendorSdk(
               "Gemini SDK",
               "com.google.genai..",
-              "the Gemini providers can be extracted into their own modules",
-              GEMINI),
+              "the Gemini provider is a module of its own",
+              AgenticAiModules.PROVIDER_GEMINI),
           new VendorSdk(
               "AWS Bedrock runtime SDK",
               "software.amazon.awssdk.services.bedrockruntime..",
-              "the Bedrock providers can be extracted into their own modules",
-              BEDROCK),
+              "the Bedrock provider is a module of its own",
+              AgenticAiModules.PROVIDER_BEDROCK),
           new VendorSdk(
               "AWS AgentCore SDK",
               "software.amazon.awssdk.services.bedrockagentcore..",
-              "the AWS AgentCore conversation store can be extracted into its own module",
-              AWS_AGENTCORE_MEMORY),
+              "the AWS AgentCore conversation store is a module of its own",
+              AgenticAiModules.MEMORY_AGENTCORE),
           new VendorSdk(
               "AWS HTTP client SDK",
               "software.amazon.awssdk.http..",
-              "the AWS HTTP client setup is part of the proxy support and the Bedrock providers",
-              PROXY,
-              BEDROCK),
+              "the AWS HTTP client setup is part of the AWS support and the Bedrock provider",
+              AgenticAiModules.AWS_SUPPORT,
+              AgenticAiModules.PROVIDER_BEDROCK),
           new VendorSdk(
               "Azure HTTP SDK",
               "com.azure.core.http..",
-              "the Azure HTTP client setup is part of the proxy support and the Azure credentials",
-              PROXY,
-              AZURE),
+              "the Azure HTTP client setup is part of the Azure support",
+              AgenticAiModules.AZURE_SUPPORT),
           new VendorSdk(
               "LangChain4j",
               "dev.langchain4j..",
-              "the LangChain4j provider can be extracted into its own module",
-              LANGCHAIN4J),
+              "the LangChain4j bridge is a module of its own",
+              AgenticAiModules.PROVIDER_LANGCHAIN4J),
           new VendorSdk(
               "A2A SDK",
               "io.a2a..",
-              "the A2A client can be extracted into its own module",
-              A2A_CLIENT),
+              "the A2A client is a module of its own",
+              AgenticAiModules.A2A_CLIENT),
           new VendorSdk(
               "MCP SDK",
               "io.modelcontextprotocol..",
-              "the MCP client can be extracted into its own module",
-              MCP_CLIENT_FRAMEWORK));
+              "the MCP client is a module of its own",
+              AgenticAiModules.MCP_CLIENT));
 
   /** One rule per vendor SDK, each failing with a message that names the SDK. */
   @ArchTest
-  static final ArchRule VENDOR_SDKS_ARE_ONLY_USED_BY_THEIR_INTEGRATION_PACKAGES = vendorSdkRules();
+  static final ArchRule VENDOR_SDKS_ARE_ONLY_USED_BY_THEIR_INTEGRATION_MODULES = vendorSdkRules();
 
   private static ArchRule vendorSdkRules() {
     CompositeArchRule rules = null;
@@ -108,24 +96,32 @@ class VendorSdkArchTest {
   }
 
   /**
-   * A vendor SDK, the packages that may use it, and why only those packages may.
+   * A vendor SDK, the modules that may use it, and why only those modules may.
    *
    * @param name the name of the SDK in the failure message
    * @param sdkPackage the package of the SDK
-   * @param reason why the SDK is confined to the allowed packages
-   * @param allowedPackages the packages that may depend on the SDK
+   * @param reason why the SDK is confined to the allowed modules
+   * @param allowedModules the modules that may depend on the SDK
    */
   private record VendorSdk(
-      String name, String sdkPackage, String reason, String... allowedPackages) {
+      String name, String sdkPackage, String reason, AgenticAiModules... allowedModules) {
 
     ArchRule rule() {
+      final DescribedPredicate<JavaClass> allowed =
+          Arrays.stream(allowedModules)
+              .map(AgenticAiModules::root)
+              .reduce((left, right) -> left.or(right))
+              .orElseThrow();
+      final String allowedNames =
+          Arrays.stream(allowedModules)
+              .map(AgenticAiModules::artifactId)
+              .collect(Collectors.joining(", "));
       return noClasses()
-          .that()
-          .resideOutsideOfPackages(allowedPackages)
+          .that(DescribedPredicate.not(allowed))
           .should()
           .dependOnClassesThat()
           .resideInAPackage(sdkPackage)
-          .as(name + " is only used by " + String.join(", ", allowedPackages))
+          .as(name + " is only used by " + allowedNames)
           .because(reason);
     }
   }

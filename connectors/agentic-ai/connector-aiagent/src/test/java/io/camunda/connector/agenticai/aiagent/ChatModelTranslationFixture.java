@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration;
@@ -24,9 +22,7 @@ public final class ChatModelTranslationFixture {
 
   private static final ChatModelConfigurationTranslator TRANSLATOR =
       new ChatModelConfigurationTranslator(
-          new V1ToV2ProviderConfigurationMapperImpl(
-              new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null)),
-          DEFAULT_TIMEOUT);
+          new V1ToV2ProviderConfigurationMapperImpl(DEFAULT_TIMEOUT), DEFAULT_TIMEOUT);
 
   private ChatModelTranslationFixture() {}
 

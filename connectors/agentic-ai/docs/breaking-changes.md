@@ -212,6 +212,13 @@ client in its properties does not start.
 - The conversation context subtypes of the AWS AgentCore store are registered by
   `AwsAgentCoreConversationContextSubtypes` in `aiagent-memory-agentcore`; `BuiltInConversationContextSubtypes`
   lists only the in-process and document contexts.
+- The error codes of the agent instance (`ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`,
+  `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED` and `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`) moved from
+  `aiagent.agent.AgentErrorCodes` to `aiagent.agentinstance.AgentInstanceErrorCodes` of `aiagent-core`. The values
+  do not change.
+- `AgenticAiNativeProvidersConfiguration` moved from `aiagent.chatmodel.provider.configuration` to
+  `aiagent.configuration`, and the constructor of `V1ToV2ProviderConfigurationMapperImpl` takes the default timeout
+  as a `Duration` instead of the `ChatModelProperties`.
 - The error codes of a model call (`ERROR_CODE_FAILED_MODEL_CALL`, `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`,
   `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`, `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED` and
   `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`) moved from `aiagent.agent.AgentErrorCodes` to

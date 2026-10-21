@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContr
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -228,7 +227,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public V1ToV2ProviderConfigurationMapper aiAgentV1ToV2ProviderConfigurationMapper(
       AgenticAiConnectorsConfigurationProperties configuration) {
-    return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
+    return new V1ToV2ProviderConfigurationMapperImpl(
+        configuration.aiagent().chatModel().api().defaultTimeout());
   }
 
   @Bean

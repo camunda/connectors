@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
+import static io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_DEFINITIONS;
 import static org.assertj.core.api.Assertions.assertThat;

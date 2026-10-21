@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.translation;
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -80,8 +78,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ChatModelIdentityTest {
 
   private static final V1ToV2ProviderConfigurationMapper MAPPER =
-      new V1ToV2ProviderConfigurationMapperImpl(
-          new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)), null));
+      new V1ToV2ProviderConfigurationMapperImpl(Duration.ofMinutes(3));
 
   private static final AwsAuthentication AWS =
       new AwsAuthentication.AwsStaticCredentialsAuthentication("access", "secret");

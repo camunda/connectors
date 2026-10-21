@@ -25,10 +25,10 @@ import java.util.List;
  * Enforces that sibling packages do not depend on each other cyclically.
  *
  * <p>The sub-packages of the chat model providers, the conversation stores, the A2A client and the
- * tools schema are free of cycles. The first-level packages of the AI Agent connector and of the
- * MCP client are free of cycles except for the known cycles in {@link #KNOWN_CYCLES}. They are the
- * cycles listed as a follow-up in ADR 015 and must only shrink: breaking a cycle means deleting its
- * entry.
+ * tools schema are free of cycles. The first-level packages of the AI Agent connector, the agent
+ * core and the MCP client are free of cycles except for the known cycles in {@link #KNOWN_CYCLES}.
+ * They are the cycles listed as a follow-up in ADR 015 and must only shrink: breaking a cycle means
+ * deleting its entry.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class PackageCyclesArchTest {
@@ -50,10 +50,6 @@ class PackageCyclesArchTest {
    */
   private static final List<AllowedDependency> KNOWN_CYCLES =
       List.of(
-          // aiagent.chatmodel and aiagent.configuration
-          allow("aiagent.chatmodel..", "aiagent.configuration.."),
-          // aiagent.request and aiagent.configuration
-          allow("aiagent.request..", "aiagent.configuration.."),
           // mcp.client.framework and mcp.client.configuration
           allow("mcp.client.framework..", "mcp.client.configuration.."));
 
@@ -62,6 +58,9 @@ class PackageCyclesArchTest {
       CompositeArchRule.of(
               freeOfCyclesBut(
                   KNOWN_CYCLES, firstLevelPackagesOf(AgenticAiModules.AI_AGENT, "aiagent.(*)..")))
+          .and(
+              freeOfCyclesBut(
+                  KNOWN_CYCLES, firstLevelPackagesOf(AgenticAiModules.CORE, "aiagent.(*)..")))
           .and(
               freeOfCyclesBut(
                   KNOWN_CYCLES,

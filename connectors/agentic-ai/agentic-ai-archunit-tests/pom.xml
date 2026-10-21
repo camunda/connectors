@@ -207,12 +207,12 @@
                 <dependency>io.camunda.connector.agenticai:aiagent-api</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-core</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-test-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-memory-agentcore</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-langchain4j</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-bedrock</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-gemini</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-anthropic</dependency>
-                <dependency>io.camunda.connector.agenticai:aiagent-test-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-mistral</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-openai</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-aws-support</dependency>

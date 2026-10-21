@@ -85,13 +85,12 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   and every module contains only classes of its own package root.
 - `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
 - `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
-- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure`, `aws` and `configuration`) do not depend on each other, except for the allowed
-  dependencies listed in the test (today: Mistral on OpenAI), and do not use the request records of `aiagent.request`:
-  each provider reads its own domain configuration. The rest of the AI agent (outside `aiagent.chatmodel.provider`,
-  `aiagent.configuration` and `aiagent.translation`) does not depend on the providers.
+- `ChatModelProviderAccessArchTest`: the AI Agent connector reaches the vendor chat model providers only through the
+  chat model API; only `aiagent.translation` and `aiagent.configuration` know them. That the providers do not depend on
+  each other (except Mistral on OpenAI), on the agent core or on the connector follows from the module layers.
 - `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+  LangChain4j, A2A, MCP) is only used by the modules that integrate it. The connector sees all provider SDKs on its
+  class path, so this rule keeps them out of it.
 - `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
   `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
   in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
@@ -107,7 +106,7 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
 - `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
   and between the sub-packages of the A2A client and of the tools schema. The first-level packages of the AI Agent
-  connector and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
+  connector, of the agent core and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
   When you break a cycle, delete its entry; never add one.
 - `ElementTemplateAnnotationsArchTest`: the library modules do not use the element template generator annotations,
   except the records listed in the test (the ADR 015 follow-up). The list must only shrink.
