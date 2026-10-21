@@ -104,6 +104,49 @@ Concurrent instances converge on one function: a create that conflicts adopts th
 Dependencies are not supported. Networking, such as denying egress, is not configured by the
 provider.
 
+The `gcp` provider deploys each script as its own Google Cloud Run function (Cloud Functions v2
+API), named after the artifact behind `deployment-name-prefix`, and invokes it through its
+`run.app` URL:
+
+```properties
+camunda.connector.managed-code.provider=gcp
+camunda.connector.managed-code.gcp.project=<project>
+camunda.connector.managed-code.gcp.region=europe-west1
+camunda.connector.managed-code.gcp.function-service-account=<function-identity>@<project>.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.deployer-service-account=<deployer>@<project>.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.memory-mb=256
+camunda.connector.managed-code.gcp.max-instance-count=10
+camunda.connector.managed-code.gcp.poll-interval=5s
+```
+
+Credentials come from the application default credentials, for example GKE Workload Identity. The
+runtime impersonates `deployer-service-account` (`roles/iam.serviceAccountTokenCreator` on it),
+which also mints the ID tokens of invocations. Set it under GKE Workload Identity: the federated
+identity cannot mint those ID tokens itself. Without it, the default credentials are used as they
+are, which works only when they are a real service account, such as a key file in development. The deployer needs, for a prefix `<prefix>` in project `<p>` and region
+`<r>`:
+
+- `roles/cloudfunctions.developer` conditioned on
+  `resource.name.startsWith("projects/<p>/locations/<r>/functions/<prefix>")`, and again on
+  `.../operations/`;
+- a custom role with only `cloudfunctions.functions.generateUploadUrl`, conditioned on
+  `resource.name == "projects/<p>/locations/<r>"`. The developer role on the location would let it
+  list the functions of every cluster;
+- `roles/iam.serviceAccountUser` on the function service account only;
+- `roles/run.invoker` on the project, conditioned on `request.host.startsWith("<prefix>")`.
+
+It needs no listing, no `roles/logging.viewer` and no Cloud Build, Artifact Registry or storage
+access. The ID token includes the email claim, which the conditioned invoker binding needs. The
+function service account holds no roles; it is required, since the platform would otherwise run
+functions as the default Compute Engine service account. Every create sets `memory-mb`,
+`execution-timeout` as the function timeout, `max-instance-count` and one request per instance. An
+existing function is adopted without uploading its source again, so concurrent instances spend one
+write of the 60 per minute that the project allows. Permission denials are retried, since new grants
+take about 2 minutes to apply; a denial still present after half of `provisioning-timeout` fails the
+attempt, so that a wrong binding consumes the job's retries and ends in an incident. Python scripts
+are built with the pinned Functions Framework of the platform; Node.js scripts get no `package.json` dependencies. Dependencies of the script are not
+supported, and networking, such as denying egress, is not configured by the provider.
+
 Other providers implement `ManagedCodeProvider`, which packages the script for the platform,
 creates, invokes and deletes it, and register it as a Spring bean, for example through an
 auto-configuration in a jar placed in `/opt/custom` of the Docker image. The connector uses the

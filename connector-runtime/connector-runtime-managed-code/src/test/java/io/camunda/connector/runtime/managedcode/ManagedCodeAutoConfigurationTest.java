@@ -151,13 +151,13 @@ class ManagedCodeAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.managed-code.enabled=true",
-            "camunda.connector.managed-code.provider=gcp")
+            "camunda.connector.managed-code.provider=azure")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("No managed-code provider 'gcp'"));
+                    .hasMessageContaining("No managed-code provider 'azure'"));
   }
 
   @Test
@@ -173,6 +173,22 @@ class ManagedCodeAutoConfigurationTest {
                     .getFailure()
                     .rootCause()
                     .hasMessageContaining("aws.execution-role-arn must be set"));
+  }
+
+  @Test
+  void gcpProviderRequiresAProjectARegionAndAFunctionServiceAccount() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=gcp",
+            "camunda.connector.managed-code.gcp.project=p",
+            "camunda.connector.managed-code.gcp.region=europe-west1")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("gcp.project, .region and .function-service-account"));
   }
 
   @Test

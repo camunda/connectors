@@ -37,7 +37,8 @@ public record ManagedCodeProperties(
     Duration provisioningRetryBackoff,
     int provisioningConcurrency,
     Local local,
-    Aws aws) {
+    Aws aws,
+    Gcp gcp) {
 
   private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
@@ -76,6 +77,7 @@ public record ManagedCodeProperties(
         provisioningConcurrency > 0 ? provisioningConcurrency : DEFAULT_PROVISIONING_CONCURRENCY;
     local = local == null ? new Local(null, null) : local;
     aws = aws == null ? new Aws(null, null, 0, 0, null) : aws;
+    gcp = gcp == null ? new Gcp(null, null, null, null, 0, 0, null) : gcp;
   }
 
   /**
@@ -123,6 +125,49 @@ public record ManagedCodeProperties(
       logRetentionDays = logRetentionDays > 0 ? logRetentionDays : DEFAULT_LOG_RETENTION_DAYS;
       pollInterval = positive(pollInterval, DEFAULT_POLL_INTERVAL);
     }
+  }
+
+  /**
+   * Settings of the Google Cloud Run functions provider. Credentials come from the application
+   * default credentials.
+   *
+   * @param project project of the functions
+   * @param region region of the functions
+   * @param functionServiceAccount service account the functions run as, granting nothing; required,
+   *     since the platform would otherwise use the default Compute Engine service account
+   * @param deployerServiceAccount service account the runtime impersonates to manage and invoke its
+   *     functions; when absent, the application default credentials are used as they are and must
+   *     be able to mint ID tokens
+   * @param memoryMb memory of each function
+   * @param maxInstanceCount maximum instances of each function; function code cannot change it
+   * @param pollInterval interval between status reads while a function is created
+   */
+  public record Gcp(
+      String project,
+      String region,
+      String functionServiceAccount,
+      String deployerServiceAccount,
+      int memoryMb,
+      int maxInstanceCount,
+      Duration pollInterval) {
+
+    private static final int DEFAULT_MEMORY_MB = 256;
+    private static final int DEFAULT_MAX_INSTANCE_COUNT = 10;
+    private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(5);
+
+    public Gcp {
+      project = blankToNull(project);
+      region = blankToNull(region);
+      functionServiceAccount = blankToNull(functionServiceAccount);
+      deployerServiceAccount = blankToNull(deployerServiceAccount);
+      memoryMb = memoryMb > 0 ? memoryMb : DEFAULT_MEMORY_MB;
+      maxInstanceCount = maxInstanceCount > 0 ? maxInstanceCount : DEFAULT_MAX_INSTANCE_COUNT;
+      pollInterval = positive(pollInterval, DEFAULT_POLL_INTERVAL);
+    }
+  }
+
+  private static String blankToNull(String value) {
+    return value == null || value.isBlank() ? null : value.strip();
   }
 
   private static Duration positive(Duration value, Duration fallback) {

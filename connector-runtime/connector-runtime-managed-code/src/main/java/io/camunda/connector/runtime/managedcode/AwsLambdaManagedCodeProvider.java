@@ -17,16 +17,11 @@
 package io.camunda.connector.runtime.managedcode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -54,7 +49,7 @@ import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
  *       runtime instances converge: one create is accepted, the others get a conflict and adopt the
  *       function.
  *   <li>The {@link AwsLambdaScriptPackager} provides the generated handler and the user script,
- *       zipped here deterministically, so that the code hash is stable and publishing the version
+ *       zipped deterministically, so that the code hash is stable and publishing the version
  *       returns the same number to every instance.
  *   <li>The execution role is attached to customer code and must grant nothing beyond writing to
  *       the log group of its function, which this provider creates with a retention period before
@@ -74,7 +69,6 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
   static final String DIGEST_TAG = "camunda.io/artifact-digest";
 
   private static final Logger LOG = LoggerFactory.getLogger(AwsLambdaManagedCodeProvider.class);
-  private static final long FIXED_ZIP_TIME = 315_532_800_000L;
   private static final int MAX_PUBLISH_ATTEMPTS = 20;
 
   private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
@@ -124,7 +118,7 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
   public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
     final var scriptPackage = packager.packageFor(artifact);
     final var name = artifact.deploymentName();
-    final var code = SdkBytes.fromByteArray(zip(scriptPackage));
+    final var code = SdkBytes.fromByteArray(scriptPackage.zip());
     ensureLogGroup(name);
     try {
       final var created =
@@ -158,7 +152,7 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     final var qualified = QualifiedName.parse(deployment.deploymentId());
     final byte[] payload;
     try {
-      payload = objectMapper.writeValueAsBytes(contractRequest(request));
+      payload = objectMapper.writeValueAsBytes(request.contractPayload());
     } catch (IOException e) {
       return ExecutionResponse.failed("INVALID_INPUT", "Cannot serialize the script input", false);
     }
@@ -336,32 +330,6 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
           status >= 500,
           e);
     }
-  }
-
-  /** Deterministic zip: fixed entry order and timestamps, so the code hash depends on content. */
-  static byte[] zip(ScriptPackage scriptPackage) {
-    final var bytes = new ByteArrayOutputStream();
-    try (var zip = new ZipOutputStream(bytes)) {
-      for (var file : scriptPackage.files().entrySet()) {
-        final var entry = new ZipEntry(file.getKey());
-        entry.setTime(FIXED_ZIP_TIME);
-        zip.putNextEntry(entry);
-        zip.write(file.getValue());
-        zip.closeEntry();
-      }
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    return bytes.toByteArray();
-  }
-
-  private static Map<String, Object> contractRequest(ExecutionRequest request) {
-    final Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("contractVersion", request.contractVersion());
-    payload.put("executionId", request.executionId());
-    payload.put("variables", request.variables());
-    payload.put("context", request.context());
-    return payload;
   }
 
   private static String safeMessage(Exception e) {

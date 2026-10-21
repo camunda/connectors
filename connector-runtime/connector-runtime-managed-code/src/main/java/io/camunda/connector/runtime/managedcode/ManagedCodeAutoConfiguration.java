@@ -102,6 +102,37 @@ public class ManagedCodeAutoConfiguration {
         aws.pollInterval());
   }
 
+  @Bean
+  @ConditionalOnProperty(
+      prefix = "camunda.connector.managed-code",
+      name = "provider",
+      havingValue = GcpCloudRunManagedCodeProvider.NAME)
+  public GcpCloudRunManagedCodeProvider gcpCloudRunManagedCodeProvider(
+      ManagedCodeProperties properties) {
+    final var gcp = properties.gcp();
+    if (gcp.project() == null || gcp.region() == null || gcp.functionServiceAccount() == null) {
+      throw new IllegalStateException(
+          "camunda.connector.managed-code.gcp.project, .region and .function-service-account must"
+              + " be set for the 'gcp' provider");
+    }
+    final var location = "projects/%s/locations/%s".formatted(gcp.project(), gcp.region());
+    LOG.info(
+        "Managed-code provider 'gcp' is enabled: scripts are deployed as Cloud Run functions in {}"
+            + " named '{}*'",
+        location,
+        properties.deploymentNamePrefix());
+    return new GcpCloudRunManagedCodeProvider(
+        GoogleCloudRunFunctionsApi.create(location, gcp.deployerServiceAccount()),
+        objectMapper,
+        location,
+        gcp.functionServiceAccount(),
+        gcp.memoryMb(),
+        gcp.maxInstanceCount(),
+        properties.executionTimeout(),
+        properties.provisioningTimeout(),
+        gcp.pollInterval());
+  }
+
   @Bean(destroyMethod = "close")
   public DeploymentRegistry managedCodeDeploymentRegistry(
       ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
@@ -145,7 +176,7 @@ public class ManagedCodeAutoConfiguration {
     if (properties.provider().isBlank()) {
       throw new IllegalStateException(
           "camunda.connector.managed-code.provider must be set when managed code is enabled;"
-              + " the built-in providers are 'local' and 'aws'");
+              + " the built-in providers are 'local', 'aws' and 'gcp'");
     }
     final var matching =
         providers
@@ -154,7 +185,7 @@ public class ManagedCodeAutoConfiguration {
             .toList();
     if (matching.isEmpty()) {
       throw new IllegalStateException(
-          "No managed-code provider '%s' is available; the built-in providers are 'local' and 'aws'"
+          "No managed-code provider '%s' is available; the built-in providers are 'local', 'aws' and 'gcp'"
               .formatted(properties.provider()));
     }
     if (matching.size() > 1) {

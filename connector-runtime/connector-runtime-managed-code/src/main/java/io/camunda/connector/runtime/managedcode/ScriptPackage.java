@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.managedcode;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -26,6 +27,8 @@ import java.util.Collections;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * A script artifact in the form a built-in provider deploys: the files of the function, with the
@@ -38,8 +41,27 @@ import java.util.Map;
  */
 record ScriptPackage(Map<String, byte[]> files, String entrypoint, String runtime) {
 
+  private static final long FIXED_ZIP_TIME = 315_532_800_000L;
+
   public ScriptPackage {
     files = Collections.unmodifiableMap(new LinkedHashMap<>(files));
+  }
+
+  /** Deterministic zip: fixed entry order and timestamps, so its hash depends on content only. */
+  byte[] zip() {
+    final var bytes = new ByteArrayOutputStream();
+    try (var zip = new ZipOutputStream(bytes)) {
+      for (var file : files.entrySet()) {
+        final var entry = new ZipEntry(file.getKey());
+        entry.setTime(FIXED_ZIP_TIME);
+        zip.putNextEntry(entry);
+        zip.write(file.getValue());
+        zip.closeEntry();
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return bytes.toByteArray();
   }
 
   /** Reads a resource of a packager, such as a generated entrypoint. */

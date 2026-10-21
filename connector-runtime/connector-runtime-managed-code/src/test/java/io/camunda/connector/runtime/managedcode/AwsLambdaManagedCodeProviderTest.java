@@ -226,8 +226,7 @@ class AwsLambdaManagedCodeProviderTest {
   void packagesDeterministically() {
     final var artifact = artifact(ScriptLanguage.JAVASCRIPT, "nodejs", "sum.js");
 
-    assertThat(AwsLambdaManagedCodeProvider.zip(packager.packageFor(artifact)))
-        .isEqualTo(AwsLambdaManagedCodeProvider.zip(packager.packageFor(artifact)));
+    assertThat(packager.packageFor(artifact).zip()).isEqualTo(packager.packageFor(artifact).zip());
   }
 
   @Test

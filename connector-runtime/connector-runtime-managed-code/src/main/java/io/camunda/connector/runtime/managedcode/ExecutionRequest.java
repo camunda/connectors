@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.managedcode;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Execution contract version 1 request. */
@@ -26,5 +27,15 @@ public record ExecutionRequest(
 
   public String contractVersion() {
     return CONTRACT_VERSION;
+  }
+
+  /** The request as the generated entrypoints of the built-in providers read it. */
+  Map<String, Object> contractPayload() {
+    final Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("contractVersion", contractVersion());
+    payload.put("executionId", executionId);
+    payload.put("variables", variables);
+    payload.put("context", context);
+    return payload;
   }
 }
