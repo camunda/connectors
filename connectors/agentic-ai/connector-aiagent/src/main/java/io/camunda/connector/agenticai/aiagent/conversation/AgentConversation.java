@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnaps
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -40,7 +39,6 @@ public final class AgentConversation {
 
   private final AgentConfiguration configuration;
   private final AgentContext currentContext;
-  private final @Nullable AgentInstanceKey agentInstanceKey;
   private final @Nullable SystemMessage systemMessage;
   private final List<AgentConversationTurn> previousTurns;
   private final AgentConversationTurn currentTurn;
@@ -60,8 +58,6 @@ public final class AgentConversation {
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
-    this.agentInstanceKey =
-        currentContext.metadata() != null ? currentContext.metadata().agentInstanceKey() : null;
     this.invocationStartIterationKey = invocationStartIterationKey;
     this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
   }
@@ -208,11 +204,6 @@ public final class AgentConversation {
   /** Returns the current turn. Always non-null; pending until {@link #ingest} completes it. */
   public AgentConversationTurn currentTurn() {
     return currentTurn;
-  }
-
-  /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
-  public @Nullable AgentInstanceKey agentInstanceKey() {
-    return agentInstanceKey;
   }
 
   /** Returns the static per-invocation configuration. */

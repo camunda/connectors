@@ -189,7 +189,8 @@ public abstract class BaseAgentRequestHandler<
 
     throwIfLimitsReached(conversation, agentConfiguration);
 
-    final var agentInstanceKey = conversation.agentInstanceKey();
+    final var agentInstanceKey =
+        agentContext.metadata() != null ? agentContext.metadata().agentInstanceKey() : null;
     // called before ingest, so the current turn is still pending and lastTurn() is the turn
     // preceding it — i.e. the one whose tool calls originated the current turn's tool results.
     // Non-tool-result input items (e.g. the user message) are stamped with this turn-ingestion
