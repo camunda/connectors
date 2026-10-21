@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentLifecycleListen
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.JobStarted;
 import io.camunda.connector.agenticai.otel.configuration.AgentTracingProperties;
 import io.opentelemetry.api.OpenTelemetry;
+import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,15 +30,22 @@ public class AgentTracingListener implements AgentLifecycleListener {
   private final AgentTracer tracer;
   private final RunTraceStateResolver resolver;
   private final boolean captureContent;
+  private final Clock clock;
 
-  public AgentTracingListener(OpenTelemetry openTelemetry, AgentTracingProperties properties) {
-    this(new AgentTracer(openTelemetry), properties);
+  /**
+   * @param clock the time source of the spans that the listener starts and ends itself, which is
+   *     the clock of the AI Agent connector when it is part of the runtime
+   */
+  public AgentTracingListener(
+      OpenTelemetry openTelemetry, AgentTracingProperties properties, Clock clock) {
+    this(new AgentTracer(openTelemetry), properties, clock);
   }
 
-  AgentTracingListener(AgentTracer tracer, AgentTracingProperties properties) {
+  AgentTracingListener(AgentTracer tracer, AgentTracingProperties properties, Clock clock) {
     this.tracer = tracer;
     this.resolver = new RunTraceStateResolver(properties.clusterId());
     this.captureContent = properties.captureContent();
+    this.clock = clock;
   }
 
   @Override
@@ -52,7 +60,8 @@ public class AgentTracingListener implements AgentLifecycleListener {
           .resolve(event)
           // the capture policy is decided once per job
           .<AgentJobObserver>map(
-              resolution -> new AgentTracingJobObserver(tracer, event, resolution, captureContent))
+              resolution ->
+                  new AgentTracingJobObserver(tracer, event, resolution, captureContent, clock))
           .orElse(AgentJobObserver.NOOP);
     } catch (Throwable t) {
       LOGGER.debug("Agent tracing could not start the job observer", t);

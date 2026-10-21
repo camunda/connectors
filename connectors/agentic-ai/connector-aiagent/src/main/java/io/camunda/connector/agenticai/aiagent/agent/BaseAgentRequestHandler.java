@@ -56,6 +56,7 @@ import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -81,6 +82,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final AgentLifecycleDispatcher lifecycleDispatcher;
+  private final Clock clock;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -90,7 +92,8 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      AgentLifecycleDispatcher lifecycleDispatcher) {
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -99,11 +102,12 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.lifecycleDispatcher = lifecycleDispatcher;
+    this.clock = clock;
   }
 
   @Override
   public R handleRequest(final C executionContext) {
-    final var startedAt = Instant.now();
+    final var startedAt = clock.instant();
     return switch (agentInitializer.initializeAgent(executionContext)) {
       case DiscoverTools(var agentContext, var toolDiscoveryToolCalls) -> {
         LOGGER.debug(

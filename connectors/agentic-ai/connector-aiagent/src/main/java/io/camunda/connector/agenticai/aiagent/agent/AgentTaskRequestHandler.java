@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.Clock;
 import org.jspecify.annotations.Nullable;
 
 public class AgentTaskRequestHandler
@@ -28,7 +29,8 @@ public class AgentTaskRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      AgentLifecycleDispatcher lifecycleDispatcher) {
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -37,7 +39,8 @@ public class AgentTaskRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        lifecycleDispatcher);
+        lifecycleDispatcher,
+        clock);
   }
 
   @Override

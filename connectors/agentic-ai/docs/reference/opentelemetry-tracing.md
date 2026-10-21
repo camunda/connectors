@@ -204,7 +204,7 @@ note that the PoC has no redaction hook and no size limit for captured content.
   the tool, which is exact; when the result has none, the end is the end of the consuming job. When worker and
   engine clocks differ, a start that would lie after the end is set to the end, and a span of a state that has
   no recorded issue time starts at the start of the consuming job. The span outlives its parent, the `invoke_agent` span of the issuing job, because the tool runs in the engine after
-  that job ended; the waiting time of a tool, for example a human task, is the duration of its span.
+  that job ended; the waiting time of a tool, for example a human task, is the duration of its span. The worker times that the listener records, such as this issue time and the start and end of the `chat` spans, are read from the shared `java.time.Clock` bean of the AI Agent connector, the same clock that stamps the start of the job.
 - **Tool outcome.** Every tool result that is not marked as interrupted shows as `completed`, whatever its
   content, so a tool that failed or was rejected looks like a tool that succeeded. A tool incident produces no
   span, because no result arrives.

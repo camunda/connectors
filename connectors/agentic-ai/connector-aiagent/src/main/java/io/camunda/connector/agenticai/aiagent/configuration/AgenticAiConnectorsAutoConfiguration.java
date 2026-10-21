@@ -62,6 +62,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import java.time.Clock;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -243,6 +244,13 @@ public class AgenticAiConnectorsAutoConfiguration {
     return new V1ToV2ProviderConfigurationMapperImpl(configuration.aiagent().chatModel());
   }
 
+  /** The time source of the agent request handlers and, when present, of the tracing listener. */
+  @Bean
+  @ConditionalOnMissingBean
+  public Clock aiAgentClock() {
+    return Clock.systemUTC();
+  }
+
   @Bean
   @ConditionalOnMissingBean
   public AgentLifecycleDispatcher agentLifecycleDispatcher(
@@ -265,7 +273,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      AgentLifecycleDispatcher lifecycleDispatcher) {
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -274,7 +283,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        lifecycleDispatcher);
+        lifecycleDispatcher,
+        clock);
   }
 
   @Bean
@@ -309,7 +319,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      AgentLifecycleDispatcher lifecycleDispatcher) {
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -318,7 +329,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        lifecycleDispatcher);
+        lifecycleDispatcher,
+        clock);
   }
 
   @Bean

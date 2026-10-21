@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.otel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentFlavor;
 import io.camunda.connector.agenticai.aiagent.api.lifecycle.AgentJobInfo;
@@ -43,10 +44,11 @@ import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -74,6 +76,7 @@ class AgentTracingJobObserverTest {
         }
       };
 
+  private final MutableClock clock = new MutableClock(T0);
   private final InMemorySpanExporter exporter = InMemorySpanExporter.create();
   private SdkTracerProvider tracerProvider;
   private AgentTracingListener listener;
@@ -85,7 +88,9 @@ class AgentTracingJobObserverTest {
     final var openTelemetry = OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build();
     listener =
         new AgentTracingListener(
-            new AgentTracer(openTelemetry), new AgentTracingProperties(true, false, "prod-eu"));
+            new AgentTracer(openTelemetry),
+            new AgentTracingProperties(true, false, "prod-eu"),
+            clock);
   }
 
   @AfterEach
@@ -95,7 +100,6 @@ class AgentTracingJobObserverTest {
 
   @Test
   void tracesARunAcrossJobsAndEmitsToolSpansWithTheirRealTimes() {
-    final Instant testStart = Instant.now().truncatedTo(ChronoUnit.MILLIS);
     // job 1: tool discovery starts the run
     final var discovery =
         listener.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
@@ -121,6 +125,7 @@ class AgentTracingJobObserverTest {
             started(AgentJobKind.CONVERSATION, T0.plusSeconds(1), null, afterDiscovery));
     firstTurn.onTurnStarted(turnStarted(1, List.of()));
     chatRound(firstTurn, StopReason.TOOL_USE);
+    clock.set(T0.plusSeconds(5));
     final var afterFirstTurn = firstTurn.onTurnCompleted(turnCompleted(1, true));
     firstTurn.onJobCompleted();
 
@@ -134,7 +139,7 @@ class AgentTracingJobObserverTest {
     final SpanData issuingJob = span("invoke_agent agent");
     assertThat(issuingJob.getParentSpanId()).isEqualTo(anchor.getSpanId());
     assertThat(afterFirstTurn).containsEntry("issuerSpanId", issuingJob.getSpanId());
-    assertThat(issuedAtOf(afterFirstTurn)).isBetween(testStart, Instant.now());
+    assertThat(issuedAtOf(afterFirstTurn)).isEqualTo(T0.plusSeconds(5));
     exporter.reset();
 
     // job 3: only some tool results arrived, the job exports nothing and persists nothing
@@ -290,7 +295,8 @@ class AgentTracingJobObserverTest {
     final var capturing =
         new AgentTracingListener(
             new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
-            new AgentTracingProperties(true, true, "prod-eu"));
+            new AgentTracingProperties(true, true, "prod-eu"),
+            clock);
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
@@ -316,7 +322,8 @@ class AgentTracingJobObserverTest {
     final var capturing =
         new AgentTracingListener(
             new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
-            new AgentTracingProperties(true, true, null));
+            new AgentTracingProperties(true, true, null),
+            clock);
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
     observer.onTurnStarted(turnStarted(1, List.of()));
@@ -346,7 +353,8 @@ class AgentTracingJobObserverTest {
     final var capturing =
         new AgentTracingListener(
             new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
-            new AgentTracingProperties(true, true, null));
+            new AgentTracingProperties(true, true, null),
+            clock);
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.TOOL_DISCOVERY, T0, null, Map.of()));
 
@@ -529,6 +537,7 @@ class AgentTracingJobObserverTest {
 
     assertThat(span("agent run").getEndEpochNanos()).isEqualTo(nanos(T0));
     observer.onModelRoundStarted(roundStarted());
+    clock.set(T0.plusSeconds(3));
     observer.onJobCompleted();
 
     final SpanData anchor = span("agent run");
@@ -537,7 +546,42 @@ class AgentTracingJobObserverTest {
         .isEqualTo(anchor.getEndEpochNanos())
         .isEqualTo(invokeAgent.getStartEpochNanos())
         .isEqualTo(nanos(T0));
-    assertThat(invokeAgent.getEndEpochNanos()).isGreaterThan(nanos(T0));
+    assertThat(invokeAgent.getEndEpochNanos()).isEqualTo(nanos(T0.plusSeconds(3)));
+  }
+
+  @Test
+  void chatSpansStartAndEndAtTheTimesOfTheClock() {
+    final var observer =
+        listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
+    observer.onTurnStarted(turnStarted(1, List.of()));
+
+    clock.set(T0.plusSeconds(2));
+    observer.onModelRoundStarted(roundStarted());
+    clock.set(T0.plusSeconds(5));
+    observer.onModelRoundFailed(new ModelRoundFailed(new IllegalStateException("boom"), null));
+
+    clock.set(T0.plusSeconds(6));
+    observer.onModelRoundStarted(roundStarted());
+    clock.set(T0.plusSeconds(8));
+    observer.onModelRoundCompleted(
+        new ModelRoundCompleted(
+            AssistantMessage.builder().modelId("claude-x").messageId("msg_1").build(),
+            new AgentMetrics(1, new TokenUsage(10, 5, 5, 0, 0), 0),
+            false));
+
+    clock.set(T0.plusSeconds(9));
+    observer.onModelRoundStarted(roundStarted());
+    clock.set(T0.plusSeconds(11));
+    observer.onJobFailed(new JobFailed(new IllegalStateException("boom"), null));
+
+    assertThat(exporter.getFinishedSpanItems())
+        .filteredOn(span -> span.getName().equals("chat claude-x"))
+        .extracting(SpanData::getStartEpochNanos, SpanData::getEndEpochNanos)
+        .containsExactly(
+            tuple(nanos(T0.plusSeconds(2)), nanos(T0.plusSeconds(5))),
+            tuple(nanos(T0.plusSeconds(6)), nanos(T0.plusSeconds(8))),
+            tuple(nanos(T0.plusSeconds(9)), nanos(T0.plusSeconds(11))));
+    assertThat(span("invoke_agent agent").getEndEpochNanos()).isEqualTo(nanos(T0.plusSeconds(11)));
   }
 
   @Test
@@ -576,7 +620,8 @@ class AgentTracingJobObserverTest {
           }
         };
     final var observer =
-        new AgentTracingListener(failingTracer, new AgentTracingProperties(true, false, null))
+        new AgentTracingListener(
+                failingTracer, new AgentTracingProperties(true, false, null), clock)
             .onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
 
     observer.onTurnStarted(turnStarted(1, List.of()));
@@ -593,7 +638,8 @@ class AgentTracingJobObserverTest {
     final var capturing =
         new AgentTracingListener(
             new AgentTracer(OpenTelemetrySdk.builder().setTracerProvider(tracerProvider).build()),
-            new AgentTracingProperties(true, true, null));
+            new AgentTracingProperties(true, true, null),
+            clock);
     final var observer =
         capturing.onJobStarted(started(AgentJobKind.CONVERSATION, T0, 1, openState(1)));
 
@@ -691,15 +737,15 @@ class AgentTracingJobObserverTest {
 
   @Test
   void aTurnThatIssuesToolCallsRecordsWhenItIsPersisted() {
-    final Instant before = Instant.now();
     final var issuing =
         listener.onJobStarted(started(AgentJobKind.CONVERSATION, T0, null, Map.of()));
     issuing.onTurnStarted(turnStarted(1, List.of()));
     chatRound(issuing, StopReason.TOOL_USE);
+    clock.set(T0.plusSeconds(4));
     final var state = issuing.onTurnCompleted(turnCompleted(1, true));
     issuing.onJobCompleted();
 
-    assertThat(issuedAtOf(state)).isBetween(before.truncatedTo(ChronoUnit.MILLIS), Instant.now());
+    assertThat(issuedAtOf(state)).isEqualTo(T0.plusSeconds(4));
     assertThat(RunTraceState.fromMap(state))
         .hasValueSatisfying(parsed -> assertThat(parsed.issuedAt()).isEqualTo(issuedAtOf(state)));
   }
@@ -957,11 +1003,13 @@ class AgentTracingJobObserverTest {
     return new AgentJobInfo(7, PROCESS_INSTANCE_KEY, 3, 4, "agent", "process", "<default>");
   }
 
-  private static JobStarted started(
+  /** A job that starts now: the clock of the listener moves to the start time of the job. */
+  private JobStarted started(
       AgentJobKind kind,
       Instant startedAt,
       @Nullable Integer lastIterationKey,
       Map<String, Object> previousState) {
+    clock.set(startedAt);
     return new JobStarted(
         jobInfo(),
         AgentFlavor.SUB_PROCESS,
@@ -981,5 +1029,34 @@ class AgentTracingJobObserverTest {
 
   private static long nanos(Instant instant) {
     return instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
+  }
+
+  /** A clock that only moves when the test sets it. */
+  private static final class MutableClock extends Clock {
+
+    private Instant now;
+
+    MutableClock(Instant now) {
+      this.now = now;
+    }
+
+    void set(Instant now) {
+      this.now = now;
+    }
+
+    @Override
+    public ZoneId getZone() {
+      return ZoneOffset.UTC;
+    }
+
+    @Override
+    public Clock withZone(ZoneId zone) {
+      return this;
+    }
+
+    @Override
+    public Instant instant() {
+      return now;
+    }
   }
 }

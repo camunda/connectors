@@ -34,6 +34,7 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +70,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private final JobStarted job;
   private final Resolution resolution;
   private final boolean captureContent;
+  private final Clock clock;
   private final Attributes identity;
 
   private boolean opened;
@@ -92,11 +94,16 @@ class AgentTracingJobObserver implements AgentJobObserver {
   private Map<String, ToolDefinition> toolDefinitions = Map.of();
 
   AgentTracingJobObserver(
-      AgentTracer tracer, JobStarted job, Resolution resolution, boolean captureContent) {
+      AgentTracer tracer,
+      JobStarted job,
+      Resolution resolution,
+      boolean captureContent,
+      Clock clock) {
     this.tracer = tracer;
     this.job = job;
     this.resolution = resolution;
     this.captureContent = captureContent;
+    this.clock = clock;
     this.identity =
         GenAiAttributeMapper.identityAttributes(
             job.job(), job.agentInstanceKey(), resolution.sessionId());
@@ -153,7 +160,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
               tracer.startChild(
                   "chat " + event.chatModel().model(),
                   SpanKind.CLIENT,
-                  Instant.now(),
+                  clock.instant(),
                   attributes,
                   parent);
           return null;
@@ -170,7 +177,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
             chat = null;
             endSpan(
                 span,
-                Instant.now(),
+                clock.instant(),
                 () ->
                     span.setAllAttributes(
                         GenAiAttributeMapper.chatResponseAttributes(
@@ -192,7 +199,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
             chat = null;
             endSpan(
                 span,
-                Instant.now(),
+                clock.instant(),
                 () -> {
                   span.setAttribute(
                       GenAiAttributes.RESPONSE_FINISH_REASONS,
@@ -222,7 +229,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
           return stateToContribute(
               event.finalAnswer() ? Status.CLOSED : Status.OPEN,
               event.iterationKey(),
-              event.finalAnswer() ? null : Instant.now());
+              event.finalAnswer() ? null : clock.instant());
         });
   }
 
@@ -450,7 +457,7 @@ class AgentTracingJobObserver implements AgentJobObserver {
       return;
     }
     final boolean superseded = GenAiAttributes.JOB_OUTCOME_SUPERSEDED.equals(outcome);
-    final Instant now = Instant.now();
+    final Instant now = clock.instant();
 
     final Span openChat = chat;
     if (openChat != null) {

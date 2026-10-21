@@ -59,7 +59,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -79,6 +82,8 @@ class AgentLifecycleEmissionTest {
 
   private static final AgentContext INITIAL_AGENT_CONTEXT =
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+
+  private static final Instant JOB_STARTED_AT = Instant.parse("2026-10-19T09:00:00Z");
 
   @Mock private AgentInitializer agentInitializer;
   @Mock private ConversationStoreRegistry conversationStoreRegistry;
@@ -131,6 +136,18 @@ class AgentLifecycleEmissionTest {
 
     assertThat(listener.discoveries).hasSize(1);
     assertThat(listener.discoveries.getFirst().toolCalls()).isEqualTo(discoveryToolCalls);
+  }
+
+  @Test
+  void jobStartedCarriesTheTimeOfTheClockOfTheHandler() {
+    readyToConverse();
+    completeTurnWithAnswer();
+
+    handler(dispatcher(listener)).handleRequest(agentExecutionContext);
+
+    assertThat(listener.jobs)
+        .singleElement()
+        .satisfies(job -> assertThat(job.startedAt()).isEqualTo(JOB_STARTED_AT));
   }
 
   @Test
@@ -439,7 +456,8 @@ class AgentLifecycleEmissionTest {
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        dispatcher);
+        dispatcher,
+        Clock.fixed(JOB_STARTED_AT, ZoneOffset.UTC));
   }
 
   /** Tool result properties that throw when the interrupted flag is looked up. */

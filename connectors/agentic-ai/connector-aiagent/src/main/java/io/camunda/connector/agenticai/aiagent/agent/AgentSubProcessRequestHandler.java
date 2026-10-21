@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.lifecycle.AgentLifecycleDispatcher
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,8 @@ public class AgentSubProcessRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      AgentLifecycleDispatcher lifecycleDispatcher) {
+      AgentLifecycleDispatcher lifecycleDispatcher,
+      Clock clock) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -47,7 +49,8 @@ public class AgentSubProcessRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        lifecycleDispatcher);
+        lifecycleDispatcher,
+        clock);
   }
 
   @Override

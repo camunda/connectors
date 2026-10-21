@@ -100,6 +100,9 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefi
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -143,6 +146,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           AgentLifecycleDispatcher.class,
+          Clock.class,
           ChatModelRegistry.class,
           AnthropicChatModelFactory.class,
           BedrockConverseChatModelFactory.class,
@@ -182,6 +186,14 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
         .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
+  }
+
+  @Test
+  void whenClockBeanIsProvided_thenItReplacesTheDefaultClock() {
+    final var customClock = Clock.fixed(Instant.parse("2026-10-19T09:00:00Z"), ZoneOffset.UTC);
+    contextRunner
+        .withBean(Clock.class, () -> customClock)
+        .run(context -> assertThat(context).getBean(Clock.class).isSameAs(customClock));
   }
 
   @ParameterizedTest

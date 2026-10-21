@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.otel.AgentTracingListener;
 import io.opentelemetry.api.OpenTelemetry;
+import java.time.Clock;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -52,6 +53,15 @@ class AgentTracingAutoConfigurationTest {
   }
 
   @Test
+  void registersListenerWhenEnabledWithTheClockOfTheRuntime() {
+    contextRunner
+        .withUserConfiguration(OpenTelemetryConfig.class)
+        .withUserConfiguration(ClockConfig.class)
+        .withPropertyValues(TRACING_ENABLED)
+        .run(context -> assertThat(context).hasSingleBean(AgentTracingListener.class));
+  }
+
+  @Test
   void bindsTheClusterIdAndCaptureFlag() {
     contextRunner
         .withUserConfiguration(OpenTelemetryConfig.class)
@@ -84,6 +94,14 @@ class AgentTracingAutoConfigurationTest {
     @Bean
     OpenTelemetry openTelemetry() {
       return OpenTelemetry.noop();
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class ClockConfig {
+    @Bean
+    Clock clock() {
+      return Clock.systemUTC();
     }
   }
 }

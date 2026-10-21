@@ -71,8 +71,11 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +84,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -116,10 +118,21 @@ class AgentSubProcessRequestHandlerTest {
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
   @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
 
-  @InjectMocks private AgentSubProcessRequestHandler requestHandler;
+  private AgentSubProcessRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
+    requestHandler =
+        new AgentSubProcessRequestHandler(
+            agentInitializer,
+            conversationStoreRegistry,
+            agentInputComposer,
+            chatModelRegistry,
+            systemPromptComposer,
+            responseHandler,
+            agentInstanceClient,
+            lifecycleDispatcher,
+            Clock.fixed(Instant.parse("2026-10-19T09:00:00Z"), ZoneOffset.UTC));
     ConversationStore conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
