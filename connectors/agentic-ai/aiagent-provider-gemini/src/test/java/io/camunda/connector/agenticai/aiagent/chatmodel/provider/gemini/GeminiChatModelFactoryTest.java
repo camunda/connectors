@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,23 +28,8 @@ import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -82,11 +66,6 @@ class GeminiChatModelFactoryTest {
   @Captor private ArgumentCaptor<HttpOptions> httpOptionsCaptor;
   @Captor private ArgumentCaptor<ClientOptions> clientOptionsCaptor;
 
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
-
   private GeminiChatModelFactory factory;
 
   @BeforeEach
@@ -107,7 +86,7 @@ class GeminiChatModelFactoryTest {
   @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration config =
-        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
+        new CustomChatModelConfiguration("some-custom-provider", MODEL_ID, Map.of());
 
     assertThat(factory.supports(config)).isFalse();
   }
@@ -173,18 +152,15 @@ class GeminiChatModelFactoryTest {
   }
 
   @Test
-  void createFallsBackToConfiguredDefaultForNonPositiveConfiguredTimeout() {
+  void createClampsNonPositiveTimeoutToOneMillisecond() {
     noProxyConfigured();
 
-    final ChatModel zeroTimeoutModel = factory.create(apiConfig(null, Duration.ZERO));
-    assertThat(httpOptionsOf(zeroTimeoutModel).timeout()).contains(180_000);
-    assertThat(callTimeoutMillisOf(zeroTimeoutModel)).isEqualTo(180_000);
-    zeroTimeoutModel.close();
+    final ChatModel model = factory.create(apiConfig(null, Duration.ZERO));
 
-    final ChatModel negativeTimeoutModel = factory.create(apiConfig(null, Duration.ofSeconds(-1)));
-    assertThat(httpOptionsOf(negativeTimeoutModel).timeout()).contains(180_000);
-    assertThat(callTimeoutMillisOf(negativeTimeoutModel)).isEqualTo(180_000);
-    negativeTimeoutModel.close();
+    assertThat(httpOptionsOf(model).timeout()).contains(1);
+    assertThat(callTimeoutMillisOf(model)).isEqualTo(1);
+
+    model.close();
   }
 
   @Test
@@ -256,7 +232,8 @@ class GeminiChatModelFactoryTest {
 
     final var clientBuilder =
         createVertexAiChatModel(
-            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+            vertexConfig(
+                null, new GeminiConfiguration.Authentication.ApplicationDefaultCredentials()));
 
     verify(clientBuilder).vertexAI(true);
     verify(clientBuilder).project(PROJECT_ID);
@@ -294,7 +271,7 @@ class GeminiChatModelFactoryTest {
 
       final var clientBuilder =
           createVertexAiChatModel(
-              vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}")));
+              vertexConfig(null, new GeminiConfiguration.Authentication.ServiceAccountKey("{}")));
 
       verify(clientBuilder).credentials(scopedSac);
     }
@@ -307,7 +284,8 @@ class GeminiChatModelFactoryTest {
 
     final var clientBuilder =
         createVertexAiChatModel(
-            vertexConfig(endpoint, new ApplicationDefaultCredentialsAuthentication()));
+            vertexConfig(
+                endpoint, new GeminiConfiguration.Authentication.ApplicationDefaultCredentials()));
 
     verify(clientBuilder).httpOptions(httpOptionsCaptor.capture());
     assertThat(httpOptionsCaptor.getValue().baseUrl()).contains(endpoint);
@@ -322,7 +300,8 @@ class GeminiChatModelFactoryTest {
 
     final var clientBuilder =
         createVertexAiChatModel(
-            vertexConfig(null, new ApplicationDefaultCredentialsAuthentication()));
+            vertexConfig(
+                null, new GeminiConfiguration.Authentication.ApplicationDefaultCredentials()));
 
     // applied directly to the custom OkHttp client, not via ClientOptions.proxyOptions() - see
     // GeminiChatModelFactory#buildClient's javadoc on CONNECT_TIMEOUT
@@ -355,7 +334,9 @@ class GeminiChatModelFactoryTest {
       assertThatThrownBy(
               () ->
                   factory.create(
-                      vertexConfig(null, new ApplicationDefaultCredentialsAuthentication())))
+                      vertexConfig(
+                          null,
+                          new GeminiConfiguration.Authentication.ApplicationDefaultCredentials())))
           .isInstanceOf(ConnectorInputException.class)
           .hasMessageContaining("Failed to create Google GenAI client");
     }
@@ -372,7 +353,8 @@ class GeminiChatModelFactoryTest {
       assertThatThrownBy(
               () ->
                   factory.create(
-                      vertexConfig(null, new ServiceAccountCredentialsAuthentication("{}"))))
+                      vertexConfig(
+                          null, new GeminiConfiguration.Authentication.ServiceAccountKey("{}"))))
           .isInstanceOf(ConnectorInputException.class)
           .hasMessageContaining("Authentication failed for provided service account credentials");
     }
@@ -411,15 +393,16 @@ class GeminiChatModelFactoryTest {
   }
 
   private static GeminiConfiguration vertexConfig(
-      @Nullable String endpoint, GoogleVertexAiAuthentication authentication) {
-    return translate(
-        new GeminiChatModelConfiguration(
-            new GeminiConnection(
-                new GeminiVertexAiBackend(
-                    new GoogleVertexAi(PROJECT_ID, REGION, endpoint, authentication)),
-                new GeminiModel(MODEL_ID, null),
-                null)),
-        GeminiConfiguration.class);
+      @Nullable String endpoint, GeminiConfiguration.Authentication authentication) {
+    return new GeminiConfiguration(
+        new GeminiConfiguration.Backend.VertexAi(PROJECT_ID, REGION, endpoint, authentication),
+        MODEL_ID,
+        Duration.ofMinutes(3),
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   private static Client clientOf(ChatModel model) {
@@ -450,12 +433,14 @@ class GeminiChatModelFactoryTest {
 
   private static GeminiConfiguration apiConfig(
       @Nullable String endpoint, @Nullable Duration timeout) {
-    return translate(
-        new GeminiChatModelConfiguration(
-            new GeminiConnection(
-                new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
-                new GeminiModel(MODEL_ID, null),
-                timeout != null ? new TimeoutConfiguration(timeout) : null)),
-        GeminiConfiguration.class);
+    return new GeminiConfiguration(
+        new GeminiConfiguration.Backend.Api(API_KEY, endpoint),
+        MODEL_ID,
+        timeout != null ? timeout : Duration.ofMinutes(3),
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 }

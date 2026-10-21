@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY;
-import static io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -175,7 +174,7 @@ class GeminiContentConverterTest {
           converter.toParts(
               List.of(
                   new ReasoningContent(
-                      GOOGLE_GEMINI_ID,
+                      GeminiConfiguration.PROVIDER,
                       Map.of("thought", true),
                       "Let me think it through",
                       metadata)));
@@ -192,7 +191,7 @@ class GeminiContentConverterTest {
           converter.toParts(
               List.of(
                   new ReasoningContent(
-                      GOOGLE_GEMINI_ID,
+                      GeminiConfiguration.PROVIDER,
                       Map.of("type", "thought"),
                       "Let me think it through",
                       null)));
@@ -209,7 +208,8 @@ class GeminiContentConverterTest {
       final var parts =
           converter.toParts(
               List.of(
-                  new ReasoningContent(GOOGLE_GEMINI_ID, Map.of("type", "thought"), null, null)));
+                  new ReasoningContent(
+                      GeminiConfiguration.PROVIDER, Map.of("type", "thought"), null, null)));
 
       assertThat(parts).hasSize(1);
       final var part = parts.get(0);
@@ -232,7 +232,8 @@ class GeminiContentConverterTest {
               "functionCall", Map.of("name", "myFunction", "args", Map.of("a", 1)));
 
       final var parts =
-          converter.toParts(List.of(new ProviderContent(GOOGLE_GEMINI_ID, payload, null)));
+          converter.toParts(
+              List.of(new ProviderContent(GeminiConfiguration.PROVIDER, payload, null)));
 
       assertThat(parts).hasSize(1);
       final FunctionCall functionCall = parts.get(0).functionCall().orElseThrow();
@@ -348,7 +349,10 @@ class GeminiContentConverterTest {
           converter.toFunctionResponseParts(
               List.of(
                   new ReasoningContent(
-                      GOOGLE_GEMINI_ID, Map.of("thinking", "some reasoning"), null, null)));
+                      GeminiConfiguration.PROVIDER,
+                      Map.of("thinking", "some reasoning"),
+                      null,
+                      null)));
 
       assertThat(parts).hasSize(1);
       final var response = parts.get(0).functionResponse().orElseThrow();
@@ -360,7 +364,8 @@ class GeminiContentConverterTest {
     void mapsProviderContentToFunctionResponsePartWithJsonFallback() {
       final var parts =
           converter.toFunctionResponseParts(
-              List.of(new ProviderContent(GOOGLE_GEMINI_ID, Map.of("foo", "bar"), null)));
+              List.of(
+                  new ProviderContent(GeminiConfiguration.PROVIDER, Map.of("foo", "bar"), null)));
 
       assertThat(parts).hasSize(1);
       final var response = parts.get(0).functionResponse().orElseThrow();

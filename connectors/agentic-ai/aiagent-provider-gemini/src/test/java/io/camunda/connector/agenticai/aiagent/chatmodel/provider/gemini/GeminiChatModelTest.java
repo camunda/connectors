@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,11 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,13 +51,15 @@ class GeminiChatModelTest {
   @Mock private GeminiContentStreamAssembler streamAssembler;
 
   private final GeminiConfiguration configuration =
-      translate(
-          new GeminiChatModelConfiguration(
-              new GeminiConnection(
-                  new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
-                  new GeminiModel("gemini-3-pro-preview", null),
-                  null)),
-          GeminiConfiguration.class);
+      new GeminiConfiguration(
+          new GeminiConfiguration.Backend.Api("gm-test", null),
+          "gemini-3-pro-preview",
+          Duration.ofMinutes(3),
+          null,
+          null,
+          null,
+          null,
+          null);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final AgentConfiguration agentConfiguration = mock(AgentConfiguration.class);

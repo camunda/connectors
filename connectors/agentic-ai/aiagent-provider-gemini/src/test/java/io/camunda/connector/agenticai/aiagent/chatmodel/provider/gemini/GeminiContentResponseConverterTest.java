@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY;
-import static io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
@@ -82,7 +81,7 @@ class GeminiContentResponseConverterTest {
     assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
     assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.STOP);
     assertThat(assistantMessage.metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", "STOP"))
+        .containsEntry(GeminiConfiguration.PROVIDER, Map.of("finishReason", "STOP"))
         .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
     final var metrics = result.metrics();
@@ -113,7 +112,7 @@ class GeminiContentResponseConverterTest {
         .containsExactly(
             TextContent.textContent("before"),
             new ProviderContent(
-                GOOGLE_GEMINI_ID,
+                GeminiConfiguration.PROVIDER,
                 Map.of(
                     "fileData",
                     Map.of("fileUri", "gs://bucket/chart.png", "mimeType", "image/png")),
@@ -292,7 +291,7 @@ class GeminiContentResponseConverterTest {
     assertThat(assistantMessage.stopReason()).isEqualTo(StopReason.TOOL_USE);
     // the raw vendor finish reason is preserved unchanged, independent of the override
     assertThat(assistantMessage.metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", "STOP"));
+        .containsEntry(GeminiConfiguration.PROVIDER, Map.of("finishReason", "STOP"));
     assertThat(result.metrics().toolCalls()).isEqualTo(1);
   }
 
@@ -374,7 +373,7 @@ class GeminiContentResponseConverterTest {
                 assertThat(toolCall.metadata())
                     .isEqualTo(
                         Map.of(
-                            GOOGLE_GEMINI_ID,
+                            GeminiConfiguration.PROVIDER,
                             Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64))));
   }
 
@@ -403,7 +402,7 @@ class GeminiContentResponseConverterTest {
         .isInstanceOfSatisfying(
             ReasoningContent.class,
             reasoning -> {
-              assertThat(reasoning.provider()).isEqualTo(GOOGLE_GEMINI_ID);
+              assertThat(reasoning.provider()).isEqualTo(GeminiConfiguration.PROVIDER);
               assertThat(reasoning.text()).isEqualTo("Let me think it through");
               assertThat(reasoning.metadata())
                   .containsEntry(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64);
@@ -476,7 +475,8 @@ class GeminiContentResponseConverterTest {
                 .assistantMessage()
                 .content())
         .containsExactly(
-            new ReasoningContent(GOOGLE_GEMINI_ID, Map.of("thought", true), "thinking", null));
+            new ReasoningContent(
+                GeminiConfiguration.PROVIDER, Map.of("thought", true), "thinking", null));
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -493,7 +493,7 @@ class GeminiContentResponseConverterTest {
     assertThat(result).isInstanceOf(ChatResult.Completed.class);
     assertThat(result.assistantMessage().stopReason()).isEqualTo(StopReason.LENGTH);
     assertThat(result.assistantMessage().metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", "MAX_TOKENS"));
+        .containsEntry(GeminiConfiguration.PROVIDER, Map.of("finishReason", "MAX_TOKENS"));
   }
 
   @ParameterizedTest
@@ -526,7 +526,8 @@ class GeminiContentResponseConverterTest {
               assertThat(assistantMessage.stopReason())
                   .isEqualTo(new UnknownStopReason(finishReason));
               assertThat(assistantMessage.metadata())
-                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
+                  .containsEntry(
+                      GeminiConfiguration.PROVIDER, Map.of("finishReason", finishReason));
             });
   }
 
@@ -567,7 +568,7 @@ class GeminiContentResponseConverterTest {
     assertThat(result.assistantMessage().stopReason())
         .isEqualTo(new UnknownStopReason(finishReason));
     assertThat(result.assistantMessage().metadata())
-        .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
+        .containsEntry(GeminiConfiguration.PROVIDER, Map.of("finishReason", finishReason));
   }
 
   @Test
@@ -615,7 +616,7 @@ class GeminiContentResponseConverterTest {
               assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
               assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
               assertThat(assistantMessage.metadata())
-                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("blockReason", "SAFETY"))
+                  .containsEntry(GeminiConfiguration.PROVIDER, Map.of("blockReason", "SAFETY"))
                   .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
               final var metrics = partialResult.metrics();

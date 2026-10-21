@@ -13,8 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -33,20 +32,11 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -129,10 +119,6 @@ class GeminiChatModelFactoryClientTest {
           + "\n\n";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @Test
   void hiddenEndpointOverrideRedirectsRequestAndKeepsApiKeyHeaderAndSseQueryParam(
@@ -198,12 +184,15 @@ class GeminiChatModelFactoryClientTest {
             new GeminiContentRequestConverter(new GeminiContentConverter(objectMapper)),
             new GeminiContentResponseConverter());
     final var configuration =
-        translate(
-            new GeminiChatModelConfiguration(
-                new GeminiConnection(
-                    new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
-                    new GeminiModel(MODEL_ID, null),
-                    null)));
+        new GeminiConfiguration(
+            new GeminiConfiguration.Backend.Api(API_KEY, endpoint),
+            MODEL_ID,
+            Duration.ofMinutes(3),
+            null,
+            null,
+            null,
+            null,
+            null);
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
@@ -212,10 +201,7 @@ class GeminiChatModelFactoryClientTest {
 
   private static AgentExecutionContext executionContext(ChatModelConfiguration model) {
     final var agentConfiguration =
-        agentConfiguration()
-            .chatModel(model)
-            .systemPrompt(new SystemPromptConfiguration("system prompt"))
-            .build();
+        agentConfiguration(model, new SystemPromptConfiguration("system prompt"));
 
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration()).thenReturn(agentConfiguration);

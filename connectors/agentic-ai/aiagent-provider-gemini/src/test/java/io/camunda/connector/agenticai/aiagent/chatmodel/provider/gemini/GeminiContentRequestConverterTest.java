@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.DEFAULT_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.genai.types.Candidate;
@@ -17,6 +16,8 @@ import com.google.genai.types.FunctionCall;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Thinking;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.ThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -30,19 +31,12 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -57,14 +51,25 @@ class GeminiContentRequestConverterTest {
   private final GeminiContentRequestConverter converter =
       new GeminiContentRequestConverter(contentConverter);
 
-  private static GeminiConfiguration model(@Nullable GeminiModelParameters parameters) {
-    return translate(
-        new GeminiChatModelConfiguration(
-            new GeminiConnection(
-                new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
-                new GeminiModel("gemini-3-pro-preview", parameters),
-                null)),
-        GeminiConfiguration.class);
+  private static GeminiConfiguration model(@Nullable Thinking thinking) {
+    return model(null, null, null, null, thinking);
+  }
+
+  private static GeminiConfiguration model(
+      @Nullable Integer maxTokens,
+      @Nullable Double temperature,
+      @Nullable Double topP,
+      @Nullable Integer topK,
+      @Nullable Thinking thinking) {
+    return new GeminiConfiguration(
+        new GeminiConfiguration.Backend.Api("gm-test", null),
+        "gemini-3-pro-preview",
+        Duration.ofMinutes(3),
+        maxTokens,
+        temperature,
+        topP,
+        topK,
+        thinking);
   }
 
   private static Document mockDocument(String contentType, byte[] bytes) {
@@ -84,11 +89,11 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void mapsModelParameters() {
-    final var parameters = new GeminiModelParameters(1024, 0.5, 0.9, 40, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(
+            model(1024, 0.5, 0.9, 40, null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.maxOutputTokens()).contains(1024);
     assertThat(config.temperature()).contains(0.5f);
@@ -114,12 +119,11 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void mapsThinkingBudgetOnly() {
-    final var parameters =
-        new GeminiModelParameters(null, null, null, null, new GeminiThinking(2048, null));
+    final var thinking = new Thinking.Budget(2048);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isPresent();
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
@@ -130,13 +134,11 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void mapsThinkingLevelOnly() {
-    final var parameters =
-        new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.HIGH));
+    final var thinking = new Thinking.Level(ThinkingLevel.HIGH);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isPresent();
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).isEmpty();
@@ -147,13 +149,11 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void mapsThinkingLevelMinimal() {
-    final var parameters =
-        new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.MINIMAL));
+    final var thinking = new Thinking.Level(ThinkingLevel.MINIMAL);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig().orElseThrow().thinkingLevel().orElseThrow().toString())
         .isEqualToIgnoringCase("minimal");
@@ -161,36 +161,33 @@ class GeminiContentRequestConverterTest {
 
   @Test
   void modelDefaultLevelWithNoBudgetEmitsNoThinkingConfig() {
-    final var parameters =
-        new GeminiModelParameters(null, null, null, null, new GeminiThinking(null, null));
+    final Thinking thinking = null;
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();
   }
 
   @Test
   void budgetWithModelDefaultLevelDoesNotThrow() {
-    final var parameters =
-        new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.MODEL_DEFAULT));
+    final var thinking = new Thinking.Budget(2048);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
   }
 
   @Test
   void noThinkingConfiguredEmitsNoThinkingConfig() {
-    final var parameters = new GeminiModelParameters(null, null, null, null, null);
+    final Thinking thinking = null;
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config =
-        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
+        converter.toGenerateContentConfig(model(thinking), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();
   }
