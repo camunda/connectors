@@ -37,6 +37,20 @@ public final class AgentConfigurations {
     return agentConfiguration(chatModel, TEST_SYSTEM_PROMPT);
   }
 
+  /** An agent calling the given chat model and answering in the given response configuration. */
+  public static AgentConfiguration agentConfiguration(
+      final ChatModelConfiguration chatModel, final ResponseConfiguration response) {
+    return new AgentConfiguration(
+        chatModel,
+        TEST_SYSTEM_PROMPT,
+        new UserPromptConfiguration("user prompt", List.of()),
+        new MemoryConfiguration(() -> "test-store", 20),
+        new LimitsConfiguration(10),
+        new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
+        response,
+        List.of());
+  }
+
   /** An agent calling the given chat model with the given system prompt. */
   public static AgentConfiguration agentConfiguration(
       final ChatModelConfiguration chatModel, final SystemPromptConfiguration systemPrompt) {

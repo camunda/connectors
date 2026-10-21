@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
@@ -340,7 +340,7 @@ class LangChain4JChatModelTest {
       ResponseConfiguration responseConfiguration) {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
-        .thenReturn(agentConfiguration().response(responseConfiguration).build());
+        .thenReturn(agentConfiguration(PROVIDER_CONFIGURATION, responseConfiguration));
 
     return executionContext;
   }

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -207,10 +207,9 @@ class LangChain4JChatModelFactoryTest {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
         .thenReturn(
-            agentConfiguration()
-                .response(
-                    new ResponseConfiguration(new TextResponseFormatConfiguration(false), false))
-                .build());
+            agentConfiguration(
+                new CustomConfiguration("test-model"),
+                new ResponseConfiguration(new TextResponseFormatConfiguration(false), false)));
     return executionContext;
   }
 
