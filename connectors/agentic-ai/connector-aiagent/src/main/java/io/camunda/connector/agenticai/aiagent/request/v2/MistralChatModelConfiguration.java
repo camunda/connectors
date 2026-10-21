@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MISTRAL_API_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CUSTOM_ID;
-import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;

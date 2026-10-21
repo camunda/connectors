@@ -95,7 +95,8 @@ class ChatModelProviderIndependenceArchTest {
           .that()
           .resideInAnyPackage(
               AgenticAiModules.pkg("aiagent.chatmodel.connection.."),
-              AgenticAiModules.pkg("aiagent.chatmodel.envelope.."))
+              AgenticAiModules.pkg("aiagent.chatmodel.envelope.."),
+              AgenticAiModules.pkg("aiagent.chatmodel.wire.."))
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage(vendorAndVendorSupportPackages())

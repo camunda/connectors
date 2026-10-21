@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
-import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;

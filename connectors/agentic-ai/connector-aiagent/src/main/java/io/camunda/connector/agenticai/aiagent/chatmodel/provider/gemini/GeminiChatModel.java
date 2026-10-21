@@ -17,7 +17,7 @@ import com.google.genai.types.GenerateContentResponse;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

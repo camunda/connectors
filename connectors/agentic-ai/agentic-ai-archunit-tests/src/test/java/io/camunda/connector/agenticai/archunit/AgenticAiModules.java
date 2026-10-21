@@ -26,7 +26,9 @@ enum AgenticAiModules {
       "aiagent-provider-support",
       "ProviderSupport",
       Kind.LIBRARY,
-      under("aiagent.chatmodel.connection").or(under("aiagent.chatmodel.envelope"))),
+      under("aiagent.chatmodel.connection")
+          .or(under("aiagent.chatmodel.envelope"))
+          .or(under("aiagent.chatmodel.wire"))),
   AZURE_SUPPORT(
       "aiagent-azure-support",
       "AzureSupport",

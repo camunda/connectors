@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;

@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
 import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
+import io.camunda.connector.agenticai.aiagent.chatmodel.wire.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
