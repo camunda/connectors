@@ -6,16 +6,17 @@ on:
       - opened
       - synchronize
       - reopened
+  # Feature branches are covered by pull_request; running on push too would
+  # test every PR commit twice. Push only covers long-lived branches.
   push:
     branches:
-      - '**'
-      - '!main'
-      - '!gh-readonly-queue/**'
+      - 'stable/**'
+      - 'alpha/**'
+      - 'release-*'
   merge_group:
     branches: [ main, 'stable/**' ]
 
-# Cancel stale runs of the same type (push-on-push, PR-on-PR) without
-# letting push and pull_request events cancel each other.
+# Cancel stale runs of the same type (push-on-push, PR-on-PR).
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
