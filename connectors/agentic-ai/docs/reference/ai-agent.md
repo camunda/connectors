@@ -1047,10 +1047,11 @@ conversation memory.
 
 The LangChain4j integration is a generic bridge for custom providers, not a provider stack
 ([ADR 016](../adr/016-agent-core-and-provider-modules.md) D6). It ships no factory for a vendor; a custom
-`ChatModelFactory` brings its own configuration type and LangChain4j model:
-- `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans. Provider selection is by
-  `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads unconditionally rather than
-  behind a global framework toggle.
+`ChatModelFactory` brings its own configuration type and LangChain4j model. The bridge is the opt-in module
+`aiagent-provider-langchain4j`, which neither the connector nor the bundle depends on:
+- `AgenticAiLangChain4JAutoConfiguration` of the module wires the converter beans. Provider selection is by
+  `ChatModelFactory.supports(...)` via the SPI registry, so the auto-configuration is active with the module on the
+  class path, under the `camunda.connector.agenticai.enabled` switch of the other auto-configurations.
 - `LangChain4JChatModelFactory<T extends ChatModelConfiguration>` is an optional abstract base: `supports` matches
   a configuration of the type `T` (override it to narrow the match), and `create` builds the underlying LangChain4j
   model once via the abstract `createChatModel` and wraps it in a `LangChain4JChatModel`.
@@ -1227,9 +1228,9 @@ The AI Agent does not reference the MCP and A2A integrations. It collects every 
 and `SystemPromptContributor` bean through list injection, so the order of the integration
 auto-configurations does not matter.
 
-`AgenticAiConnectorsAutoConfiguration` imports:
-- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain (no `ChatModelFactory` beans)
-- `AgenticAiNativeProvidersConfiguration` — native provider `ChatModelFactory` beans
+`AgenticAiConnectorsAutoConfiguration` imports `AgenticAiNativeProvidersConfiguration`, which holds the native
+provider `ChatModelFactory` beans. The LangChain4j converter chain (no `ChatModelFactory` beans) is the
+auto-configuration of the opt-in module `aiagent-provider-langchain4j`.
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly.
 

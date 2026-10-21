@@ -101,6 +101,12 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-langchain4j</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -160,25 +166,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client-jdk</artifactId>
-    </dependency>
-    <!--
-      REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
-      META-INF/services entry pointing at the unshaded class, so
-      ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
-      ServiceConfigurationError without the Kotlin module on the class path. Do not exclude it.
-    -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-kotlin</artifactId>
-      <scope>runtime</scope>
-    </dependency>
     <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
     <dependency>
       <groupId>com.google.genai</groupId>
@@ -188,6 +175,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
 
     <!-- the tests of the providers use the model classes of the vendor SDKs; the providers bring
          them to the runtime class path -->
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-core</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-core</artifactId>
@@ -232,11 +224,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.httpcomponents.core5</groupId>
-      <artifactId>httpcore5</artifactId>
     </dependency>
 
     <dependency>

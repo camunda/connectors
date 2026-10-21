@@ -21,6 +21,7 @@ import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MODEL;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_ANTHROPIC;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_BEDROCK;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_GEMINI;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_LANGCHAIN4J;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_MISTRAL;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_OPENAI;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_SUPPORT;
@@ -60,6 +61,7 @@ class ModuleLayersArchTest {
     dependsOn(PROVIDER_ANTHROPIC, PROVIDER_SUPPORT, AZURE_SUPPORT, AWS_SUPPORT, API, MODEL);
     dependsOn(PROVIDER_GEMINI, PROVIDER_SUPPORT, API, MODEL);
     dependsOn(PROVIDER_BEDROCK, PROVIDER_SUPPORT, AWS_SUPPORT, API, MODEL);
+    dependsOn(PROVIDER_LANGCHAIN4J, PROVIDER_SUPPORT, API, MODEL);
     dependsOn(TEST_SUPPORT, PROVIDER_SUPPORT, API, MODEL);
     dependsOn(TOOLS_SCHEMA, API, MODEL);
     dependsOn(AD_HOC_CONNECTOR, TOOLS_SCHEMA, API, MODEL);

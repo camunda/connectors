@@ -47,6 +47,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-provider-anthropic` | `aiagent.chatmodel.provider.anthropic` | Native Anthropic provider (Anthropic API, AWS Bedrock Mantle, Foundry) |
 | `aiagent-provider-gemini` | `aiagent.chatmodel.provider.gemini` | Native Google Gemini provider (Developer API, Vertex AI) |
 | `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider |
+| `aiagent-provider-langchain4j` | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge. Not part of the bundle: add it to use LangChain4j models |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -236,6 +237,12 @@ client in its properties does not start.
   is removed.
 - `EntraIdTokenCredentialFactory` takes `CredentialCacheSettings` (`aiagent.chatmodel.provider.azure`) instead of the
   `CredentialCacheProperties` of the configuration properties. The property names do not change.
+- The LangChain4j bridge is the module `aiagent-provider-langchain4j`, which is no longer a dependency of
+  `connector-aiagent` or part of the bundle, so the default runtime carries no `dev.langchain4j` dependency. A runtime
+  that registers a LangChain4j based `ChatModelFactory` adds the module. Its Spring configuration is the
+  auto-configuration `AgenticAiLangChain4JAutoConfiguration` (formerly `AgenticAiLangChain4JFrameworkConfiguration`,
+  imported by the AI Agent auto-configuration), registered in the module and active under the same
+  `camunda.connector.agenticai.enabled` switch.
 - `DocumentMimeTypes`, `LoggingSupport` and `AssistantMessageMetadata` moved to `aiagent.chatmodel.wire` of `aiagent-provider-support`.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 - The connection settings of the native providers are resolved by `ConnectionResolver` in

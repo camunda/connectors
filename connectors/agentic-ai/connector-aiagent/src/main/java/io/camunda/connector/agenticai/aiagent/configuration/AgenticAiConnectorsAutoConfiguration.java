@@ -34,7 +34,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -76,10 +75,7 @@ import org.springframework.context.annotation.Scope;
     after = {AgenticAiCommonAutoConfiguration.class, AgenticAiToolsSchemaAutoConfiguration.class})
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(AgenticAiConnectorsConfigurationProperties.class)
-@Import({
-  AgenticAiLangChain4JFrameworkConfiguration.class,
-  AgenticAiNativeProvidersConfiguration.class
-})
+@Import(AgenticAiNativeProvidersConfiguration.class)
 public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
