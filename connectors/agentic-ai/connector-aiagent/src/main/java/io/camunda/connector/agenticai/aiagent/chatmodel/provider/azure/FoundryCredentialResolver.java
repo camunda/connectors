@@ -55,7 +55,7 @@ public class FoundryCredentialResolver {
    * the supplier performs; {@code null} leaves the SDK default in place.
    */
   public Supplier<String> bearerTokenSupplier(
-      ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {
+      FoundryAuthentication.ClientCredentials authentication, @Nullable Duration timeout) {
     final var tokenCredential =
         entraIdTokenCredentialFactory.clientCredentials(
             authentication.tenantId(),
@@ -72,10 +72,30 @@ public class FoundryCredentialResolver {
    * overrides it.
    */
   public Supplier<String> bearerTokenSupplier(
-      ManagedIdentityAuthentication authentication, @Nullable Duration timeout) {
+      FoundryAuthentication.ManagedIdentity authentication, @Nullable Duration timeout) {
     final var tokenCredential =
         entraIdTokenCredentialFactory.managedIdentity(authentication.clientId(), timeout);
     return tokenSupplier(tokenCredential, scopeFor(null, authentication.entraIdScope()));
+  }
+
+  public Supplier<String> bearerTokenSupplier(
+      ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {
+    return bearerTokenSupplier(
+        new FoundryAuthentication.ClientCredentials(
+            authentication.clientId(),
+            authentication.clientSecret(),
+            authentication.tenantId(),
+            authentication.authorityHost(),
+            authentication.entraIdScope()),
+        timeout);
+  }
+
+  public Supplier<String> bearerTokenSupplier(
+      ManagedIdentityAuthentication authentication, @Nullable Duration timeout) {
+    return bearerTokenSupplier(
+        new FoundryAuthentication.ManagedIdentity(
+            authentication.clientId(), authentication.entraIdScope()),
+        timeout);
   }
 
   /**

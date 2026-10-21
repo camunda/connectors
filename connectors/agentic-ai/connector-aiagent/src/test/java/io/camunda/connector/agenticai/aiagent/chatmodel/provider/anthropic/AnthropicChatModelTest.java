@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,13 +61,15 @@ class AnthropicChatModelTest {
   @Mock private AnthropicMessageStreamAssembler streamAssembler;
   @Mock private Message assembledMessage;
 
-  private final AnthropicChatModelConfiguration configuration =
-      new AnthropicChatModelConfiguration(
-          new AnthropicConnection(
-              new AnthropicApiBackend(
-                  new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-              new AnthropicModel("claude-sonnet-4-6", null),
-              null));
+  private final AnthropicConfiguration configuration =
+      translate(
+          new AnthropicChatModelConfiguration(
+              new AnthropicConnection(
+                  new AnthropicApiBackend(
+                      new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                  new AnthropicModel("claude-sonnet-4-6", null),
+                  null)),
+          AnthropicConfiguration.class);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 

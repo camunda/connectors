@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.core.ObjectMappers;
@@ -43,7 +43,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfi
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingDisplay;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,34 +57,35 @@ class AnthropicMessageRequestConverterTest {
   private final AnthropicMessageRequestConverter converter =
       new AnthropicMessageRequestConverter(contentConverter);
 
-  private static AnthropicChatModelConfiguration model(
-      @Nullable AnthropicModelParameters parameters) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-            new AnthropicModel("claude-sonnet-4-6", parameters),
-            null));
+  private static AnthropicConfiguration model(@Nullable AnthropicModelParameters parameters) {
+    return translate(
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicModel("claude-sonnet-4-6", parameters),
+                null)),
+        AnthropicConfiguration.class);
   }
 
   /** Builds a model with only the prompt-caching toggle set. */
-  private static AnthropicChatModelConfiguration promptCachingModel(
-      @Nullable Boolean enablePromptCaching) {
+  private static AnthropicConfiguration promptCachingModel(@Nullable Boolean enablePromptCaching) {
     final var promptCaching =
         enablePromptCaching == null ? null : new AnthropicPromptCaching(enablePromptCaching);
     final var parameters =
         new AnthropicModelParameters(null, null, promptCaching, null, null, null, null);
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-            new AnthropicModel("claude-sonnet-4-6", parameters),
-            null));
+    return translate(
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
+                new AnthropicModel("claude-sonnet-4-6", parameters),
+                null)),
+        AnthropicConfiguration.class);
   }
 
   /** Builds a model on the {@code custom} backend with the given additional body params. */
-  private static AnthropicChatModelConfiguration customModel(
-      @Nullable Map<String, Object> bodyProperties) {
+  private static AnthropicConfiguration customModel(@Nullable Map<String, Object> bodyProperties) {
     return customModel(null, null, bodyProperties);
   }
 
@@ -93,38 +93,42 @@ class AnthropicMessageRequestConverterTest {
    * Builds a model on the {@code anthropic-api} backend with the given hidden headers, query
    * parameters, and additional body properties.
    */
-  private static AnthropicChatModelConfiguration apiModel(
+  private static AnthropicConfiguration apiModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> bodyProperties) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi(
-                    "sk-ant-test", null, headers, queryParameters, bodyProperties)),
-            new AnthropicModel("claude-sonnet-4-6", null),
-            null));
+    return translate(
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicApiBackend(
+                    new AnthropicApiBackend.AnthropicApi(
+                        "sk-ant-test", null, headers, queryParameters, bodyProperties)),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null)),
+        AnthropicConfiguration.class);
   }
 
   /**
    * Builds a model on the {@code custom} backend with the given headers, query parameters, and
    * additional body properties.
    */
-  private static AnthropicChatModelConfiguration customModel(
+  private static AnthropicConfiguration customModel(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> bodyProperties) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicCustomBackend(
-                new AnthropicCustomBackend.CustomBackend(
-                    "https://example.com",
-                    headers,
-                    queryParameters,
-                    bodyProperties,
-                    new NoAuthentication())),
-            new AnthropicModel("claude-sonnet-4-6", null),
-            null));
+    return translate(
+        new AnthropicChatModelConfiguration(
+            new AnthropicConnection(
+                new AnthropicCustomBackend(
+                    new AnthropicCustomBackend.CustomBackend(
+                        "https://example.com",
+                        headers,
+                        queryParameters,
+                        bodyProperties,
+                        new NoAuthentication())),
+                new AnthropicModel("claude-sonnet-4-6", null),
+                null)),
+        AnthropicConfiguration.class);
   }
 
   private static JsonNode requestBodyAsJson(
@@ -517,7 +521,7 @@ class AnthropicMessageRequestConverterTest {
 
     final var params = converter.toMessageCreateParams(model(null), DEFAULT_RESPONSE, snapshot);
 
-    assertThat(params.maxTokens()).isEqualTo(AnthropicModelParameters.DEFAULT_MAX_TOKENS);
+    assertThat(params.maxTokens()).isEqualTo(AnthropicConfiguration.DEFAULT_MAX_TOKENS);
     assertThat(params.maxTokens()).isEqualTo(4096L);
   }
 
@@ -643,19 +647,6 @@ class AnthropicMessageRequestConverterTest {
         converter.toMessageCreateParams(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.thinking()).isEmpty();
-  }
-
-  @Test
-  void enabledThinkingWithoutBudgetTokensFailsFast() {
-    // The one surviving structural check from the (now-dropped, matrix-coupled) reasoning
-    // validator: ENABLED requires a budget, otherwise the SDK builder itself would silently skip
-    // the field or (depending on future SDK versions) throw an opaque error. Fail loud instead.
-    final var parameters = thinkingParams(new AnthropicThinking(ThinkingMode.ENABLED, null, null));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    assertThatThrownBy(
-            () -> converter.toMessageCreateParams(model(parameters), DEFAULT_RESPONSE, snapshot))
-        .isInstanceOf(ConnectorException.class);
   }
 
   @Test

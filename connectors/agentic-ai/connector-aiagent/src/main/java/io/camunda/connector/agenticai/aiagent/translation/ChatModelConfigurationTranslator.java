@@ -6,19 +6,34 @@
  */
 package io.camunda.connector.agenticai.aiagent.translation;
 
+import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
+
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
+import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
@@ -32,6 +47,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.Duration;
 import java.util.Optional;
@@ -63,6 +79,9 @@ public class ChatModelConfigurationTranslator {
 
   public ChatModelConfiguration translate(
       io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration provider) {
+    if (provider instanceof AnthropicChatModelConfiguration anthropic) {
+      return translateAnthropic(anthropic);
+    }
     if (provider instanceof MistralChatModelConfiguration mistral) {
       return translateMistral(mistral);
     }
@@ -73,6 +92,132 @@ public class ChatModelConfigurationTranslator {
       return translateBedrock(bedrock);
     }
     return provider;
+  }
+
+  private AnthropicConfiguration translateAnthropic(AnthropicChatModelConfiguration configuration) {
+    final var connection = configuration.anthropic();
+    final var model = connection.model();
+    final var parameters = model.parameters();
+    return new AnthropicConfiguration(
+        switch (connection.backend()) {
+          case AnthropicApiBackend api ->
+              new AnthropicConfiguration.Backend.Api(
+                  api.anthropic().apiKey(),
+                  api.anthropic().endpoint(),
+                  RequestCustomizations.of(
+                      api.anthropic().headers(),
+                      api.anthropic().queryParameters(),
+                      api.anthropic().bodyProperties()));
+          case AnthropicAwsBedrockMantleBackend mantle ->
+              new AnthropicConfiguration.Backend.AwsBedrockMantle(
+                  mantle.awsBedrockMantle().region(),
+                  mantle.awsBedrockMantle().endpoint(),
+                  awsAuthentication(mantle.awsBedrockMantle().authentication()),
+                  RequestCustomizations.of(
+                      mantle.awsBedrockMantle().headers(),
+                      mantle.awsBedrockMantle().queryParameters(),
+                      mantle.awsBedrockMantle().bodyProperties()));
+          case AnthropicFoundryBackend foundry ->
+              new AnthropicConfiguration.Backend.Foundry(
+                  foundry.foundry().endpoint(),
+                  foundryAuthentication(foundry.foundry().authentication()),
+                  RequestCustomizations.of(
+                      foundry.foundry().headers(),
+                      foundry.foundry().queryParameters(),
+                      foundry.foundry().bodyProperties()));
+          case AnthropicCustomBackend custom ->
+              new AnthropicConfiguration.Backend.Custom(
+                  custom.custom().endpoint(),
+                  endpointAuthentication(custom.custom().authentication()),
+                  RequestCustomizations.of(
+                      custom.custom().headers(),
+                      custom.custom().queryParameters(),
+                      custom.custom().bodyProperties()));
+        },
+        model.model(),
+        timeout(connection.timeouts()),
+        parameters == null ? null : anthropicEffort(parameters.effort()),
+        parameters == null ? null : anthropicThinking(parameters.thinking(), model.model()),
+        parameters != null
+            && parameters.promptCaching() != null
+            && Boolean.TRUE.equals(parameters.promptCaching().enabled()),
+        parameters != null && parameters.maxTokens() != null
+            ? parameters.maxTokens()
+            : AnthropicConfiguration.DEFAULT_MAX_TOKENS,
+        parameters == null ? null : parameters.temperature(),
+        parameters == null ? null : parameters.topP(),
+        parameters == null ? null : parameters.topK());
+  }
+
+  private static AnthropicConfiguration.@Nullable Effort anthropicEffort(
+      @Nullable AnthropicEffort effort) {
+    if (effort == null) {
+      return null;
+    }
+    return switch (effort) {
+      case MODEL_DEFAULT -> null;
+      case LOW -> AnthropicConfiguration.Effort.LOW;
+      case MEDIUM -> AnthropicConfiguration.Effort.MEDIUM;
+      case HIGH -> AnthropicConfiguration.Effort.HIGH;
+      case XHIGH -> AnthropicConfiguration.Effort.XHIGH;
+      case MAX -> AnthropicConfiguration.Effort.MAX;
+    };
+  }
+
+  private static AnthropicConfiguration.@Nullable Thinking anthropicThinking(
+      @Nullable AnthropicThinking thinking, String model) {
+    if (thinking == null || thinking.mode() == null) {
+      return null;
+    }
+    return switch (thinking.mode()) {
+      case MODEL_DEFAULT -> null;
+      case ENABLED -> {
+        if (thinking.budgetTokens() == null) {
+          throw new ConnectorException(
+              ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
+              "Thinking mode ENABLED requires a budget tokens value for model '%s'"
+                  .formatted(model));
+        }
+        yield new AnthropicConfiguration.Thinking.Enabled(thinking.budgetTokens());
+      }
+      case ADAPTIVE ->
+          new AnthropicConfiguration.Thinking.Adaptive(
+              thinking.display() == null
+                  ? null
+                  : switch (thinking.display()) {
+                    case SUMMARIZED -> AnthropicConfiguration.Display.SUMMARIZED;
+                    case OMITTED -> AnthropicConfiguration.Display.OMITTED;
+                  });
+      case DISABLED -> new AnthropicConfiguration.Thinking.Disabled();
+    };
+  }
+
+  private static FoundryAuthentication foundryAuthentication(
+      io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication authentication) {
+    return switch (authentication) {
+      case ApiKeyAuthentication apiKey -> new FoundryAuthentication.ApiKey(apiKey.apiKey());
+      case ClientCredentialsAuthentication credentials ->
+          new FoundryAuthentication.ClientCredentials(
+              credentials.clientId(),
+              credentials.clientSecret(),
+              credentials.tenantId(),
+              credentials.authorityHost(),
+              credentials.entraIdScope());
+      case ManagedIdentityAuthentication managedIdentity ->
+          new FoundryAuthentication.ManagedIdentity(
+              managedIdentity.clientId(), managedIdentity.entraIdScope());
+    };
+  }
+
+  private static EndpointAuthentication endpointAuthentication(
+      AnthropicCustomEndpointAuthentication authentication) {
+    return switch (authentication) {
+      case AnthropicCustomEndpointAuthentication.NoAuthentication ignored ->
+          new EndpointAuthentication.None();
+      case AnthropicCustomEndpointAuthentication.ApiKeyAuthentication apiKey ->
+          new EndpointAuthentication.ApiKey(apiKey.apiKey());
+      case OAuthClientCredentialsAuthentication oauth -> oauth(oauth);
+    };
   }
 
   private MistralConfiguration translateMistral(MistralChatModelConfiguration configuration) {

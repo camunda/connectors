@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
@@ -18,9 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
@@ -64,18 +62,12 @@ class AnthropicChatModelFactoryTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
-
   private AnthropicChatModelFactory factory;
 
   @BeforeEach
   void setUp() {
     factory =
         new AnthropicChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper),
@@ -89,7 +81,7 @@ class AnthropicChatModelFactoryTest {
   @ParameterizedTest
   @MethodSource("configs")
   void supportsAnthropicV2Config(AnthropicChatModelConfiguration config) {
-    assertThat(factory.supports(config)).isTrue();
+    assertThat(factory.supports(translate(config))).isTrue();
   }
 
   @Test
@@ -105,10 +97,14 @@ class AnthropicChatModelFactoryTest {
   void createBuildsWorkingApi(AnthropicChatModelConfiguration config) {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
-    final ChatModel api = factory.create(config);
+    final ChatModel api = create(config);
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
     api.close();
+  }
+
+  private ChatModel create(AnthropicChatModelConfiguration binding) {
+    return factory.create(translate(binding));
   }
 
   static Stream<AnthropicChatModelConfiguration> configs() {
@@ -125,7 +121,7 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        factory.create(
+        create(
             foundryConfig(
                 MODEL_ID,
                 new FoundryAuthentication.ClientCredentialsAuthentication(
@@ -140,7 +136,7 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        factory.create(
+        create(
             foundryConfig(
                 MODEL_ID, new FoundryAuthentication.ManagedIdentityAuthentication(null, null)));
 
@@ -153,7 +149,7 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        factory.create(
+        create(
             bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
 
     assertThat(api).isNotNull().isInstanceOf(AnthropicChatModel.class);
@@ -165,7 +161,7 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        factory.create(
+        create(
             bedrockConfig(
                 MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
 
@@ -183,7 +179,7 @@ class AnthropicChatModelFactoryTest {
         mockStatic(AnthropicOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(AnthropicOkHttpClient::builder).thenReturn(clientBuilder);
 
-      final ChatModel api = factory.create(apiConfig(MODEL_ID, timeouts));
+      final ChatModel api = create(apiConfig(MODEL_ID, timeouts));
       verify(clientBuilder).timeout(expectedTimeout);
       api.close();
     }

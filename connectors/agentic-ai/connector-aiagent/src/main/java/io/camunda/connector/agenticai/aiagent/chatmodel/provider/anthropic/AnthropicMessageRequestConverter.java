@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
-
 import com.anthropic.core.JsonValue;
 import com.anthropic.models.messages.CacheControlEphemeral;
 import com.anthropic.models.messages.ContentBlockParam;
@@ -23,6 +21,9 @@ import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
 import com.anthropic.models.messages.ToolUseBlockParam;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Effort;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Thinking;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -34,23 +35,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicEffort;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -68,33 +56,24 @@ public class AnthropicMessageRequestConverter {
   }
 
   public MessageCreateParams toMessageCreateParams(
-      AnthropicChatModelConfiguration configuration,
+      AnthropicConfiguration configuration,
       ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final var connection = configuration.anthropic();
-    final var params = connection.model().parameters();
-    final String modelId = connection.model().model();
-
     final var builder =
-        MessageCreateParams.builder().model(modelId).maxTokens(resolveMaxTokens(params));
+        MessageCreateParams.builder()
+            .model(configuration.model())
+            .maxTokens(configuration.maxTokens());
 
-    applyModelParameters(builder, params);
-    applyThinking(builder, params, modelId);
+    applyModelParameters(builder, configuration);
+    applyThinking(builder, configuration.thinking());
     applySystemPrompt(builder, snapshot);
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
-    applyOutputConfig(builder, params, response);
-    applyPromptCaching(builder, params);
-    applyRequestCustomizations(builder, connection);
+    applyOutputConfig(builder, configuration.effort(), response);
+    applyPromptCaching(builder, configuration.promptCaching());
+    applyRequestCustomizations(builder, configuration.backend().customizations());
 
     return builder.build();
-  }
-
-  private long resolveMaxTokens(@Nullable AnthropicModelParameters params) {
-    if (params != null && params.maxTokens() != null) {
-      return params.maxTokens().longValue();
-    }
-    return AnthropicModelParameters.DEFAULT_MAX_TOKENS;
   }
 
   // temperature()/topP()/topK() are deprecated in the Anthropic SDK: models released after Claude
@@ -103,74 +82,40 @@ public class AnthropicMessageRequestConverter {
   // exposes them for all the other, still-supported models, so keep mapping them; do not remove.
   @SuppressWarnings("deprecation")
   private void applyModelParameters(
-      MessageCreateParams.Builder builder, @Nullable AnthropicModelParameters params) {
-    if (params == null) {
-      return;
+      MessageCreateParams.Builder builder, AnthropicConfiguration configuration) {
+    if (configuration.temperature() != null) {
+      builder.temperature(configuration.temperature());
     }
-    if (params.temperature() != null) {
-      builder.temperature(params.temperature());
+    if (configuration.topP() != null) {
+      builder.topP(configuration.topP());
     }
-    if (params.topP() != null) {
-      builder.topP(params.topP());
-    }
-    if (params.topK() != null) {
-      builder.topK(params.topK().longValue());
+    if (configuration.topK() != null) {
+      builder.topK(configuration.topK().longValue());
     }
   }
 
   /**
-   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. Both {@code mode
-   * == null} (legacy/omitted input) and {@code mode == MODEL_DEFAULT} (the modeler's "default"
-   * dropdown choice) mean unset - no thinking param is emitted and the model's own default applies.
-   * The remaining concrete modes map onto the wire via {@code name().toLowerCase()} ({@link
-   * ThinkingMode}/{@code ThinkingDisplay} already carry matching lowercase {@code JsonProperty}
-   * values, see those enums).
+   * Maps the {@code thinking} configuration onto the SDK's {@code thinking} union. Without a
+   * configuration no thinking param is emitted and the model's own default applies.
    */
-  private void applyThinking(
-      MessageCreateParams.Builder builder,
-      @Nullable AnthropicModelParameters params,
-      String modelId) {
-    final var thinking = params == null ? null : params.thinking();
-    validateThinking(thinking, modelId);
-
-    final ThinkingMode mode = thinking == null ? null : thinking.mode();
-    if (thinking == null || mode == null || mode == ThinkingMode.MODEL_DEFAULT) {
-      return;
-    }
-
-    switch (mode) {
-      case ENABLED -> {
-        if (thinking.budgetTokens() != null) {
+  private void applyThinking(MessageCreateParams.Builder builder, @Nullable Thinking thinking) {
+    switch (thinking) {
+      case null -> {}
+      case Thinking.Enabled enabled ->
           builder.thinking(
               ThinkingConfigParam.ofEnabled(
-                  ThinkingConfigEnabled.builder()
-                      .budgetTokens(thinking.budgetTokens().longValue())
-                      .build()));
-        }
-      }
-      case ADAPTIVE -> {
+                  ThinkingConfigEnabled.builder().budgetTokens(enabled.budgetTokens()).build()));
+      case Thinking.Adaptive adaptive -> {
         final var adaptiveBuilder = ThinkingConfigAdaptive.builder();
-        if (thinking.display() != null) {
+        if (adaptive.display() != null) {
           adaptiveBuilder.display(
-              ThinkingConfigAdaptive.Display.of(thinking.display().name().toLowerCase()));
+              ThinkingConfigAdaptive.Display.of(adaptive.display().name().toLowerCase()));
         }
         builder.thinking(ThinkingConfigParam.ofAdaptive(adaptiveBuilder.build()));
       }
-      case DISABLED ->
+      case Thinking.Disabled ignored ->
           builder.thinking(
               ThinkingConfigParam.ofDisabled(ThinkingConfigDisabled.builder().build()));
-    }
-  }
-
-  // The SDK's ThinkingConfigEnabled has no meaningful default budget, so ENABLED requires an
-  // explicit budgetTokens value; a thinking object with a null mode is unset and never checked.
-  private void validateThinking(@Nullable AnthropicThinking thinking, String modelId) {
-    if (thinking != null
-        && thinking.mode() == ThinkingMode.ENABLED
-        && thinking.budgetTokens() == null) {
-      throw new ConnectorException(
-          ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
-          "Thinking mode ENABLED requires a budget tokens value for model '%s'".formatted(modelId));
     }
   }
 
@@ -194,69 +139,26 @@ public class AnthropicMessageRequestConverter {
    * tools stay stable across turns, but the sliding message window shifts the message-history
    * portion of the prefix once it starts evicting the oldest messages.
    */
-  private void applyPromptCaching(
-      MessageCreateParams.Builder builder, @Nullable AnthropicModelParameters params) {
-    final var promptCaching = params == null ? null : params.promptCaching();
-    if (promptCaching != null && Boolean.TRUE.equals(promptCaching.enabled())) {
+  private void applyPromptCaching(MessageCreateParams.Builder builder, boolean promptCaching) {
+    if (promptCaching) {
       builder.cacheControl(CacheControlEphemeral.builder().build());
     }
   }
 
   /**
-   * Merges the backend's headers, query parameters, and body properties onto the request. The
+   * Merges the headers, query parameters, and body properties of the backend onto the request. The
    * {@code custom} backend exposes these as regular properties; the {@code anthropic-api}, {@code
    * aws-bedrock-mantle} and {@code foundry} backends expose the same extension points as hidden
    * properties for special scenarios not covered by the modeler UI (e.g. routing through an
    * intermediary that requires extra headers).
    */
   private void applyRequestCustomizations(
-      MessageCreateParams.Builder builder, AnthropicConnection connection) {
-    final RequestCustomizations customizations = requestCustomizations(connection.backend());
+      MessageCreateParams.Builder builder, RequestCustomizations customizations) {
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations
         .bodyProperties()
         .forEach((k, v) -> builder.putAdditionalBodyProperty(k, JsonValue.from(v)));
-  }
-
-  private RequestCustomizations requestCustomizations(AnthropicBackend backend) {
-    return switch (backend) {
-      case AnthropicApiBackend apiBackend ->
-          new RequestCustomizations(
-              apiBackend.anthropic().headers(),
-              apiBackend.anthropic().queryParameters(),
-              apiBackend.anthropic().bodyProperties());
-      case AnthropicAwsBedrockMantleBackend awsBedrockMantleBackend ->
-          new RequestCustomizations(
-              awsBedrockMantleBackend.awsBedrockMantle().headers(),
-              awsBedrockMantleBackend.awsBedrockMantle().queryParameters(),
-              awsBedrockMantleBackend.awsBedrockMantle().bodyProperties());
-      case AnthropicFoundryBackend foundryBackend ->
-          new RequestCustomizations(
-              foundryBackend.foundry().headers(),
-              foundryBackend.foundry().queryParameters(),
-              foundryBackend.foundry().bodyProperties());
-      case AnthropicCustomBackend custom ->
-          new RequestCustomizations(
-              custom.custom().headers(),
-              custom.custom().queryParameters(),
-              custom.custom().bodyProperties());
-    };
-  }
-
-  private record RequestCustomizations(
-      Map<String, String> headers,
-      Map<String, String> queryParameters,
-      Map<String, Object> bodyProperties) {
-
-    private RequestCustomizations(
-        @Nullable Map<String, String> headers,
-        @Nullable Map<String, String> queryParameters,
-        @Nullable Map<String, Object> bodyProperties) {
-      this.headers = Objects.requireNonNullElse(headers, Map.of());
-      this.queryParameters = Objects.requireNonNullElse(queryParameters, Map.of());
-      this.bodyProperties = Objects.requireNonNullElse(bodyProperties, Map.of());
-    }
   }
 
   private void applyMessages(MessageCreateParams.Builder builder, List<Message> messages) {
@@ -349,10 +251,8 @@ public class AnthropicMessageRequestConverter {
    */
   private void applyOutputConfig(
       MessageCreateParams.Builder builder,
-      @Nullable AnthropicModelParameters params,
+      @Nullable Effort effort,
       ResponseConfiguration response) {
-    final AnthropicEffort rawEffort = params == null ? null : params.effort();
-    final AnthropicEffort effort = rawEffort == AnthropicEffort.MODEL_DEFAULT ? null : rawEffort;
     final Map<String, Object> jsonSchema =
         response.format() instanceof JsonResponseFormatConfiguration json
             ? (json.hasSchema() ? json.schema() : null)

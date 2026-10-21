@@ -56,7 +56,6 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AnthropicChatModelFactory aiAgentAnthropicChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
       FoundryCredentialResolver foundryCredentialResolver,
@@ -65,7 +64,6 @@ public class AgenticAiNativeProvidersConfiguration {
     final var requestConverter = new AnthropicMessageRequestConverter(contentConverter);
     final var responseConverter = new AnthropicMessageResponseConverter(objectMapper);
     return new AnthropicChatModelFactory(
-        configuration.aiagent().chatModel(),
         httpProxySupport,
         requestConverter,
         responseConverter,

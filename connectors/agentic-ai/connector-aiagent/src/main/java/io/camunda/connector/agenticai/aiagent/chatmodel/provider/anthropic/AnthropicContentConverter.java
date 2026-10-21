@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.PROVIDER;
 
 import com.anthropic.core.ObjectMappers;
 import com.anthropic.models.messages.Base64ImageSource;
@@ -57,10 +57,10 @@ public class AnthropicContentConverter {
         case DocumentContent doc -> blocks.add(toDocumentBlockParam(doc));
         case ObjectContent obj -> blocks.add(ContentBlockParam.ofText(toTextBlockParam(obj)));
         // Content tagged for a different provider is dropped rather than replayed.
-        case ReasoningContent rc when ANTHROPIC_ID.equals(rc.provider()) ->
+        case ReasoningContent rc when PROVIDER.equals(rc.provider()) ->
             blocks.add(toReasoningContentBlockParam(rc));
         case ReasoningContent ignored -> {}
-        case ProviderContent pc when ANTHROPIC_ID.equals(pc.provider()) ->
+        case ProviderContent pc when PROVIDER.equals(pc.provider()) ->
             blocks.add(toProviderContentBlockParam(pc));
         case ProviderContent ignored -> {}
       }

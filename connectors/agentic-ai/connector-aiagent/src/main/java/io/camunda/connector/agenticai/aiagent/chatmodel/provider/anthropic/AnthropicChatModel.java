@@ -21,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -47,7 +46,7 @@ public class AnthropicChatModel implements ChatModel {
   // AnthropicIoException's fixed, uninformative message for every wrapped java.io.IOException.
   private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
 
-  private final AnthropicChatModelConfiguration configuration;
+  private final AnthropicConfiguration configuration;
   private final AnthropicClient client;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
@@ -55,7 +54,7 @@ public class AnthropicChatModel implements ChatModel {
 
   public AnthropicChatModel(
       AnthropicClient client,
-      AnthropicChatModelConfiguration configuration,
+      AnthropicConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter) {
     this(
@@ -68,7 +67,7 @@ public class AnthropicChatModel implements ChatModel {
 
   AnthropicChatModel(
       AnthropicClient client,
-      AnthropicChatModelConfiguration configuration,
+      AnthropicConfiguration configuration,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter,
       AnthropicMessageStreamAssembler streamAssembler) {

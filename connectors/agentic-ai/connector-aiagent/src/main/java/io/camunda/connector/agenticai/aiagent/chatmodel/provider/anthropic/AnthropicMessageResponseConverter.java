@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.ANTHROPIC_ID;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.PROVIDER;
 
 import com.anthropic.core.JsonObject;
 import com.anthropic.core.JsonValue;
@@ -106,8 +106,7 @@ public class AnthropicMessageResponseConverter {
     final Map<String, Object> anthropicMetadata =
         message
             .stopReason()
-            .<Map<String, Object>>map(
-                sr -> Map.of(ANTHROPIC_ID, Map.of("stopReason", sr.asString())))
+            .<Map<String, Object>>map(sr -> Map.of(PROVIDER, Map.of("stopReason", sr.asString())))
             .orElse(Map.of());
 
     return AssistantMessage.builder()
@@ -130,11 +129,11 @@ public class AnthropicMessageResponseConverter {
     } else if (block.isRedactedThinking()) {
       // Redacted thinking blocks carry no readable text (the `data` field is encrypted), so
       // there is nothing to lift out of the payload.
-      return new ReasoningContent(ANTHROPIC_ID, rawBlock(block), null, null);
+      return new ReasoningContent(PROVIDER, rawBlock(block), null, null);
     } else {
       // Fallback for any Anthropic content block type not explicitly handled above: preserve
       // it losslessly, in original order, as ProviderContent
-      return new ProviderContent(ANTHROPIC_ID, rawBlock(block), null);
+      return new ProviderContent(PROVIDER, rawBlock(block), null);
     }
   }
 
@@ -145,10 +144,10 @@ public class AnthropicMessageResponseConverter {
     final String text =
         block.thinking().map(ThinkingBlock::thinking).filter(StringUtils::hasText).orElse(null);
     if (text == null) {
-      return new ReasoningContent(ANTHROPIC_ID, raw, null, null);
+      return new ReasoningContent(PROVIDER, raw, null, null);
     }
     raw.remove("thinking");
-    return new ReasoningContent(ANTHROPIC_ID, raw, text, null);
+    return new ReasoningContent(PROVIDER, raw, text, null);
   }
 
   private ToolCall toToolCall(ToolUseBlock toolUse) {

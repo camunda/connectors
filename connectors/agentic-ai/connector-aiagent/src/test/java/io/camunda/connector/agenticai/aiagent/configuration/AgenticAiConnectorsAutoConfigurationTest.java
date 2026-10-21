@@ -408,7 +408,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomAnthropicChatModelFactory() {
           super(
-              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(AnthropicMessageRequestConverter.class),
               mock(AnthropicMessageResponseConverter.class),

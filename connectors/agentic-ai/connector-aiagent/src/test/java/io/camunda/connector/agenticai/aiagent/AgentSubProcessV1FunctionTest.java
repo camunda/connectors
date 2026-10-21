@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
 import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
@@ -93,6 +94,8 @@ class AgentSubProcessV1FunctionTest {
 
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
-    assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
+    assertThat(chatModel)
+        .isInstanceOf(AnthropicConfiguration.class)
+        .isEqualTo(ChatModelTranslationFixture.translate(V2_PROVIDER));
   }
 }
