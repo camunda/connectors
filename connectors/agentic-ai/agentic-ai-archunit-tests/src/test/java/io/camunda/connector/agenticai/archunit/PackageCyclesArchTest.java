@@ -52,12 +52,8 @@ class PackageCyclesArchTest {
       List.of(
           // aiagent.chatmodel and aiagent.configuration
           allow("aiagent.chatmodel..", "aiagent.configuration.."),
-          // aiagent.request and aiagent.chatmodel
-          allow("aiagent.request..", "aiagent.chatmodel.."),
           // aiagent.request and aiagent.configuration
           allow("aiagent.request..", "aiagent.configuration.."),
-          // aiagent.request and aiagent.memory
-          allow("aiagent.request..", "aiagent.memory.."),
           // mcp.client.framework and mcp.client.configuration
           allow("mcp.client.framework..", "mcp.client.configuration.."));
 

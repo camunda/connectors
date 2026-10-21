@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.CONNECT_TIMEOUT;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
@@ -15,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthenti
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -31,6 +30,9 @@ import software.amazon.awssdk.services.bedrockruntime.auth.scheme.BedrockRuntime
  * with the request/response converters, in a {@link BedrockConverseChatModel}.
  */
 public class BedrockConverseChatModelFactory implements ChatModelFactory {
+
+  /** TCP connect timeout of the HTTP client, independent of the duration of a model call. */
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
 
   private static final String SIGV4_AUTH_SCHEME = "sigv4";
   private static final String BEARER_AUTH_SCHEME = "httpBearerAuth";

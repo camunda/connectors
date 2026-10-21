@@ -129,18 +129,27 @@ public class ChatModelConfigurationTranslator {
                   nonBlank(api.openai().organizationId()),
                   nonBlank(api.openai().projectId()),
                   api.openai().endpoint(),
-                  api.requestCustomizations());
+                  RequestCustomizations.of(
+                      api.openai().headers(),
+                      api.openai().queryParameters(),
+                      api.openai().bodyProperties()));
           case OpenAiFoundryBackend foundry ->
               new OpenAiConfiguration.Backend.Foundry(
                   foundry.foundry().endpoint(),
                   nonBlank(foundry.foundry().apiVersion()),
                   foundryAuthentication(foundry.foundry().authentication()),
-                  foundry.requestCustomizations());
+                  RequestCustomizations.of(
+                      foundry.foundry().headers(),
+                      foundry.foundry().queryParameters(),
+                      foundry.foundry().bodyProperties()));
           case OpenAiCustomBackend custom ->
               new OpenAiConfiguration.Backend.Custom(
                   custom.custom().endpoint(),
                   endpointAuthentication(custom.custom().authentication()),
-                  custom.requestCustomizations());
+                  RequestCustomizations.of(
+                      custom.custom().headers(),
+                      custom.custom().queryParameters(),
+                      custom.custom().bodyProperties()));
         },
         connection.model().model(),
         timeout(connection.timeouts()));
@@ -302,12 +311,18 @@ public class ChatModelConfigurationTranslator {
                   api.mistral().endpoint() != null
                       ? api.mistral().endpoint()
                       : MistralConfiguration.Backend.Api.DEFAULT_ENDPOINT,
-                  api.requestCustomizations());
+                  RequestCustomizations.of(
+                      api.mistral().headers(),
+                      api.mistral().queryParameters(),
+                      api.mistral().bodyProperties()));
           case MistralCustomBackend custom ->
               new MistralConfiguration.Backend.Custom(
                   custom.custom().endpoint(),
                   endpointAuthentication(custom.custom().authentication()),
-                  custom.requestCustomizations());
+                  RequestCustomizations.of(
+                      custom.custom().headers(),
+                      custom.custom().queryParameters(),
+                      custom.custom().bodyProperties()));
         },
         connection.model().model(),
         timeout(connection.timeouts()),

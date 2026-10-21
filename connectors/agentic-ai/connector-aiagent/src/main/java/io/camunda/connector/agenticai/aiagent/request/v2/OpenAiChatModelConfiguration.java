@@ -16,7 +16,6 @@ import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactV
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -232,16 +231,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     /** The backend discriminator string. */
     String type();
 
-    RequestCustomizations requestCustomizations();
-
     @TemplateSubType(id = OPENAI_API_ID, label = "OpenAI API")
     record OpenAiApiBackend(@Valid @NotNull OpenAiApiConnection openai) implements OpenAiBackend {
-
-      @Override
-      public RequestCustomizations requestCustomizations() {
-        return RequestCustomizations.of(
-            openai.headers(), openai.queryParameters(), openai.bodyProperties());
-      }
 
       @TemplateProperty(ignore = true)
       public static final String OPENAI_API_ID = "openai-api";
@@ -342,12 +333,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
         return FOUNDRY_ID;
       }
 
-      @Override
-      public RequestCustomizations requestCustomizations() {
-        return RequestCustomizations.of(
-            foundry.headers(), foundry.queryParameters(), foundry.bodyProperties());
-      }
-
       public record FoundryBackend(
           @NotBlank
               @HttpUrl
@@ -429,12 +414,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       @Override
       public String type() {
         return CUSTOM_ID;
-      }
-
-      @Override
-      public RequestCustomizations requestCustomizations() {
-        return RequestCustomizations.of(
-            custom.headers(), custom.queryParameters(), custom.bodyProperties());
       }
 
       public record CustomBackend(
