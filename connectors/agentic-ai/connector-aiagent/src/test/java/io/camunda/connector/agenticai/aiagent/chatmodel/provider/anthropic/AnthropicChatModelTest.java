@@ -27,7 +27,7 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 import com.anthropic.services.blocking.MessageService;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -117,7 +117,7 @@ class AnthropicChatModelTest {
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -135,7 +135,7 @@ class AnthropicChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Read timed out")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -152,7 +152,7 @@ class AnthropicChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("EOFException")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -170,7 +170,7 @@ class AnthropicChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Failed to build request")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -189,7 +189,7 @@ class AnthropicChatModelTest {
             e -> {
               final var connectorException = (ConnectorException) e;
               assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
               assertThat(connectorException.getMessage())
                   .contains("429")
                   .contains("rate_limit_error");

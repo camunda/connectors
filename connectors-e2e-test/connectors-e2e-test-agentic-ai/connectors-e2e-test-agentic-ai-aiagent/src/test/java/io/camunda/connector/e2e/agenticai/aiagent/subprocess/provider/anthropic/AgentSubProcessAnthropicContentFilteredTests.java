@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.anthropic
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.anthropic.StreamingAnthropicMessagesSseChatModelStubs.RefusalTurnStub;
 import java.util.Map;
@@ -66,7 +66,7 @@ class AgentSubProcessAnthropicContentFilteredTests extends BaseAnthropicSubProce
         .hasNoActiveIncidents()
         .hasCompletedElementsInOrder("ErrorBoundary_ContentFiltered", "EndEvent_ContentFiltered")
         .hasVariable(
-            "rejectionErrorCode", AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
+            "rejectionErrorCode", ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
         .hasVariable("rejectionStopReason", "refusal")
         .hasVariable("rejectionText", partialText);
   }

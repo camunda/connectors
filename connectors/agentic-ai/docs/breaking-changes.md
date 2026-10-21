@@ -192,6 +192,10 @@ client in its properties does not start.
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
+- The error codes of a model call (`ERROR_CODE_FAILED_MODEL_CALL`, `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`,
+  `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`, `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED` and
+  `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`) moved from `aiagent.agent.AgentErrorCodes` to
+  `aiagent.api.chatmodel.ChatModelErrorCodes` of `aiagent-api`. The values do not change.
 - `AgentConfiguration` is a non-null domain model. `memory`, `limits`, `events` and `response` are always present
   and every default is applied when the connector translates its request. `PromptConfiguration`,
   `LimitsConfiguration`, `EventHandlingConfiguration`, `ResponseConfiguration`, `ResponseFormatConfiguration` and

@@ -1166,6 +1166,8 @@ On tool call iteration (tool calls present):
 
 The codes are defined in
 [`AgentErrorCodes`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
+and, for a failed or rejected model call, in
+[`ChatModelErrorCodes`](../../aiagent-api/src/main/java/io/camunda/connector/agenticai/aiagent/api/chatmodel/ChatModelErrorCodes.java),
 and thrown as `ConnectorException(errorCode, message)`. To find a code's current throw site, search the
 codebase for its constant. `Value` is the externally visible error code (what BPMN error handling keys
 on).

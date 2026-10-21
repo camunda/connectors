@@ -28,7 +28,7 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.services.blocking.ChatService;
 import com.openai.services.blocking.chat.ChatCompletionService;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -211,7 +211,7 @@ class MistralChatModelTest {
     assertThatThrownBy(() -> model.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -252,7 +252,7 @@ class MistralChatModelTest {
     assertThatThrownBy(() -> model.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test

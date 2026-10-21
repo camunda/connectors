@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;

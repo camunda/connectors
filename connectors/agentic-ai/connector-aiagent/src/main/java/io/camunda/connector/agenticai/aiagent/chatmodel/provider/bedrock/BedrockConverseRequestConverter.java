@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
+import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 import static io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 import static java.util.Objects.requireNonNull;
 

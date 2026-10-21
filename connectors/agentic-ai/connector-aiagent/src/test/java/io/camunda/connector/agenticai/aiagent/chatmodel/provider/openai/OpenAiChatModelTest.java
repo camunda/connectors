@@ -21,7 +21,7 @@ import com.openai.client.OpenAIClient;
 import com.openai.core.http.Headers;
 import com.openai.errors.BadRequestException;
 import com.openai.models.ErrorObject;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -113,7 +113,7 @@ class OpenAiChatModelTest {
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -129,7 +129,7 @@ class OpenAiChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Read timed out")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -144,7 +144,7 @@ class OpenAiChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("EOFException")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -162,7 +162,7 @@ class OpenAiChatModelTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Failed to parse tool call arguments")
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -203,7 +203,7 @@ class OpenAiChatModelTest {
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test

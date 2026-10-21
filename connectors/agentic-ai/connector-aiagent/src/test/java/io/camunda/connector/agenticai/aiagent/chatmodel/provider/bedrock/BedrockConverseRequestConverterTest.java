@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -242,7 +242,7 @@ class BedrockConverseRequestConverterTest {
               () -> converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot))
           .isInstanceOf(ConnectorException.class)
           .extracting(e -> ((ConnectorException) e).getErrorCode())
-          .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION);
+          .isEqualTo(ChatModelErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION);
     }
   }
 

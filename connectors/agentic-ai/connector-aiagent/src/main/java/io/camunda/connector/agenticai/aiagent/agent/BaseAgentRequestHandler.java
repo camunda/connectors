@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -289,19 +290,19 @@ public abstract class BaseAgentRequestHandler<
       throw switch (e) {
         case ContentFilteredException cfe ->
             new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
+                ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED,
                 cfe.getMessage(),
                 cfe,
                 rejectionErrorVariables(cfe));
         case ContextWindowExceededException cwe ->
             new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
+                ChatModelErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED,
                 cwe.getMessage(),
                 cwe,
                 rejectionErrorVariables(cwe));
         case GuardrailInterventionException gie ->
             new ConnectorException(
-                AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED,
+                ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED,
                 gie.getMessage(),
                 gie,
                 rejectionErrorVariables(gie));

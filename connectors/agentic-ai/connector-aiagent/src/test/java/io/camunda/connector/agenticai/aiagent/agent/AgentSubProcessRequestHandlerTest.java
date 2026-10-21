@@ -40,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Di
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
@@ -547,7 +548,7 @@ class AgentSubProcessRequestHandlerTest {
             ConnectorException.class,
             e -> {
               assertThat(e.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
@@ -574,7 +575,7 @@ class AgentSubProcessRequestHandlerTest {
             ConnectorException.class,
             e -> {
               assertThat(e.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
               assertThat(e.getErrorVariables()).isEmpty();
             });
 
@@ -656,7 +657,7 @@ class AgentSubProcessRequestHandlerTest {
             ConnectorException.class,
             e -> {
               assertThat(e.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED);
               assertThat(e.getErrorVariables()).isEmpty();
             });
 

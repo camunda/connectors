@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
@@ -177,7 +177,7 @@ class BedrockConverseChatModelTest {
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
         .extracting(e -> ((ConnectorException) e).getErrorCode())
-        .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+        .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
   }
 
   @Test
@@ -194,7 +194,7 @@ class BedrockConverseChatModelTest {
             e -> {
               final var connectorException = (ConnectorException) e;
               assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
               assertThat(connectorException.getMessage())
                   .contains("429")
                   .contains("ThrottlingException")
@@ -219,7 +219,7 @@ class BedrockConverseChatModelTest {
             e -> {
               final var connectorException = (ConnectorException) e;
               assertThat(connectorException.getErrorCode())
-                  .isEqualTo(AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL);
               assertThat(connectorException.getMessage())
                   .contains("429")
                   .contains("ThrottlingException")
