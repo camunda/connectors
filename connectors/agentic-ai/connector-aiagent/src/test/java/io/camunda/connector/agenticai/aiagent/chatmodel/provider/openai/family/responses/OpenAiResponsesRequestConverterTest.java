@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -643,6 +644,22 @@ class OpenAiResponsesRequestConverterTest {
     final var textNode = requestBodyAsJson(params).path("text").path("format");
     assertThat(textNode.path("type").asText()).isEqualTo("json_object");
     assertThat(textNode.has("schema")).isFalse();
+  }
+
+  @Test
+  void doesNotConfigureAResponseFormatForTheTextFormat() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    for (final var parseJson : List.of(false, true)) {
+      final var params =
+          converter.toRequest(
+              model(null),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(parseJson), false),
+              snapshot);
+
+      assertThat(params.text()).isEmpty();
+      assertThat(requestBodyAsJson(params).has("text")).isFalse();
+    }
   }
 
   @Test

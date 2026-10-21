@@ -229,6 +229,19 @@ class LangChain4JChatModelTest {
   }
 
   @Test
+  void doesNotExplicitelyConfigureResponseFormatWhenTextFormatParsesJson() {
+    mockChatMessageConverterMapsInputMessages();
+    api.execute(
+        new ChatRequest(
+            createExecutionContext(
+                new ResponseConfiguration(new TextResponseFormatConfiguration(true), false)),
+            SNAPSHOT));
+
+    final var chatRequest = chatRequestCaptor.getValue();
+    assertThat(chatRequest.responseFormat()).isNull();
+  }
+
+  @Test
   void requestsJsonResponseWhenConfigured() {
     mockChatMessageConverterMapsInputMessages();
     api.execute(
