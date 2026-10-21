@@ -32,7 +32,9 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ToolCallMetadataDecorator;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
@@ -115,6 +117,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
+          ChatModelHttpProxySupport.class,
+          ToolCallMetadataDecorator.class,
           DocumentToContentConverter.class,
           ContentConverter.class,
           ToolCallConverter.class,

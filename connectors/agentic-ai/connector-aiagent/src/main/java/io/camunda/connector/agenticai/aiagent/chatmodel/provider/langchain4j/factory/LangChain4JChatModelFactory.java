@@ -17,41 +17,40 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.too
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Adapts one LangChain4j provider to the chat model SPI. {@link #supports} matches a {@link
- * ProviderConfiguration} whose {@link ProviderConfiguration#provider()} equals {@link
- * #providerType()}, and {@link #create} builds the underlying LangChain4j chat model once via
- * {@link #createChatModel} and wraps it in a {@link LangChain4JChatModel}. Each built-in provider
- * is a concrete subclass supplying its own discriminator and model construction logic, registered
- * as its own bean so an individual provider's implementation can be swapped without touching the
- * others.
+ * Base class for a {@link ChatModelFactory} that backs its chat models with LangChain4j. {@link
+ * #supports} matches a configuration of the type {@code T}, {@link #create} builds the underlying
+ * LangChain4j chat model through {@link #createChatModel} and wraps it in a {@link
+ * LangChain4JChatModel}, which converts the conversation, the tool definitions and the response
+ * with the LangChain4j converters. The class contains no vendor specific code: a subclass supplies
+ * the configuration type and the construction of the LangChain4j model, and is registered as a
+ * bean.
  *
- * @param <T> the {@link ProviderConfiguration} subtype this factory handles
+ * @param <T> the {@link ChatModelConfiguration} subtype this factory handles
  */
-public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguration>
+public abstract class LangChain4JChatModelFactory<T extends ChatModelConfiguration>
     implements ChatModelFactory {
 
+  private final Class<T> configurationType;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
 
   protected LangChain4JChatModelFactory(
+      Class<T> configurationType,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
+    this.configurationType = configurationType;
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
   }
 
-  /** Identifier of the provider this factory is responsible for. */
-  public abstract String providerType();
-
   /** Creates a {@link CloseableChatModel} instance from the given configuration. */
-  public abstract CloseableChatModel createChatModel(T providerConfiguration);
+  public abstract CloseableChatModel createChatModel(T configuration);
 
   /**
    * Maps the base input/output counts on every {@link TokenUsage}. Subclasses override this to
@@ -80,22 +79,21 @@ public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguratio
     return value != null ? value : 0;
   }
 
+  /**
+   * Matches the configurations of type {@code T}. A subclass can override it to narrow the match.
+   */
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof ProviderConfiguration provider
-        && providerType().equals(provider.provider());
+    return configurationType.isInstance(configuration);
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var providerConfiguration = (ProviderConfiguration) configuration;
-
-    @SuppressWarnings("unchecked")
-    final var chatModel = createChatModel((T) providerConfiguration);
+    final var chatModel = createChatModel(configurationType.cast(configuration));
 
     return new LangChain4JChatModel(
         chatModel,
-        providerConfiguration,
+        configuration,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,

@@ -167,11 +167,10 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   /**
    * Resolves the host the SDK will actually target, so the proxy can be skipped when it matches a
    * configured non-proxy host pattern. {@code com.google.genai.types.ProxyOptions} -- the SDK's own
-   * proxy mechanism, which does understand a bypass list, see the v1 Vertex AI provider's {@code
-   * ChatModelHttpProxySupport#createGoogleGenAiProxyOptions} -- is never used here, because
-   * supplying a {@code customHttpClient} (required for the timeout/streaming behavior documented on
-   * {@link #CONNECT_TIMEOUT}) makes the SDK ignore it entirely, so the same bypass has to be
-   * reimplemented against the raw OkHttp client instead.
+   * proxy mechanism, which does understand a bypass list -- is never used here, because supplying a
+   * {@code customHttpClient} (required for the timeout/streaming behavior documented on {@link
+   * #CONNECT_TIMEOUT}) makes the SDK ignore it entirely, so the same bypass has to be reimplemented
+   * against the raw OkHttp client instead.
    */
   private static String resolveTargetHost(
       GeminiBackend backend, @Nullable String endpointOverride) {

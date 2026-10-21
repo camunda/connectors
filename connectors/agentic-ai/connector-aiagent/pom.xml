@@ -120,6 +120,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
     <!--
       REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
       META-INF/services entry pointing at the unshaded class, so

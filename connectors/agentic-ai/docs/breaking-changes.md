@@ -192,6 +192,29 @@ The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2
 configurations (legacy element templates) are always rewritten to their v2 equivalent and run on the native providers.
 A runtime that set the switch to `false` must remove the property and move to the native providers.
 
+Conversations that were persisted by the LangChain4j path do not resume on every native provider. The LangChain4j path
+stored the Google Vertex AI thought signature of a tool call in the `google-vertex-ai` metadata namespace, and the
+native Gemini provider reads it from the `google-gemini` namespace. Gemini 3 rejects the next request of a conversation
+that has such a tool call in its history. Complete the Google Vertex AI conversations that call tools before the runtime
+moves to the native providers.
+
+The LangChain4j based factories for the v1 provider types (Anthropic, Azure OpenAI, Bedrock, Google Vertex AI, OpenAI
+and OpenAI-compatible endpoints) are removed, together with their vendor LangChain4j dependencies. What stays is the
+generic LangChain4j bridge for custom providers:
+
+- `LangChain4JChatModelFactory<T>` is generic over `ChatModelConfiguration` instead of the v1 `ProviderConfiguration`.
+  Its constructor takes the configuration type, `providerType()` is removed, and `supports` matches a configuration of
+  that type (override it to narrow the match).
+- `LangChain4JChatModel` and `ChatMessageConverter` take a `ChatModelConfiguration` instead of the v1
+  `ProviderConfiguration`. `ChatMessageConverterImpl` takes a `ToolCallMetadataDecorator` as an additional constructor
+  argument.
+- `ToolCallMetadataDecorator` is an interface instead of a utility class for Google Vertex AI. It carries provider data
+  that must be echoed back verbatim (such as thought signatures) through the tool call metadata. The default carries
+  nothing; register a bean of the type to carry the data of a provider. The Google Vertex AI thought signature handling
+  of the LangChain4j path is removed. The native Gemini provider handles it.
+- `ChatModelHttpProxySupport` keeps `createJdkHttpClientBuilder()`, the HTTP client builder with the connector proxy
+  settings for LangChain4j models. Its Azure and Google GenAI proxy options are removed.
+
 ## Camunda 8.9 to 8.10
 
 Summary of what changes for a custom extension. Details follow in the linked sections.
