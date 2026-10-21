@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFix
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -19,12 +20,17 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@link AgentConfiguration}s for tests of the modules below the agent core, which know no
  * conversation store.
  */
 public final class AgentConfigurations {
+
+  /** A minimal valid chat model configuration for tests that do not care about its details. */
+  public static final ChatModelConfiguration TEST_CHAT_MODEL =
+      new CustomChatModelConfiguration("test-provider", "test-model", Map.of());
 
   /** The response configuration of an agent that has none configured: plain text, no parsing. */
   public static final ResponseConfiguration DEFAULT_RESPONSE =
@@ -44,7 +50,7 @@ public final class AgentConfigurations {
         chatModel,
         TEST_SYSTEM_PROMPT,
         new UserPromptConfiguration("user prompt", List.of()),
-        new MemoryConfiguration(() -> "test-store", 20),
+        new MemoryConfiguration(new TestConversationStoreConfiguration(), 20),
         new LimitsConfiguration(10),
         new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
         response,
@@ -58,7 +64,7 @@ public final class AgentConfigurations {
         chatModel,
         systemPrompt,
         new UserPromptConfiguration("user prompt", List.of()),
-        new MemoryConfiguration(() -> "test-store", 20),
+        new MemoryConfiguration(new TestConversationStoreConfiguration(), 20),
         new LimitsConfiguration(10),
         new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
         DEFAULT_RESPONSE,

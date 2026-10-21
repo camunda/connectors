@@ -1,0 +1,828 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.agent;
+
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALLS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_DEFINITIONS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.toolCallResultMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.testutil.MessageAssertions.assertMessagesEqualIgnoringSystemMessageId;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import io.camunda.client.api.command.AgentInstanceUpdateStatus;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DeferConversation;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.GuardrailInterventionException;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.api.error.ConnectorException;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class AgentSubProcessRequestHandlerTest {
+
+  private static final AgentContext INITIAL_AGENT_CONTEXT =
+      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+
+  private static final String SYSTEM_PROMPT = "You are a helpful assistant. Be nice.";
+  private static final Message SYSTEM_MESSAGE = systemMessage(SYSTEM_PROMPT);
+  private static final Message USER_MESSAGE = userMessage("Write a haiku about the sea");
+  private static final Duration EXECUTION_TIME = Duration.ofMillis(123);
+
+  @Mock private AgentInitializer agentInitializer;
+  @Mock private ConversationStoreRegistry conversationStoreRegistry;
+  @Mock private AgentConversationTurnInputComposer agentInputComposer;
+  @Mock private ChatModelRegistry chatModelRegistry;
+  @Mock private ChatModel chatModel;
+  @Mock private SystemPromptComposer systemPromptComposer;
+  @Mock private AgentResponseHandler responseHandler;
+  @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private AgentSubProcessExecutionContext agentExecutionContext;
+
+  @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;
+  @Captor private ArgumentCaptor<AgentConversationTurn> turnCaptor;
+
+  @InjectMocks private AgentSubProcessRequestHandler requestHandler;
+
+  @BeforeEach
+  void setUp() {
+    ConversationStore conversationStore = spy(new InProcessConversationStore());
+    doReturn(conversationStore)
+        .when(conversationStoreRegistry)
+        .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+    // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
+    lenient()
+        .doReturn(
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(
+                    new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()))
+                .build())
+        .when(agentExecutionContext)
+        .configuration();
+    // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
+    // composer mock and don't rely on the user prompt)
+    lenient().doReturn(null).when(agentExecutionContext).userPrompt();
+  }
+
+  @Test
+  void dispatchesToolDiscoveryWhenInitializationReturnsDiscoverTools() {
+    reset(conversationStoreRegistry);
+
+    final var toolDiscoveryToolCalls =
+        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
+    final var discoveryAgentContext =
+        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.responseValue()).isNotNull();
+    assertThat(response.responseValue().context()).isEqualTo(discoveryAgentContext);
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
+
+    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
+  }
+
+  @Test
+  void dispatchesToolDiscoveryStatusUpdateDuringHandleRequest() {
+    reset(conversationStoreRegistry);
+
+    final var toolDiscoveryToolCalls =
+        List.of(ToolCall.builder().id("tool_discovery").name("AGatewayTool").build());
+    final var discoveryAgentContext =
+        AgentContext.builder().state(AgentState.TOOL_DISCOVERY).build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DiscoverTools(discoveryAgentContext, toolDiscoveryToolCalls));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // status update fires synchronously during handleRequest -- no completion listener involved
+    verify(agentInstanceClient).applyToolDiscoveryStart(eq(agentExecutionContext), isNull());
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // job completion triggers no further agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void returnsNoOpResponseWhenInitializationReturnsDeferConversation() {
+    reset(conversationStoreRegistry);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new DeferConversation());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.responseValue()).isNull();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+
+    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
+  }
+
+  @Test
+  void orchestratesRequestExecutionWithoutToolCalls() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var assistantMessageText =
+        "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
+    final var assistantMessage = assistantMessage(assistantMessageText);
+    mockChatModelExecution(assistantMessage);
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+    assertThat(agentResponse.context().conversation())
+        .isNotNull()
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
+
+    assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
+    assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
+
+    // snapshot is captured before the assistant message is ingested
+    assertMessagesEqualIgnoringSystemMessageId(
+        chatModelRequestCaptor.getValue().snapshot().messages(), SYSTEM_MESSAGE, USER_MESSAGE);
+  }
+
+  @Test
+  void orchestratesRequestExecutionWithToolCalls() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockChatModelExecution(assistantMessage);
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 2));
+    assertThat(agentResponse.context().conversation())
+        .isNotNull()
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, USER_MESSAGE, assistantMessage));
+
+    assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(agentResponse.responseText()).isNull();
+    assertThat(agentResponse.toolCalls())
+        .containsExactly(
+            ToolCallProcessVariable.from(TOOL_CALLS.get(0)),
+            ToolCallProcessVariable.from(TOOL_CALLS.get(1)));
+
+    assertThat(response.elementActivations()).hasSize(2);
+    assertThat(response.elementActivations().get(0).elementId()).isEqualTo("getWeather");
+    assertThat(response.elementActivations().get(0).variables())
+        .isEqualTo(
+            Map.of(
+                AgentProcessVariables.TOOL_CALL,
+                agentResponse.toolCalls().get(0),
+                AgentProcessVariables.TOOL_CALL_RESULT,
+                ""));
+    assertThat(response.elementActivations().get(1).elementId()).isEqualTo("getDateTime");
+    assertThat(response.elementActivations().get(1).variables())
+        .isEqualTo(
+            Map.of(
+                AgentProcessVariables.TOOL_CALL,
+                agentResponse.toolCalls().get(1),
+                AgentProcessVariables.TOOL_CALL_RESULT,
+                ""));
+  }
+
+  @Test
+  void orchestratesRequestExecutionWithInterruptedToolCall() {
+    List<ToolCallResult> toolCallResults = List.of(TOOL_CALL_RESULTS.getFirst());
+    mockSystemPrompt();
+
+    final var interruptedMessage =
+        toolCallResultMessage(
+            toolCallResults.stream()
+                .map(
+                    tc ->
+                        ToolCallResult.forCancelledToolCall(
+                            tc.id(), tc.name(), OffsetDateTime.parse("2026-07-02T10:00:00Z")))
+                .toList());
+    mockProceed(interruptedMessage);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var assistantMessage = AssistantMessage.builder().build();
+    mockChatModelExecution(assistantMessage);
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isTrue();
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20), 0));
+    assertThat(agentResponse.context().conversation())
+        .isNotNull()
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertMessagesEqualIgnoringSystemMessageId(
+                    c.messages(), SYSTEM_MESSAGE, interruptedMessage, assistantMessage));
+
+    assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(agentResponse.responseText()).isNull();
+    assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
+  }
+
+  @Test
+  void silentlyCompletesJobWhenInputComposerReturnsNoOp() {
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of()));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.elementActivations()).isEmpty();
+
+    verifyNoInteractions(chatModelRegistry, chatModel);
+    // no tool call results arrived at all — nothing to report
+    verifyNoInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void reportsArrivedToolCallResultsFromComposerOnDeferredNoOp() {
+    reset(conversationStoreRegistry);
+    ConversationStore conversationStore = spy(new InProcessConversationStore());
+    doReturn(conversationStore)
+        .when(conversationStoreRegistry)
+        .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+
+    // given: previous turn requested TOOL_CALLS ("abcdef", "fedcba"); the composer reports
+    // "abcdef" as already arrived, correlated and gateway-transformed
+    final var priorAssistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    final var agentContextWithHistory =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .conversation(
+                InProcessConversationContext.builder("conv-1")
+                    .messages(List.of(USER_MESSAGE, priorAssistantMessage))
+                    .build())
+            .build();
+    final var arrivedResult =
+        ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny").build();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(agentContextWithHistory, List.of(arrivedResult)));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.Deferred(List.of(arrivedResult)));
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: still a no-op completion
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    verifyNoInteractions(chatModelRegistry, chatModel);
+
+    // and: the arrived result is reported as-is
+    @SuppressWarnings("unchecked")
+    final ArgumentCaptor<List<ToolCallResult>> resultsCaptor = ArgumentCaptor.forClass(List.class);
+    verify(agentInstanceClient)
+        .applyToolCallResults(eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+    assertThat(resultsCaptor.getValue()).containsExactly(arrivedResult);
+  }
+
+  @Test
+  void silentlyCompletesJobWhenInputComposerReturnsNoInput() {
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.NoInput());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+
+    verifyNoInteractions(chatModelRegistry, chatModel);
+  }
+
+  @Test
+  void shouldRecordTurnStartThenTurnCompletionWithToolCallingStatusWhenToolCalls() {
+    // given: LLM returns tool calls → intermediate turn
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().toolCalls(TOOL_CALLS).build();
+    mockChatModelExecution(assistantMessage);
+    mockResponseHandler();
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: exactly two batched interactions emitted during handleRequest -- start, then completion
+    verifyTurnLifecycleRecorded(
+        assistantMessage,
+        AgentInstanceUpdateStatus.TOOL_CALLING,
+        new AgentMetrics(1, new TokenUsage(10, 20), 2));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — no additional agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void shouldRecordTurnStartThenTurnCompletionWithIdleStatusWhenNoToolCalls() {
+    // given: LLM returns no tool calls → final turn → AHSP closes
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = AssistantMessage.builder().build();
+    mockChatModelExecution(assistantMessage);
+    mockResponseHandler();
+
+    // when
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // then: exactly two batched interactions emitted during handleRequest -- start, then completion
+    verifyTurnLifecycleRecorded(
+        assistantMessage,
+        AgentInstanceUpdateStatus.IDLE,
+        new AgentMetrics(1, new TokenUsage(10, 20), 0));
+    verifyNoMoreInteractions(agentInstanceClient);
+
+    // when: job completes — no additional agent instance calls
+    response.onJobCompleted();
+    verifyNoMoreInteractions(agentInstanceClient);
+  }
+
+  @Test
+  void blankSystemPrompt_omitsSystemMessageFromConversation() {
+    // a blank composed system prompt must not be sent to the LLM nor persisted as a message
+    when(systemPromptComposer.compose(any(), any())).thenReturn("   ");
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var assistantMessage = assistantMessage("hi");
+    mockChatModelExecution(assistantMessage);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> assertThat(c.messages()).containsExactly(USER_MESSAGE, assistantMessage));
+    // no system message is sent to the LLM either
+    assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
+        .containsExactly(USER_MESSAGE);
+  }
+
+  @Test
+  void throwsWhenModelCallLimitReachedAfterRehydration() {
+    // a multi-turn conversation rehydrated from history: reconstructed turns carry empty metrics,
+    // so the limit must be enforced against the durable cumulative counter on the agent context.
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(new UserPromptConfiguration("user input", List.of()))
+                .limits(new LimitsConfiguration(2))
+                .build());
+
+    final var contextAtLimit =
+        AgentContext.builder()
+            .state(AgentState.READY)
+            .toolDefinitions(TOOL_DEFINITIONS)
+            .metrics(new AgentMetrics(2, TokenUsage.empty(), 0))
+            .build();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(contextAtLimit, List.of()));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // limit is checked before the LLM call — no chat request is issued
+    verifyNoInteractions(chatModelRegistry, chatModel);
+  }
+
+  @Test
+  void throwsWhenModelResponseIsContentFilteredBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    // the provider throws before ingest / history write: the turn-start batch (THINKING status +
+    // input messages) is sent before the model call, but the turn-completion write and response
+    // handling never happen
+    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
+  void throwsWhenModelContextWindowIsExceededBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContextWindowExceededException("context window exceeded", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
+  void surfacesPartialResultAsRejectionErrorVariablesWhenPresent() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder()
+            .content(List.of(new TextContent("partial answer before the cutoff", null)))
+            .stopReason(StopReason.of("content_filter"))
+            .build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(
+                        Map.of(
+                            "rejection",
+                            Map.of(
+                                "stopReason", "content_filter",
+                                "text", "partial answer before the cutoff"))));
+  }
+
+  @Test
+  void omitsBlankTextFromRejectionErrorVariables() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialAssistantMessage =
+        AssistantMessage.builder().stopReason(StopReason.of("content_filter")).build();
+    final var partialResult =
+        new ChatModelRejectedException.PartialResult(
+            partialAssistantMessage, new AgentMetrics(1, TokenUsage.empty(), 0));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new ContentFilteredException("blocked by content filtering", partialResult));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorVariables())
+                    .isEqualTo(Map.of("rejection", Map.of("stopReason", "content_filter"))));
+  }
+
+  @Test
+  void throwsWhenGuardrailIntervenesBeforeIngestOrHistoryWrite() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(any()))
+        .thenThrow(new GuardrailInterventionException("blocked by a guardrail policy", null));
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode())
+                  .isEqualTo(ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED);
+              assertThat(e.getErrorVariables()).isEmpty();
+            });
+
+    verify(agentInstanceClient, never()).applyTurnCompletion(any(), any(), any(), any(), any());
+    verifyNoInteractions(responseHandler);
+  }
+
+  @Test
+  void proceedsThroughContinuationRoundsAsSeparatePersistedTurns() {
+    // a provider Continuation (e.g. Anthropic pause_turn) is ingested as its own persisted turn,
+    // and the loop keeps calling the chat model until a Completed result ends it
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialMessage = assistantMessage("partial thinking");
+    final var doneMessage =
+        assistantMessage(
+            "Endless waves whisper | moonlight dances on the tide | secrets drift below.");
+    final var continuationMetrics = new AgentMetrics(1, new TokenUsage(10, 20), 0);
+    final var completedMetrics = new AgentMetrics(1, new TokenUsage(5, 8), 0);
+
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Continuation(partialMessage, continuationMetrics))
+        .doReturn(new ChatResult.Completed(doneMessage, completedMetrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.responseMessage()).isEqualTo(doneMessage);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(2, new TokenUsage(15, 28), 0));
+
+    // applyTurnStart is only called once, at the top of proceed() — continuation rounds carry no
+    // new input and don't restart the turn
+    verify(agentInstanceClient)
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+
+    // one applyTurnCompletion call per round: the continuation round re-asserts THINKING with its
+    // own metrics, the final round sends the terminal status with its own metrics -- no summing
+    final var statusCaptor = ArgumentCaptor.forClass(AgentInstanceUpdateStatus.class);
+    verify(agentInstanceClient, times(2))
+        .applyTurnCompletion(
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), statusCaptor.capture());
+    assertThat(turnCaptor.getAllValues())
+        .extracting(AgentConversationTurn::assistantMessage)
+        .containsExactly(partialMessage, doneMessage);
+    assertThat(turnCaptor.getAllValues())
+        .extracting(AgentConversationTurn::metrics)
+        .containsExactly(continuationMetrics, completedMetrics);
+    assertThat(statusCaptor.getAllValues())
+        .containsExactly(AgentInstanceUpdateStatus.THINKING, AgentInstanceUpdateStatus.IDLE);
+  }
+
+  @Test
+  void throwsWhenModelCallLimitReachedBetweenContinuationRounds() {
+    // the limit is re-checked before starting the next round: hitting the cap after a Continuation
+    // blocks the next call, it does not abort the round just completed
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentExecutionContext.configuration())
+        .thenReturn(
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(
+                    new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()))
+                .limits(new LimitsConfiguration(1))
+                .build());
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var partialMessage = assistantMessage("partial thinking");
+    final var continuationMetrics = new AgentMetrics(1, TokenUsage.empty(), 0);
+
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Continuation(partialMessage, continuationMetrics))
+        .when(chatModel)
+        .execute(any());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e ->
+                assertThat(e.getErrorCode())
+                    .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
+
+    // limit blocks the 2nd round — the chat model is called exactly once
+    verify(chatModel, times(1)).execute(any());
+  }
+
+  private void mockSystemPrompt() {
+    when(systemPromptComposer.compose(any(), any())).thenReturn(SYSTEM_PROMPT);
+  }
+
+  private void mockProceed(Message... inputMessages) {
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
+  }
+
+  private void mockResponseHandler() {
+    when(responseHandler.createResponse(any(AgentConversation.class)))
+        .thenAnswer(
+            i -> {
+              final var conversation = i.getArgument(0, AgentConversation.class);
+              final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
+              final var toolCalls =
+                  assistantMessage.toolCalls() == null
+                      ? List.<ToolCallProcessVariable>of()
+                      : assistantMessage.toolCalls().stream()
+                          .map(ToolCallProcessVariable::from)
+                          .toList();
+              return AgentResponse.builder()
+                  .context(conversation.toAgentContext())
+                  .responseMessage(assistantMessage)
+                  .responseText(assistantMessage.hasToolCalls() ? null : textOf(assistantMessage))
+                  .toolCalls(toolCalls)
+                  .build();
+            });
+  }
+
+  private static String textOf(AssistantMessage assistantMessage) {
+    if (assistantMessage.content() == null) {
+      return null;
+    }
+    return assistantMessage.content().stream()
+        .filter(TextContent.class::isInstance)
+        .map(c -> ((TextContent) c).text())
+        .findFirst()
+        .orElse(null);
+  }
+
+  /** Verifies the two batched agent-instance interactions a chat turn produces, in order. */
+  private void verifyTurnLifecycleRecorded(
+      AssistantMessage expectedAssistantMessage,
+      AgentInstanceUpdateStatus expectedFinalStatus,
+      AgentMetrics expectedMetrics) {
+    verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+    assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
+
+    verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext), any(), turnCaptor.capture(), any(), eq(expectedFinalStatus));
+    assertThat(turnCaptor.getValue().assistantMessage()).isEqualTo(expectedAssistantMessage);
+    assertThat(turnCaptor.getValue().metrics().withExecutionTime(null)).isEqualTo(expectedMetrics);
+  }
+
+  private void mockChatModelExecution(AssistantMessage assistantMessage) {
+    final var metrics =
+        new AgentMetrics(
+            1,
+            new TokenUsage(10, 20),
+            assistantMessage.toolCalls() == null ? 0 : assistantMessage.toolCalls().size(),
+            EXECUTION_TIME);
+    when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
+    when(chatModel.execute(chatModelRequestCaptor.capture()))
+        .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+}

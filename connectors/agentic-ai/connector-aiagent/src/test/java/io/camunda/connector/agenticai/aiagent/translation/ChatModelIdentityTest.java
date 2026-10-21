@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.translation;
 
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurationFixture.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;

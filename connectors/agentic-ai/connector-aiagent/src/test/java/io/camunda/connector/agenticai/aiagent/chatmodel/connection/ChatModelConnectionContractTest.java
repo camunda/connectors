@@ -12,7 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

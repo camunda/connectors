@@ -106,6 +106,19 @@
       <artifactId>apache-client</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
