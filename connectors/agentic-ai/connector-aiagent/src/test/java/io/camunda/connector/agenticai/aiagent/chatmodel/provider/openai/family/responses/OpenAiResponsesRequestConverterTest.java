@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -22,6 +23,7 @@ import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseIncludable;
 import com.openai.models.responses.ResponseOutputMessage;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -75,29 +77,35 @@ class OpenAiResponsesRequestConverterTest {
         new OpenAiApiConnection("sk-test", null, null, null, null, null, null));
   }
 
-  private static OpenAiChatModelConfiguration model(@Nullable ResponsesParameters parameters) {
+  private static OpenAiConfiguration model(@Nullable ResponsesParameters parameters) {
     return modelWithBackend(defaultBackend(), parameters);
   }
 
-  private static OpenAiChatModelConfiguration modelWithBackend(
+  private static OpenAiConfiguration modelWithBackend(
       OpenAiBackend backend, @Nullable ResponsesParameters parameters) {
-    return new OpenAiChatModelConfiguration(
-        new OpenAiConnection(
-            new OpenAiResponsesApi(
-                parameters != null ? parameters : new ResponsesParameters(null, null, null, null)),
-            backend,
-            new OpenAiModel("gpt-5"),
-            null));
+    return translate(
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiResponsesApi(
+                    parameters != null
+                        ? parameters
+                        : new ResponsesParameters(null, null, null, null)),
+                backend,
+                new OpenAiModel("gpt-5"),
+                null)),
+        OpenAiConfiguration.class);
   }
 
-  private static OpenAiChatModelConfiguration completionsFamilyModel() {
-    return new OpenAiChatModelConfiguration(
-        new OpenAiConnection(
-            new OpenAiCompletionsApi(
-                new OpenAiCompletionsApi.CompletionsParameters(null, null, null, null)),
-            defaultBackend(),
-            new OpenAiModel("gpt-5"),
-            null));
+  private static OpenAiConfiguration completionsFamilyModel() {
+    return translate(
+        new OpenAiChatModelConfiguration(
+            new OpenAiConnection(
+                new OpenAiCompletionsApi(
+                    new OpenAiCompletionsApi.CompletionsParameters(null, null, null, null)),
+                defaultBackend(),
+                new OpenAiModel("gpt-5"),
+                null)),
+        OpenAiConfiguration.class);
   }
 
   private static JsonNode requestBodyAsJson(ResponseCreateParams params) {
@@ -726,9 +734,14 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void handlesNullResponsesParametersWithoutError() {
     final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiResponsesApi(null), defaultBackend(), new OpenAiModel("gpt-5"), null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiConnection(
+                    new OpenAiResponsesApi(null),
+                    defaultBackend(),
+                    new OpenAiModel("gpt-5"),
+                    null)),
+            OpenAiConfiguration.class);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(config, DEFAULT_RESPONSE, snapshot);

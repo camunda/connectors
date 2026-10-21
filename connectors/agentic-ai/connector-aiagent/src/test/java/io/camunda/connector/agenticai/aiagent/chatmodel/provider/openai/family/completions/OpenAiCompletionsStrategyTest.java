@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -75,14 +77,16 @@ class OpenAiCompletionsStrategyTest {
   @SuppressWarnings("unchecked")
   private final StreamResponse<ChatCompletionChunk> stream = mock(StreamResponse.class);
 
-  private final OpenAiChatModelConfiguration configuration =
-      new OpenAiChatModelConfiguration(
-          new OpenAiConnection(
-              new OpenAiCompletionsApi(new CompletionsParameters(null, null, null, null)),
-              new OpenAiApiBackend(
-                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-              new OpenAiModel("gpt-4o"),
-              null));
+  private final OpenAiConfiguration configuration =
+      translate(
+          new OpenAiChatModelConfiguration(
+              new OpenAiConnection(
+                  new OpenAiCompletionsApi(new CompletionsParameters(null, null, null, null)),
+                  new OpenAiApiBackend(
+                      new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                  new OpenAiModel("gpt-4o"),
+                  null)),
+          OpenAiConfiguration.class);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =
@@ -132,14 +136,16 @@ class OpenAiCompletionsStrategyTest {
   @Test
   void mapsModelParametersToSpec() {
     final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiCompletionsApi(
-                    new CompletionsParameters(512, OpenAiEffort.HIGH, 0.5, 0.9)),
-                new OpenAiApiBackend(
-                    new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-                new OpenAiModel("gpt-4o"),
-                null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiConnection(
+                    new OpenAiCompletionsApi(
+                        new CompletionsParameters(512, OpenAiEffort.HIGH, 0.5, 0.9)),
+                    new OpenAiApiBackend(
+                        new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                    new OpenAiModel("gpt-4o"),
+                    null)),
+            OpenAiConfiguration.class);
     stubHappyPath();
 
     strategy.call(client, config, request);
@@ -161,14 +167,16 @@ class OpenAiCompletionsStrategyTest {
     // The "default" dropdown choice binds to OpenAiEffort.MODEL_DEFAULT rather than an unset
     // value; it must still be treated as "don't send reasoning_effort".
     final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiCompletionsApi(
-                    new CompletionsParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null)),
-                new OpenAiApiBackend(
-                    new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-                new OpenAiModel("gpt-4o"),
-                null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiConnection(
+                    new OpenAiCompletionsApi(
+                        new CompletionsParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null)),
+                    new OpenAiApiBackend(
+                        new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                    new OpenAiModel("gpt-4o"),
+                    null)),
+            OpenAiConfiguration.class);
     stubHappyPath();
 
     strategy.call(client, config, request);
@@ -191,14 +199,16 @@ class OpenAiCompletionsStrategyTest {
                 OpenAiEffort.MAX, "max")
             .entrySet()) {
       final var config =
-          new OpenAiChatModelConfiguration(
-              new OpenAiConnection(
-                  new OpenAiCompletionsApi(
-                      new CompletionsParameters(null, entry.getKey(), null, null)),
-                  new OpenAiApiBackend(
-                      new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-                  new OpenAiModel("gpt-4o"),
-                  null));
+          translate(
+              new OpenAiChatModelConfiguration(
+                  new OpenAiConnection(
+                      new OpenAiCompletionsApi(
+                          new CompletionsParameters(null, entry.getKey(), null, null)),
+                      new OpenAiApiBackend(
+                          new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                      new OpenAiModel("gpt-4o"),
+                      null)),
+              OpenAiConfiguration.class);
       stubHappyPath();
       clearInvocations(requestConverter);
 
@@ -219,13 +229,15 @@ class OpenAiCompletionsStrategyTest {
   @Test
   void handlesNullCompletionsParametersWithoutError() {
     final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiCompletionsApi(null),
-                new OpenAiApiBackend(
-                    new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-                new OpenAiModel("gpt-4o"),
-                null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiConnection(
+                    new OpenAiCompletionsApi(null),
+                    new OpenAiApiBackend(
+                        new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                    new OpenAiModel("gpt-4o"),
+                    null)),
+            OpenAiConfiguration.class);
     stubHappyPath();
 
     strategy.call(client, config, request);
@@ -243,13 +255,15 @@ class OpenAiCompletionsStrategyTest {
   @Test
   void throwsWhenConfiguredWithResponsesApiFamily() {
     final var config =
-        new OpenAiChatModelConfiguration(
-            new OpenAiConnection(
-                new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
-                new OpenAiApiBackend(
-                    new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-                new OpenAiModel("gpt-5"),
-                null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiConnection(
+                    new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+                    new OpenAiApiBackend(
+                        new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                    new OpenAiModel("gpt-5"),
+                    null)),
+            OpenAiConfiguration.class);
 
     assertThatThrownBy(() -> strategy.call(client, config, request))
         .isInstanceOf(IllegalArgumentException.class)

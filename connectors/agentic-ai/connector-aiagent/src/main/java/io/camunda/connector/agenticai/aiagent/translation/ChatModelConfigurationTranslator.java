@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAu
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
@@ -46,6 +47,13 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -79,6 +87,9 @@ public class ChatModelConfigurationTranslator {
 
   public ChatModelConfiguration translate(
       io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration provider) {
+    if (provider instanceof OpenAiChatModelConfiguration openAi) {
+      return translateOpenAi(openAi);
+    }
     if (provider instanceof AnthropicChatModelConfiguration anthropic) {
       return translateAnthropic(anthropic);
     }
@@ -92,6 +103,70 @@ public class ChatModelConfigurationTranslator {
       return translateBedrock(bedrock);
     }
     return provider;
+  }
+
+  private OpenAiConfiguration translateOpenAi(OpenAiChatModelConfiguration configuration) {
+    final var connection = configuration.openai();
+    return new OpenAiConfiguration(
+        switch (connection.api()) {
+          case OpenAiResponsesApi responses ->
+              responses.responses() == null
+                  ? new OpenAiConfiguration.Api.Responses(null, null, null, null)
+                  : new OpenAiConfiguration.Api.Responses(
+                      responses.responses().maxOutputTokens(),
+                      openAiEffort(responses.responses().effort()),
+                      responses.responses().temperature(),
+                      responses.responses().topP());
+          case OpenAiCompletionsApi completions ->
+              completions.completions() == null
+                  ? new OpenAiConfiguration.Api.Completions(null, null, null, null)
+                  : new OpenAiConfiguration.Api.Completions(
+                      completions.completions().maxCompletionTokens(),
+                      openAiEffort(completions.completions().effort()),
+                      completions.completions().temperature(),
+                      completions.completions().topP());
+        },
+        switch (connection.backend()) {
+          case OpenAiApiBackend api ->
+              new OpenAiConfiguration.Backend.Api(
+                  api.openai().apiKey(),
+                  nonBlank(api.openai().organizationId()),
+                  nonBlank(api.openai().projectId()),
+                  api.openai().endpoint(),
+                  api.requestCustomizations());
+          case OpenAiFoundryBackend foundry ->
+              new OpenAiConfiguration.Backend.Foundry(
+                  foundry.foundry().endpoint(),
+                  nonBlank(foundry.foundry().apiVersion()),
+                  foundryAuthentication(foundry.foundry().authentication()),
+                  foundry.requestCustomizations());
+          case OpenAiCustomBackend custom ->
+              new OpenAiConfiguration.Backend.Custom(
+                  custom.custom().endpoint(),
+                  endpointAuthentication(custom.custom().authentication()),
+                  custom.requestCustomizations());
+        },
+        connection.model().model(),
+        timeout(connection.timeouts()));
+  }
+
+  private static OpenAiConfiguration.@Nullable Effort openAiEffort(@Nullable OpenAiEffort effort) {
+    if (effort == null) {
+      return null;
+    }
+    return switch (effort) {
+      case MODEL_DEFAULT -> null;
+      case MINIMAL -> OpenAiConfiguration.Effort.MINIMAL;
+      case LOW -> OpenAiConfiguration.Effort.LOW;
+      case MEDIUM -> OpenAiConfiguration.Effort.MEDIUM;
+      case HIGH -> OpenAiConfiguration.Effort.HIGH;
+      case XHIGH -> OpenAiConfiguration.Effort.XHIGH;
+      case MAX -> OpenAiConfiguration.Effort.MAX;
+    };
+  }
+
+  private static @Nullable String nonBlank(@Nullable String value) {
+    return value == null || value.isBlank() ? null : value;
   }
 
   private AnthropicConfiguration translateAnthropic(AnthropicChatModelConfiguration configuration) {

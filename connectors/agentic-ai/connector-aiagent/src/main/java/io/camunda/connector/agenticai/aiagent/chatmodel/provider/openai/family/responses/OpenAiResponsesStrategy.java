@@ -15,8 +15,8 @@ import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseStreamEvent;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import java.time.Duration;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public class OpenAiResponsesStrategy implements OpenAiApiFamilyStrategy {
 
   @Override
   public ChatResult call(
-      OpenAIClient client, OpenAiChatModelConfiguration configuration, ChatRequest request) {
+      OpenAIClient client, OpenAiConfiguration configuration, ChatRequest request) {
     final ResponseCreateParams params =
         requestConverter.toRequest(
             configuration,

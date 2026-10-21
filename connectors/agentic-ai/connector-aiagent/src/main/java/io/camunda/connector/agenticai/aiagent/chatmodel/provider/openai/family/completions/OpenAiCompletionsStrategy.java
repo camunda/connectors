@@ -15,12 +15,8 @@ import com.openai.models.chat.completions.ChatCompletionChunk;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import java.time.Duration;
 import java.util.Locale;
@@ -48,7 +44,7 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
 
   @Override
   public ChatResult call(
-      OpenAIClient client, OpenAiChatModelConfiguration configuration, ChatRequest request) {
+      OpenAIClient client, OpenAiConfiguration configuration, ChatRequest request) {
     final CompletionsRequestSpec spec = toSpec(configuration);
     final ChatCompletionCreateParams params =
         requestConverter.toRequest(
@@ -72,47 +68,32 @@ public class OpenAiCompletionsStrategy implements OpenAiApiFamilyStrategy {
     return responseConverter.toResult(completion, executionTime);
   }
 
-  /** Maps the OpenAI provider's own configuration onto the provider-neutral request spec. */
-  private CompletionsRequestSpec toSpec(OpenAiChatModelConfiguration configuration) {
-    final OpenAiConnection connection = configuration.openai();
-    final CompletionsParameters params = completionsParameters(connection);
-    return new CompletionsRequestSpec(
-        connection.model().model(),
-        params == null || params.maxCompletionTokens() == null
-            ? null
-            : params.maxCompletionTokens().longValue(),
-        null,
-        params == null ? null : params.temperature(),
-        params == null ? null : params.topP(),
-        effort(params),
-        connection.backend().requestCustomizations());
-  }
-
   /**
-   * This strategy only handles the {@code completions} API family; routing a {@code responses}
-   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
-   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
-   * completions} itself is optional -- every one of its own fields is optional, so a modeler
-   * leaving all of them unset means the object is absent entirely, not present-with-nulls.
+   * Maps the OpenAI provider's own configuration onto the provider-neutral request spec. This
+   * strategy only handles the {@code completions} API family; routing a {@code responses} family
+   * configuration here is a caller/family-dispatch bug, not a user-facing configuration error,
+   * hence the unchecked exception rather than a {@code ConnectorException}.
    */
-  private @Nullable CompletionsParameters completionsParameters(OpenAiConnection connection) {
-    return switch (connection.api()) {
-      case OpenAiCompletionsApi completionsApi -> completionsApi.completions();
-      default ->
-          throw new IllegalArgumentException(
-              "OpenAiCompletionsStrategy requires the 'completions' API family, but was configured with '%s'"
-                  .formatted(connection.api().type()));
-    };
-  }
-
-  /**
-   * Maps the {@code effort} dial to its lowercase wire value, skipping the model-default sentinel.
-   */
-  private @Nullable String effort(@Nullable CompletionsParameters params) {
-    final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
-      return null;
+  private CompletionsRequestSpec toSpec(OpenAiConfiguration configuration) {
+    if (!(configuration.api() instanceof OpenAiConfiguration.Api.Completions completions)) {
+      throw new IllegalArgumentException(
+          "OpenAiCompletionsStrategy requires the 'completions' API family, but was configured with '%s'"
+              .formatted(configuration.api().type()));
     }
-    return effort.name().toLowerCase(Locale.ROOT);
+    return new CompletionsRequestSpec(
+        configuration.model(),
+        completions.maxCompletionTokens() == null
+            ? null
+            : completions.maxCompletionTokens().longValue(),
+        null,
+        completions.temperature(),
+        completions.topP(),
+        effort(completions.effort()),
+        configuration.backend().customizations());
+  }
+
+  /** Maps the {@code effort} dial to its lowercase wire value. */
+  private @Nullable String effort(OpenAiConfiguration.@Nullable Effort effort) {
+    return effort == null ? null : effort.name().toLowerCase(Locale.ROOT);
   }
 }

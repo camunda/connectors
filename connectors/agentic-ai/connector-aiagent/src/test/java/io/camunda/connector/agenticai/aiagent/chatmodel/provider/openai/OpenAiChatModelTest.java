@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,14 +52,17 @@ class OpenAiChatModelTest {
   @Mock private OpenAIClient client;
   @Mock private OpenAiApiFamilyStrategy strategy;
 
-  private final OpenAiChatModelConfiguration configuration =
-      new OpenAiChatModelConfiguration(
-          new OpenAiChatModelConfiguration.OpenAiConnection(
-              new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
-              new OpenAiApiBackend(
-                  new OpenAiApiConnection("sk-openai-test", null, null, null, null, null, null)),
-              new OpenAiModel("gpt-5.5"),
-              null));
+  private final OpenAiConfiguration configuration =
+      translate(
+          new OpenAiChatModelConfiguration(
+              new OpenAiChatModelConfiguration.OpenAiConnection(
+                  new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+                  new OpenAiApiBackend(
+                      new OpenAiApiConnection(
+                          "sk-openai-test", null, null, null, null, null, null)),
+                  new OpenAiModel("gpt-5.5"),
+                  null)),
+          OpenAiConfiguration.class);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 

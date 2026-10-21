@@ -16,6 +16,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,9 +43,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -134,10 +132,6 @@ class OpenAiChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -221,7 +215,10 @@ class OpenAiChatModelFactoryClientTest {
   void foundryBackendWithClientCredentialsSendsBearerToken(WireMockRuntimeInfo wireMock) {
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(FoundryAuthentication.ClientCredentialsAuthentication.class), any()))
+            any(
+                io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure
+                    .FoundryAuthentication.ClientCredentials.class),
+            any()))
         .thenReturn(() -> "client-credentials-token");
 
     executeAgainst(
@@ -246,7 +243,10 @@ class OpenAiChatModelFactoryClientTest {
   void foundryBackendWithManagedIdentitySendsBearerToken(WireMockRuntimeInfo wireMock) {
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(FoundryAuthentication.ManagedIdentityAuthentication.class), any()))
+            any(
+                io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure
+                    .FoundryAuthentication.ManagedIdentity.class),
+            any()))
         .thenReturn(() -> "managed-identity-token");
 
     executeAgainst(
@@ -271,7 +271,10 @@ class OpenAiChatModelFactoryClientTest {
     final var timeout = Duration.ofSeconds(7);
     final var foundryCredentialResolver = mock(FoundryCredentialResolver.class);
     when(foundryCredentialResolver.bearerTokenSupplier(
-            any(FoundryAuthentication.ClientCredentialsAuthentication.class), eq(timeout)))
+            any(
+                io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure
+                    .FoundryAuthentication.ClientCredentials.class),
+            eq(timeout)))
         .thenReturn(() -> "client-credentials-token");
 
     executeAgainst(
@@ -561,7 +564,6 @@ class OpenAiChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
@@ -580,19 +582,21 @@ class OpenAiChatModelFactoryClientTest {
             foundryCredentialResolver,
             oAuthClientCredentialsTokenResolver());
     final var configuration =
-        new OpenAiChatModelConfiguration(
-            new OpenAiChatModelConfiguration.OpenAiConnection(
-                api,
-                backend,
-                new OpenAiModel(MODEL_ID),
-                timeout != null ? new TimeoutConfiguration(timeout) : null));
+        translate(
+            new OpenAiChatModelConfiguration(
+                new OpenAiChatModelConfiguration.OpenAiConnection(
+                    api,
+                    backend,
+                    new OpenAiModel(MODEL_ID),
+                    timeout != null ? new TimeoutConfiguration(timeout) : null)),
+            OpenAiConfiguration.class);
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
     }
   }
 
-  private static AgentExecutionContext executionContext(OpenAiChatModelConfiguration model) {
+  private static AgentExecutionContext executionContext(OpenAiConfiguration model) {
     final var agentConfiguration =
         agentConfiguration()
             .chatModel(model)

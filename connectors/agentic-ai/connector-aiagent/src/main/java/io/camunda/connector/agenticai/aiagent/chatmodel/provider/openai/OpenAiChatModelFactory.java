@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
-
 import com.openai.azure.AzureOpenAIServiceVersion;
 import com.openai.azure.AzureUrlPathMode;
 import com.openai.azure.credential.AzureApiKeyCredential;
@@ -17,21 +15,12 @@ import com.openai.core.http.ProxyAuthenticator;
 import com.openai.credential.BearerTokenCredential;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -39,10 +28,6 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.Optional;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link ChatModelFactory} for the native OpenAI provider's {@code openai-api} (API key), {@code
@@ -53,16 +38,13 @@ import org.slf4j.LoggerFactory;
 public class OpenAiChatModelFactory implements ChatModelFactory {
 
   /**
-   * openai-java requires a credential source to build a client at all, so {@link NoAuthentication}
-   * custom backends configure this as a placeholder API key. The {@code Authorization} header it
-   * would otherwise produce is stripped via {@code removeHeaders("Authorization")}, so no header is
-   * actually sent on the wire.
+   * openai-java requires a credential source to build a client at all, so {@link
+   * EndpointAuthentication.None} custom backends configure this as a placeholder API key. The
+   * {@code Authorization} header it would otherwise produce is stripped via {@code
+   * removeHeaders("Authorization")}, so no header is actually sent on the wire.
    */
   private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiChatModelFactory.class);
-
-  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiApiFamilyStrategy completionsStrategy;
   private final OpenAiApiFamilyStrategy responsesStrategy;
@@ -70,13 +52,11 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public OpenAiChatModelFactory(
-      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiApiFamilyStrategy completionsStrategy,
       OpenAiApiFamilyStrategy responsesStrategy,
       FoundryCredentialResolver foundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
-    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.completionsStrategy = completionsStrategy;
     this.responsesStrategy = responsesStrategy;
@@ -86,36 +66,31 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof OpenAiChatModelConfiguration;
+    return configuration instanceof OpenAiConfiguration;
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var model = (OpenAiChatModelConfiguration) configuration;
-    final var connection = model.openai();
-    final var timeout =
-        deriveTimeoutSetting("OpenAI model call", config, connection.timeouts(), LOGGER);
-
+    final var model = (OpenAiConfiguration) configuration;
     final var client =
         buildClient(
-            connection.backend(),
-            timeout,
+            model.backend(),
+            model.timeout(),
             httpProxySupport,
             foundryCredentialResolver,
             oAuthClientCredentialsTokenResolver);
-    final var strategy = strategyFor(connection.api());
-    return new OpenAiChatModel(client, model, strategy);
+    return new OpenAiChatModel(client, model, strategyFor(model.api()));
   }
 
-  private OpenAiApiFamilyStrategy strategyFor(OpenAiChatModelConfiguration.OpenAiApi api) {
+  private OpenAiApiFamilyStrategy strategyFor(OpenAiConfiguration.Api api) {
     return switch (api) {
-      case OpenAiCompletionsApi ignored -> completionsStrategy;
-      case OpenAiResponsesApi ignored -> responsesStrategy;
+      case OpenAiConfiguration.Api.Completions ignored -> completionsStrategy;
+      case OpenAiConfiguration.Api.Responses ignored -> responsesStrategy;
     };
   }
 
   private static OpenAIClient buildClient(
-      OpenAiBackend backend,
+      Backend backend,
       Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       FoundryCredentialResolver foundryCredentialResolver,
@@ -123,17 +98,17 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     final var builder = OpenAIOkHttpClient.builder();
 
     switch (backend) {
-      case OpenAiApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
-      case OpenAiFoundryBackend foundryBackend ->
-          applyFoundryBackend(builder, foundryBackend, foundryCredentialResolver, timeout);
-      case OpenAiCustomBackend custom ->
+      case Backend.Api api -> applyApiBackend(builder, api);
+      case Backend.Foundry foundry ->
+          applyFoundryBackend(builder, foundry, foundryCredentialResolver, timeout);
+      case Backend.Custom custom ->
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
     builder.timeout(timeout);
 
     final String scheme =
-        configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);
+        backend.endpoint() != null ? URI.create(backend.endpoint()).getScheme() : null;
     httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
         .ifPresent(
@@ -146,39 +121,36 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     return builder.build();
   }
 
-  private static void applyApiBackend(
-      OpenAIOkHttpClient.Builder builder, OpenAiApiBackend apiBackend) {
-    final var openai = apiBackend.openai();
-    builder.apiKey(openai.apiKey());
+  private static void applyApiBackend(OpenAIOkHttpClient.Builder builder, Backend.Api api) {
+    builder.apiKey(api.apiKey());
 
-    if (openai.organizationId() != null && !openai.organizationId().isBlank()) {
-      builder.organization(openai.organizationId());
+    if (api.organizationId() != null) {
+      builder.organization(api.organizationId());
     }
-    if (openai.projectId() != null && !openai.projectId().isBlank()) {
-      builder.project(openai.projectId());
+    if (api.projectId() != null) {
+      builder.project(api.projectId());
     }
-    if (openai.endpoint() != null) {
-      builder.baseUrl(openai.endpoint());
+    if (api.endpoint() != null) {
+      builder.baseUrl(api.endpoint());
     }
   }
 
   private static void applyCustomBackend(
       OpenAIOkHttpClient.Builder builder,
-      OpenAiCustomBackend custom,
+      Backend.Custom custom,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
-    final var connection = custom.custom();
-    builder.baseUrl(connection.endpoint());
+    builder.baseUrl(custom.endpoint());
 
-    switch (connection.authentication()) {
-      case NoAuthentication ignored ->
+    switch (custom.authentication()) {
+      case EndpointAuthentication.None ignored ->
           builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY).removeHeaders("Authorization");
-      case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
-      case OAuthClientCredentialsAuthentication oauth ->
+      case EndpointAuthentication.ApiKey apiKey -> builder.apiKey(apiKey.apiKey());
+      case EndpointAuthentication.OAuthClientCredentials oauth ->
           builder.credential(
               BearerTokenCredential.create(
                   () ->
                       oAuthClientCredentialsTokenResolver.resolveAccessToken(
-                          oauth.oauthTokenEndpoint(),
+                          oauth.tokenEndpoint(),
                           oauth.clientId(),
                           oauth.clientSecret(),
                           oauth.audience(),
@@ -204,25 +176,24 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
    */
   private static void applyFoundryBackend(
       OpenAIOkHttpClient.Builder builder,
-      OpenAiFoundryBackend foundryBackend,
+      Backend.Foundry foundry,
       FoundryCredentialResolver foundryCredentialResolver,
-      @Nullable Duration timeout) {
-    final var foundry = foundryBackend.foundry();
+      Duration timeout) {
     builder.baseUrl(unifiedEndpoint(foundry.endpoint()));
     builder.azureUrlPathMode(AzureUrlPathMode.UNIFIED);
 
-    if (foundry.apiVersion() != null && !foundry.apiVersion().isBlank()) {
+    if (foundry.apiVersion() != null) {
       builder.azureServiceVersion(AzureOpenAIServiceVersion.fromString(foundry.apiVersion()));
     }
 
     switch (foundry.authentication()) {
-      case FoundryAuthentication.ApiKeyAuthentication apiKeyAuth ->
-          builder.credential(AzureApiKeyCredential.create(apiKeyAuth.apiKey()));
-      case FoundryAuthentication.ClientCredentialsAuthentication clientCredentials ->
+      case FoundryAuthentication.ApiKey apiKey ->
+          builder.credential(AzureApiKeyCredential.create(apiKey.apiKey()));
+      case FoundryAuthentication.ClientCredentials clientCredentials ->
           builder.credential(
               BearerTokenCredential.create(
                   foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout)));
-      case FoundryAuthentication.ManagedIdentityAuthentication managedIdentity ->
+      case FoundryAuthentication.ManagedIdentity managedIdentity ->
           builder.credential(
               BearerTokenCredential.create(
                   foundryCredentialResolver.bearerTokenSupplier(managedIdentity, timeout)));
@@ -271,18 +242,5 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
     }
 
     return uri.getScheme() + "://" + uri.getRawAuthority() + path;
-  }
-
-  /**
-   * The base URL actually configured for this backend, if any: the {@code custom} and {@code
-   * foundry} backends' endpoints are always set, while the {@code openai-api} backend's hidden
-   * endpoint override is usually unset (the SDK then defaults to the production OpenAI API).
-   */
-  private static Optional<String> configuredEndpoint(OpenAiBackend backend) {
-    return switch (backend) {
-      case OpenAiApiBackend apiBackend -> Optional.ofNullable(apiBackend.openai().endpoint());
-      case OpenAiFoundryBackend foundryBackend -> Optional.of(foundryBackend.foundry().endpoint());
-      case OpenAiCustomBackend custom -> Optional.of(custom.custom().endpoint());
-    };
   }
 }

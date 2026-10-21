@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -24,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * OpenAI {@link ChatModel}: delegates the actual streaming vendor call to the {@link
- * OpenAiApiFamilyStrategy} selected for the configured {@code configuration.openai().api()} family
+ * OpenAiApiFamilyStrategy} selected for the configured {@code configuration.api()} family
  * (Responses or Chat Completions) by the factory, then returns the result the strategy already
  * translated to the domain {@link ChatResult}.
  *
@@ -46,13 +45,11 @@ public class OpenAiChatModel implements ChatModel {
   private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
 
   private final OpenAIClient client;
-  private final OpenAiChatModelConfiguration configuration;
+  private final OpenAiConfiguration configuration;
   private final OpenAiApiFamilyStrategy strategy;
 
   public OpenAiChatModel(
-      OpenAIClient client,
-      OpenAiChatModelConfiguration configuration,
-      OpenAiApiFamilyStrategy strategy) {
+      OpenAIClient client, OpenAiConfiguration configuration, OpenAiApiFamilyStrategy strategy) {
     this.client = client;
     this.configuration = configuration;
     this.strategy = strategy;

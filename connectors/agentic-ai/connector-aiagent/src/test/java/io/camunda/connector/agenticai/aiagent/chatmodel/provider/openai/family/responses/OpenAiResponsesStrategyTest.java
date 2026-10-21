@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,6 +25,7 @@ import com.openai.services.blocking.ResponseService;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -65,14 +67,16 @@ class OpenAiResponsesStrategyTest {
   @SuppressWarnings("unchecked")
   private final StreamResponse<ResponseStreamEvent> stream = mock(StreamResponse.class);
 
-  private final OpenAiChatModelConfiguration configuration =
-      new OpenAiChatModelConfiguration(
-          new OpenAiConnection(
-              new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
-              new OpenAiApiBackend(
-                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
-              new OpenAiModel("gpt-5"),
-              null));
+  private final OpenAiConfiguration configuration =
+      translate(
+          new OpenAiChatModelConfiguration(
+              new OpenAiConnection(
+                  new OpenAiResponsesApi(new ResponsesParameters(null, null, null, null)),
+                  new OpenAiApiBackend(
+                      new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+                  new OpenAiModel("gpt-5"),
+                  null)),
+          OpenAiConfiguration.class);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =

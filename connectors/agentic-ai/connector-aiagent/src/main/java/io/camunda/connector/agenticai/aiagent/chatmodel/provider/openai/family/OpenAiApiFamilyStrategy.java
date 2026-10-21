@@ -9,18 +9,17 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family;
 import com.openai.client.OpenAIClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 
 /**
  * Performs one streaming vendor call for a specific OpenAI API family (Responses or Chat
  * Completions) and translates the result to the domain {@link ChatResult}. Kept as its own seam so
  * {@code OpenAiChatModel} stays family-agnostic and dispatches to whichever family the resolved
  * model configuration selects. A family strategy instance is shared across every OpenAI model
- * configuration selecting that family, so the resolved {@link OpenAiChatModelConfiguration} is
- * passed per call rather than fixed at construction.
+ * configuration selecting that family, so the resolved {@link OpenAiConfiguration} is passed per
+ * call rather than fixed at construction.
  */
 public interface OpenAiApiFamilyStrategy {
 
-  ChatResult call(
-      OpenAIClient client, OpenAiChatModelConfiguration configuration, ChatRequest request);
+  ChatResult call(OpenAIClient client, OpenAiConfiguration configuration, ChatRequest request);
 }

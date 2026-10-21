@@ -432,7 +432,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomOpenAiChatModelFactory() {
           super(
-              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
               mock(AgenticAiHttpProxySupport.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class),

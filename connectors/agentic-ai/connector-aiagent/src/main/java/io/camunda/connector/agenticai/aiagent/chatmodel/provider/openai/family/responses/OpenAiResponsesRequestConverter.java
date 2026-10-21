@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
-import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.PROVIDER;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +29,7 @@ import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -48,11 +49,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,7 +56,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Maps a windowed {@link ConversationSnapshot} plus the resolved OpenAI Responses model
@@ -79,15 +74,22 @@ public class OpenAiResponsesRequestConverter {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * This converter only handles the {@code responses} API family; routing a {@code completions}
+   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
+   * error, hence the unchecked exception rather than a {@code ConnectorException}.
+   */
   public ResponseCreateParams toRequest(
-      OpenAiChatModelConfiguration configuration,
+      OpenAiConfiguration configuration,
       ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final OpenAiConnection connection = configuration.openai();
-    final String modelId = connection.model().model();
-    final ResponsesParameters params = responsesParameters(connection);
+    if (!(configuration.api() instanceof OpenAiConfiguration.Api.Responses params)) {
+      throw new IllegalArgumentException(
+          "OpenAiResponsesRequestConverter requires the 'responses' API family, but was configured with '%s'"
+              .formatted(configuration.api().type()));
+    }
 
-    final var builder = ResponseCreateParams.builder().model(modelId);
+    final var builder = ResponseCreateParams.builder().model(configuration.model());
 
     // Zero Data Retention-compatible: this connector persists conversation memory itself, so it
     // never relies on OpenAI-side response storage.
@@ -99,33 +101,13 @@ public class OpenAiResponsesRequestConverter {
     applyMessages(builder, snapshot.messages());
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, response);
-    applyRequestCustomizations(builder, connection);
+    applyRequestCustomizations(builder, configuration.backend().customizations());
 
     return builder.build();
   }
 
-  /**
-   * This converter only handles the {@code responses} API family; routing a {@code completions}
-   * family configuration here is a caller/family-dispatch bug, not a user-facing configuration
-   * error, hence the unchecked exception rather than a {@code ConnectorException}. {@code
-   * responses} itself is optional -- every one of its own fields is optional, so a modeler leaving
-   * all of them unset means the object is absent entirely, not present-with-nulls.
-   */
-  private @Nullable ResponsesParameters responsesParameters(OpenAiConnection connection) {
-    return switch (connection.api()) {
-      case OpenAiResponsesApi responsesApi -> responsesApi.responses();
-      default ->
-          throw new IllegalArgumentException(
-              "OpenAiResponsesRequestConverter requires the 'responses' API family, but was configured with '%s'"
-                  .formatted(connection.api().type()));
-    };
-  }
-
   private void applyModelParameters(
-      ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
-    if (params == null) {
-      return;
-    }
+      ResponseCreateParams.Builder builder, OpenAiConfiguration.Api.Responses params) {
     if (params.maxOutputTokens() != null) {
       builder.maxOutputTokens(params.maxOutputTokens().longValue());
     }
@@ -147,17 +129,17 @@ public class OpenAiResponsesRequestConverter {
    * reasoning} param, stays conditional on explicit configuration.
    */
   private void applyReasoning(
-      ResponseCreateParams.Builder builder, @Nullable ResponsesParameters params) {
+      ResponseCreateParams.Builder builder, OpenAiConfiguration.Api.Responses params) {
     builder.addInclude(ResponseIncludable.REASONING_ENCRYPTED_CONTENT);
 
-    final OpenAiEffort effort = params == null ? null : params.effort();
-    if (effort == null || effort == OpenAiEffort.MODEL_DEFAULT) {
+    final var effort = params.effort();
+    if (effort == null) {
       return;
     }
     builder.reasoning(Reasoning.builder().effort(mapEffort(effort)).build());
   }
 
-  private ReasoningEffort mapEffort(OpenAiEffort effort) {
+  private ReasoningEffort mapEffort(OpenAiConfiguration.Effort effort) {
     return ReasoningEffort.of(effort.name().toLowerCase(Locale.ROOT));
   }
 
@@ -216,12 +198,12 @@ public class OpenAiResponsesRequestConverter {
       switch (content) {
         // The SDK's own mapper (not the injected app ObjectMapper) is required here: it is the only
         // one that round-trips these captured payloads' absent-vs-null field tracking correctly.
-        case ReasoningContent reasoning when OPENAI_ID.equals(reasoning.provider()) ->
+        case ReasoningContent reasoning when PROVIDER.equals(reasoning.provider()) ->
             items.add(
                 ObjectMappers.jsonMapper()
                     .convertValue(mergeReasoningText(reasoning), ResponseInputItem.class));
         case ReasoningContent ignored -> {}
-        case ProviderContent providerContent when OPENAI_ID.equals(providerContent.provider()) ->
+        case ProviderContent providerContent when PROVIDER.equals(providerContent.provider()) ->
             items.add(
                 ObjectMappers.jsonMapper()
                     .convertValue(providerContent.payload(), ResponseInputItem.class));
@@ -271,7 +253,7 @@ public class OpenAiResponsesRequestConverter {
   private Optional<ResponseOutputMessage.Phase> assistantPhase(AssistantMessage assistant) {
     final Map<String, Object> metadata = assistant.metadata();
     if (metadata != null
-        && metadata.get(OPENAI_ID) instanceof Map<?, ?> openAi
+        && metadata.get(PROVIDER) instanceof Map<?, ?> openAi
         && openAi.get(OpenAiResponsesResponseConverter.METADATA_PHASE) instanceof String phase) {
       return Optional.of(ResponseOutputMessage.Phase.of(phase));
     }
@@ -400,13 +382,9 @@ public class OpenAiResponsesRequestConverter {
             .build());
   }
 
-  /**
-   * Merges the backend's headers, query parameters, and body properties onto the request via the
-   * shared {@link RequestCustomizations}.
-   */
+  /** Merges the headers, query parameters, and body properties of the backend onto the request. */
   private void applyRequestCustomizations(
-      ResponseCreateParams.Builder builder, OpenAiConnection connection) {
-    final var customizations = connection.backend().requestCustomizations();
+      ResponseCreateParams.Builder builder, RequestCustomizations customizations) {
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations

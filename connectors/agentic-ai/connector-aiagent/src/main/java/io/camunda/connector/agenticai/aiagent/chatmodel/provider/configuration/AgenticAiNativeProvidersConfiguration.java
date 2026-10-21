@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 
-import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.PROVIDER;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
@@ -104,7 +104,6 @@ public class AgenticAiNativeProvidersConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public OpenAiChatModelFactory aiAgentOpenAiChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties configuration,
       AgenticAiHttpProxySupport httpProxySupport,
       FoundryCredentialResolver foundryCredentialResolver,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
@@ -113,13 +112,13 @@ public class AgenticAiNativeProvidersConfiguration {
     final var completionsStrategy =
         new OpenAiCompletionsStrategy(
             new OpenAiCompletionsRequestConverter(
-                OPENAI_ID,
+                PROVIDER,
                 contentConverter,
                 OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
                 objectMapper,
                 OpenAiCompletionsContentDialect.none()),
             new OpenAiCompletionsResponseConverter(
-                OPENAI_ID, objectMapper, OpenAiCompletionsContentDialect.none()),
+                PROVIDER, objectMapper, OpenAiCompletionsContentDialect.none()),
             OpenAiCompletionsStreamAssembler.accumulating());
     final var responsesStrategy =
         new OpenAiResponsesStrategy(
@@ -127,7 +126,6 @@ public class AgenticAiNativeProvidersConfiguration {
             new OpenAiResponsesResponseConverter(objectMapper),
             OpenAiResponsesStreamAssembler.accumulating());
     return new OpenAiChatModelFactory(
-        configuration.aiagent().chatModel(),
         httpProxySupport,
         completionsStrategy,
         responsesStrategy,

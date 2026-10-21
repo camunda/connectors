@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,9 +31,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
@@ -82,11 +80,6 @@ class OpenAiChatModelFactoryTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
-
   private OpenAiChatModelFactory factory;
 
   @BeforeEach
@@ -94,7 +87,6 @@ class OpenAiChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new OpenAiChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
@@ -119,7 +111,7 @@ class OpenAiChatModelFactoryTest {
 
   @Test
   void supportsOnlyOpenAiConfiguration() {
-    assertThat(factory.supports(responsesApiConfig(MODEL_ID))).isTrue();
+    assertThat(factory.supports(translate(responsesApiConfig(MODEL_ID)))).isTrue();
 
     final ChatModelConfiguration otherProvider =
         new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
@@ -131,10 +123,14 @@ class OpenAiChatModelFactoryTest {
   void createBuildsWorkingApi(OpenAiChatModelConfiguration config) {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
-    final ChatModel api = factory.create(config);
+    final ChatModel api = create(config);
 
     assertThat(api).isNotNull().isInstanceOf(OpenAiChatModel.class);
     api.close();
+  }
+
+  private ChatModel create(OpenAiChatModelConfiguration binding) {
+    return factory.create(translate(binding));
   }
 
   static Stream<OpenAiChatModelConfiguration> configs() {
@@ -157,7 +153,7 @@ class OpenAiChatModelFactoryTest {
         mockStatic(OpenAIOkHttpClient.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(OpenAIOkHttpClient::builder).thenReturn(clientBuilder);
 
-      final ChatModel api = factory.create(responsesApiConfig(MODEL_ID, timeouts));
+      final ChatModel api = create(responsesApiConfig(MODEL_ID, timeouts));
       verify(clientBuilder).timeout(expectedTimeout);
       api.close();
     }
