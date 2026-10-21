@@ -86,6 +86,20 @@ class ChatModelProviderIndependenceArchTest {
           .resideInAPackage(PROVIDER_ROOT + "..")
           .because("the AI agent reaches the chat model providers only through the chat model API");
 
+  @ArchTest
+  static final ArchRule CHAT_MODEL_PROVIDERS_DO_NOT_USE_THE_REQUEST_RECORDS =
+      noClasses()
+          .that()
+          .resideInAPackage(PROVIDER_ROOT + "..")
+          .and()
+          .resideOutsideOfPackage(PROVIDER_ROOT + ".configuration..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage(AgenticAiModules.pkg("aiagent.request.."))
+          .because(
+              "the providers read their own domain configuration, which the translation builds"
+                  + " from the request records");
+
   private static ArchRule providersIndependent() {
     SliceRule rule =
         slices()

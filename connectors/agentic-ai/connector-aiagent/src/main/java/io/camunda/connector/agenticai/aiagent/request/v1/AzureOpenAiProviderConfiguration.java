@@ -30,16 +30,6 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
   @TemplateProperty(ignore = true)
   public static final String AZURE_OPENAI_ID = "azureOpenAi";
 
-  @Override
-  public String provider() {
-    return AZURE_OPENAI_ID;
-  }
-
-  @Override
-  public String model() {
-    return azureOpenAi.model.deploymentName();
-  }
-
   public record AzureOpenAiConnection(
       @NotBlank
           @HttpUrl

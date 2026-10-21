@@ -48,21 +48,6 @@ public record AnthropicChatModelConfiguration(@Valid @NotNull AnthropicConnectio
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";
 
-  @Override
-  public String provider() {
-    return ANTHROPIC_ID;
-  }
-
-  @Override
-  public String model() {
-    return anthropic.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s".formatted(provider(), anthropic.backend().type());
-  }
-
   /** All Anthropic-specific configuration, nested under the {@code anthropic} wire key. */
   public record AnthropicConnection(
       @Valid @NotNull AnthropicBackend backend,

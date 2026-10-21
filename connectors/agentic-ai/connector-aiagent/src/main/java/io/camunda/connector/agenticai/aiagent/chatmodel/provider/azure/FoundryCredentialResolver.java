@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AzureAuthorityHosts;
-import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.function.Supplier;
@@ -76,26 +74,6 @@ public class FoundryCredentialResolver {
     final var tokenCredential =
         entraIdTokenCredentialFactory.managedIdentity(authentication.clientId(), timeout);
     return tokenSupplier(tokenCredential, scopeFor(null, authentication.entraIdScope()));
-  }
-
-  public Supplier<String> bearerTokenSupplier(
-      ClientCredentialsAuthentication authentication, @Nullable Duration timeout) {
-    return bearerTokenSupplier(
-        new FoundryAuthentication.ClientCredentials(
-            authentication.clientId(),
-            authentication.clientSecret(),
-            authentication.tenantId(),
-            authentication.authorityHost(),
-            authentication.entraIdScope()),
-        timeout);
-  }
-
-  public Supplier<String> bearerTokenSupplier(
-      ManagedIdentityAuthentication authentication, @Nullable Duration timeout) {
-    return bearerTokenSupplier(
-        new FoundryAuthentication.ManagedIdentity(
-            authentication.clientId(), authentication.entraIdScope()),
-        timeout);
   }
 
   /**

@@ -30,6 +30,12 @@ public final class ChatModelTranslationFixture {
 
   private ChatModelTranslationFixture() {}
 
+  public static ChatModelConfiguration translate(
+      io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration
+          providerConfiguration) {
+    return TRANSLATOR.translate(providerConfiguration);
+  }
+
   public static ChatModelConfiguration translate(ProviderConfiguration providerConfiguration) {
     return TRANSLATOR.translate(providerConfiguration);
   }

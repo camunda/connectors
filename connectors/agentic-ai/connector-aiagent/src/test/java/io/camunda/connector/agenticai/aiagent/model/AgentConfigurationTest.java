@@ -7,14 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.ChatModelConfigurationFixture;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
@@ -39,9 +38,7 @@ class AgentConfigurationTest {
   private static AgentConfiguration configuration(
       String model, String systemPrompt, int maxModelCalls, List<ToolDefinition> tools) {
     return agentConfiguration()
-        .chatModel(
-            new OpenAiProviderConfiguration(
-                new OpenAiConnection(null, null, new OpenAiModel(model, null))))
+        .chatModel(ChatModelConfigurationFixture.openAi(model))
         .systemPrompt(new SystemPromptConfiguration(systemPrompt))
         .limits(new LimitsConfiguration(maxModelCalls))
         .build()
@@ -51,12 +48,13 @@ class AgentConfigurationTest {
   private static AgentConfiguration configurationWithOpenAiBackend(OpenAiBackend backend) {
     return agentConfiguration()
         .chatModel(
-            new OpenAiChatModelConfiguration(
-                new OpenAiChatModelConfiguration.OpenAiConnection(
-                    new OpenAiCompletionsApi(null),
-                    backend,
-                    new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
-                    null)))
+            translate(
+                new OpenAiChatModelConfiguration(
+                    new OpenAiChatModelConfiguration.OpenAiConnection(
+                        new OpenAiCompletionsApi(null),
+                        backend,
+                        new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                        null))))
         .systemPrompt(new SystemPromptConfiguration("Be nice."))
         .build();
   }

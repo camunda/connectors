@@ -36,16 +36,6 @@ public record BedrockConverseChatModelConfiguration(
   @TemplateProperty(ignore = true)
   public static final String BEDROCK_CONVERSE_ID = "bedrock";
 
-  @Override
-  public String provider() {
-    return BEDROCK_CONVERSE_ID;
-  }
-
-  @Override
-  public String model() {
-    return bedrock.model().model();
-  }
-
   /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
   public record BedrockConverseConnection(
       @NotBlank

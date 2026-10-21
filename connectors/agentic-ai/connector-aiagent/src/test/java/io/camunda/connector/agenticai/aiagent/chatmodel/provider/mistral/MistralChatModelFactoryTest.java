@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -85,7 +86,7 @@ class MistralChatModelFactoryTest {
     assertThat(factory.supports(config(MODEL_ID, Duration.ofMinutes(3)))).isTrue();
 
     final ChatModelConfiguration otherProvider =
-        new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
+        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
     assertThat(factory.supports(otherProvider)).isFalse();
   }
 

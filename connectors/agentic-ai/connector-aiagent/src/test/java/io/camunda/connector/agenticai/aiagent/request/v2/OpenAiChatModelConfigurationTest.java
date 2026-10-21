@@ -213,9 +213,6 @@ class OpenAiChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(OpenAiChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("openai");
-    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/openai-api");
-    assertThat(parsed.model()).isEqualTo("gpt-5.5");
 
     final OpenAiChatModelConfiguration openai = (OpenAiChatModelConfiguration) parsed;
     assertThat(openai.openai().api()).isInstanceOf(OpenAiResponsesApi.class);
@@ -307,7 +304,6 @@ class OpenAiChatModelConfigurationTest {
         (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.openai().backend()).isInstanceOf(OpenAiCustomBackend.class);
-    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/custom");
     final OpenAiCustomBackend custom = (OpenAiCustomBackend) parsed.openai().backend();
     assertThat(custom.custom().endpoint()).isEqualTo("https://custom.example.com/v1");
     assertThat(custom.custom().headers()).containsEntry("X-Custom-Header", "value");
@@ -458,7 +454,6 @@ class OpenAiChatModelConfigurationTest {
         (OpenAiChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.openai().backend()).isInstanceOf(OpenAiFoundryBackend.class);
-    assertThat(parsed.descriptiveProvider()).isEqualTo("openai/responses/foundry");
     final OpenAiFoundryBackend foundry = (OpenAiFoundryBackend) parsed.openai().backend();
     assertThat(foundry.foundry().endpoint()).isEqualTo("https://my-resource.openai.azure.com");
     assertThat(foundry.foundry().authentication())

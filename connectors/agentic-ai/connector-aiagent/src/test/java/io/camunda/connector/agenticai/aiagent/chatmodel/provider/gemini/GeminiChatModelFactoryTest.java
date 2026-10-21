@@ -104,7 +104,7 @@ class GeminiChatModelFactoryTest {
   @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration config =
-        new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
+        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
 
     assertThat(factory.supports(config)).isFalse();
   }

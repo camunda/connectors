@@ -288,19 +288,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
           final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
           try (var chatModel =
-              chatModelRegistry.resolve(translated(resolutionCase.configuration()))) {
+              chatModelRegistry.resolve(
+                  ChatModelTranslationFixture.translate(resolutionCase.configuration()))) {
             assertThat(chatModel).isNotNull();
           }
         });
-  }
-
-  private static ChatModelConfiguration translated(ChatModelConfiguration configuration) {
-    return configuration
-            instanceof
-            io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration
-                providerConfiguration
-        ? ChatModelTranslationFixture.translate(providerConfiguration)
-        : configuration;
   }
 
   // A throwaway, self-signed key never used against a real Google account - only needed so
@@ -344,7 +336,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   record ChatModelResolutionCase(
       String label,
-      ChatModelConfiguration configuration,
+      io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration configuration,
       Class<? extends ChatModelFactory> factoryClass) {
 
     @Override

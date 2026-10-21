@@ -114,7 +114,7 @@ class OpenAiChatModelFactoryTest {
     assertThat(factory.supports(translate(responsesApiConfig(MODEL_ID)))).isTrue();
 
     final ChatModelConfiguration otherProvider =
-        new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of());
+        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
     assertThat(factory.supports(otherProvider)).isFalse();
   }
 

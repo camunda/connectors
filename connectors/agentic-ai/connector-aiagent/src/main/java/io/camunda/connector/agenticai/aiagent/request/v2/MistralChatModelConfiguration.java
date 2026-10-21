@@ -41,21 +41,6 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
   @TemplateProperty(ignore = true)
   public static final String MISTRAL_ID = "mistral";
 
-  @Override
-  public String provider() {
-    return MISTRAL_ID;
-  }
-
-  @Override
-  public String model() {
-    return mistral.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s".formatted(provider(), mistral.backend().type());
-  }
-
   /** All Mistral-specific configuration, nested under the {@code mistral} wire key. */
   public record MistralConnection(
       @Valid @NotNull MistralBackend backend,

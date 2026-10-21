@@ -129,12 +129,14 @@ class BedrockConverseChatModelFactoryTest {
   @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration otherConfig =
-        new AnthropicChatModelConfiguration(
-            new AnthropicConnection(
-                new AnthropicApiBackend(
-                    new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-                new AnthropicModel(MODEL_ID, null),
-                null));
+        translate(
+            new AnthropicChatModelConfiguration(
+                new AnthropicConnection(
+                    new AnthropicApiBackend(
+                        new AnthropicApiBackend.AnthropicApi(
+                            "sk-ant-test", null, null, null, null)),
+                    new AnthropicModel(MODEL_ID, null),
+                    null)));
 
     assertThat(factory.supports(otherConfig)).isFalse();
   }

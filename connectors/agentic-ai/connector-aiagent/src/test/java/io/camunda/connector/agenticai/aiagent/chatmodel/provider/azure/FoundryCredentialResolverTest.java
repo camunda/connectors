@@ -19,7 +19,6 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.AuthenticationUtil;
-import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +54,7 @@ class FoundryCredentialResolverTest {
   void suppliesTheTokenFromTheCredentialItself() {
     final var supplier =
         resolver.bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id", "client-secret", "tenant-id", null, null),
             TIMEOUT);
 
@@ -65,7 +64,7 @@ class FoundryCredentialResolverTest {
   @Test
   void buildingTheSupplierDoesNotRequestAToken() {
     resolver.bearerTokenSupplier(
-        new FoundryAuthentication.ClientCredentialsAuthentication(
+        new FoundryAuthentication.ClientCredentials(
             "client-id", "client-secret", "tenant-id", null, null),
         TIMEOUT);
 
@@ -76,7 +75,7 @@ class FoundryCredentialResolverTest {
   void passesTheCredentialConfigurationToTheFactory() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -97,8 +96,7 @@ class FoundryCredentialResolverTest {
   @Test
   void passesTheManagedIdentityClientIdToTheFactory() {
     resolver
-        .bearerTokenSupplier(
-            new FoundryAuthentication.ManagedIdentityAuthentication("mi-id", null), TIMEOUT)
+        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentity("mi-id", null), TIMEOUT)
         .get();
 
     verify(entraIdTokenCredentialFactory).managedIdentity("mi-id", TIMEOUT);
@@ -108,7 +106,7 @@ class FoundryCredentialResolverTest {
   void requestsTheFoundryScopeForClientCredentials() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id", "client-secret", "tenant-id", null, null),
             TIMEOUT)
         .get();
@@ -119,8 +117,7 @@ class FoundryCredentialResolverTest {
   @Test
   void requestsTheFoundryScopeForManagedIdentity() {
     resolver
-        .bearerTokenSupplier(
-            new FoundryAuthentication.ManagedIdentityAuthentication(null, null), TIMEOUT)
+        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentity(null, null), TIMEOUT)
         .get();
 
     assertThat(requestedScopes()).containsExactly("https://ai.azure.com/.default");
@@ -130,7 +127,7 @@ class FoundryCredentialResolverTest {
   void requestsTheGovernmentCloudScopeForMatchingAuthorityHost() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -146,7 +143,7 @@ class FoundryCredentialResolverTest {
   void requestsThePublicCloudScopeForUnknownAuthorityHost() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -162,7 +159,7 @@ class FoundryCredentialResolverTest {
   void scopeOverrideWinsOverDerivedScopeForClientCredentials() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id",
                 "client-secret",
                 "tenant-id",
@@ -178,8 +175,7 @@ class FoundryCredentialResolverTest {
   void scopeOverrideWinsOverDefaultScopeForManagedIdentity() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ManagedIdentityAuthentication(
-                null, "https://ai.azure.us/.default"),
+            new FoundryAuthentication.ManagedIdentity(null, "https://ai.azure.us/.default"),
             TIMEOUT)
         .get();
 
@@ -190,7 +186,7 @@ class FoundryCredentialResolverTest {
   void blankScopeOverrideIsIgnored() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id", "client-secret", "tenant-id", null, "   "),
             TIMEOUT)
         .get();
@@ -211,7 +207,7 @@ class FoundryCredentialResolverTest {
         mockStatic(AuthenticationUtil.class)) {
       resolver
           .bearerTokenSupplier(
-              new FoundryAuthentication.ClientCredentialsAuthentication(
+              new FoundryAuthentication.ClientCredentials(
                   "client-id", "client-secret", "tenant-id", null, null),
               TIMEOUT)
           .get();
@@ -223,8 +219,7 @@ class FoundryCredentialResolverTest {
   @Test
   void managedIdentityResolvesTheSystemAssignedIdentityForABlankClientId() {
     resolver
-        .bearerTokenSupplier(
-            new FoundryAuthentication.ManagedIdentityAuthentication(null, null), TIMEOUT)
+        .bearerTokenSupplier(new FoundryAuthentication.ManagedIdentity(null, null), TIMEOUT)
         .get();
 
     verify(entraIdTokenCredentialFactory).managedIdentity(isNull(), eq(TIMEOUT));
@@ -234,7 +229,7 @@ class FoundryCredentialResolverTest {
   void passesAnAbsentTimeoutThroughUnchanged() {
     resolver
         .bearerTokenSupplier(
-            new FoundryAuthentication.ClientCredentialsAuthentication(
+            new FoundryAuthentication.ClientCredentials(
                 "client-id", "client-secret", "tenant-id", null, null),
             null)
         .get();

@@ -42,21 +42,6 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_GEMINI_ID = "google-gemini";
 
-  @Override
-  public String provider() {
-    return GOOGLE_GEMINI_ID;
-  }
-
-  @Override
-  public String model() {
-    return googleGemini.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s".formatted(provider(), googleGemini.backend().type());
-  }
-
   /** All Gemini-specific configuration, nested under the {@code googleGemini} wire key. */
   public record GeminiConnection(
       @Valid @NotNull GeminiBackend backend,

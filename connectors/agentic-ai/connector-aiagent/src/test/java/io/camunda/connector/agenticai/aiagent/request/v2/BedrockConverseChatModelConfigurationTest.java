@@ -66,9 +66,6 @@ class BedrockConverseChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(BedrockConverseChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("bedrock");
-    assertThat(parsed.descriptiveProvider()).isEqualTo(parsed.provider());
-    assertThat(parsed.model()).isEqualTo("us.amazon.nova-2-lite-v1:0");
 
     final BedrockConverseChatModelConfiguration bedrock =
         (BedrockConverseChatModelConfiguration) parsed;

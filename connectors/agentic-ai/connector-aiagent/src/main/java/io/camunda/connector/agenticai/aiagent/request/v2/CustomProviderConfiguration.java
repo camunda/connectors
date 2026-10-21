@@ -64,9 +64,4 @@ public record CustomProviderConfiguration(
     this.model = model;
     this.parameters = Objects.requireNonNullElse(parameters, Map.of());
   }
-
-  @Override
-  public String provider() {
-    return providerType;
-  }
 }
