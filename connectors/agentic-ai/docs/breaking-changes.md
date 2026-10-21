@@ -210,6 +210,18 @@ client in its properties does not start.
   in-process, Camunda document and AWS AgentCore stores read `InProcessConversationStoreConfiguration`,
   `CamundaDocumentConversationStoreConfiguration` and `AwsAgentCoreConversationStoreConfiguration` of their own
   packages. A custom store keeps reading `CustomConversationStoreConfiguration`.
+- The chat model providers read their own domain configuration instead of the element template records of
+  `aiagent.request.v1` and `aiagent.request.v2`: `AnthropicConfiguration`, `OpenAiConfiguration`,
+  `GeminiConfiguration`, `MistralConfiguration` and `BedrockConfiguration` in the package of the provider. The element
+  template records no longer implement `ChatModelConfiguration`; `ChatModelConfigurationTranslator` of
+  `aiagent.translation` turns them into the domain records. `ChatModelFactory`, `ChatModel`, request converters and
+  family strategies of the providers take the domain records, and the factories of the Anthropic and OpenAI providers
+  no longer take `ChatModelProperties` (the translator applies the default timeout). Shared domain types:
+  `RequestCustomizations` and `EndpointAuthentication` in `aiagent.chatmodel.connection`, `AwsAuthentication` in
+  `aiagent.chatmodel.provider.aws` and `FoundryAuthentication` in `aiagent.chatmodel.provider.azure`.
+  `FoundryCredentialResolver.bearerTokenSupplier` takes `FoundryAuthentication.ClientCredentials` or
+  `FoundryAuthentication.ManagedIdentity`. `ChatModelTimeouts` is removed.
+- `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 
 ### V1 provider configuration
 

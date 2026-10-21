@@ -100,7 +100,7 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
-backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
+backend axis: `BedrockConfiguration` carries a region, an `AwsAuthentication`
 (static credentials, API key, or the default credentials chain) and an optional custom endpoint.
 
 ### HTTP overrides
@@ -457,7 +457,7 @@ the shared `OpenAiCompletionsStreamAssembler`) drives the chunked reasoning cont
 OpenAI's own wiring uses the shared `OpenAiCompletionsContentChunkStrategy.openAi(...)` and
 `OpenAiCompletionsStreamAssembler.accumulating()` instead. It also
 does not go through `OpenAiCompletionsStrategy` -- that class is typed to
-`OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
+`OpenAiConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
 that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
 `MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
 pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of

@@ -996,16 +996,20 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 `create(ChatModelConfiguration)`.
 
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
-request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
-identifier) — enough for routing and agent-instance reporting — and is the type carried through
-`AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
-own configuration through the SPI rather than being confined to the module's built-in provider union.
-The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
-etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
-configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `request/v2`), which is the extension point for both built-in native providers and
-user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
+request. It exposes `provider()` (the provider discriminator), `model()` (the model identifier) and
+`descriptiveProvider()` (a more specific label, for example `openai/responses/foundry`), which are enough
+for routing and agent-instance reporting. It is the type carried through `AgentConfiguration`
+(`chatModel()`) and dispatched on by the registry.
+
+Every built-in provider owns its configuration as a plain domain record without annotations, in its own
+package (`AnthropicConfiguration`, `OpenAiConfiguration`, `GeminiConfiguration`, `MistralConfiguration`,
+`BedrockConfiguration` below `aiagent/chatmodel/provider`). The record is non-null by design: a value which
+the request leaves open is either given its default once, or it is `null` where the provider has its own
+default and the value then stays absent on the wire. The element template records (`ProviderConfiguration`
+in `request/v1` and `request/v2`) are bindings only. `ChatModelConfigurationTranslator`
+(`aiagent/translation`) turns the binding of a request into the domain record, rewriting a v1 binding to its
+v2 equivalent first. A provider never reads a binding. A user-supplied factory receives the generic
+`CustomChatModelConfiguration` record (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -1971,16 +1975,17 @@ subclass as a bean. `supports`/`create` are implemented by the base class, which
 
 **Native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
 `ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
-`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration` (`request/v2`); the other native providers under
-`aiagent/chatmodel/provider/**` follow the same shape. A provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid
-only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
-agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
-understood only by your factory. No built-in factory ever matches `CustomProviderConfiguration`, so the
-registry fails with the ordinary "no factory registered" error until you register one. A factory for it
-can extend `LangChain4JChatModelFactory<CustomProviderConfiguration>` and narrow `supports` to its
-`providerType`.
+`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with `AnthropicConfiguration`; the other
+native providers under `aiagent/chatmodel/provider/**` follow the same shape. A built-in provider adds its
+binding in `request/v2`, its domain record next to its factory, and a branch in
+`ChatModelConfigurationTranslator`. A provider without a built-in factory falls through to
+`CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid only), which the
+translator turns into `CustomChatModelConfiguration`: it carries a user-chosen `providerType` (dispatch
+discriminator), a dedicated `model` field (so agent-instance reporting works without digging it out of opaque
+config), and an opaque `parameters` map understood only by your factory. No built-in factory ever matches
+`CustomChatModelConfiguration`, so the registry fails with the ordinary "no factory registered" error until you
+register one. A factory for it can extend `LangChain4JChatModelFactory<CustomChatModelConfiguration>` and narrow
+`supports` to its `providerType`.
 
 Every new v2 provider backend must follow three conventions, regardless of provider:
 
