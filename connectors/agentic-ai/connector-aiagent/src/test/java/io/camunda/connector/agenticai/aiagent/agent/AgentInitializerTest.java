@@ -24,11 +24,11 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -150,7 +150,8 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       final var expectedMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 12345L, null);
+          new AgentMetadata(
+              PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, AgentInstanceKey.of(12345L), null);
       assertThat(result)
           .isInstanceOfSatisfying(
               ReadyToConverse.class,
@@ -193,7 +194,8 @@ class AgentInitializerTest {
     private static final AgentContext AGENT_CONTEXT =
         AgentContext.empty()
             .withProperty("hello", "world")
-            .withMetadata(new AgentMetadata(123456789L, 987654321L, 99999L, null));
+            .withMetadata(
+                new AgentMetadata(123456789L, 987654321L, AgentInstanceKey.of(99999L), null));
 
     @BeforeEach
     void setUp() {
@@ -481,7 +483,7 @@ class AgentInitializerTest {
     private static final long ORIGINAL_PROCESS_DEFINITION_KEY = 111111111L;
     private static final long MIGRATED_PROCESS_DEFINITION_KEY = 222222222L;
     private static final long PROCESS_INSTANCE_KEY = 987654321L;
-    private static final long AGENT_INSTANCE_KEY = 99999L;
+    private static final AgentInstanceKey AGENT_INSTANCE_KEY = AgentInstanceKey.of(99999L);
     private static final int LAST_ITERATION_KEY = 7;
 
     @Test
@@ -645,7 +647,8 @@ class AgentInitializerTest {
       final var result = (ReadyToConverse) agentInitializer.initializeAgent(executionContext);
 
       verify(agentInstanceClient, times(1)).create(any(AgentExecutionContext.class));
-      assertThat(result.agentContext().metadata().agentInstanceKey()).isEqualTo(12345L);
+      assertThat(result.agentContext().metadata().agentInstanceKey())
+          .isEqualTo(AgentInstanceKey.of(12345L));
     }
 
     @ParameterizedTest
@@ -694,7 +697,8 @@ class AgentInitializerTest {
     @Test
     void shouldSkipAgentInstanceCreationWhenKeyAlreadyPresent() {
       final var existingMetadata =
-          new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, 99L, null);
+          new AgentMetadata(
+              PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY, AgentInstanceKey.of(99L), null);
       final var agentContext =
           AgentContext.empty().withState(AgentState.INITIALIZING).withMetadata(existingMetadata);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
