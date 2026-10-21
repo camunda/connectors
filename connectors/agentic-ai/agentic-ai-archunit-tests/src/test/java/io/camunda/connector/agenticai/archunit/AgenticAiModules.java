@@ -23,6 +23,11 @@ enum AgenticAiModules {
   COMMON("agentic-ai-common", "Common", Kind.LIBRARY, under("common")),
   MODEL("aiagent-model", "Model", Kind.LIBRARY, under("aiagent.model")),
   API("aiagent-api", "Api", Kind.LIBRARY, under("aiagent.api")),
+  PROVIDER_SUPPORT(
+      "aiagent-provider-support",
+      "ProviderSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.connection").or(under("aiagent.chatmodel.envelope"))),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),
@@ -36,7 +41,13 @@ enum AgenticAiModules {
       "connector-aiagent",
       "AiAgent",
       Kind.CONNECTOR,
-      under("aiagent").and(resideOutsideOfPackages(pkg("aiagent.model.."), pkg("aiagent.api.."))));
+      under("aiagent")
+          .and(
+              resideOutsideOfPackages(
+                  pkg("aiagent.model.."),
+                  pkg("aiagent.api.."),
+                  pkg("aiagent.chatmodel.connection.."),
+                  pkg("aiagent.chatmodel.envelope.."))));
 
   /** What a module is: shared code, a connector of its own, or the glue between two connectors. */
   enum Kind {

@@ -37,9 +37,10 @@ new group `io.camunda.connector.agenticai`:
 
 | Artifact | Package root | Contents |
 | ------------------------------- | --- | ------------------------------------------------------------------------- |
-| `connector-aiagent` | `aiagent` (except `model`, `api`) | AI Agent connectors, chat model providers, conversation stores |
+| `connector-aiagent` | `aiagent` (except `model`, `api`, provider support) | AI Agent connectors, chat model providers, conversation stores |
 | `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
+| `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope` | Vendor-neutral support of the chat model providers: connection settings, model call envelope |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
 | `connector-mcp` | `mcp.client` | MCP client connectors |

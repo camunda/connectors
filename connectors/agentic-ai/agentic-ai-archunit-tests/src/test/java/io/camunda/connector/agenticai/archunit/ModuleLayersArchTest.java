@@ -39,6 +39,7 @@ class ModuleLayersArchTest {
         .mayOnlyBeAccessedByLayers(
             names(
                 AgenticAiModules.API,
+                AgenticAiModules.PROVIDER_SUPPORT,
                 AgenticAiModules.TOOLS_SCHEMA,
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
@@ -47,11 +48,14 @@ class ModuleLayersArchTest {
         .whereLayer(AgenticAiModules.API.layerName())
         .mayOnlyBeAccessedByLayers(
             names(
+                AgenticAiModules.PROVIDER_SUPPORT,
                 AgenticAiModules.TOOLS_SCHEMA,
                 AgenticAiModules.AD_HOC_CONNECTOR,
                 AgenticAiModules.MCP_INTEGRATION,
                 AgenticAiModules.A2A_INTEGRATION,
                 AgenticAiModules.AI_AGENT))
+        .whereLayer(AgenticAiModules.PROVIDER_SUPPORT.layerName())
+        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.TOOLS_SCHEMA.layerName())
         .mayOnlyBeAccessedByLayers(
             names(AgenticAiModules.AD_HOC_CONNECTOR, AgenticAiModules.AI_AGENT))

@@ -41,13 +41,14 @@ The module is split into Maven modules with a fixed dependency direction
 | `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                              |
 | `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
 | `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
+| `aiagent-provider-support`      | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope` | Vendor-neutral provider code: connection settings, model call envelope | api, model, common                |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
 | `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
 | `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
-| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
+| `connector-aiagent`             | `aiagent` (except `model`, `api` and the roots of provider support) | AI Agent connectors, providers, stores, agent instance client  | provider-support, tools-schema, api, model, common  |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
