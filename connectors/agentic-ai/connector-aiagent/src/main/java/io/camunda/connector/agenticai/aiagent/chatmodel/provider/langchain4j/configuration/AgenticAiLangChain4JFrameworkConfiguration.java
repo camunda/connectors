@@ -22,10 +22,8 @@ import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import(AgenticAiLangChain4JChatModelConfiguration.class)
 public class AgenticAiLangChain4JFrameworkConfiguration {
 
   @Bean
