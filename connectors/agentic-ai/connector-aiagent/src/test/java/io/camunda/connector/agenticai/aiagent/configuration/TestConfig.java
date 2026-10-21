@@ -10,7 +10,6 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JAutoConfiguration;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.tools.schema.configuration.AgenticAiToolsSchemaAutoConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -29,8 +28,7 @@ class TestConfig {
       AutoConfigurations.of(
           AgenticAiCommonAutoConfiguration.class,
           AgenticAiToolsSchemaAutoConfiguration.class,
-          AgenticAiConnectorsAutoConfiguration.class,
-          AgenticAiLangChain4JAutoConfiguration.class);
+          AgenticAiConnectorsAutoConfiguration.class);
 
   @Bean
   @ConnectorsObjectMapper

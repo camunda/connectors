@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurat
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -24,11 +23,9 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
@@ -49,9 +46,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 /**
- * A pro-code user backs a chat model with LangChain4j by extending {@link
- * LangChain4JChatModelFactory} and registering the subclass as a bean. This test runs such a custom
- * factory through the registry, the real converters and the bridge chat model.
+ * A chat model is backed by LangChain4j by extending {@link LangChain4JChatModelFactory} and
+ * registering the subclass as a bean. This test runs such a custom factory through the real
+ * converters and the bridge chat model.
  */
 class LangChain4JChatModelFactoryTest {
 
@@ -60,11 +57,9 @@ class LangChain4JChatModelFactoryTest {
   private final CloseableChatModel l4jModel = mock(CloseableChatModel.class);
   private final CustomFactory factory =
       new CustomFactory(l4jModel, new ToolCallMetadataDecorator() {});
-  private final ChatModelRegistryImpl registry =
-      new ChatModelRegistryImpl(List.<ChatModelFactory>of(factory));
 
   @Test
-  void runsACustomLangChain4JBackedModelThroughTheRegistryAndTheBridge() {
+  void runsACustomLangChain4JBackedModelThroughTheBridge() {
     final var toolCall =
         ToolExecutionRequest.builder()
             .id("call-1")
@@ -83,7 +78,7 @@ class LangChain4JChatModelFactoryTest {
     when(l4jModel.chat(any(dev.langchain4j.model.chat.request.ChatRequest.class)))
         .thenReturn(response);
 
-    final var chatModel = registry.resolve(new CustomConfiguration("my-model"));
+    final var chatModel = factory.create(new CustomConfiguration("my-model"));
     final var result =
         chatModel.execute(
             new ChatRequest(
@@ -198,9 +193,6 @@ class LangChain4JChatModelFactoryTest {
 
     final var other = mock(ChatModelConfiguration.class);
     assertThat(factory.supports(other)).isFalse();
-    assertThatThrownBy(() -> registry.resolve(other))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("No chat model registered");
   }
 
   private static AgentExecutionContext executionContext() {

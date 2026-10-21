@@ -33,14 +33,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ToolCallMetadataDecorator;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -116,21 +108,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           OpenAiChatModelFactory.class,
           GeminiChatModelFactory.class);
 
-  private static final List<Class<?>> LANGCHAIN4J_BEANS =
-      List.of(
-          ChatModelHttpProxySupport.class,
-          ToolCallMetadataDecorator.class,
-          DocumentToContentConverter.class,
-          ContentConverter.class,
-          ToolCallConverter.class,
-          JsonSchemaConverter.class,
-          ToolSpecificationConverter.class,
-          ChatMessageConverter.class);
-
-  // this will need to be updated in case we support different frameworks
-  private static final List<Class<?>> ALL_BEANS =
-      Stream.concat(AGENTIC_AI_BEANS.stream(), LANGCHAIN4J_BEANS.stream()).toList();
-
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
@@ -140,14 +117,14 @@ class AgenticAiConnectorsAutoConfigurationTest {
   void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
-        .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
+        .run(context -> assertHasAllBeansOf(context, AGENTIC_AI_BEANS));
   }
 
   @Test
   void whenAgenticAiConfigurationDisabled_thenNoAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
-        .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
+        .run(context -> assertDoesNotHaveAnyBeansOf(context, AGENTIC_AI_BEANS));
   }
 
   @Test
@@ -158,7 +135,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream()
+                  AGENTIC_AI_BEANS.stream()
                       .filter(
                           notAnyOf(
                               AgentTaskRequestHandler.class,
@@ -180,7 +157,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream()
+                  AGENTIC_AI_BEANS.stream()
                       .filter(
                           notAnyOf(
                               AgentSubProcessRequestHandler.class,
