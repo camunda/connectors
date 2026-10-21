@@ -127,9 +127,9 @@ types. The serialized JSON is unchanged.
   `aiagent.model.request`. `MemoryConfiguration.storage()` returns a `ConversationStoreConfiguration`.
   A custom store reads its parameters through `CustomConversationStoreConfiguration` instead of
   casting to the template record.
-- New interface `aiagent.model.chatmodel.CustomChatModelConfiguration`, implemented by
-  `CustomProviderConfiguration`. A custom `ChatModelFactory` can match and read its configuration
-  through the interface.
+- New record `aiagent.model.chatmodel.CustomChatModelConfiguration`, which the request translation builds from
+  `CustomProviderConfiguration`. A custom `ChatModelFactory` matches and reads its configuration
+  through the record, no longer through `CustomProviderConfiguration`.
 
 #### Conversation context subtypes
 

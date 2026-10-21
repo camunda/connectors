@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
@@ -32,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsAp
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication.ManagedIdentityAuthentication;
@@ -87,22 +89,16 @@ public class ChatModelConfigurationTranslator {
 
   public ChatModelConfiguration translate(
       io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration provider) {
-    if (provider instanceof OpenAiChatModelConfiguration openAi) {
-      return translateOpenAi(openAi);
-    }
-    if (provider instanceof AnthropicChatModelConfiguration anthropic) {
-      return translateAnthropic(anthropic);
-    }
-    if (provider instanceof MistralChatModelConfiguration mistral) {
-      return translateMistral(mistral);
-    }
-    if (provider instanceof GeminiChatModelConfiguration gemini) {
-      return translateGemini(gemini);
-    }
-    if (provider instanceof BedrockConverseChatModelConfiguration bedrock) {
-      return translateBedrock(bedrock);
-    }
-    return provider;
+    return switch (provider) {
+      case OpenAiChatModelConfiguration openAi -> translateOpenAi(openAi);
+      case AnthropicChatModelConfiguration anthropic -> translateAnthropic(anthropic);
+      case MistralChatModelConfiguration mistral -> translateMistral(mistral);
+      case GeminiChatModelConfiguration gemini -> translateGemini(gemini);
+      case BedrockConverseChatModelConfiguration bedrock -> translateBedrock(bedrock);
+      case CustomProviderConfiguration custom ->
+          new CustomChatModelConfiguration(
+              custom.providerType(), custom.model(), custom.parameters());
+    };
   }
 
   private OpenAiConfiguration translateOpenAi(OpenAiChatModelConfiguration configuration) {

@@ -422,4 +422,21 @@ class ChatModelConfigurationTranslatorTest {
           .doesNotContain("token-9876");
     }
   }
+
+  @Test
+  void customProviderTranslatesToTheGenericCustomConfiguration() {
+    final var translated =
+        translator.translate(
+            new io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration(
+                "acme-llm", "acme-model", Map.of("apiKey", "secret-value")));
+
+    assertThat(translated)
+        .isEqualTo(
+            new io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration(
+                "acme-llm", "acme-model", Map.of("apiKey", "secret-value")));
+    assertThat(translated.provider()).isEqualTo("acme-llm");
+    assertThat(translated.descriptiveProvider()).isEqualTo("acme-llm");
+    assertThat(translated.model()).isEqualTo("acme-model");
+    assertThat(translated.toString()).doesNotContain("secret-value");
+  }
 }

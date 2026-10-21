@@ -6,18 +6,36 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.chatmodel;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Configuration of a user-supplied chat model provider. {@link #providerType()} selects the {@code
  * ChatModelFactory} that serves the request; {@link #parameters()} is opaque configuration only
  * that factory understands.
+ *
+ * @param providerType identifier of the custom provider implementation
+ * @param model identifier of the model to use, in the format of the provider
+ * @param parameters provider-specific parameters, empty if none are configured
  */
-public interface CustomChatModelConfiguration extends ChatModelConfiguration {
+public record CustomChatModelConfiguration(
+    String providerType, String model, Map<String, Object> parameters)
+    implements ChatModelConfiguration {
 
-  /** Identifier of the custom provider implementation. */
-  String providerType();
+  public CustomChatModelConfiguration {
+    parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
+  }
 
-  /** Provider-specific parameters, empty if none are configured. */
-  Map<String, Object> parameters();
+  @Override
+  public String provider() {
+    return providerType;
+  }
+
+  /** Lists the names of the parameters only, as their values may be secrets. */
+  @Override
+  public String toString() {
+    return "CustomChatModelConfiguration{providerType=%s, model=%s, parameters=%s}"
+        .formatted(providerType, model, parameters.keySet());
+  }
 }
