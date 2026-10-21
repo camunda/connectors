@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,7 +55,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private static final String MAIN_TIMELINE = "main";
   private static final String EVENT_METADATA_SEQ = "seq";
 
-  private final AwsAgentCoreMemoryStorageConfiguration config;
+  private final AwsAgentCoreConversationStoreConfiguration config;
   private final BedrockAgentCoreClient client;
   private final AwsAgentCoreConversationMapper conversationMapper;
 
@@ -67,7 +66,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private int initialMessageCount = 0;
 
   public AwsAgentCoreConversationSession(
-      AwsAgentCoreMemoryStorageConfiguration config,
+      AwsAgentCoreConversationStoreConfiguration config,
       BedrockAgentCoreClient client,
       AwsAgentCoreConversationMapper conversationMapper) {
     this.config = config;

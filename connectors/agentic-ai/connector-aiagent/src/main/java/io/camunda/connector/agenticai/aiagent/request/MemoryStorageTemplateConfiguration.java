@@ -11,8 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.request.ConversationStoreConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.CustomConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.api.annotation.FEEL;
@@ -50,7 +48,7 @@ import org.jspecify.annotations.Nullable;
     name = "type",
     description = "Specify how to store the conversation memory.",
     defaultValue = InProcessConversationStore.TYPE)
-public sealed interface MemoryStorageTemplateConfiguration extends ConversationStoreConfiguration
+public sealed interface MemoryStorageTemplateConfiguration
     permits MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration,
         MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration,
         MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration,
@@ -59,12 +57,7 @@ public sealed interface MemoryStorageTemplateConfiguration extends ConversationS
   @TemplateSubType(
       id = InProcessConversationStore.TYPE,
       label = "In Process (part of agent context)")
-  record InProcessMemoryStorageConfiguration() implements MemoryStorageTemplateConfiguration {
-    @Override
-    public String storeType() {
-      return InProcessConversationStore.TYPE;
-    }
-  }
+  record InProcessMemoryStorageConfiguration() implements MemoryStorageTemplateConfiguration {}
 
   @TemplateSubType(id = CamundaDocumentConversationStore.TYPE, label = "Camunda Document Storage")
   record CamundaDocumentMemoryStorageConfiguration(
@@ -85,12 +78,7 @@ public sealed interface MemoryStorageTemplateConfiguration extends ConversationS
               feel = FeelMode.required,
               optional = true)
           @Nullable Map<String, Object> customProperties)
-      implements MemoryStorageTemplateConfiguration {
-    @Override
-    public String storeType() {
-      return CamundaDocumentConversationStore.TYPE;
-    }
-  }
+      implements MemoryStorageTemplateConfiguration {}
 
   @TemplateSubType(id = AwsAgentCoreConversationStore.TYPE, label = "AWS AgentCore Memory")
   record AwsAgentCoreMemoryStorageConfiguration(
@@ -131,10 +119,6 @@ public sealed interface MemoryStorageTemplateConfiguration extends ConversationS
           @NotBlank
           String actorId)
       implements MemoryStorageTemplateConfiguration {
-    @Override
-    public String storeType() {
-      return AwsAgentCoreConversationStore.TYPE;
-    }
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
     @SuppressWarnings("unused")
@@ -210,7 +194,7 @@ public sealed interface MemoryStorageTemplateConfiguration extends ConversationS
               feel = FeelMode.required,
               optional = true)
           Map<String, Object> parameters)
-      implements MemoryStorageTemplateConfiguration, CustomConversationStoreConfiguration {
+      implements MemoryStorageTemplateConfiguration {
     public CustomMemoryStorageConfiguration(
         String storeType, @Nullable Map<String, Object> parameters) {
       this.storeType = storeType;

@@ -7,9 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration.Authentication;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import java.net.URI;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -35,7 +34,7 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
   }
 
   @Override
-  public BedrockAgentCoreClient createClient(AwsAgentCoreMemoryStorageConfiguration config) {
+  public BedrockAgentCoreClient createClient(AwsAgentCoreConversationStoreConfiguration config) {
     BedrockAgentCoreClientBuilder builder =
         BedrockAgentCoreClient.builder()
             .credentialsProvider(createCredentialsProvider(config.authentication()))
@@ -54,14 +53,11 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
     return builder.build();
   }
 
-  private AwsCredentialsProvider createCredentialsProvider(
-      AwsAgentCoreAuthentication authentication) {
-    if (authentication
-        instanceof AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication credentials) {
+  private AwsCredentialsProvider createCredentialsProvider(Authentication authentication) {
+    if (authentication instanceof Authentication.StaticCredentials credentials) {
       return StaticCredentialsProvider.create(
           AwsBasicCredentials.create(credentials.accessKey(), credentials.secretKey()));
-    } else if (authentication
-        instanceof AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication) {
+    } else if (authentication instanceof Authentication.DefaultCredentialsChain) {
       return DefaultCredentialsProvider.builder().build();
     } else {
       throw new IllegalArgumentException(

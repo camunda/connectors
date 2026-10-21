@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -34,8 +35,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -81,15 +80,15 @@ class AwsAgentCoreConversationStoreTest {
   @Captor private ArgumentCaptor<ListEventsRequest> listEventsRequestCaptor;
 
   private AwsAgentCoreConversationStore store;
-  private AwsAgentCoreMemoryStorageConfiguration config;
+  private AwsAgentCoreConversationStoreConfiguration config;
 
   @BeforeEach
   void setUp() {
     var authentication =
-        new AwsAgentCoreMemoryStorageConfiguration.AwsAgentCoreAuthentication
-            .AwsStaticCredentialsAuthentication("test-access-key", "test-secret-key");
+        new AwsAgentCoreConversationStoreConfiguration.Authentication.StaticCredentials(
+            "test-access-key", "test-secret-key");
     config =
-        new AwsAgentCoreMemoryStorageConfiguration(
+        new AwsAgentCoreConversationStoreConfiguration(
             "us-east-1", null, authentication, MEMORY_ID, ACTOR_ID);
     lenient()
         .when(executionContext.configuration())
@@ -116,13 +115,13 @@ class AwsAgentCoreConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20)));
+                new MemoryConfiguration(new InProcessConversationStoreConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageStartingWith(
-            "Expected memory storage configuration to be of type AwsAgentCoreMemoryStorageConfiguration, but got:")
-        .hasMessageContaining("InProcessMemoryStorageConfiguration");
+            "Expected conversation store configuration to be of type AwsAgentCoreConversationStoreConfiguration, but got:")
+        .hasMessageContaining("InProcessConversationStoreConfiguration");
   }
 
   @Test
@@ -288,8 +287,7 @@ class AwsAgentCoreConversationStoreTest {
     verify(clientFactory).createClient(config);
     assertThat(config.authentication())
         .isInstanceOf(
-            AwsAgentCoreMemoryStorageConfiguration.AwsAgentCoreAuthentication
-                .AwsStaticCredentialsAuthentication.class);
+            AwsAgentCoreConversationStoreConfiguration.Authentication.StaticCredentials.class);
   }
 
   @Test
@@ -775,7 +773,7 @@ class AwsAgentCoreConversationStoreTest {
 
     // Change memoryId in config for turn 2
     var changedConfig =
-        new AwsAgentCoreMemoryStorageConfiguration(
+        new AwsAgentCoreConversationStoreConfiguration(
             "us-east-1", null, config.authentication(), "different-memory-id", ACTOR_ID);
     when(executionContext.configuration())
         .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));
@@ -810,7 +808,7 @@ class AwsAgentCoreConversationStoreTest {
 
     // Change actorId in config for turn 2
     var changedConfig =
-        new AwsAgentCoreMemoryStorageConfiguration(
+        new AwsAgentCoreConversationStoreConfiguration(
             "us-east-1", null, config.authentication(), MEMORY_ID, "different-actor-id");
     when(executionContext.configuration())
         .thenReturn(configWithMemory(new MemoryConfiguration(changedConfig, 20)));

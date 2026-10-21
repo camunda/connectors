@@ -9,7 +9,14 @@ package io.camunda.connector.agenticai.aiagent.translation;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration.Authentication.DefaultCredentialsChain;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration.Authentication.StaticCredentials;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.CustomConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
@@ -20,6 +27,12 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.EventHandlingTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.LimitsTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CustomMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
@@ -27,6 +40,8 @@ import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguratio
 import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConfiguration.JsonResponseFormatTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConfiguration.TextResponseFormatTemplateConfiguration;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -75,7 +90,7 @@ class AgentConfigurationTranslatorTest {
     assertThat(configuration.userPrompt().prompt()).isEqualTo("Hello");
     assertThat(configuration.userPrompt().documents()).isEmpty();
     assertThat(configuration.memory().storage())
-        .isInstanceOf(InProcessMemoryStorageConfiguration.class);
+        .isInstanceOf(InProcessConversationStoreConfiguration.class);
     assertThat(configuration.contextWindowSize()).isEqualTo(20);
     assertThat(configuration.maxModelCalls()).isEqualTo(10);
     assertThat(configuration.events().behavior())
@@ -111,12 +126,75 @@ class AgentConfigurationTranslatorTest {
                 new TextResponseFormatTemplateConfiguration(null), null));
 
     assertThat(configuration.memory().storage())
-        .isInstanceOf(InProcessMemoryStorageConfiguration.class);
+        .isInstanceOf(InProcessConversationStoreConfiguration.class);
     assertThat(configuration.contextWindowSize()).isEqualTo(20);
     assertThat(configuration.maxModelCalls()).isEqualTo(10);
     assertThat(configuration.response().includeAssistantMessage()).isFalse();
     assertThat(configuration.response().format())
         .isEqualTo(new TextResponseFormatConfiguration(false));
+  }
+
+  @Test
+  void translatesEveryStorageType() {
+    final var document =
+        translateStorage(
+            new CamundaDocumentMemoryStorageConfiguration(Duration.ofHours(1), Map.of("k", "v")));
+    assertThat(document)
+        .isEqualTo(
+            new CamundaDocumentConversationStoreConfiguration(
+                Duration.ofHours(1), Map.of("k", "v")));
+
+    assertThat(translateStorage(new CamundaDocumentMemoryStorageConfiguration(null, null)))
+        .isEqualTo(new CamundaDocumentConversationStoreConfiguration(null, Map.of()));
+
+    assertThat(
+            translateStorage(
+                new AwsAgentCoreMemoryStorageConfiguration(
+                    "us-east-1",
+                    null,
+                    new AwsStaticCredentialsAuthentication("key", "secret"),
+                    "memory",
+                    "actor")))
+        .isEqualTo(
+            new AwsAgentCoreConversationStoreConfiguration(
+                "us-east-1", null, new StaticCredentials("key", "secret"), "memory", "actor"));
+
+    assertThat(
+            translateStorage(
+                new AwsAgentCoreMemoryStorageConfiguration(
+                    "eu-west-1",
+                    "https://endpoint",
+                    new AwsDefaultCredentialsChainAuthentication(),
+                    "memory",
+                    "actor")))
+        .isEqualTo(
+            new AwsAgentCoreConversationStoreConfiguration(
+                "eu-west-1", "https://endpoint", new DefaultCredentialsChain(), "memory", "actor"));
+
+    final var custom =
+        (CustomConversationStoreConfiguration)
+            translateStorage(new CustomMemoryStorageConfiguration("my-store", null));
+    assertThat(custom.storeType()).isEqualTo("my-store");
+    assertThat(custom.parameters()).isEmpty();
+  }
+
+  @Test
+  void customStoreKeepsNullParameterValues() {
+    final var parameters = new HashMap<String, Object>();
+    parameters.put("key", null);
+
+    final var custom =
+        (CustomConversationStoreConfiguration)
+            translateStorage(new CustomMemoryStorageConfiguration("my-store", parameters));
+
+    assertThat(custom.parameters()).containsEntry("key", null);
+  }
+
+  private static ConversationStoreConfiguration translateStorage(
+      MemoryStorageTemplateConfiguration storage) {
+    return translateTask(new MemoryTemplateConfiguration(storage, null), null, null)
+        .memory()
+        .storage();
   }
 
   @Test

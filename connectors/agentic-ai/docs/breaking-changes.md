@@ -202,6 +202,10 @@ client in its properties does not start.
   and `ResponseConfiguration` are records instead of interfaces. The `DEFAULT_*` constants of `AgentConfiguration` are
   removed. The records the element templates show are `*TemplateConfiguration` in `aiagent.request`; their JSON is
   unchanged. `AgentSubProcessExecutionContext.response()` is replaced by `includeAgentContext()`.
+- `MemoryConfiguration.storage()` returns the domain configuration of the store, not the element template record: the
+  in-process, Camunda document and AWS AgentCore stores read `InProcessConversationStoreConfiguration`,
+  `CamundaDocumentConversationStoreConfiguration` and `AwsAgentCoreConversationStoreConfiguration` of their own
+  packages. A custom store keeps reading `CustomConversationStoreConfiguration`.
 
 ### V1 provider configuration
 

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import java.util.List;
 
 /**
@@ -38,7 +38,7 @@ public final class AgentConfigurationFixture {
   private UserPromptConfiguration userPrompt =
       new UserPromptConfiguration("user prompt", List.of());
   private MemoryConfiguration memory =
-      new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20);
+      new MemoryConfiguration(new InProcessConversationStoreConfiguration(), 20);
   private LimitsConfiguration limits = new LimitsConfiguration(10);
   private EventHandlingConfiguration events =
       new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS);

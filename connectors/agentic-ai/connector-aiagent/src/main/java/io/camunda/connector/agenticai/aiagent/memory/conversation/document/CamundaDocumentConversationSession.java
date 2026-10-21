@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -41,7 +40,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
 
   private static final int DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
 
-  private final CamundaDocumentMemoryStorageConfiguration config;
+  private final CamundaDocumentConversationStoreConfiguration config;
   private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
   private final CamundaDocumentConversationSerializer conversationSerializer;
@@ -51,7 +50,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
   private @Nullable CamundaDocumentConversationContext previousConversationContext;
 
   public CamundaDocumentConversationSession(
-      CamundaDocumentMemoryStorageConfiguration config,
+      CamundaDocumentConversationStoreConfiguration config,
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
       CamundaDocumentConversationSerializer conversationSerializer,
@@ -66,7 +65,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
   }
 
   public CamundaDocumentConversationSession(
-      CamundaDocumentMemoryStorageConfiguration config,
+      CamundaDocumentConversationStoreConfiguration config,
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
       CamundaDocumentConversationSerializer conversationSerializer,
@@ -134,7 +133,7 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     }
 
     final var properties = new LinkedHashMap<String, Object>();
-    Optional.ofNullable(config.customProperties()).ifPresent(properties::putAll);
+    properties.putAll(config.customProperties());
     properties.put("conversationId", conversationId);
 
     final var jobContext = executionContext.jobContext();

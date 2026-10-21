@@ -6,8 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.translation;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration.Authentication.DefaultCredentialsChain;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration.Authentication.StaticCredentials;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ConversationStoreConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.CustomConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -24,6 +31,12 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.EventHandlingTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.LimitsTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CustomMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
@@ -32,6 +45,7 @@ import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConf
 import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConfiguration.JsonResponseFormatTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.ResponseFormatTemplateConfiguration.TextResponseFormatTemplateConfiguration;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -86,13 +100,42 @@ public final class AgentConfigurationTranslator {
   private static MemoryConfiguration memory(@Nullable MemoryTemplateConfiguration memory) {
     if (memory == null) {
       return new MemoryConfiguration(
-          new InProcessMemoryStorageConfiguration(), DEFAULT_CONTEXT_WINDOW_SIZE);
+          new InProcessConversationStoreConfiguration(), DEFAULT_CONTEXT_WINDOW_SIZE);
     }
     return new MemoryConfiguration(
-        memory.storage() != null ? memory.storage() : new InProcessMemoryStorageConfiguration(),
+        storage(memory.storage()),
         memory.contextWindowSize() != null
             ? memory.contextWindowSize()
             : DEFAULT_CONTEXT_WINDOW_SIZE);
+  }
+
+  private static ConversationStoreConfiguration storage(
+      @Nullable MemoryStorageTemplateConfiguration storage) {
+    if (storage == null) {
+      return new InProcessConversationStoreConfiguration();
+    }
+    return switch (storage) {
+      case InProcessMemoryStorageConfiguration ignored ->
+          new InProcessConversationStoreConfiguration();
+      case CamundaDocumentMemoryStorageConfiguration document ->
+          new CamundaDocumentConversationStoreConfiguration(
+              document.timeToLive(),
+              document.customProperties() != null ? document.customProperties() : Map.of());
+      case AwsAgentCoreMemoryStorageConfiguration agentCore ->
+          new AwsAgentCoreConversationStoreConfiguration(
+              agentCore.region(),
+              agentCore.endpoint(),
+              switch (agentCore.authentication()) {
+                case AwsStaticCredentialsAuthentication credentials ->
+                    new StaticCredentials(credentials.accessKey(), credentials.secretKey());
+                case AwsDefaultCredentialsChainAuthentication ignored ->
+                    new DefaultCredentialsChain();
+              },
+              agentCore.memoryId(),
+              agentCore.actorId());
+      case CustomMemoryStorageConfiguration custom ->
+          CustomConversationStoreConfiguration.of(custom.storeType(), custom.parameters());
+    };
   }
 
   private static LimitsConfiguration limits(@Nullable LimitsTemplateConfiguration limits) {

@@ -14,14 +14,14 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.request.ConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.time.Duration;
@@ -93,7 +93,7 @@ class ConversationStoreRegistryTest {
   void createsInProcessConversationStore() {
     when(executionContext.configuration())
         .thenReturn(
-            configWithMemory(memoryConfiguration(new InProcessMemoryStorageConfiguration())));
+            configWithMemory(memoryConfiguration(new InProcessConversationStoreConfiguration())));
 
     final var store = registry.getConversationStore(executionContext, agentContext);
 
@@ -106,7 +106,7 @@ class ConversationStoreRegistryTest {
         .thenReturn(
             configWithMemory(
                 memoryConfiguration(
-                    new CamundaDocumentMemoryStorageConfiguration(
+                    new CamundaDocumentConversationStoreConfiguration(
                         Duration.ofHours(1), Map.of("customKey", "customValue")))));
 
     final var store = registry.getConversationStore(executionContext, agentContext);
@@ -118,7 +118,7 @@ class ConversationStoreRegistryTest {
   void throwsExceptionWhenNoStoreRegisteredForStorageType() {
     when(executionContext.configuration())
         .thenReturn(
-            configWithMemory(memoryConfiguration(new InProcessMemoryStorageConfiguration())));
+            configWithMemory(memoryConfiguration(new InProcessConversationStoreConfiguration())));
 
     final var registry = new ConversationStoreRegistryImpl();
     assertThatThrownBy(() -> registry.getConversationStore(executionContext, agentContext))
@@ -127,8 +127,7 @@ class ConversationStoreRegistryTest {
             "No conversation store registered for storage configuration type: in-process");
   }
 
-  private MemoryConfiguration memoryConfiguration(
-      MemoryStorageTemplateConfiguration storageConfig) {
+  private MemoryConfiguration memoryConfiguration(ConversationStoreConfiguration storageConfig) {
     return new MemoryConfiguration(storageConfig, 10);
   }
 

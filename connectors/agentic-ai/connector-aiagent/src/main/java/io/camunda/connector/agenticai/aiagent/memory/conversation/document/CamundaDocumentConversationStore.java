@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -99,9 +98,9 @@ public class CamundaDocumentConversationStore implements ConversationStore {
       AgentExecutionContext executionContext, AgentContext agentContext) {
     final var config = executionContext.configuration().memory().storage();
 
-    if (!(config instanceof CamundaDocumentMemoryStorageConfiguration documentConfig)) {
+    if (!(config instanceof CamundaDocumentConversationStoreConfiguration documentConfig)) {
       throw new IllegalStateException(
-          "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: %s"
+          "Expected conversation store configuration to be of type CamundaDocumentConversationStoreConfiguration, but got: %s"
               .formatted(config.getClass().getName()));
     }
 

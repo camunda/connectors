@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -33,8 +34,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -95,7 +94,7 @@ class CamundaDocumentConversationStoreTest {
         .thenReturn(
             configWithMemory(
                 new MemoryConfiguration(
-                    new CamundaDocumentMemoryStorageConfiguration(
+                    new CamundaDocumentConversationStoreConfiguration(
                         Duration.ofHours(1), Map.of("customKey", "customValue")),
                     20)));
 
@@ -176,7 +175,7 @@ class CamundaDocumentConversationStoreTest {
   @Test
   void storeTypeIsAlignedWithConfiguration() {
     final var configuration =
-        new CamundaDocumentMemoryStorageConfiguration(Duration.ofHours(1), Map.of());
+        new CamundaDocumentConversationStoreConfiguration(Duration.ofHours(1), Map.of());
     assertThat(store.type()).isEqualTo(configuration.storeType()).isEqualTo("camunda-document");
   }
 
@@ -186,15 +185,13 @@ class CamundaDocumentConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryConfiguration(
-                    new MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration(),
-                    20)));
+                new MemoryConfiguration(new InProcessConversationStoreConfiguration(), 20)));
 
     assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageStartingWith(
-            "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got:")
-        .hasMessageContaining("InProcessMemoryStorageConfiguration");
+            "Expected conversation store configuration to be of type CamundaDocumentConversationStoreConfiguration, but got:")
+        .hasMessageContaining("InProcessConversationStoreConfiguration");
   }
 
   @Test
