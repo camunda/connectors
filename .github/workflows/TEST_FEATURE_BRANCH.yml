@@ -111,9 +111,10 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Build and test (format and javadoc run in parallel jobs)
+      # Build, test and check Javadoc (format runs in a parallel job)
+      # Javadoc runs in the same invocation so it reuses the compiled reactor.
       - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test -Dquickly -T 1C '-P!autoFormat'
+        run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
@@ -152,87 +153,6 @@ jobs:
             exit 1
           fi
         shell: bash
-
-  check-javadoc:
-
-    runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-
-      - name: Set internal build flag
-        id: internal
-        run: |
-          if [ "${{ github.repository_owner }}" = "camunda" ]; then
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-              if [ "${{ github.event.pull_request.head.repo.fork }}" = "false" ]; then
-                echo "internal=true" >> $GITHUB_OUTPUT
-              else
-                echo "internal=false" >> $GITHUB_OUTPUT
-              fi
-            else
-              echo "internal=true" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "internal=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Restore cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21.0.12+101.0.LTS'
-
-      - name: Import Nexus Secrets (internal only)
-        if: ${{ steps.internal.outputs.internal == 'true' }}
-        id: secrets
-        uses: hashicorp/vault-action@v3.4.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false
-          secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
-
-      - name: Create internal Maven settings.xml (Nexus mirror)
-        if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
-        with:
-          githubServer: false
-          servers: |
-            [{
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
-               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
-             },
-            {
-               "id": "central",
-               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
-               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
-             }
-            ]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
-
-      - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
-
-      - name: Check Javadoc
-        run: ./mvnw --batch-mode compile javadoc:javadoc -Dquickly -T 1C
 
   check-format:
 
@@ -309,8 +229,8 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      - name: Install element-template-generator plugin
-        run: ./mvnw --batch-mode install -pl element-template-generator/maven-plugin -am -DskipTests -Dquickly -T 1C
-
+      # Invoke the goals directly instead of `validate -PcheckFormat`: running a
+      # lifecycle phase makes Maven resolve every build plugin, so the
+      # reactor-built element-template-generator plugin would have to be installed first.
       - name: Check Format
-        run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
+        run: ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
