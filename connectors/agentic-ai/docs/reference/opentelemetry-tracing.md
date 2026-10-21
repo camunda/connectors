@@ -73,23 +73,24 @@ agent instance emit nothing.
 
 ### Which jobs export spans
 
-A job creates its spans lazily, so a job that did no agent work leaves no trace of itself:
+A job creates its spans when it reports the start of a turn or the dispatch of a tool discovery, so a job
+that did no agent work leaves no trace of itself. Both events are reported after the lease-fenced write of the
+agent instance history succeeded, so they identify a job that held the lease at that point:
 
-- A job that runs a turn creates its spans at its first model round, after the job has won its lease: the
-  write that fences a superseded duplicate job runs before the first model round. The anchor of a run that
-  this job starts is exported at that point.
+- A job that runs a turn creates its spans when its turn starts. The anchor of a run that this job starts is
+  exported at that point.
 - A job that dispatches gateway tool discovery creates its `invoke_agent` span (job kind `tool_discovery`) at
-  the dispatch. When it starts the run, its anchor is exported when the job ends.
-- A conversation job that completes without a model round exports nothing. That covers a job that only
-  collects partial tool results and a job that finds no input.
-- A job that fails before its first model round, for example because the model call limit is reached,
-  exports a failed `invoke_agent` span with status Error and `error.type`, and the anchor when it starts
-  the run; the anchor carries no status.
-- A superseded job, one that fails with the superseded error or whose completion the engine ignores, exports
-  its spans only if it started a model round: then they carry outcome `superseded`,
+  the dispatch. When it starts the run, its anchor is exported at the same point.
+- A conversation job that completes without a turn exports nothing. That covers a job that only collects
+  partial tool results and a job that finds no input.
+- A job that fails before its turn starts, for example because the model call limit is reached, reports no
+  turn start. It exports a failed `invoke_agent` span with status Error and `error.type`, and the anchor when
+  it starts the run; the anchor carries no status.
+- A superseded duplicate job that is rejected by the fenced write exports nothing, so the job that took over
+  is the only one that exports the spans, the anchor included. A job that is superseded after its turn
+  started, or whose completion the engine ignores, exports its spans with outcome `superseded`,
   `error.type=job_superseded`, and the status is left unset, so the model calls and tokens it spent stay
-  visible. A superseded duplicate job that never started a model round exports nothing, so the job that took
-  over is the only one that exports the spans, the anchor included.
+  visible.
 - A job that fails or ends with a BPMN error exports its own spans with the outcome (`failed`,
   `bpmn_error`) and `error.type`.
 

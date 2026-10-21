@@ -78,6 +78,10 @@ The decision comprises:
   | State contribution | tool discovery dispatched, turn completed | Returns a value only. The framework checks it and writes it into the consumer's own namespace of the agent context, only on paths that already persist the context. An exception or an invalid value drops the contribution. |
   | Model-round pairing | model round started, then completed or failed | Owned by the framework with try/finally on the same thread. A consumer can neither skip nor alter the model call, and a throwing consumer still gets its round closed. |
 
+  Tool discovery dispatched and turn started are reported after the lease-fenced agent instance write of
+  that step succeeded, so they identify a job that held the lease at that point. A job that fails before
+  that write, because it reached the model call limit or was superseded, reports job failed without them.
+
   Events are built lazily: the framework builds an event only when at least one listener takes part in the
   job, so a job without listeners does no work for them. Nothing in the lifecycle layer can fail a job. A
   failure while building an event, in a listener, or in the layer itself is logged and the affected callback

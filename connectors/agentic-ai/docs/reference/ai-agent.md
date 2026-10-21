@@ -2079,6 +2079,10 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
   callback and the exception class only, because events and exception messages can contain prompts and tool
   results; the throwable is logged at DEBUG. A listener that throws in `onJobStarted` gets no observer for that
   job.
+- `onToolDiscoveryDispatched` and `onTurnStarted` are reported after the lease-fenced agent instance write of
+  that step succeeded, so they identify a job that held the lease at that point. A job that fails before it,
+  because it reached the model call limit or because the write rejected it as superseded, reports
+  `onJobFailed` without them.
 - Only `onToolDiscoveryDispatched` and `onTurnCompleted` can return state, and they run on the two paths that
   persist the agent context. The state is stored under `lifecycle:<listener id>` in the context properties, and
   `JobStarted.previousState()` hands it back to the listener in the next job. It must be plain JSON: maps with
@@ -2107,7 +2111,7 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 | When a tool finished | `ToolExecution.result().completedAt()`, the engine's completion time (can be absent). The event carries no start time: a listener that needs the time the tool calls were dispatched records it itself in `onTurnCompleted` and keeps it in its listener state |
 | A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and whether the provider asks for a continuation round) and `ModelRoundFailed(cause, errorCode)` |
 | The token usage of a model call | `ModelRoundCompleted.metrics().tokenUsage()`, one per round, as in the agent instance history (§23); input tokens exclude the cache read and cache creation counts, which are separate fields |
-| The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions) |
+| The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions), reported after the fenced write of the turn start succeeded |
 | The job failed | `JobFailed(cause, errorCode)`; the error code `AGENT_INSTANCE_SUPERSEDED` marks a job whose agent instance write was rejected because a newer activation took over |
 | The engine accepted or rejected the job completion | `onJobCompleted()` and `onJobCompletionFailed(JobCompletionFailure)`; a job whose completion the engine ignores because it was superseded shows as `CommandIgnored` |
 

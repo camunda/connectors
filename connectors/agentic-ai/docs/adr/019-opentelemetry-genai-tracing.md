@@ -134,16 +134,17 @@ The decision comprises:
   the Task flavor emit no spans.
 
 * **D5 — Every model call is visible and each tool execution is recorded once.** A job creates its spans
-  lazily: at its first model round, at a tool discovery dispatch, or at a failure. A job that completes
-  without a model round, such as a partial-results job, exports nothing. A failed activation, including one
-  that fails before its first model round (for example at the model call limit), ends its `invoke_agent`
-  span with its outcome and error type, and exports the anchor when it started the run, and its model calls
-  and token usage remain visible. A superseded activation is not a failure of the agent. The write that fences a
-  superseded activation runs before the first model round, so a duplicate that never started a model round
-  exports nothing, not even an anchor, and the activation that took over is the only one that exports the
-  spans. The anchor of a run is exported at the first model round of the run-starting job, and when that job
-  has none, when the job ends. A job that is
-  superseded after a model round, or whose completion the engine ignores, ends its spans with outcome
+  when it reports the start of a turn or the dispatch of a tool discovery. Both are reported only after the
+  lease-fenced write of the agent instance history succeeded, so they identify a job that held the lease at
+  that point. A job that completes without either, such as a partial-results job, exports nothing. A failed
+  activation ends its `invoke_agent` span with its outcome and error type, and exports the anchor when it
+  started the run, and its model calls and token usage remain visible. This includes a job that fails before
+  its turn starts (for example at the model call limit), which reports no turn start. A superseded activation
+  is not a failure of the agent. The fenced write rejects a superseded duplicate before it reports a turn
+  start, so a duplicate that fails there exports nothing, not even an anchor, and the activation that took
+  over is the only one that exports the spans. The anchor of a run is exported when the run-starting job
+  reports its turn start or tool discovery dispatch, or fails. A job that is
+  superseded after its turn started, or whose completion the engine ignores, ends its spans with outcome
   `superseded` and `error.type=job_superseded` and leaves the status unset, so its wasted spend stays
   visible. `chat` spans are exported when their model call ends, so the token usage of a call counts even
   when the turn it belongs to is rejected afterwards. `execute_tool` spans are emitted only by the job that
@@ -164,7 +165,7 @@ The decision comprises:
   | Limit hit, other agent failure | `invoke_agent` | Error; error code, or the class name of the failure |
   | BPMN error raised by the agent | `invoke_agent` | Error; outcome `bpmn_error`; the BPMN error code |
   | Failure of the job completion in the runtime | `invoke_agent` | Error; outcome `failed`; the class of the cause |
-  | Job superseded, or completion ignored by the engine | `invoke_agent` | Outcome `superseded`; `job_superseded`; status unset; only if the job started a model round |
+  | Job superseded, or completion ignored by the engine | `invoke_agent` | Outcome `superseded`; `job_superseded`; status unset; only if the job reported a turn start or a tool discovery dispatch |
   | Tool completed or cancelled | `execute_tool` | Outcome only; status unset |
   | Tool failed | `execute_tool` | Not distinguishable today (see Follow-up) |
   | Tool incident | none | The result never arrives |
@@ -234,11 +235,11 @@ Trace T2  "travel_helper run"  (same session, no link)
 `chat` spans are exported when each model round ends. The `execute_tool` spans are exported by job 4, the job
 that consumes the results, but they hang below job 2, which issued the calls, and start after it started.
 `invoke_agent` is exported when the job ends: after the engine accepted the job completion, or when the job fails or its completion is
-rejected. The anchor is exported with the job's first model round, or, for job 1, which has none, when the job ends. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
+rejected. The anchor is exported when the run-starting job reports its turn start or tool discovery dispatch. If job 4's first attempt fails after its model call, it exports `invoke_agent` (failed) and the
 `chat` span with its tokens and persists nothing; the retry exports a second `invoke_agent` and `chat` and
 the two `execute_tool` spans once. If job 1's first attempt fails, it exports its own failed trace in the
 same session, and the retry starts the run's trace. A duplicate activation of job 4 that is superseded
-before its first model round exports nothing.
+by the fenced write of its turn start exports nothing.
 
 ### What the consumer persists
 
