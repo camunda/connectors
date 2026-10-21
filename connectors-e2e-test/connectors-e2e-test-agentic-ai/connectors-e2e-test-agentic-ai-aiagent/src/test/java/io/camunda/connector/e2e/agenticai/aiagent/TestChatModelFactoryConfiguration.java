@@ -44,7 +44,7 @@ public class TestChatModelFactoryConfiguration {
 
   /**
    * Test double for {@link ChatModelFactory} standing in for a user-supplied custom chat model
-   * provider (see {@code CustomProviderConfiguration}). Serves scripted {@link ChatResult}s in
+   * provider (see {@code CustomChatModelConfiguration}). Serves scripted {@link ChatResult}s in
    * order and records every {@link ChatRequest} it receives plus the {@link ChatModelConfiguration}
    * it was resolved with, so e2e tests can drive the full tool-calling loop through the "custom"
    * provider discriminator without any real (or WireMock-stubbed) LLM endpoint.

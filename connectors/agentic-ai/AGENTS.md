@@ -72,7 +72,7 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
 - `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
 - `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
 - `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure` and `configuration`) do not depend on each other, except for the allowed
+  except `azure`, `aws` and `configuration`) do not depend on each other, except for the allowed
   dependencies listed in the test (today: Mistral on OpenAI), and do not use the request records of `aiagent.request`:
   each provider reads its own domain configuration. The rest of the AI agent (outside `aiagent.chatmodel.provider`,
   `aiagent.configuration` and `aiagent.translation`) does not depend on the providers.

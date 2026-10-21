@@ -31,4 +31,11 @@ public record RequestCustomizations(
         Objects.requireNonNullElse(queryParameters, Map.of()),
         Objects.requireNonNullElse(bodyProperties, Map.of()));
   }
+
+  /** Lists the names only, as the values may be secrets (for example an {@code Authorization}). */
+  @Override
+  public String toString() {
+    return "RequestCustomizations{headers=%s, queryParameters=%s, bodyProperties=%s}"
+        .formatted(headers.keySet(), queryParameters.keySet(), bodyProperties.keySet());
+  }
 }

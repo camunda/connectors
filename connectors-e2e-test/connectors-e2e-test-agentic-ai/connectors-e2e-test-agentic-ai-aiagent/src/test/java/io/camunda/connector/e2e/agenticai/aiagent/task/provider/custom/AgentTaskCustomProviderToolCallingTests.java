@@ -19,12 +19,12 @@ package io.camunda.connector.e2e.agenticai.aiagent.task.provider.custom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration.TestChatModelFactory;
@@ -42,7 +42,7 @@ import org.springframework.context.annotation.Import;
  * Exercises the AI Agent Task against the v2 element template with the {@code custom} provider
  * configuration, backed by {@link TestChatModelFactory} instead of a real (or WireMock-stubbed) LLM
  * endpoint. Proves that a user-supplied {@code ChatModelFactory} is resolved and driven through a
- * full multi-round tool-calling loop, and that {@code CustomProviderConfiguration#parameters()} is
+ * full multi-round tool-calling loop, and that {@code CustomChatModelConfiguration#parameters()} is
  * threaded through to it unchanged.
  */
 @SlowTest
@@ -92,7 +92,7 @@ class AgentTaskCustomProviderToolCallingTests extends BaseAgentTaskTest {
         .hasSize(2)
         .last()
         .isInstanceOfSatisfying(
-            CustomProviderConfiguration.class,
+            CustomChatModelConfiguration.class,
             customProviderConfiguration ->
                 assertThat(customProviderConfiguration.parameters())
                     .containsExactly(Map.entry("type", "task")));
