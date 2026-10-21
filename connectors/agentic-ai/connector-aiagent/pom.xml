@@ -120,45 +120,21 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-core</artifactId>
     </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-anthropic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-azure-open-ai</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-bedrock</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-open-ai</artifactId>
-    </dependency>
     <!--
-      Brings in com.fasterxml.jackson.module:jackson-module-kotlin at runtime scope, which is
       REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
       META-INF/services entry pointing at the unshaded class, so
       ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
-      ServiceConfigurationError without it. Do not exclude it.
+      ServiceConfigurationError without the Kotlin module on the class path. Do not exclude it.
     -->
     <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-google-genai</artifactId>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-kotlin</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
     <dependency>
       <groupId>com.google.genai</groupId>
       <artifactId>google-genai</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client-jdk</artifactId>
     </dependency>
 
     <!--
@@ -273,13 +249,12 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>http-client-spi</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
+
+    <!-- needed on the compile classpath for javac to resolve the AWS client builder types of the
+         Bedrock providers; main code has no bytecode reference to it -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>http-auth</artifactId>
     </dependency>
 
     <dependency>
@@ -410,6 +385,8 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
                      declaration above): main code never imports it, so the analyzer would
                      otherwise flag it as a non-test scoped test-only dependency. -->
                 <ignoredDependency>com.google.guava:guava</ignoredDependency>
+                <!-- compile-scoped for javac's benefit only (see the dependency declaration above) -->
+                <ignoredDependency>software.amazon.awssdk:http-auth-spi</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>

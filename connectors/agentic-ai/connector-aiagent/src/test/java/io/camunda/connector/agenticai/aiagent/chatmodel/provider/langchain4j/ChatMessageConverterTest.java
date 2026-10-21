@@ -22,11 +22,8 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.openai.OpenAiChatResponseMetadata;
-import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
@@ -52,7 +49,6 @@ import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -404,58 +400,6 @@ class ChatMessageConverterTest {
             entry(
                 "tokenUsage",
                 Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
-  }
-
-  @Test
-  void toAssistantMessage_containsOnlyBasicMetadata() {
-    final var aiMessage = AiMessage.builder().text("AI response").build();
-
-    final var chatResponseMetadata =
-        OpenAiChatResponseMetadata.builder()
-            .id("chatcmpl-123")
-            .modelName("gpt-4o")
-            .finishReason(FinishReason.TOOL_EXECUTION)
-            .tokenUsage(
-                OpenAiTokenUsage.builder()
-                    .inputTokenCount(10)
-                    .inputTokensDetails(
-                        OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(1).build())
-                    .outputTokenCount(20)
-                    .totalTokenCount(30)
-                    .build())
-            .serviceTier("super-premium")
-            .rawHttpResponse(
-                SuccessfulHttpResponse.builder()
-                    .statusCode(200)
-                    .headers(Map.of("x-my-header", List.of("dummy")))
-                    .body("AI response")
-                    .build())
-            .build();
-
-    final var chatResponse =
-        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
-
-    final var result = chatMessageConverter.toAssistantMessage(chatResponse, ANTHROPIC);
-
-    final var expectedInputTokensDetails = new LinkedHashMap<String, Object>();
-    expectedInputTokensDetails.put("cacheWriteTokens", null);
-    expectedInputTokensDetails.put("cachedTokens", 1);
-
-    final var expectedTokenUsage = new LinkedHashMap<String, Object>();
-    expectedTokenUsage.put("inputTokenCount", 10);
-    expectedTokenUsage.put("inputTokensDetails", expectedInputTokensDetails);
-    expectedTokenUsage.put("outputTokenCount", 20);
-    expectedTokenUsage.put("outputTokensDetails", null);
-    expectedTokenUsage.put("totalTokenCount", 30);
-
-    assertThat(result.metadata().get("framework"))
-        .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(
-            entry("id", "chatcmpl-123"),
-            entry("model", "gpt-4o"),
-            entry("finishReason", "TOOL_EXECUTION"),
-            entry("tokenUsage", expectedTokenUsage))
-        .doesNotContainKeys("serviceTier", "rawHttpResponse");
   }
 
   @Test
