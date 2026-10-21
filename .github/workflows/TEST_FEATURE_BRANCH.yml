@@ -77,10 +77,9 @@ jobs:
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Restore Maven wrapper cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: ./.github/actions/cache-maven-wrapper
         with:
-          path: ~/.m2/wrapper
-          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+          restore-only: 'true'
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
@@ -248,10 +247,9 @@ jobs:
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Restore Maven wrapper cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: ./.github/actions/cache-maven-wrapper
         with:
-          path: ~/.m2/wrapper
-          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+          restore-only: 'true'
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
