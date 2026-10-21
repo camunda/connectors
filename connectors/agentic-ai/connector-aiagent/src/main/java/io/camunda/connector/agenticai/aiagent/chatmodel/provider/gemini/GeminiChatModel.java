@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedExc
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.LoggingSupport;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
@@ -47,14 +46,14 @@ public class GeminiChatModel implements ChatModel {
   private static final ObjectMapper MAPPER = JsonSerializable.objectMapper();
 
   private final Client client;
-  private final GeminiChatModelConfiguration configuration;
+  private final GeminiConfiguration configuration;
   private final GeminiContentRequestConverter requestConverter;
   private final GeminiContentResponseConverter responseConverter;
   private final GeminiContentStreamAssembler streamAssembler;
 
   public GeminiChatModel(
       Client client,
-      GeminiChatModelConfiguration configuration,
+      GeminiConfiguration configuration,
       GeminiContentRequestConverter requestConverter,
       GeminiContentResponseConverter responseConverter) {
     this.client = client;

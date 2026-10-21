@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
-
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.genai.Client;
@@ -16,13 +14,9 @@ import com.google.genai.types.ClientOptions;
 import com.google.genai.types.HttpOptions;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Authentication.ServiceAccountKey;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
@@ -36,12 +30,8 @@ import java.util.Optional;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GeminiChatModelFactory implements ChatModelFactory {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(GeminiChatModelFactory.class);
 
   /**
    * {@code HttpOptions.timeout} only accepts an {@code Integer} millisecond value, while the
@@ -78,17 +68,14 @@ public class GeminiChatModelFactory implements ChatModelFactory {
   private static final String DEFAULT_GEMINI_API_BASE_URL =
       "https://generativelanguage.googleapis.com";
 
-  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final GeminiContentRequestConverter requestConverter;
   private final GeminiContentResponseConverter responseConverter;
 
   public GeminiChatModelFactory(
-      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       GeminiContentRequestConverter requestConverter,
       GeminiContentResponseConverter responseConverter) {
-    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -96,22 +83,18 @@ public class GeminiChatModelFactory implements ChatModelFactory {
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof GeminiChatModelConfiguration;
+    return configuration instanceof GeminiConfiguration;
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var model = (GeminiChatModelConfiguration) configuration;
-    final var connection = model.googleGemini();
-    final var timeout =
-        deriveTimeoutSetting("Gemini model call", config, connection.timeouts(), LOGGER);
-
-    final var client = buildClient(connection.backend(), timeout, httpProxySupport);
+    final var model = (GeminiConfiguration) configuration;
+    final var client = buildClient(model.backend(), model.timeout(), httpProxySupport);
     return new GeminiChatModel(client, model, requestConverter, responseConverter);
   }
 
   private static Client buildClient(
-      GeminiBackend backend, Duration timeout, AgenticAiHttpProxySupport httpProxySupport) {
+      Backend backend, Duration timeout, AgenticAiHttpProxySupport httpProxySupport) {
     final String endpointOverride = configuredEndpoint(backend);
 
     final var httpOptionsBuilder = HttpOptions.builder();
@@ -123,10 +106,8 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     final var clientBuilder = Client.builder().httpOptions(httpOptionsBuilder.build());
 
     switch (backend) {
-      case GeminiApiBackend apiBackend ->
-          clientBuilder.apiKey(apiBackend.googleGeminiApi().apiKey());
-      case GeminiVertexAiBackend vertexAiBackend ->
-          applyVertexAiBackend(clientBuilder, vertexAiBackend);
+      case Backend.Api api -> clientBuilder.apiKey(api.apiKey());
+      case Backend.VertexAi vertexAi -> applyVertexAiBackend(clientBuilder, vertexAi);
     }
 
     final var okHttpClientBuilder =
@@ -157,10 +138,10 @@ public class GeminiChatModelFactory implements ChatModelFactory {
     }
   }
 
-  private static @Nullable String configuredEndpoint(GeminiBackend backend) {
+  private static @Nullable String configuredEndpoint(Backend backend) {
     return switch (backend) {
-      case GeminiApiBackend apiBackend -> apiBackend.googleGeminiApi().endpoint();
-      case GeminiVertexAiBackend vertexAiBackend -> vertexAiBackend.googleVertexAi().endpoint();
+      case Backend.Api api -> api.endpoint();
+      case Backend.VertexAi vertexAi -> vertexAi.endpoint();
     };
   }
 
@@ -172,38 +153,29 @@ public class GeminiChatModelFactory implements ChatModelFactory {
    * #CONNECT_TIMEOUT}) makes the SDK ignore it entirely, so the same bypass has to be reimplemented
    * against the raw OkHttp client instead.
    */
-  private static String resolveTargetHost(
-      GeminiBackend backend, @Nullable String endpointOverride) {
+  private static String resolveTargetHost(Backend backend, @Nullable String endpointOverride) {
     if (endpointOverride != null) {
       return URI.create(endpointOverride).getHost();
     }
     return switch (backend) {
-      case GeminiApiBackend ignored -> URI.create(DEFAULT_GEMINI_API_BASE_URL).getHost();
-      case GeminiVertexAiBackend vertexAiBackend ->
-          URI.create(
-                  GeminiEndpoints.defaultGoogleGenAiBaseUrl(
-                      vertexAiBackend.googleVertexAi().region()))
-              .getHost();
+      case Backend.Api ignored -> URI.create(DEFAULT_GEMINI_API_BASE_URL).getHost();
+      case Backend.VertexAi vertexAi ->
+          URI.create(GeminiEndpoints.defaultGoogleGenAiBaseUrl(vertexAi.region())).getHost();
     };
   }
 
   private static void applyVertexAiBackend(
-      Client.Builder clientBuilder, GeminiVertexAiBackend vertexAiBackend) {
-    final var googleVertexAi = vertexAiBackend.googleVertexAi();
-    clientBuilder
-        .vertexAI(true)
-        .project(googleVertexAi.projectId())
-        .location(googleVertexAi.region());
+      Client.Builder clientBuilder, Backend.VertexAi vertexAi) {
+    clientBuilder.vertexAI(true).project(vertexAi.projectId()).location(vertexAi.region());
 
     // application default credentials are left unset here - the SDK resolves them itself when
     // the client is built
-    if (googleVertexAi.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
+    if (vertexAi.authentication() instanceof ServiceAccountKey sac) {
       clientBuilder.credentials(createServiceAccountCredentials(sac));
     }
   }
 
-  private static GoogleCredentials createServiceAccountCredentials(
-      ServiceAccountCredentialsAuthentication sac) {
+  private static GoogleCredentials createServiceAccountCredentials(ServiceAccountKey sac) {
     try {
       // Credentials read from a key file carry no scopes. google-genai only scopes the
       // application default credentials it resolves itself and passes these through verbatim,

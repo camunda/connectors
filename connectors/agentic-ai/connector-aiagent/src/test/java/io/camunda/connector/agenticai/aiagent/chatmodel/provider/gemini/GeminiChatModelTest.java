@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,12 +62,14 @@ class GeminiChatModelTest {
   @Mock private GeminiContentResponseConverter responseConverter;
   @Mock private GeminiContentStreamAssembler streamAssembler;
 
-  private final GeminiChatModelConfiguration configuration =
-      new GeminiChatModelConfiguration(
-          new GeminiConnection(
-              new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
-              new GeminiModel("gemini-3-pro-preview", null),
-              null));
+  private final GeminiConfiguration configuration =
+      translate(
+          new GeminiChatModelConfiguration(
+              new GeminiConnection(
+                  new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
+                  new GeminiModel("gemini-3-pro-preview", null),
+                  null)),
+          GeminiConfiguration.class);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final AgentConfiguration agentConfiguration = mock(AgentConfiguration.class);

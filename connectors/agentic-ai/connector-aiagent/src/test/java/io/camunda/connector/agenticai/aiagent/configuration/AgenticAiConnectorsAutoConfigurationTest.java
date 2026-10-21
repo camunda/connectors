@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
+import io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -286,10 +287,20 @@ class AgenticAiConnectorsAutoConfigurationTest {
           assertThat(context).hasSingleBean(resolutionCase.factoryClass());
 
           final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
-          try (var chatModel = chatModelRegistry.resolve(resolutionCase.configuration())) {
+          try (var chatModel =
+              chatModelRegistry.resolve(translated(resolutionCase.configuration()))) {
             assertThat(chatModel).isNotNull();
           }
         });
+  }
+
+  private static ChatModelConfiguration translated(ChatModelConfiguration configuration) {
+    return configuration
+            instanceof
+            io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration
+                providerConfiguration
+        ? ChatModelTranslationFixture.translate(providerConfiguration)
+        : configuration;
   }
 
   // A throwaway, self-signed key never used against a real Google account - only needed so

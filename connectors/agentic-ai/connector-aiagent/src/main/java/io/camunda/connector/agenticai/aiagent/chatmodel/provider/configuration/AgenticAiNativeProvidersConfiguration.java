@@ -173,7 +173,6 @@ public class AgenticAiNativeProvidersConfiguration {
     final var contentConverter = new GeminiContentConverter(objectMapper);
     final var requestConverter = new GeminiContentRequestConverter(contentConverter);
     final var responseConverter = new GeminiContentResponseConverter();
-    return new GeminiChatModelFactory(
-        configuration.aiagent().chatModel(), httpProxySupport, requestConverter, responseConverter);
+    return new GeminiChatModelFactory(httpProxySupport, requestConverter, responseConverter);
   }
 }

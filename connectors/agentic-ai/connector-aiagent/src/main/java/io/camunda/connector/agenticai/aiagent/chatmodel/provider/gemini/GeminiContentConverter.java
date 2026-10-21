@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.PROVIDER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -82,10 +82,10 @@ public class GeminiContentConverter {
         // built from an Anthropic/OpenAI-native payload can fail conversion or send invalid
         // history if a persisted conversation is resumed after switching providers. Matches
         // AnthropicContentConverter#toContentBlockParams.
-        case ReasoningContent rc when GOOGLE_GEMINI_ID.equals(rc.provider()) ->
+        case ReasoningContent rc when PROVIDER.equals(rc.provider()) ->
             parts.add(toThoughtPart(rc));
         case ReasoningContent ignored -> {}
-        case ProviderContent pc when GOOGLE_GEMINI_ID.equals(pc.provider()) ->
+        case ProviderContent pc when PROVIDER.equals(pc.provider()) ->
             parts.add(toProviderPart(pc));
         case ProviderContent ignored -> {}
       }

@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration.PROVIDER;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY;
-import static io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GOOGLE_GEMINI_ID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.genai.JsonSerializable;
@@ -139,7 +139,7 @@ public class GeminiContentResponseConverter {
     final FinishReason finishReason = candidate.finishReason().orElse(null);
     final Map<String, Object> geminiMetadata =
         finishReason != null
-            ? Map.of(GOOGLE_GEMINI_ID, Map.of(FINISH_REASON_METADATA_KEY, finishReason.toString()))
+            ? Map.of(PROVIDER, Map.of(FINISH_REASON_METADATA_KEY, finishReason.toString()))
             : Map.of();
 
     return assistantMessageBuilder(response)
@@ -170,7 +170,7 @@ public class GeminiContentResponseConverter {
             : "Prompt blocked (no block reason reported)";
     final Map<String, Object> geminiMetadata =
         blockReason != null
-            ? Map.of(GOOGLE_GEMINI_ID, Map.of(BLOCK_REASON_METADATA_KEY, blockReason))
+            ? Map.of(PROVIDER, Map.of(BLOCK_REASON_METADATA_KEY, blockReason))
             : Map.of();
 
     return assistantMessageBuilder(response)
@@ -237,8 +237,7 @@ public class GeminiContentResponseConverter {
         .<Map<String, Object>>map(
             signature ->
                 Map.of(
-                    GOOGLE_GEMINI_ID,
-                    Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature))))
+                    PROVIDER, Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature))))
         .orElse(null);
   }
 
@@ -267,7 +266,7 @@ public class GeminiContentResponseConverter {
     final Map<String, Object> raw = rawPart(part);
     final Map<String, Object> withoutText = new LinkedHashMap<>(raw);
     withoutText.remove("text");
-    return withoutText.isEmpty() ? null : new ProviderContent(GOOGLE_GEMINI_ID, raw, null);
+    return withoutText.isEmpty() ? null : new ProviderContent(PROVIDER, raw, null);
   }
 
   /** Preserves the raw part for durable history while lifting readable thinking text. */
@@ -279,7 +278,7 @@ public class GeminiContentResponseConverter {
       raw.remove("text");
     }
 
-    return new ReasoningContent(GOOGLE_GEMINI_ID, raw, text, thoughtSignatureMetadata(part));
+    return new ReasoningContent(PROVIDER, raw, text, thoughtSignatureMetadata(part));
   }
 
   /**

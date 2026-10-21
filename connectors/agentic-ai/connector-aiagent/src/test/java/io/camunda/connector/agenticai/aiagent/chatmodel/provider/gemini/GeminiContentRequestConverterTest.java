@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.genai.types.Candidate;
 import com.google.genai.types.Content;
@@ -41,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -59,12 +58,14 @@ class GeminiContentRequestConverterTest {
   private final GeminiContentRequestConverter converter =
       new GeminiContentRequestConverter(contentConverter);
 
-  private static GeminiChatModelConfiguration model(@Nullable GeminiModelParameters parameters) {
-    return new GeminiChatModelConfiguration(
-        new GeminiConnection(
-            new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
-            new GeminiModel("gemini-3-pro-preview", parameters),
-            null));
+  private static GeminiConfiguration model(@Nullable GeminiModelParameters parameters) {
+    return translate(
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GoogleGeminiApi("gm-test", null)),
+                new GeminiModel("gemini-3-pro-preview", parameters),
+                null)),
+        GeminiConfiguration.class);
   }
 
   private static Document mockDocument(String contentType, byte[] bytes) {
@@ -169,20 +170,6 @@ class GeminiContentRequestConverterTest {
         converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();
-  }
-
-  @Test
-  void bothThinkingBudgetAndLevelSetThrows() {
-    // Defensive check: the config record's own @AssertFalse should already prevent this, but the
-    // converter guards it too rather than silently picking one.
-    final var parameters =
-        new GeminiModelParameters(
-            null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.HIGH));
-    final var snapshot = new ConversationSnapshot(List.of(), List.of());
-
-    assertThatThrownBy(
-            () -> converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot))
-        .isInstanceOf(ConnectorException.class);
   }
 
   @Test
@@ -383,7 +370,7 @@ class GeminiContentRequestConverterTest {
     final var signatureBytes = "sig-bytes".getBytes(StandardCharsets.UTF_8);
     final var metadata =
         Map.<String, Object>of(
-            GeminiChatModelConfiguration.GOOGLE_GEMINI_ID,
+            GeminiConfiguration.PROVIDER,
             Map.of(
                 GeminiContentConverter.THOUGHT_SIGNATURE_METADATA_KEY,
                 Base64.getEncoder().encodeToString(signatureBytes)));

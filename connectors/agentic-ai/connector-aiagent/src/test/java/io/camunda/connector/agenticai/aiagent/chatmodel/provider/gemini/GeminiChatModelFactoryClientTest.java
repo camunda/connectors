@@ -14,6 +14,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -36,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsC
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
@@ -189,23 +191,23 @@ class GeminiChatModelFactoryClientTest {
   private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, String endpoint) {
     final var factory =
         new GeminiChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new GeminiContentRequestConverter(new GeminiContentConverter(objectMapper)),
             new GeminiContentResponseConverter());
     final var configuration =
-        new GeminiChatModelConfiguration(
-            new GeminiConnection(
-                new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
-                new GeminiModel(MODEL_ID, null),
-                null));
+        translate(
+            new GeminiChatModelConfiguration(
+                new GeminiConnection(
+                    new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
+                    new GeminiModel(MODEL_ID, null),
+                    null)));
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
     }
   }
 
-  private static AgentExecutionContext executionContext(GeminiChatModelConfiguration model) {
+  private static AgentExecutionContext executionContext(ChatModelConfiguration model) {
     final var agentConfiguration =
         agentConfiguration()
             .chatModel(model)

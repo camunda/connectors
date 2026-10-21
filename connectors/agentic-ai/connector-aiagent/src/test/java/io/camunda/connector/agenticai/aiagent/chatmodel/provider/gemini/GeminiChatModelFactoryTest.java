@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,7 +91,6 @@ class GeminiChatModelFactoryTest {
   void setUp() {
     factory =
         new GeminiChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new GeminiContentRequestConverter(new GeminiContentConverter(new ObjectMapper())),
             new GeminiContentResponseConverter());
@@ -215,7 +215,7 @@ class GeminiChatModelFactoryTest {
 
   @Test
   void createThrowsWhenTimeoutExceedsMaximumSupportedMillis() {
-    final GeminiChatModelConfiguration config =
+    final GeminiConfiguration config =
         apiConfig(null, Duration.ofMillis(Integer.MAX_VALUE).plusMillis(1));
 
     assertThatThrownBy(() -> factory.create(config)).isInstanceOf(ConnectorInputException.class);
@@ -448,7 +448,7 @@ class GeminiChatModelFactoryTest {
    * Client.Builder} spy so no real client (and, for application default credentials, no real OAuth
    * resolution) is ever built - only the wiring onto the builder is inspected.
    */
-  private Client.Builder createVertexAiChatModel(GeminiChatModelConfiguration config) {
+  private Client.Builder createVertexAiChatModel(GeminiConfiguration config) {
     final var client = mock(Client.class);
     final var clientBuilder = spy(Client.builder());
     doReturn(client).when(clientBuilder).build();
@@ -465,14 +465,16 @@ class GeminiChatModelFactoryTest {
     return clientBuilder;
   }
 
-  private static GeminiChatModelConfiguration vertexConfig(
+  private static GeminiConfiguration vertexConfig(
       @Nullable String endpoint, GoogleVertexAiAuthentication authentication) {
-    return new GeminiChatModelConfiguration(
-        new GeminiConnection(
-            new GeminiVertexAiBackend(
-                new GoogleVertexAi(PROJECT_ID, REGION, endpoint, authentication)),
-            new GeminiModel(MODEL_ID, null),
-            null));
+    return translate(
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiVertexAiBackend(
+                    new GoogleVertexAi(PROJECT_ID, REGION, endpoint, authentication)),
+                new GeminiModel(MODEL_ID, null),
+                null)),
+        GeminiConfiguration.class);
   }
 
   private static Client clientOf(ChatModel model) {
@@ -501,12 +503,14 @@ class GeminiChatModelFactoryTest {
         .callTimeoutMillis();
   }
 
-  private static GeminiChatModelConfiguration apiConfig(
+  private static GeminiConfiguration apiConfig(
       @Nullable String endpoint, @Nullable Duration timeout) {
-    return new GeminiChatModelConfiguration(
-        new GeminiConnection(
-            new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
-            new GeminiModel(MODEL_ID, null),
-            timeout != null ? new TimeoutConfiguration(timeout) : null));
+    return translate(
+        new GeminiChatModelConfiguration(
+            new GeminiConnection(
+                new GeminiApiBackend(new GoogleGeminiApi(API_KEY, endpoint)),
+                new GeminiModel(MODEL_ID, null),
+                timeout != null ? new TimeoutConfiguration(timeout) : null)),
+        GeminiConfiguration.class);
   }
 }

@@ -7,16 +7,25 @@
 package io.camunda.connector.agenticai.aiagent.translation;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.Duration;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -50,6 +59,9 @@ public class ChatModelConfigurationTranslator {
     if (provider instanceof MistralChatModelConfiguration mistral) {
       return translateMistral(mistral);
     }
+    if (provider instanceof GeminiChatModelConfiguration gemini) {
+      return translateGemini(gemini);
+    }
     return provider;
   }
 
@@ -77,6 +89,67 @@ public class ChatModelConfigurationTranslator {
         parameters == null ? null : mistralEffort(parameters.effort()),
         parameters == null ? null : parameters.temperature(),
         parameters == null ? null : parameters.topP());
+  }
+
+  private GeminiConfiguration translateGemini(GeminiChatModelConfiguration configuration) {
+    final var connection = configuration.googleGemini();
+    final var parameters = connection.model().parameters();
+    return new GeminiConfiguration(
+        switch (connection.backend()) {
+          case GeminiApiBackend api ->
+              new GeminiConfiguration.Backend.Api(
+                  api.googleGeminiApi().apiKey(), api.googleGeminiApi().endpoint());
+          case GeminiVertexAiBackend vertexAi ->
+              new GeminiConfiguration.Backend.VertexAi(
+                  vertexAi.googleVertexAi().projectId(),
+                  vertexAi.googleVertexAi().region(),
+                  vertexAi.googleVertexAi().endpoint(),
+                  switch (vertexAi.googleVertexAi().authentication()) {
+                    case ServiceAccountCredentialsAuthentication serviceAccount ->
+                        new GeminiConfiguration.Authentication.ServiceAccountKey(
+                            serviceAccount.jsonKey());
+                    case ApplicationDefaultCredentialsAuthentication ignored ->
+                        new GeminiConfiguration.Authentication.ApplicationDefaultCredentials();
+                  });
+        },
+        connection.model().model(),
+        timeout(connection.timeouts()),
+        parameters == null ? null : parameters.maxTokens(),
+        parameters == null ? null : parameters.temperature(),
+        parameters == null ? null : parameters.topP(),
+        parameters == null ? null : parameters.topK(),
+        parameters == null ? null : geminiThinking(parameters.thinking()));
+  }
+
+  private static GeminiConfiguration.@Nullable Thinking geminiThinking(
+      @Nullable GeminiThinking thinking) {
+    if (thinking == null) {
+      return null;
+    }
+    final var budget = thinking.thinkingBudget();
+    final var level =
+        thinking.thinkingLevel() == null
+            ? GeminiThinkingLevel.MODEL_DEFAULT
+            : thinking.thinkingLevel();
+    final var explicitLevel = level != GeminiThinkingLevel.MODEL_DEFAULT;
+    if (budget != null && explicitLevel) {
+      throw new ConnectorInputException(
+          "thinking.thinkingBudget and thinking.thinkingLevel are mutually exclusive");
+    }
+    if (budget != null) {
+      return new GeminiConfiguration.Thinking.Budget(budget);
+    }
+    if (!explicitLevel) {
+      return null;
+    }
+    return new GeminiConfiguration.Thinking.Level(
+        switch (level) {
+          case MINIMAL -> GeminiConfiguration.ThinkingLevel.MINIMAL;
+          case LOW -> GeminiConfiguration.ThinkingLevel.LOW;
+          case MEDIUM -> GeminiConfiguration.ThinkingLevel.MEDIUM;
+          case HIGH -> GeminiConfiguration.ThinkingLevel.HIGH;
+          case MODEL_DEFAULT -> throw new IllegalStateException("handled above");
+        });
   }
 
   private static MistralConfiguration.@Nullable Effort mistralEffort(

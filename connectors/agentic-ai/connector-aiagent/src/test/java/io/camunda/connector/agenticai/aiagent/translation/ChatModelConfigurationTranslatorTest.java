@@ -7,15 +7,29 @@
 package io.camunda.connector.agenticai.aiagent.translation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiConnection;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
+import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
@@ -28,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication.ClientAuthenticationMethod;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.time.Duration;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -174,5 +189,125 @@ class ChatModelConfigurationTranslatorTest {
     assertThat(oauth.toString()).doesNotContain("secret-value").doesNotContain("id=");
     assertThat(new EndpointAuthentication.ApiKey("secret-value").toString())
         .doesNotContain("secret-value");
+  }
+
+  private GeminiConfiguration gemini(
+      GeminiChatModelConfiguration.GeminiBackend backend,
+      @Nullable GeminiModelParameters parameters,
+      @Nullable TimeoutConfiguration timeouts) {
+    return (GeminiConfiguration)
+        translator.translate(
+            new GeminiChatModelConfiguration(
+                new GeminiConnection(backend, new GeminiModel("gemini-x", parameters), timeouts)));
+  }
+
+  private static GeminiApiBackend geminiApi(@Nullable String endpoint) {
+    return new GeminiApiBackend(new GoogleGeminiApi("key", endpoint));
+  }
+
+  @Test
+  void geminiUnsetOptionsStayAbsent() {
+    final var configuration = gemini(geminiApi(null), null, null);
+
+    assertThat(configuration.timeout()).isEqualTo(DEFAULT_TIMEOUT);
+    assertThat(configuration.maxTokens()).isNull();
+    assertThat(configuration.temperature()).isNull();
+    assertThat(configuration.topP()).isNull();
+    assertThat(configuration.topK()).isNull();
+    assertThat(configuration.thinking()).isNull();
+    assertThat(configuration.backend()).isEqualTo(new GeminiConfiguration.Backend.Api("key", null));
+  }
+
+  @Test
+  void geminiKeepsConfiguredParameters() {
+    final var configuration =
+        gemini(
+            geminiApi("https://endpoint"),
+            new GeminiModelParameters(
+                256, 0.4, 0.8, 30, new GeminiThinking(null, GeminiThinkingLevel.MEDIUM)),
+            new TimeoutConfiguration(Duration.ofSeconds(9)));
+
+    assertThat(configuration.timeout()).isEqualTo(Duration.ofSeconds(9));
+    assertThat(configuration.maxTokens()).isEqualTo(256);
+    assertThat(configuration.temperature()).isEqualTo(0.4);
+    assertThat(configuration.topP()).isEqualTo(0.8);
+    assertThat(configuration.topK()).isEqualTo(30);
+    assertThat(configuration.thinking())
+        .isEqualTo(
+            new GeminiConfiguration.Thinking.Level(GeminiConfiguration.ThinkingLevel.MEDIUM));
+    assertThat(configuration.backend())
+        .isEqualTo(new GeminiConfiguration.Backend.Api("key", "https://endpoint"));
+  }
+
+  @Test
+  void geminiThinkingIsAbsentUnlessABudgetOrAnExplicitLevelIsSet() {
+    assertThat(
+            gemini(
+                    geminiApi(null),
+                    new GeminiModelParameters(
+                        null, null, null, null, new GeminiThinking(null, null)),
+                    null)
+                .thinking())
+        .isNull();
+    assertThat(
+            gemini(
+                    geminiApi(null),
+                    new GeminiModelParameters(
+                        null,
+                        null,
+                        null,
+                        null,
+                        new GeminiThinking(-1, GeminiThinkingLevel.MODEL_DEFAULT)),
+                    null)
+                .thinking())
+        .isEqualTo(new GeminiConfiguration.Thinking.Budget(-1));
+  }
+
+  @Test
+  void geminiRejectsABudgetTogetherWithAnExplicitLevel() {
+    final var parameters =
+        new GeminiModelParameters(
+            null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.HIGH));
+
+    assertThatThrownBy(() -> gemini(geminiApi(null), parameters, null))
+        .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void geminiTranslatesTheVertexAiBackend() {
+    assertThat(
+            gemini(
+                    new GeminiVertexAiBackend(
+                        new GoogleVertexAi(
+                            "project",
+                            "us-central1",
+                            null,
+                            new ServiceAccountCredentialsAuthentication("{json}"))),
+                    null,
+                    null)
+                .backend())
+        .isEqualTo(
+            new GeminiConfiguration.Backend.VertexAi(
+                "project",
+                "us-central1",
+                null,
+                new GeminiConfiguration.Authentication.ServiceAccountKey("{json}")));
+    assertThat(
+            gemini(
+                    new GeminiVertexAiBackend(
+                        new GoogleVertexAi(
+                            "project",
+                            "us-central1",
+                            "https://endpoint",
+                            new ApplicationDefaultCredentialsAuthentication())),
+                    null,
+                    null)
+                .backend())
+        .isEqualTo(
+            new GeminiConfiguration.Backend.VertexAi(
+                "project",
+                "us-central1",
+                "https://endpoint",
+                new GeminiConfiguration.Authentication.ApplicationDefaultCredentials()));
   }
 }

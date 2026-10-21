@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
 
 import com.google.genai.types.Content;
 import com.google.genai.types.FunctionCall;
@@ -32,16 +31,11 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
-import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -68,15 +62,13 @@ public class GeminiContentRequestConverter {
   }
 
   public GenerateContentConfig toGenerateContentConfig(
-      GeminiChatModelConfiguration configuration,
+      GeminiConfiguration configuration,
       ResponseConfiguration response,
       ConversationSnapshot snapshot) {
-    final var params = configuration.googleGemini().model().parameters();
-
     final var builder = GenerateContentConfig.builder();
 
-    applyModelParameters(builder, params);
-    applyThinking(builder, params);
+    applyModelParameters(builder, configuration);
+    applyThinking(builder, configuration.thinking());
     applySystemInstruction(builder, snapshot);
     applyTools(builder, snapshot.toolDefinitions());
     applyStructuredOutput(builder, response);
@@ -120,53 +112,28 @@ public class GeminiContentRequestConverter {
   }
 
   private void applyModelParameters(
-      GenerateContentConfig.Builder builder, @Nullable GeminiModelParameters params) {
-    if (params == null) {
-      return;
+      GenerateContentConfig.Builder builder, GeminiConfiguration configuration) {
+    if (configuration.temperature() != null) {
+      builder.temperature(configuration.temperature().floatValue());
     }
-    if (params.temperature() != null) {
-      builder.temperature(params.temperature().floatValue());
+    if (configuration.topP() != null) {
+      builder.topP(configuration.topP().floatValue());
     }
-    if (params.topP() != null) {
-      builder.topP(params.topP().floatValue());
+    if (configuration.topK() != null) {
+      builder.topK(configuration.topK().floatValue());
     }
-    if (params.topK() != null) {
-      builder.topK(params.topK().floatValue());
-    }
-    if (params.maxTokens() != null) {
-      builder.maxOutputTokens(params.maxTokens());
+    if (configuration.maxTokens() != null) {
+      builder.maxOutputTokens(configuration.maxTokens());
     }
   }
 
   /**
-   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig}. A {@code thinkingBudget} or an
-   * explicit (non-default) {@code thinkingLevel} is the signal to configure thinking at all;
-   * leaving both unset (the "default" thinking level with no budget) sets no {@link
-   * ThinkingConfig}, letting the model apply its own default behavior. {@code thinkingBudget} xor
-   * an explicit {@code thinkingLevel}, never both; {@link
-   * GeminiThinking#isBothThinkingBudgetAndLevelSet()}'s {@code @AssertFalse} bean validation should
-   * already prevent both being set, but this is defended here too rather than silently picking one.
+   * Maps {@code thinking} onto the SDK's {@link ThinkingConfig}. No thinking leaves the {@link
+   * ThinkingConfig} unset, letting the model apply its own default behavior.
    */
   private void applyThinking(
-      GenerateContentConfig.Builder builder, @Nullable GeminiModelParameters params) {
-    final GeminiThinking thinking = params == null ? null : params.thinking();
+      GenerateContentConfig.Builder builder, GeminiConfiguration.@Nullable Thinking thinking) {
     if (thinking == null) {
-      return;
-    }
-
-    final Integer budget = thinking.thinkingBudget();
-    // GeminiThinking's compact constructor already normalizes a null thinkingLevel to
-    // MODEL_DEFAULT; this repeats the default defensively since the record component itself is
-    // still typed @Nullable (a caller could in principle bypass the compact constructor).
-    final GeminiThinkingLevel level =
-        Objects.requireNonNullElse(thinking.thinkingLevel(), GeminiThinkingLevel.MODEL_DEFAULT);
-    final boolean explicitLevel = level != GeminiThinkingLevel.MODEL_DEFAULT;
-    if (budget != null && explicitLevel) {
-      throw new ConnectorException(
-          ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION,
-          "thinking.thinkingBudget and thinking.thinkingLevel are mutually exclusive");
-    }
-    if (budget == null && !explicitLevel) {
       return;
     }
 
@@ -176,17 +143,17 @@ public class GeminiContentRequestConverter {
     // Anthropic, which always returns thinking content once thinking is enabled and only lets
     // ThinkingDisplay control how it is formatted.
     final var thinkingConfigBuilder = ThinkingConfig.builder().includeThoughts(true);
-    if (budget != null) {
-      thinkingConfigBuilder.thinkingBudget(budget);
-    } else {
-      thinkingConfigBuilder.thinkingLevel(toThinkingLevel(level));
+    switch (thinking) {
+      case GeminiConfiguration.Thinking.Budget budget ->
+          thinkingConfigBuilder.thinkingBudget(budget.tokens());
+      case GeminiConfiguration.Thinking.Level level ->
+          thinkingConfigBuilder.thinkingLevel(toThinkingLevel(level.level()));
     }
     builder.thinkingConfig(thinkingConfigBuilder.build());
   }
 
-  private ThinkingLevel.Known toThinkingLevel(GeminiThinkingLevel level) {
+  private ThinkingLevel.Known toThinkingLevel(GeminiConfiguration.ThinkingLevel level) {
     return switch (level) {
-      case MODEL_DEFAULT -> ThinkingLevel.Known.THINKING_LEVEL_UNSPECIFIED;
       case MINIMAL -> ThinkingLevel.Known.MINIMAL;
       case LOW -> ThinkingLevel.Known.LOW;
       case MEDIUM -> ThinkingLevel.Known.MEDIUM;
@@ -260,10 +227,10 @@ public class GeminiContentRequestConverter {
    * Gemini 3 stamps on the original call -- Gemini 3 rejects a follow-up tool-calling request whose
    * replayed {@code functionCall} dropped it. {@code
    * GeminiContentResponseConverter#toolCallMetadata} captures that signature onto {@link
-   * ToolCall#metadata()}, namespaced under {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID};
-   * this reads it back from that same key. Absent for a Gemini 2.5 response (no signature to begin
-   * with) or a conversation persisted before this was captured -- the field is omitted rather than
-   * failing in that case.
+   * ToolCall#metadata()}, namespaced under {@link GeminiConfiguration#PROVIDER}; this reads it back
+   * from that same key. Absent for a Gemini 2.5 response (no signature to begin with) or a
+   * conversation persisted before this was captured -- the field is omitted rather than failing in
+   * that case.
    */
   private Part toFunctionCallPart(ToolCall toolCall) {
     final Part part =
@@ -284,7 +251,7 @@ public class GeminiContentRequestConverter {
     if (toolCallMetadata == null) {
       return null;
     }
-    final Object namespaced = toolCallMetadata.get(GeminiChatModelConfiguration.GOOGLE_GEMINI_ID);
+    final Object namespaced = toolCallMetadata.get(GeminiConfiguration.PROVIDER);
     if (!(namespaced instanceof Map<?, ?> namespacedMetadata)) {
       return null;
     }
