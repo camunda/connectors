@@ -48,6 +48,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-provider-gemini` | `aiagent.chatmodel.provider.gemini` | Native Google Gemini provider (Developer API, Vertex AI) |
 | `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider |
 | `aiagent-provider-langchain4j` | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge. Not part of the bundle: add it to use LangChain4j models |
+| `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -243,6 +244,7 @@ client in its properties does not start.
   auto-configuration `AgenticAiLangChain4JAutoConfiguration` (formerly `AgenticAiLangChain4JFrameworkConfiguration`,
   imported by the AI Agent auto-configuration), registered in the module and active under the same
   `camunda.connector.agenticai.enabled` switch.
+- `ConversationUtil` moved to `aiagent.model.conversation` of `aiagent-model`.
 - `DocumentMimeTypes`, `LoggingSupport` and `AssistantMessageMetadata` moved to `aiagent.chatmodel.wire` of `aiagent-provider-support`.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 - The connection settings of the native providers are resolved by `ConnectionResolver` in

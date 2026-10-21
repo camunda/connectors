@@ -56,6 +56,7 @@
     <module>aiagent-provider-gemini</module>
     <module>aiagent-provider-bedrock</module>
     <module>aiagent-provider-langchain4j</module>
+    <module>aiagent-memory-agentcore</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
     <module>connector-mcp</module>

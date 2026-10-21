@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
-import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
+import static io.camunda.connector.agenticai.aiagent.model.conversation.ConversationUtil.loadConversationContext;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSession;

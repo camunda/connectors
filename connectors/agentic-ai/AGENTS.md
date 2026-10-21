@@ -50,6 +50,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `aiagent-provider-gemini` | `aiagent.chatmodel.provider.gemini` | Native Google Gemini provider (Developer API, Vertex AI) | provider-support, api, model, common |
 | `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider | provider-support, aws-support, api, model, common |
 | `aiagent-provider-langchain4j`  | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge (converters, chat model adapter, wiring). Opt-in: not in the bundle, not a dependency of `connector-aiagent` | provider-support, api, model, common |
+| `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store | aws-support, api, model, common |
 | `aiagent-test-support` | `aiagent.testsupport` | Fixtures for the tests of the AI Agent modules (messages, agent configurations, object mapper, envelope and log helpers). Test scope only, never published | provider-support, api, model, common |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |

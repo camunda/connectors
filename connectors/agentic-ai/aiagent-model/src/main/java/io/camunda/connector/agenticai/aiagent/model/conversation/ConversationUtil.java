@@ -4,10 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.memory.conversation;
+package io.camunda.connector.agenticai.aiagent.model.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 

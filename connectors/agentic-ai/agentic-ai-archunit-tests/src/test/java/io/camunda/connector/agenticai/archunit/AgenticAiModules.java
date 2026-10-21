@@ -69,6 +69,11 @@ enum AgenticAiModules {
       "ProviderLangChain4J",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.langchain4j")),
+  MEMORY_AGENTCORE(
+      "aiagent-memory-agentcore",
+      "MemoryAgentCore",
+      Kind.LIBRARY,
+      under("aiagent.memory.conversation.awsagentcore")),
   TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(

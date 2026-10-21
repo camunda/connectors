@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
-import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
+import static io.camunda.connector.agenticai.aiagent.model.conversation.ConversationUtil.loadConversationContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationLoadResult;
