@@ -188,7 +188,7 @@ limitations under the License.</license.inlineheader>
     <version.lz4-java>1.12.0</version.lz4-java>
 
     <version.microsoft-graph>6.71.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.10.2</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.10.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
     <version.azure-core>1.60.0</version.azure-core>
