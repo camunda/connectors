@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
@@ -13,20 +14,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
-import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.UserPromptTemplateConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
-import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,47 +36,31 @@ class AgentTaskExecutionContextTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
-  @Mock private ChatModelConfiguration chatModel;
-
   @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
-  private AgentTaskExecutionContext executionContext(@Nullable ToolsConfiguration tools) {
+  private AgentTaskExecutionContext executionContext(@Nullable String toolsContainerElementId) {
     return new AgentTaskExecutionContext(
         jobContext,
-        new AgentTaskRequestData(
-            null,
-            new SystemPromptTemplateConfiguration("system prompt"),
-            new UserPromptTemplateConfiguration("user prompt", null),
-            tools,
-            null,
-            null,
-            null),
-        chatModel,
+        agentConfiguration().build(),
+        AgentContext.empty(),
+        List.of(),
+        toolsContainerElementId,
         toolElementsResolver);
   }
 
   @ParameterizedTest
-  @MethodSource("missingToolCallResults")
-  void returnsEmptyInitialToolCallResultsWhenToolCallResultsAreMissing(
-      ToolsConfiguration toolsConfiguration) {
-    final var executionContext = executionContext(toolsConfiguration);
-
-    assertThat(executionContext.initialToolCallResults()).isEmpty();
-  }
-
-  @ParameterizedTest
-  @MethodSource("missingToolElementId")
+  @NullSource
+  @ValueSource(strings = {"", "  "})
   void returnsEmptyToolElementsWhenToolElementIdIsNotConfigured(
-      ToolsConfiguration toolsConfiguration) {
-    final var executionContext = executionContext(toolsConfiguration);
+      @Nullable String toolsContainerElementId) {
+    final var executionContext = executionContext(toolsContainerElementId);
 
     assertThat(executionContext.toolElements()).isEmpty();
   }
 
   @Test
   void loadsToolElementsFromProcessDefinition() {
-    final var executionContext =
-        executionContext(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
+    final var executionContext = executionContext(CONTAINER_ELEMENT_ID);
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(
@@ -91,8 +72,7 @@ class AgentTaskExecutionContextTest {
 
   @Test
   void doesNotLoadToolElementsMultipleTimes() {
-    final var executionContext =
-        executionContext(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
+    final var executionContext = executionContext(CONTAINER_ELEMENT_ID);
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(
@@ -107,20 +87,5 @@ class AgentTaskExecutionContextTest {
 
     verify(toolElementsResolver, times(1))
         .resolveToolElements(null, PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID);
-  }
-
-  static Stream<ToolsConfiguration> missingToolCallResults() {
-    return Stream.of(
-        null,
-        new ToolsConfiguration(CONTAINER_ELEMENT_ID, null),
-        new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
-  }
-
-  static Stream<ToolsConfiguration> missingToolElementId() {
-    return Stream.of(
-        null,
-        new ToolsConfiguration(null, List.of()),
-        new ToolsConfiguration("", List.of()),
-        new ToolsConfiguration("  ", List.of()));
   }
 }

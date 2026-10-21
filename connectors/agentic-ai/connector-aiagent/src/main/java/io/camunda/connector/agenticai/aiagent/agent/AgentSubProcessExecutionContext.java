@@ -9,36 +9,33 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
-import io.camunda.connector.agenticai.aiagent.translation.AgentConfigurationTranslator;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
 public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
-  private final AgentSubProcessRequestData data;
   private final AgentContext initialAgentContext;
   private final List<ToolCallResult> initialToolCallResults;
   private final List<AdHocToolElement> toolElements;
   private final AgentConfiguration configuration;
+  private final boolean includeAgentContext;
 
   public AgentSubProcessExecutionContext(
       JobContext jobContext,
-      AgentSubProcessRequestData data,
+      AgentConfiguration configuration,
+      boolean includeAgentContext,
       AgentContext initialAgentContext,
       List<ToolCallResult> initialToolCallResults,
-      List<AdHocToolElement> toolElements,
-      ChatModelConfiguration chatModel) {
+      List<AdHocToolElement> toolElements) {
     this.jobContext = jobContext;
-    this.data = data;
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;
     this.toolElements = toolElements;
-    this.configuration = AgentConfigurationTranslator.translate(chatModel, data);
+    this.configuration = configuration;
+    this.includeAgentContext = includeAgentContext;
   }
 
   @Override
@@ -76,6 +73,6 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
    * worker flavor, it is not part of the generic response configuration.
    */
   public boolean includeAgentContext() {
-    return data.response() != null && Boolean.TRUE.equals(data.response().includeAgentContext());
+    return includeAgentContext;
   }
 }

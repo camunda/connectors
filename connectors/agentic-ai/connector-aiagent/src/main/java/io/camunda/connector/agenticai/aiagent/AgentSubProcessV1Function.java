@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
+import io.camunda.connector.agenticai.aiagent.translation.AgentExecutionContextTranslator;
 import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.JobContext;
@@ -65,7 +66,7 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   private AgentSubProcessExecutionContext buildExecutionContext(
       JobContext jobContext, AgentSubProcessV1Request request) {
     var nativeConfig = chatModelTranslator.translate(request.provider());
-    return new AgentSubProcessExecutionContext(
+    return AgentExecutionContextTranslator.subProcess(
         jobContext,
         request.data(),
         request.agentContext(),

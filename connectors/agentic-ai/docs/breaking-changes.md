@@ -221,6 +221,11 @@ client in its properties does not start.
   `aiagent.chatmodel.provider.aws` and `FoundryAuthentication` in `aiagent.chatmodel.provider.azure`.
   `FoundryCredentialResolver.bearerTokenSupplier` takes `FoundryAuthentication.ClientCredentials` or
   `FoundryAuthentication.ManagedIdentity`. `ChatModelTimeouts` is removed.
+- `AgentSubProcessExecutionContext` and `AgentTaskExecutionContext` hold the domain model only. The constructors take
+  the `AgentConfiguration`, the agent context, the tool call results and (task flavor) the id of the tools container
+  element, or (sub-process flavor) the `includeAgentContext` flag, instead of the request records. The connector
+  functions build them with `AgentExecutionContextTranslator` of `aiagent.translation`. `AgentTaskExecutionContext.tools()`
+  is removed.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 - The connection settings of the native providers are resolved by `ConnectionResolver` in
   `aiagent.chatmodel.connection`. The `ChatModelFactory` of the OpenAI, Anthropic, Mistral, Gemini and Bedrock
