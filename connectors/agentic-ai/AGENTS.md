@@ -46,6 +46,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `aiagent-aws-support`           | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support | common                            |
 | `aiagent-provider-openai`       | `aiagent.chatmodel.provider.openai`  | Native OpenAI provider (Responses and Chat Completions)        | provider-support, azure-support, api, model, common |
 | `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider | provider-support, provider-openai, api, model, common |
+| `aiagent-provider-anthropic` | `aiagent.chatmodel.provider.anthropic` | Native Anthropic provider (Anthropic API, AWS Bedrock Mantle, Foundry) | provider-support, azure-support, aws-support, api, model, common |
 | `aiagent-test-support` | `aiagent.testsupport` | Fixtures for the tests of the AI Agent modules (messages, agent configurations, object mapper, envelope and log helpers). Test scope only, never published | provider-support, api, model, common |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |

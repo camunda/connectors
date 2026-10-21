@@ -18,6 +18,7 @@ import static io.camunda.connector.agenticai.archunit.AgenticAiModules.COMMON;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MCP_CLIENT;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MCP_INTEGRATION;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MODEL;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_ANTHROPIC;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_MISTRAL;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_OPENAI;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_SUPPORT;
@@ -54,6 +55,7 @@ class ModuleLayersArchTest {
     dependsOn(AWS_SUPPORT);
     dependsOn(PROVIDER_OPENAI, PROVIDER_SUPPORT, AZURE_SUPPORT, API, MODEL);
     dependsOn(PROVIDER_MISTRAL, PROVIDER_SUPPORT, PROVIDER_OPENAI, API, MODEL);
+    dependsOn(PROVIDER_ANTHROPIC, PROVIDER_SUPPORT, AZURE_SUPPORT, AWS_SUPPORT, API, MODEL);
     dependsOn(TEST_SUPPORT, PROVIDER_SUPPORT, API, MODEL);
     dependsOn(TOOLS_SCHEMA, API, MODEL);
     dependsOn(AD_HOC_CONNECTOR, TOOLS_SCHEMA, API, MODEL);
@@ -68,6 +70,7 @@ class ModuleLayersArchTest {
         AWS_SUPPORT,
         PROVIDER_OPENAI,
         PROVIDER_MISTRAL,
+        PROVIDER_ANTHROPIC,
         TOOLS_SCHEMA,
         API,
         MODEL);

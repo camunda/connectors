@@ -86,6 +86,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-anthropic</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -170,35 +175,14 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>google-genai</artifactId>
     </dependency>
 
-    <!--
-      Declared directly rather than via the com.anthropic:anthropic-java aggregator:
-      anthropic-java-core (the com.anthropic.models.* classes) and anthropic-java-client-okhttp
-      (the OkHttp-based AnthropicClient builder used by AnthropicChatModelApiFactory, plus the
-      ProxyAuthenticator used for proxy credentials) share the aggregator's version.
-    -->
+    <!-- the tests of the providers use the model classes of the vendor SDKs; the providers bring
+         them to the runtime class path -->
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-core</artifactId>
       <version>${version.anthropic-java}</version>
+      <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-client-okhttp</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-bedrock</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-foundry</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
     <dependency>
       <groupId>com.openai</groupId>
       <artifactId>openai-java-core</artifactId>

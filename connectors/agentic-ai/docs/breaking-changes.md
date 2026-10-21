@@ -44,6 +44,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-aws-support` | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support |
 | `aiagent-provider-openai` | `aiagent.chatmodel.provider.openai` | Native OpenAI provider |
 | `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider |
+| `aiagent-provider-anthropic` | `aiagent.chatmodel.provider.anthropic` | Native Anthropic provider (Anthropic API, AWS Bedrock Mantle, Foundry) |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |

@@ -49,6 +49,11 @@ enum AgenticAiModules {
       "ProviderMistral",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.mistral")),
+  PROVIDER_ANTHROPIC(
+      "aiagent-provider-anthropic",
+      "ProviderAnthropic",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.anthropic")),
   TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
