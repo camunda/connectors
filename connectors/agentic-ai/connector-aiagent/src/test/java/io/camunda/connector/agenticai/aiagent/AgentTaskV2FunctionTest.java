@@ -89,8 +89,7 @@ class AgentTaskV2FunctionTest {
     when(context.getJobContext()).thenReturn(jobContext);
     final var function =
         new AgentTaskV2Function(
-            new AgentExecutionContextFactory(toolElementsResolver, null, false),
-            agentRequestHandler);
+            new AgentExecutionContextFactory(toolElementsResolver, null), agentRequestHandler);
 
     function.execute(context);
 

@@ -31,6 +31,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
 | [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading stored messages, the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history, rollbacks |
+| [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom factories for the v1 provider types |
 
 ### Module split
 
@@ -284,7 +285,7 @@ request handler:
   `AgentSubProcessV2Function(AgentSubProcessExecutionContextFactory, AgentSubProcessRequestHandler)`.
 
 The auto-configuration provides the `aiAgentExecutionContextFactory` bean of type `AgentExecutionContextFactory`. It
-implements both interfaces and applies the `rewrite-v1-provider-config-to-v2` setting that the v1 functions took before.
+implements both interfaces. It maps the v1 provider configuration of a v1 request to its v2 equivalent.
 A bean of either interface replaces it, so each enabled flavor needs a bean of its interface. Migration: in a custom function
 bean, inject the `AgentTaskExecutionContextFactory` or `AgentSubProcessExecutionContextFactory` bean.
 
@@ -424,6 +425,12 @@ applies it to its persisted context, and the next round continues with the conte
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
   for a runtime tool call and `rejection` for a rejected call.
 - Do not rely on the JSON shape of these fields in external systems.
+
+### V1 provider configuration
+
+The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is removed. v1 provider
+configurations (legacy element templates) are always rewritten to their v2 equivalent and run on the native providers.
+A runtime that set the switch to `false` must remove the property and move to the native providers.
 
 ## Camunda 8.9 to 8.10
 

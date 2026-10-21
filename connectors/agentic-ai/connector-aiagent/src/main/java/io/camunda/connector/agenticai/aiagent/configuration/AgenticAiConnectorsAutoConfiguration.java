@@ -320,12 +320,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   })
   public AgentExecutionContextFactory aiAgentExecutionContextFactory(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
-      AgenticAiConnectorsConfigurationProperties configuration) {
-    return new AgentExecutionContextFactory(
-        toolElementsResolver,
-        v1ProviderConfigurationMapper,
-        configuration.aiagent().rewriteV1ProviderConfigToV2());
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
+    return new AgentExecutionContextFactory(toolElementsResolver, v1ProviderConfigurationMapper);
   }
 
   @Bean

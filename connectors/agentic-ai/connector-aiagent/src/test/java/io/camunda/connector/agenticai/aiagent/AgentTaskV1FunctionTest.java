@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentExecutionContextFactory;
@@ -85,12 +84,11 @@ class AgentTaskV1FunctionTest {
   }
 
   @Test
-  void routesThroughNativeProviderWhenSwitchIsEnabled() {
+  void routesThroughNativeProvider() {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentTaskV1Function(
-            new AgentExecutionContextFactory(
-                toolElementsResolver, providerConfigurationMapper, true),
+            new AgentExecutionContextFactory(toolElementsResolver, providerConfigurationMapper),
             agentRequestHandler);
 
     function.execute(context);
@@ -98,25 +96,6 @@ class AgentTaskV1FunctionTest {
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
     assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
-    assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
-    assertThat(executionContextCaptor.getValue().configuration().documents())
-        .isEqualTo(DocumentsConfiguration.REFERENCES_OFF);
-  }
-
-  @Test
-  void keepsV1ProviderConfigurationWhenSwitchIsDisabled() {
-    var function =
-        new AgentTaskV1Function(
-            new AgentExecutionContextFactory(
-                toolElementsResolver, providerConfigurationMapper, false),
-            agentRequestHandler);
-
-    function.execute(context);
-
-    verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
-    verifyNoInteractions(providerConfigurationMapper);
-    var chatModel = executionContextCaptor.getValue().configuration().chatModel();
-    assertThat(chatModel).isSameAs(V1_PROVIDER);
     assertThat(executionContextCaptor.getValue().newInstanceFeatures()).isEmpty();
     assertThat(executionContextCaptor.getValue().configuration().documents())
         .isEqualTo(DocumentsConfiguration.REFERENCES_OFF);
