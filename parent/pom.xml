@@ -147,6 +147,9 @@ limitations under the License.</license.inlineheader>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.4.0</version.kafka-clients>
+    <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
+         Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
+    <version.lz4-java>1.12.0</version.lz4-java>
     <!-- CVE-2026-47857: reactor-core transitive override — remove once spring-boot-dependencies
          ships a reactor-bom with reactor-core >= 3.8.7
          Ref: https://spring.io/security/cve-2026-47857/ -->
@@ -672,6 +675,14 @@ limitations under the License.</license.inlineheader>
         <version>${version.kafka-clients}</version>
       </dependency>
 
+      <!-- CVE-2026-106450 / CVE-2026-106451: override lz4-java transitive version brought in by
+           kafka-clients (4.4.0 ships 1.11.2). Remove once kafka-clients ships lz4-java >= 1.11.4. -->
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${version.lz4-java}</version>
+      </dependency>
+
       <!-- Temporary override: remove once spring-boot-dependencies manages
            rabbit-amqp-client >= 5.34.0. Guarded by the version.spring-boot enforcer rule below.
            Setting Spring Boot's own rabbit-amqp-client.version property would not work here:
@@ -1154,6 +1165,18 @@ Only remove them if the new spring-boot-dependencies BOM ships tomcat.version &g
 the property). If it ships anything lower, keep the overrides - removing them would downgrade
 Tomcat into a vulnerable range. To remove: drop the tomcat.version property, the four
 tomcat-embed-*/tomcat-annotations-api dependencyManagement entries, and this enforcer rule.
+                </regexMessage>
+              </requireProperty>
+              <!-- CVE-2026-106450 / CVE-2026-106451 guard: fails if kafka-clients is bumped, as a
+                   reminder to check whether the lz4-java override can be removed (see version.lz4-java). -->
+              <requireProperty>
+                <property>version.kafka-clients</property>
+                <regex>^4\.4\.0$</regex>
+                <regexMessage>
+version.kafka-clients was changed! Check if the lz4-java CVE-2026-106450 / CVE-2026-106451 override can be removed.
+If the new kafka-clients version ships lz4-java &gt;= 1.11.4, remove the version.lz4-java property,
+the lz4-java dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+See: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv
                 </regexMessage>
               </requireProperty>
             </rules>
