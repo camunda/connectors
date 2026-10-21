@@ -165,7 +165,7 @@ limitations under the License.</license.inlineheader>
          manages org.mariadb.jdbc:mariadb-java-client >= 3.5.9.
          Ref: https://advisories.gitlab.com/maven/org.mariadb.jdbc/mariadb-java-client/CVE-2026-55856/
               https://advisories.gitlab.com/maven/org.mariadb.jdbc/mariadb-java-client/CVE-2026-55857/ -->
-    <version.mariadb-java-client>3.5.10</version.mariadb-java-client>
+    <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
 
     <version.microsoft-graph>6.71.0</version.microsoft-graph>
     <version.azure-identity>1.18.7</version.azure-identity>
