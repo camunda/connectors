@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
-import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.JobContext;
@@ -109,15 +109,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 public class AgentTaskV1Function implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
-  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
+  private final ChatModelConfigurationTranslator chatModelTranslator;
 
   public AgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AgentTaskRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper) {
+      ChatModelConfigurationTranslator chatModelTranslator) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
-    this.providerConfigurationMapper = providerConfigurationMapper;
+    this.chatModelTranslator = chatModelTranslator;
   }
 
   @Override
@@ -129,7 +129,7 @@ public class AgentTaskV1Function implements AgentConnectorFunction {
 
   private AgentTaskExecutionContext buildExecutionContext(
       JobContext jobContext, AgentTaskV1Request request) {
-    var nativeConfig = providerConfigurationMapper.map(request.provider());
+    var nativeConfig = chatModelTranslator.translate(request.provider());
     return new AgentTaskExecutionContext(
         jobContext, request.data(), nativeConfig, toolElementsResolver);
   }

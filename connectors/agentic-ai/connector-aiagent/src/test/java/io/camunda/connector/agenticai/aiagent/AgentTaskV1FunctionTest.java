@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfig
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -85,7 +86,9 @@ class AgentTaskV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentTaskV1Function(
-            toolElementsResolver, agentRequestHandler, providerConfigurationMapper);
+            toolElementsResolver,
+            agentRequestHandler,
+            new ChatModelConfigurationTranslator(providerConfigurationMapper));
 
     function.execute(context);
 

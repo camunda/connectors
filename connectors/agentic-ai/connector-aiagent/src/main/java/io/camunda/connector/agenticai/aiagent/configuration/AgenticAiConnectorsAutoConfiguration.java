@@ -50,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -236,6 +237,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelConfigurationTranslator aiAgentChatModelConfigurationTranslator(
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
+    return new ChatModelConfigurationTranslator(v1ProviderConfigurationMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
       matchIfMissing = true)
@@ -267,9 +275,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentTaskV1Function aiAgentTaskV1Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
       AgentTaskRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
-    return new AgentTaskV1Function(
-        toolElementsResolver, agentRequestHandler, v1ProviderConfigurationMapper);
+      ChatModelConfigurationTranslator chatModelTranslator) {
+    return new AgentTaskV1Function(toolElementsResolver, agentRequestHandler, chatModelTranslator);
   }
 
   @Bean
@@ -304,8 +311,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @SuppressWarnings("deprecation")
   public AgentSubProcessV1Function aiAgentSubProcessV1Function(
       AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
-    return new AgentSubProcessV1Function(agentRequestHandler, v1ProviderConfigurationMapper);
+      ChatModelConfigurationTranslator chatModelTranslator) {
+    return new AgentSubProcessV1Function(agentRequestHandler, chatModelTranslator);
   }
 
   @Bean
@@ -317,8 +324,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       matchIfMissing = true)
   public AgentTaskV2Function aiAgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
-    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler);
+      AgentTaskRequestHandler agentRequestHandler,
+      ChatModelConfigurationTranslator chatModelTranslator) {
+    return new AgentTaskV2Function(toolElementsResolver, agentRequestHandler, chatModelTranslator);
   }
 
   @Bean
@@ -329,7 +337,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
   public AgentSubProcessV2Function aiAgentSubProcessV2Function(
-      AgentSubProcessRequestHandler agentRequestHandler) {
-    return new AgentSubProcessV2Function(agentRequestHandler);
+      AgentSubProcessRequestHandler agentRequestHandler,
+      ChatModelConfigurationTranslator chatModelTranslator) {
+    return new AgentSubProcessV2Function(agentRequestHandler, chatModelTranslator);
   }
 }
