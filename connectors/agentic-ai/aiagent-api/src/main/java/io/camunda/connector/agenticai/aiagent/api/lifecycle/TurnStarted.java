@@ -19,6 +19,8 @@ import org.jspecify.annotations.Nullable;
  * succeeded, and the model is about to be called. Carries complete content, including prompts and
  * tool results.
  *
+ * @param iterationKey the iteration key of the first model round of the job; a provider
+ *     continuation adds rounds with the following keys
  * @param toolExecutions the tool results consumed by this turn
  */
 @Experimental

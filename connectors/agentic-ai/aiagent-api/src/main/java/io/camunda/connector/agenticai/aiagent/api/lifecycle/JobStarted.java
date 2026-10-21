@@ -12,8 +12,9 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A job started and the agent is initialized. Carries the listener's own state from the agent
- * context of the previous persisting job.
+ * A job started and the agent is initialized. A job is one job activation, the unit that Zeebe and
+ * Operate show. Carries the listener's own state from the agent context of the previous persisting
+ * job.
  *
  * @param startedAt when the job entered the handler
  * @param agentInstanceKey the agent instance of the agent, absent for agents without one

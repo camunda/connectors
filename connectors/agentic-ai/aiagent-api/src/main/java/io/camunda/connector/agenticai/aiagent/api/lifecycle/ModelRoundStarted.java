@@ -13,8 +13,10 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
 
 /**
- * A call to the chat model starts. {@code round} counts the calls of the turn from 1, so a provider
- * continuation produces further rounds.
+ * A call to the chat model starts.
+ *
+ * @param round the 1-based number of the call within the job; unlike the iteration key it does not
+ *     count across the lifetime of the agent, and a provider continuation produces further rounds
  */
 @Experimental
 public record ModelRoundStarted(

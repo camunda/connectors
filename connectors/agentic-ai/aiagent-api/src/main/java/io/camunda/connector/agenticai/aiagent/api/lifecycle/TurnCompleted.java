@@ -16,6 +16,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * The turn's model rounds are done and the agent context is about to be persisted. An empty {@code
  * toolCalls} list means the turn produced the final answer.
+ *
+ * @param iterationKey the iteration key of the last model round of the job; a provider continuation
+ *     creates a further conversation turn with the next key, so it differs from {@link
+ *     TurnStarted#iterationKey()} when the job ran more than one round
  */
 @Experimental
 public record TurnCompleted(
