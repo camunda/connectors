@@ -171,12 +171,16 @@ Full flavor comparison (tool source, config-per-iteration, completion) and the l
 These terms are overloaded; the three `*Context` types are the usual confusion. Full definitions:
 [§5](docs/reference/ai-agent.md#5-data-model) for the data-model types (`AgentContext`,
 `AgentExecutionContext`) and [§6](docs/reference/ai-agent.md#6-conversation-memory) for the
-conversation and turn types (everything else below).
+conversation and turn types (everything else below). The vocabulary of job, turn, round, iteration key and
+run is in the [terminology table](docs/reference/ai-agent.md#terminology).
 
 | Term                                  | One-line meaning                                                                                                         |
 |---------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| **Turn** (`AgentConversationTurn`)    | one LLM call (input messages, assistant response, per-turn metrics); pending when `assistantMessage == null`             |
-| **Iteration** / `iterationKey`        | 1-based counter across the agent's lifetime identifying a turn                                                           |
+| **Job** / invocation                  | one job activation; "invocation" is the internal term for the same                                                       |
+| **Turn**                              | the work of one job that calls the model, from composing the input to the response; may span several rounds              |
+| **Round** (`AgentConversationTurn`)   | one LLM call (input messages, assistant response, per-round metrics); pending when `assistantMessage == null`            |
+| **Iteration** / `iterationKey`        | 1-based counter across the agent's lifetime identifying a round                                                          |
+| **Run**                               | tracing term: from a new user input until a turn without tool calls; spans many jobs                                     |
 | **AgentContext**                      | durable persisted state (state, metrics, tool definitions, conversation pointer); the `agentContext` process variable    |
 | **ConversationContext**               | pointer inside `AgentContext` to where messages live (in-process holds the messages, other stores hold only the pointer) |
 | **AgentExecutionContext**             | transient per-invocation request context (job metadata, provider config, prompts, limits); not persisted                 |

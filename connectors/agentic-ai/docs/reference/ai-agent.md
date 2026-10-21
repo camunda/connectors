@@ -106,6 +106,22 @@ Variables inside an ad-hoc sub-process have their own scope:
 - **Output collection**: `outputCollection` + `outputElement` expressions are evaluated when inner flows complete, collecting results into a local list variable
 - **Variable propagation**: Local variables only propagate to the parent scope when the sub-process completes, unless explicitly mapped via output mappings
 
+<a id="terminology"></a>
+
+### Terminology
+
+The documentation and the code use these terms for the stages of an agent's work, from the whole lifetime down to
+one model call.
+
+| Term               | Meaning                                                                                                                                                                                       | In code                                                                                  |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| **Agent instance** | The whole lifetime of an agent and its conversation, across all jobs and runs.                                                                                                                | `AgentInstanceKey`, [§23](#23-agent-instance-integration)                                |
+| **Run**            | A tracing term: from a new user input until a turn without tool calls. It spans many jobs.                                                                                                    | [OpenTelemetry tracing](opentelemetry-tracing.md)                                        |
+| **Job**            | One job activation, the unit that Zeebe and Operate show. "Invocation" means the same and is the internal term.                                                                               | `AgentJobInfo`, `AgentExecutionContext` (per invocation), `AgentInput`                   |
+| **Turn**           | The work of one job that calls the model: from composing the input to the response. It spans several rounds when the provider asks for continuations. A job without a model call has no turn. | `TurnStarted`, `TurnCompleted`, `applyTurnStart`                                         |
+| **Round**          | One chat model call.                                                                                                                                                                          | `ModelRoundStarted`, `ModelRoundCompleted`; `AgentConversationTurn` represents one round |
+| **Iteration key**  | The persisted counter of model calls, 1-based over the lifetime of the agent instance and incremented per round. It is not the pass through the BPMN loop of the Task flavor.                 | `AgentConversationTurn.iterationKey`, `AgentMetadata.lastIterationKey`                   |
+
 ---
 
 <a id="2-two-flavors"></a>
@@ -1795,7 +1811,8 @@ treated as job supersession — see below.
 
 ### The two-call-per-turn design (ADR 013)
 
-Per turn, the agent issues exactly two batched `update()` calls, each carrying `jobKey` and
+Per turn, the agent issues one `applyTurnStart` and, per round, one `applyTurnCompletion`, so exactly two
+batched `update()` calls when the provider asks for no continuation. Each carries `jobKey` and
 `jobLeaseToken` (both mandatory steps on the agent-instance command builder) alongside a `history(...)`
 list — never a separate create-history command:
 
@@ -2099,6 +2116,21 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
   only for a job whose response carries them: a job that runs a turn or dispatches tool discovery. They
   also report a failure that happens after the agent work returned, for example a result that exceeds the size
   limit. A job that fails because its agent work threw gets `onJobFailed` and no completion callback.
+
+**Lifecycle events and agent instance history.** Some lifecycle events accompany a write to the agent instance
+history ([§23](#23-agent-instance-integration)). The two are separate mechanisms.
+
+| Lifecycle event           | Agent instance history call | Order                                                                         |
+|---------------------------|-----------------------------|-------------------------------------------------------------------------------|
+| `TurnStarted`             | `applyTurnStart`            | the event follows the write                                                   |
+| `ModelRoundCompleted`     | `applyTurnCompletion`       | the write follows the event, once per completed round                         |
+| `ToolDiscoveryDispatched` | `applyToolDiscoveryStart`   | the event follows the write                                                   |
+| `JobDeferred`             | `applyToolCallResults`      | the event follows the write, which is skipped when there is nothing to report |
+
+`JobStarted`, `ModelRoundStarted`, `ModelRoundFailed`, `TurnCompleted`, `JobFailed` and the completion callbacks
+(`onJobCompleted`, `onJobCompletionFailed`) have no history counterpart. The history calls are synchronous,
+lease-fenced writes, and a failing write fails the job. The listener callbacks are isolated and never fail
+the job.
 
 **How do I see X?**
 
