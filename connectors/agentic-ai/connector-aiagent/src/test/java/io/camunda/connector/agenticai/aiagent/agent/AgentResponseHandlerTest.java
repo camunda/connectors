@@ -7,11 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.ChatModelConfigurationFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;

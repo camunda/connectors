@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALLS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_DEFINITIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

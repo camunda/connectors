@@ -7,11 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALLS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TOOL_CALL_RESULTS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

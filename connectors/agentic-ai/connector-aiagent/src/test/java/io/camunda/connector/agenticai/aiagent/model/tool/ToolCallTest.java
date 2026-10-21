@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

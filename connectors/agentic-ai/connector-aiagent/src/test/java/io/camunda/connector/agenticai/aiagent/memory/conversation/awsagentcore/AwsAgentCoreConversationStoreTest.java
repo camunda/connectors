@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.assistantMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

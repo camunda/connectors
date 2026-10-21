@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.AD_HOC_TOOL_ELEMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.times;

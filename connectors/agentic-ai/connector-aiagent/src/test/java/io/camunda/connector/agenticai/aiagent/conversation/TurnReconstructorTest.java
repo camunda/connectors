@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.conversation;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

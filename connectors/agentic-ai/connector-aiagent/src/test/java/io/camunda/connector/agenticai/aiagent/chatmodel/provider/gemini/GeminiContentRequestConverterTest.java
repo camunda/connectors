@@ -38,7 +38,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;

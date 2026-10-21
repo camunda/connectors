@@ -85,5 +85,18 @@
       <artifactId>openai-java-client-okhttp</artifactId>
       <version>${version.openai-java}</version>
     </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

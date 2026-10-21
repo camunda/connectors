@@ -47,6 +47,7 @@
     <module>aiagent-model</module>
     <module>aiagent-api</module>
     <module>aiagent-provider-support</module>
+    <module>aiagent-test-support</module>
     <module>aiagent-azure-support</module>
     <module>aiagent-aws-support</module>
     <module>aiagent-provider-openai</module>

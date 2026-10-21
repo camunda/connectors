@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;

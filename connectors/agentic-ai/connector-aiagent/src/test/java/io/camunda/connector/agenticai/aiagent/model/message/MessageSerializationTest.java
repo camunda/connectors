@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture;
 import java.io.IOException;
 import java.util.List;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;

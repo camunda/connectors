@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
+import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.doThrow;

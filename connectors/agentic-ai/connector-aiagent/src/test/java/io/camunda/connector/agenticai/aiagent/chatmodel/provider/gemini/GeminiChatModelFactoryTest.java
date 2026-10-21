@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
+import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

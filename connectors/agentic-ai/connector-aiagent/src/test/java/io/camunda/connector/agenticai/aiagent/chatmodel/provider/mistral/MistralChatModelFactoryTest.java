@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelopeFixture.delegateOf;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;

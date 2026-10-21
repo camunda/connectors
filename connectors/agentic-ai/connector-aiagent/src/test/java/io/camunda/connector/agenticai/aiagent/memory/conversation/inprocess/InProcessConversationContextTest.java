@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture;
 import org.junit.jupiter.api.Test;
 
 class InProcessConversationContextTest {

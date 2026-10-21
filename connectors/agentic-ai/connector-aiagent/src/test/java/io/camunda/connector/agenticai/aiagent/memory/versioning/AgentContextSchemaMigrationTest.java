@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

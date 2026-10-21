@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
 import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
-import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
+import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;

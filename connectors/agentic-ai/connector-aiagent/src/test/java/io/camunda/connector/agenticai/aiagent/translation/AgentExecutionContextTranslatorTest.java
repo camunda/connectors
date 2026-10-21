@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.translation;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.ChatModelConfigurationFixture.TEST_CHAT_MODEL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 

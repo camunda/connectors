@@ -7,7 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
+import static io.camunda.connector.agenticai.aiagent.ChatModelConfigurationFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;

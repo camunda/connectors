@@ -46,6 +46,7 @@ The module is split into Maven modules with a fixed dependency direction
 | `aiagent-aws-support`           | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support | common                            |
 | `aiagent-provider-openai`       | `aiagent.chatmodel.provider.openai`  | Native OpenAI provider (Responses and Chat Completions)        | provider-support, azure-support, api, model, common |
 | `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider | provider-support, provider-openai, api, model, common |
+| `aiagent-test-support` | `aiagent.testsupport` | Fixtures for the tests of the AI Agent modules (messages, agent configurations, object mapper, envelope and log helpers). Test scope only, never published | provider-support, api, model, common |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
 | `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
@@ -65,6 +66,8 @@ bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connec
 modules depend on the connector modules they test instead (see the
 [e2e tests `AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#modules)).
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
+The tests of a module live in the module. A test that needs a fixture of `aiagent-test-support` declares it with
+`<scope>test</scope>`; the module is not deployed. A test that spans several providers lives in `connector-aiagent`.
 
 ### Architecture tests
 

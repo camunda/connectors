@@ -8,9 +8,13 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 
 /** Domain chat model configurations for tests which do not care about their details. */
 public final class ChatModelConfigurationFixture {
+
+  /** A minimal valid {@link ChatModelConfiguration} for tests that don't care about its details. */
+  public static final ChatModelConfiguration TEST_CHAT_MODEL = openAi("test-model");
 
   private ChatModelConfigurationFixture() {}
 

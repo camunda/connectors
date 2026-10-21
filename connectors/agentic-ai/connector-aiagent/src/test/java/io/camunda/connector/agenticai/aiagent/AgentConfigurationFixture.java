@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
-import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.aiagent.ChatModelConfigurationFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.testsupport.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStoreConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -19,8 +19,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations;
 import java.util.List;
 
 /**
@@ -30,8 +30,7 @@ import java.util.List;
 public final class AgentConfigurationFixture {
 
   /** The response configuration of an agent that has none configured: plain text, no parsing. */
-  public static final ResponseConfiguration DEFAULT_RESPONSE =
-      new ResponseConfiguration(new TextResponseFormatConfiguration(false), false);
+  public static final ResponseConfiguration DEFAULT_RESPONSE = AgentConfigurations.DEFAULT_RESPONSE;
 
   private ChatModelConfiguration chatModel = TEST_CHAT_MODEL;
   private SystemPromptConfiguration systemPrompt = TEST_SYSTEM_PROMPT;

@@ -21,6 +21,7 @@ import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MODEL;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_MISTRAL;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_OPENAI;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_SUPPORT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.TEST_SUPPORT;
 import static io.camunda.connector.agenticai.archunit.AgenticAiModules.TOOLS_SCHEMA;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -53,6 +54,7 @@ class ModuleLayersArchTest {
     dependsOn(AWS_SUPPORT);
     dependsOn(PROVIDER_OPENAI, PROVIDER_SUPPORT, AZURE_SUPPORT, API, MODEL);
     dependsOn(PROVIDER_MISTRAL, PROVIDER_SUPPORT, PROVIDER_OPENAI, API, MODEL);
+    dependsOn(TEST_SUPPORT, PROVIDER_SUPPORT, API, MODEL);
     dependsOn(TOOLS_SCHEMA, API, MODEL);
     dependsOn(AD_HOC_CONNECTOR, TOOLS_SCHEMA, API, MODEL);
     dependsOn(MCP_CLIENT);
