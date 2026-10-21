@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.api.Experimental;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 
-/** A call to the chat model returned. {@code continuation} is true when another round follows. */
+/** A call to the chat model returned. {@code continued} is true when another round follows. */
 @Experimental
 public record ModelRoundCompleted(
-    AssistantMessage assistantMessage, AgentMetrics metrics, boolean continuation) {}
+    AssistantMessage assistantMessage, AgentMetrics metrics, boolean continued) {}

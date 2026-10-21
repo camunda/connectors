@@ -2109,7 +2109,7 @@ Reference implementation: `AgentTracingListener` in `aiagent-otel`. See
 | A tool result arrived while others are pending | `JobDeferred.arrivedResults()` |
 | All tool results are in and consumed by a turn | `TurnStarted.toolExecutions()`: a `ToolExecution` per result with its originating `call` (null for results that match no call), the `result` and a `cancelled` flag |
 | When a tool finished | `ToolExecution.result().completedAt()`, the engine's completion time (can be absent). The event carries no start time: a listener that needs the time the tool calls were dispatched records it itself in `onTurnCompleted` and keeps it in its listener state |
-| A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and whether the provider asks for a continuation round) and `ModelRoundFailed(cause, errorCode)` |
+| A model call started, finished, or failed | `ModelRoundStarted`, `ModelRoundCompleted` (with the assistant message, the metrics, and `continued`, true when the provider asks for a continuation round, so another round follows) and `ModelRoundFailed(cause, errorCode)` |
 | The token usage of a model call | `ModelRoundCompleted.metrics().tokenUsage()`, one per round, as in the agent instance history (§23); input tokens exclude the cache read and cache creation counts, which are separate fields |
 | The turn started, with its full input | `TurnStarted` (iteration key, input messages, system message, chat model, tool definitions), reported after the fenced write of the turn start succeeded |
 | The job failed | `JobFailed(cause, errorCode)`; the error code `AGENT_INSTANCE_SUPERSEDED` marks a job whose agent instance write was rejected because a newer activation took over |
