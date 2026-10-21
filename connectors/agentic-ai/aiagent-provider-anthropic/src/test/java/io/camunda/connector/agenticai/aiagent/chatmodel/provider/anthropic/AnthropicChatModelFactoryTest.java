@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,23 +14,17 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Backend;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.CredentialCacheSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicFoundryBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -74,40 +67,35 @@ class AnthropicChatModelFactoryTest {
 
   @ParameterizedTest
   @MethodSource("configs")
-  void supportsAnthropicV2Config(AnthropicChatModelConfiguration config) {
-    assertThat(factory.supports(translate(config))).isTrue();
+  void supportsAnthropicConfiguration(AnthropicConfiguration config) {
+    assertThat(factory.supports(config)).isTrue();
   }
 
   @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration config =
-        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
+        new CustomChatModelConfiguration("some-custom-provider", MODEL_ID, Map.of());
 
     assertThat(factory.supports(config)).isFalse();
   }
 
   @ParameterizedTest
   @MethodSource("configs")
-  void createBuildsWorkingApi(AnthropicChatModelConfiguration config) {
+  void createBuildsWorkingApi(AnthropicConfiguration config) {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
-    final ChatModel api = create(config);
+    final ChatModel api = factory.create(config);
 
     assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
-  private ChatModel create(AnthropicChatModelConfiguration binding) {
-    return factory.create(translate(binding));
-  }
-
-  static Stream<AnthropicChatModelConfiguration> configs() {
+  static Stream<AnthropicConfiguration> configs() {
     return Stream.of(
         apiConfig(MODEL_ID),
         customConfig(MODEL_ID),
-        bedrockConfig(
-            MODEL_ID, new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret")),
-        foundryConfig(MODEL_ID, new FoundryAuthentication.ApiKeyAuthentication("foundry-key")));
+        bedrockConfig(MODEL_ID, new AwsAuthentication.StaticCredentials("AKIA", "secret")),
+        foundryConfig(MODEL_ID, new FoundryAuthentication.ApiKey("foundry-key")));
   }
 
   @Test
@@ -115,10 +103,10 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        create(
+        factory.create(
             foundryConfig(
                 MODEL_ID,
-                new FoundryAuthentication.ClientCredentialsAuthentication(
+                new FoundryAuthentication.ClientCredentials(
                     "client-id", "client-secret", "tenant-id", null, null)));
 
     assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
@@ -130,9 +118,8 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        create(
-            foundryConfig(
-                MODEL_ID, new FoundryAuthentication.ManagedIdentityAuthentication(null, null)));
+        factory.create(
+            foundryConfig(MODEL_ID, new FoundryAuthentication.ManagedIdentity(null, null)));
 
     assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -143,8 +130,7 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        create(
-            bedrockConfig(MODEL_ID, new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key")));
+        factory.create(bedrockConfig(MODEL_ID, new AwsAuthentication.ApiKey("bedrock-key")));
 
     assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
@@ -155,61 +141,54 @@ class AnthropicChatModelFactoryTest {
     when(httpProxySupport.okHttpProxy(any())).thenReturn(Optional.empty());
 
     final ChatModel api =
-        create(
-            bedrockConfig(
-                MODEL_ID, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication()));
+        factory.create(bedrockConfig(MODEL_ID, new AwsAuthentication.DefaultCredentialsChain()));
 
     assertThat(delegateOf(api)).isInstanceOf(AnthropicChatModel.class);
     api.close();
   }
 
-  private static AnthropicChatModelConfiguration apiConfig(String modelId) {
-    return apiConfig(modelId, null);
+  private static AnthropicConfiguration apiConfig(String modelId) {
+    return configuration(new Backend.Api("sk-ant-test", null, RequestCustomizations.NONE), modelId);
   }
 
-  private static AnthropicChatModelConfiguration apiConfig(
-      String modelId, TimeoutConfiguration timeouts) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicApiBackend(
-                new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-            new AnthropicModel(modelId, null),
-            timeouts));
+  private static AnthropicConfiguration customConfig(String modelId) {
+    return configuration(
+        new Backend.Custom(
+            "https://custom.example.com",
+            new EndpointAuthentication.None(),
+            RequestCustomizations.NONE),
+        modelId);
   }
 
-  private static AnthropicChatModelConfiguration customConfig(String modelId) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicCustomBackend(
-                new AnthropicCustomBackend.CustomBackend(
-                    "https://custom.example.com", null, null, null, new NoAuthentication())),
-            new AnthropicModel(modelId, null),
-            null));
-  }
-
-  private static AnthropicChatModelConfiguration bedrockConfig(
+  private static AnthropicConfiguration bedrockConfig(
       String modelId, AwsAuthentication authentication) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicAwsBedrockMantleBackend(
-                new AnthropicAwsBedrockMantleBackend.AwsBedrockMantleBackend(
-                    "eu-central-1", null, authentication, null, null, null)),
-            new AnthropicModel(modelId, null),
-            null));
+    return configuration(
+        new Backend.AwsBedrockMantle(
+            "eu-central-1", null, authentication, RequestCustomizations.NONE),
+        modelId);
   }
 
-  private static AnthropicChatModelConfiguration foundryConfig(
+  private static AnthropicConfiguration foundryConfig(
       String modelId, FoundryAuthentication authentication) {
-    return new AnthropicChatModelConfiguration(
-        new AnthropicConnection(
-            new AnthropicFoundryBackend(
-                new AnthropicFoundryBackend.FoundryBackend(
-                    "https://your-resource.services.ai.azure.com",
-                    authentication,
-                    null,
-                    null,
-                    null)),
-            new AnthropicModel(modelId, null),
-            null));
+    return configuration(
+        new Backend.Foundry(
+            "https://your-resource.services.ai.azure.com",
+            authentication,
+            RequestCustomizations.NONE),
+        modelId);
+  }
+
+  private static AnthropicConfiguration configuration(Backend backend, String modelId) {
+    return new AnthropicConfiguration(
+        backend,
+        modelId,
+        Duration.ofMinutes(3),
+        null,
+        null,
+        false,
+        AnthropicConfiguration.DEFAULT_MAX_TOKENS,
+        null,
+        null,
+        null);
   }
 }

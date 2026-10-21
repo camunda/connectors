@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,14 +26,13 @@ import com.anthropic.services.blocking.MessageService;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,14 +52,17 @@ class AnthropicChatModelTest {
   @Mock private Message assembledMessage;
 
   private final AnthropicConfiguration configuration =
-      translate(
-          new AnthropicChatModelConfiguration(
-              new AnthropicConnection(
-                  new AnthropicApiBackend(
-                      new AnthropicApiBackend.AnthropicApi("sk-ant-test", null, null, null, null)),
-                  new AnthropicModel("claude-sonnet-4-6", null),
-                  null)),
-          AnthropicConfiguration.class);
+      new AnthropicConfiguration(
+          new Backend.Api("sk-ant-test", null, RequestCustomizations.NONE),
+          "claude-sonnet-4-6",
+          Duration.ofMinutes(3),
+          null,
+          null,
+          false,
+          AnthropicConfiguration.DEFAULT_MAX_TOKENS,
+          null,
+          null,
+          null);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 
