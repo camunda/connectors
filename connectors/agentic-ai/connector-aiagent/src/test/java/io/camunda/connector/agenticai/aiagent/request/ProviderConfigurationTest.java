@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicConnection;
@@ -28,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiProviderC
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.CompletionsParameters;
@@ -25,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;

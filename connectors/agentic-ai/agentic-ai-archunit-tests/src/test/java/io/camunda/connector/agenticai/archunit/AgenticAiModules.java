@@ -89,7 +89,6 @@ enum AgenticAiModules {
                       || under("aiagent.memory").test(javaClass)
                       || under("aiagent.systemprompt").test(javaClass)
                       || under("aiagent.tool").test(javaClass)
-                      || under("aiagent.util").test(javaClass)
                       || resideInAPackage(pkg("aiagent.chatmodel")).test(javaClass))
                   && !MEMORY_AGENTCORE.root.test(javaClass))),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),

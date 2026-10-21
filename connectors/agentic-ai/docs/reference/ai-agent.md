@@ -440,7 +440,7 @@ detection described above.
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
 
-`MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
+`MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.conversation`) is a pure
 static window filter:
   - Keeps at most `maxMessages` (default: 20, from `AgentConfiguration.contextWindowSize()`) messages
   - Tool-call-document user messages are excluded from the count
@@ -2006,7 +2006,7 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
   `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
-  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
+  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent.chatmodel.wire`), passing only your own
   provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
   `AssistantMessage.builder().metadata(...)` with a raw map directly.
 

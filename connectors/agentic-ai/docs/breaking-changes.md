@@ -49,7 +49,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider |
 | `aiagent-provider-langchain4j` | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge. Not part of the bundle: add it to use LangChain4j models |
 | `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store |
-| `aiagent-core` | `aiagent.agent`, `aiagent.agentinstance`, `aiagent.conversation`, `aiagent.document`, `aiagent.memory` (except the AgentCore store), `aiagent.systemprompt`, `aiagent.tool`, `aiagent.util`, `aiagent.chatmodel` | Agent loop: request handlers, initializer, conversation turn composer, memory stores, system prompt composition, tool call handling, agent instance client, chat model registry |
+| `aiagent-core` | `aiagent.agent`, `aiagent.agentinstance`, `aiagent.conversation`, `aiagent.document`, `aiagent.memory` (except the AgentCore store), `aiagent.systemprompt`, `aiagent.tool` and the package `aiagent.chatmodel` | Agent loop: request handlers, initializer, conversation turn composer, memory stores, system prompt composition, tool call handling, agent instance client, chat model registry |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -204,9 +204,12 @@ client in its properties does not start.
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
 - The agent loop moved to the new module `aiagent-core`: the packages `aiagent.agent`, `aiagent.agentinstance`,
-  `aiagent.conversation`, `aiagent.document`, `aiagent.memory`, `aiagent.systemprompt`, `aiagent.tool`, `aiagent.util`
-  and `ChatModelRegistry` in `aiagent.chatmodel`. Package names do not change; add `aiagent-core` to a custom
-  extension that used these classes through `connector-aiagent`.
+  `aiagent.conversation`, `aiagent.document`, `aiagent.memory`, `aiagent.systemprompt` and `aiagent.tool`
+  and `ChatModelRegistry` in `aiagent.chatmodel`. Package names do not change, except for the classes of the
+  following entries; add `aiagent-core` to a custom extension that used these classes through `connector-aiagent`.
+- `ResponseTextUtil` moved from `aiagent.util` to `aiagent.agent`, `MessageWindowFilter` from `aiagent.memory.runtime`
+  to `aiagent.conversation`, and `ConnectorUtils` from `aiagent.util` to `aiagent.request.shared` of
+  `connector-aiagent`.
 - `AgentProcessVariables`, `AgentSubProcessConnectorResponse` and `AgentTaskConnectorResponse` moved from package
   `aiagent` to `aiagent.agent`.
 - The conversation context subtypes of the AWS AgentCore store are registered by

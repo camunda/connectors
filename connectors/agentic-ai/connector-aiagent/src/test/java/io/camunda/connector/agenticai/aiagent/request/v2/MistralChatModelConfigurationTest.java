@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
@@ -18,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;

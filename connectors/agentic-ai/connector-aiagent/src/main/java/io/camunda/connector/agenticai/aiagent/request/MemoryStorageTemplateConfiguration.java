@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;

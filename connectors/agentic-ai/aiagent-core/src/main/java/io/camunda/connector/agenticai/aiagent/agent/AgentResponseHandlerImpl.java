@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
-import static io.camunda.connector.agenticai.aiagent.util.ResponseTextUtil.stripMarkdownCodeBlocks;
+import static io.camunda.connector.agenticai.aiagent.agent.ResponseTextUtil.stripMarkdownCodeBlocks;
 import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

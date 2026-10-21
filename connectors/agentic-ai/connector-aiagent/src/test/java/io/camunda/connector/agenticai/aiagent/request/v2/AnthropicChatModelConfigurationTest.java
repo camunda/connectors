@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfi
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;

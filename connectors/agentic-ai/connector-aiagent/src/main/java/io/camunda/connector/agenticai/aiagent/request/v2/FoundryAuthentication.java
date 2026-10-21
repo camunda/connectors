@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;

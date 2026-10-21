@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;

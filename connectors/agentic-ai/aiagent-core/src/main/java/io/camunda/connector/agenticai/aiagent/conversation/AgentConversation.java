@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;

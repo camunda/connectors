@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
