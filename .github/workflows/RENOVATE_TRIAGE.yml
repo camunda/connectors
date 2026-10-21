@@ -14,14 +14,17 @@
 #   "disabled"    — do nothing
 #
 # Guardrails (enforced here, not just asked of the agent):
-#   - rerun only for a high-confidence "flaky" verdict, on the first attempt of a PR run
-#   - push only for a "real-break" verdict with a revert, touching only files the
-#     Renovate PR already changed (never workflow files), at most 200 lines, and only if
-#     the branch has not moved since the failure
+#   - act only on a failed branch run of the PR's current head; merge-queue failures
+#     and stale runs are diagnosed but handed to a human
+#   - rerun only for a high-confidence "flaky" verdict, on the first attempt
+#   - push only for a "real-break" verdict whose edits swap Renovate's new lines back
+#     to the old ones (never workflow files, at most 200 lines), and only if the
+#     branch has not moved since the failure
 #   - one fix attempt per PR: once a triage commit is on the branch, failures go to a
 #     human
 #   - renovate.json changes are limited to packageRules and land as a separate PR to
-#     main, where Renovate reads its config, for review
+#     main, where Renovate reads its config, for review, only after the revert was
+#     pushed and only if main's renovate.json did not change meanwhile
 #   - tripwire, stricter-tool, not-renovate and not-determined verdicts go to a human
 #
 # Triggered via workflow_run so that this single file on main covers every stable/*
@@ -71,8 +74,9 @@ jobs:
     name: Triage Renovate PR
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Renovate pushes to its branch, which fires "Test branch" twice (push and
-    # pull_request); only the pull_request run is considered. A merge_group run is
+    # Every push to a renovate/* branch gets a "push" run of "Test branch"; a
+    # "pull_request" run only sometimes comes on top. Only the push run is
+    # considered, so a failure is triaged exactly once. A merge_group run is
     # considered too, because a merge-queue rejection is what usually strands a
     # Renovate PR. Whether the PR really is Renovate's is checked below.
     if: |
@@ -80,14 +84,14 @@ jobs:
         github.event_name == 'workflow_dispatch' || (
           github.event.workflow_run.conclusion == 'failure' &&
           github.event.workflow_run.head_repository.full_name == github.repository && (
-            (github.event.workflow_run.event == 'pull_request' &&
+            (github.event.workflow_run.event == 'push' &&
               startsWith(github.event.workflow_run.head_branch, 'renovate/')) ||
             (github.event.workflow_run.event == 'merge_group' &&
               startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/'))
           )
         )
       )
-    # Job-level, so the skipped push-event twin of a run cannot cancel the real one.
+    # Job-level, so a skipped pull_request twin of a run cannot cancel the real one.
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || inputs.pr_number }}
       cancel-in-progress: true
@@ -116,8 +120,8 @@ jobs:
           INPUT_PR: ${{ inputs.pr_number }}
           INPUT_RUN_ID: ${{ inputs.run_id }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          RUN_EVENT: ${{ github.event.workflow_run.event }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          TRIGGER_EVENT: ${{ github.event.workflow_run.event }}
+          TRIGGER_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           case "$MODE" in
@@ -129,12 +133,12 @@ jobs:
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             pr="$INPUT_PR"
             run_id="$INPUT_RUN_ID"
-          elif [ "$RUN_EVENT" = "merge_group" ]; then
+          elif [ "$TRIGGER_EVENT" = "merge_group" ]; then
             # gh-readonly-queue/<base>/pr-<number>-<sha>
-            pr=$(sed -nE 's#^gh-readonly-queue/.+/pr-([0-9]+)-[0-9a-f]+$#\1#p' <<<"$HEAD_BRANCH")
+            pr=$(sed -nE 's#^gh-readonly-queue/.+/pr-([0-9]+)-[0-9a-f]+$#\1#p' <<<"$TRIGGER_BRANCH")
             run_id="$WORKFLOW_RUN_ID"
           else
-            pr=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open \
+            pr=$(gh pr list --repo "$REPO" --head "$TRIGGER_BRANCH" --state open \
               --json number --jq '.[0].number // ""')
             run_id="$WORKFLOW_RUN_ID"
           fi
@@ -164,22 +168,56 @@ jobs:
             echo "::error::no failed \"Test branch\" run found for #$pr at $head_sha"
             exit 1
           }
+          head_branch=$(jq -r '.headRefName' /tmp/pr.json)
+          gh run view "$run_id" --repo "$REPO" --json event,attempt,headSha,headBranch > /tmp/run.json
+          run_event=$(jq -r '.event' /tmp/run.json)
+
+          # Only a branch run (push or pull_request) of the PR's current head is evidence
+          # the workflow may act on. A run of an older commit is stale: the newer commit gets its
+          # own run and triage. A merge-queue run tests a synthetic merge commit, so it
+          # is diagnosed but never acted on.
+          run_verified=false
+          if [ "$run_event" = "push" ] || [ "$run_event" = "pull_request" ]; then
+            if [ "$(jq -r '.headBranch' /tmp/run.json)" != "$head_branch" ]; then
+              echo "::error::run $run_id is not a run of #$pr"
+              exit 1
+            fi
+            if [ "$(jq -r '.headSha' /tmp/run.json)" = "$head_sha" ]; then
+              run_verified=true
+            elif [ "$EVENT_NAME" = "workflow_run" ]; then
+              echo "::notice::#$pr moved past the failed commit, the newer commit gets its own triage"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          elif [ "$run_event" = "merge_group" ]; then
+            [[ "$(jq -r '.headBranch' /tmp/run.json)" =~ ^gh-readonly-queue/.+/pr-${pr}-[0-9a-f]+$ ]] || {
+              echo "::error::run $run_id is not a merge-queue run of #$pr"
+              exit 1
+            }
+          else
+            echo "::error::run $run_id is a '$run_event' run, expected push, pull_request or merge_group"
+            exit 1
+          fi
+
           {
             echo "pr=$pr"
             echo "run_id=$run_id"
-            echo "run_event=$(gh run view "$run_id" --repo "$REPO" --json event --jq .event)"
-            echo "run_attempt=$(gh run view "$run_id" --repo "$REPO" --json attempt --jq .attempt)"
+            echo "run_event=$run_event"
+            echo "run_attempt=$(jq -r '.attempt' /tmp/run.json)"
+            echo "run_verified=$run_verified"
             echo "head_sha=$head_sha"
-            echo "head_branch=$(jq -r '.headRefName' /tmp/pr.json)"
+            echo "head_branch=$head_branch"
             echo "base_ref=$(jq -r '.baseRefName' /tmp/pr.json)"
           } >> "$GITHUB_OUTPUT"
 
           # A commit that is neither Renovate's nor a triage commit means a human is
           # working the PR: stay out. A triage commit means the one fix attempt was
           # used up: hand over to a human instead of trying again.
+          # Every author must be Renovate; an author without a GitHub login counts as
+          # someone else.
           foreign=$(jq --arg t "$TRIAGE_TRAILER" '[.commits[]
             | select((.messageBody | contains($t) | not) and
-                     ([.authors[].login // "" | test("renovate")] | any | not))] | length' /tmp/pr.json)
+                     ([.authors[].login // ""] | length == 0 or any(test("renovate") | not)))] | length' /tmp/pr.json)
           attempted=$(jq --arg t "$TRIAGE_TRAILER" '[.commits[] | select(.messageBody | contains($t))] | length' /tmp/pr.json)
           if [ "$foreign" -gt 0 ]; then
             echo "::notice::#$pr has commits by someone else, leaving it to them"
@@ -206,6 +244,7 @@ jobs:
           fetch-depth: 1
           sparse-checkout: |
             .claude/skills/connectors-renovate-triage
+            .github/scripts/renovate_triage
             docs/renovate-triage
           sparse-checkout-cone-mode: false
           persist-credentials: false
@@ -379,6 +418,8 @@ jobs:
 
           if ! cmp -s main-config/renovate.json agent-workspace/renovate-config/renovate.json; then
             cp agent-workspace/renovate-config/renovate.json out/renovate.json
+            # The config PR refuses to publish if main moved away from this baseline.
+            cp main-config/renovate.json out/renovate.base.json
           fi
 
           echo "verdict=$(jq -r '.verdict' out/verdict.json)" >> "$GITHUB_OUTPUT"
@@ -390,6 +431,7 @@ jobs:
           MODE: ${{ steps.resolve.outputs.mode }}
           RUN_EVENT: ${{ steps.resolve.outputs.run_event }}
           RUN_ATTEMPT: ${{ steps.resolve.outputs.run_attempt }}
+          RUN_VERIFIED: ${{ steps.resolve.outputs.run_verified }}
         run: |
           set -euo pipefail
           verdict=$(jq -r '.verdict' out/verdict.json)
@@ -414,6 +456,13 @@ jobs:
             exit 0
           fi
 
+          if [ "$RUN_VERIFIED" != "true" ]; then
+            if [ "$RUN_EVENT" = "merge_group" ]; then
+              escalate "This was a merge-queue failure; the bot only acts on branch runs of the current head. Re-add the PR to the queue or rerun its checks."
+            fi
+            escalate "The failed run did not test the PR's current head commit, so the diagnosis may be stale."
+          fi
+
           if [ "$verdict" = "flaky" ]; then
             if [ "$patched" = true ] || [ "$configured" = true ]; then
               escalate "The verdict was flaky but the agent also edited files."
@@ -421,7 +470,7 @@ jobs:
             if [ "$confidence" != "high" ] || [ "$fix" != "rerun" ]; then
               escalate "Looks flaky, but not with enough confidence to rerun automatically."
             fi
-            [ "$RUN_EVENT" = "pull_request" ] \
+            [ "$RUN_EVENT" != "merge_group" ] \
               || escalate "Looks flaky; re-add the PR to the merge queue."
             [ "$RUN_ATTEMPT" = "1" ] \
               || escalate "Still failing after an automatic rerun."
@@ -444,6 +493,11 @@ jobs:
               .github/workflows/*) escalate "The fix touches a workflow file, which the bot does not push." ;;
             esac
           done < /tmp/fix-files.txt
+          # ...and may only swap Renovate's new lines back to the old ones.
+          if ! why=$(python3 -I tooling/.github/scripts/renovate_triage/check_revert.py \
+            agent-workspace/.renovate-triage-data/pr.diff out/fix.patch); then
+            escalate "${why:-The fix is not a plain revert of this PR.}"
+          fi
           # Binary files show as "-" in numstat and count as over the limit.
           lines=$(awk '$1 == "-" { bin = 1 } { s += $1 + $2 } END { print (bin ? 999999 : s + 0) }' /tmp/fix-numstat.txt)
           [ "$lines" -le "$MAX_CHANGED_LINES" ] || escalate "The fix changes $lines lines, more than $MAX_CHANGED_LINES."
@@ -595,8 +649,10 @@ jobs:
 
   config-pr:
     name: Open renovate.json PR to main
-    needs: triage
-    if: needs.triage.outputs.action == 'push' && needs.triage.outputs.config_pr == 'true'
+    # Only once the revert is actually on the branch: a rule for a fix that was never
+    # applied would block an update for no reason.
+    needs: [ triage, push-fix ]
+    if: needs.push-fix.result == 'success' && needs.triage.outputs.config_pr == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -656,6 +712,10 @@ jobs:
             exit 0
           fi
 
+          if ! cmp -s renovate.json ../out/renovate.base.json; then
+            echo "::error::renovate.json on main changed while the triage ran; not overwriting it"
+            exit 1
+          fi
           cp ../out/renovate.json renovate.json
           packages=$(jq -r '[.culprits[].package] | unique | join(", ")' ../out/verdict.json)
           git switch -q -c "$branch"
