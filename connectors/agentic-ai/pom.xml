@@ -46,6 +46,7 @@
     <module>aiagent-api</module>
     <module>aiagent-provider-support</module>
     <module>aiagent-azure-support</module>
+    <module>aiagent-aws-support</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
     <module>connector-mcp</module>

@@ -63,6 +63,12 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-aws-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -146,6 +152,7 @@
                 <dependency>io.camunda.connector.agenticai:aiagent-model</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-api</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-provider-support</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-aws-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-azure-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-tools-schema</dependency>
                 <dependency>io.camunda.connector.agenticai:connector-ad-hoc-tools-schema</dependency>

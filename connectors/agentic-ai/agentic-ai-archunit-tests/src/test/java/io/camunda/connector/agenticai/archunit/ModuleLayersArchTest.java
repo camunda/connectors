@@ -58,6 +58,8 @@ class ModuleLayersArchTest {
         .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.AZURE_SUPPORT.layerName())
         .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
+        .whereLayer(AgenticAiModules.AWS_SUPPORT.layerName())
+        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.AI_AGENT))
         .whereLayer(AgenticAiModules.TOOLS_SCHEMA.layerName())
         .mayOnlyBeAccessedByLayers(
             names(AgenticAiModules.AD_HOC_CONNECTOR, AgenticAiModules.AI_AGENT))

@@ -41,6 +41,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
 | `aiagent-azure-support` | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support |
+| `aiagent-aws-support` | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope` | Vendor-neutral support of the chat model providers: connection settings, model call envelope |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |

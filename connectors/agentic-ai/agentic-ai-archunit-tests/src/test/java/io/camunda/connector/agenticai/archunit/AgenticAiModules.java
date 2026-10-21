@@ -32,6 +32,11 @@ enum AgenticAiModules {
       "AzureSupport",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.azure").or(under("aiagent.proxy.azure"))),
+  AWS_SUPPORT(
+      "aiagent-aws-support",
+      "AwsSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.aws").or(under("aiagent.proxy.aws"))),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),

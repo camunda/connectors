@@ -73,6 +73,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-aws-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
