@@ -62,19 +62,9 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-<<<<<<< HEAD
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-=======
-      # Build, test and check Javadoc (format runs in a parallel job)
-      # The build regenerates all element template JSON files as part of
-      # the `process-classes` phase (element-template-generator-maven-plugin),
-      # writing them back into each connector's element-templates/ source dir.
-      # Javadoc runs in the same invocation so it reuses the compiled reactor.
-      - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
@@ -111,7 +101,6 @@ jobs:
 
       - name: Check element templates for forbidden links to /next/ documentation
         run: |
-<<<<<<< HEAD
           chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
           ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
           if grep -q "/next/" connectors-element-template-links.txt; then
@@ -119,10 +108,6 @@ jobs:
             exit 1
           fi
         shell: bash
-=======
-          ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
-          ./element-template-generator/validator/target/appassembler/bin/element-template-validator
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
 
   check-format:
 
@@ -172,32 +157,4 @@ jobs:
       # lifecycle phase makes Maven resolve every build plugin, so the
       # reactor-built element-template-generator plugin would have to be installed first.
       - name: Check Format
-<<<<<<< HEAD
-        run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
-=======
         run: ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
-
-  check-versioned-element-templates:
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          persist-credentials: false
-          # Full history so the merge-base with origin/main can be resolved for
-          # the three-dot diff used to find newly added versioned templates.
-          fetch-depth: 0
-
-      - name: Fetch main ref
-        run: git fetch origin main --quiet
-        shell: bash
-
-      - name: Check versioned element templates match main
-        env:
-          TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
-        run: |
-          chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
-          ./.github/workflows/scripts/check_versioned_element_templates.sh
-        shell: bash
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
