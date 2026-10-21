@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.LogEventsTestSupport.logsOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,14 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,18 +56,17 @@ class BedrockConverseChatModelTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private final BedrockConfiguration configuration =
-      translate(
-          new BedrockConverseChatModelConfiguration(
-              new BedrockConverseConnection(
-                  "eu-central-1",
-                  null,
-                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  null,
-                  null,
-                  null,
-                  null,
-                  new BedrockConverseModel(MODEL_ID, null))),
-          BedrockConfiguration.class);
+      new BedrockConfiguration(
+          "eu-central-1",
+          null,
+          new AwsAuthentication.DefaultCredentialsChain(),
+          RequestCustomizations.NONE,
+          Duration.ofMinutes(3),
+          MODEL_ID,
+          false,
+          null,
+          null,
+          null);
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
 

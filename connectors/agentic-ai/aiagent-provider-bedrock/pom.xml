@@ -108,5 +108,58 @@
       <artifactId>utils</artifactId>
       <version>${version.aws-sdk2}</version>
     </dependency>
+    <dependency>
+      <!-- the compiler needs the auth scheme SPI types the Bedrock runtime client builder exposes -->
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>http-auth-spi</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>http-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>agentic-ai-common</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredNonTestScopedDependencies combine.children="append">
+                <dependency>software.amazon.awssdk:http-auth-spi</dependency>
+              </ignoredNonTestScopedDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

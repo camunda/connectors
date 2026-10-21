@@ -6,14 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.DEFAULT_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -26,13 +27,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConversePromptCaching;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -52,19 +48,14 @@ class BedrockConverseRequestConverterTest {
   private final BedrockConverseRequestConverter converter =
       new BedrockConverseRequestConverter(contentConverter, objectMapper);
 
-  private static BedrockConfiguration model(@Nullable BedrockConverseModelParameters parameters) {
-    return translate(
-        new BedrockConverseChatModelConfiguration(
-            new BedrockConverseConnection(
-                REGION,
-                null,
-                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                null,
-                null,
-                null,
-                null,
-                new BedrockConverseModel(MODEL_ID, parameters))),
-        BedrockConfiguration.class);
+  private record ModelParameters(
+      boolean promptCaching,
+      @Nullable Integer maxTokens,
+      @Nullable Double temperature,
+      @Nullable Double topP) {}
+
+  private static BedrockConfiguration model(@Nullable ModelParameters parameters) {
+    return configuration(parameters, RequestCustomizations.NONE);
   }
 
   /** Builds a model with only the given headers/query/body properties set on the connection. */
@@ -72,23 +63,26 @@ class BedrockConverseRequestConverterTest {
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> bodyProperties) {
-    return translate(
-        new BedrockConverseChatModelConfiguration(
-            new BedrockConverseConnection(
-                REGION,
-                null,
-                new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                headers,
-                queryParameters,
-                bodyProperties,
-                null,
-                new BedrockConverseModel(MODEL_ID, null))),
-        BedrockConfiguration.class);
+    return configuration(null, RequestCustomizations.of(headers, queryParameters, bodyProperties));
   }
 
-  private static BedrockConverseModelParameters promptCachingParams(@Nullable Boolean enabled) {
-    final var promptCaching = enabled == null ? null : new BedrockConversePromptCaching(enabled);
-    return new BedrockConverseModelParameters(promptCaching, null, null, null);
+  private static BedrockConfiguration configuration(
+      @Nullable ModelParameters parameters, RequestCustomizations customizations) {
+    return new BedrockConfiguration(
+        REGION,
+        null,
+        new AwsAuthentication.DefaultCredentialsChain(),
+        customizations,
+        Duration.ofMinutes(3),
+        MODEL_ID,
+        parameters != null && parameters.promptCaching(),
+        parameters == null ? null : parameters.maxTokens(),
+        parameters == null ? null : parameters.temperature(),
+        parameters == null ? null : parameters.topP());
+  }
+
+  private static ModelParameters promptCachingParams(@Nullable Boolean enabled) {
+    return new ModelParameters(Boolean.TRUE.equals(enabled), null, null, null);
   }
 
   @Nested
@@ -96,7 +90,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void mapsMaxTokensTemperatureAndTopPWhenSet() {
-      final var parameters = new BedrockConverseModelParameters(null, 2048, 0.5, 0.9);
+      final var parameters = new ModelParameters(false, 2048, 0.5, 0.9);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request =
@@ -120,7 +114,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesMaxTokensIndependentlyOfTemperatureAndTopP() {
-      final var parameters = new BedrockConverseModelParameters(null, 100, null, null);
+      final var parameters = new ModelParameters(false, 100, null, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request =
@@ -133,7 +127,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesTemperatureIndependentlyOfMaxTokensAndTopP() {
-      final var parameters = new BedrockConverseModelParameters(null, null, 0.3, null);
+      final var parameters = new ModelParameters(false, null, 0.3, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request =
@@ -146,7 +140,7 @@ class BedrockConverseRequestConverterTest {
 
     @Test
     void appliesTopPIndependentlyOfMaxTokensAndTemperature() {
-      final var parameters = new BedrockConverseModelParameters(null, null, null, 0.8);
+      final var parameters = new ModelParameters(false, null, null, 0.8);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request =
@@ -686,11 +680,7 @@ class BedrockConverseRequestConverterTest {
                   .build());
 
       for (final Boolean flag : new Boolean[] {null, Boolean.FALSE}) {
-        final var parameters =
-            flag == null
-                ? null
-                : new BedrockConverseModelParameters(
-                    new BedrockConversePromptCaching(flag), null, null, null);
+        final var parameters = flag == null ? null : promptCachingParams(flag);
         final var snapshot =
             new ConversationSnapshot(
                 List.of(

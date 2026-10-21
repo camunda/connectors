@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,26 +19,17 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,11 +87,6 @@ class BedrockConverseChatModelFactoryTest {
   private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final AwsSdkHttpProxySupport proxySupport = proxySupportSpy(proxyConfiguration);
 
-  private final ChatModelProperties config =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
-
   private final BedrockConverseContentConverter contentConverter =
       new BedrockConverseContentConverter(new ObjectMapper());
   private final BedrockConverseRequestConverter requestConverter =
@@ -133,21 +118,14 @@ class BedrockConverseChatModelFactoryTest {
   }
 
   @Test
-  void supportsBedrockV2Config() {
-    assertThat(factory.supports(translate(bedrockConfig(defaultCredentialsAuth(), null)))).isTrue();
+  void supportsBedrockConfiguration() {
+    assertThat(factory.supports(bedrockConfig(defaultCredentialsAuth(), null))).isTrue();
   }
 
   @Test
   void doesNotSupportOtherProviderConfiguration() {
     final ChatModelConfiguration otherConfig =
-        translate(
-            new AnthropicChatModelConfiguration(
-                new AnthropicConnection(
-                    new AnthropicApiBackend(
-                        new AnthropicApiBackend.AnthropicApi(
-                            "sk-ant-test", null, null, null, null)),
-                    new AnthropicModel(MODEL_ID, null),
-                    null)));
+        new CustomChatModelConfiguration("some-custom-provider", MODEL_ID, Map.of());
 
     assertThat(factory.supports(otherConfig)).isFalse();
   }
@@ -162,7 +140,7 @@ class BedrockConverseChatModelFactoryTest {
       clientMock.when(BedrockRuntimeAsyncClient::builder).thenReturn(clientBuilder);
 
       final var bedrockConfig = bedrockConfig(defaultCredentialsAuth(), null);
-      final ChatModel chatModel = factory.create(translate(bedrockConfig));
+      final ChatModel chatModel = factory.create(bedrockConfig);
       try {
         assertThat(delegateOf(chatModel)).isInstanceOf(BedrockConverseChatModel.class);
       } finally {
@@ -173,8 +151,7 @@ class BedrockConverseChatModelFactoryTest {
 
   @Test
   void buildsClientWithStaticCredentials() {
-    final var authentication =
-        new AwsAuthentication.AwsStaticCredentialsAuthentication("AKIA", "secret");
+    final var authentication = new AwsAuthentication.StaticCredentials("AKIA", "secret");
 
     testBuilder(
         bedrockConfig(authentication, null),
@@ -208,7 +185,7 @@ class BedrockConverseChatModelFactoryTest {
 
   @Test
   void buildsClientWithApiKeyBearerAuthentication() {
-    final var authentication = new AwsAuthentication.AwsApiKeyAuthentication("bedrock-key");
+    final var authentication = new AwsAuthentication.ApiKey("bedrock-key");
 
     testBuilder(
         bedrockConfig(authentication, null),
@@ -254,14 +231,9 @@ class BedrockConverseChatModelFactoryTest {
 
   @ParameterizedTest
   @MethodSource("timeoutConfigurations")
-  void appliesDerivedTimeoutToApiCallTimeout(
-      TimeoutConfiguration timeouts, Duration expectedTimeout) {
-    final var connection =
-        new BedrockConverseConnection(
-            REGION, null, defaultCredentialsAuth(), null, null, null, timeouts, model());
-
+  void appliesDerivedTimeoutToApiCallTimeout(Duration timeout, Duration expectedTimeout) {
     testBuilder(
-        new BedrockConverseChatModelConfiguration(connection),
+        bedrockConfig(defaultCredentialsAuth(), null, timeout),
         (clientBuilder) -> {
           final var overrideConfigurationCaptor =
               ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
@@ -273,9 +245,9 @@ class BedrockConverseChatModelFactoryTest {
 
   static Stream<Arguments> timeoutConfigurations() {
     return Stream.of(
-        Arguments.of(new TimeoutConfiguration(Duration.ofSeconds(45)), Duration.ofSeconds(45)),
-        Arguments.of(null, Duration.ofMinutes(3)),
-        Arguments.of(new TimeoutConfiguration(null), Duration.ofMinutes(3)));
+        Arguments.of(Duration.ofSeconds(45), Duration.ofSeconds(45)),
+        Arguments.of(Duration.ofMinutes(3), Duration.ofMinutes(3)),
+        Arguments.of(Duration.ofMinutes(10), Duration.ofMinutes(10)));
   }
 
   /**
@@ -302,7 +274,7 @@ class BedrockConverseChatModelFactoryTest {
   }
 
   private void testBuilder(
-      BedrockConverseChatModelConfiguration bedrockConfig,
+      BedrockConfiguration bedrockConfig,
       ThrowingBuilderConsumer<BedrockRuntimeAsyncClientBuilder> assertions) {
     final var clientBuilder = spy(BedrockRuntimeAsyncClient.builder());
     doAnswer(new ResultCaptor<>()).when(clientBuilder).build();
@@ -311,8 +283,7 @@ class BedrockConverseChatModelFactoryTest {
         mockStatic(BedrockRuntimeAsyncClient.class, Answers.CALLS_REAL_METHODS)) {
       clientMock.when(BedrockRuntimeAsyncClient::builder).thenReturn(clientBuilder);
 
-      try (var client =
-          factory.buildAsyncClient(translate(bedrockConfig, BedrockConfiguration.class))) {
+      try (var client = factory.buildAsyncClient(bedrockConfig)) {
         assertThat(client).isNotNull();
         assertions.accept(clientBuilder);
       }
@@ -321,20 +292,28 @@ class BedrockConverseChatModelFactoryTest {
     }
   }
 
-  private static BedrockConverseChatModelConfiguration bedrockConfig(
+  private static BedrockConfiguration bedrockConfig(
       AwsAuthentication authentication, String endpoint) {
-    return new BedrockConverseChatModelConfiguration(
-        new BedrockConverseConnection(
-            REGION, endpoint, authentication, null, null, null, null, model()));
+    return bedrockConfig(authentication, endpoint, Duration.ofMinutes(3));
   }
 
-  private static AwsAuthentication.AwsDefaultCredentialsChainAuthentication
-      defaultCredentialsAuth() {
-    return new AwsAuthentication.AwsDefaultCredentialsChainAuthentication();
+  private static BedrockConfiguration bedrockConfig(
+      AwsAuthentication authentication, String endpoint, Duration timeout) {
+    return new BedrockConfiguration(
+        REGION,
+        endpoint,
+        authentication,
+        RequestCustomizations.NONE,
+        timeout,
+        MODEL_ID,
+        false,
+        null,
+        null,
+        null);
   }
 
-  private static BedrockConverseModel model() {
-    return new BedrockConverseModel(MODEL_ID, null);
+  private static AwsAuthentication.DefaultCredentialsChain defaultCredentialsAuth() {
+    return new AwsAuthentication.DefaultCredentialsChain();
   }
 
   @FunctionalInterface
