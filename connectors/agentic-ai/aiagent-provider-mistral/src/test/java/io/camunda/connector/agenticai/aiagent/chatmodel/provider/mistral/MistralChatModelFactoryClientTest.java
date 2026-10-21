@@ -15,8 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
-import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -29,29 +28,15 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
-import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -101,10 +86,6 @@ class MistralChatModelFactoryClientTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AgenticAiHttpProxySupport httpProxySupport = mock(AgenticAiHttpProxySupport.class);
-  private final ChatModelProperties chatModelProperties =
-      new ChatModelProperties(
-          new ApiProperties(Duration.ofMinutes(3)),
-          new AzureProperties(new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))));
 
   @BeforeEach
   void setUp() {
@@ -121,9 +102,10 @@ class MistralChatModelFactoryClientTest {
   @Test
   void appliesApiKeyAsBearerAuthorizationHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralApiBackend(
-            new MistralApiConnection(
-                "mistral-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
+        new Backend.Api(
+            "mistral-secret-key",
+            wireMock.getHttpBaseUrl(),
+            RequestCustomizations.of(null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -133,9 +115,10 @@ class MistralChatModelFactoryClientTest {
   @Test
   void usesConfiguredEndpointOverride(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralApiBackend(
-            new MistralApiConnection(
-                "mistral-secret-key", wireMock.getHttpBaseUrl(), null, null, null)));
+        new Backend.Api(
+            "mistral-secret-key",
+            wireMock.getHttpBaseUrl(),
+            RequestCustomizations.of(null, null, null)));
 
     verify(postRequestedFor(urlPathEqualTo("/chat/completions")));
   }
@@ -143,10 +126,10 @@ class MistralChatModelFactoryClientTest {
   @Test
   void appliesHiddenHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralApiBackend(
-            new MistralApiConnection(
-                "mistral-secret-key",
-                wireMock.getHttpBaseUrl(),
+        new Backend.Api(
+            "mistral-secret-key",
+            wireMock.getHttpBaseUrl(),
+            RequestCustomizations.of(
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("custom-query-param", "query-value"),
                 null)));
@@ -160,13 +143,10 @@ class MistralChatModelFactoryClientTest {
   @Test
   void usesConfiguredBaseUrlForCustomBackend(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(),
-                null,
-                null,
-                null,
-                new ApiKeyAuthentication("custom-secret-key"))));
+        new Backend.Custom(
+            wireMock.getHttpBaseUrl(),
+            new EndpointAuthentication.ApiKey("custom-secret-key"),
+            RequestCustomizations.of(null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -176,9 +156,10 @@ class MistralChatModelFactoryClientTest {
   @Test
   void customBackendWithNoAuthenticationSendsNoAuthorizationHeader(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(), null, null, null, new NoAuthentication())));
+        new Backend.Custom(
+            wireMock.getHttpBaseUrl(),
+            new EndpointAuthentication.None(),
+            RequestCustomizations.of(null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -189,13 +170,11 @@ class MistralChatModelFactoryClientTest {
   void customBackendWithNoAuthenticationAndCustomAuthorizationHeaderSendsCustomHeader(
       WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(),
-                Map.of("Authorization", "Bearer explicit-custom-value"),
-                null,
-                null,
-                new NoAuthentication())));
+        new Backend.Custom(
+            wireMock.getHttpBaseUrl(),
+            new EndpointAuthentication.None(),
+            RequestCustomizations.of(
+                Map.of("Authorization", "Bearer explicit-custom-value"), null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -205,13 +184,13 @@ class MistralChatModelFactoryClientTest {
   @Test
   void customBackendAppliesHeadersAndQueryParameters(WireMockRuntimeInfo wireMock) {
     executeAgainst(
-        new MistralCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(),
+        new Backend.Custom(
+            wireMock.getHttpBaseUrl(),
+            new EndpointAuthentication.ApiKey("custom-secret-key"),
+            RequestCustomizations.of(
                 Map.of("X-Custom-Header", "header-value"),
                 Map.of("custom-query-param", "query-value"),
-                null,
-                new ApiKeyAuthentication("custom-secret-key"))));
+                null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -236,20 +215,16 @@ class MistralChatModelFactoryClientTest {
                         """)));
 
     executeAgainst(
-        new MistralCustomBackend(
-            new CustomBackend(
-                wireMock.getHttpBaseUrl(),
+        new Backend.Custom(
+            wireMock.getHttpBaseUrl(),
+            new EndpointAuthentication.OAuthClientCredentials(
+                wireMock.getHttpBaseUrl() + "/oauth/token",
+                "client-123",
+                "secret-123",
                 null,
-                null,
-                null,
-                new OAuthClientCredentialsAuthentication(
-                    wireMock.getHttpBaseUrl() + "/oauth/token",
-                    "client-123",
-                    "secret-123",
-                    null,
-                    OAuthClientCredentialsAuthentication.ClientAuthenticationMethod
-                        .BASIC_AUTH_HEADER,
-                    null))));
+                EndpointAuthentication.ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                null),
+            RequestCustomizations.of(null, null, null)));
 
     verify(
         postRequestedFor(urlPathEqualTo("/chat/completions"))
@@ -267,9 +242,10 @@ class MistralChatModelFactoryClientTest {
       // the configured proxy rather than straight to the (unreachable) target.
       executeAgainst(
           realHttpProxySupport,
-          new MistralApiBackend(
-              new MistralApiConnection(
-                  "mistral-secret-key", "http://192.0.2.1:1", null, null, null)));
+          new Backend.Api(
+              "mistral-secret-key",
+              "http://192.0.2.1:1",
+              RequestCustomizations.of(null, null, null)));
 
       assertThat(fakeProxy.lastRequestLine()).contains("192.0.2.1");
     }
@@ -283,9 +259,10 @@ class MistralChatModelFactoryClientTest {
 
       executeAgainst(
           realHttpProxySupport,
-          new MistralApiBackend(
-              new MistralApiConnection(
-                  "mistral-secret-key", "http://192.0.2.1:1", null, null, null)));
+          new Backend.Api(
+              "mistral-secret-key",
+              "http://192.0.2.1:1",
+              RequestCustomizations.of(null, null, null)));
 
       assertThat(fakeProxy.lastProxyAuthorizationHeader())
           .isEqualTo(
@@ -295,7 +272,7 @@ class MistralChatModelFactoryClientTest {
     }
   }
 
-  private void executeAgainst(MistralBackend backend) {
+  private void executeAgainst(Backend backend) {
     executeAgainst(httpProxySupport, backend);
   }
 
@@ -306,27 +283,22 @@ class MistralChatModelFactoryClientTest {
         new io.camunda.connector.http.client.client.apache.CustomApacheHttpClient());
   }
 
-  private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, MistralBackend backend) {
+  private void executeAgainst(AgenticAiHttpProxySupport httpProxySupport, Backend backend) {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new MistralChatModelFactory(
             new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver()),
             new OpenAiCompletionsRequestConverter(
-                MISTRAL_ID,
+                MistralConfiguration.PROVIDER,
                 contentConverter,
                 new MistralDocumentUrlContentChunkStrategy(objectMapper),
                 objectMapper,
                 new MistralReasoningContentDialect()),
             new OpenAiCompletionsResponseConverter(
-                MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
+                MistralConfiguration.PROVIDER, objectMapper, new MistralReasoningContentDialect()),
             new MistralCompletionsStreamAssembler());
     final var configuration =
-        new ChatModelConfigurationTranslator(
-                new V1ToV2ProviderConfigurationMapperImpl(chatModelProperties),
-                chatModelProperties.api().defaultTimeout())
-            .translate(
-                new MistralChatModelConfiguration(
-                    new MistralConnection(backend, new MistralModel(MODEL_ID), null, null)));
+        new MistralConfiguration(backend, MODEL_ID, Duration.ofMinutes(3), null, null, null, null);
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
@@ -335,10 +307,7 @@ class MistralChatModelFactoryClientTest {
 
   private static AgentExecutionContext executionContext(ChatModelConfiguration model) {
     final var agentConfiguration =
-        agentConfiguration()
-            .chatModel(model)
-            .systemPrompt(new SystemPromptConfiguration("system prompt"))
-            .build();
+        agentConfiguration(model, new SystemPromptConfiguration("system prompt"));
 
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration()).thenReturn(agentConfiguration);

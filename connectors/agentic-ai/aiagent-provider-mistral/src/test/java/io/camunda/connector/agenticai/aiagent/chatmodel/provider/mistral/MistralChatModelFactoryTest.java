@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
-import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
-import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static io.camunda.connector.agenticai.aiagent.testsupport.ModelCallEnvelopeFixture.delegateOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,7 +23,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.time.Duration;
@@ -58,13 +56,13 @@ class MistralChatModelFactoryTest {
         new MistralChatModelFactory(
             new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver),
             new OpenAiCompletionsRequestConverter(
-                MISTRAL_ID,
+                MistralConfiguration.PROVIDER,
                 contentConverter,
                 new MistralDocumentUrlContentChunkStrategy(objectMapper),
                 objectMapper,
                 new MistralReasoningContentDialect()),
             new OpenAiCompletionsResponseConverter(
-                MISTRAL_ID, objectMapper, new MistralReasoningContentDialect()),
+                MistralConfiguration.PROVIDER, objectMapper, new MistralReasoningContentDialect()),
             new MistralCompletionsStreamAssembler());
   }
 
@@ -87,7 +85,7 @@ class MistralChatModelFactoryTest {
     assertThat(factory.supports(config(MODEL_ID, Duration.ofMinutes(3)))).isTrue();
 
     final ChatModelConfiguration otherProvider =
-        translate(new CustomProviderConfiguration("some-custom-provider", MODEL_ID, Map.of()));
+        new CustomChatModelConfiguration("some-custom-provider", MODEL_ID, Map.of());
     assertThat(factory.supports(otherProvider)).isFalse();
   }
 
