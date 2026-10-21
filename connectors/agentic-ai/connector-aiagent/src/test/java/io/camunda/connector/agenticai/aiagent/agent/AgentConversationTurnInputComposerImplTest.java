@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
@@ -59,8 +60,7 @@ class AgentConversationTurnInputComposerImplTest {
           .state(AgentState.READY)
           .conversation(InProcessConversationContext.builder("conv").build())
           .build();
-  private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(null, null, null, null, null, null, null);
+  private static final AgentConfiguration CONFIG = agentConfiguration().build();
 
   @BeforeEach
   void setUp() {
@@ -161,14 +161,9 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void interruptToolCalls_withPartialResultsAndEvent_cancelsMissingAndProceeds() {
     var config =
-        new AgentConfiguration(
-            null,
-            null,
-            null,
-            null,
-            null,
-            new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
-            null);
+        agentConfiguration()
+            .events(new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS))
+            .build();
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -231,14 +226,10 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void waitForToolResults_allResultsPresentWithEvent_appendsEventAsUserMessage() {
     var config =
-        new AgentConfiguration(
-            null,
-            null,
-            null,
-            null,
-            null,
-            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
-            null);
+        agentConfiguration()
+            .events(
+                new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS))
+            .build();
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -264,14 +255,10 @@ class AgentConversationTurnInputComposerImplTest {
   void waitForToolResults_missingResultWithEvent_returnsNone() {
     // in WAIT mode an event must not force proceeding while tool results are still missing
     var config =
-        new AgentConfiguration(
-            null,
-            null,
-            null,
-            null,
-            null,
-            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
-            null);
+        agentConfiguration()
+            .events(
+                new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS))
+            .build();
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -292,14 +279,9 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void interruptToolCalls_withNoEvents_stillWaitsForMissingResults() {
     var config =
-        new AgentConfiguration(
-            null,
-            null,
-            null,
-            null,
-            null,
-            new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS),
-            null);
+        agentConfiguration()
+            .events(new EventHandlingConfiguration(EventHandlingBehavior.INTERRUPT_TOOL_CALLS))
+            .build();
     var input =
         AgentInput.from(
             new UserPromptConfiguration("user input", List.of()),
@@ -454,14 +436,10 @@ class AgentConversationTurnInputComposerImplTest {
   @Test
   void waitForToolResults_toolAndEventDocuments_emitsMessagesInOrder() {
     var config =
-        new AgentConfiguration(
-            null,
-            null,
-            null,
-            null,
-            null,
-            new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS),
-            null);
+        agentConfiguration()
+            .events(
+                new EventHandlingConfiguration(EventHandlingBehavior.WAIT_FOR_TOOL_CALL_RESULTS))
+            .build();
     var toolDoc = createDocument("weather data", "text/plain", "weather.txt");
     var eventDoc = createDocument("event data", "application/pdf", "event.pdf");
     var input =

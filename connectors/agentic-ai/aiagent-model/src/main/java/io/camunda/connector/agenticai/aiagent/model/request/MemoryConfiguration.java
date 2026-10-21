@@ -6,16 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import org.jspecify.annotations.Nullable;
-
 /**
  * Conversation memory settings of an agent: where the conversation is stored and how much of it.
+ *
+ * @param storage the conversation store configuration
+ * @param contextWindowSize maximum number of recent conversation messages which are passed to the
+ *     model
  */
-public interface MemoryConfiguration {
-
-  /** The conversation store configuration, or {@code null} to use the default store. */
-  @Nullable ConversationStoreConfiguration storage();
-
-  /** Maximum number of recent conversation messages which are passed to the model. */
-  @Nullable Integer contextWindowSize();
-}
+public record MemoryConfiguration(ConversationStoreConfiguration storage, int contextWindowSize) {}

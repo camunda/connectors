@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
+import io.camunda.connector.agenticai.aiagent.translation.AgentConfigurationTranslator;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.Collections;
@@ -39,16 +40,7 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
     this.jobContext = jobContext;
     this.data = data;
     this.toolElementsResolver = toolElementsResolver;
-    this.configuration =
-        new AgentConfiguration(
-            chatModel,
-            data.systemPrompt(),
-            data.userPrompt(),
-            data.memory(),
-            data.limits(),
-            // the outbound connector flavor does not support event handling
-            null,
-            data.response());
+    this.configuration = AgentConfigurationTranslator.translate(chatModel, data);
   }
 
   @Override
@@ -96,7 +88,7 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
 
   @Override
   public UserPromptConfiguration userPrompt() {
-    return data.userPrompt();
+    return configuration.userPrompt();
   }
 
   public @Nullable ToolsConfiguration tools() {

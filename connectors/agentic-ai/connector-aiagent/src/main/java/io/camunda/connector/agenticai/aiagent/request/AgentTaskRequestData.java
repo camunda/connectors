@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.aiagent.request;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.VersionedAgentContextDeserializer;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -39,9 +37,9 @@ public record AgentTaskRequestData(
         @Valid
         @JsonDeserialize(using = VersionedAgentContextDeserializer.class)
         AgentContext context,
-    @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
-    @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
+    @Valid @NotNull PromptTemplateConfiguration.SystemPromptTemplateConfiguration systemPrompt,
+    @Valid @NotNull PromptTemplateConfiguration.UserPromptTemplateConfiguration userPrompt,
     @Valid @Nullable ToolsConfiguration tools,
     @Valid @Nullable MemoryTemplateConfiguration memory,
-    @Valid @Nullable LimitsConfiguration limits,
+    @Valid @Nullable LimitsTemplateConfiguration limits,
     @Valid @Nullable AgentTaskResponseConfiguration response) {}

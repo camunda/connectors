@@ -116,8 +116,7 @@ public class LangChain4JChatModel implements ChatModel {
   }
 
   private void configureResponseFormat(
-      ChatRequest.Builder chatRequestBuilder,
-      @Nullable ResponseConfiguration responseConfiguration) {
+      ChatRequest.Builder chatRequestBuilder, ResponseConfiguration responseConfiguration) {
     final var responseFormat = createResponseFormat(responseConfiguration);
     if (responseFormat != null) {
       chatRequestBuilder.responseFormat(responseFormat);
@@ -125,20 +124,15 @@ public class LangChain4JChatModel implements ChatModel {
   }
 
   private @Nullable ResponseFormat createResponseFormat(
-      @Nullable ResponseConfiguration responseConfiguration) {
+      ResponseConfiguration responseConfiguration) {
     // do not explicitely configure response format to TEXT as (depending on the model) this might
     // lead to exceptions
-    if (responseConfiguration != null
-        && responseConfiguration.format() != null
-        && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
+    if (responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
       final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
       if (jsonFormat.schema() != null) {
         final var jsonSchema =
             JsonSchema.builder()
-                .name(
-                    Optional.ofNullable(jsonFormat.schemaName())
-                        .filter(StringUtils::isNotBlank)
-                        .orElse("Response"))
+                .name(jsonFormat.schemaName())
                 .rootElement(jsonSchemaConverter.mapToSchema(jsonFormat.schema()))
                 .build();
         builder.jsonSchema(jsonSchema);

@@ -131,8 +131,7 @@ public class AgentSubProcessRequestHandler
             .responseJson(agentResponse.responseJson())
             .responseMessage(agentResponse.responseMessage());
 
-    if (executionContext.response() != null
-        && Boolean.TRUE.equals(executionContext.response().includeAgentContext())) {
+    if (executionContext.includeAgentContext()) {
       LOGGER.debug("Including agent context in response variable");
       builder = builder.context(agentResponse.context());
     }

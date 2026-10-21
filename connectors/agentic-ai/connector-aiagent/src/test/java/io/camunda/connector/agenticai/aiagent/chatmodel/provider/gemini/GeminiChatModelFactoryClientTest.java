@@ -13,6 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -34,7 +35,6 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsC
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -208,14 +208,11 @@ class GeminiChatModelFactoryClientTest {
 
   private static AgentExecutionContext executionContext(GeminiChatModelConfiguration model) {
     final var agentConfiguration =
-        new AgentConfiguration(
-            model,
-            new SystemPromptConfiguration("system prompt"),
-            new UserPromptConfiguration("user prompt", null),
-            null,
-            null,
-            null,
-            null);
+        agentConfiguration()
+            .chatModel(model)
+            .systemPrompt(new SystemPromptConfiguration("system prompt"))
+            .userPrompt(new UserPromptConfiguration("user prompt", null))
+            .build();
 
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration()).thenReturn(agentConfiguration);

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
@@ -34,7 +35,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -94,7 +94,7 @@ class CamundaDocumentConversationStoreTest {
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryTemplateConfiguration(
+                new MemoryConfiguration(
                     new CamundaDocumentMemoryStorageConfiguration(
                         Duration.ofHours(1), Map.of("customKey", "customValue")),
                     20)));
@@ -170,7 +170,7 @@ class CamundaDocumentConversationStoreTest {
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
-    return new AgentConfiguration(null, null, null, memory, null, null, null);
+    return AgentConfigurationFixture.agentConfiguration().memory(memory).build();
   }
 
   @Test
@@ -181,24 +181,12 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
-  void throwsExceptionForMissingConfiguration() {
-    final var agentContext = AgentContext.empty();
-    when(executionContext.configuration())
-        .thenReturn(configWithMemory(new MemoryTemplateConfiguration(null, 20)));
-
-    assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage(
-            "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: null");
-  }
-
-  @Test
   void throwsExceptionForUnsupportedConfiguration() {
     final var agentContext = AgentContext.empty();
     when(executionContext.configuration())
         .thenReturn(
             configWithMemory(
-                new MemoryTemplateConfiguration(
+                new MemoryConfiguration(
                     new MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration(),
                     20)));
 

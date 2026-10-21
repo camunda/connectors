@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
@@ -40,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -265,14 +265,12 @@ class AgentTaskRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(
-                TEST_CHAT_MODEL,
-                TEST_SYSTEM_PROMPT,
-                USER_PROMPT,
-                null,
-                new LimitsConfiguration(2),
-                null,
-                null));
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(USER_PROMPT)
+                .limits(new LimitsConfiguration(2))
+                .build());
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -347,8 +345,11 @@ class AgentTaskRequestHandlerTest {
   private void mockConfiguration() {
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(
-                TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, USER_PROMPT, null, null, null, null));
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(USER_PROMPT)
+                .build());
   }
 
   private void mockSystemPrompt() {

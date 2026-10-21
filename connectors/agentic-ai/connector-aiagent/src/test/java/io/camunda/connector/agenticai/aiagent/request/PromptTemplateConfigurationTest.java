@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request;
+package io.camunda.connector.agenticai.aiagent.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.UserPromptTemplateConfiguration;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.List;
@@ -26,18 +26,18 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @Import(ValidationAutoConfiguration.class)
-class PromptConfigurationTest {
+class PromptTemplateConfigurationTest {
 
   @Autowired private Validator validator;
 
   @Nested
-  class SystemPromptConfigurationValidationTest {
+  class SystemPromptTemplateConfigurationValidationTest {
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
     void supportsEmptySystemPrompt(String prompt) {
-      final var systemPrompt = new SystemPromptConfiguration(prompt);
+      final var systemPrompt = new SystemPromptTemplateConfiguration(prompt);
 
       assertThat(validator.validate(systemPrompt)).isEmpty();
       assertThat(systemPrompt.prompt()).isEqualTo(prompt);
@@ -45,12 +45,12 @@ class PromptConfigurationTest {
   }
 
   @Nested
-  class UserPromptConfigurationValidationTest {
+  class UserPromptTemplateConfigurationValidationTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
     void doesNotSupportEmptyUserPrompt(String prompt) {
-      final var userPrompt = new UserPromptConfiguration(prompt, List.of());
+      final var userPrompt = new UserPromptTemplateConfiguration(prompt, List.of());
 
       assertThat(validator.validate(userPrompt))
           .hasSize(1)

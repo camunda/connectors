@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -31,11 +32,11 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectConten
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi;
@@ -116,7 +117,7 @@ class OpenAiResponsesRequestConverterTest {
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.instructions()).contains("sys");
   }
@@ -128,7 +129,7 @@ class OpenAiResponsesRequestConverterTest {
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
@@ -166,7 +167,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
@@ -210,7 +211,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     final var functionCallOutput = items.get(1).functionCallOutput().orElseThrow();
@@ -255,7 +256,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
@@ -284,7 +285,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
@@ -308,7 +309,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var message =
         params.input().orElseThrow().asResponse().get(0).responseOutputMessage().orElseThrow();
@@ -329,7 +330,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.input().orElseThrow().asResponse())
         .extracting(item -> item.responseOutputMessage().orElseThrow().phase())
@@ -361,7 +362,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
@@ -390,7 +391,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     final var message = items.get(0).responseOutputMessage().orElseThrow();
@@ -413,7 +414,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var assistantInputTextParts =
         rawInputItems(params).stream()
@@ -440,7 +441,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     final var message = items.get(0).responseOutputMessage().orElseThrow();
@@ -464,7 +465,7 @@ class OpenAiResponsesRequestConverterTest {
                       .build()),
               List.of());
 
-      final var params = converter.toRequest(model(null), null, snapshot);
+      final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       final var items = params.input().orElseThrow().asResponse();
       assertThat(items).hasSize(1);
@@ -491,7 +492,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(2);
@@ -526,7 +527,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(3);
@@ -555,7 +556,7 @@ class OpenAiResponsesRequestConverterTest {
                     .inputSchema(schema)
                     .build()));
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.tools()).isPresent();
     final var tool = params.tools().orElseThrow().get(0).function().orElseThrow();
@@ -596,8 +597,7 @@ class OpenAiResponsesRequestConverterTest {
                     Map.of(
                         "type", "object", "properties", Map.of("id", Map.of("type", "string"))))));
     final var response =
-        new AgentTaskResponseConfiguration(
-            new JsonResponseFormatConfiguration(schema, "Answer"), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(schema, "Answer"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
@@ -634,7 +634,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void configuresJsonObjectResponseFormatWhenNoSchema() {
     final var response =
-        new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(null, "Response"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
@@ -648,8 +648,7 @@ class OpenAiResponsesRequestConverterTest {
   @Test
   void configuresJsonObjectResponseFormatWhenEmptySchema() {
     final var response =
-        new AgentTaskResponseConfiguration(
-            new JsonResponseFormatConfiguration(Map.of(), null), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(Map.of(), "Response"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params = converter.toRequest(model(null), response, snapshot);
@@ -667,7 +666,7 @@ class OpenAiResponsesRequestConverterTest {
     final var parameters = new ResponsesParameters(null, OpenAiEffort.HIGH, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(parameters), null, snapshot);
+    final var params = converter.toRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.store()).contains(false);
     assertThat(params.include().orElseThrow())
@@ -679,7 +678,7 @@ class OpenAiResponsesRequestConverterTest {
   void requestsEncryptedReasoningButOmitsEffortParamWhenEffortUnset() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
     assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
@@ -694,7 +693,7 @@ class OpenAiResponsesRequestConverterTest {
     final var parameters = new ResponsesParameters(null, OpenAiEffort.MODEL_DEFAULT, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(parameters), null, snapshot);
+    final var params = converter.toRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
     assertThat(params.include().orElseThrow())
@@ -715,7 +714,7 @@ class OpenAiResponsesRequestConverterTest {
                 new OpenAiResponsesApi(null), defaultBackend(), new OpenAiModel("gpt-5"), null));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(config, null, snapshot);
+    final var params = converter.toRequest(config, DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.reasoning()).isEmpty();
     assertThat(params.store()).contains(false); // unconditional, not tied to reasoning
@@ -740,7 +739,7 @@ class OpenAiResponsesRequestConverterTest {
                 OpenAiEffort.MAX, "max")
             .entrySet()) {
       final var parameters = new ResponsesParameters(null, entry.getKey(), null, null);
-      final var params = converter.toRequest(model(parameters), null, snapshot);
+      final var params = converter.toRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(params.reasoning().orElseThrow().effort().orElseThrow().asString())
           .isEqualTo(entry.getValue());
@@ -765,7 +764,7 @@ class OpenAiResponsesRequestConverterTest {
                     .build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(rawInputItems(params)).contains(payload);
   }
@@ -779,7 +778,7 @@ class OpenAiResponsesRequestConverterTest {
             List.of(AssistantMessage.builder().content(List.of(providerContent)).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var items = params.input().orElseThrow().asResponse();
     assertThat(items).hasSize(1);
@@ -795,7 +794,7 @@ class OpenAiResponsesRequestConverterTest {
         new ConversationSnapshot(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var replayed = rawInputItems(params).get(0);
     assertThat(replayed).containsEntry("id", "rs_1").containsEntry("encrypted_content", "abc123");
@@ -823,7 +822,7 @@ class OpenAiResponsesRequestConverterTest {
         new ConversationSnapshot(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var replayed = rawInputItems(params).get(0);
     assertThat(replayed.get("summary")).isEqualTo(originalSummary);
@@ -837,7 +836,7 @@ class OpenAiResponsesRequestConverterTest {
         new ConversationSnapshot(
             List.of(AssistantMessage.builder().content(List.of(reasoning)).build()), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.input().orElseThrow().asResponse()).isEmpty();
   }
@@ -852,7 +851,7 @@ class OpenAiResponsesRequestConverterTest {
             List.of(AssistantMessage.builder().content(List.of(providerContent)).build()),
             List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params.input().orElseThrow().asResponse()).isEmpty();
   }
@@ -871,7 +870,8 @@ class OpenAiResponsesRequestConverterTest {
                 new ApiKeyAuthentication("test-key")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params =
+        converter.toRequest(modelWithBackend(backend, null), DEFAULT_RESPONSE, snapshot);
 
     final var body = requestBodyAsJson(params);
     assertThat(body.path("service_tier").asText()).isEqualTo("priority");
@@ -886,7 +886,8 @@ class OpenAiResponsesRequestConverterTest {
                 "sk-test", null, null, null, null, null, Map.of("service_tier", "priority")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params =
+        converter.toRequest(modelWithBackend(backend, null), DEFAULT_RESPONSE, snapshot);
 
     final var body = requestBodyAsJson(params);
     assertThat(body.path("service_tier").asText()).isEqualTo("priority");
@@ -896,7 +897,7 @@ class OpenAiResponsesRequestConverterTest {
   void doesNotAddBodyPropertiesWhenNoneConfigured() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(model(null), null, snapshot);
+    final var params = converter.toRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
     final var body = requestBodyAsJson(params);
     assertThat(body.has("service_tier")).isFalse();
@@ -915,7 +916,8 @@ class OpenAiResponsesRequestConverterTest {
                 new ApiKeyAuthentication("test-key")));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params =
+        converter.toRequest(modelWithBackend(backend, null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params._additionalHeaders().values("X-Custom-Header"))
         .containsExactly("header-value");
@@ -936,7 +938,8 @@ class OpenAiResponsesRequestConverterTest {
                 null));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var params = converter.toRequest(modelWithBackend(backend, null), null, snapshot);
+    final var params =
+        converter.toRequest(modelWithBackend(backend, null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(params._additionalHeaders().values("X-Hidden-Header"))
         .containsExactly("hidden-value");
@@ -949,7 +952,8 @@ class OpenAiResponsesRequestConverterTest {
   void throwsWhenConfiguredWithCompletionsApiFamily() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    assertThatThrownBy(() -> converter.toRequest(completionsFamilyModel(), null, snapshot))
+    assertThatThrownBy(
+            () -> converter.toRequest(completionsFamilyModel(), DEFAULT_RESPONSE, snapshot))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "OpenAiResponsesRequestConverter requires the 'responses' API family, but was"

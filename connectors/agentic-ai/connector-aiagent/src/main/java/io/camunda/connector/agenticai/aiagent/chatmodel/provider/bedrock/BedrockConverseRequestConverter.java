@@ -79,7 +79,7 @@ public class BedrockConverseRequestConverter {
 
   public ConverseStreamRequest toConverseStreamRequest(
       BedrockConverseChatModelConfiguration configuration,
-      @Nullable ResponseConfiguration response,
+      ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final var connection = configuration.bedrock();
     final var model = connection.model();
@@ -319,8 +319,8 @@ public class BedrockConverseRequestConverter {
    * format without a schema also emits nothing, as Converse structured output is schema-only.
    */
   private void applyOutputConfig(
-      ConverseStreamRequest.Builder builder, @Nullable ResponseConfiguration response) {
-    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      ConverseStreamRequest.Builder builder, ResponseConfiguration response) {
+    if (!(response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
 

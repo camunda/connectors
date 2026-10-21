@@ -50,9 +50,7 @@ public final class AgentInput {
     var partitioned =
         toolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
     return new AgentInput(
-        new UserPrompt(
-            userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+        new UserPrompt(userPrompt.prompt(), userPrompt.documents()),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

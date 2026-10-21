@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -21,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.time.Duration;
@@ -101,15 +101,6 @@ class ConversationStoreRegistryTest {
   }
 
   @Test
-  void fallsBackToInProcessConversationStoreWhenNotConfigured() {
-    when(executionContext.configuration()).thenReturn(configWithMemory(null));
-
-    final var store = registry.getConversationStore(executionContext, agentContext);
-
-    assertThat(store).isEqualTo(inProcessConversationStore);
-  }
-
-  @Test
   void createsCamundaDocumentConversationStore() {
     when(executionContext.configuration())
         .thenReturn(
@@ -138,10 +129,10 @@ class ConversationStoreRegistryTest {
 
   private MemoryConfiguration memoryConfiguration(
       MemoryStorageTemplateConfiguration storageConfig) {
-    return new MemoryTemplateConfiguration(storageConfig, 10);
+    return new MemoryConfiguration(storageConfig, 10);
   }
 
   private static AgentConfiguration configWithMemory(MemoryConfiguration memory) {
-    return new AgentConfiguration(null, null, null, memory, null, null, null);
+    return AgentConfigurationFixture.agentConfiguration().memory(memory).build();
   }
 }

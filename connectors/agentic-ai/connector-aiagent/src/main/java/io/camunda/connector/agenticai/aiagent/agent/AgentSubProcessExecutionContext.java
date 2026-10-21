@@ -14,10 +14,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessRequestData;
-import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.translation.AgentConfigurationTranslator;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   private final JobContext jobContext;
@@ -39,15 +38,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
     this.initialAgentContext = initialAgentContext;
     this.initialToolCallResults = initialToolCallResults;
     this.toolElements = toolElements;
-    this.configuration =
-        new AgentConfiguration(
-            chatModel,
-            data.systemPrompt(),
-            data.userPrompt(),
-            data.memory(),
-            data.limits(),
-            data.events(),
-            data.response());
+    this.configuration = AgentConfigurationTranslator.translate(chatModel, data);
   }
 
   @Override
@@ -72,7 +63,7 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
 
   @Override
   public UserPromptConfiguration userPrompt() {
-    return data.userPrompt();
+    return configuration.userPrompt();
   }
 
   @Override
@@ -81,11 +72,10 @@ public class AgentSubProcessExecutionContext implements AgentExecutionContext {
   }
 
   /**
-   * Job-worker-specific response configuration. Exposes {@code includeAgentContext}, which is not
-   * part of the generic {@link
-   * io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration}.
+   * Whether the agent context is part of the sub-process response variable. Specific to the job
+   * worker flavor, it is not part of the generic response configuration.
    */
-  public @Nullable AgentSubProcessResponseConfiguration response() {
-    return data.response();
+  public boolean includeAgentContext() {
+    return data.response() != null && Boolean.TRUE.equals(data.response().includeAgentContext());
   }
 }

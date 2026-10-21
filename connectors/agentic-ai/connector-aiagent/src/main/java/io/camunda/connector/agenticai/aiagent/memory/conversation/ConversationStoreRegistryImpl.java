@@ -9,12 +9,9 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +42,7 @@ public class ConversationStoreRegistryImpl implements ConversationStoreRegistry 
   @Override
   public ConversationStore getConversationStore(
       final AgentExecutionContext executionContext, final AgentContext agentContext) {
-    final var storageConfig =
-        Optional.ofNullable(executionContext.configuration().memory())
-            .map(MemoryConfiguration::storage)
-            .orElseGet(InProcessMemoryStorageConfiguration::new);
+    final var storageConfig = executionContext.configuration().memory().storage();
 
     final var conversationStore = conversationStores.get(storageConfig.storeType());
     if (conversationStore == null) {

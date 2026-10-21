@@ -97,9 +97,7 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   public ChatCompletionCreateParams toRequest(
-      CompletionsRequestSpec spec,
-      @Nullable ResponseConfiguration response,
-      ConversationSnapshot snapshot) {
+      CompletionsRequestSpec spec, ResponseConfiguration response, ConversationSnapshot snapshot) {
     final var builder = ChatCompletionCreateParams.builder().model(spec.model());
 
     // Chat Completions streaming omits `usage` unless `stream_options.include_usage=true`; this
@@ -313,8 +311,8 @@ public class OpenAiCompletionsRequestConverter {
   }
 
   private void applyStructuredOutput(
-      ChatCompletionCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
-    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      ChatCompletionCreateParams.Builder builder, ResponseConfiguration response) {
+    if (!(response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
     if (!json.hasSchema()) {

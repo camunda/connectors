@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import org.jspecify.annotations.Nullable;
-
-public interface ResponseConfiguration {
-  ResponseFormatConfiguration format();
-
-  @Nullable Boolean includeAssistantMessage();
-}
+/**
+ * How the response of the agent is shaped.
+ *
+ * @param format the format of the model response
+ * @param includeAssistantMessage whether the full assistant message is part of the response, next
+ *     to the text content
+ */
+public record ResponseConfiguration(
+    ResponseFormatConfiguration format, boolean includeAssistantMessage) {}

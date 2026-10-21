@@ -11,9 +11,7 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
-import java.util.Optional;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
 /**
@@ -44,15 +42,12 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
   @Override
   public ConversationSession createSession(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    final var config =
-        Optional.ofNullable(executionContext.configuration().memory())
-            .map(MemoryConfiguration::storage)
-            .orElse(null);
+    final var config = executionContext.configuration().memory().storage();
 
     if (!(config instanceof AwsAgentCoreMemoryStorageConfiguration agentCoreConfig)) {
       throw new IllegalStateException(
           "Expected memory storage configuration to be of type AwsAgentCoreMemoryStorageConfiguration, but got: %s"
-              .formatted(config != null ? config.getClass().getName() : "null"));
+              .formatted(config.getClass().getName()));
     }
 
     final BedrockAgentCoreClient client = clientFactory.createClient(agentCoreConfig);

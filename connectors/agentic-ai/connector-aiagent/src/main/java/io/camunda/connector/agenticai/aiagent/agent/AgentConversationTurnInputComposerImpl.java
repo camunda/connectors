@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -283,12 +282,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private boolean interruptToolCallsOnEventResults(AgentConfiguration configuration) {
-    final var behavior =
-        Optional.ofNullable(configuration.events())
-            .map(EventHandlingConfiguration::behavior)
-            .orElse(null);
-
-    return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
+    return configuration.events().behavior()
+        == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
   }
 
   private Map<String, Object> defaultMessageMetadata() {

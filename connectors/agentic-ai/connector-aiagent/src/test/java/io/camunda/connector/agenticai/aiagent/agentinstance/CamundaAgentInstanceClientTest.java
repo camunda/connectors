@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_SUPERSEDED;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED;
@@ -276,29 +277,6 @@ class CamundaAgentInstanceClientTest {
                 assertThat(item.getModel()).isEqualTo("gpt-5.5");
                 assertThat(item.getProvider()).isEqualTo("openai/completions/custom");
               });
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void shouldReturnAgentInstanceKeyOnFirstAttemptWhenMaxModelCallsIsNull() {
-      givenCreateCommand();
-      when(createCommandStep5.execute()).thenReturn(response);
-      when(response.getAgentInstanceKey()).thenReturn(67890L);
-
-      final AgentInstanceKey key = client.create(TestAgentExecutionContext.withoutLimits());
-
-      assertThat(key).isEqualTo(AgentInstanceKey.of(67890L));
-      assertThat(recordedSleeps).isEmpty();
-      verify(camundaClient, times(1)).newCreateAgentInstanceCommand();
-      verify(createCommandStep2).jobKey(JOB_KEY);
-
-      // absent limits config still yields the enforced default via the CONFIGURATION item
-      final ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor =
-          ArgumentCaptor.forClass(List.class);
-      verify(createCommandStep4).history(historyCaptor.capture());
-      assertThat(historyCaptor.getValue())
-          .singleElement()
-          .satisfies(item -> assertThat(item.getLimits().getMaxModelCalls()).isEqualTo(10));
     }
 
     @Test
@@ -596,33 +574,28 @@ class CamundaAgentInstanceClientTest {
         List<ToolDefinition> tools,
         @Nullable Integer maxModelCalls,
         String model) {
-      return new AgentConfiguration(
+      return agentConfiguration()
+          .chatModel(
               new OpenAiProviderConfiguration(
                   new OpenAiProviderConfiguration.OpenAiConnection(
-                      null, null, new OpenAiProviderConfiguration.OpenAiModel(model, null))),
-              new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
-              null,
-              null,
-              maxModelCalls != null ? new LimitsConfiguration(maxModelCalls) : null,
-              null,
-              null)
+                      null, null, new OpenAiProviderConfiguration.OpenAiModel(model, null))))
+          .systemPrompt(new PromptConfiguration.SystemPromptConfiguration(systemPrompt))
+          .limits(new LimitsConfiguration(maxModelCalls != null ? maxModelCalls : 10))
+          .build()
           .withToolDefinitions(tools);
     }
 
     private AgentConfiguration openAiConfiguration(OpenAiBackend backend) {
-      return new AgentConfiguration(
-          new OpenAiChatModelConfiguration(
-              new OpenAiChatModelConfiguration.OpenAiConnection(
-                  new OpenAiCompletionsApi(null),
-                  backend,
-                  new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
-                  null)),
-          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
-          null,
-          null,
-          null,
-          null,
-          null);
+      return agentConfiguration()
+          .chatModel(
+              new OpenAiChatModelConfiguration(
+                  new OpenAiChatModelConfiguration.OpenAiConnection(
+                      new OpenAiCompletionsApi(null),
+                      backend,
+                      new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                      null)))
+          .systemPrompt(new PromptConfiguration.SystemPromptConfiguration("Be nice."))
+          .build();
     }
 
     private AgentConversationTurn userTurn(String text, String configurationFingerprint) {
@@ -1217,16 +1190,13 @@ class CamundaAgentInstanceClientTest {
     }
 
     private AgentConfiguration configuration() {
-      return new AgentConfiguration(
-          new OpenAiProviderConfiguration(
-              new OpenAiProviderConfiguration.OpenAiConnection(
-                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
-          new PromptConfiguration.SystemPromptConfiguration("Be nice."),
-          null,
-          null,
-          null,
-          null,
-          null);
+      return agentConfiguration()
+          .chatModel(
+              new OpenAiProviderConfiguration(
+                  new OpenAiProviderConfiguration.OpenAiConnection(
+                      null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))))
+          .systemPrompt(new PromptConfiguration.SystemPromptConfiguration("Be nice."))
+          .build();
     }
 
     @Test
@@ -1371,10 +1341,6 @@ class CamundaAgentInstanceClientTest {
 
   private static class TestAgentExecutionContext implements AgentExecutionContext {
 
-    public static TestAgentExecutionContext withoutLimits() {
-      return new TestAgentExecutionContext(null);
-    }
-
     public static TestAgentExecutionContext withLimits() {
       return new TestAgentExecutionContext(new LimitsConfiguration(10));
     }
@@ -1460,14 +1426,11 @@ class CamundaAgentInstanceClientTest {
 
     @Override
     public AgentConfiguration configuration() {
-      return new AgentConfiguration(
-          chatModel,
-          new PromptConfiguration.SystemPromptConfiguration("system prompt"),
-          null,
-          null,
-          limitsConfiguration,
-          null,
-          null);
+      return agentConfiguration()
+          .chatModel(chatModel)
+          .systemPrompt(new PromptConfiguration.SystemPromptConfiguration("system prompt"))
+          .limits(limitsConfiguration)
+          .build();
     }
   }
 }

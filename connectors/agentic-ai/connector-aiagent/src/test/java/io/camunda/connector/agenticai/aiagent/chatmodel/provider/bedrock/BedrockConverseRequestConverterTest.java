@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -18,12 +19,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
@@ -94,7 +95,8 @@ class BedrockConverseRequestConverterTest {
       final var parameters = new BedrockConverseModelParameters(null, 2048, 0.5, 0.9);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.inferenceConfig()).isNotNull();
       assertThat(request.inferenceConfig().maxTokens()).isEqualTo(2048);
@@ -106,7 +108,8 @@ class BedrockConverseRequestConverterTest {
     void omitsInferenceConfigWhenParametersUnset() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.inferenceConfig()).isNull();
     }
@@ -116,7 +119,8 @@ class BedrockConverseRequestConverterTest {
       final var parameters = new BedrockConverseModelParameters(null, 100, null, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.inferenceConfig().maxTokens()).isEqualTo(100);
       assertThat(request.inferenceConfig().temperature()).isNull();
@@ -128,7 +132,8 @@ class BedrockConverseRequestConverterTest {
       final var parameters = new BedrockConverseModelParameters(null, null, 0.3, null);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.inferenceConfig().maxTokens()).isNull();
       assertThat(request.inferenceConfig().temperature()).isEqualTo(0.3f);
@@ -140,7 +145,8 @@ class BedrockConverseRequestConverterTest {
       final var parameters = new BedrockConverseModelParameters(null, null, null, 0.8);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.inferenceConfig().maxTokens()).isNull();
       assertThat(request.inferenceConfig().temperature()).isNull();
@@ -160,7 +166,8 @@ class BedrockConverseRequestConverterTest {
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.system()).hasSize(1);
       assertThat(request.system().get(0).text()).isEqualTo("sys");
@@ -178,7 +185,8 @@ class BedrockConverseRequestConverterTest {
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.hasSystem()).isFalse();
     }
@@ -189,7 +197,8 @@ class BedrockConverseRequestConverterTest {
           new ConversationSnapshot(
               List.of(SystemMessage.builder().content(List.of()).build()), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.hasSystem()).isFalse();
     }
@@ -207,7 +216,8 @@ class BedrockConverseRequestConverterTest {
                       .build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.system()).hasSize(2);
       assertThat(request.system().get(0).text()).isEqualTo("sys one");
@@ -224,7 +234,8 @@ class BedrockConverseRequestConverterTest {
                       .build()),
               List.of());
 
-      assertThatThrownBy(() -> converter.toConverseStreamRequest(model(null), null, snapshot))
+      assertThatThrownBy(
+              () -> converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot))
           .isInstanceOf(ConnectorException.class)
           .extracting(e -> ((ConnectorException) e).getErrorCode())
           .isEqualTo(AgentErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION);
@@ -262,7 +273,8 @@ class BedrockConverseRequestConverterTest {
                       .build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.messages()).hasSize(3);
 
@@ -306,7 +318,8 @@ class BedrockConverseRequestConverterTest {
                       .build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       final var content = request.messages().get(0).content();
       assertThat(content).hasSize(3);
@@ -332,7 +345,8 @@ class BedrockConverseRequestConverterTest {
                       .build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       final var toolUse = request.messages().get(0).content().get(0).toolUse();
       assertThat(toolUse.typeAsString()).isEqualTo("server_tool_use");
@@ -363,7 +377,8 @@ class BedrockConverseRequestConverterTest {
                       .inputSchema(schema)
                       .build()));
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.toolConfig()).isNotNull();
       assertThat(request.toolConfig().tools()).hasSize(1);
@@ -393,7 +408,8 @@ class BedrockConverseRequestConverterTest {
     void omitsToolConfigWhenNoToolDefinitions() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.toolConfig()).isNull();
     }
@@ -407,8 +423,7 @@ class BedrockConverseRequestConverterTest {
       final Map<String, Object> schema =
           Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));
       final var response =
-          new AgentTaskResponseConfiguration(
-              new JsonResponseFormatConfiguration(schema, "Answer"), null);
+          new ResponseConfiguration(new JsonResponseFormatConfiguration(schema, "Answer"), false);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
@@ -429,7 +444,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void jsonResponseFormatWithoutSchemaEmitsNoOutputConfig() {
       final var response =
-          new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
+          new ResponseConfiguration(new JsonResponseFormatConfiguration(null, "Response"), false);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
@@ -440,8 +455,8 @@ class BedrockConverseRequestConverterTest {
     @Test
     void jsonResponseFormatWithEmptySchemaEmitsNoOutputConfig() {
       final var response =
-          new AgentTaskResponseConfiguration(
-              new JsonResponseFormatConfiguration(Map.of(), null), null);
+          new ResponseConfiguration(
+              new JsonResponseFormatConfiguration(Map.of(), "Response"), false);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
@@ -452,7 +467,7 @@ class BedrockConverseRequestConverterTest {
     @Test
     void textResponseFormatEmitsNoOutputConfig() {
       final var response =
-          new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
+          new ResponseConfiguration(new TextResponseFormatConfiguration(true), false);
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
       final var request = converter.toConverseStreamRequest(model(null), response, snapshot);
@@ -464,7 +479,8 @@ class BedrockConverseRequestConverterTest {
     void nullResponseConfigurationEmitsNoOutputConfig() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.outputConfig()).isNull();
     }
@@ -487,7 +503,7 @@ class BedrockConverseRequestConverterTest {
           connectionOverridesModel(null, null, Map.of("thinking", Map.of("type", "enabled")));
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(config, null, snapshot);
+      final var request = converter.toConverseStreamRequest(config, DEFAULT_RESPONSE, snapshot);
 
       final var fields = request.additionalModelRequestFields();
       assertThat(fields).isNotNull();
@@ -499,7 +515,8 @@ class BedrockConverseRequestConverterTest {
     void omitsAdditionalModelRequestFieldsWhenBodyPropertiesUnset() {
       final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-      final var request = converter.toConverseStreamRequest(model(null), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(null), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.additionalModelRequestFields()).isNull();
     }
@@ -515,7 +532,7 @@ class BedrockConverseRequestConverterTest {
 
       final var request =
           converter.toConverseStreamRequest(
-              config, null, new ConversationSnapshot(List.of(), List.of()));
+              config, DEFAULT_RESPONSE, new ConversationSnapshot(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isPresent();
       assertThat(request.overrideConfiguration().get().headers())
@@ -528,7 +545,7 @@ class BedrockConverseRequestConverterTest {
 
       final var request =
           converter.toConverseStreamRequest(
-              config, null, new ConversationSnapshot(List.of(), List.of()));
+              config, DEFAULT_RESPONSE, new ConversationSnapshot(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isPresent();
       assertThat(request.overrideConfiguration().get().rawQueryParameters())
@@ -539,7 +556,7 @@ class BedrockConverseRequestConverterTest {
     void noOverrideConfigurationWhenNeitherHeadersNorQueryParametersPresent() {
       final var request =
           converter.toConverseStreamRequest(
-              model(null), null, new ConversationSnapshot(List.of(), List.of()));
+              model(null), DEFAULT_RESPONSE, new ConversationSnapshot(List.of(), List.of()));
 
       assertThat(request.overrideConfiguration()).isEmpty();
     }
@@ -565,7 +582,8 @@ class BedrockConverseRequestConverterTest {
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               tools);
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       // system[] ends with a cachePoint
       assertThat(request.system()).hasSize(2);
@@ -599,7 +617,8 @@ class BedrockConverseRequestConverterTest {
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               tools);
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.hasSystem()).isFalse();
 
@@ -623,7 +642,8 @@ class BedrockConverseRequestConverterTest {
                   UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.hasSystem()).isFalse();
       assertThat(request.toolConfig()).isNull();
@@ -643,7 +663,8 @@ class BedrockConverseRequestConverterTest {
                   SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build()),
               List.of());
 
-      final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+      final var request =
+          converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
       assertThat(request.system()).hasSize(2);
       assertThat(request.system().get(1).cachePoint()).isNotNull();
@@ -675,7 +696,8 @@ class BedrockConverseRequestConverterTest {
                     UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
                 tools);
 
-        final var request = converter.toConverseStreamRequest(model(parameters), null, snapshot);
+        final var request =
+            converter.toConverseStreamRequest(model(parameters), DEFAULT_RESPONSE, snapshot);
 
         assertThat(request.system()).as("system, flag=%s", flag).hasSize(1);
         assertThat(request.toolConfig().tools()).as("tools, flag=%s", flag).hasSize(1);

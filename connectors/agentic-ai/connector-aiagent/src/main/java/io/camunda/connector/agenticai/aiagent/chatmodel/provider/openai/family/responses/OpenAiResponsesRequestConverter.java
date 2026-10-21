@@ -81,7 +81,7 @@ public class OpenAiResponsesRequestConverter {
 
   public ResponseCreateParams toRequest(
       OpenAiChatModelConfiguration configuration,
-      @Nullable ResponseConfiguration response,
+      ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final OpenAiConnection connection = configuration.openai();
     final String modelId = connection.model().model();
@@ -371,8 +371,8 @@ public class OpenAiResponsesRequestConverter {
   }
 
   private void applyStructuredOutput(
-      ResponseCreateParams.Builder builder, @Nullable ResponseConfiguration response) {
-    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      ResponseCreateParams.Builder builder, ResponseConfiguration response) {
+    if (!(response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
     if (!json.hasSchema()) {

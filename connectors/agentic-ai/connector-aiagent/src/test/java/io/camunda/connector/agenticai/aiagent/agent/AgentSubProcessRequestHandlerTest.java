@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
@@ -52,7 +53,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
@@ -120,14 +120,12 @@ class AgentSubProcessRequestHandlerTest {
     // configuration() returns a record that cannot be deep-stubbed; provide an explicit default
     lenient()
         .doReturn(
-            new AgentConfiguration(
-                TEST_CHAT_MODEL,
-                TEST_SYSTEM_PROMPT,
-                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
-                null,
-                null,
-                null,
-                null))
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(
+                    new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()))
+                .build())
         .when(agentExecutionContext)
         .configuration();
     // avoid deep-stubbing a mock UserPromptConfiguration (these tests drive the turn via the
@@ -506,14 +504,12 @@ class AgentSubProcessRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(
-                TEST_CHAT_MODEL,
-                TEST_SYSTEM_PROMPT,
-                new UserPromptConfiguration("user input", List.of()),
-                null,
-                new LimitsConfiguration(2),
-                null,
-                null));
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(new UserPromptConfiguration("user input", List.of()))
+                .limits(new LimitsConfiguration(2))
+                .build());
 
     final var contextAtLimit =
         AgentContext.builder()
@@ -731,14 +727,13 @@ class AgentSubProcessRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentExecutionContext.configuration())
         .thenReturn(
-            new AgentConfiguration(
-                TEST_CHAT_MODEL,
-                TEST_SYSTEM_PROMPT,
-                new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()),
-                null,
-                new LimitsConfiguration(1),
-                null,
-                null));
+            agentConfiguration()
+                .chatModel(TEST_CHAT_MODEL)
+                .systemPrompt(TEST_SYSTEM_PROMPT)
+                .userPrompt(
+                    new PromptConfiguration.UserPromptConfiguration("user prompt", List.of()))
+                .limits(new LimitsConfiguration(1))
+                .build());
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
 

@@ -192,6 +192,16 @@ client in its properties does not start.
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
+- `AgentConfiguration` is a non-null domain model. `memory`, `limits`, `events` and `response` are always present
+  and every default is applied when the connector translates its request. `PromptConfiguration`,
+  `LimitsConfiguration`, `EventHandlingConfiguration`, `ResponseConfiguration`, `ResponseFormatConfiguration` and
+  `MemoryConfiguration` in `aiagent.model.request` are plain records without element template annotations, so
+  `UserPromptConfiguration.documents()` is never `null`, `LimitsConfiguration.maxModelCalls()`,
+  `MemoryConfiguration.contextWindowSize()` and `ResponseConfiguration.includeAssistantMessage()` are primitives,
+  `ResponseFormatConfiguration.TextResponseFormatConfiguration.parseJson()` is a `boolean`, and `MemoryConfiguration`
+  and `ResponseConfiguration` are records instead of interfaces. The `DEFAULT_*` constants of `AgentConfiguration` are
+  removed. The records the element templates show are `*TemplateConfiguration` in `aiagent.request`; their JSON is
+  unchanged. `AgentSubProcessExecutionContext.response()` is replaced by `includeAgentContext()`.
 
 ### V1 provider configuration
 

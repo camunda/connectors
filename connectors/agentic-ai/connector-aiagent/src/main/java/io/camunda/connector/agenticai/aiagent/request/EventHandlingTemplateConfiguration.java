@@ -1,0 +1,29 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.request;
+
+import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotNull;
+
+public record EventHandlingTemplateConfiguration(
+    @TemplateProperty(
+            label = "Event handling behavior",
+            description = "Behavior on completing an event sub-process.",
+            group = "events",
+            type = TemplateProperty.PropertyType.Dropdown,
+            defaultValue = "WAIT_FOR_TOOL_CALL_RESULTS",
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "WAIT_FOR_TOOL_CALL_RESULTS",
+                  label = "Wait for tool call results"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "INTERRUPT_TOOL_CALLS",
+                  label = "Cancel tool calls")
+            })
+        @NotNull
+        EventHandlingBehavior behavior) {}

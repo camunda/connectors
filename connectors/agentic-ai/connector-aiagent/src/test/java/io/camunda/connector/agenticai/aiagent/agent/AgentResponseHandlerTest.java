@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
@@ -21,7 +22,6 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -31,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.document.Document;
@@ -99,8 +98,11 @@ class AgentResponseHandlerTest {
   private AgentConversation conversationWith(
       ResponseConfiguration responseConfig, AssistantMessage assistantMessage) {
     var config =
-        new AgentConfiguration(
-            TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, responseConfig);
+        agentConfiguration()
+            .chatModel(TEST_CHAT_MODEL)
+            .systemPrompt(TEST_SYSTEM_PROMPT)
+            .response(responseConfig)
+            .build();
     var history = TurnReconstructor.reconstruct(List.of());
     return AgentConversation.rehydrate(
             config, BASE_AGENT_CONTEXT, history, systemMessage("system"), List.of())
@@ -116,7 +118,7 @@ class AgentResponseHandlerTest {
         AssistantMessage assistantMessage) {
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), false),
               assistantMessage);
 
       assertThat(response.responseMessage()).isNull();
@@ -128,28 +130,8 @@ class AgentResponseHandlerTest {
     void returnsTextResponseIfConfigured() {
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), false),
               assistantMessage(HAIKU_TEXT));
-
-      assertThat(response.responseMessage()).isNull();
-      assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
-      assertThat(response.responseJson()).isNull();
-    }
-
-    @Test
-    void returnsTextResponseIfResponseConfigurationIsMissing() {
-      final var response = createResponse(null, assistantMessage(HAIKU_TEXT));
-
-      assertThat(response.responseMessage()).isNull();
-      assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
-      assertThat(response.responseJson()).isNull();
-    }
-
-    @Test
-    void returnsTextResponseIfResponseFormatIsMissing() {
-      final var response =
-          createResponse(
-              new AgentTaskResponseConfiguration(null, false), assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
       assertThat(response.responseText()).isEqualTo(HAIKU_TEXT);
@@ -160,7 +142,7 @@ class AgentResponseHandlerTest {
     void triesToParseResponseTextAsJsonIfConfigured() {
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(HAIKU_JSON));
 
       assertThat(response.responseMessage()).isNull();
@@ -172,7 +154,7 @@ class AgentResponseHandlerTest {
     void returnsNullAsJsonObjectWhenParsingJsonFails() {
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(HAIKU_TEXT));
 
       assertThat(response.responseMessage()).isNull();
@@ -188,7 +170,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -205,7 +187,7 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(true), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -219,7 +201,7 @@ class AgentResponseHandlerTest {
       AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), true),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), true),
               assistantMessage);
 
       assertThat(response.responseMessage()).isNotNull().isEqualTo(assistantMessage);
@@ -240,7 +222,7 @@ class AgentResponseHandlerTest {
 
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(false), false),
               assistantMessage);
 
       assertThat(response.responseText()).isEqualTo("First half. Second half.");
@@ -260,8 +242,8 @@ class AgentResponseHandlerTest {
     void returnsParsedJsonResponse() {
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(
-                  new JsonResponseFormatConfiguration(null, null), false),
+              new ResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, "Response"), false),
               assistantMessage(HAIKU_JSON));
 
       assertThat(response.responseMessage()).isNull();
@@ -274,8 +256,8 @@ class AgentResponseHandlerTest {
       assertThatThrownBy(
               () ->
                   createResponse(
-                      new AgentTaskResponseConfiguration(
-                          new JsonResponseFormatConfiguration(null, null), false),
+                      new ResponseConfiguration(
+                          new JsonResponseFormatConfiguration(null, "Response"), false),
                       assistantMessage(HAIKU_TEXT)))
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
@@ -293,8 +275,8 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(
-                  new JsonResponseFormatConfiguration(null, null), false),
+              new ResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, "Response"), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -311,8 +293,8 @@ class AgentResponseHandlerTest {
       // when
       final var response =
           createResponse(
-              new AgentTaskResponseConfiguration(
-                  new JsonResponseFormatConfiguration(null, null), false),
+              new ResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, "Response"), false),
               assistantMessage(markdownWrappedJson));
 
       // then
@@ -356,8 +338,8 @@ class AgentResponseHandlerTest {
       String exploitJson = "{\"camunda.function.type\":\"base64\",\"params\":[\"test\"]}";
       var conversation =
           conversationWith(
-              new AgentTaskResponseConfiguration(
-                  new JsonResponseFormatConfiguration(null, null), false),
+              new ResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, "Response"), false),
               assistantMessage(exploitJson));
 
       // then - the executor refuses rather than returning "dGVzdA==" (base64("test")), which
@@ -371,8 +353,8 @@ class AgentResponseHandlerTest {
     void stillParsesOrdinaryJsonResponseTextThroughTheDocumentModuleEquippedMapper() {
       var conversation =
           conversationWith(
-              new AgentTaskResponseConfiguration(
-                  new JsonResponseFormatConfiguration(null, null), false),
+              new ResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, "Response"), false),
               assistantMessage(HAIKU_JSON));
 
       var response = handlerWithDocumentModuleMapper().createResponse(conversation);

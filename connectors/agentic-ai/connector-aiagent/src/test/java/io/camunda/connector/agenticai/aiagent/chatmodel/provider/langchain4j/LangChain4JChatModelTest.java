@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
@@ -36,7 +37,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
@@ -47,16 +47,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -233,33 +229,13 @@ class LangChain4JChatModelTest {
   }
 
   @Test
-  void doesNotExplicitelyConfigureResponseFormatWhenResponseConfigurationIsMissing() {
-    mockChatMessageConverterMapsInputMessages();
-    api.execute(new ChatRequest(createExecutionContext(null), SNAPSHOT));
-
-    final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat()).isNull();
-  }
-
-  @Test
-  void doesNotExplicitelyConfigureResponseFormatWhenResponseFormatConfigurationIsMissing() {
-    mockChatMessageConverterMapsInputMessages();
-    api.execute(
-        new ChatRequest(
-            createExecutionContext(new AgentTaskResponseConfiguration(null, false)), SNAPSHOT));
-
-    final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat()).isNull();
-  }
-
-  @Test
   void requestsJsonResponseWhenConfigured() {
     mockChatMessageConverterMapsInputMessages();
     api.execute(
         new ChatRequest(
             createExecutionContext(
-                new AgentTaskResponseConfiguration(
-                    new JsonResponseFormatConfiguration(null, null), false)),
+                new ResponseConfiguration(
+                    new JsonResponseFormatConfiguration(null, "Response"), false)),
             SNAPSHOT));
 
     final var chatRequest = chatRequestCaptor.getValue();
@@ -279,7 +255,7 @@ class LangChain4JChatModelTest {
     api.execute(
         new ChatRequest(
             createExecutionContext(
-                new AgentTaskResponseConfiguration(
+                new ResponseConfiguration(
                     new JsonResponseFormatConfiguration(schema, schemaName), false)),
             SNAPSHOT));
 
@@ -287,30 +263,6 @@ class LangChain4JChatModelTest {
     assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
     assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
     assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo(schemaName);
-    assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
-  }
-
-  @ParameterizedTest
-  @NullAndEmptySource
-  @ValueSource(strings = {" "})
-  void usesDefaultSchemaNameIfNullOrBlank(String schemaName) {
-    mockChatMessageConverterMapsInputMessages();
-    final Map<String, Object> schema = Map.of("type", "object", "description", "My schema");
-
-    final var jsonObjectSchema = JsonObjectSchema.builder().description("My schema").build();
-    when(jsonSchemaConverter.mapToSchema(schema)).thenReturn(jsonObjectSchema);
-
-    api.execute(
-        new ChatRequest(
-            createExecutionContext(
-                new AgentTaskResponseConfiguration(
-                    new JsonResponseFormatConfiguration(schema, schemaName), false)),
-            SNAPSHOT));
-
-    final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.JSON);
-    assertThat(chatRequest.responseFormat().jsonSchema()).isNotNull();
-    assertThat(chatRequest.responseFormat().jsonSchema().name()).isEqualTo("Response");
     assertThat(chatRequest.responseFormat().jsonSchema().rootElement()).isEqualTo(jsonObjectSchema);
   }
 
@@ -368,15 +320,14 @@ class LangChain4JChatModelTest {
 
   private AgentExecutionContext createExecutionContext() {
     return createExecutionContext(
-        new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false));
+        new ResponseConfiguration(new TextResponseFormatConfiguration(false), false));
   }
 
   private AgentExecutionContext createExecutionContext(
       ResponseConfiguration responseConfiguration) {
     final var executionContext = mock(AgentExecutionContext.class);
     when(executionContext.configuration())
-        .thenReturn(
-            new AgentConfiguration(null, null, null, null, null, null, responseConfiguration));
+        .thenReturn(agentConfiguration().response(responseConfiguration).build());
 
     return executionContext;
   }

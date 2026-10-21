@@ -6,16 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 public record AgentSubProcessResponseConfiguration(
-    @Valid @NotNull ResponseFormatConfiguration format,
+    @Valid @NotNull ResponseFormatTemplateConfiguration format,
     @TemplateProperty(
             group = "response",
             label = "Include assistant message",
@@ -34,12 +31,12 @@ public record AgentSubProcessResponseConfiguration(
                 "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
-        @Nullable Boolean includeAgentContext)
-    implements ResponseConfiguration {
+        @Nullable Boolean includeAgentContext) {
 
   public AgentSubProcessResponseConfiguration {
     if (format == null) {
-      format = new TextResponseFormatConfiguration(false);
+      format =
+          new ResponseFormatTemplateConfiguration.TextResponseFormatTemplateConfiguration(false);
     }
   }
 }

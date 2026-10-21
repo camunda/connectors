@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.DEFAULT_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -22,13 +23,13 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
@@ -86,7 +87,8 @@ class GeminiContentRequestConverterTest {
     final var parameters = new GeminiModelParameters(1024, 0.5, 0.9, 40, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.maxOutputTokens()).contains(1024);
     assertThat(config.temperature()).contains(0.5f);
@@ -98,7 +100,7 @@ class GeminiContentRequestConverterTest {
   void omitsUnsetModelParameters() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.maxOutputTokens()).isEmpty();
     assertThat(config.temperature()).isEmpty();
@@ -116,7 +118,8 @@ class GeminiContentRequestConverterTest {
         new GeminiModelParameters(null, null, null, null, new GeminiThinking(2048, null));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isPresent();
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
@@ -132,7 +135,8 @@ class GeminiContentRequestConverterTest {
             null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.HIGH));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isPresent();
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).isEmpty();
@@ -148,7 +152,8 @@ class GeminiContentRequestConverterTest {
             null, null, null, null, new GeminiThinking(null, GeminiThinkingLevel.MINIMAL));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig().orElseThrow().thinkingLevel().orElseThrow().toString())
         .isEqualToIgnoringCase("minimal");
@@ -160,7 +165,8 @@ class GeminiContentRequestConverterTest {
         new GeminiModelParameters(null, null, null, null, new GeminiThinking(null, null));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();
   }
@@ -174,7 +180,8 @@ class GeminiContentRequestConverterTest {
             null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.HIGH));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    assertThatThrownBy(() -> converter.toGenerateContentConfig(model(parameters), null, snapshot))
+    assertThatThrownBy(
+            () -> converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot))
         .isInstanceOf(ConnectorException.class);
   }
 
@@ -185,7 +192,8 @@ class GeminiContentRequestConverterTest {
             null, null, null, null, new GeminiThinking(2048, GeminiThinkingLevel.MODEL_DEFAULT));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig().orElseThrow().thinkingBudget()).contains(2048);
   }
@@ -195,7 +203,8 @@ class GeminiContentRequestConverterTest {
     final var parameters = new GeminiModelParameters(null, null, null, null, null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(parameters), null, snapshot);
+    final var config =
+        converter.toGenerateContentConfig(model(parameters), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.thinkingConfig()).isEmpty();
   }
@@ -211,7 +220,7 @@ class GeminiContentRequestConverterTest {
                 UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
     final var contents = converter.toContents(snapshot);
 
     assertThat(config.systemInstruction()).isPresent();
@@ -229,7 +238,7 @@ class GeminiContentRequestConverterTest {
             List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
             List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.systemInstruction()).isEmpty();
   }
@@ -290,7 +299,7 @@ class GeminiContentRequestConverterTest {
                     .build()),
             List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
     final var contents = converter.toContents(snapshot);
 
     assertThat(config.systemInstruction().orElseThrow().text()).isEqualTo("Use tools when needed.");
@@ -627,7 +636,7 @@ class GeminiContentRequestConverterTest {
                     .inputSchema(schema)
                     .build()));
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.tools()).isPresent();
     assertThat(config.tools().orElseThrow()).hasSize(1);
@@ -644,7 +653,7 @@ class GeminiContentRequestConverterTest {
   void noToolDefinitionsEmitsNoTools() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.tools()).isEmpty();
   }
@@ -656,8 +665,7 @@ class GeminiContentRequestConverterTest {
     final Map<String, Object> schema =
         Map.of("type", "object", "properties", Map.of("answer", Map.of("type", "string")));
     final var response =
-        new AgentTaskResponseConfiguration(
-            new JsonResponseFormatConfiguration(schema, "Answer"), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(schema, "Answer"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
@@ -675,7 +683,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void configuresJsonResponseFormatWithoutSchema() {
     final var response =
-        new AgentTaskResponseConfiguration(new JsonResponseFormatConfiguration(null, null), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(null, "Response"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
@@ -687,8 +695,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void treatsEmptyJsonSchemaAsNoSchema() {
     final var response =
-        new AgentTaskResponseConfiguration(
-            new JsonResponseFormatConfiguration(Map.of(), null), null);
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(Map.of(), "Response"), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
@@ -700,7 +707,7 @@ class GeminiContentRequestConverterTest {
   @Test
   void textResponseFormatHasNoRequestSideEffect() {
     final var response =
-        new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(true), null);
+        new ResponseConfiguration(new TextResponseFormatConfiguration(true), false);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var config = converter.toGenerateContentConfig(model(null), response, snapshot);
@@ -713,7 +720,7 @@ class GeminiContentRequestConverterTest {
   void nullResponseConfigurationHasNoRequestSideEffect() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    final var config = converter.toGenerateContentConfig(model(null), null, snapshot);
+    final var config = converter.toGenerateContentConfig(model(null), DEFAULT_RESPONSE, snapshot);
 
     assertThat(config.responseMimeType()).isEmpty();
     assertThat(config.responseJsonSchema()).isEmpty();

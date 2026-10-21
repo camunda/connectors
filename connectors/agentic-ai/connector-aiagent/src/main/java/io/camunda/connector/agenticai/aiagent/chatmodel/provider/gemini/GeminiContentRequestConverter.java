@@ -69,7 +69,7 @@ public class GeminiContentRequestConverter {
 
   public GenerateContentConfig toGenerateContentConfig(
       GeminiChatModelConfiguration configuration,
-      @Nullable ResponseConfiguration response,
+      ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final var params = configuration.googleGemini().model().parameters();
 
@@ -237,8 +237,8 @@ public class GeminiContentRequestConverter {
    * {@code responseJsonSchema} javadoc, {@code responseMimeType} must accompany it.
    */
   private void applyStructuredOutput(
-      GenerateContentConfig.Builder builder, @Nullable ResponseConfiguration response) {
-    if (!(response != null && response.format() instanceof JsonResponseFormatConfiguration json)) {
+      GenerateContentConfig.Builder builder, ResponseConfiguration response) {
+    if (!(response.format() instanceof JsonResponseFormatConfiguration json)) {
       return;
     }
     builder.responseMimeType("application/json");

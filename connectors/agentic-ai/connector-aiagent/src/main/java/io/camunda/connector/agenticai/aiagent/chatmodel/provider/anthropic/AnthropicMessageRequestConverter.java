@@ -69,7 +69,7 @@ public class AnthropicMessageRequestConverter {
 
   public MessageCreateParams toMessageCreateParams(
       AnthropicChatModelConfiguration configuration,
-      @Nullable ResponseConfiguration response,
+      ResponseConfiguration response,
       ConversationSnapshot snapshot) {
     final var connection = configuration.anthropic();
     final var params = connection.model().parameters();
@@ -350,11 +350,11 @@ public class AnthropicMessageRequestConverter {
   private void applyOutputConfig(
       MessageCreateParams.Builder builder,
       @Nullable AnthropicModelParameters params,
-      @Nullable ResponseConfiguration response) {
+      ResponseConfiguration response) {
     final AnthropicEffort rawEffort = params == null ? null : params.effort();
     final AnthropicEffort effort = rawEffort == AnthropicEffort.MODEL_DEFAULT ? null : rawEffort;
     final Map<String, Object> jsonSchema =
-        response != null && response.format() instanceof JsonResponseFormatConfiguration json
+        response.format() instanceof JsonResponseFormatConfiguration json
             ? (json.hasSchema() ? json.schema() : null)
             : null;
 

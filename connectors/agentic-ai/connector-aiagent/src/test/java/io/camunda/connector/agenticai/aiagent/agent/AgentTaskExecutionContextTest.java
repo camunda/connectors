@@ -15,12 +15,14 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.UserPromptTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,25 +41,28 @@ class AgentTaskExecutionContextTest {
 
   @Mock private ChatModelConfiguration chatModel;
 
-  @Mock(answer = RETURNS_DEEP_STUBS)
-  private AgentTaskRequestData agentRequestData;
-
   @Mock private ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
 
-  private AgentTaskExecutionContext executionContext;
-
-  @BeforeEach
-  void setUp() {
-    executionContext =
-        new AgentTaskExecutionContext(
-            jobContext, agentRequestData, chatModel, toolElementsResolver);
+  private AgentTaskExecutionContext executionContext(@Nullable ToolsConfiguration tools) {
+    return new AgentTaskExecutionContext(
+        jobContext,
+        new AgentTaskRequestData(
+            null,
+            new SystemPromptTemplateConfiguration("system prompt"),
+            new UserPromptTemplateConfiguration("user prompt", null),
+            tools,
+            null,
+            null,
+            null),
+        chatModel,
+        toolElementsResolver);
   }
 
   @ParameterizedTest
   @MethodSource("missingToolCallResults")
   void returnsEmptyInitialToolCallResultsWhenToolCallResultsAreMissing(
       ToolsConfiguration toolsConfiguration) {
-    when(agentRequestData.tools()).thenReturn(toolsConfiguration);
+    final var executionContext = executionContext(toolsConfiguration);
 
     assertThat(executionContext.initialToolCallResults()).isEmpty();
   }
@@ -66,15 +71,15 @@ class AgentTaskExecutionContextTest {
   @MethodSource("missingToolElementId")
   void returnsEmptyToolElementsWhenToolElementIdIsNotConfigured(
       ToolsConfiguration toolsConfiguration) {
-    when(agentRequestData.tools()).thenReturn(toolsConfiguration);
+    final var executionContext = executionContext(toolsConfiguration);
 
     assertThat(executionContext.toolElements()).isEmpty();
   }
 
   @Test
   void loadsToolElementsFromProcessDefinition() {
-    when(agentRequestData.tools())
-        .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
+    final var executionContext =
+        executionContext(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(
@@ -86,8 +91,8 @@ class AgentTaskExecutionContextTest {
 
   @Test
   void doesNotLoadToolElementsMultipleTimes() {
-    when(agentRequestData.tools())
-        .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
+    final var executionContext =
+        executionContext(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
     when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(

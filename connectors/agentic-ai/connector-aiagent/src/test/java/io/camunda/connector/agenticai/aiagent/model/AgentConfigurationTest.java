@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -24,7 +25,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -37,36 +37,28 @@ import org.junit.jupiter.api.Test;
 class AgentConfigurationTest {
 
   private static AgentConfiguration configuration(
-      String model,
-      String systemPrompt,
-      @Nullable Integer maxModelCalls,
-      List<ToolDefinition> tools) {
-    return new AgentConfiguration(
+      String model, String systemPrompt, int maxModelCalls, List<ToolDefinition> tools) {
+    return agentConfiguration()
+        .chatModel(
             new OpenAiProviderConfiguration(
-                new OpenAiConnection(null, null, new OpenAiModel(model, null))),
-            new SystemPromptConfiguration(systemPrompt),
-            null,
-            null,
-            maxModelCalls != null ? new LimitsConfiguration(maxModelCalls) : null,
-            null,
-            null)
+                new OpenAiConnection(null, null, new OpenAiModel(model, null))))
+        .systemPrompt(new SystemPromptConfiguration(systemPrompt))
+        .limits(new LimitsConfiguration(maxModelCalls))
+        .build()
         .withToolDefinitions(tools);
   }
 
   private static AgentConfiguration configurationWithOpenAiBackend(OpenAiBackend backend) {
-    return new AgentConfiguration(
-        new OpenAiChatModelConfiguration(
-            new OpenAiChatModelConfiguration.OpenAiConnection(
-                new OpenAiCompletionsApi(null),
-                backend,
-                new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
-                null)),
-        new SystemPromptConfiguration("Be nice."),
-        null,
-        null,
-        null,
-        null,
-        null);
+    return agentConfiguration()
+        .chatModel(
+            new OpenAiChatModelConfiguration(
+                new OpenAiChatModelConfiguration.OpenAiConnection(
+                    new OpenAiCompletionsApi(null),
+                    backend,
+                    new OpenAiChatModelConfiguration.OpenAiModel("gpt-5.5"),
+                    null)))
+        .systemPrompt(new SystemPromptConfiguration("Be nice."))
+        .build();
   }
 
   @Nested
@@ -74,7 +66,7 @@ class AgentConfigurationTest {
 
     @Test
     void returnsACopyCarryingTheGivenTools() {
-      final var original = configuration("gpt-4o", "Be nice.", null, List.of());
+      final var original = configuration("gpt-4o", "Be nice.", 10, List.of());
       final var tools =
           List.of(ToolDefinition.builder().name("getWeather").description("d").build());
 
@@ -106,28 +98,18 @@ class AgentConfigurationTest {
 
     @Test
     void changedModelYieldsDifferentFingerprint() {
-      final var first = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
-      final var second = configuration("gpt-4o-mini", "Be nice.", null, List.of()).fingerprint();
+      final var first = configuration("gpt-4o", "Be nice.", 10, List.of()).fingerprint();
+      final var second = configuration("gpt-4o-mini", "Be nice.", 10, List.of()).fingerprint();
 
       assertThat(first).isNotEqualTo(second);
     }
 
     @Test
     void changedSystemPromptYieldsDifferentFingerprint() {
-      final var first = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
-      final var second = configuration("gpt-4o", "Be mean.", null, List.of()).fingerprint();
+      final var first = configuration("gpt-4o", "Be nice.", 10, List.of()).fingerprint();
+      final var second = configuration("gpt-4o", "Be mean.", 10, List.of()).fingerprint();
 
       assertThat(first).isNotEqualTo(second);
-    }
-
-    @Test
-    void unsetMaxModelCallsYieldsSameFingerprintAsExplicitDefault() {
-      final var unset = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
-      final var explicit =
-          configuration("gpt-4o", "Be nice.", AgentConfiguration.DEFAULT_MAX_MODEL_CALLS, List.of())
-              .fingerprint();
-
-      assertThat(unset).isEqualTo(explicit);
     }
 
     @Test
@@ -144,8 +126,8 @@ class AgentConfigurationTest {
           List.of(ToolDefinition.builder().name("getWeather").description("d").build());
       final var toolsB = List.of(ToolDefinition.builder().name("getTime").description("d").build());
 
-      final var first = configuration("gpt-4o", "Be nice.", null, toolsA).fingerprint();
-      final var second = configuration("gpt-4o", "Be nice.", null, toolsB).fingerprint();
+      final var first = configuration("gpt-4o", "Be nice.", 10, toolsA).fingerprint();
+      final var second = configuration("gpt-4o", "Be nice.", 10, toolsB).fingerprint();
 
       assertThat(first).isNotEqualTo(second);
     }
@@ -173,7 +155,7 @@ class AgentConfigurationTest {
 
     @Test
     void fingerprintIsNeverBlank() {
-      assertThat(configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint()).isNotBlank();
+      assertThat(configuration("gpt-4o", "Be nice.", 10, List.of()).fingerprint()).isNotBlank();
     }
 
     @Test
@@ -181,7 +163,7 @@ class AgentConfigurationTest {
       // guards against a 32-bit Integer.hashCode()-based fingerprint: it doubles as both
       // change-detection and the engine's CONFIGURATION history item id, so a collision would
       // silently suppress a real update or dedup two distinct configurations
-      final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
+      final var fingerprint = configuration("gpt-4o", "Be nice.", 10, List.of()).fingerprint();
       assertThat(fingerprint).matches("[0-9a-f]{64}");
     }
   }

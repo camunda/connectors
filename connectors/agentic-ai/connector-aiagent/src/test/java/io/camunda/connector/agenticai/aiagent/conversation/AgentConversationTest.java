@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.conversation;
 
+import static io.camunda.connector.agenticai.aiagent.AgentConfigurationFixture.agentConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.*;
 
@@ -28,7 +29,10 @@ class AgentConversationTest {
       AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
 
   private static final AgentConfiguration CONFIG =
-      new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
+      agentConfiguration()
+          .chatModel(TEST_CHAT_MODEL)
+          .systemPrompt(TEST_SYSTEM_PROMPT)
+          .build()
           .withToolDefinitions(TOOL_DEFINITIONS);
 
   private static final SystemMessage SYSTEM_MESSAGE = systemMessage("sys");

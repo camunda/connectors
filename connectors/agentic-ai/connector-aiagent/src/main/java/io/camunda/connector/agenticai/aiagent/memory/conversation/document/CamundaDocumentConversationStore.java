@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
@@ -23,7 +22,6 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -99,15 +97,12 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   @Override
   public ConversationSession createSession(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    final var config =
-        Optional.ofNullable(executionContext.configuration().memory())
-            .map(MemoryConfiguration::storage)
-            .orElse(null);
+    final var config = executionContext.configuration().memory().storage();
 
     if (!(config instanceof CamundaDocumentMemoryStorageConfiguration documentConfig)) {
       throw new IllegalStateException(
           "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: %s"
-              .formatted(config != null ? config.getClass().getName() : "null"));
+              .formatted(config.getClass().getName()));
     }
 
     final var documents = documentsFor(executionContext);

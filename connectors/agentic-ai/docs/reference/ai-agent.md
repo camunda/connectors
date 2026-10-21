@@ -288,6 +288,13 @@ provider configuration, the system- and user-prompt configurations, and the memo
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 
+`AgentExecutionContext.configuration()` returns the `AgentConfiguration`, a non-null domain model: every
+member (prompts, memory, limits, events, response) is present. The connector builds it once per job from its
+element template records (`*TemplateConfiguration` in `aiagent.request`) with `AgentConfigurationTranslator`,
+which is the one place that applies defaults. An option that the process leaves unset resolves to the behavior the
+agent always had for it (for example text responses, no JSON parsing, waiting for tool call results), which is not
+always the value the element template pre-fills.
+
 ### AgentResponse (the output)
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or

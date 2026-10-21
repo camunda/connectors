@@ -30,12 +30,7 @@ class ElementTemplateAnnotationsArchTest {
 
   /** The top-level classes, including their nested classes, that may use the generator. */
   private static final Set<String> ANNOTATED_RECORDS_NOT_YET_MOVED_TO_THE_CONNECTOR =
-      Set.of(
-          AgenticAiModules.pkg("aiagent.model.request.PromptConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.LimitsConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.EventHandlingConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.ResponseFormatConfiguration"),
-          AgenticAiModules.pkg("tools.schema.model.AdHocToolsSchemaRequest"));
+      Set.of(AgenticAiModules.pkg("tools.schema.model.AdHocToolsSchemaRequest"));
 
   private static final DescribedPredicate<JavaClass> LIBRARY_CLASSES =
       Arrays.stream(AgenticAiModules.values())

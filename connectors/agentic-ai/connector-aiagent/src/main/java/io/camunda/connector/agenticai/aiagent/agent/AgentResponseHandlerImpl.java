@@ -18,7 +18,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
@@ -33,8 +32,6 @@ import org.slf4j.LoggerFactory;
 public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentResponseHandlerImpl.class);
-  private static final ResponseConfiguration DEFAULT_RESPONSE_CONFIGURATION =
-      new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false);
 
   private final ObjectMapper objectMapper;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
@@ -64,13 +61,10 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .map(ToolCallProcessVariable::from)
             .toList();
 
-    // default to text content only if not configured
-    final var responseConfiguration =
-        Optional.ofNullable(conversation.configuration().response())
-            .orElse(DEFAULT_RESPONSE_CONFIGURATION);
+    final var responseConfiguration = conversation.configuration().response();
 
     final var builder = AgentResponse.builder().context(agentContext).toolCalls(toolCalls);
-    if (Boolean.TRUE.equals(responseConfiguration.includeAssistantMessage())) {
+    if (responseConfiguration.includeAssistantMessage()) {
       builder.responseMessage(assistantMessage);
     }
 
@@ -100,12 +94,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       return;
     }
 
-    // keep null handling for backward compatibility
-    final var format =
-        Optional.ofNullable(responseConfiguration.format())
-            .orElseGet(DEFAULT_RESPONSE_CONFIGURATION::format);
-
-    switch (format) {
+    switch (responseConfiguration.format()) {
       case TextResponseFormatConfiguration textFormat ->
           handleTextResponseFormat(responseBuilder, responseText, textFormat);
       case JsonResponseFormatConfiguration ignored ->
@@ -119,7 +108,7 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
       TextResponseFormatConfiguration textFormat) {
     responseBuilder.responseText(responseText);
 
-    if (Boolean.TRUE.equals(textFormat.parseJson())) {
+    if (textFormat.parseJson()) {
       try {
         parseTextToResponseJson(responseBuilder, responseText);
       } catch (Exception e) {
