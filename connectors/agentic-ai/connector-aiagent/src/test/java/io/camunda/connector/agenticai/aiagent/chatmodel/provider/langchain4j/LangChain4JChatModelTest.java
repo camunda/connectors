@@ -47,8 +47,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
@@ -95,8 +93,8 @@ class LangChain4JChatModelTest {
   private static final ConversationSnapshot SNAPSHOT =
       new ConversationSnapshot(INPUT_MESSAGES, TOOL_DEFINITIONS);
 
-  private static final ProviderConfiguration PROVIDER_CONFIGURATION =
-      new AnthropicProviderConfiguration(null);
+  private static final ToolCallMetadataCodec TOOL_CALL_METADATA_CODEC =
+      ToolCallMetadataCodec.none("test-provider");
 
   @Mock private ChatMessageConverter chatMessageConverter;
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
@@ -118,13 +116,13 @@ class LangChain4JChatModelTest {
     lenient().when(chatModel.chat(chatRequestCaptor.capture())).thenReturn(chatResponse);
     lenient().when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
     lenient()
-        .when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+        .when(chatMessageConverter.toAssistantMessage(chatResponse, TOOL_CALL_METADATA_CODEC))
         .thenReturn(ASSISTANT_MESSAGE);
 
     api =
         new LangChain4JChatModel(
             chatModel,
-            PROVIDER_CONFIGURATION,
+            TOOL_CALL_METADATA_CODEC,
             chatMessageConverter,
             toolSpecificationConverter,
             jsonSchemaConverter,
@@ -141,7 +139,8 @@ class LangChain4JChatModelTest {
   // stubbed per-test rather than in setUp() (not every test calls execute(), e.g.
   // closeClosesTheUnderlyingChatModel), so a strict, non-lenient stub is used only where needed
   private void mockChatMessageConverterMapsInputMessages() {
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
   }
 
   @Test
@@ -166,14 +165,15 @@ class LangChain4JChatModelTest {
   @Test
   void throwsContentFilteredExceptionForContentFilteredResponse() {
     reset(chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
     when(chatResponse.tokenUsage()).thenReturn(new TokenUsage(5, 6));
 
     final var filteredAssistantMessage =
         AssistantMessage.builder()
             .stopReason(new StopReason.UnknownStopReason("CONTENT_FILTER"))
             .build();
-    when(chatMessageConverter.toAssistantMessage(chatResponse, PROVIDER_CONFIGURATION))
+    when(chatMessageConverter.toAssistantMessage(chatResponse, TOOL_CALL_METADATA_CODEC))
         .thenReturn(filteredAssistantMessage);
 
     assertThatThrownBy(() -> api.execute(new ChatRequest(createExecutionContext(), SNAPSHOT)))
@@ -189,7 +189,8 @@ class LangChain4JChatModelTest {
   @Test
   void wrapsUnderlyingExceptionsInConnectorException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));
@@ -208,7 +209,8 @@ class LangChain4JChatModelTest {
   @Test
   void usesExceptionClassIfNoMessageIncludedInException() {
     reset(chatModel, chatResponse, chatMessageConverter);
-    when(chatMessageConverter.map(INPUT_MESSAGES, PROVIDER_CONFIGURATION)).thenReturn(L4J_MESSAGES);
+    when(chatMessageConverter.map(INPUT_MESSAGES, TOOL_CALL_METADATA_CODEC))
+        .thenReturn(L4J_MESSAGES);
 
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(dev.langchain4j.model.chat.request.ChatRequest.class));

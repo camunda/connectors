@@ -6,11 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.configuration;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.LogEventsTestSupport.logsOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
@@ -40,8 +44,11 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
@@ -54,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
@@ -80,6 +88,7 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocT
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -90,6 +99,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.validation.FieldError;
 
 class AgenticAiConnectorsAutoConfigurationTest {
@@ -129,6 +139,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentSubProcessV2Function.class,
           AgentInstanceClient.class,
           ChatModelRegistry.class,
+          AgenticAiRemovedPropertiesWarning.class,
           AnthropicChatModelFactory.class,
           BedrockConverseChatModelFactory.class,
           OpenAiChatModelFactory.class,
@@ -136,6 +147,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
+          ChatModelHttpProxySupport.class,
           DocumentToContentConverter.class,
           ContentConverter.class,
           ToolCallConverter.class,
@@ -143,9 +155,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ToolSpecificationConverter.class,
           ChatMessageConverter.class);
 
-  // this will need to be updated in case we support different frameworks
-  private static final List<Class<?>> ALL_BEANS =
-      Stream.concat(AGENTIC_AI_BEANS.stream(), LANGCHAIN4J_BEANS.stream()).toList();
+  // the LangChain4j bridge loads only with a LangChain4JChatModelFactory bean
+  private static final List<Class<?>> ALL_BEANS = AGENTIC_AI_BEANS;
+
+  private static final String REMOVED_PROPERTY_WARNING =
+      "The configuration property 'camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2' is removed and has no effect: v1 provider configurations always run on the native providers. Remove it from the configuration.";
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
@@ -164,6 +178,109 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
         .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
+  }
+
+  @Test
+  void whenRemovedPropertyIsSet_thenLogsAWarning() {
+    final var events =
+        logsOf(
+            AgenticAiRemovedPropertiesWarning.class,
+            () ->
+                contextRunner
+                    .withPropertyValues(
+                        "camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2=false")
+                    .run(context -> assertThat(context).hasNotFailed()));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(Level.WARN, REMOVED_PROPERTY_WARNING));
+  }
+
+  @Test
+  void whenRemovedPropertyIsSetAsEnvironmentVariable_thenLogsAWarning() {
+    final var events =
+        logsOf(
+            AgenticAiRemovedPropertiesWarning.class,
+            () ->
+                contextRunner
+                    .withInitializer(context ->
+                        context
+                            .getEnvironment()
+                            .getPropertySources()
+                            .addFirst(
+                                new SystemEnvironmentPropertySource(
+                                    "test-systemEnvironment",
+                                    Map.of(
+                                        "CAMUNDA_CONNECTOR_AGENTICAI_AIAGENT_REWRITEV1PROVIDERCONFIGTOV2",
+                                        "false"))))
+                    .run(context -> assertThat(context).hasNotFailed()));
+
+    assertThat(events)
+        .extracting(ILoggingEvent::getLevel, ILoggingEvent::getFormattedMessage)
+        .containsExactly(tuple(Level.WARN, REMOVED_PROPERTY_WARNING));
+  }
+
+  @Nested
+  class LangChain4JBridge {
+
+    @Test
+    void whenNoLangChain4JChatModelFactoryIsRegistered_thenNoLangChain4JBeansAreCreated() {
+      contextRunner.run(context -> assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_BEANS));
+    }
+
+    @Test
+    void whenALangChain4JChatModelFactoryIsRegistered_thenTheLangChain4JBeansAreCreated() {
+      contextRunner
+          .withUserConfiguration(LangChain4JFactoryConfig.class)
+          .run(context -> assertHasAllBeansOf(context, LANGCHAIN4J_BEANS));
+    }
+
+    static class LangChain4JFactoryConfig {
+      @Bean
+      TestLangChain4JChatModelFactory testLangChain4JChatModelFactory(
+          ChatMessageConverter chatMessageConverter,
+          ToolSpecificationConverter toolSpecificationConverter,
+          JsonSchemaConverter jsonSchemaConverter) {
+        return new TestLangChain4JChatModelFactory(
+            chatMessageConverter, toolSpecificationConverter, jsonSchemaConverter);
+      }
+
+      static class TestLangChain4JChatModelFactory
+          extends LangChain4JChatModelFactory<CustomChatModelConfiguration> {
+
+        TestLangChain4JChatModelFactory(
+            ChatMessageConverter chatMessageConverter,
+            ToolSpecificationConverter toolSpecificationConverter,
+            JsonSchemaConverter jsonSchemaConverter) {
+          super(
+              CustomChatModelConfiguration.class,
+              chatMessageConverter,
+              toolSpecificationConverter,
+              jsonSchemaConverter);
+        }
+
+        @Override
+        public boolean supports(ChatModelConfiguration configuration) {
+          return configuration instanceof CustomChatModelConfiguration custom
+              && "test".equals(custom.providerType());
+        }
+
+        @Override
+        protected CloseableChatModel createChatModel(CustomChatModelConfiguration configuration) {
+          return mock(CloseableChatModel.class);
+        }
+      }
+    }
+  }
+
+  @Test
+  void whenNoRemovedPropertyIsSet_thenLogsNoWarning() {
+    final var events =
+        logsOf(
+            AgenticAiRemovedPropertiesWarning.class,
+            () -> contextRunner.run(context -> assertThat(context).hasNotFailed()));
+
+    assertThat(events).isEmpty();
   }
 
   @Test

@@ -70,7 +70,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
-import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend;
@@ -131,6 +130,16 @@ class CamundaAgentInstanceClientTest {
   private static final long AGENT_INSTANCE_KEY = 999L;
 
   private static final String DEFAULT_LEASE_TOKEN = "lease-token-default";
+
+  private static OpenAiChatModelConfiguration openAiChatModel(String model) {
+    return new OpenAiChatModelConfiguration(
+        new OpenAiChatModelConfiguration.OpenAiConnection(
+            new OpenAiCompletionsApi(null),
+            new OpenAiApiBackend(
+                new OpenAiApiConnection("sk-test", null, null, null, null, null, null)),
+            new OpenAiChatModelConfiguration.OpenAiModel(model),
+            null));
+  }
 
   @Mock private CamundaClient camundaClient;
 
@@ -254,7 +263,7 @@ class CamundaAgentInstanceClientTest {
                 .isEqualTo(executionContext.configuration().fingerprint());
             assertThat(item.getLoopIteration()).isEqualTo(1);
             assertThat(item.getModel()).isEqualTo("gpt-4o");
-            assertThat(item.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+            assertThat(item.getProvider()).isEqualTo("openai/completions/openai-api");
             assertThat(item.getSystemPrompt())
                 .singleElement()
                 .isInstanceOfSatisfying(
@@ -618,9 +627,7 @@ class CamundaAgentInstanceClientTest {
         @Nullable Integer maxModelCalls,
         String model) {
       return new AgentConfiguration(
-              new OpenAiProviderConfiguration(
-                  new OpenAiProviderConfiguration.OpenAiConnection(
-                      null, null, new OpenAiProviderConfiguration.OpenAiModel(model, null))),
+              openAiChatModel(model),
               new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
               null,
               null,
@@ -796,7 +803,7 @@ class CamundaAgentInstanceClientTest {
       // a CONFIGURATION item has no natural content of its own
       assertThat(configurationItem.getContent()).isEmpty();
       assertThat(configurationItem.getModel()).isEqualTo("gpt-4o");
-      assertThat(configurationItem.getProvider()).isEqualTo(OpenAiProviderConfiguration.OPENAI_ID);
+      assertThat(configurationItem.getProvider()).isEqualTo("openai/completions/openai-api");
       assertThat(configurationItem.getSystemPrompt())
           .singleElement()
           .isInstanceOfSatisfying(
@@ -1253,9 +1260,7 @@ class CamundaAgentInstanceClientTest {
 
     private AgentConfiguration configuration() {
       return new AgentConfiguration(
-          new OpenAiProviderConfiguration(
-              new OpenAiProviderConfiguration.OpenAiConnection(
-                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          openAiChatModel("gpt-4o"),
           new PromptConfiguration.SystemPromptConfiguration("Be nice."),
           null,
           null,
@@ -1595,9 +1600,7 @@ class CamundaAgentInstanceClientTest {
 
     private AgentConfiguration configuration() {
       return new AgentConfiguration(
-          new OpenAiProviderConfiguration(
-              new OpenAiProviderConfiguration.OpenAiConnection(
-                  null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null))),
+          openAiChatModel("gpt-4o"),
           new PromptConfiguration.SystemPromptConfiguration("Be nice."),
           null,
           null,
@@ -1773,10 +1776,7 @@ class CamundaAgentInstanceClientTest {
           new LimitsConfiguration(10), DEFAULT_LEASE_TOKEN, chatModel);
     }
 
-    private static final ChatModelConfiguration DEFAULT_CHAT_MODEL =
-        new OpenAiProviderConfiguration(
-            new OpenAiProviderConfiguration.OpenAiConnection(
-                null, null, new OpenAiProviderConfiguration.OpenAiModel("gpt-4o", null)));
+    private static final ChatModelConfiguration DEFAULT_CHAT_MODEL = openAiChatModel("gpt-4o");
 
     private final TestJobContext jobContext;
 

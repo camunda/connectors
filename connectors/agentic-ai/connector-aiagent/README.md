@@ -7,7 +7,7 @@ Execute a single AI-powered action with tool calling capabilities
 
 The AI Agent connectors: the AI Agent Task on a service task and the AI Agent Sub-process on an ad-hoc
 sub-process, both in v1 and v2. The module holds the agent orchestration, the chat model providers
-(native and LangChain4j), the conversation stores (in-process, Camunda document and AWS AgentCore) and
+(native, and a LangChain4j bridge for custom providers), the conversation stores (in-process, Camunda document and AWS AgentCore) and
 the agent instance client.
 
 ## Key types
@@ -35,6 +35,7 @@ the agent instance client.
 - [AWS AgentCore memory storage](docs/aws-agentcore-memory.md)
 - [Chat model implementation](docs/chat-model.md)
 - [LangChain4j chat models](docs/langchain4j-chat-model.md)
+- [Custom LangChain4j provider](docs/custom-langchain4j-provider.md)
 - [Native providers](docs/native-providers.md)
 - [System prompt composition](docs/system-prompt.md)
 - [Response handling](docs/response-handling.md)

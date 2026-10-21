@@ -260,11 +260,10 @@ public class GeminiContentRequestConverter {
    * Gemini 3 stamps on the original call -- Gemini 3 rejects a follow-up tool-calling request whose
    * replayed {@code functionCall} dropped it. {@code
    * GeminiContentResponseConverter#toolCallMetadata} captures that signature onto {@link
-   * ToolCall#metadata()}, namespaced under {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID}
-   * exactly like {@code ToolCallMetadataDecorator} does for the langchain4j path; this reads it
-   * back from that same key. Absent for a Gemini 2.5 response (no signature to begin with) or a
-   * conversation persisted before this was captured -- the field is omitted rather than failing in
-   * that case.
+   * ToolCall#metadata()}, namespaced under {@link GeminiChatModelConfiguration#GOOGLE_GEMINI_ID};
+   * this reads it back from that same key. Absent for a Gemini 2.5 response (no signature to begin
+   * with) or a conversation persisted before this was captured -- the field is omitted rather than
+   * failing in that case.
    */
   private Part toFunctionCallPart(ToolCall toolCall) {
     final Part part =

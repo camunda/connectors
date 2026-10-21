@@ -13,17 +13,16 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import java.util.List;
 
 public interface ChatMessageConverter {
 
-  default List<ChatMessage> map(Message message, ProviderConfiguration providerConfiguration) {
+  default List<ChatMessage> map(Message message, ToolCallMetadataCodec toolCallMetadataCodec) {
     return switch (message) {
       case SystemMessage systemMessage -> List.of(fromSystemMessage(systemMessage));
       case UserMessage userMessage -> List.of(fromUserMessage(userMessage));
       case AssistantMessage assistantMessage ->
-          List.of(fromAssistantMessage(assistantMessage, providerConfiguration));
+          List.of(fromAssistantMessage(assistantMessage, toolCallMetadataCodec));
       case ToolCallResultMessage toolCallResultMessage ->
           fromToolCallResultMessage(toolCallResultMessage).stream()
               .map(ChatMessage.class::cast)
@@ -33,9 +32,9 @@ public interface ChatMessageConverter {
   }
 
   default List<ChatMessage> map(
-      List<Message> messages, ProviderConfiguration providerConfiguration) {
+      List<Message> messages, ToolCallMetadataCodec toolCallMetadataCodec) {
     return messages.stream()
-        .map(message -> map(message, providerConfiguration))
+        .map(message -> map(message, toolCallMetadataCodec))
         .flatMap(List::stream)
         .toList();
   }
@@ -45,10 +44,10 @@ public interface ChatMessageConverter {
   dev.langchain4j.data.message.UserMessage fromUserMessage(UserMessage userMessage);
 
   dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration);
+      AssistantMessage assistantMessage, ToolCallMetadataCodec toolCallMetadataCodec);
 
   AssistantMessage toAssistantMessage(
-      ChatResponse chatResponse, ProviderConfiguration providerConfiguration);
+      ChatResponse chatResponse, ToolCallMetadataCodec toolCallMetadataCodec);
 
   List<dev.langchain4j.data.message.ToolExecutionResultMessage> fromToolCallResultMessage(
       ToolCallResultMessage toolCallResultMessage);

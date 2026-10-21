@@ -12,46 +12,84 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.CloseableChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.LangChain4JChatModel;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ToolCallMetadataCodec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetricsTokenUsageBuilder;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Adapts one LangChain4j provider to the chat model SPI. {@link #supports} matches a {@link
- * ProviderConfiguration} whose {@link ProviderConfiguration#provider()} equals {@link
- * #providerType()}, and {@link #create} builds the underlying LangChain4j chat model once via
- * {@link #createChatModel} and wraps it in a {@link LangChain4JChatModel}. Each built-in provider
- * is a concrete subclass supplying its own discriminator and model construction logic, registered
- * as its own bean so an individual provider's implementation can be swapped without touching the
- * others.
+ * Base class for a {@link ChatModelFactory} that backs its chat models with LangChain4j. A subclass
+ * supplies the configuration type, {@link #supports} and {@link #createChatModel}, and can override
+ * the tool call metadata hooks to carry provider data such as thought signatures.
  *
- * @param <T> the {@link ProviderConfiguration} subtype this factory handles
+ * @param <T> the {@link ChatModelConfiguration} subtype this factory handles
  */
-public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguration>
+public abstract class LangChain4JChatModelFactory<T extends ChatModelConfiguration>
     implements ChatModelFactory {
 
+  private final Class<T> configurationType;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
 
   protected LangChain4JChatModelFactory(
+      Class<T> configurationType,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter) {
+    this.configurationType = configurationType;
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
   }
 
-  /** Identifier of the provider this factory is responsible for. */
-  public abstract String providerType();
+  /**
+   * Creates a {@link CloseableChatModel} instance from the given configuration. The connector
+   * creates one model per request and closes it afterwards.
+   */
+  protected abstract CloseableChatModel createChatModel(T configuration);
 
-  /** Creates a {@link CloseableChatModel} instance from the given configuration. */
-  public abstract CloseableChatModel createChatModel(T providerConfiguration);
+  /**
+   * Whether this factory serves the configuration. Match only the configurations that this factory
+   * owns: the registry fails when no factory or more than one factory matches. The configuration is
+   * not necessarily of the type {@code T}, so check the type first.
+   */
+  @Override
+  public abstract boolean supports(ChatModelConfiguration configuration);
+
+  /**
+   * Extracts the provider data to persist on one tool call from the attributes of a response, for
+   * example the thought signature of the call. The default carries nothing. The connector persists
+   * the result under the provider ID of the configuration, and returns it to {@link
+   * #readToolCallMetadata} only for the same provider.
+   *
+   * @param aiMessageAttributes the full, flat attributes of the {@code AiMessage} (never empty)
+   * @return the data to persist for the tool call, empty if there is none
+   */
+  protected Map<String, Object> writeToolCallMetadata(
+      T configuration, String toolCallId, Map<String, Object> aiMessageAttributes) {
+    return Map.of();
+  }
+
+  /**
+   * Restores the attributes of a replayed {@code AiMessage} from the data that {@link
+   * #writeToolCallMetadata} persisted for one tool call. The default carries nothing.
+   *
+   * @param providerMetadata the persisted data of the tool call (never empty, untyped since it
+   *     round-tripped through a process variable)
+   * @return the entries to put on the attributes of the replayed message, keyed the way LangChain4j
+   *     expects. LangChain4j keeps one attribute map per message, so the entries of all tool calls
+   *     of the message are merged into it: make each key unique per tool call, for example by
+   *     including the tool call ID
+   */
+  protected Map<String, Object> readToolCallMetadata(
+      T configuration, String toolCallId, Map<?, ?> providerMetadata) {
+    return Map.of();
+  }
 
   /**
    * Maps the base input/output counts on every {@link TokenUsage}. Subclasses override this to
@@ -81,21 +119,28 @@ public abstract class LangChain4JChatModelFactory<T extends ProviderConfiguratio
   }
 
   @Override
-  public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof ProviderConfiguration provider
-        && providerType().equals(provider.provider());
-  }
+  public final ChatModel create(ChatModelConfiguration configuration) {
+    if (!configurationType.isInstance(configuration)) {
+      throw new IllegalArgumentException(
+          "%s cannot create a chat model for a configuration of type %s, expected %s"
+              .formatted(
+                  getClass().getSimpleName(),
+                  configuration.getClass().getName(),
+                  configurationType.getName()));
+    }
 
-  @Override
-  public ChatModel create(ChatModelConfiguration configuration) {
-    final var providerConfiguration = (ProviderConfiguration) configuration;
-
-    @SuppressWarnings("unchecked")
-    final var chatModel = createChatModel((T) providerConfiguration);
+    final var typedConfiguration = configurationType.cast(configuration);
+    final var toolCallMetadataCodec =
+        new ToolCallMetadataCodec(
+            configuration.provider(),
+            (toolCallId, attributes) ->
+                writeToolCallMetadata(typedConfiguration, toolCallId, attributes),
+            (toolCallId, providerMetadata) ->
+                readToolCallMetadata(typedConfiguration, toolCallId, providerMetadata));
 
     return new LangChain4JChatModel(
-        chatModel,
-        providerConfiguration,
+        createChatModel(typedConfiguration),
+        toolCallMetadataCodec,
         chatMessageConverter,
         toolSpecificationConverter,
         jsonSchemaConverter,

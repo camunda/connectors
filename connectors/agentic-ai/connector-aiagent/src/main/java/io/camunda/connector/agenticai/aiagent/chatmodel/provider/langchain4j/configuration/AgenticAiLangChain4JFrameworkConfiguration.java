@@ -9,21 +9,31 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.co
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverterImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverterImpl;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.factory.LangChain4JChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverterImpl;
+import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * The LangChain4j bridge. It loads only when the application registers a {@link
+ * LangChain4JChatModelFactory} bean, so a runtime without a custom LangChain4j provider carries
+ * none of it.
+ */
 @Configuration
+@ConditionalOnBean(LangChain4JChatModelFactory.class)
 public class AgenticAiLangChain4JFrameworkConfiguration {
 
   @Bean
@@ -68,5 +78,12 @@ public class AgenticAiLangChain4JFrameworkConfiguration {
       ToolCallConverter toolCallConverter,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelHttpProxySupport langChain4JChatModelHttpProxySupport(
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new ChatModelHttpProxySupport(httpProxySupport.getJdkHttpClientProxyConfigurator());
   }
 }

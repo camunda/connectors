@@ -83,6 +83,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.env.Environment;
 
 @AutoConfiguration(
     after = {AgenticAiCommonAutoConfiguration.class, AgenticAiToolsSchemaAutoConfiguration.class})
@@ -93,6 +94,13 @@ import org.springframework.context.annotation.Scope;
   AgenticAiNativeProvidersConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgenticAiRemovedPropertiesWarning agenticAiRemovedPropertiesWarning(
+      Environment environment) {
+    return new AgenticAiRemovedPropertiesWarning(environment);
+  }
 
   @Bean
   @ConditionalOnMissingBean

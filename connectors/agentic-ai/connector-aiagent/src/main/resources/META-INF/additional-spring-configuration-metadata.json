@@ -11,6 +11,15 @@
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the AI Agent Ad-Hoc Sub-Process job worker.",
       "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2",
+      "type": "java.lang.Boolean",
+      "description": "Removed. v1 provider configurations always run on the native providers.",
+      "deprecation": {
+        "level": "error",
+        "reason": "The property is removed and has no effect. v1 provider configurations always run on the native providers."
+      }
     }
   ]
 }

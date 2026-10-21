@@ -31,7 +31,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
 | [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content` |
 | [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading stored messages, the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history, rollbacks |
-| [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom factories for the v1 provider types |
+| [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom LangChain4j factories |
 
 ### Module split
 
@@ -429,8 +429,18 @@ applies it to its persisted context, and the next round continues with the conte
 ### V1 provider configuration
 
 The switch `camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2` is removed. v1 provider
-configurations (legacy element templates) are always rewritten to their v2 equivalent and run on the native providers.
-A runtime that set the switch to `false` must remove the property and move to the native providers.
+configurations always run on the native providers, and the connector logs a warning at startup while the property is
+set.
+
+The LangChain4j vendor factories and their dependencies are removed. A generic bridge for custom providers stays
+([ADR 019](adr/019-langchain4j-extension-bridge.md), [how to use it](../connector-aiagent/docs/custom-langchain4j-provider.md)).
+It loads only when you register a `LangChain4JChatModelFactory` bean. If you have a custom factory:
+
+- `LangChain4JChatModelFactory<T>` is generic over `ChatModelConfiguration`, its constructor takes the configuration
+  type, and `providerType()` is removed. `supports` is abstract, `create` is final and `createChatModel` is protected.
+- `ToolCallMetadataDecorator` is replaced by the factory hooks `writeToolCallMetadata` and `readToolCallMetadata`.
+- `ChatMessageConverter` and `LangChain4JChatModel` take a `ToolCallMetadataCodec` instead of the v1 `ProviderConfiguration`.
+- The v1 `ProviderConfiguration` records no longer implement `ChatModelConfiguration`.
 
 ## Camunda 8.9 to 8.10
 

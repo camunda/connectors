@@ -23,12 +23,11 @@ request. It exposes just `provider()` (the provider discriminator) and `model()`
 identifier) — enough for routing and agent-instance reporting — and is the type carried through
 `AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
 own configuration through the SPI rather than being confined to the module's built-in provider union.
-The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
-etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
-configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `request/v2`), which is the extension point for both built-in native providers and
-user-supplied factories via `CustomProviderConfiguration` (see [`extension-points.md`](../../docs/architecture/extension-points.md#add-an-llm-provider)).
+The v2 request types (`ProviderConfiguration` in `request/v2`) are the concrete implementations contributed by this
+module. They are the extension point for both built-in native providers and user-supplied factories via
+`CustomProviderConfiguration` (see [`extension-points.md`](../../docs/architecture/extension-points.md#add-an-llm-provider)).
+The v1 request binds the sealed `ProviderConfiguration` in `request/v1`, which is not a `ChatModelConfiguration`: the
+v1 functions map it to the equivalent v2 configuration before the registry sees it.
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
