@@ -81,6 +81,11 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-mistral</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -192,11 +197,13 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>com.openai</groupId>
       <artifactId>openai-java-core</artifactId>
       <version>${version.openai-java}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.openai</groupId>
       <artifactId>openai-java-client-okhttp</artifactId>
       <version>${version.openai-java}</version>
+      <scope>test</scope>
     </dependency>
 
     <!--

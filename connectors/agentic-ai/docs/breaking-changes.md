@@ -43,6 +43,7 @@ new group `io.camunda.connector.agenticai`:
 | `aiagent-azure-support` | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support |
 | `aiagent-aws-support` | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support |
 | `aiagent-provider-openai` | `aiagent.chatmodel.provider.openai` | Native OpenAI provider |
+| `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |

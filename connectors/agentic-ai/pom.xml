@@ -50,6 +50,7 @@
     <module>aiagent-azure-support</module>
     <module>aiagent-aws-support</module>
     <module>aiagent-provider-openai</module>
+    <module>aiagent-provider-mistral</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
     <module>connector-mcp</module>

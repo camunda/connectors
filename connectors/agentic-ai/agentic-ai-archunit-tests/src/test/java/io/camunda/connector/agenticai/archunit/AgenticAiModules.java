@@ -44,6 +44,11 @@ enum AgenticAiModules {
       "ProviderOpenAi",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.openai")),
+  PROVIDER_MISTRAL(
+      "aiagent-provider-mistral",
+      "ProviderMistral",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.mistral")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),
