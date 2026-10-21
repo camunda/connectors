@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION;
-import static io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -204,7 +203,8 @@ public class BedrockConverseRequestConverter {
 
   private @Nullable Object bedrockMetadataValue(ToolCall toolCall, String key) {
     final Map<String, Object> metadata = toolCall.metadata();
-    if (metadata == null || !(metadata.get(BEDROCK_CONVERSE_ID) instanceof Map<?, ?> bedrock)) {
+    if (metadata == null
+        || !(metadata.get(BedrockConfiguration.PROVIDER) instanceof Map<?, ?> bedrock)) {
       return null;
     }
     return bedrock.get(key);

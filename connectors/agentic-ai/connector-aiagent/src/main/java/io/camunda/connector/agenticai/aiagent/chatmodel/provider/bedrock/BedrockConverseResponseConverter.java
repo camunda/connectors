@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock;
 
 import static io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
-import static io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BEDROCK_CONVERSE_ID;
 
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException.PartialResult;
@@ -129,14 +128,14 @@ public class BedrockConverseResponseConverter {
         // skipped, since silently dropping a block would change the conversation.
         content.add(
             new ProviderContent(
-                BEDROCK_CONVERSE_ID, BedrockConverseSdkPojoCodec.capture(block), null));
+                BedrockConfiguration.PROVIDER, BedrockConverseSdkPojoCodec.capture(block), null));
       }
     }
 
     final String rawStopReason = response.stopReasonAsString();
     final Map<String, Object> bedrockMetadata =
         rawStopReason != null
-            ? Map.of(BEDROCK_CONVERSE_ID, Map.of(METADATA_STOP_REASON, rawStopReason))
+            ? Map.of(BedrockConfiguration.PROVIDER, Map.of(METADATA_STOP_REASON, rawStopReason))
             : Map.of();
 
     return AssistantMessage.builder()
@@ -218,7 +217,7 @@ public class BedrockConverseResponseConverter {
       payload.put("reasoningText", reasoningText);
     }
 
-    return new ReasoningContent(BEDROCK_CONVERSE_ID, payload, text, null);
+    return new ReasoningContent(BedrockConfiguration.PROVIDER, payload, text, null);
   }
 
   /**
@@ -241,7 +240,7 @@ public class BedrockConverseResponseConverter {
       Map<String, Object> captured, String... mappedKeys) {
     final Map<String, Object> raw = new LinkedHashMap<>(captured);
     raw.keySet().removeAll(Set.of(mappedKeys));
-    return raw.isEmpty() ? null : Map.of(BEDROCK_CONVERSE_ID, raw);
+    return raw.isEmpty() ? null : Map.of(BedrockConfiguration.PROVIDER, raw);
   }
 
   private AgentMetrics toMetrics(ConverseResponse response, int toolCalls) {
