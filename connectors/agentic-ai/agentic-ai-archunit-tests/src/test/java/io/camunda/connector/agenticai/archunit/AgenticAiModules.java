@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.archunit;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -28,6 +27,11 @@ enum AgenticAiModules {
       "ProviderSupport",
       Kind.LIBRARY,
       under("aiagent.chatmodel.connection").or(under("aiagent.chatmodel.envelope"))),
+  AZURE_SUPPORT(
+      "aiagent-azure-support",
+      "AzureSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.azure").or(under("aiagent.proxy.azure"))),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),
@@ -41,13 +45,13 @@ enum AgenticAiModules {
       "connector-aiagent",
       "AiAgent",
       Kind.CONNECTOR,
-      under("aiagent")
-          .and(
-              resideOutsideOfPackages(
-                  pkg("aiagent.model.."),
-                  pkg("aiagent.api.."),
-                  pkg("aiagent.chatmodel.connection.."),
-                  pkg("aiagent.chatmodel.envelope.."))));
+      DescribedPredicate.describe(
+          "reside in the AI Agent package root, outside the roots of the other modules",
+          javaClass ->
+              under("aiagent").test(javaClass)
+                  && Arrays.stream(values())
+                      .filter(module -> !module.artifactId.equals("connector-aiagent"))
+                      .noneMatch(module -> module.root.test(javaClass))));
 
   /** What a module is: shared code, a connector of its own, or the glue between two connectors. */
   enum Kind {

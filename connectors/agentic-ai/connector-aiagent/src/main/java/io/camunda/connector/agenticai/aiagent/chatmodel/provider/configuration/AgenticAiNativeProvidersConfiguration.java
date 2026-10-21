@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.Anthr
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.CredentialCacheSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
@@ -90,8 +91,11 @@ public class AgenticAiNativeProvidersConfiguration {
   public EntraIdTokenCredentialFactory aiAgentEntraIdTokenCredentialFactory(
       AgenticAiConnectorsConfigurationProperties configuration,
       AzureHttpProxySupport azureHttpProxySupport) {
+    final var cache = configuration.aiagent().chatModel().azure().credentialCache();
     return new EntraIdTokenCredentialFactory(
-        azureHttpProxySupport, configuration.aiagent().chatModel().azure().credentialCache());
+        azureHttpProxySupport,
+        new CredentialCacheSettings(
+            cache.enabled(), cache.maximumSize(), cache.expireAfterAccess()));
   }
 
   @Bean

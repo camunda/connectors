@@ -32,9 +32,9 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.CredentialCacheSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
@@ -461,7 +461,7 @@ class AnthropicChatModelFactoryClientTest {
         new FoundryCredentialResolver(
             new EntraIdTokenCredentialFactory(
                 new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+                new CredentialCacheSettings(true, 100L, Duration.ofMinutes(10)))),
         backend,
         null);
   }

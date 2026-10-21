@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.HttpClientOptions;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.InetSocketAddress;
@@ -32,7 +31,7 @@ class EntraIdTokenCredentialFactoryTest {
 
   private final EntraIdTokenCredentialFactory factory =
       new EntraIdTokenCredentialFactory(
-          azureHttpProxySupport, new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)));
+          azureHttpProxySupport, new CredentialCacheSettings(true, 100L, Duration.ofMinutes(10)));
 
   @Test
   void reusesTheSameTokenCredentialForIdenticalClientCredentialsConfig() {

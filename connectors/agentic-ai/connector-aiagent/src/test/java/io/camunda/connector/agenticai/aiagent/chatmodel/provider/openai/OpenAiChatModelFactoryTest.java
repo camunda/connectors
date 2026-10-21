@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.CredentialCacheSettings;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.EntraIdTokenCredentialFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsContentChunkStrategy;
@@ -29,7 +30,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.r
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.responses.OpenAiResponsesStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
@@ -87,7 +87,7 @@ class OpenAiChatModelFactoryTest {
             new FoundryCredentialResolver(
                 new EntraIdTokenCredentialFactory(
                     new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
+                    new CredentialCacheSettings(true, 100L, Duration.ofMinutes(10)))),
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
                     OPENAI_ID,

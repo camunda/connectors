@@ -37,9 +37,10 @@ new group `io.camunda.connector.agenticai`:
 
 | Artifact | Package root | Contents |
 | ------------------------------- | --- | ------------------------------------------------------------------------- |
-| `connector-aiagent` | `aiagent` (except `model`, `api`, provider support) | AI Agent connectors, chat model providers, conversation stores |
+| `connector-aiagent` | `aiagent` (except `model`, `api`, support modules) | AI Agent connectors, chat model providers, conversation stores |
 | `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
+| `aiagent-azure-support` | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support |
 | `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope` | Vendor-neutral support of the chat model providers: connection settings, model call envelope |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
@@ -227,6 +228,8 @@ client in its properties does not start.
   element, or (sub-process flavor) the `includeAgentContext` flag, instead of the request records. The connector
   functions build them with `AgentExecutionContextTranslator` of `aiagent.translation`. `AgentTaskExecutionContext.tools()`
   is removed.
+- `EntraIdTokenCredentialFactory` takes `CredentialCacheSettings` (`aiagent.chatmodel.provider.azure`) instead of the
+  `CredentialCacheProperties` of the configuration properties. The property names do not change.
 - `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
 - The connection settings of the native providers are resolved by `ConnectionResolver` in
   `aiagent.chatmodel.connection`. The `ChatModelFactory` of the OpenAI, Anthropic, Mistral, Gemini and Bedrock

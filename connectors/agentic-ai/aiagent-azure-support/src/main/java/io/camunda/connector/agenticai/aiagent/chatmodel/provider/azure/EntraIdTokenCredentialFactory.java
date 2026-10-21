@@ -14,7 +14,6 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.http.client.authentication.cache.HashedCacheKey;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -56,13 +55,13 @@ public class EntraIdTokenCredentialFactory {
   private final AzureHttpProxySupport azureHttpProxySupport;
 
   public EntraIdTokenCredentialFactory(
-      AzureHttpProxySupport azureHttpProxySupport, CredentialCacheProperties properties) {
+      AzureHttpProxySupport azureHttpProxySupport, CredentialCacheSettings settings) {
     this.azureHttpProxySupport = azureHttpProxySupport;
-    final long maximumSize = properties.enabled() ? properties.maximumSize() : 0;
+    final long maximumSize = settings.enabled() ? settings.maximumSize() : 0;
     this.cache =
         Caffeine.newBuilder()
             .maximumSize(maximumSize)
-            .expireAfterAccess(properties.expireAfterAccess())
+            .expireAfterAccess(settings.expireAfterAccess())
             .build();
   }
 
