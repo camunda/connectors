@@ -59,6 +59,11 @@ enum AgenticAiModules {
       "ProviderGemini",
       Kind.LIBRARY,
       under("aiagent.chatmodel.provider.gemini")),
+  PROVIDER_BEDROCK(
+      "aiagent-provider-bedrock",
+      "ProviderBedrock",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.bedrock")),
   TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
