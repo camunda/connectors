@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.zeebe.client.api.JsonMapper;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Map;
@@ -42,7 +41,7 @@ import org.springframework.test.util.ReflectionTestUtils;
       "camunda.connector.polling.enabled=false"
     },
     classes = {TestConnectorRuntimeApplication.class})
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 public class ObjectMapperSerializationTest {
 
   @Autowired private JsonMapper jsonMapper;

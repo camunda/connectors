@@ -27,7 +27,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,7 +62,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DirtiesContext
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 public class SecurityConfigurationTest {
 
   // needed to access /actuator endpoints

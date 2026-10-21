@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.runtime.ConnectorsZeebeSpringTest;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ import org.springframework.test.context.event.annotation.BeforeTestClass;
       "camunda.connector.polling.enabled=false"
     },
     classes = {TestConnectorRuntimeApplication.class})
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 /*
 @TestPropertySource(properties = {
         "CONNECTOR_TEST2_FUNCTION=io.camunda.connector.http.HttpJsonFunction",

@@ -35,6 +35,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.ConnectorsZeebeSpringTest;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
@@ -47,7 +48,6 @@ import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +68,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true"
     })
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestZeebeTest {
