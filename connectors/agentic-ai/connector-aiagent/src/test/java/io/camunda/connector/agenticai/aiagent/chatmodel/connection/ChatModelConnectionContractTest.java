@@ -157,7 +157,8 @@ class ChatModelConnectionContractTest {
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
         return factories(proxy)
-            .aiAgentOpenAiChatModelFactory(resolver(proxy), om)
+            .aiAgentOpenAiChatModelFactory(
+                resolver(proxy), mock(FoundryCredentialResolver.class), om)
             .create(
                 new OpenAiConfiguration(
                     new OpenAiConfiguration.Api.Completions(null, null, null, null),
@@ -183,7 +184,8 @@ class ChatModelConnectionContractTest {
       ChatModel create(
           ProxyConfiguration proxy, String endpoint, Duration timeout, ObjectMapper om) {
         return factories(proxy)
-            .aiAgentAnthropicChatModelFactory(resolver(proxy), om)
+            .aiAgentAnthropicChatModelFactory(
+                resolver(proxy), mock(FoundryCredentialResolver.class), om)
             .create(
                 new AnthropicConfiguration(
                     new AnthropicConfiguration.Backend.Custom(
@@ -336,9 +338,7 @@ class ChatModelConnectionContractTest {
 
     static ConnectionResolver resolver(ProxyConfiguration proxy) {
       return new ConnectionResolver(
-          new AgenticAiHttpProxySupport(proxy),
-          mock(OAuthClientCredentialsTokenResolver.class),
-          mock(FoundryCredentialResolver.class));
+          new AgenticAiHttpProxySupport(proxy), mock(OAuthClientCredentialsTokenResolver.class));
     }
   }
 

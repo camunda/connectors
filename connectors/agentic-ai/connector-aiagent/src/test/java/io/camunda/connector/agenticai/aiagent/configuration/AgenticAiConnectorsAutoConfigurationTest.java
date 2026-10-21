@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionRes
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
@@ -400,6 +401,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         CustomAnthropicChatModelFactory() {
           super(
               mock(ConnectionResolver.class),
+              mock(FoundryCredentialResolver.class),
               mock(AnthropicMessageRequestConverter.class),
               mock(AnthropicMessageResponseConverter.class));
         }
@@ -422,6 +424,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
         CustomOpenAiChatModelFactory() {
           super(
               mock(ConnectionResolver.class),
+              mock(FoundryCredentialResolver.class),
               mock(OpenAiApiFamilyStrategy.class),
               mock(OpenAiApiFamilyStrategy.class));
         }

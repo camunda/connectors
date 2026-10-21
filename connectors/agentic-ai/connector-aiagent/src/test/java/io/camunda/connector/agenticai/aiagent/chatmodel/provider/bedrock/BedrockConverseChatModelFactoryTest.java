@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -114,8 +113,7 @@ class BedrockConverseChatModelFactoryTest {
       new BedrockConverseChatModelFactory(
           new ConnectionResolver(
               new AgenticAiHttpProxySupport(proxyConfiguration),
-              mock(OAuthClientCredentialsTokenResolver.class),
-              mock(FoundryCredentialResolver.class)),
+              mock(OAuthClientCredentialsTokenResolver.class)),
           proxySupport,
           requestConverter,
           responseConverter,

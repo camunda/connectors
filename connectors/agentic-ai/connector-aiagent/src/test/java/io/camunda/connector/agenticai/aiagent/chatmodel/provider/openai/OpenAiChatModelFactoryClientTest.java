@@ -565,8 +565,8 @@ class OpenAiChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new OpenAiChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport, oAuthClientCredentialsTokenResolver(), foundryCredentialResolver),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver()),
+            foundryCredentialResolver,
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
                     OPENAI_ID,

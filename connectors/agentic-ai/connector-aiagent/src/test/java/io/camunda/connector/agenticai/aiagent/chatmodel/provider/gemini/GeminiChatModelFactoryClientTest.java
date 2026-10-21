@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
@@ -195,9 +194,7 @@ class GeminiChatModelFactoryClientTest {
     final var factory =
         new GeminiChatModelFactory(
             new ConnectionResolver(
-                httpProxySupport,
-                mock(OAuthClientCredentialsTokenResolver.class),
-                mock(FoundryCredentialResolver.class)),
+                httpProxySupport, mock(OAuthClientCredentialsTokenResolver.class)),
             new GeminiContentRequestConverter(new GeminiContentConverter(objectMapper)),
             new GeminiContentResponseConverter());
     final var configuration =

@@ -83,13 +83,11 @@ class OpenAiChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new OpenAiChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport,
-                oAuthClientCredentialsTokenResolver,
-                new FoundryCredentialResolver(
-                    new EntraIdTokenCredentialFactory(
-                        new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                        new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))))),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver),
+            new FoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
             new OpenAiCompletionsStrategy(
                 new OpenAiCompletionsRequestConverter(
                     OPENAI_ID,

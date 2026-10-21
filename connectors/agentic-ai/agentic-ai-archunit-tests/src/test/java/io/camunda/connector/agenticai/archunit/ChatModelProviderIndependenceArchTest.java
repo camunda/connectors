@@ -17,8 +17,10 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.dependencies.SliceAssignment;
 import com.tngtech.archunit.library.dependencies.SliceIdentifier;
 import com.tngtech.archunit.library.dependencies.SliceRule;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Enforces the independence of the chat model providers: each vendor package below the provider
@@ -96,7 +98,7 @@ class ChatModelProviderIndependenceArchTest {
               AgenticAiModules.pkg("aiagent.chatmodel.envelope.."))
           .should()
           .dependOnClassesThat()
-          .resideInAnyPackage(vendorPackages())
+          .resideInAnyPackage(vendorAndVendorSupportPackages())
           .because(
               "the connection settings and the model call envelope are shared by all providers");
 
@@ -113,6 +115,13 @@ class ChatModelProviderIndependenceArchTest {
           .because(
               "the providers read their own domain configuration, which the translation builds"
                   + " from the request records");
+
+  private static String[] vendorAndVendorSupportPackages() {
+    return Stream.concat(
+            Arrays.stream(vendorPackages()),
+            Stream.of(PROVIDER_ROOT + ".azure..", PROVIDER_ROOT + ".aws.."))
+        .toArray(String[]::new);
+  }
 
   private static String[] vendorPackages() {
     return new String[] {

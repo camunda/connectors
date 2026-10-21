@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionSet
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelope;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
@@ -48,14 +49,17 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
   private static final String DEFAULT_ENDPOINT = "https://api.openai.com";
 
   private final ConnectionResolver connectionResolver;
+  private final FoundryCredentialResolver foundryCredentialResolver;
   private final OpenAiApiFamilyStrategy completionsStrategy;
   private final OpenAiApiFamilyStrategy responsesStrategy;
 
   public OpenAiChatModelFactory(
       ConnectionResolver connectionResolver,
+      FoundryCredentialResolver foundryCredentialResolver,
       OpenAiApiFamilyStrategy completionsStrategy,
       OpenAiApiFamilyStrategy responsesStrategy) {
     this.connectionResolver = connectionResolver;
+    this.foundryCredentialResolver = foundryCredentialResolver;
     this.completionsStrategy = completionsStrategy;
     this.responsesStrategy = responsesStrategy;
   }
@@ -170,11 +174,11 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       case FoundryAuthentication.ClientCredentials clientCredentials ->
           builder.credential(
               BearerTokenCredential.create(
-                  connectionResolver.bearerToken(clientCredentials, timeout)));
+                  foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout)));
       case FoundryAuthentication.ManagedIdentity managedIdentity ->
           builder.credential(
               BearerTokenCredential.create(
-                  connectionResolver.bearerToken(managedIdentity, timeout)));
+                  foundryCredentialResolver.bearerTokenSupplier(managedIdentity, timeout)));
     }
   }
 

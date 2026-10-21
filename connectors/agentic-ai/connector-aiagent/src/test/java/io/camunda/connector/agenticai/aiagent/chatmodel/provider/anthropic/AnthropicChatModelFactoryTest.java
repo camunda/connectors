@@ -63,13 +63,11 @@ class AnthropicChatModelFactoryTest {
   void setUp() {
     factory =
         new AnthropicChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport,
-                oAuthClientCredentialsTokenResolver,
-                new FoundryCredentialResolver(
-                    new EntraIdTokenCredentialFactory(
-                        new AzureHttpProxySupport(ProxyConfiguration.NONE),
-                        new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10))))),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver),
+            new FoundryCredentialResolver(
+                new EntraIdTokenCredentialFactory(
+                    new AzureHttpProxySupport(ProxyConfiguration.NONE),
+                    new CredentialCacheProperties(true, 100L, Duration.ofMinutes(10)))),
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper));
   }

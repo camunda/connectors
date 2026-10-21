@@ -29,7 +29,6 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -311,10 +310,7 @@ class MistralChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new MistralChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport,
-                oAuthClientCredentialsTokenResolver(),
-                mock(FoundryCredentialResolver.class)),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver()),
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
                 contentConverter,

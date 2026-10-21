@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.connection;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport.OkHttpProxy;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -20,8 +18,8 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Resolves the connection settings and the bearer tokens of the chat model providers. A provider
- * factory reads them from here and does not resolve timeouts, proxies or tokens by itself.
+ * Resolves the connection settings and the OAuth bearer tokens of the chat model providers. A
+ * provider factory reads them from here and does not resolve timeouts, proxies or tokens by itself.
  */
 public class ConnectionResolver {
 
@@ -34,15 +32,12 @@ public class ConnectionResolver {
 
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
-  private final FoundryCredentialResolver foundryCredentialResolver;
 
   public ConnectionResolver(
       AgenticAiHttpProxySupport httpProxySupport,
-      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver,
-      FoundryCredentialResolver foundryCredentialResolver) {
+      OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     this.httpProxySupport = httpProxySupport;
     this.oAuthClientCredentialsTokenResolver = oAuthClientCredentialsTokenResolver;
-    this.foundryCredentialResolver = foundryCredentialResolver;
   }
 
   /**
@@ -73,17 +68,5 @@ public class ConnectionResolver {
             oauth.audience(),
             oauth.clientAuthentication().oauthConstant(),
             oauth.scopes());
-  }
-
-  /** The access token of Microsoft Entra ID client credentials, requested for every call. */
-  public Supplier<String> bearerToken(
-      FoundryAuthentication.ClientCredentials credentials, Duration timeout) {
-    return foundryCredentialResolver.bearerTokenSupplier(credentials, timeout);
-  }
-
-  /** The access token of a Microsoft Entra ID managed identity, requested for every call. */
-  public Supplier<String> bearerToken(
-      FoundryAuthentication.ManagedIdentity identity, Duration timeout) {
-    return foundryCredentialResolver.bearerTokenSupplier(identity, timeout);
   }
 }

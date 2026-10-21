@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCal
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -22,7 +21,6 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -58,10 +56,7 @@ class MistralChatModelFactoryTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     factory =
         new MistralChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport,
-                oAuthClientCredentialsTokenResolver,
-                mock(FoundryCredentialResolver.class)),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver),
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
                 contentConverter,

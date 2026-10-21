@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.envelope.ModelCallEnvelo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.aws.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import java.time.Duration;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -31,14 +32,17 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
   private static final String DEFAULT_ENDPOINT = "https://api.anthropic.com";
 
   private final ConnectionResolver connectionResolver;
+  private final FoundryCredentialResolver foundryCredentialResolver;
   private final AnthropicMessageRequestConverter requestConverter;
   private final AnthropicMessageResponseConverter responseConverter;
 
   public AnthropicChatModelFactory(
       ConnectionResolver connectionResolver,
+      FoundryCredentialResolver foundryCredentialResolver,
       AnthropicMessageRequestConverter requestConverter,
       AnthropicMessageResponseConverter responseConverter) {
     this.connectionResolver = connectionResolver;
+    this.foundryCredentialResolver = foundryCredentialResolver;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
   }
@@ -160,10 +164,10 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
       case FoundryAuthentication.ApiKey apiKey -> backendBuilder.apiKey(apiKey.apiKey());
       case FoundryAuthentication.ClientCredentials clientCredentials ->
           backendBuilder.bearerTokenSupplier(
-              connectionResolver.bearerToken(clientCredentials, timeout));
+              foundryCredentialResolver.bearerTokenSupplier(clientCredentials, timeout));
       case FoundryAuthentication.ManagedIdentity managedIdentity ->
           backendBuilder.bearerTokenSupplier(
-              connectionResolver.bearerToken(managedIdentity, timeout));
+              foundryCredentialResolver.bearerTokenSupplier(managedIdentity, timeout));
     }
 
     builder.backend(backendBuilder.build());

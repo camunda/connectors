@@ -485,8 +485,8 @@ class AnthropicChatModelFactoryClientTest {
       @Nullable Duration timeout) {
     final var factory =
         new AnthropicChatModelFactory(
-            new ConnectionResolver(
-                httpProxySupport, oAuthClientCredentialsTokenResolver(), foundryCredentialResolver),
+            new ConnectionResolver(httpProxySupport, oAuthClientCredentialsTokenResolver()),
+            foundryCredentialResolver,
             new AnthropicMessageRequestConverter(new AnthropicContentConverter(objectMapper)),
             new AnthropicMessageResponseConverter(objectMapper));
     final var configuration =

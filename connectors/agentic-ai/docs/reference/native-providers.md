@@ -20,8 +20,9 @@ provider factory only adapts the result to the client builder of its SDK:
   default endpoint of the provider without one. A host which matches a non-proxy host pattern is not proxied. Bedrock
   keeps the AWS SDK proxy configuration of `AwsSdkHttpProxySupport`, which applies the same patterns.
 - **Bearer tokens.** `bearerToken(...)` returns the supplier of an OAuth 2.0 client credentials token (custom
-  endpoints) or of a Microsoft Entra ID token (Foundry), requested for every call. OpenAI and Mistral hand it to a
-  `BearerTokenCredential`, Anthropic to its request interceptor.
+  endpoints), requested for every call. OpenAI and Mistral hand it to a `BearerTokenCredential`, Anthropic to its
+  request interceptor. The resolver knows no vendor: the OpenAI and Anthropic factories get the supplier of a
+  Microsoft Entra ID token (Foundry) from the `FoundryCredentialResolver` of the Azure support.
 
 `ChatModelConnectionContractTest` runs every provider factory against a stub endpoint and holds the behavior
 together: the timeout is enforced, the call goes through the proxy, and a non-proxy host bypasses it.

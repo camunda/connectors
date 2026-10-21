@@ -8,14 +8,11 @@ package io.camunda.connector.agenticai.aiagent.chatmodel.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryAuthentication;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport.OkHttpProxy;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
@@ -37,9 +34,7 @@ class ConnectionResolverTest {
   private final AgenticAiHttpProxySupport proxySupport = mock(AgenticAiHttpProxySupport.class);
   private final OAuthClientCredentialsTokenResolver tokenResolver =
       mock(OAuthClientCredentialsTokenResolver.class);
-  private final FoundryCredentialResolver foundryResolver = mock(FoundryCredentialResolver.class);
-  private final ConnectionResolver resolver =
-      new ConnectionResolver(proxySupport, tokenResolver, foundryResolver);
+  private final ConnectionResolver resolver = new ConnectionResolver(proxySupport, tokenResolver);
 
   private final String previousNonProxyHosts = System.getProperty("http.nonProxyHosts");
 
@@ -116,20 +111,5 @@ class ConnectionResolverTest {
 
     assertThat(bearerToken.get()).isEqualTo("token-1");
     assertThat(bearerToken.get()).isEqualTo("token-2");
-  }
-
-  @Test
-  void delegatesTheEntraIdTokensToTheFoundryCredentialResolver() {
-    final var timeout = Duration.ofSeconds(7);
-    final var credentials =
-        new FoundryAuthentication.ClientCredentials("id", "secret", "tenant", null, null);
-    final var identity = new FoundryAuthentication.ManagedIdentity("mi", null);
-    when(foundryResolver.bearerTokenSupplier(eq(credentials), eq(timeout)))
-        .thenReturn(() -> "client-token");
-    when(foundryResolver.bearerTokenSupplier(eq(identity), eq(timeout)))
-        .thenReturn(() -> "identity-token");
-
-    assertThat(resolver.bearerToken(credentials, timeout).get()).isEqualTo("client-token");
-    assertThat(resolver.bearerToken(identity, timeout).get()).isEqualTo("identity-token");
   }
 }
