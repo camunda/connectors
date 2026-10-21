@@ -1900,16 +1900,19 @@ The module owns a framework-agnostic domain model in `io.camunda.connector.agent
   for the converters).
 - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
 
-### I3. Interface in package root, single `*Impl` alongside
+### I3. Interfaces only where they pay
 
-Public collaborators are interfaces; the single implementation is named `<Interface>Impl` in the same
-package (e.g. `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`). The convention is
-pervasive, so follow the nearest existing pair.
+Use an interface for an extension point of the extension API, for a type of the extension API that the framework
+implements and extension authors call (so members can be added without breaking them), and for a seam with at
+least two real adapters, such as a port with a production adapter and an in-memory fake. Use a concrete class in all
+other cases ([ADR 016](../adr/016-agent-core-and-provider-modules.md) D8).
 
-- **Rule**: depend on the interface (constructor injection); register the `Impl` as a Spring bean
-  (typically `@ConditionalOnMissingBean` so it can be overridden). Don't inject `*Impl` directly.
-- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review
-  checks that there is a single implementation and that it is registered as an overridable bean.
+- **Rule**: do not add an interface with a single `*Impl`. Existing pairs (for example `ConversationStoreRegistry` /
+  `ConversationStoreRegistryImpl`) stay until the class changes for another reason; follow the nearest existing pair
+  when you touch one. Depend on the interface or class through constructor injection and register the implementation
+  as a Spring bean, typically `@ConditionalOnMissingBean` so it can be overridden. Don't inject `*Impl` directly.
+- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review checks the
+  rest.
 
 ### I4. Extension points are plug-in SPIs
 

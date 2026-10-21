@@ -233,10 +233,13 @@ Do not break these (full statement and rationale in
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
-- **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
-  `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
-  named `FooImpl` implements the interface `Foo`; review checks the rest.
+- **Interfaces only where they pay.** Use an interface for an extension point of the extension API, for a
+  type of the extension API that the framework implements and extension authors call, and for a seam with at least
+  two real adapters (for example a production adapter and an in-memory fake). Use a concrete class in all other
+  cases; do not add an interface with a single `*Impl`. Existing pairs stay until the class changes for another
+  reason. Wire implementations as Spring beans and depend on the type, never on an `*Impl`. The architecture tests
+  check that a class named `FooImpl` implements the interface `Foo`; review checks the rest
+  ([ADR 016](docs/adr/016-agent-core-and-provider-modules.md) D8).
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
