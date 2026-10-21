@@ -79,18 +79,21 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 class ChatModelIdentityTest {
 
+  private static final V1ToV2ProviderConfigurationMapper MAPPER =
+      new V1ToV2ProviderConfigurationMapperImpl(
+          new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)), null));
+
   private static final AwsAuthentication AWS =
       new AwsAuthentication.AwsStaticCredentialsAuthentication("access", "secret");
   private static final FoundryAuthentication FOUNDRY =
       new FoundryAuthentication.ApiKeyAuthentication("key");
   private static final String URL = "https://example.com";
 
-  private static final V1ToV2ProviderConfigurationMapper MAPPER =
-      new V1ToV2ProviderConfigurationMapperImpl(
-          new ChatModelProperties(new ApiProperties(Duration.ofMinutes(3)), null));
+  private static final ChatModelConfigurationTranslator TRANSLATOR =
+      new ChatModelConfigurationTranslator(MAPPER, Duration.ofMinutes(3));
 
   private static ChatModelConfiguration resolve(ProviderConfiguration providerConfiguration) {
-    return providerConfiguration;
+    return TRANSLATOR.translate(providerConfiguration);
   }
 
   private static Arguments v1ChatModel(

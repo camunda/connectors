@@ -36,8 +36,9 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsC
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties;
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapperImpl;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
@@ -49,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -307,7 +309,6 @@ class MistralChatModelFactoryClientTest {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var factory =
         new MistralChatModelFactory(
-            chatModelProperties,
             httpProxySupport,
             new OpenAiCompletionsRequestConverter(
                 MISTRAL_ID,
@@ -320,20 +321,23 @@ class MistralChatModelFactoryClientTest {
             new MistralCompletionsStreamAssembler(),
             oAuthClientCredentialsTokenResolver());
     final var configuration =
-        new MistralChatModelConfiguration(
-            new MistralConnection(backend, new MistralModel(MODEL_ID), null, null));
+        new ChatModelConfigurationTranslator(
+                new V1ToV2ProviderConfigurationMapperImpl(chatModelProperties),
+                chatModelProperties.api().defaultTimeout())
+            .translate(
+                new MistralChatModelConfiguration(
+                    new MistralConnection(backend, new MistralModel(MODEL_ID), null, null)));
 
     try (ChatModel chatModel = factory.create(configuration)) {
       chatModel.execute(new ChatRequest(executionContext(configuration), snapshot()));
     }
   }
 
-  private static AgentExecutionContext executionContext(MistralChatModelConfiguration model) {
+  private static AgentExecutionContext executionContext(ChatModelConfiguration model) {
     final var agentConfiguration =
         agentConfiguration()
             .chatModel(model)
             .systemPrompt(new SystemPromptConfiguration("system prompt"))
-            .userPrompt(new UserPromptConfiguration("user prompt", null))
             .build();
 
     final var executionContext = mock(AgentExecutionContext.class);

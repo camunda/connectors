@@ -88,7 +88,8 @@ class AgentTaskV1FunctionTest {
         new AgentTaskV1Function(
             toolElementsResolver,
             agentRequestHandler,
-            new ChatModelConfigurationTranslator(providerConfigurationMapper));
+            new ChatModelConfigurationTranslator(
+                providerConfigurationMapper, java.time.Duration.ofMinutes(3)));
 
     function.execute(context);
 

@@ -27,6 +27,7 @@ import com.openai.services.blocking.chat.ChatCompletionService;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -41,7 +42,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -106,13 +106,7 @@ class OpenAiCompletionsStrategyTest {
             AssistantMessage.builder().build(), AgentMetrics.builder().build());
     final var expectedSpec =
         new CompletionsRequestSpec(
-            "gpt-4o",
-            null,
-            null,
-            null,
-            null,
-            null,
-            new OpenAiRequestCustomizations(null, null, null));
+            "gpt-4o", null, null, null, null, null, RequestCustomizations.of(null, null, null));
 
     when(requestConverter.toRequest(eq(expectedSpec), any(), eq(request.snapshot())))
         .thenReturn(params);

@@ -27,6 +27,7 @@ import com.openai.models.chat.completions.ChatCompletionTool;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import com.openai.models.chat.completions.ChatCompletionUserMessageParam;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -46,7 +47,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -337,10 +337,10 @@ public class OpenAiCompletionsRequestConverter {
 
   /**
    * Merges the spec's headers, query parameters, and body properties onto the request via the
-   * shared {@link OpenAiRequestCustomizations}.
+   * shared {@link RequestCustomizations}.
    */
   private void applyRequestCustomizations(
-      ChatCompletionCreateParams.Builder builder, OpenAiRequestCustomizations customizations) {
+      ChatCompletionCreateParams.Builder builder, RequestCustomizations customizations) {
     customizations.headers().forEach(builder::putAdditionalHeader);
     customizations.queryParameters().forEach(builder::putAdditionalQueryParam);
     customizations

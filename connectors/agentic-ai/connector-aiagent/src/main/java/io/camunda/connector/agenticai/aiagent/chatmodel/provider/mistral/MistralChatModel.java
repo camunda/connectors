@@ -23,15 +23,10 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.c
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,14 +51,14 @@ public class MistralChatModel implements ChatModel {
   private static final String GENERIC_SDK_FAILURE_MESSAGE = "Request failed";
 
   private final OpenAIClient client;
-  private final MistralChatModelConfiguration configuration;
+  private final MistralConfiguration configuration;
   private final OpenAiCompletionsRequestConverter requestConverter;
   private final OpenAiCompletionsResponseConverter responseConverter;
   private final OpenAiCompletionsStreamAssembler streamAssembler;
 
   public MistralChatModel(
       OpenAIClient client,
-      MistralChatModelConfiguration configuration,
+      MistralConfiguration configuration,
       OpenAiCompletionsRequestConverter requestConverter,
       OpenAiCompletionsResponseConverter responseConverter,
       OpenAiCompletionsStreamAssembler streamAssembler) {
@@ -103,28 +98,17 @@ public class MistralChatModel implements ChatModel {
   }
 
   /** Maps this provider's own configuration onto the shared Chat Completions request spec. */
-  private CompletionsRequestSpec toSpec(MistralChatModelConfiguration configuration) {
-    final MistralConnection connection = configuration.mistral();
-    final MistralParameters params = connection.parameters();
+  private CompletionsRequestSpec toSpec(MistralConfiguration configuration) {
     return new CompletionsRequestSpec(
-        connection.model().model(),
+        configuration.model(),
         null,
-        params == null || params.maxTokens() == null ? null : params.maxTokens().longValue(),
-        params == null ? null : params.temperature(),
-        params == null ? null : params.topP(),
-        effort(params),
-        connection.backend().requestCustomizations());
-  }
-
-  /**
-   * Maps the {@code effort} dial to its lowercase wire value, skipping the model-default sentinel.
-   */
-  private @Nullable String effort(@Nullable MistralParameters params) {
-    final MistralEffort effort = params == null ? null : params.effort();
-    if (effort == null || effort == MistralEffort.MODEL_DEFAULT) {
-      return null;
-    }
-    return effort.name().toLowerCase(Locale.ROOT);
+        configuration.maxTokens() == null ? null : configuration.maxTokens().longValue(),
+        configuration.temperature(),
+        configuration.topP(),
+        configuration.effort() == null
+            ? null
+            : configuration.effort().name().toLowerCase(Locale.ROOT),
+        configuration.backend().customizations());
   }
 
   private static String failureMessage(Exception e) {

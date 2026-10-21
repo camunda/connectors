@@ -21,6 +21,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.models.ReasoningEffort;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
@@ -39,7 +40,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
@@ -72,15 +72,15 @@ class OpenAiCompletionsRequestConverterTest {
           objectMapper,
           new MistralReasoningContentDialect());
 
-  private static final OpenAiRequestCustomizations NO_CUSTOMIZATIONS =
-      new OpenAiRequestCustomizations(null, null, null);
+  private static final RequestCustomizations NO_CUSTOMIZATIONS =
+      RequestCustomizations.of(null, null, null);
 
   private static CompletionsRequestSpec spec() {
     return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, NO_CUSTOMIZATIONS);
   }
 
   private static CompletionsRequestSpec specWithCustomizations(
-      OpenAiRequestCustomizations customizations) {
+      RequestCustomizations customizations) {
     return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, customizations);
   }
 
@@ -759,8 +759,7 @@ class OpenAiCompletionsRequestConverterTest {
   @Test
   void mergesBodyPropertiesIntoRequestBody() {
     final var customizations =
-        new OpenAiRequestCustomizations(
-            null, null, Map.of("service_tier", "priority", "top_logprobs", 5));
+        RequestCustomizations.of(null, null, Map.of("service_tier", "priority", "top_logprobs", 5));
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
     final var params =
@@ -785,7 +784,7 @@ class OpenAiCompletionsRequestConverterTest {
   @Test
   void mergesHeadersAndQueryParametersAsAdditional() {
     final var customizations =
-        new OpenAiRequestCustomizations(
+        RequestCustomizations.of(
             Map.of("X-Custom-Header", "header-value"), Map.of("api-version", "2026-01-01"), null);
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 

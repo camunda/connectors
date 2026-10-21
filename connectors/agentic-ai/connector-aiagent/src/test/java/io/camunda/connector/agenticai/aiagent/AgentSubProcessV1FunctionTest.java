@@ -85,7 +85,9 @@ class AgentSubProcessV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentSubProcessV1Function(
-            agentRequestHandler, new ChatModelConfigurationTranslator(providerConfigurationMapper));
+            agentRequestHandler,
+            new ChatModelConfigurationTranslator(
+                providerConfigurationMapper, java.time.Duration.ofMinutes(3)));
 
     function.execute(context);
 

@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContextWindowExceededException;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.CompletionsRequestSpec;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
@@ -42,16 +43,10 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralConnection;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralModel;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.api.error.ConnectorException;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,14 +67,25 @@ class MistralChatModelTest {
   @SuppressWarnings("unchecked")
   private final StreamResponse<ChatCompletionChunk> stream = mock(StreamResponse.class);
 
-  private final MistralChatModelConfiguration configuration =
-      new MistralChatModelConfiguration(
-          new MistralConnection(
-              new MistralApiBackend(
-                  new MistralApiConnection("sk-mistral-test", null, null, null, null)),
-              new MistralModel("mistral-medium-latest"),
-              new MistralParameters(512, MistralEffort.HIGH, 0.5, 0.9),
-              null));
+  private final MistralConfiguration configuration =
+      configuration(512, MistralConfiguration.Effort.HIGH, 0.5, 0.9, RequestCustomizations.NONE);
+
+  private static MistralConfiguration configuration(
+      Integer maxTokens,
+      MistralConfiguration.Effort effort,
+      Double temperature,
+      Double topP,
+      RequestCustomizations customizations) {
+    return new MistralConfiguration(
+        new MistralConfiguration.Backend.Api(
+            "sk-mistral-test", MistralConfiguration.Backend.Api.DEFAULT_ENDPOINT, customizations),
+        "mistral-medium-latest",
+        Duration.ofMinutes(3),
+        maxTokens,
+        effort,
+        temperature,
+        topP);
+  }
 
   private final AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
   private final ChatRequest request =
@@ -136,14 +142,7 @@ class MistralChatModelTest {
 
   @Test
   void handlesNullParametersWithoutError() {
-    final var noParamsConfig =
-        new MistralChatModelConfiguration(
-            new MistralConnection(
-                new MistralApiBackend(
-                    new MistralApiConnection("sk-mistral-test", null, null, null, null)),
-                new MistralModel("mistral-medium-latest"),
-                null,
-                null));
+    final var noParamsConfig = configuration(null, null, null, null, RequestCustomizations.NONE);
     model =
         new MistralChatModel(
             client, noParamsConfig, requestConverter, responseConverter, streamAssembler);
@@ -164,44 +163,14 @@ class MistralChatModelTest {
   }
 
   @Test
-  void modelDefaultEffortOmitsReasoningEffortFromSpec() {
-    final var config =
-        new MistralChatModelConfiguration(
-            new MistralConnection(
-                new MistralApiBackend(
-                    new MistralApiConnection("sk-mistral-test", null, null, null, null)),
-                new MistralModel("mistral-medium-latest"),
-                new MistralParameters(null, MistralEffort.MODEL_DEFAULT, null, null),
-                null));
-    model =
-        new MistralChatModel(client, config, requestConverter, responseConverter, streamAssembler);
-    stubHappyPath(
-        new ChatResult.Completed(
-            AssistantMessage.builder().build(), AgentMetrics.builder().build()));
-
-    model.execute(request);
-
-    final ArgumentCaptor<CompletionsRequestSpec> specCaptor =
-        ArgumentCaptor.forClass(CompletionsRequestSpec.class);
-    verify(requestConverter).toRequest(specCaptor.capture(), any(), any());
-    assertThat(specCaptor.getValue().reasoningEffort()).isNull();
-  }
-
-  @Test
   void mapsRequestCustomizationsFromBackend() {
     final var config =
-        new MistralChatModelConfiguration(
-            new MistralConnection(
-                new MistralApiBackend(
-                    new MistralApiConnection(
-                        "sk-mistral-test",
-                        null,
-                        java.util.Map.of("X-Custom", "value"),
-                        null,
-                        null)),
-                new MistralModel("mistral-medium-latest"),
-                null,
-                null));
+        configuration(
+            null,
+            null,
+            null,
+            null,
+            RequestCustomizations.of(Map.of("X-Custom", "value"), null, null));
     model =
         new MistralChatModel(client, config, requestConverter, responseConverter, streamAssembler);
     stubHappyPath(
@@ -213,7 +182,7 @@ class MistralChatModelTest {
     final ArgumentCaptor<CompletionsRequestSpec> specCaptor =
         ArgumentCaptor.forClass(CompletionsRequestSpec.class);
     verify(requestConverter).toRequest(specCaptor.capture(), any(), any());
-    final OpenAiRequestCustomizations customizations = specCaptor.getValue().customizations();
+    final RequestCustomizations customizations = specCaptor.getValue().customizations();
     assertThat(customizations.headers()).containsEntry("X-Custom", "value");
   }
 

@@ -28,6 +28,7 @@ import com.openai.models.responses.ResponseOutputText;
 import com.openai.models.responses.ResponseTextConfig;
 import com.openai.models.responses.Tool;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiStrictJsonSchemas;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -52,7 +53,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.ResponsesParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiEffort;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -402,7 +402,7 @@ public class OpenAiResponsesRequestConverter {
 
   /**
    * Merges the backend's headers, query parameters, and body properties onto the request via the
-   * shared {@link OpenAiRequestCustomizations}.
+   * shared {@link RequestCustomizations}.
    */
   private void applyRequestCustomizations(
       ResponseCreateParams.Builder builder, OpenAiConnection connection) {

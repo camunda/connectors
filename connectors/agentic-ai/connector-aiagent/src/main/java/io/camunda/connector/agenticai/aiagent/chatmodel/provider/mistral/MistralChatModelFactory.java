@@ -6,32 +6,22 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
-
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.http.ProxyAuthenticator;
 import com.openai.credential.BearerTokenCredential;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.EndpointAuthentication;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration.Backend;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsStreamAssembler;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
-import io.camunda.connector.agenticai.aiagent.request.v2.OAuthClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.NoAuthentication;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import java.net.URI;
 import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link ChatModelFactory} for the native Mistral AI provider's {@code mistral-api} and {@code
@@ -43,23 +33,14 @@ import org.slf4j.LoggerFactory;
  */
 public class MistralChatModelFactory implements ChatModelFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MistralChatModelFactory.class);
-
   /**
-   * openai-java requires a credential source to build a client at all, so {@link NoAuthentication}
-   * custom backends configure this as a placeholder API key. The {@code Authorization} header it
-   * would otherwise produce is stripped via {@code removeHeaders("Authorization")}, so no header is
-   * actually sent on the wire.
+   * openai-java requires a credential source to build a client at all, so {@link
+   * EndpointAuthentication.None} custom backends configure this as a placeholder API key. The
+   * {@code Authorization} header it would otherwise produce is stripped via {@code
+   * removeHeaders("Authorization")}, so no header is actually sent on the wire.
    */
   private static final String NO_AUTH_PLACEHOLDER_API_KEY = "not-required";
 
-  /**
-   * Mistral API's own default base URL, used when the {@code mistral-api} backend's endpoint is
-   * unset.
-   */
-  static final String DEFAULT_MISTRAL_API_ENDPOINT = "https://api.mistral.ai/v1";
-
-  private final ChatModelProperties config;
   private final AgenticAiHttpProxySupport httpProxySupport;
   private final OpenAiCompletionsRequestConverter requestConverter;
   private final OpenAiCompletionsResponseConverter responseConverter;
@@ -67,13 +48,11 @@ public class MistralChatModelFactory implements ChatModelFactory {
   private final OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver;
 
   public MistralChatModelFactory(
-      ChatModelProperties config,
       AgenticAiHttpProxySupport httpProxySupport,
       OpenAiCompletionsRequestConverter requestConverter,
       OpenAiCompletionsResponseConverter responseConverter,
       OpenAiCompletionsStreamAssembler streamAssembler,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
-    this.config = config;
     this.httpProxySupport = httpProxySupport;
     this.requestConverter = requestConverter;
     this.responseConverter = responseConverter;
@@ -83,39 +62,38 @@ public class MistralChatModelFactory implements ChatModelFactory {
 
   @Override
   public boolean supports(ChatModelConfiguration configuration) {
-    return configuration instanceof MistralChatModelConfiguration;
+    return configuration instanceof MistralConfiguration;
   }
 
   @Override
   public ChatModel create(ChatModelConfiguration configuration) {
-    final var model = (MistralChatModelConfiguration) configuration;
-    final var connection = model.mistral();
-    final var timeout =
-        deriveTimeoutSetting("Mistral model call", config, connection.timeouts(), LOGGER);
-
+    final var model = (MistralConfiguration) configuration;
     final var client =
         buildClient(
-            connection.backend(), timeout, httpProxySupport, oAuthClientCredentialsTokenResolver);
+            model.backend(),
+            model.timeout(),
+            httpProxySupport,
+            oAuthClientCredentialsTokenResolver);
     return new MistralChatModel(
         client, model, requestConverter, responseConverter, streamAssembler);
   }
 
   private static OpenAIClient buildClient(
-      MistralBackend backend,
+      Backend backend,
       Duration timeout,
       AgenticAiHttpProxySupport httpProxySupport,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var builder = OpenAIOkHttpClient.builder();
 
     switch (backend) {
-      case MistralApiBackend apiBackend -> applyApiBackend(builder, apiBackend);
-      case MistralCustomBackend custom ->
+      case Backend.Api api -> applyApiBackend(builder, api);
+      case Backend.Custom custom ->
           applyCustomBackend(builder, custom, oAuthClientCredentialsTokenResolver);
     }
 
     builder.timeout(timeout);
 
-    final String scheme = URI.create(configuredEndpoint(backend)).getScheme();
+    final String scheme = URI.create(endpoint(backend)).getScheme();
     httpProxySupport
         .okHttpProxy(scheme)
         .ifPresent(
@@ -128,30 +106,27 @@ public class MistralChatModelFactory implements ChatModelFactory {
     return builder.build();
   }
 
-  private static void applyApiBackend(
-      OpenAIOkHttpClient.Builder builder, MistralApiBackend apiBackend) {
-    final var mistral = apiBackend.mistral();
-    builder.apiKey(mistral.apiKey());
-    builder.baseUrl(configuredEndpoint(apiBackend));
+  private static void applyApiBackend(OpenAIOkHttpClient.Builder builder, Backend.Api api) {
+    builder.apiKey(api.apiKey());
+    builder.baseUrl(api.endpoint());
   }
 
   private static void applyCustomBackend(
       OpenAIOkHttpClient.Builder builder,
-      MistralCustomBackend custom,
+      Backend.Custom custom,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
-    final var connection = custom.custom();
-    builder.baseUrl(connection.endpoint());
+    builder.baseUrl(custom.endpoint());
 
-    switch (connection.authentication()) {
-      case NoAuthentication() ->
+    switch (custom.authentication()) {
+      case EndpointAuthentication.None() ->
           builder.apiKey(NO_AUTH_PLACEHOLDER_API_KEY).removeHeaders("Authorization");
-      case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
-      case OAuthClientCredentialsAuthentication oauth ->
+      case EndpointAuthentication.ApiKey apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
+      case EndpointAuthentication.OAuthClientCredentials oauth ->
           builder.credential(
               BearerTokenCredential.create(
                   () ->
                       oAuthClientCredentialsTokenResolver.resolveAccessToken(
-                          oauth.oauthTokenEndpoint(),
+                          oauth.tokenEndpoint(),
                           oauth.clientId(),
                           oauth.clientSecret(),
                           oauth.audience(),
@@ -160,23 +135,10 @@ public class MistralChatModelFactory implements ChatModelFactory {
     }
   }
 
-  /**
-   * The base URL actually configured for this backend, used both as the SDK client's {@code
-   * baseUrl} and to pick the proxy scheme: the {@code mistral-api} backend's {@code endpoint} field
-   * always carries a default value (see {@link
-   * MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection}), so it is
-   * never null in practice, but the template's default is not enforced at the Java type level --
-   * falling back here, rather than leaving the SDK's own default (OpenAI's API) in place, keeps a
-   * null endpoint from silently sending the Mistral API key to OpenAI. The {@code custom} backend's
-   * endpoint is always explicitly set.
-   */
-  private static String configuredEndpoint(MistralBackend backend) {
+  private static String endpoint(Backend backend) {
     return switch (backend) {
-      case MistralApiBackend apiBackend ->
-          apiBackend.mistral().endpoint() != null
-              ? apiBackend.mistral().endpoint()
-              : DEFAULT_MISTRAL_API_ENDPOINT;
-      case MistralCustomBackend custom -> custom.custom().endpoint();
+      case Backend.Api api -> api.endpoint();
+      case Backend.Custom custom -> custom.endpoint();
     };
   }
 }

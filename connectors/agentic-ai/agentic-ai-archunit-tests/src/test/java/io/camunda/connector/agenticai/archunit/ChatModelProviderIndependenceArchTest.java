@@ -23,7 +23,8 @@ import java.util.Set;
 /**
  * Enforces the independence of the chat model providers: each vendor package below the provider
  * root is a slice, and the slices do not depend on each other except for the explicitly allowed
- * edges. The rest of the AI agent reaches the providers only through the chat model API.
+ * edges. The rest of the AI agent reaches the providers only through the chat model API; only the
+ * translation of the request into the provider configurations and the Spring wiring know them.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class ChatModelProviderIndependenceArchTest {
@@ -77,7 +78,9 @@ class ChatModelProviderIndependenceArchTest {
           .that(AgenticAiModules.AI_AGENT.root())
           .and()
           .resideOutsideOfPackages(
-              PROVIDER_ROOT + "..", AgenticAiModules.pkg("aiagent.configuration.."))
+              PROVIDER_ROOT + "..",
+              AgenticAiModules.pkg("aiagent.configuration.."),
+              AgenticAiModules.pkg("aiagent.translation.."))
           .should()
           .dependOnClassesThat()
           .resideInAPackage(PROVIDER_ROOT + "..")

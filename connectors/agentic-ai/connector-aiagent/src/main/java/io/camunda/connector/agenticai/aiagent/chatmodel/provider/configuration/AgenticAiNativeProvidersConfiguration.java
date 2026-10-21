@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration;
 
-import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MISTRAL_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OPENAI_ID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiCo
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiContentResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralCompletionsStreamAssembler;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralDocumentUrlContentChunkStrategy;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.mistral.MistralReasoningContentDialect;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
@@ -151,16 +151,15 @@ public class AgenticAiNativeProvidersConfiguration {
     final var contentConverter = new OpenAiContentConverter(objectMapper);
     final var mistralReasoningContentDialect = new MistralReasoningContentDialect();
     return new MistralChatModelFactory(
-        configuration.aiagent().chatModel(),
         httpProxySupport,
         new OpenAiCompletionsRequestConverter(
-            MISTRAL_ID,
+            MistralConfiguration.PROVIDER,
             contentConverter,
             new MistralDocumentUrlContentChunkStrategy(objectMapper),
             objectMapper,
             mistralReasoningContentDialect),
         new OpenAiCompletionsResponseConverter(
-            MISTRAL_ID, objectMapper, mistralReasoningContentDialect),
+            MistralConfiguration.PROVIDER, objectMapper, mistralReasoningContentDialect),
         new MistralCompletionsStreamAssembler(),
         oAuthClientCredentialsTokenResolver);
   }

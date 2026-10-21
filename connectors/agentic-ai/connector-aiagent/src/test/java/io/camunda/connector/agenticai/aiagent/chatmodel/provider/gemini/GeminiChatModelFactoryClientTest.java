@@ -39,7 +39,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend.GoogleGeminiApi;
@@ -211,7 +210,6 @@ class GeminiChatModelFactoryClientTest {
         agentConfiguration()
             .chatModel(model)
             .systemPrompt(new SystemPromptConfiguration("system prompt"))
-            .userPrompt(new UserPromptConfiguration("user prompt", null))
             .build();
 
     final var executionContext = mock(AgentExecutionContext.class);

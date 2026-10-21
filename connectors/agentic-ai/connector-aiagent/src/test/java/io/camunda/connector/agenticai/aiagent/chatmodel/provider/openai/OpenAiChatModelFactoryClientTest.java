@@ -48,7 +48,6 @@ import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsC
 import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.AzureProperties.CredentialCacheProperties;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.FoundryAuthentication;
@@ -598,7 +597,6 @@ class OpenAiChatModelFactoryClientTest {
         agentConfiguration()
             .chatModel(model)
             .systemPrompt(new SystemPromptConfiguration("system prompt"))
-            .userPrompt(new UserPromptConfiguration("user prompt", null))
             .build();
 
     final var executionContext = mock(AgentExecutionContext.class);

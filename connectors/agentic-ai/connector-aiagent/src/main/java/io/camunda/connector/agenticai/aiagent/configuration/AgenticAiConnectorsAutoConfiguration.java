@@ -238,8 +238,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelConfigurationTranslator aiAgentChatModelConfigurationTranslator(
-      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper) {
-    return new ChatModelConfigurationTranslator(v1ProviderConfigurationMapper);
+      V1ToV2ProviderConfigurationMapper v1ProviderConfigurationMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    return new ChatModelConfigurationTranslator(
+        v1ProviderConfigurationMapper, configuration.aiagent().chatModel().api().defaultTimeout());
   }
 
   @Bean

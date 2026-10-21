@@ -4,23 +4,31 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.request.v2;
+package io.camunda.connector.agenticai.aiagent.chatmodel.connection;
 
 import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
-public record OpenAiRequestCustomizations(
+/**
+ * Additional headers, query parameters and body properties to send with every model call, empty if
+ * none are configured.
+ */
+public record RequestCustomizations(
     Map<String, String> headers,
     Map<String, String> queryParameters,
     Map<String, Object> bodyProperties) {
 
-  public OpenAiRequestCustomizations(
+  public static final RequestCustomizations NONE =
+      new RequestCustomizations(Map.of(), Map.of(), Map.of());
+
+  public static RequestCustomizations of(
       @Nullable Map<String, String> headers,
       @Nullable Map<String, String> queryParameters,
       @Nullable Map<String, Object> bodyProperties) {
-    this.headers = Objects.requireNonNullElse(headers, Map.of());
-    this.queryParameters = Objects.requireNonNullElse(queryParameters, Map.of());
-    this.bodyProperties = Objects.requireNonNullElse(bodyProperties, Map.of());
+    return new RequestCustomizations(
+        Objects.requireNonNullElse(headers, Map.of()),
+        Objects.requireNonNullElse(queryParameters, Map.of()),
+        Objects.requireNonNullElse(bodyProperties, Map.of()));
   }
 }
