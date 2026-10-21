@@ -63,7 +63,6 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
-<<<<<<< HEAD
       - uses: actions/setup-node@v4
         with:
           node-version: '16'
@@ -74,45 +73,6 @@ jobs:
       # Build and test (format check runs in a parallel job)
       - name: Build Connectors
         run: ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
-=======
-      # Build, test and check Javadoc (format runs in a parallel job)
-      # The build regenerates all element template JSON files as part of
-      # the `process-classes` phase (element-template-generator-maven-plugin),
-      # writing them back into each connector's element-templates/ source dir.
-      # Javadoc runs in the same invocation so it reuses the compiled reactor.
-      - name: Build Connectors
-        run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
-
-      # Fail if the regenerated templates differ from what's committed. This is a
-      # diff check only — CI never commits or modifies files. Versioned snapshots
-      # (element-templates/versioned/) are intentionally excluded, as they are
-      # pinned and not overwritten on regeneration.
-      - name: Verify element templates are in sync with Java source
-        run: |
-          set -euo pipefail
-          # Directory-anchored pathspecs: root templates and hybrid/ variants,
-          # excluding pinned versioned/ snapshots.
-          PATHSPEC=(
-            '*/element-templates/*.json'
-            '*/element-templates/hybrid/*.json'
-            ':(exclude)*/element-templates/versioned/*'
-          )
-          # Register intent-to-add for any brand-new (untracked) generated
-          # templates so a single `git diff` reports — with content — both
-          # modified and newly created files. This stages no file content.
-          git add -N -- "${PATHSPEC[@]}"
-          if git diff --quiet -- "${PATHSPEC[@]}"; then
-            echo "✅ All element templates match their Java source."
-          else
-            echo "❌ Element templates are out of sync with their Java source."
-            echo "   Run 'mvn install' (or 'mvn process-classes') locally and commit the regenerated templates."
-            echo ""
-            git diff --stat -- "${PATHSPEC[@]}"
-            echo ""
-            git diff -- "${PATHSPEC[@]}"
-            exit 1
-          fi
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
 
       - name: Publish Test Report
         if: success() || failure()
@@ -138,20 +98,7 @@ jobs:
       - name: Lint Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.5.0
         with:
-<<<<<<< HEAD
           dockerfile: bundle/default-bundle/Dockerfile
-=======
-          dockerfile: apps/bundle/default-bundle/Dockerfile
-
-      - name: Check element templates and Java sources for unversioned or /next/ documentation links
-        run: ./.github/workflows/scripts/check_element_template_docs_links.sh
-        shell: bash
-
-      - name: Validate element templates
-        run: |
-          ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
-          ./element-template-generator/validator/target/appassembler/bin/element-template-validator
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
 
   check-format:
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
@@ -200,32 +147,4 @@ jobs:
       # lifecycle phase makes Maven resolve every build plugin, so the
       # reactor-built element-template-generator plugin would have to be installed first.
       - name: Check Format
-<<<<<<< HEAD
-        run: ./mvnw --batch-mode validate -PcheckFormat -Dquickly
-=======
         run: ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
-
-  check-versioned-element-templates:
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          persist-credentials: false
-          # Full history so the merge-base with origin/main can be resolved for
-          # the three-dot diff used to find newly added versioned templates.
-          fetch-depth: 0
-
-      - name: Fetch main ref
-        run: git fetch origin main --quiet
-        shell: bash
-
-      - name: Check versioned element templates match main
-        env:
-          TARGET_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
-        run: |
-          chmod +x ./.github/workflows/scripts/check_versioned_element_templates.sh
-          ./.github/workflows/scripts/check_versioned_element_templates.sh
-        shell: bash
->>>>>>> 65475ba (ci: speed up check-format and check-javadoc jobs (#9510))
