@@ -96,6 +96,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        if: steps.resolve-maven.outputs.has-wrapper == 'true'
+        uses: ./.github/actions/cache-maven-wrapper
+
       - uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
@@ -287,6 +292,10 @@ jobs:
         uses: stCarolas/setup-maven@v5
         with:
           maven-version: 3.10.0
+
+      - name: Cache Maven wrapper distribution
+        if: steps.resolve-maven.outputs.has-wrapper == 'true'
+        uses: ./.github/actions/cache-maven-wrapper
 
       - name: Import Secrets
         id: secrets
