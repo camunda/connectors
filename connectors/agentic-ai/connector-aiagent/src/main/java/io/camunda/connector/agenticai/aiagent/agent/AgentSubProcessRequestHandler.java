@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,7 +36,9 @@ public class AgentSubProcessRequestHandler
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeToolRegistry runtimeToolRegistry,
+      RuntimeToolExecutor runtimeToolExecutor) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -43,7 +46,9 @@ public class AgentSubProcessRequestHandler
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeToolRegistry,
+        runtimeToolExecutor);
   }
 
   @Override
@@ -90,9 +95,9 @@ public class AgentSubProcessRequestHandler
       AgentResponse agentResponse,
       @Nullable AgentJobCompletionListener completionListener) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
-    // cancel remaining instances if any tool call in this turn's input was interrupted
+    // cancel remaining instances if any tool call in this invocation's input was interrupted
     boolean cancelRemainingInstances =
-        conversation != null && conversation.currentTurn().hasInterruptedToolCallResults();
+        conversation != null && conversation.hasInterruptedToolCallResultsInInvocation();
 
     LOGGER.debug(
         "completionConditionFulfilled: {}, cancelRemainingInstances: {}",

@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +63,26 @@ public record AgentConversationTurn(
       return List.of();
     }
     return assistantMessage.toolCalls();
+  }
+
+  public List<ToolCall> processToolCalls() {
+    return toolCallsOfKind(ToolKind.PROCESS);
+  }
+
+  public List<ToolCall> runtimeToolCalls() {
+    return toolCallsOfKind(ToolKind.RUNTIME);
+  }
+
+  public boolean hasProcessToolCalls() {
+    return toolCalls().stream().anyMatch(toolCall -> toolCall.kind() == ToolKind.PROCESS);
+  }
+
+  public boolean hasRuntimeToolCalls() {
+    return toolCalls().stream().anyMatch(toolCall -> toolCall.kind() == ToolKind.RUNTIME);
+  }
+
+  private List<ToolCall> toolCallsOfKind(ToolKind kind) {
+    return toolCalls().stream().filter(toolCall -> toolCall.kind() == kind).toList();
   }
 
   /**
