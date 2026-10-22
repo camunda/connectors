@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.12_8-jre
+FROM reg.mini.dev/1212/openjre-base:v21.0.13-dev@sha256:b516bb84b4641b88759bf2274e41868d39d467ea435c2c0f9d9bf3d21a717149
 
 VOLUME /tmp
 
