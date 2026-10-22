@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningCon
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -131,6 +132,73 @@ class AgentInstanceHistoryMapperTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");
+  }
+
+  @Test
+  void aCallAndAResultOfARuntimeToolHaveNoElementId() {
+    final var toolCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("acme_lookup")
+            .arguments(Map.of("customerId", "42"))
+            .kind(ToolKind.RUNTIME)
+            .build();
+    final var result =
+        ToolCallResultContent.builder()
+            .id("call-1")
+            .name("acme_lookup")
+            .content(List.of(TextContent.textContent("Found the customer.")))
+            .completedAt(TOOL_RESULT_COMPLETED_AT)
+            .build();
+
+    final var assistantCalls =
+        mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(toolCall)).build());
+    final var items =
+        mapper.inputHistoryItems(
+            ToolCallResultMessage.builder().results(List.of(result)).build(),
+            Map.of("call-1", toolCall),
+            TURN_INGESTION_TIMESTAMP);
+
+    assertThat(assistantCalls)
+        .singleElement()
+        .satisfies(
+            call -> {
+              assertThat(call.getToolName()).isEqualTo("acme_lookup");
+              assertThat(call.getElementId()).isNull();
+            });
+    assertThat(items)
+        .singleElement()
+        .satisfies(
+            item -> {
+              assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+              assertThat(item.content())
+                  .singleElement()
+                  .isInstanceOfSatisfying(
+                      AgentInstanceHistoryContent.TextContent.class,
+                      text -> assertThat(text.getText()).isEqualTo("Found the customer."));
+              assertThat(item.toolCalls())
+                  .singleElement()
+                  .satisfies(
+                      call -> {
+                        assertThat(call.getToolName()).isEqualTo("acme_lookup");
+                        assertThat(call.getToolCallId()).isEqualTo("call-1");
+                        assertThat(call.getElementId()).isNull();
+                        assertThat(call.getArguments()).containsEntry("customerId", "42");
+                      });
+            });
+  }
+
+  @Test
+  void aCallOfAProcessToolKeepsItsElementIdWhateverItsName() {
+    final var assistantCalls =
+        mapper.assistantToolCalls(
+            AssistantMessage.builder()
+                .toolCalls(List.of(ToolCall.builder().id("call-1").name("acme_lookup").build()))
+                .build());
+
+    assertThat(assistantCalls)
+        .singleElement()
+        .satisfies(call -> assertThat(call.getElementId()).isEqualTo("acme_lookup"));
   }
 
   @Test

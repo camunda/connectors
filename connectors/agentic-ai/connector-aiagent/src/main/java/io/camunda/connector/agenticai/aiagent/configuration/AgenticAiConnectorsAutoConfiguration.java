@@ -21,6 +21,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolExecutor;
+import io.camunda.connector.agenticai.aiagent.agent.RuntimeToolExecutorImpl;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -117,8 +119,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceToolMapper aiAgentInstanceToolMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceToolMapper(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, RuntimeToolRegistry runtimeToolRegistry) {
+    return new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
   }
 
   @Bean
@@ -226,6 +228,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public RuntimeToolExecutor aiAgentRuntimeToolExecutor(
+      RuntimeToolRegistry runtimeToolRegistry, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new RuntimeToolExecutorImpl(runtimeToolRegistry, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentResponseHandler aiAgentResponseHandler(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
@@ -257,7 +266,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeToolRegistry runtimeToolRegistry,
+      RuntimeToolExecutor runtimeToolExecutor) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -265,7 +276,9 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeToolRegistry,
+        runtimeToolExecutor);
   }
 
   @Bean
@@ -299,7 +312,9 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      RuntimeToolRegistry runtimeToolRegistry,
+      RuntimeToolExecutor runtimeToolExecutor) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -307,7 +322,9 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        runtimeToolRegistry,
+        runtimeToolExecutor);
   }
 
   @Bean
