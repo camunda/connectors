@@ -27,13 +27,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-<<<<<<< HEAD
-=======
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
         uses: ./.github/actions/cache-maven-wrapper
 
->>>>>>> 80893e0 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
