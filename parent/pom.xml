@@ -127,14 +127,14 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.57.1</version.aws-sdk2>
+    <version.aws-sdk2>2.57.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
     <version.localstack>2.0.5</version.localstack>
 
-    <version.okhttp>5.5.0</version.okhttp>
+    <version.okhttp>5.5.1</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
@@ -181,7 +181,7 @@ limitations under the License.</license.inlineheader>
     <version.lz4-java>1.12.0</version.lz4-java>
 
     <version.microsoft-graph>6.71.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.10.2</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.10.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
     <version.azure-core>1.60.0</version.azure-core>

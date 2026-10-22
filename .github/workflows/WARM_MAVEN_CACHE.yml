@@ -108,7 +108,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: steps.lookup.outputs.cache-hit != 'true'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
