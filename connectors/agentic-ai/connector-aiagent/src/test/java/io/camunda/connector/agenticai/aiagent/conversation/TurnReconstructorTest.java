@@ -10,7 +10,14 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -102,5 +109,71 @@ class TurnReconstructorTest {
     assertThat(turn.iterationKey()).isEqualTo(expectedKey);
     assertThat(turn.inputMessages()).containsExactly(expectedInput);
     assertThat(turn.hasToolCalls()).isEqualTo(expectedHasToolCalls);
+  }
+
+  @Test
+  void runtimeToolRoundWithinTheInvocation_isReconstructedAsItsOwnTurnWithoutIterationKeyDrift() {
+    // assistant(tool calls) -> runtime tool results -> assistant, as persisted by a runtime tool
+    // round
+    var u = userMessage("what's the weather?");
+    var a1 = assistantMessage("let me check", TOOL_CALLS);
+    var runtimeResults = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var a2 = assistantMessage("calling the tools", TOOL_CALLS);
+
+    var configuration =
+        new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null);
+    var conversation =
+        AgentConversation.rehydrate(
+                configuration,
+                AgentContext.builder()
+                    .state(AgentState.READY)
+                    .metadata(new AgentMetadata(1L, 1L, null, null))
+                    .build(),
+                TurnReconstructor.reconstruct(List.of()),
+                null,
+                List.of(u))
+            .ingest(a1, AgentMetrics.empty())
+            .nextRuntimeToolRound(List.of(runtimeResults))
+            .ingest(a2, AgentMetrics.empty());
+
+    var persisted = conversation.allMessages();
+    assertThat(persisted).containsExactly(u, a1, runtimeResults, a2);
+
+    var storedContext = conversation.toAgentContext();
+    var result = TurnReconstructor.reconstruct(persisted, storedContext.metadata());
+    assertThat(result.turns()).hasSize(2);
+    assertTurn(result.turns().get(0), 1, true, u);
+    assertTurn(result.turns().get(1), 2, true, runtimeResults);
+    assertThat(result.turns().get(1).assistantMessage()).isEqualTo(a2);
+    assertThat(result.turns().get(1).toolCallsById()).containsKeys("abcdef", "fedcba");
+
+    // the stored lastIterationKey equals the reconstructed turn count, so no drift is detected and
+    // the next invocation continues right after the last round
+    assertThat(storedContext.metadata().lastIterationKey()).isEqualTo(result.turns().size());
+    var nextInvocation =
+        AgentConversation.rehydrate(
+            configuration,
+            storedContext,
+            result,
+            null,
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+    assertThat(nextInvocation.currentTurn().iterationKey()).isEqualTo(3);
+  }
+
+  @Test
+  void keepsTheKindOfTheToolCallsOfAMixedBatch() {
+    var u = userMessage("look up and check the weather");
+    var a1 = assistantMessageWithMixedToolKinds();
+    var results = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var a2 = assistantMessage("done");
+
+    var result = TurnReconstructor.reconstruct(List.of(u, a1, results, a2));
+
+    var turn = result.turns().getFirst();
+    assertThat(turn.toolCalls()).containsExactlyElementsOf(a1.toolCalls());
+    assertThat(turn.runtimeToolCalls()).extracting(ToolCall::id).containsExactly(RUNTIME_CALL_ID);
+    assertThat(turn.processToolCalls()).extracting(ToolCall::id).containsExactly(PROCESS_CALL_ID);
+    assertThat(turn.toolCallsById().get(RUNTIME_CALL_ID).kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(turn.toolCallsById().get(PROCESS_CALL_ID).kind()).isEqualTo(ToolKind.PROCESS);
   }
 }
