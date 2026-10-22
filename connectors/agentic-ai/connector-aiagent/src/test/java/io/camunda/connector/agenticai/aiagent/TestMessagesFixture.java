@@ -25,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiModel;
@@ -86,6 +87,29 @@ public abstract class TestMessagesFixture {
               .build(),
           ToolCall.builder().id("fedcba").name("getDateTime").build());
 
+  public static final String RUNTIME_CALL_ID = "runtime-call";
+  public static final String PROCESS_CALL_ID = "process-call";
+
+  /**
+   * A runtime tool call followed by a process tool call, both with non-empty metadata so that a
+   * persisted copy equals the original.
+   */
+  public static final List<ToolCall> MIXED_KIND_TOOL_CALLS =
+      List.of(
+          ToolCall.builder()
+              .id(RUNTIME_CALL_ID)
+              .name("acme__lookup")
+              .arguments(Map.of("customer", "42"))
+              .metadata(Map.of("provider", "value"))
+              .kind(ToolKind.RUNTIME)
+              .build(),
+          ToolCall.builder()
+              .id(PROCESS_CALL_ID)
+              .name("getWeather")
+              .arguments(Map.of("location", "MUC"))
+              .metadata(Map.of("provider", "value"))
+              .build());
+
   public static final List<ToolCallResult> TOOL_CALL_RESULTS =
       List.of(
           ToolCallResult.builder().id("abcdef").name("getWeather").content("Sunny, 22°C").build(),
@@ -143,6 +167,10 @@ public abstract class TestMessagesFixture {
 
   public static AssistantMessage assistantMessage(String text, List<ToolCall> toolCalls) {
     return AssistantMessage.builder().content(singleTextContent(text)).toolCalls(toolCalls).build();
+  }
+
+  public static AssistantMessage assistantMessageWithMixedToolKinds() {
+    return assistantMessage("Looking up the customer and the weather", MIXED_KIND_TOOL_CALLS);
   }
 
   public static AssistantMessage assistantMessage(List<Content> content) {
