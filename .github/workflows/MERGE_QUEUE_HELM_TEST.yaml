@@ -3,9 +3,8 @@ name: Merge queue Helm test
 on:
   push:
     branches:
-      - main
+      - stable/8.10
   workflow_dispatch:
-  merge_group:
 
 # Limit workflow to 1 concurrent run per ref (branch) and trigger event: new commit -> old runs are canceled to save costs.
 # Exception for main + stable/* branches: complete builds for every commit needed for confidence.
@@ -17,7 +16,6 @@ jobs:
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
@@ -97,33 +95,22 @@ jobs:
         id: connectors-version
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.merge_group.head_ref }}
         run: |
           set -euo pipefail
 
           MAVEN_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
-            # merge_group.head_ref looks like refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>
-            PR_NUMBER=$(printf '%s' "$HEAD_REF" | sed -nE 's|.*/pr-([0-9]+)-.*|\1|p')
-            if [[ -z "$PR_NUMBER" ]]; then
-              echo "::notice::No PR number could be extracted from merge_group head_ref: $HEAD_REF"
-              echo "should-push=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # For manual dispatch: <base>-dispatch-run<run_id>-a<run_attempt>
             TAG="${BASE_VERSION}-dispatch-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           else
-            # For push to main: <base>-main-run<run_id>-a<run_attempt>
-            TAG="${BASE_VERSION}-main-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+            # For push to stable/8.10: <base>-stable-8.10-run<run_id>-a<run_attempt>
+            TAG="${BASE_VERSION}-stable-8.10-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
           fi
 
           echo "::notice::Tag: ${TAG}"
           echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "should-push=true" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -134,7 +121,6 @@ jobs:
 
       # Publish Docker images for Preview environments
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
-        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
@@ -145,7 +131,6 @@ jobs:
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
 
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-saas
-        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
@@ -164,7 +149,7 @@ jobs:
     with:
       image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
-      release-branch: main
+      release-branch: stable/8.10
       # Route to the dedicated AlwaysGreen GKE namespace/node pool that finance tracks for cost.
       scenario: alwaysgreen
       shortname: agrn
@@ -175,9 +160,7 @@ jobs:
     if: always() && needs.trigger-sm-e2e.result == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions:
-      pull-requests: write
       contents: read
     outputs:
       # Triage replies in this message's thread rather than opening a second
@@ -203,8 +186,8 @@ jobs:
           vault-url: ${{ secrets.VAULT_ADDR }}
           owner: camunda
           repositories: connectors
-      # Standardised AlwaysGreen feedback → job summary + PR comment (+ Slack once
-      # the channel is set below and the bot is invited to it). Best-effort.
+      # Standardised AlwaysGreen feedback → job summary (+ Slack once the channel
+      # is set below and the bot is invited to it). Best-effort.
       - name: Post AlwaysGreen failure feedback
         id: feedback
         continue-on-error: true
@@ -216,11 +199,6 @@ jobs:
           run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           status: failure
           evidence: "SM E2E / Helm Integration Tests failed."
-          pr: ${{ github.event.merge_group.head_ref }}
-          # merge_group is the only trigger here that supplies a PR, and a
-          # draft cannot enter a merge queue — so state the answer instead of
-          # paying for a lookup that would also need pull-requests: read.
-          pr_is_draft: "false"
           # Shared AlwaysGreen channel (#alwaysgreen-reliability) — consistent
           # across all AlwaysGreen repos. The connectors bot must be a member.
           slack_channel: "C0AK0AVKRL0"
@@ -239,14 +217,7 @@ jobs:
     # the backstop for what a deadline cannot bound: a single `gh api` call
     # that hangs indefinitely rather than returning an error to retry.
     timeout-minutes: 60
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions: { }
-    outputs:
-      # Whether this job failed, stated explicitly. On merge_group the job carries
-      # continue-on-error, and GitHub does not document what needs.<job>.result then
-      # reports to a dependent job — so a gate built on that alone could silently never
-      # fire for the one event that supplies a PR to comment on.
-      status: ${{ steps.job-status.outputs.status }}
     steps:
       # The waiter's deadline has to be measured on the same clock as this
       # job's `timeout-minutes`, which starts here -- not when the waiter
@@ -609,31 +580,16 @@ jobs:
             echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Last step in the job, so job.status here reflects everything above it.
-      - name: Record job status
-        id: job-status
-        if: always()
-        run: echo "status=${{ job.status }}" >> "$GITHUB_OUTPUT"
-
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
   # which fires at three consecutive failures and says nothing about a single one.
   saas-e2e-debug-summary:
     name: AlwaysGreen failure feedback (SaaS E2E)
     needs: trigger-saas-e2e
-    # Two signals for one condition. `result` covers push, where the job fails
-    # normally; the explicit output covers merge_group, where continue-on-error may
-    # present the failure to dependents as a success. merge_group is the only trigger
-    # that supplies a PR, so relying on `result` alone risks the PR comment never
-    # being posted at all.
-    if: >-
-      always() && (needs.trigger-saas-e2e.result == 'failure' ||
-      needs.trigger-saas-e2e.outputs.status == 'failure')
+    if: always() && needs.trigger-saas-e2e.result == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     permissions:
-      pull-requests: write
       contents: read
     outputs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
@@ -668,11 +624,6 @@ jobs:
           run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           status: failure
           evidence: "SaaS E2E tests failed. The downstream run in c8-cross-component-e2e-tests is linked from the Trigger SaaS E2E tests job summary."
-          pr: ${{ github.event.merge_group.head_ref }}
-          # merge_group is the only trigger here that supplies a PR, and a
-          # draft cannot enter a merge queue — so state the answer instead of
-          # paying for a lookup that would also need pull-requests: read.
-          pr_is_draft: "false"
           slack_channel: "C0AK0AVKRL0"
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
@@ -685,7 +636,6 @@ jobs:
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 20
-    continue-on-error: ${{ github.event_name == 'merge_group' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -795,10 +745,8 @@ jobs:
   # CALLER's ref, so without it a stable/8.x run would need the whole
   # .github/scripts/alwaysgreen tree backported alongside this file.
   #
-  # push only, for now. Half the failing jobs come from merge_group, but those belong
-  # to the PR under test — its author is already looking at it, and a fix PR in the
-  # e2e repository would not unblock that queue entry. Same gate as
-  # connectors-streak-detector.yml.
+  # push only, so a manual workflow_dispatch run does not trigger fix dispatch. Same
+  # gate as connectors-streak-detector.yml.
   alwaysgreen-triage:
     name: AlwaysGreen triage and fix dispatch
     # run-ai-agent-cpt is deliberately absent: it exists only on main, and a `needs`
