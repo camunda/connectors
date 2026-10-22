@@ -61,4 +61,62 @@ class ToolCallTest {
 
     assertThat(roundTripped).isEqualTo(toolCall);
   }
+
+  @Test
+  void aProcessCallIsSerializedWithoutKind() throws Exception {
+    final String json =
+        objectMapper.writeValueAsString(
+            new ToolCall("toolu_1", "get_weather", Map.of("city", "Berlin")));
+
+    assertThat(json)
+        .isEqualTo(
+            "{\"id\":\"toolu_1\",\"name\":\"get_weather\",\"arguments\":{\"city\":\"Berlin\"}}");
+  }
+
+  @Test
+  void aRuntimeCallIsSerializedWithKind() throws Exception {
+    final var toolCall =
+        new ToolCall("toolu_1", "acme_note", Map.of(), Map.of("k", "v")).withKind(ToolKind.RUNTIME);
+
+    final String json = objectMapper.writeValueAsString(toolCall);
+
+    assertThat(json).contains("\"kind\":\"runtime\"");
+    assertThat(objectMapper.readValue(json, ToolCall.class)).isEqualTo(toolCall);
+  }
+
+  @Test
+  void jsonWithoutKindReadsAsProcess() throws Exception {
+    final String json = "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void jsonWithProcessKindReadsAsProcess() throws Exception {
+    final String json =
+        "{\"id\": \"toolu_1\", \"name\": \"get_weather\", \"arguments\": {}, \"kind\": \"PROCESS\"}";
+
+    assertThat(objectMapper.readValue(json, ToolCall.class).kind()).isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void theBuilderAndTheConstructorsDefaultToProcess() {
+    assertThat(ToolCall.builder().id("id").name("name").arguments(Map.of()).build().kind())
+        .isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of()).kind()).isEqualTo(ToolKind.PROCESS);
+    assertThat(new ToolCall("id", "name", Map.of(), Map.of("k", "v")).kind())
+        .isEqualTo(ToolKind.PROCESS);
+  }
+
+  @Test
+  void withKindReplacesOnlyTheKind() {
+    final var process = new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"));
+
+    final var runtime = process.withKind(ToolKind.RUNTIME);
+
+    assertThat(runtime.kind()).isEqualTo(ToolKind.RUNTIME);
+    assertThat(runtime)
+        .isEqualTo(new ToolCall("id", "name", Map.of("a", 1), Map.of("k", "v"), ToolKind.RUNTIME));
+    assertThat(runtime.withKind(ToolKind.PROCESS)).isEqualTo(process);
+  }
 }

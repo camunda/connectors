@@ -419,6 +419,30 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void theKindOfAToolIsPartOfTheFingerprintOnlyForARuntimeTool() throws NoSuchAlgorithmException {
+      final var schema = ordered("type", "object");
+      final var process = ToolDefinition.builder().name("lookup").inputSchema(schema).build();
+      final var runtime = ToolDefinition.runtime("lookup", null, schema);
+      final var processConfiguration = configuration("gpt-4o", "p", 10, List.of(process));
+      final var runtimeConfiguration = configuration("gpt-4o", "p", 10, List.of(runtime));
+      final var provider = processConfiguration.chatModel().descriptiveProvider();
+      final var prefix =
+          "[\"gpt-4o\",\"%s\",\"p\",10,[[\"lookup\",null,{\"type\":\"object\"},[]"
+              .formatted(provider);
+
+      assertThat(processConfiguration.fingerprint())
+          .isNotEqualTo(runtimeConfiguration.fingerprint())
+          .isEqualTo(sha256(prefix + "]]]"));
+      assertThat(runtimeConfiguration.fingerprint()).isEqualTo(sha256(prefix + ",\"RUNTIME\"]]]"));
+    }
+
+    private static String sha256(String json) throws NoSuchAlgorithmException {
+      return HexFormat.of()
+          .formatHex(
+              MessageDigest.getInstance("SHA-256").digest(json.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
     void fingerprintIsNeverBlank() {
       assertThat(configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint()).isNotBlank();
     }
