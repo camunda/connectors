@@ -20,9 +20,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
@@ -34,8 +36,8 @@ import org.jspecify.annotations.Nullable;
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
  * handler invocation; does not change mid-conversation, with the exception of {@link
  * #toolDefinitions()}, which the handler fills in once tool resolution has run (see {@link
- * #withToolDefinitions}) and which then becomes the authoritative source of the current tool list
- * for the rest of the invocation.
+ * #withToolDefinitions}) with the tools of the process and the enabled runtime tools, and which
+ * then becomes the authoritative source of the current tool list for the rest of the invocation.
  */
 public record AgentConfiguration(
     ChatModelConfiguration chatModel,
@@ -136,8 +138,17 @@ public record AgentConfiguration(
   }
 
   private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
-    return Arrays.asList(
-        tool.name(), tool.description(), tool.inputSchema(), parameterOrder(tool.inputSchema()));
+    final var input =
+        new ArrayList<@Nullable Object>(
+            Arrays.asList(
+                tool.name(),
+                tool.description(),
+                tool.inputSchema(),
+                parameterOrder(tool.inputSchema())));
+    if (tool.kind() == ToolKind.RUNTIME) {
+      input.add(tool.kind().name());
+    }
+    return input;
   }
 
   private static List<String> parameterOrder(Map<String, Object> inputSchema) {
