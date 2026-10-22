@@ -1,0 +1,309 @@
+# description: Receives the SaaS E2E result that c8-cross-component-e2e-tests sends back
+#              once its run finishes. MERGE_QUEUE_HELM_TEST.yaml only dispatches that run,
+#              so no runner waits for it. A failure is reported here instead: Slack and
+#              AlwaysGreen triage, exactly as the waiting job used to.
+# type: CI
+# owner: @camunda/connectors
+---
+name: SaaS E2E result
+
+# The correlation id names the pipeline run and attempt this result belongs to
+# (`camunda/connectors:<run_id>:<attempt>:<sha>`). connectors-streak-detector.yml reads it
+# from the run name to fold this result into that run's streak entry: this workflow runs
+# on the default branch, so its own head_branch and head_sha say nothing about it.
+run-name: saas-e2e-result ${{ github.event.client_payload.correlation_id }}
+
+on:
+  repository_dispatch:
+    types: [saas-e2e-result]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Named for what the classifier maps to the SaaS surface, and the only job in this
+  # run that fails with the SaaS result. Triage reads this run's failing jobs.
+  result:
+    name: SaaS E2E result
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      failed: ${{ steps.payload.outputs.failed }}
+      base_ref: ${{ steps.payload.outputs.base_ref }}
+      base_ref_supported: ${{ steps.payload.outputs.base_ref_supported }}
+      source_sha: ${{ steps.payload.outputs.source_sha }}
+      source_run_url: ${{ steps.payload.outputs.source_run_url }}
+      source_pr: ${{ steps.payload.outputs.source_pr }}
+    steps:
+      # client_payload comes from whoever can call the dispatch API, so it goes through
+      # env and is validated before anything uses it. Branch and event are read from
+      # the pipeline run the correlation id names, not taken from the payload, and that
+      # run must be a pipeline run on the same commit.
+      - name: Validate the callback payload
+        id: payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONCLUSION: ${{ github.event.client_payload.conclusion }}
+          DOWNSTREAM_RUN_URL: ${{ github.event.client_payload.downstream_run_url }}
+          CORRELATION_ID: ${{ github.event.client_payload.correlation_id }}
+        run: |
+          set -euo pipefail
+
+          case "$CONCLUSION" in
+            success|failure|cancelled|skipped|timed_out) ;;
+            *)
+              echo "::error::unexpected conclusion '${CONCLUSION}' in the callback payload"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! "$CORRELATION_ID" =~ ^${GITHUB_REPOSITORY}:([0-9]+):([0-9]+):([0-9a-f]{40})$ ]]; then
+            echo "::error::correlation_id does not name a pipeline run in ${GITHUB_REPOSITORY}"
+            exit 1
+          fi
+          SOURCE_RUN_ID="${BASH_REMATCH[1]}"
+          SOURCE_ATTEMPT="${BASH_REMATCH[2]}"
+          SOURCE_SHA="${BASH_REMATCH[3]}"
+
+          meta=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/attempts/${SOURCE_ATTEMPT}")
+          if [ "$(jq -r '.name' <<<"$meta")" != "Merge queue Helm test" ] \
+             || [ "$(jq -r '.head_sha' <<<"$meta")" != "$SOURCE_SHA" ]; then
+            echo "::error::run ${SOURCE_RUN_ID} is not a Merge queue Helm test run on ${SOURCE_SHA}"
+            exit 1
+          fi
+          EVENT_NAME=$(jq -r '.event' <<<"$meta")
+          HEAD_BRANCH=$(jq -r '.head_branch // ""' <<<"$meta")
+          SOURCE_RUN_URL="$(jq -r '.html_url' <<<"$meta")/attempts/${SOURCE_ATTEMPT}"
+
+          # The pipeline runs on push, so the callback carries no PR; the PR comment
+          # goes to the merged PR that introduced the tested commit, when there is one.
+          SOURCE_PR=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SOURCE_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null)] | first | .number // empty' 2>/dev/null || true)
+          [[ "$SOURCE_PR" =~ ^[0-9]+$ ]] || SOURCE_PR=""
+
+          [[ "$DOWNSTREAM_RUN_URL" =~ ^https://github\.com/camunda/c8-cross-component-e2e-tests/actions/runs/[0-9]+$ ]] || DOWNSTREAM_RUN_URL=""
+
+          # Same support list as the watcher and triage, which hard-error on anything
+          # else. An unsupported branch is reported but not triaged.
+          BASE_REF="$HEAD_BRANCH"
+          case "$BASE_REF" in
+            main|stable/8.7|stable/8.8|stable/8.9|stable/8.10) base_ref_supported=true ;;
+            *) base_ref_supported=false ;;
+          esac
+
+          # A full re-run dispatches again, so a late result from an earlier attempt
+          # reports on tests that no longer count -- the streak scan reads only the
+          # attempt that last ran the trigger job. A re-run of only the failed jobs keeps
+          # that job, and with it this attempt's dispatch.
+          trigger=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?filter=latest&per_page=100" \
+            --jq '[.jobs[] | select(.name == "Trigger SaaS E2E tests")] | first // {}')
+          superseded=$(jq -r --argjson attempt "$SOURCE_ATTEMPT" '
+            (.run_attempt // 0) > $attempt
+            and ([.steps[]? | select(.name == "Trigger repository_dispatch for SaaS Connectors" and .conclusion == "success")] | length > 0)
+          ' <<<"$trigger")
+
+          failed=false
+          [ "$CONCLUSION" != "success" ] && [ "$superseded" != "true" ] && failed=true
+
+          {
+            echo "failed=${failed}"
+            echo "base_ref=${BASE_REF}"
+            echo "base_ref_supported=${base_ref_supported}"
+            echo "source_sha=${SOURCE_SHA}"
+            echo "source_run_url=${SOURCE_RUN_URL}"
+            echo "source_pr=${SOURCE_PR}"
+            echo "downstream_run_url=${DOWNSTREAM_RUN_URL}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### SaaS E2E result: \`${CONCLUSION}\`"
+            echo ""
+            echo "**Correlation ID:** \`${CORRELATION_ID}\`"
+            echo ""
+            echo "**Branch:** \`${BASE_REF}\` (\`${EVENT_NAME}\`) · **Commit:** \`${SOURCE_SHA}\`"
+            echo ""
+            echo "[Merge queue Helm test run](${SOURCE_RUN_URL})"
+            if [ "$superseded" = "true" ]; then
+              echo ""
+              echo "Superseded: a later attempt of this pipeline run dispatched the SaaS E2E tests again, so this result is not reported."
+            fi
+            if [ -n "$DOWNSTREAM_RUN_URL" ]; then
+              echo ""
+              echo "[SaaS E2E run in camunda/c8-cross-component-e2e-tests](${DOWNSTREAM_RUN_URL})"
+            fi
+            if [ "$failed" = "true" ]; then
+              echo ""
+              echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](https://github.com/camunda/c8-cross-component-e2e-tests/blob/main/docs/ci-debugging-cookbook.md#failure-type-5--saas-e2e-tests)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The only channel that carries the downstream link to triage; without it every
+      # SaaS failure is classified as saas-infra and nothing is dispatched. Deliberately
+      # just the link: triage recomputes the category from the downstream report itself.
+      - name: Write SaaS downstream context for AlwaysGreen triage
+        id: saas-context
+        if: steps.payload.outputs.failed == 'true' && steps.payload.outputs.downstream_run_url != ''
+        env:
+          DOWNSTREAM_RUN_URL: ${{ steps.payload.outputs.downstream_run_url }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg stage "${{ github.job }}" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg downstream_run_url "${DOWNSTREAM_RUN_URL}" \
+            '{stage: $stage, run_url: $run_url, downstream_run_url: $downstream_run_url}' \
+            > "${RUNNER_TEMP}/alwaysgreen-saas-category.json"
+
+      - name: Upload SaaS downstream context artifact
+        if: steps.saas-context.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: alwaysgreen-saas-category
+          path: ${{ runner.temp }}/alwaysgreen-saas-category.json
+          retention-days: 14
+          overwrite: true
+
+      # Last, so the artifact is already uploaded when triage reads this run. Runs even
+      # if that upload failed: connectors-streak-detector.yml reads this step's
+      # conclusion as the accepted SaaS verdict, and the validation step's as acceptance.
+      - name: Fail the job when the SaaS E2E run did not pass
+        if: always() && steps.payload.outputs.failed == 'true'
+        env:
+          CONCLUSION: ${{ github.event.client_payload.conclusion }}
+        run: |
+          echo "::error::SaaS E2E run concluded '${CONCLUSION}'."
+          exit 1
+
+  feedback:
+    name: AlwaysGreen failure feedback (SaaS E2E)
+    needs: result
+    if: always() && needs.result.outputs.failed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      slack_ts: ${{ steps.feedback.outputs.slack_ts }}
+      slack_channel: ${{ steps.feedback.outputs.slack_channel }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: connectors
+      - name: Post AlwaysGreen failure feedback
+        id: feedback
+        continue-on-error: true
+        uses: ./.github/actions/post-failure-feedback
+        with:
+          failure_category: unknown
+          stage: saas-e2e
+          owner_team: "@camunda/connectors"
+          # This run, not the pipeline run: the pipeline only dispatched the tests, and it
+          # is this run's summary that links the downstream failure.
+          run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          status: failure
+          pr: ${{ needs.result.outputs.source_pr }}
+          # A merged PR is never a draft.
+          pr_is_draft: "false"
+          evidence: "SaaS E2E tests failed for ${{ needs.result.outputs.source_sha }} (pipeline run: ${{ needs.result.outputs.source_run_url }}). The downstream run in c8-cross-component-e2e-tests is linked from the run summary."
+          slack_channel: "C0AK0AVKRL0"
+          slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
+
+  # This run IS the failing run, so it is handed to the central triage in
+  # camunda/c8-cross-component-e2e-tests the same way connectors-streak-detector.yml
+  # hands over a pipeline run, which skips SaaS result runs for that reason.
+  triage:
+    name: AlwaysGreen triage and fix dispatch
+    needs: [ result, feedback ]
+    if: >-
+      always() &&
+      github.ref_protected &&
+      needs.result.outputs.failed == 'true' &&
+      needs.result.outputs.base_ref_supported == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Generate a token that may dispatch to the triage repository
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@6c85c5de572dbc1790e5e7b4636c2ad9f5b614d8 # generate-github-app-token-from-vault-secrets: v1.1.0
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: c8-cross-component-e2e-tests
+
+      # A disabled receiver accepts the dispatch and runs nothing.
+      - name: Refuse to dispatch at a disabled receiver
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          state=$(gh api repos/camunda/c8-cross-component-e2e-tests/actions/workflows/alwaysgreen-triage.yml \
+            --jq '.state' 2>/dev/null || echo "unknown")
+          if [ "$state" != "active" ]; then
+            echo "::error::the AlwaysGreen triage receiver is '${state}', so this failure would go untriaged"
+            exit 1
+          fi
+
+      - name: Hand the failure to the central triage
+        env:
+          GH_TOKEN: ${{ steps.github-token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE_REF: ${{ needs.result.outputs.base_ref }}
+          # This run executes on the default branch's head, so blame the tested commit.
+          HEAD_SHA: ${{ needs.result.outputs.source_sha }}
+          SLACK_TS: ${{ needs.feedback.outputs.slack_ts }}
+          SLACK_CHANNEL: ${{ needs.feedback.outputs.slack_channel }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -nc \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg run_id "${RUN_ID}" \
+            --arg base_ref "${BASE_REF}" \
+            --arg head_sha "${HEAD_SHA}" \
+            --arg ts "${SLACK_TS:-}" \
+            --arg channel "${SLACK_CHANNEL:-}" \
+            '{event_type: "alwaysgreen-triage",
+              client_payload: {source_repo: $repo,
+                               run_id: $run_id,
+                               base_ref: $base_ref,
+                               head_sha: $head_sha,
+                               slack_ts: $ts,
+                               slack_channel: $channel,
+                               dry_run: false}}')
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/camunda/c8-cross-component-e2e-tests/dispatches \
+            --input - <<<"$payload"
+          echo "Handed run ${RUN_ID} to the central triage." >> "$GITHUB_STEP_SUMMARY"
