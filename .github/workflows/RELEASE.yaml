@@ -122,6 +122,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
+
       - name: Install Node.js
         uses: actions/setup-node@v5
         with:
@@ -410,6 +414,10 @@ jobs:
           key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
 
       - name: Log Maven deployment target
         run: |
