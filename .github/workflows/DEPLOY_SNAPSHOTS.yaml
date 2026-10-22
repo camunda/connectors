@@ -72,6 +72,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        continue-on-error: true  # Cache failures should not fail the build
+        uses: ./.github/actions/cache-maven-wrapper
+
       - name: Setup Java Build
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
@@ -83,7 +88,7 @@ jobs:
       # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
       # - camunda-nexus: Artifactory creds for deploying snapshots to artifacts.camunda.com
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |

@@ -44,8 +44,7 @@ additively per-key onto the SDK request builder (`AnthropicMessageRequestConvert
 `AnthropicChatModelFactory` adds an `OAuthBearerTokenInterceptor` (`com.anthropic.core.http.Interceptor`,
 a supported public hook) via `builder.addInterceptor(...)`: it wraps the transport `HttpClient` and rewrites
 each outgoing `HttpRequest` with a fresh `Authorization: Bearer` header, resolved per request from
-the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses
-(`provider/authentication/oauth/`).
+the same shared `OAuthClientCredentialsTokenResolver` the OpenAI provider uses.
 
 `AnthropicFoundryBackend` (Microsoft Foundry) delegates to the Anthropic Java SDK's own
 `com.anthropic.foundry.backends.FoundryBackend`, which normalizes the base URL (appending `/anthropic`
@@ -123,7 +122,7 @@ call sits silent on the socket for the whole generation (issue #7193). `BedrockC
 reassembles the AWS EventStream event sequence into a `ConverseResponse`, so the response converter
 sees the same type either way. This is why the module pulls in
 `software.amazon.awssdk:netty-nio-client` and a Netty client builder
-(`ChatModelHttpProxySupport.createAwsAsyncHttpClientBuilder`) alongside the synchronous
+(`AwsSdkHttpProxySupport.asyncHttpClientBuilder`) alongside the synchronous
 Apache-based builder its other AWS SDK usage keeps.
 
 ### Residual capture
@@ -139,7 +138,7 @@ AWS SDK v2 generated types are not Jackson-serializable — they implement `SdkP
 
 `DocumentBlock.name` is required and must be stable across requests, otherwise no prompt-cache prefix
 containing a document can ever hit. `DocumentHandle.idFor(Document)`
-(`aiagent/model/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
+(`aiagent/document/DocumentHandle.java`) derives it deterministically: the Camunda document id
 verbatim, or a SHA-256 prefix of the external URL / inline content.
 
 ### Reasoning
@@ -527,7 +526,7 @@ final wrapping into its vendor SDK's credential type, since those types are vend
 ### Authentication model
 
 `FoundryAuthentication` (`ApiKeyAuthentication` | `ClientCredentialsAuthentication` |
-`ManagedIdentityAuthentication`) is one sealed interface in `model.request.v2`, bound per provider at
+`ManagedIdentityAuthentication`) is one sealed interface in `request.v2`, bound per provider at
 `provider.<provider>.backend.foundry.authentication.*`. `ManagedIdentityAuthentication` is blocked on
 SaaS (`ConnectorUtils.isSaaS()`) since a SaaS runtime doesn't execute inside the customer's Azure
 tenant.
@@ -567,8 +566,7 @@ the client each turn never forces a fresh Entra ID token request as long as the 
 reused. The scope is deliberately not part of the cache key: azure-identity caches tokens per
 requested scope on the credential itself.
 
-`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AgenticAiHttpProxySupport
-.azureProxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
+`EntraIdTokenCredentialFactory` also applies the configured HTTP proxy (`AzureHttpProxySupport.proxyOptions`) to the `ClientSecretCredentialBuilder`, so the client-credentials flow's token
 exchange with `login.microsoftonline.com` goes through the same proxy as the model API calls rather
 than bypassing it. Managed identity is deliberately excluded: its token request targets the
 link-local IMDS endpoint (or an environment-provided local sidecar endpoint), neither reachable via

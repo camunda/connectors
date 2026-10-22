@@ -1,0 +1,420 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+
+import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
+import io.camunda.client.api.search.enums.AgentInstanceStatus;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
+import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;
+import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.Turn;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceClientVerifier;
+import io.camunda.connector.e2e.agenticai.assertj.AgentInstanceEngineVerifier;
+import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
+import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
+import io.camunda.process.test.api.CamundaProcessTestContext;
+import io.camunda.process.test.api.assertions.JobSelectors;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+
+@SlowTest
+class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
+
+  private static final String SLOW_TOOL_ID = "A_Complex_Tool";
+
+  @MockitoSpyBean private AgentInstanceClient agentInstanceClient;
+
+  @Autowired private CamundaProcessTestContext processTestContext;
+
+  /**
+   * The slow tool has no job worker, so its job stays pending and the tool stays in flight until
+   * the test completes it via {@link #completeSlowTool}. This makes "slow tool still in flight"
+   * deterministic instead of a wall-clock race.
+   */
+  private void completeSlowTool(ZeebeTest zeebeTest) {
+    processTestContext.completeJob(
+        JobSelectors.byElementId(SLOW_TOOL_ID)
+            .and(
+                JobSelectors.byProcessInstanceKey(
+                    zeebeTest.getProcessInstanceEvent().getProcessInstanceKey())),
+        Map.of("toolCallResult", "slow tool done"));
+  }
+
+  private void verifyOnlyFastToolResultReportedWhileSlowToolInFlight(
+      ZeebeTest zeebeTest, String fastToolCallId) {
+    // generous timeout: the report is guaranteed to happen, we wait for it instead of racing it
+    verify(agentInstanceClient, timeout(30_000))
+        .applyToolCallResults(
+            any(AgentExecutionContext.class),
+            any(AgentInstanceKey.class),
+            argThat(
+                (List<ToolCallResult> results) ->
+                    results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
+            any(AgentConversationTurn.class));
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
+  }
+
+  /**
+   * Happy path: one tool call (SuperfluxProduct) followed by a final answer.
+   *
+   * <p>Expected agent instance update sequence:
+   *
+   * <pre>
+   * Init:   create agent instance
+   * Turn 1: THINKING (sync) → LLM returns tool call → TOOL_CALLING + delta (deferred via onJobCompleted)
+   * Tool:   SuperfluxProduct executes as script task
+   * Turn 2: THINKING (sync) → LLM returns final answer → IDLE + delta (sync, element instance about to close)
+   * </pre>
+   */
+  @Test
+  void shouldUpdateAgentInstanceStatusAndMetricsForToolCallAndFinalAnswerTurns() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.text("The superflux calculation of 5 and 3 is complete.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
+
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceClientVerifier.verify(agentInstanceClient)
+        .createdInstance()
+        .toolCallTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1),
+            turn ->
+                turn.fromUserPrompt("Calculate the superflux product of 5 and 3")
+                    .callingTool("SuperfluxProduct"))
+        .finalAnswerTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
+            turn ->
+                turn.fromToolResults()
+                    .answering("The superflux calculation of 5 and 3 is complete."))
+        .noMoreInteractions();
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1))
+        .hasDefinition("test-model", "openai/completions/openai-api")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("test-model", "openai/completions/openai-api", 10)
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
+  }
+
+  /**
+   * Two consecutive tool calls (SuperfluxProduct × 2) followed by a final answer.
+   *
+   * <p>Expected agent instance update sequence:
+   *
+   * <pre>
+   * Init:   create agent instance
+   * Turn 1: THINKING (sync) → tool call → TOOL_CALLING + delta (deferred via onJobCompleted)
+   * Tool:   SuperfluxProduct executes
+   * Turn 2: THINKING (sync) → tool call → TOOL_CALLING + delta (deferred via onJobCompleted)
+   * Tool:   SuperfluxProduct executes
+   * Turn 3: THINKING (sync) → final answer → IDLE + delta (sync, element instance about to close)
+   * </pre>
+   */
+  @Test
+  void shouldUpdateAgentInstanceStatusAndMetricsAcrossMultipleToolCallRounds() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.toolCalls(
+            null, 10, 20, ToolCall.of("call-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}")),
+        Turn.text("The superflux calculation of 5 and 3 is complete.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3, twice")));
+
+    // modelCalls=3, inputTokens=10+10+15=35, outputTokens=20+20+25=65, toolCalls=2
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    // turn 1 input is the user prompt; turns 2 and 3 inputs are tool results; assistant items:
+    // turns 1 and 2 carry a tool call, turn 3 is the final answer.
+    AgentInstanceClientVerifier.verify(agentInstanceClient)
+        .createdInstance()
+        .toolCallTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1),
+            turn ->
+                turn.fromUserPrompt("Calculate the superflux product of 5 and 3, twice")
+                    .callingTool("SuperfluxProduct"))
+        .toolCallTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 1),
+            turn -> turn.fromToolResults().callingTool("SuperfluxProduct"))
+        .finalAnswerTurn(
+            new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
+            turn ->
+                turn.fromToolResults()
+                    .answering("The superflux calculation of 5 and 3 is complete."))
+        .noMoreInteractions();
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2))
+        .hasDefinition("test-model", "openai/completions/openai-api")
+        .hasToolsContaining("SuperfluxProduct")
+        .createdWithConfigurationItem("test-model", "openai/completions/openai-api", 10)
+        .hasConfigurationItemsAtLeast(2)
+        .hasConversationRoles(
+            AgentInstanceHistoryRole.USER,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT,
+            AgentInstanceHistoryRole.TOOL_RESULT,
+            AgentInstanceHistoryRole.ASSISTANT)
+        .verify();
+  }
+
+  /**
+   * Two tools completing at genuinely different real times (a fast script task and a service task
+   * held back until the test completes its job) in the same tool-calling round: each TOOL_RESULT's
+   * {@code completedAt} must reflect its own completion, not a shared turn-end timestamp.
+   * Regression guard for #7597.
+   */
+  @Test
+  void shouldRecordDistinctCompletedAtPerToolBasedOnActualCompletionTime() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null,
+            10,
+            20,
+            ToolCall.of("fast-001", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
+            ToolCall.of("slow-001", SLOW_TOOL_ID, "{}")),
+        Turn.text("Done.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        createProcessInstance(
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
+
+    // staggered completion triggers the early-report path; account for it before
+    // noMoreInteractions()
+    verifyOnlyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-001");
+
+    completeSlowTool(zeebeTest);
+    awaitProcessCompletion(zeebeTest);
+
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 2));
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    final var verifier =
+        AgentInstanceClientVerifier.verify(agentInstanceClient)
+            .createdInstance()
+            .toolCallTurn(
+                new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 2),
+                turn ->
+                    turn.fromUserPrompt("Calculate the superflux product and download a file")
+                        .callingTools("SuperfluxProduct", SLOW_TOOL_ID))
+            .finalAnswerTurn(
+                new AgentMetrics(1, new AgentMetrics.TokenUsage(15, 25), 0),
+                turn -> {
+                  turn.fromToolResults().answering("Done.");
+                  // the slow tool is only released after the fast result was reported, so a
+                  // per-tool completedAt must be strictly earlier (a shared turn-end timestamp
+                  // would make both equal)
+                  assertThat(turn.toolResultCompletedAt("fast-001"))
+                      .as("fast tool completed before slow tool")
+                      .isBefore(turn.toolResultCompletedAt("slow-001"));
+                });
+
+    verifier.noMoreInteractions();
+
+    // Loose role check: the staggered early-report path can write a TOOL_RESULT row twice.
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasToolResultsFor("SuperfluxProduct", SLOW_TOOL_ID)
+        .verify();
+  }
+
+  /**
+   * The fast tool's result MUST reach agent instance history via {@link
+   * AgentInstanceClient#applyToolCallResults} while the slow tool is still in flight. That call
+   * only originates from the composer's {@code Deferred} path, so its occurrence proves early
+   * visibility.
+   */
+  @Test
+  void shouldReportFastToolResultToHistoryWhileSlowToolStillInFlight() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            null,
+            10,
+            20,
+            ToolCall.of("fast-002", "SuperfluxProduct", "{\"a\": 5, \"b\": 3}"),
+            ToolCall.of("slow-002", SLOW_TOOL_ID, "{}")),
+        Turn.text("Done.", 15, 25));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        createProcessInstance(
+            Map.of("userPrompt", "Calculate the superflux product and download a file"));
+
+    verifyOnlyFastToolResultReportedWhileSlowToolInFlight(zeebeTest, "fast-002");
+
+    completeSlowTool(zeebeTest);
+    awaitProcessCompletion(zeebeTest);
+  }
+
+  /**
+   * Single model call whose usage carries non-zero cache-read and reasoning token counts, to verify
+   * the connector reports them to the Agent Instance API and the engine's aggregated metrics
+   * reflect them on read-back.
+   */
+  @Test
+  void shouldUpdateAgentInstanceMetricsWithCacheAndReasoningTokenCounts() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "The superflux calculation of 5 and 3 is complete.", 10, 20, 50, 7));
+
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of("userPrompt", "Calculate the superflux product of 5 and 3")));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(10)
+            .outputTokenCount(20)
+            .cacheReadTokenCount(50)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(7)
+            .build();
+    final var expectedMetrics = new AgentMetrics(1, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
+  }
+
+  /**
+   * Two model calls, each with distinct non-zero cache-read and reasoning token counts, chained via
+   * the feedback loop (follow-up, then satisfied) so no tool call is needed to drive a second model
+   * call. A single-turn test cannot distinguish the engine summing these counts across history
+   * items from it merely keeping the latest turn's values; this asserts the summed totals on
+   * read-back, so only the former passes.
+   */
+  @Test
+  void shouldSumCacheAndReasoningTokenCountsAcrossMultipleTurns() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "A haiku about the sea.", 10, 20, 30, 5),
+        new OpenAiCompletionsChatModelStubs.UsageDetailsTurnStub(
+            "A haiku about the sea, with more feeling.", 15, 25, 40, 9));
+
+    enqueueUserFeedback(userFollowUpFeedback("Add more feeling"), userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(Map.of("userPrompt", "Write a haiku about the sea")));
+
+    final var expectedTokenUsage =
+        AgentMetrics.TokenUsage.builder()
+            .inputTokenCount(25)
+            .outputTokenCount(45)
+            .cacheReadTokenCount(70)
+            .cacheCreationTokenCount(0)
+            .reasoningTokenCount(14)
+            .build();
+    final var expectedMetrics = new AgentMetrics(2, expectedTokenUsage, 0);
+    final var agentInstanceKey = new AtomicLong();
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse -> {
+          AgentSubProcessResponseAssert.assertThat(agentResponse)
+              .isReady()
+              .hasAgentInstanceKey()
+              .hasMetrics(expectedMetrics);
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+        });
+
+    AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())
+        .hasStatus(AgentInstanceStatus.COMPLETED)
+        .hasMetrics(expectedMetrics)
+        .verify();
+  }
+}
