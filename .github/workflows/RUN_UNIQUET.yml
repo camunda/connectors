@@ -23,6 +23,12 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch_name }}
 
+<<<<<<< HEAD
+=======
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
+
+>>>>>>> 80893e0 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: install-uniquet
         run: |
           ./mvnw -U install -DskipTests -pl element-template-generator/uniquet -am
