@@ -961,18 +961,21 @@ Event handling is **exclusive to the Sub-process flavor**. In the AHSP, non-inte
 
 ### Event Result Identification
 
-The raw engine tool call results are pre-partitioned in `AgentInvocationInput.from`:
+The raw engine tool call results are pre-partitioned in `AgentInput.from(userPrompt, toolCallResults)`:
 
 ```java
 // Partition tool call results: those WITH an id are tool results,
 // those WITHOUT are event results
 var partitioned =
-    engineToolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
-return new AgentInvocationInput(userPrompt, partitioned.get(true), partitioned.get(false));
+    toolCallResults.stream().collect(Collectors.partitioningBy(r -> r.id() != null));
+return new AgentInput(
+    new UserPrompt(userPrompt.prompt(), documents),
+    partitioned.getOrDefault(true, List.of()),
+    partitioned.getOrDefault(false, List.of()));
 ```
 
 Events produce `ToolCallResult` entries with `id = null`. `AgentConversationTurnInputComposerImpl.compose`
-reads them as `invocationInput.eventMessages()` (separate from `invocationInput.toolCallResults()`)
+reads them as `agentInput.eventMessages()` (separate from `agentInput.toolCallResults()`)
 and renders each via `createEventMessage`.
 
 ### Two Behaviors

@@ -25,6 +25,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Agent request handlers](#agent-request-handlers) | Custom `BaseAgentRequestHandler` subclasses and replaced `AgentTaskRequestHandler` or `AgentSubProcessRequestHandler` beans; runtimes that define several `Clock` beans |
 
 ### Module split
 
@@ -188,6 +189,24 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+### Agent request handlers
+
+The agent request handlers report the agent lifecycle to listeners and read time from a `java.time.Clock`.
+This changes the handler classes that a custom extension can subclass or replace:
+
+- The constructors of `BaseAgentRequestHandler`, `AgentTaskRequestHandler` and
+  `AgentSubProcessRequestHandler` take two more parameters at the end: an `AgentLifecycleDispatcher` and a
+  `java.time.Clock`.
+- `BaseAgentRequestHandler` has a new abstract method, `flavor()`, that a custom subclass must implement.
+- The `aiAgentClock` bean (`Clock.systemUTC()`) is auto-configured and backs off when the runtime defines a
+  `Clock` bean of its own. The handler beans use whichever `Clock` bean is present. A runtime that defines
+  several unqualified `Clock` beans must mark one of them `@Primary`, otherwise the handler beans fail to start.
+- The `AgentLifecycleDispatcher` bean is auto-configured as well. It collects the `AgentLifecycleListener` beans.
+
+The agent lifecycle listener API is new in 8.11 and `@Experimental`, so it is not a breaking change and is
+not tracked here. The OpenTelemetry tracing module (`aiagent-otel`) is new as well and is inert unless
+`camunda.connector.agenticai.aiagent.tracing.enabled` is `true`.
 
 ## Camunda 8.9 to 8.10
 
