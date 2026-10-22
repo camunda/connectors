@@ -14,9 +14,12 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
@@ -41,7 +44,130 @@ class AgentToolsResolverTest {
 
   @BeforeEach
   void setUp() {
-    agentToolsResolver = new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+    agentToolsResolver =
+        new AgentToolsResolverImpl(
+            toolsSchemaResolver,
+            gatewayToolHandlers,
+            new RuntimeToolRegistryImpl(
+                List.of(
+                    StubRuntimeTool.of("acme_lookup", (call, context) -> null),
+                    StubRuntimeTool.of("acme_notes", (call, context) -> null)
+                        .enabledWhen(context -> false))));
+  }
+
+  @Nested
+  class RuntimeToolNames {
+
+    private static final ToolDefinition CONFLICTING_TOOL =
+        ToolDefinition.builder()
+            .name("acme_lookup")
+            .description("Conflicts with a runtime tool")
+            .inputSchema(Map.of("type", "object"))
+            .build();
+
+    private static final ToolDefinition CONFLICTING_DISABLED_TOOL =
+        ToolDefinition.builder().name("acme_notes").inputSchema(Map.of("type", "object")).build();
+
+    private static final AgentContext NEW_INSTANCE_CONTEXT =
+        AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+
+    @Test
+    void doesNotReserveNamesForAnAgentInstanceWithoutTheRuntimeToolsFeature() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(CONFLICTING_TOOL, CONFLICTING_DISABLED_TOOL), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, AgentContext.empty()))
+          .satisfies(
+              response ->
+                  assertThat(response.toolDefinitions())
+                      .containsExactly(CONFLICTING_TOOL, CONFLICTING_DISABLED_TOOL));
+    }
+
+    @Test
+    void rejectsAnAdHocToolWithTheNameOfARuntimeToolOnToolDiscovery() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT");
+                assertThat(e.getMessage())
+                    .contains("acme_lookup", "runtime tool", "Rename the ad-hoc sub-process");
+              });
+    }
+
+    @Test
+    void rejectsTheNameOfARuntimeToolThatIsNotEnabled() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_DISABLED_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () -> agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT");
+                assertThat(e.getMessage()).contains("acme_notes");
+              });
+    }
+
+    @Test
+    void acceptsANameThatIsNotARegisteredRuntimeTool() {
+      final var tool =
+          ToolDefinition.builder().name("acme_other").inputSchema(Map.of("type", "object")).build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
+    }
+
+    @Test
+    void acceptsNamesThatOnlyContainTheNameOfARuntimeTool() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("my_acme_lookup")
+              .inputSchema(Map.of("type", "object"))
+              .build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(tool), List.of()));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(response -> assertThat(response.toolDefinitions()).containsExactly(tool));
+    }
+
+    @Test
+    void acceptsAGatewayElementWithTheNameOfARuntimeTool() {
+      // the model sees the tools a gateway exposes under their namespaced names, not the element
+      final var gatewayToolDefinition =
+          GatewayToolDefinition.builder().type("mcp").name("acme_lookup").build();
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), List.of(gatewayToolDefinition)));
+
+      assertThat(agentToolsResolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .satisfies(
+              response ->
+                  assertThat(response.gatewayToolDefinitions())
+                      .containsExactly(gatewayToolDefinition));
+    }
+
+    @Test
+    void rejectsTheNameOfARuntimeToolIntroducedByAProcessMigration() {
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(CONFLICTING_TOOL), List.of()));
+
+      assertThatThrownBy(
+              () ->
+                  agentToolsResolver.updateToolDefinitions(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT"));
+    }
   }
 
   @Nested

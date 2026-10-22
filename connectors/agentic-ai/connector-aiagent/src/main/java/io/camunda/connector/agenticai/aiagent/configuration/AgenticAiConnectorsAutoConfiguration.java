@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolHandler;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
@@ -50,6 +51,8 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.common.configuration.AgenticAiCommonAutoConfiguration;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
@@ -90,10 +93,18 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public RuntimeToolRegistry aiAgentRuntimeToolRegistry(List<RuntimeTool> runtimeTools) {
+    return new RuntimeToolRegistryImpl(runtimeTools);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      RuntimeToolRegistry runtimeToolRegistry) {
+    return new AgentToolsResolverImpl(
+        toolsSchemaResolver, gatewayToolHandlers, runtimeToolRegistry);
   }
 
   @Bean
