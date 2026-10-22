@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -125,6 +126,88 @@ class AgentContextTest {
         .containsExactlyInAnyOrderEntriesOf(Map.of("foo", "bar", "baz", "qux"));
   }
 
+  @Test
+  void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void agentContextWithoutFeaturesFieldBindsToEmptySetAndKeepsTheSchemaVersion()
+      throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 1,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.features()).isEmpty();
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("features");
+  }
+
+  @Test
+  void newInstanceFeaturesContainTheRuntimeToolsFeature() {
+    final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+
+    assertThat(context.features()).containsExactly("runtimeTools");
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+    assertThat(context.supports("other")).isFalse();
+  }
+
+  @Test
+  void featuresAreSerializedAndDeserializedInInsertionOrder() throws JsonProcessingException {
+    final var features = List.of("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    final var context = AgentContext.builder().features(features).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized)
+        .contains(
+            "\"features\":[\"zeta\",\"alpha\",\"runtimeTools\",\"beta\",\"omega\",\"gamma\"]");
+    assertThat(deserialized.features())
+        .containsExactly("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
+  void featuresSurviveCopiesThatChangeOtherComponents() {
+    final var features = List.of("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    final var context = AgentContext.builder().features(features).build();
+
+    final var copy =
+        context
+            .withState(AgentState.READY)
+            .withProperty("hello", "world")
+            .withMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0));
+
+    assertThat(copy.features())
+        .containsExactly("zeta", "alpha", "runtimeTools", "beta", "omega", "gamma");
+    assertThat(copy.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+  }
+
+  @Test
+  void featuresAreCopiedDefensively() {
+    final var features = new ArrayList<>(List.of("runtimeTools"));
+    final var context = AgentContext.builder().features(features).build();
+
+    features.add("other");
+
+    assertThat(context.features()).containsExactly("runtimeTools");
+  }
+
   @ParameterizedTest
   @MethodSource("invalidConstructorParameters")
   void throwsExceptionOnInvalidConstructorParameters(
@@ -141,6 +224,7 @@ class AgentContextTest {
                     metrics,
                     toolDefinitions,
                     InProcessConversationContext.builder("test-conversation").build(),
+                    List.of(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
