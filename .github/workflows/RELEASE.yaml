@@ -122,6 +122,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+<<<<<<< HEAD
+=======
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
+
+>>>>>>> 80893e05 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: Install Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -421,6 +428,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+<<<<<<< HEAD
+=======
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
+
+>>>>>>> 80893e05 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: Log Maven deployment target
         run: |
           if [[ "${{ inputs.version }}" == *"rc"* ]]; then

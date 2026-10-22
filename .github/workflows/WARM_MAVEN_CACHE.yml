@@ -46,6 +46,16 @@ jobs:
           key: ${{ steps.key.outputs.value }}
           lookup-only: true
 
+<<<<<<< HEAD
+=======
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        id: mvnw-cache
+        uses: ./.github/actions/cache-maven-wrapper
+        with:
+          restore-only: 'true'
+
+>>>>>>> 80893e05 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: Restore previous cache
         if: steps.lookup.outputs.cache-hit != 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
