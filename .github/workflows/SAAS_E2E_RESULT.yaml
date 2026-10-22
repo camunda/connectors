@@ -33,12 +33,15 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: read
+      contents: read
+      pull-requests: read
     outputs:
       failed: ${{ steps.payload.outputs.failed }}
       base_ref: ${{ steps.payload.outputs.base_ref }}
       base_ref_supported: ${{ steps.payload.outputs.base_ref_supported }}
       source_sha: ${{ steps.payload.outputs.source_sha }}
       source_run_url: ${{ steps.payload.outputs.source_run_url }}
+      source_pr: ${{ steps.payload.outputs.source_pr }}
     steps:
       # client_payload comes from whoever can call the dispatch API, so it goes through
       # env and is validated before anything uses it. Branch and event are read from
@@ -80,6 +83,12 @@ jobs:
           HEAD_BRANCH=$(jq -r '.head_branch // ""' <<<"$meta")
           SOURCE_RUN_URL="$(jq -r '.html_url' <<<"$meta")/attempts/${SOURCE_ATTEMPT}"
 
+          # The pipeline runs on push, so the callback carries no PR; the PR comment
+          # goes to the merged PR that introduced the tested commit, when there is one.
+          SOURCE_PR=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SOURCE_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null)] | first | .number // empty' 2>/dev/null || true)
+          [[ "$SOURCE_PR" =~ ^[0-9]+$ ]] || SOURCE_PR=""
+
           [[ "$DOWNSTREAM_RUN_URL" =~ ^https://github\.com/camunda/c8-cross-component-e2e-tests/actions/runs/[0-9]+$ ]] || DOWNSTREAM_RUN_URL=""
 
           # Same support list as the watcher and triage, which hard-error on anything
@@ -110,6 +119,7 @@ jobs:
             echo "base_ref_supported=${base_ref_supported}"
             echo "source_sha=${SOURCE_SHA}"
             echo "source_run_url=${SOURCE_RUN_URL}"
+            echo "source_pr=${SOURCE_PR}"
             echo "downstream_run_url=${DOWNSTREAM_RUN_URL}"
           } >> "$GITHUB_OUTPUT"
 
@@ -212,6 +222,9 @@ jobs:
           # is this run's summary that links the downstream failure.
           run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           status: failure
+          pr: ${{ needs.result.outputs.source_pr }}
+          # A merged PR is never a draft.
+          pr_is_draft: "false"
           evidence: "SaaS E2E tests failed for ${{ needs.result.outputs.source_sha }} (pipeline run: ${{ needs.result.outputs.source_run_url }}). The downstream run in c8-cross-component-e2e-tests is linked from the run summary."
           slack_channel: "C0AK0AVKRL0"
           slack_bot_token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
