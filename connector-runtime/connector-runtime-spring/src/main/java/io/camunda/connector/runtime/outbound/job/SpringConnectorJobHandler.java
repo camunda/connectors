@@ -489,16 +489,23 @@ public class SpringConnectorJobHandler implements JobHandler {
               job.getPhysicalTenantId());
       optionalConnectorError.ifPresentOrElse(
           error -> {
-            deleteDocumentsDiscardedByError(createdDocuments, error, job);
-            handleConnectorError(
-                client,
-                job,
-                context,
-                finalResult,
-                error,
-                counterMetricsContext,
-                secretFilter,
-                deadline);
+            // cleanup starts only once the outcome is submitted and never waits on the store, so
+            // slow storage cannot push the job past its deadline and get the connector re-executed
+            Map<String, Object> submittedVariables = Map.of();
+            try {
+              submittedVariables =
+                  handleConnectorError(
+                      client,
+                      job,
+                      context,
+                      finalResult,
+                      error,
+                      counterMetricsContext,
+                      secretFilter,
+                      deadline);
+            } finally {
+              deleteDocumentsDiscardedByError(createdDocuments, submittedVariables, job);
+            }
           },
           () ->
               handleFinalResult(
@@ -541,39 +548,35 @@ public class SpringConnectorJobHandler implements JobHandler {
   /**
    * The error expression won, so the result expression's variables are discarded and the documents
    * its {@code createDocument()} calls created would be left stored but unreferenced. Deletes
-   * those, except any the error's own variables still reference. Best effort: a failed delete is
-   * logged and never changes the job outcome.
+   * those, except any the variables actually submitted still reference. Best effort: the deletes
+   * are not awaited, and a failed one is logged and never changes the job outcome.
    */
   private void deleteDocumentsDiscardedByError(
-      List<Document> createdDocuments, ConnectorError error, ActivatedJob job) {
+      List<Document> createdDocuments, Map<String, Object> submittedVariables, ActivatedJob job) {
     if (createdDocuments.isEmpty()) {
       return;
     }
     Set<String> referencedValues = new HashSet<>();
-    collectValues(errorVariables(error), referencedValues);
+    collectValues(submittedVariables, referencedValues);
     for (Document document : createdDocuments) {
       if (document instanceof CamundaDocument camundaDocument
           && camundaDocument.reference() instanceof CamundaDocumentReference reference
           && !referencedValues.contains(reference.getDocumentId())) {
-        try {
-          camundaDocument.delete();
-        } catch (Exception e) {
-          LOGGER.warn(
-              "Failed to delete document {} created by the result expression of job {}",
-              reference.getDocumentId(),
-              job.getKey(),
-              e);
-        }
+        // composed so that a store throwing synchronously is logged the same way
+        CompletableFuture.completedFuture(null)
+            .thenCompose(ignored -> camundaDocument.deleteAsync())
+            .whenComplete(
+                (ignored, failure) -> {
+                  if (failure != null) {
+                    LOGGER.warn(
+                        "Failed to delete document {} created by the result expression of job {}",
+                        reference.getDocumentId(),
+                        job.getKey(),
+                        failure);
+                  }
+                });
       }
     }
-  }
-
-  private static Map<String, Object> errorVariables(ConnectorError error) {
-    return switch (error) {
-      case BpmnError bpmnError -> bpmnError.variables();
-      case JobError jobError -> jobError.variables();
-      case IgnoreError ignoreError -> ignoreError.variables();
-    };
   }
 
   private static void collectValues(Object value, Set<String> values) {
@@ -619,7 +622,8 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleConnectorError(
+  /** Returns the variables the submitted command carries. */
+  private Map<String, Object> handleConnectorError(
       JobClient client,
       ActivatedJob job,
       JobHandlerContext context,
@@ -652,6 +656,7 @@ public class SpringConnectorJobHandler implements JobHandler {
                     bpmnError.errorMessage(),
                     bpmnError.variables(),
                     completionFailure));
+        return bpmnError.variables();
       }
       case JobError jobError -> {
         checkVariablesSize(jobError.variablesWithErrorMessage());
@@ -676,22 +681,24 @@ public class SpringConnectorJobHandler implements JobHandler {
                     jobError.errorMessage(),
                     jobError.variablesWithErrorMessage(),
                     completionFailure));
+        return jobError.variablesWithErrorMessage();
       }
-      case IgnoreError ignoreError ->
-          handleIgnoreError(
-              client,
-              job,
-              context,
-              finalResult,
-              response,
-              ignoreError,
-              counterMetricsContext,
-              secretFilter,
-              deadline);
+      case IgnoreError ignoreError -> {
+        return handleIgnoreError(
+            client,
+            job,
+            context,
+            finalResult,
+            response,
+            ignoreError,
+            counterMetricsContext,
+            secretFilter,
+            deadline);
+      }
     }
   }
 
-  private void handleIgnoreError(
+  private Map<String, Object> handleIgnoreError(
       JobClient client,
       ActivatedJob job,
       JobHandlerContext context,
@@ -729,6 +736,7 @@ public class SpringConnectorJobHandler implements JobHandler {
           context,
           response,
           completionFailure -> new ExecutionFailed(cause, completionFailure));
+      return variables;
     } else {
       checkVariablesSize(ignoreError.variables());
       LOGGER.debug("Ignoring error for job {}", job.getKey());
@@ -740,6 +748,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               StandardConnectorResponse.of(null), ignoreError.variables()),
           counterMetricsContext,
           deadline);
+      return ignoreError.variables();
     }
   }
 

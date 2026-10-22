@@ -24,6 +24,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
+import java.util.concurrent.CompletableFuture;
 
 public class CamundaDocument implements Document {
 
@@ -74,7 +75,7 @@ public class CamundaDocument implements Document {
     return documentStore.generateLink(reference, parameters);
   }
 
-  public void delete() {
-    documentStore.deleteDocument(reference);
+  public CompletableFuture<Void> deleteAsync() {
+    return documentStore.deleteDocumentAsync(reference);
   }
 }
