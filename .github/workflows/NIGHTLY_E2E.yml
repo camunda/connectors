@@ -3,7 +3,7 @@ name: E2E test run
 on:
   workflow_dispatch:
   schedule: # Run nightly
-    - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
+    - cron: "0 7 * * *"  # Runs daily at 07:00 UTC
   pull_request:
     types: [ labeled, synchronize ]
 
