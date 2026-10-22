@@ -29,10 +29,7 @@ jobs:
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ~/.m2/wrapper
-          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+        uses: ./.github/actions/cache-maven-wrapper
 
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
