@@ -23,10 +23,10 @@ import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import io.camunda.connector.e2e.ConnectorsZeebeSpringTest;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class SoapConnectorTests extends SoapConnectorBaseTest {
 

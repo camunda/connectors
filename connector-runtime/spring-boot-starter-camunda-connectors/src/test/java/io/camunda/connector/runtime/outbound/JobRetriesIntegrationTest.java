@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.ConnectorsZeebeSpringTest;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -33,7 +34,6 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.assertions.BpmnAssert;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Arrays;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ import org.springframework.context.annotation.Primary;
       "camunda.connector.webhook.enabled=false",
       "camunda.connector.polling.enabled=false"
     })
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class JobRetriesIntegrationTest {
 

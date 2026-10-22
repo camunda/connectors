@@ -48,7 +48,6 @@ import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Collections;
 import java.util.Map;
@@ -72,7 +71,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 

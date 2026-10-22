@@ -28,7 +28,6 @@ import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +50,7 @@ import org.testcontainers.utility.DockerImageName;
       "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqOutboundTests extends BaseRabbitMqTest {
   private static final String QUEUE_NAME = "testQueue";

@@ -24,7 +24,6 @@ import io.camunda.connector.e2e.helper.KafkaTestConsumer;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ZeebeSpringTest
+@ConnectorsZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class OutboundKafkaTests extends BaseKafkaTest {
   private static final String ELEMENT_TEMPLATE_PATH =
