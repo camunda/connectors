@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,7 +16,11 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -94,6 +99,43 @@ class InProcessConversationStoreTest {
               conversation -> {
                 assertThat(conversation.conversationId()).isNotEmpty();
                 assertThat(conversation.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+              });
+    }
+  }
+
+  @Test
+  void keepsTheKindOfToolCallsWhenTheAgentContextIsSerializedAndLoadedAgain() throws Exception {
+    final var objectMapper = TestObjectMapperSupplier.INSTANCE;
+    final var assistantMessage = assistantMessageWithMixedToolKinds();
+
+    final var agentContext = AgentContext.empty();
+    AgentContext storedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      var storedConversation =
+          session.storeMessages(
+              agentContext,
+              ConversationStoreRequest.of(List.of(userMessage("hi"), assistantMessage)));
+      storedAgentContext = agentContext.withConversation(storedConversation);
+    }
+
+    // the agent context is persisted as a process variable
+    final var reloadedAgentContext =
+        objectMapper.readValue(
+            objectMapper.writeValueAsString(storedAgentContext), AgentContext.class);
+
+    try (var session = store.createSession(executionContext, reloadedAgentContext)) {
+      final var loadedMessages = session.loadMessages(reloadedAgentContext).messages();
+
+      assertThat(loadedMessages.getLast())
+          .asInstanceOf(InstanceOfAssertFactories.type(AssistantMessage.class))
+          .satisfies(
+              loaded -> {
+                assertThat(loaded.toolCalls())
+                    .containsExactlyElementsOf(assistantMessage.toolCalls());
+                assertThat(loaded.toolCalls())
+                    .extracting(ToolCall::kind)
+                    .containsExactly(ToolKind.RUNTIME, ToolKind.PROCESS);
               });
     }
   }
