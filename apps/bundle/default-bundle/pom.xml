@@ -268,8 +268,9 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-agentic-ai</artifactId>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>agentic-ai-bundle</artifactId>
+      <type>pom</type>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -390,6 +391,7 @@
             </goals>
             <configuration>
               <classifier>with-dependencies</classifier>
+              <attach>${connectors.fatjar.attach}</attach>
               <mainClass>
                 io.camunda.connector.runtime.app.ConnectorRuntimeApplication
               </mainClass>

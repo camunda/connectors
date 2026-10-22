@@ -15,7 +15,13 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main", "*" ]
+    branches: [ "main", "stable/**" ]
+  schedule:
+    - cron: "0 3 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.event_name, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:
@@ -25,7 +31,9 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    # Internal builds use the same runner type as WARM_MAVEN_CACHE.yml: its ~/.m2 cache
+    # is only restorable on runners with a matching cache version.
+    runs-on: ${{ github.repository_owner == 'camunda' && !startsWith(github.event.pull_request.head.ref || github.ref_name, 'fix/alwaysgreen-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       # required for all workflows
@@ -54,11 +62,38 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+    # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml. Keep the key in sync.
+    - name: Restore Maven cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+    - name: Restore Maven wrapper cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/wrapper
+        key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
+    # Self-hosted runners don't ship a JDK; buildless extraction needs one to run Maven.
+    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+      with:
+        distribution: 'temurin'
+        java-version: '25.0.4+101.0.LTS'
+
+    # On a wrapper cache miss, fail here rather than inside CodeQL's extractor, which silently
+    # falls back to guessing dependencies when mvnw can't run.
+    - name: Install Maven wrapper
+      run: ./mvnw --batch-mode --version
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -87,6 +122,6 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
       with:
         category: "/language:${{matrix.language}}"

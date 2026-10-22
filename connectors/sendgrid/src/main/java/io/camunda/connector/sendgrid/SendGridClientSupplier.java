@@ -6,11 +6,17 @@
  */
 package io.camunda.connector.sendgrid;
 
+import com.sendgrid.Client;
 import com.sendgrid.SendGrid;
+import org.apache.http.impl.client.CloseableHttpClient;
 
 public class SendGridClientSupplier {
 
   public SendGrid sendGrid(String apiKey) {
     return new SendGrid(apiKey);
+  }
+
+  public SendGrid sendGrid(String apiKey, CloseableHttpClient httpClient) {
+    return new SendGrid(apiKey, new Client(httpClient));
   }
 }

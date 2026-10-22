@@ -6,82 +6,120 @@
  */
 package io.camunda.connector.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxItem;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.folders.GetFolderItemsQueryParams;
+import com.box.sdkgen.schemas.items.Items;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.box.model.BoxPath;
-import io.camunda.connector.box.model.BoxResult;
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.function.Function;
 
 public class BoxUtil {
 
-  public static BoxFile getFile(String path, BoxAPIConnection api) {
-    return new BoxFile(api, getItem(path, api).getID());
+  private static final String ROOT_FOLDER_ID = "0";
+  private static final long PAGE_SIZE = 1000L;
+
+  public static String getItemId(String path, BoxClient client) {
+    return findItemId(path, client)
+        .orElseThrow(
+            () ->
+                new ConnectorException(
+                    "ITEM_NOT_FOUND",
+                    "Could not find item '"
+                        + path
+                        + "'. Paths must start with '/' (e.g. /Invoices/2026), or be a Box item ID."));
   }
 
-  public static BoxFolder getFolder(String path, BoxAPIConnection api) {
-    return new BoxFolder(api, getItem(path, api).getID());
+  public static Optional<String> findItemId(String path, BoxClient client) {
+    return findItemId(BoxPath.from(path), client);
   }
 
-  public static BoxItem.Info getItem(String path, BoxAPIConnection api) {
-    return findItem(path, api)
-        .orElseThrow(() -> new RuntimeException("Could not find item: " + path));
-  }
-
-  public static Optional<BoxItem.Info> findItem(String path, BoxAPIConnection api) {
-    return findItem(BoxPath.from(path), api);
-  }
-
-  public static Optional<BoxItem.Info> findItem(BoxPath path, BoxAPIConnection api) {
+  public static Optional<String> findItemId(BoxPath path, BoxClient client) {
     return switch (path) {
-      case BoxPath.Root root -> Optional.of(BoxFolder.getRootFolder(api).getInfo());
-      case BoxPath.Id id -> Optional.of(new BoxFile(api, id.id()).getInfo());
-      case BoxPath.Segments segments -> findItemInTree(BoxFolder.getRootFolder(api), segments);
+      case BoxPath.Root() -> Optional.of(ROOT_FOLDER_ID);
+      case BoxPath.Id id -> Optional.of(id.id());
+      case BoxPath.Segments segments -> findItemIdInTree(ROOT_FOLDER_ID, segments, client);
     };
   }
 
-  public static Optional<BoxItem.Info> findItemInTree(BoxFolder folder, BoxPath.Segments segments) {
+  private static Optional<String> findItemIdInTree(
+      String folderId, BoxPath.Segments segments, BoxClient client) {
     String segment = segments.segments().getFirst();
-    return findItemByName(items(folder), segment)
+    return findChildIdByName(folderId, segment, client)
         .flatMap(
-            item ->
+            childId ->
                 segments.isPathEnd()
-                    ? Optional.of(item)
-                    : findItemInTree(
-                        new BoxFolder(folder.getAPI(), item.getID()),
-                        segments.withoutFirstSegment()));
+                    ? Optional.of(childId)
+                    : findItemIdInTree(childId, segments.withoutFirstSegment(), client));
   }
 
-  private static Stream<BoxItem.Info> items(BoxFolder folder) {
-    return StreamSupport.stream(folder.spliterator(), false);
+  private static Optional<String> findChildIdByName(
+      String folderId, String name, BoxClient client) {
+    return findChildIdByName(
+        name,
+        marker -> {
+          var queryParams = new GetFolderItemsQueryParams();
+          queryParams.usemarker = true;
+          queryParams.marker = marker;
+          queryParams.limit = PAGE_SIZE;
+          Items items = client.folders.getFolderItems(folderId, queryParams);
+          List<Entry> entries =
+              items.getEntries() == null
+                  ? List.of()
+                  : items.getEntries().stream()
+                      .map(item -> new Entry(item.getId(), item.getName()))
+                      .toList();
+          return new Page(entries, items.getNextMarker());
+        });
   }
 
-  private static Optional<BoxItem.Info> findItemByName(Stream<BoxItem.Info> items, String name) {
-    return items.filter(item -> item.getName().equals(name)).findFirst();
+  static Optional<String> findChildIdByName(String name, Function<String, Page> fetchPage) {
+    String marker = null;
+    do {
+      Page page = fetchPage.apply(marker);
+      for (Entry entry : page.entries()) {
+        if (name.equals(entry.name())) {
+          return Optional.of(entry.id());
+        }
+      }
+      marker = page.nextMarker();
+    } while (marker != null && !marker.isEmpty());
+    return Optional.empty();
   }
 
-  public static byte[] download(BoxFile file) {
+  record Entry(String id, String name) {}
+
+  record Page(List<Entry> entries, String nextMarker) {}
+
+  public static byte[] download(String fileId, BoxClient client) {
     try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      file.download(out);
+      client.downloads.downloadFileToOutputStream(fileId, out);
       return out.toByteArray();
+    } catch (BoxAPIError e) {
+      throw new RuntimeException(
+          "Error downloading file: " + fileId, withDiagnostics(e, fileId, client));
     } catch (Throwable e) {
-      throw new RuntimeException("Error downloading file: " + file.getID(), e);
+      throw new RuntimeException("Error downloading file: " + fileId, e);
     }
   }
 
-  public static BoxResult.Item item(BoxFile file) {
-    return new BoxResult.Item(file.getID(), "file");
-  }
-
-  public static BoxResult.Item item(BoxFolder folder) {
-    return new BoxResult.Item(folder.getID(), "folder");
-  }
-
-  public static BoxResult.Item item(BoxItem.Info info) {
-    return new BoxResult.Item(info.getID(), info.getType());
+  private static BoxAPIError withDiagnostics(BoxAPIError error, String fileId, BoxClient client) {
+    ResponseInfo response = error.getResponseInfo();
+    if (response == null || response.getBody() != null || response.getRawBody() != null) {
+      return error;
+    }
+    try {
+      client.files.getFileById(fileId);
+    } catch (BoxAPIError diagnostic) {
+      ResponseInfo info = diagnostic.getResponseInfo();
+      return info != null && info.getStatusCode() == response.getStatusCode() ? diagnostic : error;
+    } catch (RuntimeException ignored) {
+      return error;
+    }
+    return error;
   }
 }

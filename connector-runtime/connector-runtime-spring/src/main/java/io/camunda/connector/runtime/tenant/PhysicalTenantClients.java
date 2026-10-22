@@ -52,6 +52,20 @@ public final class PhysicalTenantClients {
   private PhysicalTenantClients() {}
 
   /**
+   * Reads the client's configured physical tenant ID, normalized the way the Camunda client itself
+   * uses it (for the REST path and its worker metrics tag): trimmed, and {@code null} when unset or
+   * blank. Every place the runtime keys, tags or routes by the configured ID goes through this, so
+   * they all agree with each other and with the client.
+   *
+   * @throws RuntimeException when the configuration cannot be read; callers decide how to tolerate
+   *     that
+   */
+  public static String configuredPhysicalTenantId(CamundaClient client) {
+    var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
+    return physicalTenantId == null || physicalTenantId.isBlank() ? null : physicalTenantId.trim();
+  }
+
+  /**
    * Resolves the {@code CamundaClient} that per-physical-tenant builders fall back to when the
    * registry cannot resolve a client name itself (see {@link #resolveClient}): the sole configured
    * client, or the one designated {@code camunda.clients.<name>.primary=true}.
@@ -112,8 +126,8 @@ public final class PhysicalTenantClients {
    */
   private static String readPhysicalTenantIdIfAvailable(CamundaClient client) {
     try {
-      var physicalTenantId = client.getConfiguration().getPhysicalTenantId();
-      return physicalTenantId == null || physicalTenantId.isBlank() ? "unknown" : physicalTenantId;
+      var physicalTenantId = configuredPhysicalTenantId(client);
+      return physicalTenantId != null ? physicalTenantId : "unknown";
     } catch (RuntimeException e) {
       return "unknown";
     }
@@ -170,9 +184,7 @@ public final class PhysicalTenantClients {
       CamundaClientRegistry registry, String name, CamundaClient legacyCamundaClient) {
     try {
       var physicalTenantId =
-          resolveClient(registry, name, legacyCamundaClient)
-              .getConfiguration()
-              .getPhysicalTenantId();
+          configuredPhysicalTenantId(resolveClient(registry, name, legacyCamundaClient));
       return physicalTenantId != null ? physicalTenantId : name;
     } catch (RuntimeException e) {
       return name;
