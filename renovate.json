@@ -94,9 +94,7 @@
       "automerge": false
     },
     {
-      "matchBaseBranches": [
-        "stable/*"
-      ],
+      "description": "Disable major version updates on all branches — majors routinely need code or behaviour migrations (e.g. anthropic-java v3 API removals, mariadb-java-client v4 enabling TLS by default, openjre-base JRE majors) and should be done deliberately by a human, not proposed by Renovate.",
       "matchUpdateTypes": [
         "major"
       ],
