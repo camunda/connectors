@@ -45,6 +45,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -125,6 +129,10 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
 
       - uses: actions/setup-java@v4
         with:

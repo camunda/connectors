@@ -69,6 +69,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        continue-on-error: true  # Cache failures should not fail the build
+        uses: ./.github/actions/cache-maven-wrapper
+
       - name: Setup Java Build
         uses: actions/setup-java@v5
         with:
