@@ -60,6 +60,11 @@ public class CreateCommandDummy
     return this;
   }
 
+  @Override
+  public CreateProcessInstanceCommandStep3 versionTag(String versionTag) {
+    return this;
+  }
+
   public CreateProcessInstanceCommandStep3 variables(InputStream variables) {
     return this;
   }
