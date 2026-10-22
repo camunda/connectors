@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -18,6 +19,9 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class AgentInstanceToolMapperTest {
+
+  private static final ToolDefinition RUNTIME_TOOL =
+      ToolDefinition.runtime("acme_lookup", "Looks up a customer", Map.of("type", "object"));
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
@@ -42,6 +46,20 @@ class AgentInstanceToolMapperTest {
           assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
           assertThat(agentTool.getElementId()).isEqualTo("getWeather");
         });
+  }
+
+  @Test
+  void runtimeToolHasNoElementIdAndIsNotLookedUpInTheGatewayRegistry() {
+    final var mapped = mapper.mapTools(List.of(RUNTIME_TOOL));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(agentTool -> {
+          assertThat(agentTool.getName()).isEqualTo("acme_lookup");
+          assertThat(agentTool.getDescription()).isEqualTo("Looks up a customer");
+          assertThat(agentTool.getElementId()).isNull();
+        });
+    verifyNoInteractions(gatewayToolHandlers);
   }
 
   @Test
