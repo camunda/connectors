@@ -42,6 +42,25 @@ the Docker VM; the `langfuse-web` container is OOM-killed when the VM is shared 
 If port 3000 is taken on your machine (for example by another dev server that listens on `::1`), `localhost`
 may resolve to that server rather than to Langfuse. Use `127.0.0.1` in the endpoint.
 
+## Run both backends with the local runtime
+
+`LocalConnectorRuntime` (the test sources of `apps/bundle/default-bundle`) exports the agent traces to Phoenix and
+Langfuse at the same time when it starts with the `local` profile, which it activates itself. Start one or both
+backends as described above, then start the runtime and run an agent. No further configuration is needed.
+
+* Phoenix at `http://localhost:6006/v1/traces`, Langfuse at `http://localhost:3000/api/public/otel/v1/traces` with
+  the local-only API keys, both as OTLP/HTTP with protobuf bodies.
+* A backend that is not running does not affect startup or job processing. The exporter logs the failed export
+  (a rate-limited error with a stack trace, at most a few per minute, and only while spans are being exported).
+* To leave a backend out, set `agent-tracing-poc.phoenix.enabled=false` or `agent-tracing-poc.langfuse.enabled=false`
+  in `application-local.properties`, as a system property, or as an environment variable
+  (`AGENT_TRACING_POC_LANGFUSE_ENABLED=false`).
+* To change an endpoint, set `agent-tracing-poc.phoenix.endpoint` or `agent-tracing-poc.langfuse.endpoint`, for
+  example to `127.0.0.1` when another server shadows port 3000.
+
+The two profile files in this directory stay the way to send traces to one backend from a runtime outside this
+repository.
+
 ## Runtime settings
 
 The AI Agent runtime needs these properties (the two profile files in this directory contain them, ready to copy).
