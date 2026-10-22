@@ -11,15 +11,21 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqConnectionConfiguration;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 
 @OutboundConnector(
     name = "RabbitMQ Producer",
-    inputVariables = {"authentication", "routing", "message"},
+    inputVariables = {
+      RabbitMqConnectionConfiguration.CHOOSER_ID,
+      "authentication",
+      "routing",
+      "message"
+    },
     type = "io.camunda:connector-rabbitmq:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.RabbitMQ.v1",
     name = "Publish Message to RabbitMQ",
     description = "Send message to RabbitMQ",
@@ -33,7 +39,8 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
       "queue"
     },
     inputDataClass = RabbitMqRequest.class,
-    version = 6,
+    version = 7,
+    configurations = {RabbitMqConnectionConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "routing", label = "Routing"),

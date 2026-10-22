@@ -5,7 +5,7 @@
   "description" : "Send message to RabbitMQ",
   "keywords" : [ "publish message", "send message", "message queue", "AMQP", "produce event", "message broker", "queue" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -47,6 +47,18 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "rabbitMqConnection",
+    "label" : "Connection credential",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "rabbitMqConnection",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Choose a reusable RabbitMQ connection credential, or configure one-time connection parameters below.",
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:rabbitmq-connection:1"
+  }, {
     "id" : "authentication.authType",
     "label" : "Connection type",
     "value" : "uri",
@@ -54,6 +66,11 @@
     "binding" : {
       "name" : "authentication.authType",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "rabbitMqConnection",
+      "isEmpty" : true,
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -81,12 +98,19 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "uri",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "uri",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "URI should contain username, password, host name, port number, and virtual host",
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "authentication.userName",
     "label" : "Username",
@@ -101,9 +125,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -120,11 +150,18 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "routing.exchange",
     "label" : "Exchange",
@@ -169,9 +206,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
@@ -189,9 +232,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
@@ -209,9 +258,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
-      "equals" : "credentials",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "rabbitMqConnection",
+        "isEmpty" : true,
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
     "type" : "String"
@@ -247,7 +302,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -331,6 +386,142 @@
       "type" : "zeebe:taskHeader"
     },
     "type" : "String"
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda.connectors:rabbitmq-connection:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "RabbitMQ Connection",
+    "properties" : [ {
+      "id" : "authentication.authType",
+      "label" : "Connection type",
+      "value" : "uri",
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.authType",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "URI",
+        "value" : "uri"
+      }, {
+        "name" : "Username/Password",
+        "value" : "credentials"
+      } ]
+    }, {
+      "id" : "authentication.uri",
+      "label" : "URI",
+      "constraints" : {
+        "notEmpty" : true,
+        "pattern" : {
+          "value" : "^(=|(amqps?://|secrets|\\{\\{).*$)",
+          "message" : "Must start with amqp(s):// or contain a secret reference"
+        }
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.uri",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "uri",
+        "type" : "simple"
+      },
+      "tooltip" : "URI should contain username, password, host name, port number, and virtual host",
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.userName",
+      "label" : "Username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.userName",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.password",
+      "label" : "Password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "authentication.password",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "routing.virtualHost",
+      "label" : "Virtual host",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "routing",
+      "binding" : {
+        "name" : "routing.virtualHost",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+      "type" : "String"
+    }, {
+      "id" : "routing.hostName",
+      "label" : "Host name",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "routing",
+      "binding" : {
+        "name" : "routing.hostName",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+      "type" : "String"
+    }, {
+      "id" : "routing.port",
+      "label" : "Port",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "routing",
+      "binding" : {
+        "name" : "routing.port",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.authType",
+        "equals" : "credentials",
+        "type" : "simple"
+      },
+      "tooltip" : "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>",
+      "type" : "String"
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yNDUuNDQgMTA4LjMwOGgtODUuMDlhNy43MzggNy43MzggMCAwIDEtNy43MzUtNy43MzR2LTg4LjY4QzE1Mi42MTUgNS4zMjcgMTQ3LjI5IDAgMTQwLjcyNiAwaC0zMC4zNzVjLTYuNTY4IDAtMTEuODkgNS4zMjctMTEuODkgMTEuODk0djg4LjE0M2MwIDQuNTczLTMuNjk3IDguMjktOC4yNyA4LjMxbC0yNy44ODUuMTMzYy00LjYxMi4wMjUtOC4zNTktMy43MTctOC4zNS04LjMyNWwuMTczLTg4LjI0MUM1NC4xNDQgNS4zMzcgNDguODE3IDAgNDIuMjQgMEgxMS44OUM1LjMyMSAwIDAgNS4zMjcgMCAxMS44OTRWMjYwLjIxYzAgNS44MzQgNC43MjYgMTAuNTYgMTAuNTU1IDEwLjU2SDI0NS40NGM1LjgzNCAwIDEwLjU2LTQuNzI2IDEwLjU2LTEwLjU2VjExOC44NjhjMC01LjgzNC00LjcyNi0xMC41Ni0xMC41Ni0xMC41NnptLTM5LjkwMiA5My4yMzNjMCA3LjY0NS02LjE5OCAxMy44NDQtMTMuODQzIDEzLjg0NEgxNjcuNjljLTcuNjQ2IDAtMTMuODQ0LTYuMTk5LTEzLjg0NC0xMy44NDR2LTI0LjAwNWMwLTcuNjQ2IDYuMTk4LTEzLjg0NCAxMy44NDQtMTMuODQ0aDI0LjAwNWM3LjY0NSAwIDEzLjg0MyA2LjE5OCAxMy44NDMgMTMuODQ0djI0LjAwNXonCiAgICAgICAgICBmaWxsPScjRjYwJy8+Cjwvc3ZnPg=="

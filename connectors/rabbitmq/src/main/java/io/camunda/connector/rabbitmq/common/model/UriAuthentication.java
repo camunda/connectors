@@ -20,6 +20,7 @@ public record UriAuthentication(
         @TemplateProperty(
             group = "authentication",
             label = "URI",
+            secret = true,
             tooltip =
                 "URI should contain username, password, host name, port number, and virtual host")
         String uri)
