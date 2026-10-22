@@ -1,8 +1,9 @@
 name: Warm Maven cache
 
-# Writes the ~/.m2 dependency cache that "Test branch" (TEST_FEATURE_BRANCH.yml)
-# restores. Caches saved on main are readable from every PR and merge-queue run,
-# and "Test branch" is restore-only so per-PR saves don't evict this entry.
+# Writes the ~/.m2 dependency and Maven wrapper caches that "Test branch"
+# (TEST_FEATURE_BRANCH.yml) restores. Caches saved on main are readable from every
+# PR and merge-queue run, and "Test branch" is restore-only so per-PR saves don't
+# evict these entries.
 #
 # Runs on the same runner type as the internal "Test branch" jobs: caches are
 # only restorable on runners with a matching cache version.
@@ -11,6 +12,7 @@ on:
     branches: [ main ]
     paths:
       - '**/pom.xml'
+      - '.mvn/wrapper/maven-wrapper.properties'
       - '.github/workflows/WARM_MAVEN_CACHE.yml'
   # Re-creates the entry if it was evicted; a no-op when it still exists.
   schedule:
@@ -46,8 +48,6 @@ jobs:
           key: ${{ steps.key.outputs.value }}
           lookup-only: true
 
-<<<<<<< HEAD
-=======
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Restore Maven wrapper cache
         id: mvnw-cache
@@ -55,7 +55,6 @@ jobs:
         with:
           restore-only: 'true'
 
->>>>>>> 80893e05 (ci: extract Maven wrapper caching into a reusable action (#9656))
       - name: Restore previous cache
         if: steps.lookup.outputs.cache-hit != 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -66,10 +65,23 @@ jobs:
             ${{ runner.os }}-maven-
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        if: steps.lookup.outputs.cache-hit != 'true'
+        if: steps.lookup.outputs.cache-hit != 'true' || steps.mvnw-cache.outputs.cache-hit != 'true'
         with:
           distribution: 'temurin'
           java-version: '25.0.4+101.0.LTS'
+
+      - name: Download Maven wrapper distribution
+        if: steps.mvnw-cache.outputs.cache-hit != 'true'
+        env:
+          MVNW_VERBOSE: true
+        run: ./mvnw --version
+
+      - name: Save Maven wrapper cache
+        if: steps.mvnw-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ steps.mvnw-cache.outputs.cache-primary-key }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.lookup.outputs.cache-hit != 'true'
