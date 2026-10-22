@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryIniti
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -161,11 +162,47 @@ class AgentInitializerTest {
                     .isEqualTo(
                         AgentContext.empty()
                             .withState(AgentState.READY)
-                            .withMetadata(expectedMetadata));
+                            .withMetadata(expectedMetadata)
+                            .withFeatures(AgentFeatures.ofNewInstance()));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
       verifyNoInteractions(gatewayToolHandlers);
+    }
+
+    @Test
+    void shouldCreateNewAgentInstanceWithTheRuntimeToolsFeature() {
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().features())
+                    .containsExactly(AgentFeatures.RUNTIME_TOOLS);
+                assertThat(res.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+              });
+    }
+
+    @Test
+    void shouldNeverAddFeaturesToExistingAgentContext() {
+      final var legacyContext =
+          AgentContext.empty().withState(AgentState.READY).withMetadata(EXECUTION_METADATA);
+      when(executionContext.initialAgentContext()).thenReturn(legacyContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              ReadyToConverse.class,
+              res -> {
+                assertThat(res.agentContext().features()).isEmpty();
+                assertThat(res.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)).isFalse();
+              });
     }
 
     @Test
