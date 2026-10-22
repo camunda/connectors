@@ -398,6 +398,51 @@ and any SDK configuration, spans visible while a run is in progress, and simplic
 9. **Keeping the span object open in process memory until the run closes.** It breaks as soon as another
    worker or a restart handles the closing job, and it leaks for an abandoned run.
 
+## Other alternatives considered
+
+* **Start of a tool span.**
+  * *Derive it from the id of the assistant message that issued the call (chosen against).* The message id
+    carries the creation time, so no state would be needed. It couples tracing to an id format that is an
+    implementation detail of the message model, and it cannot express tools that start later than their
+    message, such as the tools the connector runtime will answer itself.
+  * *Start at the consuming job.* It needs no state, but the span then starts days after the tool was
+    dispatched and its duration is wrong.
+  * *Record the dispatch time in the consumer state (chosen).* The issuing job stores the time when it
+    persists its turn. It costs one optional field.
+* **Parent of a tool span.**
+  * *The `invoke_agent` span of the consuming job.* It needs no state, but the tool then starts before its
+    parent and the tree suggests the wrong job ran it.
+  * *The anchor.* It hides which job issued the call and flattens the tree.
+  * *The `invoke_agent` span of the issuing job (chosen).* The shape is that of an asynchronous operation. It
+    needs the span id of the issuing job in the consumer state.
+* **Where token usage is set.** Usage on `chat` spans only (chosen). Setting it also on `invoke_agent` or on the
+  anchor makes any sum over a trace or session count a call twice.
+  Emitting a legacy attribute for cache creation next to the current names was dropped for the same reason:
+  a backend that adds up both counts those tokens twice.
+* **Sampling.** The anchor makes the decision once, and later jobs inherit it (chosen). Sampling every job on
+  its own would break a run into sampled and unsampled pieces and leave children without their root.
+* **Error type.** The first exception in the cause chain that is not a connector exception, else the error
+  code (chosen). A dedicated exception type that every provider must throw, or provider-specific code in the
+  request handler, would couple the core to the providers for a label that the provider SDK exception
+  already carries.
+* **When spans are created.** At the start of a turn or tool discovery, after the lease-fenced history write
+  (chosen). Creating them lazily at the first model call, so that a superseded duplicate exports nothing by
+  construction, needs extra state in the consumer and hides jobs that fail before the model call. Reporting the
+  events before the fenced write would let a superseded duplicate export a root and a job span.
+* **Time in events.** Events carry no timestamps, and a consumer reads its own clock (chosen). The callbacks run
+  synchronously on the job thread, so the consumer's reading is accurate, and one event contract serves
+  consumers that need no time. Timestamps in events would pin a second clock source into the extension point.
+
+## Known gaps in input and output
+
+Backends differ in where they read the input and output of a trace or a session turn. Some take them from the
+root span, some from the first and last observation, and some show only what the root carries. The anchor
+carries the run input and never an output, because the answer is unknown at the start of the run. The final
+answer is on the last `invoke_agent` and `chat` spans. Depending on the backend, the trace list or the session
+view therefore shows the input and no output, or neither: a run that starts with a tool discovery dispatch has
+no input either. The spans themselves are complete, so the detail view of a trace always shows the whole run.
+The mechanism that would close the gap is the deferred root of alternative 2 above, which was rejected.
+
 ## Follow-up
 
 * **Tool error signal**: a failed tool cannot be told from a successful one, because a tool result

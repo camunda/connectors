@@ -220,8 +220,11 @@ note that the PoC has no redaction hook and no size limit for captured content.
 - **Termination.** Terminating the process or the sub-process while tools run ends the trace without a closing
   marker.
 - **No span links.** Runs are not linked to each other; the session is the only connection between them.
-- **No trace-level output.** The anchor sets no output, so a backend that shows the output of the root span has
-  nothing to show; the final answer is on the last `invoke_agent` and `chat` spans.
+- **No trace-level output, and sometimes no input.** The anchor sets no output, so a backend that shows the
+  output of the root span, or the output of a session turn, has nothing to show; the final answer is on the last
+  `invoke_agent` and `chat` spans. Which of input and output a trace list or session view shows depends on the
+  backend. A run that starts with a tool discovery dispatch has no input on its anchor either. The detail view of
+  the trace always shows the whole run.
 - **Late spans.** Backends that reject old spans (Datadog accepts spans up to about 18 hours old) drop the long
   tool spans.
 - **Cache-write tokens in Arize Phoenix.** Phoenix may not show cache-write tokens, because it reads an older

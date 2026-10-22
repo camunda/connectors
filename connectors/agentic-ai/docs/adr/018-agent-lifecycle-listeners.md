@@ -203,6 +203,21 @@ The decision comprises:
 * Bad, because the client is fenced and fails jobs, and it takes internal types, so consumers would
   inherit semantics they cannot afford.
 
+## Other alternatives considered
+
+* **Report turn start and tool discovery before the history write.** The events would then mark an attempt, and
+  a superseded duplicate would be reported as a job that held the lease. Reporting after the write (chosen)
+  makes the events mean that the job owns the lease at that point, and a consumer needs no logic to filter
+  duplicates. The cost is that a job failing before the write has no turn start.
+* **Timestamps in events.** The framework could stamp each event. It would pin a second clock source into the
+  extension point, and most consumers need none. Callbacks run synchronously on the job thread, so a consumer
+  reads its own clock (chosen); the framework and its consumers share one injectable clock source in the
+  runtime for deterministic tests.
+* **Asynchronous delivery.** A queue between the job and the listeners would keep slow consumers off the job
+  thread. It needs bounded buffers, loss handling and ordering rules, and it breaks the pairing of model
+  round callbacks around the call. Synchronous, failure-isolated delivery (chosen) keeps the contract simple,
+  and a consumer that needs a queue can build one.
+
 ## Follow-up
 
 * **Interceptors**: a separate decision for hooks that change behavior, built on the continuation
