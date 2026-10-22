@@ -87,12 +87,33 @@ def pipeline_run(run_id: int, conclusion: str) -> dict:
 
 def saas_result(parent: int, conclusion: str, run_id: int, attempt: int = 1) -> dict:
     return {
-        "conclusion": conclusion,
+        "conclusion": "success" if conclusion == "success" else "failure",
         "displayTitle": f"saas-e2e-result {REPO}:{parent}:{attempt}:{SHA}",
         "createdAt": f"2026-10-16T11:{run_id % 60:02d}:00Z",
         "databaseId": run_id,
         "url": f"https://github.com/{REPO}/actions/runs/{run_id}",
     }
+
+
+def result_job(verdict: str) -> dict:
+    """The result run's job: `success`/`failure` for an accepted result, `rejected` when
+    the callback failed validation."""
+    accepted = verdict != "rejected"
+    return {
+        "name": "SaaS E2E result",
+        "conclusion": "success" if verdict == "success" else "failure",
+        "steps": [
+            {"name": "Validate the callback payload",
+             "conclusion": "success" if accepted else "failure"},
+            {"name": "Fail the job when the SaaS E2E run did not pass",
+             "conclusion": "failure" if verdict == "failure" else "skipped"},
+        ],
+    }
+
+
+def saas_jobs(*results: tuple) -> dict:
+    """Job fixtures for `(run_id, verdict)` result runs."""
+    return {str(run_id): [result_job(verdict)] for run_id, verdict in results}
 
 
 def dispatched_trigger(attempt: int = 1) -> dict:
@@ -162,7 +183,10 @@ class StreakDetectorTest(unittest.TestCase):
         out = self.detect({
             "pipeline": [pipeline_run(i, "success") for i in parents],
             "saas": [saas_result(i, "failure", i + 400) for i in parents],
-            "jobs": {str(i): [dispatched_trigger()] for i in parents},
+            "jobs": {
+                **{str(i): [dispatched_trigger()] for i in parents},
+                **saas_jobs(*((i + 400, "failure") for i in parents)),
+            },
         })
 
         self.assertEqual(out["is_streak"], "true")
@@ -197,6 +221,7 @@ class StreakDetectorTest(unittest.TestCase):
                 "101": [dispatched_trigger()],
                 "102": [failed_job("Helm chart setup")],
                 "103": [dispatched_trigger()],
+                **saas_jobs((501, "failure")),
             },
         })
 
@@ -213,7 +238,7 @@ class StreakDetectorTest(unittest.TestCase):
                 pipeline_run(103, "success"),
             ],
             "saas": [saas_result(103, "success", 503)],
-            "jobs": {"103": [dispatched_trigger()]},
+            "jobs": {"103": [dispatched_trigger()], **saas_jobs((503, "success"))},
         })
 
         self.assertEqual(out["is_streak"], "false")
@@ -225,7 +250,41 @@ class StreakDetectorTest(unittest.TestCase):
         out = self.detect({
             "pipeline": [pipeline_run(101, "success"), pipeline_run(102, "success")],
             "saas": [saas_result(102, "success", 502), saas_result(101, "failure", 503)],
-            "jobs": {"101": [dispatched_trigger()], "102": [dispatched_trigger()]},
+            "jobs": {
+                "101": [dispatched_trigger()],
+                "102": [dispatched_trigger()],
+                **saas_jobs((502, "success"), (503, "failure")),
+            },
+        })
+
+        self.assertEqual(out["latest_success"], "true")
+        self.assertEqual(out["green_run_url"], f"https://github.com/{REPO}/actions/runs/102")
+
+    def test_rejected_callbacks_are_not_saas_failures(self):
+        # Every callback failed validation, so no SaaS result is established: the runs
+        # stay pending rather than counting towards a streak.
+        parents = (101, 102, 103)
+        out = self.detect({
+            "pipeline": [pipeline_run(i, "success") for i in parents],
+            "saas": [saas_result(i, "failure", i + 400) for i in parents],
+            "jobs": {
+                **{str(i): [dispatched_trigger()] for i in parents},
+                **saas_jobs(*((i + 400, "rejected") for i in parents)),
+            },
+        })
+
+        self.assertEqual(out["streak_count"], "0")
+        self.assertEqual(out["is_streak"], "false")
+        self.assertEqual(out["latest_success"], "false")
+
+    def test_rejected_callback_does_not_replace_an_accepted_result(self):
+        out = self.detect({
+            "pipeline": [pipeline_run(101, "failure"), pipeline_run(102, "success")],
+            "saas": [saas_result(102, "success", 502), saas_result(102, "failure", 503)],
+            "jobs": {
+                "102": [dispatched_trigger()],
+                **saas_jobs((502, "success"), (503, "rejected")),
+            },
         })
 
         self.assertEqual(out["latest_success"], "true")

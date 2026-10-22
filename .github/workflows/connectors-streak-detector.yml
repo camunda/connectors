@@ -166,20 +166,46 @@ jobs:
             --limit "${LOOKBACK_RUNS}" \
             --json databaseId,conclusion,status,event,createdAt,url 2>/dev/null || echo '[]')
           # The SaaS stage reports through its own run, keyed `<run_id>:<attempt>` by
-          # its run name. The newest result per key wins.
+          # its run name, newest first per key.
           SAAS_JSON=$(gh run list \
             --repo "${GITHUB_REPOSITORY}" \
             --workflow "${SAAS_RESULT_WORKFLOW_FILE}" \
             --status completed \
             --limit 100 \
-            --json conclusion,displayTitle,createdAt,databaseId,url 2>/dev/null || echo '[]')
-          SAAS_RESULTS=$(jq '
-            sort_by(.createdAt)
+            --json displayTitle,createdAt,databaseId,url 2>/dev/null || echo '[]')
+          SAAS_RUNS=$(jq '
+            sort_by(.createdAt) | reverse
             | map((.displayTitle | split(" ") | .[1] // "" | split(":")) as $c
                   | select(($c | length) == 4)
-                  | {key: "\($c[1]):\($c[2])", value: {conclusion, id: .databaseId, url}})
-            | from_entries
+                  | {key: "\($c[1]):\($c[2])", id: .databaseId, url})
+            | group_by(.key) | map({key: .[0].key, value: .}) | from_entries
           ' <<<"$SAAS_JSON")
+
+          # A result run's own conclusion is not the SaaS verdict: it also fails when it
+          # rejects the callback (bad payload, SHA mismatch, API error). Only a run whose
+          # validation step passed carries an accepted result, and only its explicit
+          # fail step marks a SaaS failure. The newest accepted result per key wins; with
+          # none, the pipeline run stays pending.
+          SAAS_VERDICT=pending; SAAS_ID=""; SAAS_URL=""
+          saas_verdict() {
+            local sid surl verdict
+            SAAS_VERDICT=pending; SAAS_ID=""; SAAS_URL=""
+            while IFS=$'\t' read -r sid surl; do
+              verdict=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${sid}/jobs?filter=latest&per_page=100" \
+                --jq '
+                  [.jobs[] | select(.name == "SaaS E2E result")] | first // {}
+                  | (.steps // []) as $s
+                  | if ([$s[] | select(.name == "Validate the callback payload" and .conclusion == "success")] | length) == 0 then "rejected"
+                    elif ([$s[] | select(.name == "Fail the job when the SaaS E2E run did not pass" and .conclusion == "failure")] | length) > 0 then "failure"
+                    elif .conclusion == "success" then "success"
+                    else "rejected" end
+                ' 2>/dev/null || echo rejected)
+              if [ "$verdict" != "rejected" ]; then
+                SAAS_VERDICT="$verdict"; SAAS_ID="$sid"; SAAS_URL="$surl"
+                return
+              fi
+            done < <(jq -r --arg k "$1" '.[$k] // [] | .[] | "\(.id)\t\(.url)"' <<<"$SAAS_RUNS")
+          }
 
           # Each completed push run, newest first, is `failed`, `green` or `pending`.
           # A green pipeline run is only green once its SaaS result is in: until then it
@@ -218,14 +244,13 @@ jobs:
               statuses+=(green)
               continue
             fi
-            key="${id}:$(jq -r '.run_attempt' <<<"$trigger")"
-            case "$(jq -r --arg k "$key" '.[$k].conclusion // "pending"' <<<"$SAAS_RESULTS")" in
+            saas_verdict "${id}:$(jq -r '.run_attempt' <<<"$trigger")"
+            case "$SAAS_VERDICT" in
               success) statuses+=(green) ;;
               pending) statuses+=(pending) ;;
               *)
                 statuses+=(failed)
-                note_failure "$(jq -r --arg k "$key" '.[$k].id' <<<"$SAAS_RESULTS")" \
-                  "$(jq -r --arg k "$key" '.[$k].url' <<<"$SAAS_RESULTS")" saas
+                note_failure "$SAAS_ID" "$SAAS_URL" saas
                 ;;
             esac
           done < <(jq -r '

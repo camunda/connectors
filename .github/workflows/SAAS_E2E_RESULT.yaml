@@ -171,9 +171,11 @@ jobs:
           retention-days: 14
           overwrite: true
 
-      # Last, so the artifact is already uploaded when triage reads this run.
+      # Last, so the artifact is already uploaded when triage reads this run. Runs even
+      # if that upload failed: connectors-streak-detector.yml reads this step's
+      # conclusion as the accepted SaaS verdict, and the validation step's as acceptance.
       - name: Fail the job when the SaaS E2E run did not pass
-        if: steps.payload.outputs.failed == 'true'
+        if: always() && steps.payload.outputs.failed == 'true'
         env:
           CONCLUSION: ${{ github.event.client_payload.conclusion }}
         run: |
