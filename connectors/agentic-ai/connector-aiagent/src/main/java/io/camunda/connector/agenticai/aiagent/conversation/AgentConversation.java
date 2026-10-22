@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.conversation;
 
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -60,7 +60,8 @@ public final class AgentConversation {
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
-    this.agentInstanceKey = AgentInstanceKey.from(currentContext.metadata());
+    this.agentInstanceKey =
+        currentContext.metadata() != null ? currentContext.metadata().agentInstanceKey() : null;
     this.invocationStartIterationKey = invocationStartIterationKey;
     this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
   }
