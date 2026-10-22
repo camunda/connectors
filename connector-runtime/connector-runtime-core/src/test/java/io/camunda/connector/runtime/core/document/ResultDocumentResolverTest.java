@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -209,6 +210,22 @@ class ResultDocumentResolverTest {
 
     assertThatThrownBy(() -> resolver.resolve(tree, null, CREATE_DOCUMENT))
         .isInstanceOf(ConnectorInputException.class);
+  }
+
+  @Test
+  void createsNoDocumentWhenALaterSentinelIsInvalid() {
+    var mockFactory = mock(DocumentFactory.class);
+    var resolverWithMockFactory = new ResultDocumentResolver(mockFactory);
+    String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+    JsonNode tree =
+        treeOf(
+            List.of(
+                Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", base64),
+                Map.of("connectorResultFunction", CREATE_DOCUMENT, "value", "not-base64!!")));
+
+    assertThatThrownBy(() -> resolverWithMockFactory.resolve(tree, null, CREATE_DOCUMENT))
+        .isInstanceOf(ConnectorInputException.class);
+    verifyNoInteractions(mockFactory);
   }
 
   @Test

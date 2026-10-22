@@ -24,9 +24,11 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.feel.FeelConnectorFunctionProvider;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -42,9 +44,9 @@ public class ResultDocumentResolver {
 
   /**
    * @param documentFactory {@code null} only for callers still on the pre-{@code createDocument()}
-   *     legacy constructor (see {@code ConnectorResultHandler(ObjectMapper)}); {@link
-   *     #createDocument} rejects a {@code createDocument()} sentinel with a clear error in that
-   *     case instead of throwing a bare {@code NullPointerException}.
+   *     legacy constructor (see {@code ConnectorResultHandler(ObjectMapper)}); {@link #resolve}
+   *     rejects a {@code createDocument()} sentinel with a clear error in that case instead of
+   *     throwing a bare {@code NullPointerException}.
    */
   public ResultDocumentResolver(@Nullable DocumentFactory documentFactory) {
     this.documentFactory = documentFactory;
@@ -62,21 +64,40 @@ public class ResultDocumentResolver {
    *     leaked) nonce is left as plain data instead of being mistaken for a real sentinel.
    */
   public Object resolve(JsonNode node, @Nullable String physicalTenantId, String expectedNonce) {
+    // Validate and decode every createDocument() call before uploading any of them, so an invalid
+    // one later in the tree can't leave the earlier ones stored but unreferenced.
+    Map<JsonNode, DocumentCreationRequest> requests = new IdentityHashMap<>();
+    collectCreationRequests(node, physicalTenantId, expectedNonce, requests);
+    return resolve(node, requests);
+  }
+
+  private void collectCreationRequests(
+      JsonNode node,
+      @Nullable String physicalTenantId,
+      String expectedNonce,
+      Map<JsonNode, DocumentCreationRequest> requests) {
+    if (node.isObject() && isCreateDocumentSentinel(node, expectedNonce)) {
+      requests.put(node, toCreationRequest(node.get("value"), physicalTenantId));
+    } else if (node.isContainerNode()) {
+      node.forEach(
+          child -> collectCreationRequests(child, physicalTenantId, expectedNonce, requests));
+    }
+  }
+
+  private Object resolve(JsonNode node, Map<JsonNode, DocumentCreationRequest> requests) {
     if (node.isObject()) {
-      if (isCreateDocumentSentinel(node, expectedNonce)) {
-        return createDocument(node.get("value"), physicalTenantId);
+      DocumentCreationRequest request = requests.get(node);
+      if (request != null) {
+        return Objects.requireNonNull(documentFactory).create(request);
       }
       Map<String, Object> result = new LinkedHashMap<>();
       node.properties()
-          .forEach(
-              entry ->
-                  result.put(
-                      entry.getKey(), resolve(entry.getValue(), physicalTenantId, expectedNonce)));
+          .forEach(entry -> result.put(entry.getKey(), resolve(entry.getValue(), requests)));
       return result;
     }
     if (node.isArray()) {
       List<Object> result = new ArrayList<>();
-      node.forEach(element -> result.add(resolve(element, physicalTenantId, expectedNonce)));
+      node.forEach(element -> result.add(resolve(element, requests)));
       return result;
     }
     return scalarValue(node);
@@ -97,7 +118,8 @@ public class ResultDocumentResolver {
         && expectedNonce.equals(discriminator.textValue());
   }
 
-  private Document createDocument(JsonNode value, @Nullable String physicalTenantId) {
+  private DocumentCreationRequest toCreationRequest(
+      JsonNode value, @Nullable String physicalTenantId) {
     if (documentFactory == null) {
       throw new ConnectorInputException(
           "createDocument() is not available: this runtime component was constructed without a"
@@ -141,12 +163,11 @@ public class ResultDocumentResolver {
     }
     String fileName = name != null ? name : UUID.randomUUID().toString();
     String resolvedContentType = MimeTypeResolver.resolveContentType(contentType, fileName);
-    return documentFactory.create(
-        DocumentCreationRequest.from(decoded)
-            .contentType(resolvedContentType)
-            .fileName(fileName)
-            .build()
-            .withPhysicalTenantIdIfAbsent(physicalTenantId));
+    return DocumentCreationRequest.from(decoded)
+        .contentType(resolvedContentType)
+        .fileName(fileName)
+        .build()
+        .withPhysicalTenantIdIfAbsent(physicalTenantId);
   }
 
   private String firstNonBlankText(JsonNode object, String... keys) {

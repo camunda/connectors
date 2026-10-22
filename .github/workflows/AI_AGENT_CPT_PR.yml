@@ -82,7 +82,7 @@ jobs:
           python3 .github/ai-agent-cpt/validate_registry_test.py
           python3 .github/ai-agent-cpt/test_summarize_results.py
           MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
-            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json)"
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json)"
           printf '%s' "$MATRIX" |
             python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
           printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
@@ -214,7 +214,7 @@ jobs:
 
       - name: Create settings.xml
         if: needs.setup.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
@@ -233,6 +233,14 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        if: needs.setup.outputs.ai == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: needs.setup.outputs.ai == 'true'
@@ -329,15 +337,15 @@ jobs:
         run: |
           # Auto-register the reporter for exactly the current tests selected by this registry row.
           # Maven copies this transient service descriptor before Failsafe starts.
-          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/META-INF/services"
+          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/META-INF/services"
           mkdir -p "$REPORTER_SERVICES"
           printf '%s\n' \
-            'io.camunda.connector.e2e.agenticai.e2e.CptReportExtension' \
+            'io.camunda.connector.e2e.agenticai.realllm.CptReportExtension' \
             > "$REPORTER_SERVICES/org.junit.jupiter.api.extension.Extension"
 
           ARGS=(
             ./mvnw verify
-            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm
             -Pit-real-llm
             --batch-mode
             "-Dcpt.report.directory=$CPT_REPORT_DIRECTORY"
@@ -403,7 +411,7 @@ jobs:
           CPT_SUMMARY_FILE: ${{ runner.temp }}/ai-agent-cpt-summary.md
         run: |
           python3 .github/ai-agent-cpt/summarize_results.py aggregate \
-            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/src/test/resources/ai-agent-cpt/registry.json \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json \
             --results "$CPT_RESULTS_DIRECTORY" \
             --output "$CPT_SUMMARY_FILE"
           cat "$CPT_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"

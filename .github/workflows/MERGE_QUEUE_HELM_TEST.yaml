@@ -45,6 +45,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
@@ -52,7 +59,7 @@ jobs:
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
@@ -600,7 +607,7 @@ jobs:
 
       - name: Create settings.xml
         if: steps.changes.outputs.ai == 'true'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
@@ -620,6 +627,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        if: steps.changes.outputs.ai == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.changes.outputs.ai == 'true'
         with:
@@ -635,11 +650,11 @@ jobs:
         if: steps.changes.outputs.ai == 'true'
         run: |
           ./mvnw --batch-mode install -DskipTests -DskipChecks \
-            --projects connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            --projects connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
             --also-make
 
       # No `-am` here: the previous step already installed the dependencies, so this stays
-      # scoped to the agentic-ai E2E module instead of re-running every upstream module's tests.
+      # scoped to the real LLM E2E module instead of re-running every upstream module's tests.
       - name: Run AI Agent E2E tests
         if: steps.changes.outputs.ai == 'true'
         env:
@@ -651,7 +666,7 @@ jobs:
           GOOGLE_VERTEX_AI_REGION: ${{ steps.secrets.outputs.IDP_GCP_VERTEX_REGION }}
         run: |
           ./mvnw verify \
-            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
             -Pit-real-llm \
             --batch-mode
 
