@@ -61,7 +61,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+<<<<<<< HEAD
       - uses: actions/setup-java@v5
+=======
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        uses: ./.github/actions/cache-maven-wrapper
+        with:
+          restore-only: 'true'
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+>>>>>>> 80893e0 (ci: extract Maven wrapper caching into a reusable action (#9656))
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
@@ -187,7 +197,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+<<<<<<< HEAD
       - uses: actions/setup-java@v5
+=======
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        uses: ./.github/actions/cache-maven-wrapper
+        with:
+          restore-only: 'true'
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+>>>>>>> 80893e0 (ci: extract Maven wrapper caching into a reusable action (#9656))
         with:
           distribution: 'temurin'
           java-version: '21.0.12+101.0.LTS'
