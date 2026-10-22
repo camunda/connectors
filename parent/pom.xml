@@ -173,7 +173,7 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
     <version.lz4-java>1.12.1</version.lz4-java>
 
-    <version.microsoft-graph>6.71.0</version.microsoft-graph>
+    <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
@@ -241,7 +241,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.51.0</version.error-prone>
-    <version.nullaway>0.14.2</version.nullaway>
+    <version.nullaway>0.14.3</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
 
     <!-- false still builds the with-dependencies fat jars into target/, but does not install or deploy them -->
