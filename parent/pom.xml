@@ -81,7 +81,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.85.0</version.grpc>
+    <version.grpc>1.85.1</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
     <version.protobuf>4.36.2</version.protobuf>
@@ -107,7 +107,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.1.1</version.spring-boot>
+    <version.spring-boot>4.1.2</version.spring-boot>
     <!-- SEC-3498 (CVE-2026-65905, CVE-2026-68763, CVE-2026-65182, CVE-2026-65637,
          CVE-2026-68525, CVE-2026-68569, CVE-2026-66422, CVE-2026-65183): tomcat-embed-*
          transitive override. Setting tomcat.version alone does NOT override Spring Boot's
@@ -127,14 +127,14 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.6.5</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.56.0</version.aws-sdk2>
+    <version.aws-sdk2>2.57.2</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
     <version.localstack>2.0.5</version.localstack>
 
-    <version.okhttp>5.5.0</version.okhttp>
+    <version.okhttp>5.5.1</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
@@ -181,10 +181,10 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
          Ref: https://github.com/yawkat/lz4-java/security/advisories/GHSA-gm45-99xc-r7wv -->
-    <version.lz4-java>1.12.0</version.lz4-java>
+    <version.lz4-java>1.12.1</version.lz4-java>
 
     <version.microsoft-graph>6.71.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.10.2</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.10.3</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
     <version.azure-core>1.60.0</version.azure-core>
@@ -250,7 +250,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
 
     <!-- Null safety tooling -->
-    <version.error-prone>2.50.0</version.error-prone>
+    <version.error-prone>2.51.0</version.error-prone>
     <version.nullaway>0.14.2</version.nullaway>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
 

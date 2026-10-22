@@ -32,7 +32,7 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
-    <version.errorprone>2.50.0</version.errorprone>
+    <version.errorprone>2.51.0</version.errorprone>
     <version.nullaway>0.14.2</version.nullaway>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
     <version.groovy>6.0.0</version.groovy>

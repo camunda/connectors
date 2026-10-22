@@ -210,7 +210,7 @@ jobs:
         if: needs.setup.outputs.ai == 'true'
         with:
           distribution: temurin
-          java-version: "21.0.12+101.0.LTS"
+          java-version: "21.0.13+9.0.LTS"
 
       - name: Create settings.xml
         if: needs.setup.outputs.ai == 'true'
