@@ -31,6 +31,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
@@ -40,6 +42,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.intrinsic.DisabledIntrinsicFunctionExecutor;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
@@ -379,6 +382,23 @@ class AgentResponseHandlerTest {
 
       assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
     }
+  }
+
+  @Test
+  void handsOnlyTheProcessToolCallsToTheProcess() {
+    final var runtimeCall =
+        new ToolCall("call-1", "acme_lookup", Map.of()).withKind(ToolKind.RUNTIME);
+    final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var conversation =
+        conversationWith(
+            new AgentTaskResponseConfiguration(new TextResponseFormatConfiguration(false), false),
+            assistantMessage("both", List.of(runtimeCall, processCall)));
+
+    final var response = responseHandler.createResponse(conversation);
+
+    assertThat(response.toolCalls())
+        .extracting(call -> call.metadata().id())
+        .containsExactly("call-2");
   }
 
   private AgentResponse createResponse(
