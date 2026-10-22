@@ -1,0 +1,414 @@
+name: AI Agent CPT Tests (PR)
+
+# Classifies PR changes for real-LLM AI Agent E2E coverage before the merge queue. Paid tests remain
+# gated by the `ai-agent-model-e2e-test` label so they aren't triggered accidentally.
+#
+# This stays separate from MERGE_QUEUE_HELM_TEST.yaml because that workflow's build-image job also
+# feeds unrelated SM/SaaS E2E triggers.
+#
+# Applying the label authorizes the PR's current head SHA for one run. After every push, remove and
+# reapply the label to authorize the new SHA.
+#
+# The image-backed E2E class and in-process provider capability groups are separate matrix legs.
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize, labeled ]
+
+# Target-label and non-label events share a key so a push cancels stale authorized work.
+# Other label events remain isolated and cannot cancel it.
+concurrency:
+  group: ai-agent-model-e2e-test-${{ github.event.pull_request.number }}-${{ github.event.action == 'labeled' && github.event.label.name != 'ai-agent-model-e2e-test' && format('label-{0}', github.event.label.name) || 'current-head' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Validate AI Agent CPT registry
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      ai: ${{ steps.impact.outputs.affected }}
+      authorized: ${{ steps.impact.outputs.authorized }}
+      state: ${{ steps.impact.outputs.state }}
+      matrix: ${{ steps.registry.outputs.matrix }}
+    if: |
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify AI Agent CPT impact
+        id: impact
+        env:
+          AI_AGENT_CPT_EVENT_ACTION: ${{ github.event.action }}
+          AI_AGENT_CPT_EVENT_LABEL: ${{ github.event.label.name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ || ! "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The pull request base/head SHA is not a full commit SHA."
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            echo "::error::The checked-out commit does not match the event head SHA."
+            exit 1
+          fi
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+          git diff --name-only --no-renames -z "$BASE_SHA...$HEAD_SHA" -- |
+            python3 .github/ai-agent-cpt/classify_impact.py
+      - name: Require classification outputs
+        env:
+          AFFECTED: ${{ steps.impact.outputs.affected }}
+          AUTHORIZED: ${{ steps.impact.outputs.authorized }}
+          STATE: ${{ steps.impact.outputs.state }}
+        run: |
+          set -euo pipefail
+          python3 .github/ai-agent-cpt/classify_impact.py validate-outputs \
+            --affected "$AFFECTED" \
+            --authorized "$AUTHORIZED" \
+            --state "$STATE"
+      - name: Validate registry
+        id: registry
+        run: |
+          set -euo pipefail
+          python3 .github/ai-agent-cpt/test_classify_impact.py
+          python3 .github/ai-agent-cpt/validate_registry_test.py
+          python3 .github/ai-agent-cpt/test_summarize_results.py
+          MATRIX="$(python3 .github/ai-agent-cpt/summarize_results.py matrix \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json)"
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
+          printf 'matrix=%s\n' "$MATRIX" >> "$GITHUB_OUTPUT"
+      - name: Require rendered matrix output
+        env:
+          MATRIX: ${{ steps.registry.outputs.matrix }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$MATRIX" |
+            python3 .github/ai-agent-cpt/summarize_results.py validate-matrix
+
+  run-ai-agent-cpt:
+    name: ${{ matrix.name }}
+    needs: setup
+    runs-on: gcp-core-8-default
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        # Successful setup validates a non-empty matrix. The fallback only keeps evaluation valid
+        # when setup is intentionally skipped for a fork, or has already failed.
+        include: ${{ fromJSON(needs.setup.outputs.matrix || '[]') }}
+    # Fork PRs get no secrets from `pull_request` by design (never widen this to
+    # pull_request_target - that would hand Vault + a real OPENAI_API_KEY/Vertex service
+    # account to unvetted fork code before review).
+    if: |
+      needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true' &&
+      github.event.pull_request.state != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # build the PR's actual code, not the synthetic merge ref
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Import build secrets
+        if: needs.setup.outputs.ai == 'true'
+        id: build-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: Import registry secret
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        id: registry-secret
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
+
+      - name: Import OpenAI secret
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'openai')
+        id: openai-secret
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+
+      - name: Import Vertex secrets
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'vertex')
+        id: vertex-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
+
+      - name: Import Bedrock document provider secrets
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-documents')
+        id: bedrock-document-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_ACCESSKEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_SECRETKEY;
+
+      - name: Import Bedrock provider secrets
+        if: needs.setup.outputs.ai == 'true' && contains(matrix.credential-profiles, 'bedrock-provider')
+        id: bedrock-provider-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_AWS_REGION;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_AWS_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION;
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        if: needs.setup.outputs.ai == 'true'
+        with:
+          distribution: temurin
+          java-version: "21.0.12+101.0.LTS"
+
+      - name: Create settings.xml
+        if: needs.setup.outputs.ai == 'true'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.build-secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.build-secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Restore Maven cache
+        if: needs.setup.outputs.ai == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        if: needs.setup.outputs.ai == 'true'
+        uses: ./.github/actions/cache-maven-wrapper
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: needs.setup.outputs.ai == 'true'
+        with:
+          node-version: '24'
+
+      # Pinned via .github/workflows/package.json, matching run-ai-agent-cpt in
+      # MERGE_QUEUE_HELM_TEST.yaml - not BUILD_PR_DOCKER_IMAGES.yml's unpinned
+      # `npm install --global element-templates-cli`.
+      - name: Install element templates CLI
+        if: needs.setup.outputs.ai == 'true'
+        run: npm install --global "element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)"
+
+      - name: Install reactor dependencies (skip tests and checks)
+        if: needs.setup.outputs.ai == 'true'
+        env:
+          MAVEN_PROJECTS: ${{ matrix.maven-projects }}
+        run: |
+          ./mvnw --batch-mode -T1C install -DskipTests -DskipChecks \
+            --projects "$MAVEN_PROJECTS" \
+            --also-make
+
+      # Fails fast with a clear error if the bundle jar wasn't produced, rather than a confusing
+      # Docker COPY failure downstream. Checks the actual glob the Dockerfile depends on, not just
+      # that target/ exists - stricter than MERGE_QUEUE_HELM_TEST.yaml's own post-build step,
+      # which only runs a plain `ls -lh` on the directory without asserting the jar itself exists.
+      - name: Check default-bundle jar exists
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        run: ls -lh apps/bundle/default-bundle/target/*-with-dependencies.jar
+
+      - name: Compute image tag
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        id: tag
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          BASE_VERSION=$(./mvnw --batch-mode help:evaluate -Dexpression=project.version -q -DforceStdout)
+          BASE_VERSION="${BASE_VERSION%-SNAPSHOT}"
+          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          echo "::notice::Local image tag: ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Build
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      # Needed to pull default-bundle's own base image (reg.mini.dev/1212/openjre-base) during
+      # the build below, even though the built image is never pushed anywhere.
+      - name: Login to Minimus
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.registry-secret.outputs.REGISTRY_MINIMUS_PSW }}
+
+      # load: true (not push) keeps the image local to this runner's Docker daemon for
+      # testcontainers to use directly - no registry round trip, no Harbor credentials needed
+      # here, and no orphan PR-tagged images left behind anywhere.
+      - name: Build default-bundle image
+        if: needs.setup.outputs.ai == 'true' && matrix.build-bundle
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: apps/bundle/default-bundle/
+          load: true
+          tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ steps.tag.outputs.tag }}
+          platforms: linux/amd64
+          provenance: false
+
+      - name: Run ${{ matrix.name }}
+        id: run-tests
+        if: needs.setup.outputs.ai == 'true'
+        env:
+          CPT_REPORT_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/raw
+          CONNECTORS_IMAGE_NAME: registry.camunda.cloud/team-connectors/connectors-bundle
+          CONNECTORS_IMAGE_VERSION: ${{ steps.tag.outputs.tag }}
+          RUN_NATIVE_LLM_E2E: "true"
+          REQUIRE_NATIVE_LLM_PROVIDER: "true"
+          REAL_LLM_PROVIDER_GROUP: ${{ matrix.provider-group }}
+          TEST_CLASSES: ${{ matrix.test-classes }}
+          TEST_GROUPS: ${{ matrix.groups }}
+          OPENAI_API_KEY: ${{ steps.openai-secret.outputs.OPENAI_API_KEY }}
+          AWS_BEDROCK_ACCESS_KEY: ${{ steps.bedrock-document-secrets.outputs.IDP_AWS_ACCESSKEY }}
+          AWS_BEDROCK_SECRET_KEY: ${{ steps.bedrock-document-secrets.outputs.IDP_AWS_SECRETKEY }}
+          AWS_BEDROCK_REGION: ${{ steps.bedrock-provider-secrets.outputs.IDP_AWS_REGION }}
+          AWS_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_AWS_KEY }}
+          ANTHROPIC_BEDROCK_API_KEY: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_KEY }}
+          ANTHROPIC_BEDROCK_REGION: ${{ steps.bedrock-provider-secrets.outputs.AI_AGENT_ANTHROPIC_BEDROCK_MANTLE_REGION }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT_JSON: ${{ steps.vertex-secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
+          GOOGLE_VERTEX_AI_SERVICE_ACCOUNT: ${{ steps.vertex-secrets.outputs.IDP_GCP_SERVICE_ACCOUNT }}
+          GOOGLE_VERTEX_AI_PROJECT_ID: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_PROJECT_ID }}
+          GOOGLE_VERTEX_AI_REGION: ${{ steps.vertex-secrets.outputs.IDP_GCP_VERTEX_REGION }}
+        run: |
+          # Auto-register the reporter for exactly the current tests selected by this registry row.
+          # Maven copies this transient service descriptor before Failsafe starts.
+          REPORTER_SERVICES="connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/META-INF/services"
+          mkdir -p "$REPORTER_SERVICES"
+          printf '%s\n' \
+            'io.camunda.connector.e2e.agenticai.realllm.CptReportExtension' \
+            > "$REPORTER_SERVICES/org.junit.jupiter.api.extension.Extension"
+
+          ARGS=(
+            ./mvnw verify
+            -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm
+            -Pit-real-llm
+            --batch-mode
+            "-Dcpt.report.directory=$CPT_REPORT_DIRECTORY"
+            -Djunit.jupiter.extensions.autodetection.enabled=true
+          )
+          if [[ -n "$TEST_GROUPS" ]]; then
+            ARGS+=("-Dgroups=$TEST_GROUPS")
+          else
+            ARGS+=("-Dit.test=$TEST_CLASSES")
+          fi
+          "${ARGS[@]}"
+
+      - name: Finalize CPT result
+        if: always() && !cancelled()
+        env:
+          CPT_CAPABILITIES: ${{ matrix.groups }}
+          CPT_MATRIX_ID: ${{ matrix.id }}
+          CPT_MATRIX_NAME: ${{ matrix.name }}
+          CPT_MAVEN_OUTCOME: ${{ steps.run-tests.outcome }}
+          CPT_PROVIDER_GROUP: ${{ matrix.provider-group }}
+          CPT_REPORT_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/raw
+          CPT_RESULT_FILE: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/result/result.json
+        run: |
+          python3 .github/ai-agent-cpt/summarize_results.py finalize \
+            --output "$CPT_RESULT_FILE"
+
+      - name: Upload CPT result
+        if: always() && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-agent-cpt-result-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.id }}
+          path: ${{ runner.temp }}/ai-agent-cpt-${{ matrix.id }}/result/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+  summarize-ai-agent-cpt:
+    name: Summarize AI Agent CPT results
+    needs: [setup, run-ai-agent-cpt]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.setup.outputs.ai == 'true' &&
+      needs.setup.outputs.authorized == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Download CPT results
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: ai-agent-cpt-result-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/ai-agent-cpt-results
+          merge-multiple: false
+
+      - name: Write CPT summary
+        env:
+          CPT_RESULTS_DIRECTORY: ${{ runner.temp }}/ai-agent-cpt-results
+          CPT_SUMMARY_FILE: ${{ runner.temp }}/ai-agent-cpt-summary.md
+        run: |
+          python3 .github/ai-agent-cpt/summarize_results.py aggregate \
+            --registry connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json \
+            --results "$CPT_RESULTS_DIRECTORY" \
+            --output "$CPT_SUMMARY_FILE"
+          cat "$CPT_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
