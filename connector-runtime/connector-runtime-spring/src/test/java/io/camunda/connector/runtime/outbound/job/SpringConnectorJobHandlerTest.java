@@ -22,6 +22,7 @@ import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWO
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -51,7 +52,10 @@ import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReturn;
 import io.camunda.connector.api.document.RawPayload;
 import io.camunda.connector.api.error.ConnectorException;
@@ -74,6 +78,7 @@ import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
@@ -90,12 +95,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -103,6 +112,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 import org.mockito.ArgumentCaptor;
@@ -174,12 +184,20 @@ class SpringConnectorJobHandlerTest {
 
   private SpringConnectorJobHandler newConnectorJobHandlerWithDocumentFactory(
       OutboundConnectorFunction call, DocumentFactory documentFactory) {
+    return newConnectorJobHandlerWithDocumentFactory(
+        call, documentFactory, new SecretProviderAggregator(List.of(new FooBarSecretProvider())));
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandlerWithDocumentFactory(
+      OutboundConnectorFunction call,
+      DocumentFactory documentFactory,
+      SecretProviderAggregator secretProviderAggregator) {
     var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
     return new SpringConnectorJobHandler(
         metricsRecorder,
         new JobCallbackCommandWrapperFactory(
             BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
-        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        secretProviderAggregator,
         new DefaultValidationProvider(),
         documentFactory,
         TestObjectMapperSupplier.INSTANCE,
@@ -3249,6 +3267,185 @@ class SpringConnectorJobHandlerTest {
           .containsEntry("connectorResultFunction", leakedNonce)
           .containsEntry("value", attackerBase64);
       assertThat(passedThrough.values()).noneMatch(v -> v instanceof Document);
+    }
+
+    @Test
+    void deletesResultExpressionDocumentWhenErrorExpressionWins() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"discarded\")"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
+    }
+
+    @Test
+    void keepsResultExpressionDocumentReferencedByTheError() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={kept: createDocument(response.body.file),"
+                          + " discarded: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"kept\", {doc: response.kept})"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      var kept = (Document) result.getVariables().get("doc");
+      var documentsAfter = new HashSet<>(documentsBefore);
+      documentsAfter.add(((CamundaDocumentReference) kept.reference()).getDocumentId());
+      // cleanup visits documents in creation order, so once the discarded one is gone it has
+      // already passed the kept one
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsAfter));
+      assertThat(kept.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void deletesResultExpressionDocumentWhoseReferenceTheJobErrorMessageOverwrites()
+        throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=jobError(\"failed\", {error: response.myDoc}, 0)"))
+              .executeAndCaptureResult(jobHandler, false, false);
+
+      // the submitted variables carry the message under "error", not the document
+      assertThat(result.getVariables()).containsEntry("error", "failed");
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
+    }
+
+    @Test
+    void deletesResultExpressionDocumentWhenMaskingDiscardsTheErrorVariables() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
+              new SecretProviderAggregator(List.of(new FooBarSecretProvider())) {
+                @Override
+                public List<String> fetchAll(List<String> keys, SecretContext context) {
+                  throw new RuntimeException("Network error while fetching secrets");
+                }
+              });
+      var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
+
+      var result =
+          JobBuilder.create()
+              .withVariables("{ \"token\" : \"{{secrets.FOO}}\" }")
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"kept\", {doc: response.myDoc})"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      assertThat(result.getVariables()).isEmpty();
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
+    }
+
+    @Test
+    @Timeout(10)
+    void submitsTheErrorWithoutWaitingForThePendingDelete() throws Exception {
+      String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
+      var deleteRequested = new CountDownLatch(1);
+      var releaseDelete = new CountDownLatch(1);
+      var storeWithPendingDelete =
+          new CamundaDocumentStore() {
+            @Override
+            public CamundaDocumentReference createDocument(DocumentCreationRequest request) {
+              return InMemoryDocumentStore.INSTANCE.createDocument(request);
+            }
+
+            @Override
+            public InputStream getDocumentContent(CamundaDocumentReference reference) {
+              return InMemoryDocumentStore.INSTANCE.getDocumentContent(reference);
+            }
+
+            @Override
+            public void deleteDocument(CamundaDocumentReference reference) {
+              deleteRequested.countDown();
+              try {
+                releaseDelete.await();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
+
+            @Override
+            public String generateLink(
+                CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+              return InMemoryDocumentStore.INSTANCE.generateLink(reference, parameters);
+            }
+          };
+      var jobHandler =
+          newConnectorJobHandlerWithDocumentFactory(
+              (context) -> Map.of("body", Map.of("file", base64)),
+              new DocumentFactoryImpl(storeWithPendingDelete));
+
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      Keywords.RESULT_EXPRESSION_KEYWORD,
+                      "={myDoc: createDocument(response.body.file)}",
+                      Keywords.ERROR_EXPRESSION_KEYWORD,
+                      "=bpmnError(\"FAILED\", \"discarded\")"))
+              .executeAndCaptureResult(jobHandler, false, true);
+
+      assertThat(result.getErrorCode()).isEqualTo("FAILED");
+      assertThat(deleteRequested.await(5, TimeUnit.SECONDS)).isTrue();
+      releaseDelete.countDown();
     }
   }
 }
