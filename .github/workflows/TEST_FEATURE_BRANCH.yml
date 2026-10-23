@@ -145,7 +145,9 @@ jobs:
         run: ./mvnw --batch-mode -pl connector-sdk/core,connectors/agentic-ai/aiagent-model,connectors/agentic-ai/aiagent-api -am verify -DskipTests -Dquickly '-P!autoFormat'
 
       - name: Check accepted API breaks are justified
-        run: python3 ./.github/workflows/scripts/check_api_changes.py
+        run: |
+          python3 ./.github/workflows/scripts/test_check_api_changes.py
+          python3 ./.github/workflows/scripts/check_api_changes.py
 
       # Fail if the regenerated templates differ from what's committed. This is a
       # diff check only — CI never commits or modifies files. Versioned snapshots

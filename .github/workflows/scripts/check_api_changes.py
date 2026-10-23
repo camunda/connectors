@@ -15,7 +15,12 @@ BREAKING_CHANGES_DOCS = {
     "connectors/agentic-ai/": "connectors/agentic-ai/docs/breaking-changes.md",
 }
 
-LINK = re.compile(r"breaking-changes\.md#([\w-]+)")
+LINK = re.compile(r"breaking-changes\.md#([^\s)\]>`\"',;]+)")
+
+
+def linked_anchors(justification: str) -> list[str]:
+    # A sentence may end right after the link, e.g. "see breaking-changes.md#module-split."
+    return [anchor.rstrip(".:!?") for anchor in LINK.findall(justification)]
 
 
 def github_anchors(markdown: str) -> set[str]:
@@ -59,7 +64,7 @@ def check(file: str) -> list[str]:
         if not justification:
             errors.append(f"{name}: missing justification")
         elif doc:
-            links = LINK.findall(justification)
+            links = linked_anchors(justification)
             if not links:
                 errors.append(f"{name}: justification must link {doc}#<anchor>")
             for anchor in links:
