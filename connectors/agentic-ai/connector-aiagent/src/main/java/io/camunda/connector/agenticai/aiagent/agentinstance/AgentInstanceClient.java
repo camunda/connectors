@@ -9,9 +9,10 @@ package io.camunda.connector.agenticai.aiagent.agentinstance;
 import io.camunda.client.api.command.AgentInstanceUpdateStatus;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import java.time.OffsetDateTime;
@@ -54,6 +55,8 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
+   * @param agentContext the persisted state of the agent: its features decide what the history
+   *     shows (the runtime tools)
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -65,7 +68,8 @@ public interface AgentInstanceClient {
       @Nullable AgentInstanceKey agentInstanceKey,
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
-      OffsetDateTime turnIngestionTimestamp);
+      OffsetDateTime turnIngestionTimestamp,
+      AgentContext agentContext);
 
   /**
    * Records the completion of a turn: sets the agent instance's status to {@code status} and
@@ -99,6 +103,6 @@ public interface AgentInstanceClient {
   void applyToolCallResults(
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
-      List<ToolCallResult> toolCallResults,
+      List<ToolCallResultContent> toolCallResults,
       AgentConversationTurn previousTurn);
 }

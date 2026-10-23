@@ -10,8 +10,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,9 +24,23 @@ import org.junit.jupiter.api.Test;
 
 class AgentInstanceToolMapperTest {
 
+  private static final AgentContext NEW_INSTANCE =
+      AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+
+  private static final ToolDefinition RUNTIME_TOOL =
+      ToolDefinition.builder()
+          .name("acme_lookup")
+          .description("Looks up a customer")
+          .inputSchema(Map.of("type", "object"))
+          .build();
+
   private final GatewayToolHandlerRegistry gatewayToolHandlers =
       mock(GatewayToolHandlerRegistry.class);
-  private final AgentInstanceToolMapper mapper = new AgentInstanceToolMapper(gatewayToolHandlers);
+  private final RuntimeToolRegistry runtimeToolRegistry =
+      new RuntimeToolRegistryImpl(
+          List.of(StubRuntimeTool.of(RUNTIME_TOOL, (call, context) -> null)));
+  private final AgentInstanceToolMapper mapper =
+      new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
 
   @Test
   void adHocToolFallsBackToItsNameAsElementId() {
@@ -33,7 +52,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(NEW_INSTANCE, List.of(tool));
 
     assertThat(mapped)
         .singleElement()
@@ -43,6 +62,31 @@ class AgentInstanceToolMapperTest {
               assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
               assertThat(agentTool.getElementId()).isEqualTo("getWeather");
             });
+  }
+
+  @Test
+  void runtimeToolHasNoElementId() {
+    final var mapped = mapper.mapTools(NEW_INSTANCE, List.of(RUNTIME_TOOL));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> {
+              assertThat(agentTool.getName()).isEqualTo("acme_lookup");
+              assertThat(agentTool.getDescription()).isEqualTo("Looks up a customer");
+              assertThat(agentTool.getElementId()).isNull();
+            });
+  }
+
+  @Test
+  void aToolOfTheProcessWithTheNameOfARuntimeToolKeepsItsElementIdWithoutTheRuntimeToolsFeature() {
+    when(gatewayToolHandlers.resolveElementId("acme_lookup")).thenReturn(Optional.empty());
+
+    final var mapped = mapper.mapTools(AgentContext.empty(), List.of(RUNTIME_TOOL));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(agentTool -> assertThat(agentTool.getElementId()).isEqualTo("acme_lookup"));
   }
 
   @Test
@@ -56,7 +100,7 @@ class AgentInstanceToolMapperTest {
             .inputSchema(Map.of("type", "object"))
             .build();
 
-    final var mapped = mapper.mapTools(List.of(tool));
+    final var mapped = mapper.mapTools(NEW_INSTANCE, List.of(tool));
 
     assertThat(mapped)
         .singleElement()
