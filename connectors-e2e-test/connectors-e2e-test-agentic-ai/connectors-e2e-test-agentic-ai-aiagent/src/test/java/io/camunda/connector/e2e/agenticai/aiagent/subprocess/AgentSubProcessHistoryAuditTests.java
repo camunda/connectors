@@ -73,6 +73,9 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
 
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
+  private Resource contentDocumentsProcess;
+
   @Value("classpath:agentic-ai-ahsp-connectors-documents-results.bpmn")
   private Resource resultDocumentsProcess;
 
@@ -88,8 +91,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The user prompt carries a document, a tool returns one, the model loads the one of the tool,
-   * passes it to a tool and returns one next to a real call.
+   * The user prompt carries a document, a tool returns one, the model passes both to a tool and
+   * returns one next to a real call.
    */
   @Test
   void everyModelVisibleMessageOfADocumentFlowIsInTheHistory() throws Exception {
@@ -97,6 +100,31 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
 
     final var agentInstanceKey = runAndGetAgentInstanceKey(e -> e);
 
+    assertHistoryCoversEveryModelRequest(agentInstanceKey);
+  }
+
+  /**
+   * Documents whose content the agent adds without being asked: the user prompt document through
+   * the document delivery of the prompt, the documents of a tool with the delivery {@code content},
+   * and the note of a document that fails the content guard. The content shows in the history next
+   * to its tag, the note as text.
+   */
+  @Test
+  void everyModelVisibleMessageOfADocumentWithTheDeliveryContentIsInTheHistory() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), "test.pdf"),
+        downloadTurn(wireMock.getHttpBaseUrl(), "unsupported.zip", "call_download_zip"),
+        finalTurn());
+
+    final var agentInstanceKey =
+        runAndGetAgentInstanceKey(
+            contentDocumentsProcess,
+            e -> e.property("data.userPrompt.documentDelivery", "content"));
+
+    final var messages = OpenAiCompletionsRecordedConversation.recorded().lastRequest().messages();
+    assertThat(messages.toString())
+        .contains("was not loaded automatically")
+        .doesNotContain("c8__get_document");
     assertHistoryCoversEveryModelRequest(agentInstanceKey);
   }
 
@@ -152,13 +180,13 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
         .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
   }
 
+  /** With a window that evicts the download, every message of every request is still covered. */
   private void stubDocumentFlow() {
     OpenAiCompletionsChatModelStubs.stubConversation(
         downloadTurn(wireMock.getHttpBaseUrl()),
         // the documents of the request in order of appearance: the prompt document, the download;
-        // the content of the prompt document is in the conversation already, the download is only
-        // referenced until the model loads it
-        getDocumentTurn(documentId(1)),
+        // the prompt document is loaded into the conversation, the download is only referenced
+        getDocumentTurn(documentId(0)),
         uploadTurn(documentId(1)),
         returnDocumentWithPingTurn(),
         finalTurn());
