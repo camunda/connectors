@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowAssertions.assertNoDocumentInternalsInLlmRequests;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentTagPart;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.AI_AGENT_ELEMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,6 +35,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/**
+ * The documents of the user prompt of a template without a document delivery: the model gets the
+ * tag and the content of every document.
+ */
 @SlowTest
 public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcessTest {
 
@@ -68,25 +75,28 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                     List.of(wireMock.getHttpBaseUrl() + "/" + filename))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
     assertThat(recorded.lastRequest().messages().get(0).role()).isEqualTo("system");
     assertThat(recorded.lastRequest().messages().get(0).content()).isEqualTo(SYSTEM_PROMPT);
 
-    // user message: prompt text + document block (text files produce two text blocks,
-    // so assertConversationMessages cannot be used here as it would concatenate them)
+    // user message: prompt text, the <doc/> tag and the content of the document (text files
+    // produce two text blocks, so assertConversationMessages cannot be used here as it would
+    // concatenate them)
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts())
-        .as("user message should have multipart content")
-        .isNotEmpty();
-    assertThat(userMessage.contentParts().size()).as("expected text + document block").isEqualTo(2);
+    assertThat(userMessage.contentParts()).as("prompt text + <doc/> tag + content").hasSize(3);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertThat(
+            parseDocumentTag(userMessage.contentParts().get(1).path("text").asText()).contentType())
+        .isEqualTo(mimeType(filename));
     assertDocumentContentBlockJson(
-        userMessage.contentParts().get(1), contentBlockType(filename), mimeType(filename));
+        userMessage.contentParts().get(2), contentBlockType(filename), mimeType(filename));
 
     assertAgentResponse(
         zeebeTest,
@@ -122,6 +132,7 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
                         wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
     final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertNoDocumentInternalsInLlmRequests();
     assertThat(recorded.modelCallCount()).isEqualTo(1);
     assertThat(recorded.lastRequest().messages()).hasSize(2);
 
@@ -130,15 +141,16 @@ public class AgentSubProcessUserPromptDocumentsTests extends BaseAgentSubProcess
 
     final var userMessage = recorded.lastRequest().messages().get(1);
     assertThat(userMessage.role()).isEqualTo("user");
-    assertThat(userMessage.contentParts()).isNotEmpty();
-    assertThat(userMessage.contentParts().size())
-        .as("expected text + 2 document blocks")
-        .isEqualTo(3);
+    assertThat(userMessage.contentParts())
+        .as("prompt text + a <doc/> tag and the content for each of the 2 documents")
+        .hasSize(5);
     assertThat(userMessage.contentParts().get(0).path("type").asText()).isEqualTo("text");
     assertThat(userMessage.contentParts().get(0).path("text").asText())
         .isEqualTo(initialUserPrompt);
-    assertDocumentContentBlockJson(userMessage.contentParts().get(1), "text", "text/plain");
-    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "base64", "image/jpeg");
+    assertDocumentTagPart(userMessage.contentParts().get(1));
+    assertDocumentContentBlockJson(userMessage.contentParts().get(2), "text", "text/plain");
+    assertDocumentTagPart(userMessage.contentParts().get(3));
+    assertDocumentContentBlockJson(userMessage.contentParts().get(4), "base64", "image/jpeg");
 
     assertAgentResponse(
         zeebeTest,

@@ -75,6 +75,20 @@ public final class OpenAiCompletionsRecordedConversation {
     return new OpenAiCompletionsRecordedConversation(parsed);
   }
 
+  /**
+   * The raw JSON bodies of all recorded chat completion requests, oldest first. For assertions on
+   * what was sent over the wire as a whole.
+   */
+  public static List<String> recordedRawBodies() {
+    final List<LoggedRequest> loggedRequests =
+        new ArrayList<>(
+            findAll(
+                postRequestedFor(
+                    urlPathEqualTo(OpenAiCompletionsChatModelStubs.CHAT_COMPLETIONS_PATH))));
+    loggedRequests.sort(Comparator.comparing(LoggedRequest::getLoggedDate));
+    return loggedRequests.stream().map(LoggedRequest::getBodyAsString).toList();
+  }
+
   /** Number of model calls, equivalent to {@code chatRequestCaptor.getAllValues().size()}. */
   public int modelCallCount() {
     return requests.size();
