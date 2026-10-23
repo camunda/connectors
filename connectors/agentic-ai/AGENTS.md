@@ -218,11 +218,14 @@ High-frequency traps (detail behind each link):
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `runtimeTools` feature (created before it) is offered no runtime tools and no tool element is
-  checked against runtime tool names; the feature gates only what is offered. Gate new behavior that changes the wire
-  format or the persisted shape on `AgentContext.supports(...)`. The one deliberate exception is the tagging and the
-  rejection of tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to
-  the process made the agent wait for a result that never came, without an incident. [ADR 016](docs/adr/016-runtime-tools.md).
+  instance without the `documents` feature keeps the previous document handling: bare content and the older tag
+  format, no workspace. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
+  and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
+  behavior that changes the wire format or the persisted shape on `AgentContext.supports(...)` and keep the legacy
+  path covered by `LegacyDocumentConversationTest`. The one deliberate exception is the tagging and the rejection of
+  tool calls (next item), which applies to every agent instance: handing the call of an unknown tool to the process
+  made the agent wait for a result that never came, without an incident.
+  [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Tool calls are tagged once, and the agent produces the tool call results of local tool calls itself**: before an
   assistant message enters the conversation, the agent sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the name is not offered, and never computes either
@@ -233,6 +236,14 @@ High-frequency traps (detail behind each link):
   calls, the calls whose tool call result the agent produces itself. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
   turn is composed, merged with the process results in call order. `ai-agent.md` §9, [ADR 016](docs/adr/016-runtime-tools.md).
+- **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
+  conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
+  result, and the workspace in `AgentContext.documents` holds what the references stand for. The window decorator
+  (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the workspace;
+  in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
+  document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
+  of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
+  starts. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -253,8 +264,8 @@ Do not break these (full statement and rationale in
 [architecture tests](#architecture-tests) enforce the first three:
 
 - **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the root
+  `model/`) stays framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
