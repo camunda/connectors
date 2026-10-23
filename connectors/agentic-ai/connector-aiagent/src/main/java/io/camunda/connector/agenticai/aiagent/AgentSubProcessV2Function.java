@@ -6,9 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
+import io.camunda.connector.agenticai.aiagent.agent.AgentProcessVariables;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV2Request;
+import io.camunda.connector.agenticai.aiagent.translation.AgentExecutionContextTranslator;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 
@@ -31,8 +34,13 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
 
-  public AgentSubProcessV2Function(AgentSubProcessRequestHandler agentRequestHandler) {
+  private final ChatModelConfigurationTranslator chatModelTranslator;
+
+  public AgentSubProcessV2Function(
+      AgentSubProcessRequestHandler agentRequestHandler,
+      ChatModelConfigurationTranslator chatModelTranslator) {
     this.agentRequestHandler = agentRequestHandler;
+    this.chatModelTranslator = chatModelTranslator;
   }
 
   @Override
@@ -40,13 +48,13 @@ public class AgentSubProcessV2Function implements AgentConnectorFunction {
       throws Exception {
     var request = context.bindVariables(AgentSubProcessV2Request.class);
     var executionContext =
-        new AgentSubProcessExecutionContext(
+        AgentExecutionContextTranslator.subProcess(
             context.getJobContext(),
             request.data(),
             request.agentContext(),
             request.toolCallResults(),
             request.toolElements(),
-            request.provider());
+            chatModelTranslator.translate(request.provider()));
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

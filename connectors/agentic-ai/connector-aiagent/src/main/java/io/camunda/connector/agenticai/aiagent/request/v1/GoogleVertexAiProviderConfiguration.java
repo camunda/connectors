@@ -10,8 +10,8 @@ import static io.camunda.connector.agenticai.aiagent.request.v1.GoogleVertexAiPr
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -30,16 +30,6 @@ public record GoogleVertexAiProviderConfiguration(
 
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_VERTEX_AI_ID = "google-vertex-ai";
-
-  @Override
-  public String provider() {
-    return GOOGLE_VERTEX_AI_ID;
-  }
-
-  @Override
-  public String model() {
-    return googleVertexAi.model.model();
-  }
 
   public record GoogleVertexAiConnection(
       @NotBlank

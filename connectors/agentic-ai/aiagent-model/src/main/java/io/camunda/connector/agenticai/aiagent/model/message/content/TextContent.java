@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -23,5 +24,20 @@ public record TextContent(
 
   public static TextContent textContent(String text) {
     return new TextContent(text, null);
+  }
+
+  /**
+   * The text content of a text a model returned, or empty if there is none: blank text carries no
+   * information, and the constructor rejects it.
+   */
+  public static Optional<TextContent> ofNonBlank(@Nullable String text) {
+    return ofNonBlank(text, null);
+  }
+
+  public static Optional<TextContent> ofNonBlank(
+      @Nullable String text, @Nullable Map<String, Object> metadata) {
+    return text == null || text.isBlank()
+        ? Optional.empty()
+        : Optional.of(new TextContent(text, metadata));
   }
 }

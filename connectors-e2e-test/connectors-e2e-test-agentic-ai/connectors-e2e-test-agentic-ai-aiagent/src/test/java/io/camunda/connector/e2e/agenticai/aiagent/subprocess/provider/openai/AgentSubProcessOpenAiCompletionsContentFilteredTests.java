@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.openai;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes;
+import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelErrorCodes;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ContentFilteredTurnStub;
 import java.util.Map;
@@ -67,7 +67,7 @@ class AgentSubProcessOpenAiCompletionsContentFilteredTests
         .hasNoActiveIncidents()
         .hasCompletedElementsInOrder("ErrorBoundary_ContentFiltered", "EndEvent_ContentFiltered")
         .hasVariable(
-            "rejectionErrorCode", AgentErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
+            "rejectionErrorCode", ChatModelErrorCodes.ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED)
         .hasVariable("rejectionStopReason", "content_filter")
         .hasVariable("rejectionText", partialText);
   }

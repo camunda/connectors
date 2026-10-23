@@ -17,11 +17,13 @@ import java.util.Arrays;
 import java.util.Set;
 
 /**
- * Enforces that the library modules (common, model, api and tools schema) carry no element template
- * annotations: the element template generator belongs to the connectors, which own the templates.
+ * Enforces that the library modules (common, model, api, core and tools schema) carry no element
+ * template annotations: the element template generator belongs to the connectors, which own the
+ * templates.
  *
- * <p>The allow list names the records that still carry element template annotations. It is the
- * follow-up of ADR 015, moving the annotated records to the connector, and must only shrink.
+ * <p>The allow list names the records that still carry element template annotations: the generator
+ * reads the result examples of {@code AgentResponse} from the type itself, and {@code
+ * AdHocToolsSchemaRequest} is the follow-up of ADR 015. The list must not grow.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class ElementTemplateAnnotationsArchTest {
@@ -31,11 +33,8 @@ class ElementTemplateAnnotationsArchTest {
   /** The top-level classes, including their nested classes, that may use the generator. */
   private static final Set<String> ANNOTATED_RECORDS_NOT_YET_MOVED_TO_THE_CONNECTOR =
       Set.of(
-          AgenticAiModules.pkg("aiagent.model.request.PromptConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.LimitsConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.EventHandlingConfiguration"),
-          AgenticAiModules.pkg("aiagent.model.request.ResponseFormatConfiguration"),
-          AgenticAiModules.pkg("tools.schema.model.AdHocToolsSchemaRequest"));
+          AgenticAiModules.pkg("tools.schema.model.AdHocToolsSchemaRequest"),
+          AgenticAiModules.pkg("aiagent.agent.AgentResponse"));
 
   private static final DescribedPredicate<JavaClass> LIBRARY_CLASSES =
       Arrays.stream(AgenticAiModules.values())

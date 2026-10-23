@@ -12,10 +12,11 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.SystemPromptTemplateConfiguration;
+import io.camunda.connector.agenticai.aiagent.request.PromptTemplateConfiguration.UserPromptTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfig
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend.AnthropicApi;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -57,8 +59,8 @@ class AgentTaskV1FunctionTest {
   private static final AgentTaskRequestData DATA =
       new AgentTaskRequestData(
           null,
-          new SystemPromptConfiguration("system prompt"),
-          new UserPromptConfiguration("user prompt", null),
+          new SystemPromptTemplateConfiguration("system prompt"),
+          new UserPromptTemplateConfiguration("user prompt", null),
           null,
           null,
           null,
@@ -85,12 +87,17 @@ class AgentTaskV1FunctionTest {
     when(providerConfigurationMapper.map(V1_PROVIDER)).thenReturn(V2_PROVIDER);
     var function =
         new AgentTaskV1Function(
-            toolElementsResolver, agentRequestHandler, providerConfigurationMapper);
+            toolElementsResolver,
+            agentRequestHandler,
+            new ChatModelConfigurationTranslator(
+                providerConfigurationMapper, java.time.Duration.ofMinutes(3)));
 
     function.execute(context);
 
     verify(agentRequestHandler).handleRequest(executionContextCaptor.capture());
     var chatModel = executionContextCaptor.getValue().configuration().chatModel();
-    assertThat(chatModel).isInstanceOf(AnthropicChatModelConfiguration.class).isSameAs(V2_PROVIDER);
+    assertThat(chatModel)
+        .isInstanceOf(AnthropicConfiguration.class)
+        .isEqualTo(ChatModelTranslationFixture.translate(V2_PROVIDER));
   }
 }

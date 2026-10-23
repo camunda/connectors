@@ -18,8 +18,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.91.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -63,8 +61,64 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-azure-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-aws-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-openai</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-mistral</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-anthropic</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-gemini</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-bedrock</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-memory-agentcore</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -83,14 +137,16 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -116,144 +172,33 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client-jdk</artifactId>
-    </dependency>
-    <!--
-      REQUIRED: google-genai shades KotlinModule into com.google.genai.shaded.* but ships a
-      META-INF/services entry pointing at the unshaded class, so
-      ObjectMapper.findAndRegisterModules() (called by langchain4j-core) throws
-      ServiceConfigurationError without the Kotlin module on the class path. Do not exclude it.
-    -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-kotlin</artifactId>
-      <scope>runtime</scope>
-    </dependency>
     <!-- main code imports com.google.genai.* directly (we build the Client ourselves) -->
     <dependency>
       <groupId>com.google.genai</groupId>
       <artifactId>google-genai</artifactId>
+      <scope>test</scope>
     </dependency>
 
-    <!--
-      Declared directly rather than via the com.anthropic:anthropic-java aggregator:
-      anthropic-java-core (the com.anthropic.models.* classes) and anthropic-java-client-okhttp
-      (the OkHttp-based AnthropicClient builder used by AnthropicChatModelApiFactory, plus the
-      ProxyAuthenticator used for proxy credentials) share the aggregator's version.
-    -->
+    <!-- the tests of the providers use the model classes of the vendor SDKs; the providers bring
+         them to the runtime class path -->
     <dependency>
       <groupId>com.anthropic</groupId>
       <artifactId>anthropic-java-core</artifactId>
       <version>${version.anthropic-java}</version>
+      <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-client-okhttp</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-bedrock</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java-foundry</artifactId>
-      <version>${version.anthropic-java}</version>
-    </dependency>
-
     <dependency>
       <groupId>com.openai</groupId>
       <artifactId>openai-java-core</artifactId>
       <version>${version.openai-java}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.openai</groupId>
-      <artifactId>openai-java-client-okhttp</artifactId>
-      <version>${version.openai-java}</version>
+      <scope>test</scope>
     </dependency>
 
-    <!--
-      OkHttp 5 split into multi-platform modules: the `okhttp` artifact's pom is now an empty
-      shell (classes ship in `okhttp-jvm`), see the comment in parent/pom.xml. Both anthropic-java
-      and openai-java's okhttp clients (Stainless-generated) only depend on the empty `okhttp`
-      shell, so their builders throw NoClassDefFoundError at runtime unless we add `okhttp-jvm`
-      explicitly (same pattern as connectors/slack and connectors/microsoft/common).
-    -->
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-identity</artifactId>
-      <scope>compile</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-resolver-dns-native-macos</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-core</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>bedrockruntime</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>bedrockagentcore</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>sdk-core</artifactId>
-    </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-core</artifactId>
+      <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>utils</artifactId>
-      <version>${version.aws-sdk2}</version>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>regions</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>apache-client</artifactId>
-      <version>${version.aws-sdk2}</version>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>netty-nio-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>http-client-spi</artifactId>
-      <version>${version.aws-sdk2}</version>
-    </dependency>
-
     <!-- needed on the compile classpath for javac to resolve the AWS client builder types of the
          Bedrock providers; main code has no bytecode reference to it -->
     <dependency>
@@ -261,32 +206,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>http-auth-spi</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.auth</groupId>
-      <artifactId>google-auth-library-oauth2-http</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-collections4</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.httpcomponents.core5</groupId>
-      <artifactId>httpcore5</artifactId>
     </dependency>
 
     <dependency>
@@ -314,11 +237,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <artifactId>jackson-datatype-document</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-feel</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
       <scope>test</scope>
@@ -334,21 +252,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>uk.org.webcompere</groupId>
       <artifactId>system-stubs-jupiter</artifactId>
       <scope>test</scope>
@@ -361,11 +264,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.skyscreamer</groupId>
-      <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -435,7 +333,10 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-          <includeDependencies>io.camunda.connector.agenticai:aiagent-model</includeDependencies>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector.agenticai:aiagent-model</includeDependency>
+            <includeDependency>io.camunda.connector.agenticai:aiagent-core</includeDependency>
+          </includeDependencies>
         </configuration>
       </plugin>
       <plugin>

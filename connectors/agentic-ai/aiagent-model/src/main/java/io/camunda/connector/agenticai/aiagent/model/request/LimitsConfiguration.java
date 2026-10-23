@@ -6,19 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.Min;
-import org.jspecify.annotations.Nullable;
-
-public record LimitsConfiguration(
-    // TODO think of other limits (max tool calls, max tokens, ...)
-    @TemplateProperty(
-            group = "limits",
-            label = "Maximum model calls",
-            description =
-                "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
-            type = TemplateProperty.PropertyType.Number,
-            defaultValue = "10",
-            defaultValueType = TemplateProperty.DefaultValueType.Number)
-        @Min(1)
-        @Nullable Integer maxModelCalls) {}
+/**
+ * Limits of an agent.
+ *
+ * @param maxModelCalls maximum number of calls to the model as a safety limit to prevent infinite
+ *     loops
+ */
+public record LimitsConfiguration(int maxModelCalls) {}

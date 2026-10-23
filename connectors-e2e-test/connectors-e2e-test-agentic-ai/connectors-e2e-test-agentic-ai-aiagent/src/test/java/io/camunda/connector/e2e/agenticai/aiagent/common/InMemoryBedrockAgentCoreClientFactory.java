@@ -22,7 +22,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
-import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStoreConfiguration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +51,7 @@ public class InMemoryBedrockAgentCoreClientFactory implements BedrockAgentCoreCl
   private final AtomicInteger eventCounter = new AtomicInteger(0);
 
   @Override
-  public BedrockAgentCoreClient createClient(AwsAgentCoreMemoryStorageConfiguration config) {
+  public BedrockAgentCoreClient createClient(AwsAgentCoreConversationStoreConfiguration config) {
     var client = mock(BedrockAgentCoreClient.class);
 
     doAnswer(invocation -> handleCreateEvent(invocation.getArgument(0)))

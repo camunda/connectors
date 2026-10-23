@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
-import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
+import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -35,16 +35,6 @@ public record BedrockConverseChatModelConfiguration(
 
   @TemplateProperty(ignore = true)
   public static final String BEDROCK_CONVERSE_ID = "bedrock";
-
-  @Override
-  public String provider() {
-    return BEDROCK_CONVERSE_ID;
-  }
-
-  @Override
-  public String model() {
-    return bedrock.model().model();
-  }
 
   /** All AWS Bedrock-specific configuration, nested under the {@code bedrock} wire key. */
   public record BedrockConverseConnection(

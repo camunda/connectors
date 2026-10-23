@@ -7,22 +7,95 @@
 package io.camunda.connector.agenticai.archunit;
 
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.A2A_CLIENT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.A2A_INTEGRATION;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.AD_HOC_CONNECTOR;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.AI_AGENT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.API;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.AWS_SUPPORT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.AZURE_SUPPORT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.COMMON;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.CORE;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MCP_CLIENT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MCP_INTEGRATION;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MEMORY_AGENTCORE;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.MODEL;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_ANTHROPIC;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_BEDROCK;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_GEMINI;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_LANGCHAIN4J;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_MISTRAL;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_OPENAI;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.PROVIDER_SUPPORT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.TEST_SUPPORT;
+import static io.camunda.connector.agenticai.archunit.AgenticAiModules.TOOLS_SCHEMA;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.Architectures.LayeredArchitecture;
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Enforces the dependency direction between the package roots of the Agentic AI modules. The layers
  * are the package roots; a package root is a layer of its own, so the rules hold whether the
- * modules are built together or separately.
+ * modules are built together or separately. Every module may use the common library; the other
+ * dependencies are listed in {@link #DEPENDS_ON}, and the rule derives who may access a module from
+ * them.
  */
 @AnalyzeClasses(packages = AgenticAiModules.ROOT, importOptions = DoNotIncludeTestsOrTestJars.class)
 class ModuleLayersArchTest {
 
+  /** The modules each module may depend on, besides the common library. */
+  private static final Map<AgenticAiModules, Set<AgenticAiModules>> DEPENDS_ON =
+      new EnumMap<>(AgenticAiModules.class);
+
+  static {
+    dependsOn(API, MODEL);
+    dependsOn(PROVIDER_SUPPORT, API, MODEL);
+    dependsOn(AZURE_SUPPORT);
+    dependsOn(AWS_SUPPORT);
+    dependsOn(PROVIDER_OPENAI, PROVIDER_SUPPORT, AZURE_SUPPORT, API, MODEL);
+    dependsOn(PROVIDER_MISTRAL, PROVIDER_SUPPORT, PROVIDER_OPENAI, API, MODEL);
+    dependsOn(PROVIDER_ANTHROPIC, PROVIDER_SUPPORT, AZURE_SUPPORT, AWS_SUPPORT, API, MODEL);
+    dependsOn(PROVIDER_GEMINI, PROVIDER_SUPPORT, API, MODEL);
+    dependsOn(PROVIDER_BEDROCK, PROVIDER_SUPPORT, AWS_SUPPORT, API, MODEL);
+    dependsOn(PROVIDER_LANGCHAIN4J, PROVIDER_SUPPORT, API, MODEL);
+    dependsOn(MEMORY_AGENTCORE, AWS_SUPPORT, API, MODEL);
+    dependsOn(TEST_SUPPORT, PROVIDER_SUPPORT, API, MODEL);
+    dependsOn(CORE, TOOLS_SCHEMA, API, MODEL);
+    dependsOn(TOOLS_SCHEMA, API, MODEL);
+    dependsOn(AD_HOC_CONNECTOR, TOOLS_SCHEMA, API, MODEL);
+    dependsOn(MCP_CLIENT);
+    dependsOn(MCP_INTEGRATION, MCP_CLIENT, API, MODEL);
+    dependsOn(A2A_CLIENT);
+    dependsOn(A2A_INTEGRATION, A2A_CLIENT, API, MODEL);
+    dependsOn(
+        AI_AGENT,
+        PROVIDER_SUPPORT,
+        AZURE_SUPPORT,
+        AWS_SUPPORT,
+        PROVIDER_OPENAI,
+        PROVIDER_MISTRAL,
+        PROVIDER_ANTHROPIC,
+        PROVIDER_GEMINI,
+        PROVIDER_BEDROCK,
+        MEMORY_AGENTCORE,
+        CORE,
+        TOOLS_SCHEMA,
+        API,
+        MODEL);
+  }
+
   @ArchTest static final ArchRule MODULES_DEPEND_ONLY_ON_THE_MODULES_BELOW_THEM = layers();
+
+  private static void dependsOn(
+      final AgenticAiModules module, final AgenticAiModules... dependencies) {
+    DEPENDS_ON.put(module, Set.of(dependencies));
+  }
 
   private static ArchRule layers() {
     LayeredArchitecture architecture =
@@ -34,40 +107,23 @@ class ModuleLayersArchTest {
     }
 
     // Common is accessible from every module.
-    return architecture
-        .whereLayer(AgenticAiModules.MODEL.layerName())
-        .mayOnlyBeAccessedByLayers(
-            names(
-                AgenticAiModules.API,
-                AgenticAiModules.TOOLS_SCHEMA,
-                AgenticAiModules.AD_HOC_CONNECTOR,
-                AgenticAiModules.MCP_INTEGRATION,
-                AgenticAiModules.A2A_INTEGRATION,
-                AgenticAiModules.AI_AGENT))
-        .whereLayer(AgenticAiModules.API.layerName())
-        .mayOnlyBeAccessedByLayers(
-            names(
-                AgenticAiModules.TOOLS_SCHEMA,
-                AgenticAiModules.AD_HOC_CONNECTOR,
-                AgenticAiModules.MCP_INTEGRATION,
-                AgenticAiModules.A2A_INTEGRATION,
-                AgenticAiModules.AI_AGENT))
-        .whereLayer(AgenticAiModules.TOOLS_SCHEMA.layerName())
-        .mayOnlyBeAccessedByLayers(
-            names(AgenticAiModules.AD_HOC_CONNECTOR, AgenticAiModules.AI_AGENT))
-        .whereLayer(AgenticAiModules.MCP_CLIENT.layerName())
-        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.MCP_INTEGRATION))
-        .whereLayer(AgenticAiModules.A2A_CLIENT.layerName())
-        .mayOnlyBeAccessedByLayers(names(AgenticAiModules.A2A_INTEGRATION))
-        .whereLayer(AgenticAiModules.AD_HOC_CONNECTOR.layerName())
-        .mayNotBeAccessedByAnyLayer()
-        .whereLayer(AgenticAiModules.MCP_INTEGRATION.layerName())
-        .mayNotBeAccessedByAnyLayer()
-        .whereLayer(AgenticAiModules.A2A_INTEGRATION.layerName())
-        .mayNotBeAccessedByAnyLayer()
-        .whereLayer(AgenticAiModules.AI_AGENT.layerName())
-        .mayNotBeAccessedByAnyLayer()
-        .because("each module depends only on the modules below it");
+    for (final var module : AgenticAiModules.values()) {
+      if (module == COMMON) {
+        continue;
+      }
+      final var dependents =
+          DEPENDS_ON.entrySet().stream()
+              .filter(entry -> entry.getValue().contains(module))
+              .map(Map.Entry::getKey)
+              .toArray(AgenticAiModules[]::new);
+      architecture =
+          dependents.length == 0
+              ? architecture.whereLayer(module.layerName()).mayNotBeAccessedByAnyLayer()
+              : architecture
+                  .whereLayer(module.layerName())
+                  .mayOnlyBeAccessedByLayers(names(dependents));
+    }
+    return architecture.because("each module depends only on the modules below it");
   }
 
   private static String[] names(final AgenticAiModules... modules) {

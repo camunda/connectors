@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicAwsBedrockMantleBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicBackend.AnthropicCustomBackend;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfi
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.AnthropicThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicChatModelConfiguration.AnthropicModel.ThinkingMode;
 import io.camunda.connector.agenticai.aiagent.request.v2.AnthropicCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
@@ -74,9 +74,6 @@ class AnthropicChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(AnthropicChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("anthropic");
-    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/anthropic-api");
-    assertThat(parsed.model()).isEqualTo("claude-sonnet-4-6");
 
     final AnthropicChatModelConfiguration anthropic = (AnthropicChatModelConfiguration) parsed;
     assertThat(anthropic.anthropic().backend()).isInstanceOf(AnthropicApiBackend.class);
@@ -469,7 +466,6 @@ class AnthropicChatModelConfigurationTest {
         (AnthropicChatModelConfiguration) mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed.anthropic().backend()).isInstanceOf(AnthropicAwsBedrockMantleBackend.class);
-    assertThat(parsed.descriptiveProvider()).isEqualTo("anthropic/aws-bedrock-mantle");
     final AnthropicAwsBedrockMantleBackend bedrockBackend =
         (AnthropicAwsBedrockMantleBackend) parsed.anthropic().backend();
     assertThat(bedrockBackend.awsBedrockMantle().region()).isEqualTo("eu-central-1");

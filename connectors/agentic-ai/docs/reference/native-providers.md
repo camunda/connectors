@@ -7,6 +7,55 @@ and how to add a provider at all live in
 [`ai-agent.md` §25.1](ai-agent.md#251-add-an-llm-provider); read that first. This file only holds the
 per-provider "here's what's special" detail that would otherwise bloat that section.
 
+## Connection settings
+
+`ConnectionResolver` (`aiagent/chatmodel/connection`) resolves how every native provider connects, and each
+provider factory only adapts the result to the client builder of its SDK:
+
+- **Timeout.** The configured timeout of the model call (or the `chat-model.api.default-timeout`, applied once
+  when the request is translated). It bounds the connect, read and write of the SDK client and the call.
+- **Connect timeout.** One constant, 15 seconds, and never longer than the timeout. There is no user-facing
+  property for it. The OpenAI, Anthropic and Mistral clients, the Gemini client and the Bedrock client all use it.
+- **Proxy.** The proxy of the scheme of the endpoint which the SDK connects to: the configured endpoint, or the
+  default endpoint of the provider without one. A host which matches a non-proxy host pattern is not proxied. Bedrock
+  keeps the AWS SDK proxy configuration of `AwsSdkHttpProxySupport`, which applies the same patterns.
+- **Bearer tokens.** `bearerToken(...)` returns the supplier of an OAuth 2.0 client credentials token (custom
+  endpoints), requested for every call. OpenAI and Mistral hand it to a `BearerTokenCredential`, Anthropic to its
+  request interceptor. The resolver knows no vendor: the OpenAI and Anthropic factories get the supplier of a
+  Microsoft Entra ID token (Foundry) from the `FoundryCredentialResolver` of the Azure support.
+
+`ChatModelConnectionContractTest` runs every provider factory against a stub endpoint and holds the behavior
+together: the timeout is enforced, the call goes through the proxy, and a non-proxy host bypasses it.
+
+## Model call envelope
+
+`ModelCallEnvelope` (`aiagent/chatmodel/envelope`) wraps the `ChatModel` of every native provider, so the provider
+implements the wire mapping only. The factory of each provider creates the envelope with an `SdkFailureMapper`
+for the failures of its SDK. The envelope:
+
+- records the execution time of the call in the `AgentMetrics` of the result.
+- passes on a `ConnectorException` and a `ChatModelRejectedException` unchanged, and unwraps the
+  `CompletionException` of an asynchronous call (Bedrock).
+- maps every other failure to `ERROR_CODE_FAILED_MODEL_CALL`. For an error response of the provider the message is
+  `Model call failed with HTTP <status> (<type>): <message>`; for any other failure it is
+  `Model call failed: <detail>`, where the detail is the message of the failure, or of its cause if the message is
+  blank or the generic "Request failed" of an SDK exception that wraps an `IOException`.
+- maps a request that exceeds the context window of the model to `ContextWindowExceededException`.
+
+`SdkFailureMapper` recognizes the exception of the SDK and extracts the status, the type and the message, and
+whether the error means an exceeded context window:
+
+| Provider  | SDK exception               | Type                        | Context window exceeded                                                     |
+|-----------|-----------------------------|-----------------------------|-----------------------------------------------------------------------------|
+| OpenAI    | `OpenAIServiceException`    | `code`, else `type`         | `BadRequestException` with `context_length_exceeded`                        |
+| Mistral   | `OpenAIServiceException`    | `code`, else `type`         | `BadRequestException` with `context_length_exceeded`                        |
+| Anthropic | `AnthropicServiceException` | `errorType`                 | the stop reason of the response, not an error                               |
+| Gemini    | `ApiException`              | `status`                    | HTTP 400 with "exceeds the maximum number of tokens allowed" in the message |
+| Bedrock   | `AwsServiceException`       | `awsErrorDetails.errorCode` | the stop reason of the response, not an error                               |
+
+`ChatModelFailureContractTest` drives every provider factory against a stub endpoint which answers with an error in
+the shape of the provider, and holds the message format and the context window mapping together.
+
 ## Token usage
 
 Every provider maps its usage report onto the same disjoint buckets of `AgentMetrics.TokenUsage`, so
@@ -100,7 +149,7 @@ assistant message and metrics already built for the turn as the exception's `Par
 
 One wire format (the Bedrock Runtime Converse API), reaching every model family Bedrock hosts
 (Amazon Nova, Anthropic Claude, Llama, Mistral, DeepSeek, Cohere, Gemma, gpt-oss). There is no
-backend axis: `BedrockConverseChatModelConfiguration` carries a region, an `AwsAuthentication`
+backend axis: `BedrockConfiguration` carries a region, an `AwsAuthentication`
 (static credentials, API key, or the default credentials chain) and an optional custom endpoint.
 
 ### HTTP overrides
@@ -423,23 +472,21 @@ reason falls back to `UnknownStopReason` with the raw value preserved.
 
 Gemini has no context-window-specific error signal, unlike OpenAI's `BadRequestException` with
 `code=context_length_exceeded`: an over-length prompt surfaces as a plain `ApiException` (HTTP 400,
-`status="INVALID_ARGUMENT"`, shared with many unrelated validation failures). `GeminiChatModel
-#isContextWindowExceeded` matches on the one stable, distinctive substring of the message text
-("exceeds the maximum number of tokens allowed", confirmed identical across the Developer API and
-Vertex AI backends) to throw `ContextWindowExceededException` instead of the generic
-`ERROR_CODE_FAILED_MODEL_CALL` — message-matching is inherently brittle against upstream wording
+`status="INVALID_ARGUMENT"`, shared with many unrelated validation failures). `GeminiSdkFailureMapper` matches on
+the one stable, distinctive substring of the message text ("exceeds the maximum number of tokens allowed",
+confirmed identical across the Developer API and Vertex AI backends) to report an exceeded context window instead
+of the generic `ERROR_CODE_FAILED_MODEL_CALL` — message-matching is inherently brittle against upstream wording
 changes, but the SDK exposes no more reliable signal for this condition.
 
 ### Timeout and retry
 
-`GeminiChatModelFactory.buildClient` always installs a `ClientOptions.customHttpClient` with a fixed
-10-second OkHttp `connectTimeout`, merged into the same `ClientOptions` builder as any proxy
-configuration. Without it, the SDK's own default `OkHttpClient` (built when no custom client is
-supplied) leaves `connectTimeout`/`readTimeout`/`writeTimeout` at zero (unbounded) and relies solely
-on `HttpOptions#timeout` as an overall `callTimeout` — a hung TCP connect would otherwise consume the
-whole, often much longer, configured request budget before failing. The overall timeout itself stays
-exactly as configurable as before (`TimeoutConfiguration`, shared with Anthropic/OpenAI); only connect
-is bounded separately, and only at this fixed default — there is no user-facing property for it.
+`GeminiChatModelFactory.buildClient` always installs a `ClientOptions.customHttpClient` carrying the resolved
+connection settings (see [Connection settings](#connection-settings)): the connect timeout, the proxy and the
+overall `callTimeout`. Without it, the SDK's own default `OkHttpClient` (built when no custom client is supplied)
+leaves `connectTimeout`/`readTimeout`/`writeTimeout` at zero (unbounded) and relies solely on `HttpOptions#timeout`
+as an overall `callTimeout` — a hung TCP connect would otherwise consume the whole, often much longer, configured
+request budget before failing. Read and write timeouts stay unbounded so that a long gap between streamed chunks
+does not abort the call.
 Retry needs no equivalent fix: the SDK unconditionally wraps every call in a `RetryInterceptor`
 (decompiled defaults: 5 attempts, exponential backoff with full jitter, retrying on
 408/429/500/502/503/504) whether or not `HttpOptions.retryOptions()` is configured, matching
@@ -457,7 +504,7 @@ the shared `OpenAiCompletionsStreamAssembler`) drives the chunked reasoning cont
 OpenAI's own wiring uses the shared `OpenAiCompletionsContentChunkStrategy.openAi(...)` and
 `OpenAiCompletionsStreamAssembler.accumulating()` instead. It also
 does not go through `OpenAiCompletionsStrategy` -- that class is typed to
-`OpenAiChatModelConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
+`OpenAiConfiguration` -- so `MistralChatModel` has its own thin `execute()`/`toSpec()`
 that maps this provider's own configuration onto the shared `CompletionsRequestSpec` instead.
 `MistralChatModelFactory` only builds a differently-configured openai-java client (`baseUrl`
 pointed at `https://api.mistral.ai/v1`, Mistral's own API key) and passes a `providerId` of

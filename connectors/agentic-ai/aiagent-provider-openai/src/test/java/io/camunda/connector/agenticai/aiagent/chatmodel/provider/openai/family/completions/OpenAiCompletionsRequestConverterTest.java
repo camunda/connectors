@@ -1,0 +1,586 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions;
+
+import static io.camunda.connector.agenticai.aiagent.testsupport.AgentConfigurations.DEFAULT_RESPONSE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.core.ObjectMappers;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.RequestCustomizations;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiConfiguration;
+import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiContentConverter;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+class OpenAiCompletionsRequestConverterTest {
+
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
+  private final OpenAiContentConverter contentConverter = new OpenAiContentConverter(objectMapper);
+  private final OpenAiCompletionsRequestConverter converter =
+      new OpenAiCompletionsRequestConverter(
+          OpenAiConfiguration.PROVIDER,
+          contentConverter,
+          OpenAiCompletionsContentChunkStrategy.openAi(objectMapper),
+          objectMapper,
+          OpenAiCompletionsContentDialect.none());
+
+  private static final RequestCustomizations NO_CUSTOMIZATIONS =
+      RequestCustomizations.of(null, null, null);
+
+  private static CompletionsRequestSpec spec() {
+    return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, NO_CUSTOMIZATIONS);
+  }
+
+  private static CompletionsRequestSpec specWithCustomizations(
+      RequestCustomizations customizations) {
+    return new CompletionsRequestSpec("gpt-4o", null, null, null, null, null, customizations);
+  }
+
+  private static JsonNode requestBodyAsJson(ChatCompletionCreateParams params) {
+    return ObjectMappers.jsonMapper().valueToTree(params._body());
+  }
+
+  @Test
+  void mapsSystemMessageToSystemMessage() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                SystemMessage.builder().content(List.of(TextContent.textContent("sys"))).build(),
+                UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.messages()).hasSize(2);
+    final var system = params.messages().get(0).asSystem();
+    assertThat(system.content().asText()).isEqualTo("sys");
+  }
+
+  @Test
+  void mapsUserMessageTextToUserMessage() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(UserMessage.builder().content(List.of(TextContent.textContent("hi"))).build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.messages()).hasSize(1);
+    final var user = params.messages().get(0).asUser();
+    final var parts = user.content().asArrayOfContentParts();
+    assertThat(parts).hasSize(1);
+    assertThat(parts.get(0).text().orElseThrow().text()).isEqualTo("hi");
+  }
+
+  @Test
+  void mapsAssistantToolCallAndToolResultToAssistantAndToolMessages() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("get_weather")
+                                .arguments(Map.of("city", "Berlin"))
+                                .build()))
+                    .build(),
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("get_weather")
+                                .content(List.of(TextContent.textContent("sunny")))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.messages()).hasSize(2);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.toolCalls()).isPresent();
+    final var toolCall = assistant.toolCalls().orElseThrow().get(0).asFunction();
+    assertThat(toolCall.id()).isEqualTo("call_1");
+    assertThat(toolCall.function().name()).isEqualTo("get_weather");
+    assertThat(toolCall.function().arguments(Map.class)).containsEntry("city", "Berlin");
+
+    final var tool = params.messages().get(1).asTool();
+    assertThat(tool.toolCallId()).isEqualTo("call_1");
+    assertThat(tool.content().asText()).isEqualTo("sunny");
+  }
+
+  @Test
+  void unwrapsObjectContentInToolResults() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            ToolCall.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .arguments(Map.of("a", 5, "b", 3))
+                                .build()))
+                    .build(),
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("superflux_product")
+                                .content(List.of(ObjectContent.objectContent(24)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    final var tool = params.messages().get(1).asTool();
+    assertThat(tool.toolCallId()).isEqualTo("call_1");
+    // Must be the raw unwrapped value ("24"), not the polymorphic Content envelope
+    // ("{"type":"object","content":24}") - see OpenAiCompletionsRequestConverter#toTextOutput.
+    assertThat(tool.content().asText()).isEqualTo("24");
+  }
+
+  @Test
+  void emitsJsonReferenceForToolResultDocuments() throws Exception {
+    // never embedded natively for a tool result - the composer's synthetic <doc/> fallback
+    // message already delivers the actual bytes, so embedding it here as well would send it to
+    // the model twice; see OpenAiCompletionsRequestConverter#toTextOutput
+    final var document = mock(Document.class);
+    final var metadata = mock(DocumentMetadata.class);
+    when(document.metadata()).thenReturn(metadata);
+    when(metadata.getContentType()).thenReturn("application/pdf");
+    when(metadata.getFileName()).thenReturn("report.pdf");
+    when(document.asBase64()).thenReturn("UERGQ09OVEVOVA==");
+    when(document.reference())
+        .thenReturn(
+            new ExternalDocumentReferenceModel("https://example.com/report.pdf", "report.pdf"));
+
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                ToolCallResultMessage.builder()
+                    .results(
+                        List.of(
+                            ToolCallResultContent.builder()
+                                .id("call_1")
+                                .name("fetch_report")
+                                .content(
+                                    List.of(
+                                        TextContent.textContent("here is the report"),
+                                        new DocumentContent(document, null)))
+                                .build()))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    final var tool = params.messages().get(0).asTool();
+    assertThat(tool.toolCallId()).isEqualTo("call_1");
+    // Must be exactly the document's own reference JSON (whatever JacksonModuleDocumentSerializer
+    // produces for it), joined with the text on its own line -- not the polymorphic Content
+    // envelope ("{"type":"document","document":{...}}") toTextOutput's fallback would otherwise
+    // serialize.
+    final var expectedReference = objectMapper.writeValueAsString(document);
+    assertThat(tool.content().asText())
+        .isEqualTo("here is the report\n" + expectedReference)
+        .doesNotContain("\"type\":\"document\"");
+  }
+
+  @Test
+  void replaysAssistantTextContentAsAssistantMessageContent() {
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(List.of(TextContent.textContent("here's the answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.messages()).hasSize(1);
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("here's the answer");
+    assertThat(assistant.toolCalls()).isEmpty();
+  }
+
+  @Test
+  void omitsAssistantMessageWithNoPlainContentAndNoToolCalls() {
+    // e.g. a reasoning-only/server-tool-only turn replayed from the Responses family after a
+    // mid-conversation family switch -- ReasoningContent/ProviderContent are dropped on this
+    // family (see OpenAiCompletionsRequestConverter#assistantMessage), and with no tool calls
+    // either, nothing representable remains.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ReasoningContent.reasoningContent(
+                                "openai", Map.of("type", "reasoning")),
+                            ProviderContent.providerContent(
+                                "openai", Map.of("type", "web_search_call"))))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.messages()).isEmpty();
+  }
+
+  @Test
+  void dropsReasoningContentFromADifferentApiFamilyEvenWhenProviderTagMatchesThisOne() {
+    // Gating requires both a provider-tag match and payload-shape match (see
+    // OpenAiCompletionsRequestConverter#isChunkedReasoningContent) -- shape alone isn't a unique
+    // signal (Anthropic's raw thinking-block payload also carries type=thinking), so a
+    // same-provider-tagged ReasoningContent from a different API family (e.g. carried over from
+    // the Responses family after a mid-conversation switch) still correctly stays dropped instead
+    // of being misread as a replayable chunk.
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(
+                AssistantMessage.builder()
+                    .content(
+                        List.of(
+                            ReasoningContent.reasoningContent(
+                                "openai", Map.of("type", "reasoning")),
+                            TextContent.textContent("final answer")))
+                    .build()),
+            List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    final var assistant = params.messages().get(0).asAssistant();
+    assertThat(assistant.content().orElseThrow().asText()).isEqualTo("final answer");
+  }
+
+  @Test
+  void mapsToolDefinitionsToFunctionTools() {
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("quantity", Map.of("type", "integer")),
+            "required",
+            List.of("quantity"));
+    final var snapshot =
+        new ConversationSnapshot(
+            List.of(),
+            List.of(
+                ToolDefinition.builder()
+                    .name("SuperfluxProduct")
+                    .description("desc")
+                    .inputSchema(schema)
+                    .build()));
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.tools()).isPresent();
+    final var tool = params.tools().orElseThrow().get(0).function().orElseThrow();
+    assertThat(tool.function().name()).isEqualTo("SuperfluxProduct");
+    assertThat(tool.function().description()).contains("desc");
+
+    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
+    assertThat(toolNode.path("function").path("parameters").path("type").asText())
+        .isEqualTo("object");
+    assertThat(
+            toolNode
+                .path("function")
+                .path("parameters")
+                .path("properties")
+                .path("quantity")
+                .path("type")
+                .asText())
+        .isEqualTo("integer");
+    assertThat(toolNode.path("function").path("parameters").path("required").get(0).asText())
+        .isEqualTo("quantity");
+  }
+
+  @Test
+  void configuresStructuredOutputFromJsonSchema() {
+    final Map<String, Object> schema =
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "answer",
+                Map.of("type", "string"),
+                "details",
+                Map.of(
+                    "type",
+                    "object",
+                    "additionalProperties",
+                    true,
+                    "properties",
+                    Map.of("confidence", Map.of("type", "number"))),
+                "sources",
+                Map.of(
+                    "type",
+                    "array",
+                    "items",
+                    Map.of(
+                        "type", "object", "properties", Map.of("id", Map.of("type", "string"))))));
+    final ResponseConfiguration response =
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(schema, "Answer"), false);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), response, snapshot);
+
+    assertThat(params.responseFormat()).isPresent();
+
+    final var formatNode = requestBodyAsJson(params).path("response_format");
+    assertThat(formatNode.path("type").asText()).isEqualTo("json_schema");
+    assertThat(formatNode.path("json_schema").path("name").asText()).isEqualTo("Answer");
+    assertThat(formatNode.path("json_schema").path("strict").asBoolean()).isTrue();
+
+    final var schemaNode = formatNode.path("json_schema").path("schema");
+    assertThat(schemaNode.path("type").asText()).isEqualTo("object");
+    assertThat(schemaNode.path("properties").path("answer").path("type").asText())
+        .isEqualTo("string");
+
+    // additionalProperties: false is required by OpenAI's strict mode on every object level, so
+    // it's auto-injected -- at the root, overriding an explicit `true` on a nested object, and on
+    // an object nested inside an array's items -- rather than left to the caller to get right.
+    assertThat(schemaNode.path("additionalProperties").asBoolean()).isFalse();
+    assertThat(
+            schemaNode.path("properties").path("details").path("additionalProperties").asBoolean())
+        .isFalse();
+    assertThat(
+            schemaNode
+                .path("properties")
+                .path("sources")
+                .path("items")
+                .path("additionalProperties")
+                .asBoolean())
+        .isFalse();
+  }
+
+  @Test
+  void configuresJsonObjectResponseFormatWhenNoSchema() {
+    final ResponseConfiguration response =
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(null, "Response"), false);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), response, snapshot);
+
+    assertThat(params.responseFormat()).isPresent();
+    final var formatNode = requestBodyAsJson(params).path("response_format");
+    assertThat(formatNode.path("type").asText()).isEqualTo("json_object");
+    assertThat(formatNode.has("json_schema")).isFalse();
+  }
+
+  @Test
+  void doesNotConfigureAResponseFormatForTheTextFormat() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    for (final var parseJson : List.of(false, true)) {
+      final var params =
+          converter.toRequest(
+              spec(),
+              new ResponseConfiguration(new TextResponseFormatConfiguration(parseJson), false),
+              snapshot);
+
+      assertThat(params.responseFormat()).isEmpty();
+      assertThat(requestBodyAsJson(params).has("response_format")).isFalse();
+    }
+  }
+
+  @Test
+  void configuresJsonObjectResponseFormatWhenEmptySchema() {
+    final ResponseConfiguration response =
+        new ResponseConfiguration(new JsonResponseFormatConfiguration(Map.of(), "Response"), false);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), response, snapshot);
+
+    assertThat(params.responseFormat()).isPresent();
+    final var formatNode = requestBodyAsJson(params).path("response_format");
+    assertThat(formatNode.path("type").asText()).isEqualTo("json_object");
+    assertThat(formatNode.has("json_schema")).isFalse();
+  }
+
+  @Test
+  void mapsReasoningEffortWhenConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec("gpt-4o", null, null, null, null, "high", NO_CUSTOMIZATIONS),
+            DEFAULT_RESPONSE,
+            snapshot);
+
+    assertThat(params.reasoningEffort()).hasValue(ReasoningEffort.HIGH);
+    assertThat(requestBodyAsJson(params).path("reasoning_effort").asText()).isEqualTo("high");
+  }
+
+  @Test
+  void omitsReasoningEffortWhenNotConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.reasoningEffort()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("reasoning_effort")).isFalse();
+  }
+
+  @Test
+  void mapsModelParameters() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec("gpt-4o", 512L, null, 0.5, 0.9, null, NO_CUSTOMIZATIONS),
+            DEFAULT_RESPONSE,
+            snapshot);
+
+    assertThat(params.model().asString()).isEqualTo("gpt-4o");
+    assertThat(params.maxCompletionTokens()).contains(512L);
+    assertThat(params.temperature()).contains(0.5);
+    assertThat(params.topP()).contains(0.9);
+  }
+
+  /**
+   * {@code max_tokens} is the wire parameter Mistral's own OpenAPI spec and SDK document; {@code
+   * max_completion_tokens} is silently accepted too (a live-API-confirmed but undocumented
+   * compatibility shim, not something this connector relies on). The two spec fields are mutually
+   * exclusive, each mapped by whichever caller's wire format needs it.
+   */
+  @Test
+  void mapsMaxTokensWhenSetInsteadOfMaxCompletionTokens() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(
+            new CompletionsRequestSpec(
+                "mistral-medium-latest", null, 512L, null, null, null, NO_CUSTOMIZATIONS),
+            DEFAULT_RESPONSE,
+            snapshot);
+
+    assertThat(params.maxCompletionTokens()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("max_tokens")).isTrue();
+    assertThat(requestBodyAsJson(params).path("max_tokens").asLong()).isEqualTo(512L);
+  }
+
+  @Test
+  void rejectsSpecWithBothMaxCompletionTokensAndMaxTokensSet() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    assertThatThrownBy(
+            () ->
+                converter.toRequest(
+                    new CompletionsRequestSpec(
+                        "gpt-4o", 100L, 200L, null, null, null, NO_CUSTOMIZATIONS),
+                    DEFAULT_RESPONSE,
+                    snapshot))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void alwaysRequestsUsageOnStreamingRequests() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.streamOptions().orElseThrow().includeUsage()).contains(true);
+    assertThat(requestBodyAsJson(params).path("stream_options").path("include_usage").asBoolean())
+        .isTrue();
+  }
+
+  /**
+   * {@code store} defaults to {@code false} on Chat Completions already (unlike Responses, where it
+   * defaults to {@code true} and must be turned off explicitly); sending it at all is a redundant
+   * restatement of the default against OpenAI, and the reason a strict OpenAI-compatible endpoint
+   * (e.g. Mistral) rejects the request with a 422. It must never appear on the wire.
+   */
+  @Test
+  void neverSendsStore() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params.store()).isEmpty();
+    assertThat(requestBodyAsJson(params).has("store")).isFalse();
+  }
+
+  @Test
+  void mergesBodyPropertiesIntoRequestBody() {
+    final var customizations =
+        RequestCustomizations.of(null, null, Map.of("service_tier", "priority", "top_logprobs", 5));
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(specWithCustomizations(customizations), DEFAULT_RESPONSE, snapshot);
+
+    final var body = requestBodyAsJson(params);
+    assertThat(body.path("service_tier").asText()).isEqualTo("priority");
+    assertThat(body.path("top_logprobs").asInt()).isEqualTo(5);
+  }
+
+  @Test
+  void doesNotAddBodyPropertiesWhenNoneConfigured() {
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params = converter.toRequest(spec(), DEFAULT_RESPONSE, snapshot);
+
+    final var body = requestBodyAsJson(params);
+    assertThat(body.has("service_tier")).isFalse();
+    assertThat(body.has("top_logprobs")).isFalse();
+  }
+
+  @Test
+  void mergesHeadersAndQueryParametersAsAdditional() {
+    final var customizations =
+        RequestCustomizations.of(
+            Map.of("X-Custom-Header", "header-value"), Map.of("api-version", "2026-01-01"), null);
+    final var snapshot = new ConversationSnapshot(List.of(), List.of());
+
+    final var params =
+        converter.toRequest(specWithCustomizations(customizations), DEFAULT_RESPONSE, snapshot);
+
+    assertThat(params._additionalHeaders().values("X-Custom-Header"))
+        .containsExactly("header-value");
+    assertThat(params._additionalQueryParams().values("api-version")).containsExactly("2026-01-01");
+  }
+}

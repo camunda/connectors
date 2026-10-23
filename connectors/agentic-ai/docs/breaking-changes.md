@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Model classes](#model-classes) | Code that imports the moved `AgentInstanceKey` or reads `AgentMetadata.agentInstanceKey` |
 | [V1 provider configuration](#v1-provider-configuration) | Runtimes that set the switch `rewrite-v1-provider-config-to-v2`, and custom factories for the v1 provider types |
 
 ### Module split
@@ -36,9 +37,20 @@ new group `io.camunda.connector.agenticai`:
 
 | Artifact | Package root | Contents |
 | ------------------------------- | --- | ------------------------------------------------------------------------- |
-| `connector-aiagent` | `aiagent` (except `model`, `api`) | AI Agent connectors, chat model providers, conversation stores |
+| `connector-aiagent` | `aiagent` (except `model`, `api` and the roots of the other modules) | AI Agent connectors, request records and translation, wiring |
 | `aiagent-api` | `aiagent.api` | Extension points: gateway tools, chat model, conversation storage, system prompt contributors |
 | `aiagent-model` | `aiagent.model` | Agent model used by the extension points |
+| `aiagent-azure-support` | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support |
+| `aiagent-aws-support` | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support |
+| `aiagent-provider-openai` | `aiagent.chatmodel.provider.openai` | Native OpenAI provider |
+| `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider |
+| `aiagent-provider-anthropic` | `aiagent.chatmodel.provider.anthropic` | Native Anthropic provider (Anthropic API, AWS Bedrock Mantle, Foundry) |
+| `aiagent-provider-gemini` | `aiagent.chatmodel.provider.gemini` | Native Google Gemini provider (Developer API, Vertex AI) |
+| `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider |
+| `aiagent-provider-langchain4j` | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge. Not part of the bundle: add it to use LangChain4j models |
+| `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store |
+| `aiagent-core` | `aiagent.agent`, `aiagent.agentinstance`, `aiagent.conversation`, `aiagent.document`, `aiagent.memory` (except the AgentCore store), `aiagent.systemprompt`, `aiagent.tool` and the package `aiagent.chatmodel` | Agent loop: request handlers, initializer, conversation turn composer, memory stores, system prompt composition, tool call handling, agent instance client, chat model registry |
+| `aiagent-provider-support` | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral support of the chat model providers: connection settings, model call envelope, wire helpers |
 | `aiagent-tools-schema` | `tools.schema` | Ad-hoc tools schema resolution |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema` | Ad-hoc tools schema connector |
 | `connector-mcp` | `mcp.client` | MCP client connectors |
@@ -126,9 +138,9 @@ types. The serialized JSON is unchanged.
   `aiagent.model.request`. `MemoryConfiguration.storage()` returns a `ConversationStoreConfiguration`.
   A custom store reads its parameters through `CustomConversationStoreConfiguration` instead of
   casting to the template record.
-- New interface `aiagent.model.chatmodel.CustomChatModelConfiguration`, implemented by
-  `CustomProviderConfiguration`. A custom `ChatModelFactory` can match and read its configuration
-  through the interface.
+- New record `aiagent.model.chatmodel.CustomChatModelConfiguration`, which the request translation builds from
+  `CustomProviderConfiguration`. A custom `ChatModelFactory` matches and reads its configuration
+  through the record, no longer through `CustomProviderConfiguration`.
 
 #### Conversation context subtypes
 
@@ -185,6 +197,104 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+### Model classes
+
+- `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
+  `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
+  `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
+- The agent loop moved to the new module `aiagent-core`: the packages `aiagent.agent`, `aiagent.agentinstance`,
+  `aiagent.conversation`, `aiagent.document`, `aiagent.memory`, `aiagent.systemprompt` and `aiagent.tool`
+  and `ChatModelRegistry` in `aiagent.chatmodel`. Package names do not change, except for the classes of the
+  following entries; add `aiagent-core` to a custom extension that used these classes through `connector-aiagent`.
+- `ResponseTextUtil` moved from `aiagent.util` to `aiagent.agent`, `MessageWindowFilter` from `aiagent.memory.runtime`
+  to `aiagent.conversation`, and `ConnectorUtils` from `aiagent.util` to `aiagent.request.shared` of
+  `connector-aiagent`.
+- `AgentProcessVariables`, `AgentSubProcessConnectorResponse` and `AgentTaskConnectorResponse` moved from package
+  `aiagent` to `aiagent.agent`.
+- The conversation context subtypes of the AWS AgentCore store are registered by
+  `AwsAgentCoreConversationContextSubtypes` in `aiagent-memory-agentcore`; `BuiltInConversationContextSubtypes`
+  lists only the in-process and document contexts.
+- The error codes of the agent instance (`ERROR_CODE_AGENT_INSTANCE_CREATION_FAILED`,
+  `ERROR_CODE_AGENT_INSTANCE_UPDATE_FAILED` and `ERROR_CODE_AGENT_INSTANCE_SUPERSEDED`) moved from
+  `aiagent.agent.AgentErrorCodes` to `aiagent.agentinstance.AgentInstanceErrorCodes` of `aiagent-core`. The values
+  do not change.
+- `AgenticAiNativeProvidersConfiguration` moved from `aiagent.chatmodel.provider.configuration` to
+  `aiagent.configuration`, and the constructor of `V1ToV2ProviderConfigurationMapperImpl` takes the default timeout
+  as a `Duration` instead of the `ChatModelProperties`.
+- The error codes of a model call (`ERROR_CODE_FAILED_MODEL_CALL`, `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`,
+  `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`, `ERROR_CODE_MODEL_CONTEXT_WINDOW_EXCEEDED` and
+  `ERROR_CODE_MODEL_RESPONSE_GUARDRAIL_INTERVENED`) moved from `aiagent.agent.AgentErrorCodes` to
+  `aiagent.api.chatmodel.ChatModelErrorCodes` of `aiagent-api`. The values do not change.
+- `AgentConfiguration` is a non-null domain model. `memory`, `limits`, `events` and `response` are always present
+  and every default is applied when the connector translates its request. `PromptConfiguration`,
+  `LimitsConfiguration`, `EventHandlingConfiguration`, `ResponseConfiguration`, `ResponseFormatConfiguration` and
+  `MemoryConfiguration` in `aiagent.model.request` are plain records without element template annotations, so
+  `UserPromptConfiguration.documents()` is never `null`, `LimitsConfiguration.maxModelCalls()`,
+  `MemoryConfiguration.contextWindowSize()` and `ResponseConfiguration.includeAssistantMessage()` are primitives,
+  `ResponseFormatConfiguration.TextResponseFormatConfiguration.parseJson()` is a `boolean`, and `MemoryConfiguration`
+  and `ResponseConfiguration` are records instead of interfaces. The `DEFAULT_*` constants of `AgentConfiguration` are
+  removed. The records the element templates show are `*TemplateConfiguration` in `aiagent.request`; their JSON is
+  unchanged. `AgentSubProcessExecutionContext.response()` is replaced by `includeAgentContext()`.
+- `MemoryConfiguration.storage()` returns the domain configuration of the store, not the element template record: the
+  in-process, Camunda document and AWS AgentCore stores read `InProcessConversationStoreConfiguration`,
+  `CamundaDocumentConversationStoreConfiguration` and `AwsAgentCoreConversationStoreConfiguration` of their own
+  packages. A custom store keeps reading `CustomConversationStoreConfiguration`.
+- The chat model providers read their own domain configuration instead of the element template records of
+  `aiagent.request.v1` and `aiagent.request.v2`: `AnthropicConfiguration`, `OpenAiConfiguration`,
+  `GeminiConfiguration`, `MistralConfiguration` and `BedrockConfiguration` in the package of the provider. The element
+  template records no longer implement `ChatModelConfiguration`; `ChatModelConfigurationTranslator` of
+  `aiagent.translation` turns them into the domain records. `ChatModelFactory`, `ChatModel`, request converters and
+  family strategies of the providers take the domain records, and the factories of the Anthropic and OpenAI providers
+  no longer take `ChatModelProperties` (the translator applies the default timeout). Shared domain types:
+  `RequestCustomizations` and `EndpointAuthentication` in `aiagent.chatmodel.connection`, `AwsAuthentication` in
+  `aiagent.chatmodel.provider.aws` and `FoundryAuthentication` in `aiagent.chatmodel.provider.azure`.
+  `FoundryCredentialResolver.bearerTokenSupplier` takes `FoundryAuthentication.ClientCredentials` or
+  `FoundryAuthentication.ManagedIdentity`. `ChatModelTimeouts` is removed.
+- `AgentSubProcessExecutionContext` and `AgentTaskExecutionContext` hold the domain model only. The constructors take
+  the `AgentConfiguration`, the agent context, the tool call results and (task flavor) the id of the tools container
+  element, or (sub-process flavor) the `includeAgentContext` flag, instead of the request records. The connector
+  functions build them with `AgentExecutionContextTranslator` of `aiagent.translation`. `AgentTaskExecutionContext.tools()`
+  is removed.
+- `EntraIdTokenCredentialFactory` takes `CredentialCacheSettings` (`aiagent.chatmodel.provider.azure`) instead of the
+  `CredentialCacheProperties` of the configuration properties. The property names do not change.
+- The LangChain4j bridge is the module `aiagent-provider-langchain4j`, which is no longer a dependency of
+  `connector-aiagent` or part of the bundle, so the default runtime carries no `dev.langchain4j` dependency. A runtime
+  that registers a LangChain4j based `ChatModelFactory` adds the module. Its Spring configuration is the
+  auto-configuration `AgenticAiLangChain4JAutoConfiguration` (formerly `AgenticAiLangChain4JFrameworkConfiguration`,
+  imported by the AI Agent auto-configuration), registered in the module and active under the same
+  `camunda.connector.agenticai.enabled` switch.
+- `ConversationUtil` moved to `aiagent.model.conversation` of `aiagent-model`.
+- `DocumentMimeTypes`, `LoggingSupport` and `AssistantMessageMetadata` moved to `aiagent.chatmodel.wire` of `aiagent-provider-support`.
+- `AgentConversation.agentInstanceKey()` is removed: read `agentContext.metadata().agentInstanceKey()`.
+- The connection settings of the native providers are resolved by `ConnectionResolver` in
+  `aiagent.chatmodel.connection`. The `ChatModelFactory` of the OpenAI, Anthropic, Mistral, Gemini and Bedrock
+  providers take a `ConnectionResolver` instead of the proxy support and the OAuth token resolver; the OpenAI and
+  Anthropic factories also take the `FoundryCredentialResolver`, because the `ConnectionResolver` knows no vendor.
+  The behavior of the connections is the same for all providers now:
+  - The connect timeout is 15 seconds, or the timeout of the model call if that is shorter. The OpenAI, Anthropic and
+    Mistral clients used the timeout of the model call (3 minutes by default) as their connect timeout. The Gemini
+    client used 10 seconds.
+  - The OpenAI, Anthropic and Mistral providers skip the proxy for a host which matches a non-proxy host pattern, like
+    the Gemini and Bedrock providers did.
+  - `OAuthBearerTokenInterceptor.create` takes a `Supplier<String>` for the token.
+- The native providers share the model call concerns in `ModelCallEnvelope` (`aiagent.chatmodel.envelope`), which the
+  factory of each provider wraps around its chat model together with an `SdkFailureMapper` for the failures of its
+  SDK. The chat models of the providers no longer time the call or map failures, and the `toResult` methods of the
+  response converters no longer take the execution time: the envelope records it in the metrics of the result. The
+  metrics in the `partialResult()` of a rejection carry no execution time. A `ChatModel` which is not created by one
+  of these factories measures the execution time itself. The message of a failed model call has one format now:
+  - `Model call failed with HTTP <status> (<type>): <message>` for an error response of the provider, with the error
+    code or type of the provider. The OpenAI and Mistral providers used `Model call failed: <message>` before.
+  - `Model call failed: <detail>` for any other failure.
+  - A request which exceeds the context window of the model fails with `ContextWindowExceededException` and the
+    message of `ContextWindowExceededException.DEFAULT_MESSAGE` on every provider. The OpenAI and Mistral providers
+    used `Model call failed: <message>` and the Gemini provider used the same text as the default message.
+  - A coded `ConnectorException` thrown by a response converter (for example Bedrock `MALFORMED_MODEL_OUTPUT`) passes
+    on unchanged on every provider. The Gemini and Bedrock providers wrapped it in `Model call failed: <message>`.
+  - A failure to convert the request (Anthropic, Gemini, Bedrock) is reported as `ERROR_CODE_FAILED_MODEL_CALL`
+    instead of escaping as the raw exception.
+  - The execution time covers the conversion of the request and the response as well as the call.
 
 ### V1 provider configuration
 

@@ -14,8 +14,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import io.camunda.connector.agenticai.common.validation.HttpUrl;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -41,21 +41,6 @@ public record GeminiChatModelConfiguration(@Valid @NotNull GeminiConnection goog
 
   @TemplateProperty(ignore = true)
   public static final String GOOGLE_GEMINI_ID = "google-gemini";
-
-  @Override
-  public String provider() {
-    return GOOGLE_GEMINI_ID;
-  }
-
-  @Override
-  public String model() {
-    return googleGemini.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s".formatted(provider(), googleGemini.backend().type());
-  }
 
   /** All Gemini-specific configuration, nested under the {@code googleGemini} wire key. */
   public record GeminiConnection(

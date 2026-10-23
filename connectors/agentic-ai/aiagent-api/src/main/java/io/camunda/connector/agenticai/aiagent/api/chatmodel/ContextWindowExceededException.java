@@ -11,6 +11,9 @@ import org.jspecify.annotations.Nullable;
 /** The model's total context window (input + output tokens) was exceeded. */
 public final class ContextWindowExceededException extends ChatModelRejectedException {
 
+  public static final String DEFAULT_MESSAGE =
+      "Model's context window was exceeded before it could finish generating a response.";
+
   public ContextWindowExceededException(String message, @Nullable PartialResult partialResult) {
     super(message, partialResult);
   }

@@ -6,16 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 public record AgentTaskResponseConfiguration(
-    @Valid @NotNull ResponseFormatConfiguration format,
+    @Valid @NotNull ResponseFormatTemplateConfiguration format,
     @TemplateProperty(
             group = "response",
             label = "Include assistant message",
@@ -25,12 +22,12 @@ public record AgentTaskResponseConfiguration(
                     + "and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
             type = TemplateProperty.PropertyType.Boolean,
             optional = true)
-        @Nullable Boolean includeAssistantMessage)
-    implements ResponseConfiguration {
+        @Nullable Boolean includeAssistantMessage) {
 
   public AgentTaskResponseConfiguration {
     if (format == null) {
-      format = new TextResponseFormatConfiguration(false);
+      format =
+          new ResponseFormatTemplateConfiguration.TextResponseFormatTemplateConfiguration(false);
     }
   }
 }

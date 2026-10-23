@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import static io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelTimeouts.deriveTimeoutSetting;
-
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AzureOpenAiProviderConfiguration;
@@ -44,12 +41,12 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Maps a v1 {@code ProviderConfiguration} to the equivalent native v2 {@code
@@ -64,15 +61,16 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
    */
   public static final String MISSING_API_KEY_PLACEHOLDER = "not-required";
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(V1ToV2ProviderConfigurationMapperImpl.class);
   private static final String AUTHORIZATION_HEADER = "Authorization";
   private static final String BEARER_PREFIX = "Bearer ";
 
-  private final ChatModelProperties chatModelProperties;
+  private final Duration defaultTimeout;
 
-  public V1ToV2ProviderConfigurationMapperImpl(ChatModelProperties chatModelProperties) {
-    this.chatModelProperties = chatModelProperties;
+  /**
+   * @param defaultTimeout the timeout of a model call which the request does not configure
+   */
+  public V1ToV2ProviderConfigurationMapperImpl(Duration defaultTimeout) {
+    this.defaultTimeout = defaultTimeout;
   }
 
   @Override
@@ -361,8 +359,12 @@ public class V1ToV2ProviderConfigurationMapperImpl implements V1ToV2ProviderConf
    * their SDK default, which would silently change legacy timeout behavior on a rewritten job.
    */
   private TimeoutConfiguration resolveTimeouts(@Nullable TimeoutConfiguration timeouts) {
-    return new TimeoutConfiguration(
-        deriveTimeoutSetting("v1 provider configuration", chatModelProperties, timeouts, LOGGER));
+    final var timeout =
+        Optional.ofNullable(timeouts)
+            .map(TimeoutConfiguration::timeout)
+            .filter(Duration::isPositive)
+            .orElse(defaultTimeout);
+    return new TimeoutConfiguration(timeout);
   }
 
   private static @Nullable Double toDouble(@Nullable Float value) {

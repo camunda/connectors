@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentProcessVariables;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.agent.AgentTaskExecutionContext;
+import io.camunda.connector.agenticai.aiagent.agent.AgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskV2Request;
+import io.camunda.connector.agenticai.aiagent.translation.AgentExecutionContextTranslator;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -86,20 +89,26 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 public class AgentTaskV2Function implements AgentConnectorFunction {
   private final ProcessDefinitionAdHocToolElementsResolver toolElementsResolver;
   private final AgentTaskRequestHandler agentRequestHandler;
+  private final ChatModelConfigurationTranslator chatModelTranslator;
 
   public AgentTaskV2Function(
       ProcessDefinitionAdHocToolElementsResolver toolElementsResolver,
-      AgentTaskRequestHandler agentRequestHandler) {
+      AgentTaskRequestHandler agentRequestHandler,
+      ChatModelConfigurationTranslator chatModelTranslator) {
     this.toolElementsResolver = toolElementsResolver;
     this.agentRequestHandler = agentRequestHandler;
+    this.chatModelTranslator = chatModelTranslator;
   }
 
   @Override
   public AgentTaskConnectorResponse execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentTaskV2Request.class);
     var executionContext =
-        new AgentTaskExecutionContext(
-            context.getJobContext(), request.data(), request.provider(), toolElementsResolver);
+        AgentExecutionContextTranslator.task(
+            context.getJobContext(),
+            request.data(),
+            chatModelTranslator.translate(request.provider()),
+            toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

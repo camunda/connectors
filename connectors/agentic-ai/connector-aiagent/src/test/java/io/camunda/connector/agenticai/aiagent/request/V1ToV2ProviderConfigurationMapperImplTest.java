@@ -8,8 +8,6 @@ package io.camunda.connector.agenticai.aiagent.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties;
-import io.camunda.connector.agenticai.aiagent.configuration.AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties;
 import io.camunda.connector.agenticai.aiagent.request.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration.AnthropicAuthentication;
@@ -80,8 +78,7 @@ class V1ToV2ProviderConfigurationMapperImplTest {
   private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(3);
 
   private final V1ToV2ProviderConfigurationMapper mapper =
-      new V1ToV2ProviderConfigurationMapperImpl(
-          new ChatModelProperties(new ApiProperties(DEFAULT_TIMEOUT), null));
+      new V1ToV2ProviderConfigurationMapperImpl(DEFAULT_TIMEOUT);
 
   @Test
   void mapsAnthropicProviderConfigurationWithParameters() {

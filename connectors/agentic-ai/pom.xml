@@ -38,12 +38,26 @@
     <version.groovy>6.0.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.archunit>1.5.1</version.archunit>
+    <version.anthropic-java>2.75.0</version.anthropic-java>
+    <version.openai-java>4.91.0</version.openai-java>
   </properties>
 
   <modules>
     <module>agentic-ai-common</module>
     <module>aiagent-model</module>
+    <module>aiagent-core</module>
     <module>aiagent-api</module>
+    <module>aiagent-provider-support</module>
+    <module>aiagent-test-support</module>
+    <module>aiagent-azure-support</module>
+    <module>aiagent-aws-support</module>
+    <module>aiagent-provider-openai</module>
+    <module>aiagent-provider-mistral</module>
+    <module>aiagent-provider-anthropic</module>
+    <module>aiagent-provider-gemini</module>
+    <module>aiagent-provider-bedrock</module>
+    <module>aiagent-provider-langchain4j</module>
+    <module>aiagent-memory-agentcore</module>
     <module>aiagent-tools-schema</module>
     <module>connector-ad-hoc-tools-schema</module>
     <module>connector-mcp</module>

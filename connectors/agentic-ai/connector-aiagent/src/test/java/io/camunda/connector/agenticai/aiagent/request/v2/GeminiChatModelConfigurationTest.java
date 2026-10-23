@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiBackend.GeminiVertexAiBackend.GoogleVertexAi;
@@ -20,7 +21,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiModelParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinking;
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel.GeminiThinkingLevel;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Set;
@@ -74,9 +74,6 @@ class GeminiChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(GeminiChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("google-gemini");
-    assertThat(parsed.descriptiveProvider()).isEqualTo("google-gemini/google-gemini-api");
-    assertThat(parsed.model()).isEqualTo("gemini-3-pro-preview");
 
     final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
     assertThat(gemini.googleGemini().backend()).isInstanceOf(GeminiApiBackend.class);
@@ -290,9 +287,6 @@ class GeminiChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(GeminiChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("google-gemini");
-    assertThat(parsed.descriptiveProvider()).isEqualTo("google-gemini/google-vertex-ai");
-    assertThat(parsed.model()).isEqualTo("gemini-3-pro-preview");
 
     final GeminiChatModelConfiguration gemini = (GeminiChatModelConfiguration) parsed;
     assertThat(gemini.googleGemini().backend()).isInstanceOf(GeminiVertexAiBackend.class);

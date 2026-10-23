@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiCompletionsApi.COMPLETIONS_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiApi.OpenAiResponsesApi.RESPONSES_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiApiBackend.OPENAI_API_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiFoundryBackend.FOUNDRY_ID;
-import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -42,21 +42,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
 
   @TemplateProperty(ignore = true)
   public static final String OPENAI_ID = "openai";
-
-  @Override
-  public String provider() {
-    return OPENAI_ID;
-  }
-
-  @Override
-  public String model() {
-    return openai.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s/%s".formatted(provider(), openai.api().type(), openai.backend().type());
-  }
 
   /** All OpenAI-specific configuration, nested under the {@code openai} wire key. */
   public record OpenAiConnection(
@@ -246,16 +231,8 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
     /** The backend discriminator string. */
     String type();
 
-    OpenAiRequestCustomizations requestCustomizations();
-
     @TemplateSubType(id = OPENAI_API_ID, label = "OpenAI API")
     record OpenAiApiBackend(@Valid @NotNull OpenAiApiConnection openai) implements OpenAiBackend {
-
-      @Override
-      public OpenAiRequestCustomizations requestCustomizations() {
-        return new OpenAiRequestCustomizations(
-            openai.headers(), openai.queryParameters(), openai.bodyProperties());
-      }
 
       @TemplateProperty(ignore = true)
       public static final String OPENAI_API_ID = "openai-api";
@@ -356,12 +333,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
         return FOUNDRY_ID;
       }
 
-      @Override
-      public OpenAiRequestCustomizations requestCustomizations() {
-        return new OpenAiRequestCustomizations(
-            foundry.headers(), foundry.queryParameters(), foundry.bodyProperties());
-      }
-
       public record FoundryBackend(
           @NotBlank
               @HttpUrl
@@ -443,12 +414,6 @@ public record OpenAiChatModelConfiguration(@Valid @NotNull OpenAiConnection open
       @Override
       public String type() {
         return CUSTOM_ID;
-      }
-
-      @Override
-      public OpenAiRequestCustomizations requestCustomizations() {
-        return new OpenAiRequestCustomizations(
-            custom.headers(), custom.queryParameters(), custom.bodyProperties());
       }
 
       public record CustomBackend(

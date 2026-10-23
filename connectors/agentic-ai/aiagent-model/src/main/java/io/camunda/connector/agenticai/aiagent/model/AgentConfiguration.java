@@ -19,8 +19,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
@@ -33,36 +31,29 @@ public record AgentConfiguration(
     ChatModelConfiguration chatModel,
     SystemPromptConfiguration systemPrompt,
     UserPromptConfiguration userPrompt,
-    @Nullable MemoryConfiguration memory,
-    @Nullable LimitsConfiguration limits,
-    @Nullable EventHandlingConfiguration events,
-    @Nullable ResponseConfiguration response,
+    MemoryConfiguration memory,
+    LimitsConfiguration limits,
+    EventHandlingConfiguration events,
+    ResponseConfiguration response,
     List<ToolDefinition> toolDefinitions) {
-
-  public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
-  public static final int DEFAULT_MAX_MODEL_CALLS = 10;
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
       SystemPromptConfiguration systemPrompt,
       UserPromptConfiguration userPrompt,
-      @Nullable MemoryConfiguration memory,
-      @Nullable LimitsConfiguration limits,
-      @Nullable EventHandlingConfiguration events,
-      @Nullable ResponseConfiguration response) {
+      MemoryConfiguration memory,
+      LimitsConfiguration limits,
+      EventHandlingConfiguration events,
+      ResponseConfiguration response) {
     this(chatModel, systemPrompt, userPrompt, memory, limits, events, response, List.of());
   }
 
   public int contextWindowSize() {
-    return Optional.ofNullable(memory)
-        .map(MemoryConfiguration::contextWindowSize)
-        .orElse(DEFAULT_CONTEXT_WINDOW_SIZE);
+    return memory.contextWindowSize();
   }
 
   public int maxModelCalls() {
-    return Optional.ofNullable(limits)
-        .map(LimitsConfiguration::maxModelCalls)
-        .orElse(DEFAULT_MAX_MODEL_CALLS);
+    return limits.maxModelCalls();
   }
 
   /** Returns a copy carrying the given tool definitions in place of the current ones. */

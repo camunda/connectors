@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.archunit;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -23,6 +22,75 @@ enum AgenticAiModules {
   COMMON("agentic-ai-common", "Common", Kind.LIBRARY, under("common")),
   MODEL("aiagent-model", "Model", Kind.LIBRARY, under("aiagent.model")),
   API("aiagent-api", "Api", Kind.LIBRARY, under("aiagent.api")),
+  PROVIDER_SUPPORT(
+      "aiagent-provider-support",
+      "ProviderSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.connection")
+          .or(under("aiagent.chatmodel.envelope"))
+          .or(under("aiagent.chatmodel.wire"))),
+  AZURE_SUPPORT(
+      "aiagent-azure-support",
+      "AzureSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.azure").or(under("aiagent.proxy.azure"))),
+  AWS_SUPPORT(
+      "aiagent-aws-support",
+      "AwsSupport",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.aws").or(under("aiagent.proxy.aws"))),
+  PROVIDER_OPENAI(
+      "aiagent-provider-openai",
+      "ProviderOpenAi",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.openai")),
+  PROVIDER_MISTRAL(
+      "aiagent-provider-mistral",
+      "ProviderMistral",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.mistral")),
+  PROVIDER_ANTHROPIC(
+      "aiagent-provider-anthropic",
+      "ProviderAnthropic",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.anthropic")),
+  PROVIDER_GEMINI(
+      "aiagent-provider-gemini",
+      "ProviderGemini",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.gemini")),
+  PROVIDER_BEDROCK(
+      "aiagent-provider-bedrock",
+      "ProviderBedrock",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.bedrock")),
+  PROVIDER_LANGCHAIN4J(
+      "aiagent-provider-langchain4j",
+      "ProviderLangChain4J",
+      Kind.LIBRARY,
+      under("aiagent.chatmodel.provider.langchain4j")),
+  MEMORY_AGENTCORE(
+      "aiagent-memory-agentcore",
+      "MemoryAgentCore",
+      Kind.LIBRARY,
+      under("aiagent.memory.conversation.awsagentcore")),
+  TEST_SUPPORT("aiagent-test-support", "TestSupport", Kind.LIBRARY, under("aiagent.testsupport")),
+  CORE(
+      "aiagent-core",
+      "Core",
+      Kind.LIBRARY,
+      DescribedPredicate.describe(
+          "reside in the agent loop package roots, outside the roots of the other modules",
+          javaClass ->
+              (under("aiagent.agent").test(javaClass)
+                      || under("aiagent.agentinstance").test(javaClass)
+                      || under("aiagent.conversation").test(javaClass)
+                      || under("aiagent.document").test(javaClass)
+                      || under("aiagent.memory").test(javaClass)
+                      || under("aiagent.systemprompt").test(javaClass)
+                      || under("aiagent.tool").test(javaClass)
+                      || resideInAPackage(pkg("aiagent.chatmodel")).test(javaClass))
+                  && !MEMORY_AGENTCORE.root.test(javaClass))),
   TOOLS_SCHEMA("aiagent-tools-schema", "ToolsSchema", Kind.LIBRARY, under("tools.schema")),
   AD_HOC_CONNECTOR(
       "connector-ad-hoc-tools-schema", "AdHocConnector", Kind.CONNECTOR, under("adhoctoolsschema")),
@@ -36,7 +104,13 @@ enum AgenticAiModules {
       "connector-aiagent",
       "AiAgent",
       Kind.CONNECTOR,
-      under("aiagent").and(resideOutsideOfPackages(pkg("aiagent.model.."), pkg("aiagent.api.."))));
+      DescribedPredicate.describe(
+          "reside in the AI Agent package root, outside the roots of the other modules",
+          javaClass ->
+              under("aiagent").test(javaClass)
+                  && Arrays.stream(values())
+                      .filter(module -> !module.artifactId.equals("connector-aiagent"))
+                      .noneMatch(module -> module.root.test(javaClass))));
 
   /** What a module is: shared code, a connector of its own, or the glue between two connectors. */
   enum Kind {

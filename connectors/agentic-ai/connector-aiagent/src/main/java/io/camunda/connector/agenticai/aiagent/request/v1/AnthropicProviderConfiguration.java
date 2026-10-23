@@ -26,16 +26,6 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";
 
-  @Override
-  public String provider() {
-    return ANTHROPIC_ID;
-  }
-
-  @Override
-  public String model() {
-    return anthropic.model.model();
-  }
-
   public record AnthropicConnection(
       @HttpUrl
           @TemplateProperty(

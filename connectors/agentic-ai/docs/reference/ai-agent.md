@@ -288,6 +288,13 @@ provider configuration, the system- and user-prompt configurations, and the memo
 response settings that shape the turn. Authoritative definition:
 [`AgentExecutionContext.java`](../../aiagent-model/src/main/java/io/camunda/connector/agenticai/aiagent/model/AgentExecutionContext.java).
 
+`AgentExecutionContext.configuration()` returns the `AgentConfiguration`, a non-null domain model: every
+member (prompts, memory, limits, events, response) is present. The connector builds it once per job from its
+element template records (`*TemplateConfiguration` in `aiagent.request`) with `AgentConfigurationTranslator`,
+which is the one place that applies defaults. An option that the process leaves unset resolves to the behavior the
+agent always had for it (for example text responses, no JSON parsing, waiting for tool call results), which is not
+always the value the element template pre-fills.
+
 ### AgentResponse (the output)
 
 The result of an agent turn: the updated `AgentContext` plus either the tool calls to execute next or
@@ -433,7 +440,7 @@ detection described above.
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`.
 
-`MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
+`MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.conversation`) is a pure
 static window filter:
   - Keeps at most `maxMessages` (default: 20, from `AgentConfiguration.contextWindowSize()`) messages
   - Tool-call-document user messages are excluded from the count
@@ -989,16 +996,20 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 `create(ChatModelConfiguration)`.
 
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
-request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
-identifier) — enough for routing and agent-instance reporting — and is the type carried through
-`AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
-own configuration through the SPI rather than being confined to the module's built-in provider union.
-The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
-etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
-configurations through this sealed union only; request-side binding for a custom/native
-`ChatModelConfiguration` is delivered incrementally by the v2 request types (`ProviderConfiguration`
-in `request/v2`), which is the extension point for both built-in native providers and
-user-supplied factories via `CustomProviderConfiguration` (see [§25.1](#251-add-an-llm-provider)).
+request. It exposes `provider()` (the provider discriminator), `model()` (the model identifier) and
+`descriptiveProvider()` (a more specific label, for example `openai/responses/foundry`), which are enough
+for routing and agent-instance reporting. It is the type carried through `AgentConfiguration`
+(`chatModel()`) and dispatched on by the registry.
+
+Every built-in provider owns its configuration as a plain domain record without annotations, in its own
+package (`AnthropicConfiguration`, `OpenAiConfiguration`, `GeminiConfiguration`, `MistralConfiguration`,
+`BedrockConfiguration` below `aiagent/chatmodel/provider`). The record is non-null by design: a value which
+the request leaves open is either given its default once, or it is `null` where the provider has its own
+default and the value then stays absent on the wire. The element template records (`ProviderConfiguration`
+in `request/v1` and `request/v2`) are bindings only. `ChatModelConfigurationTranslator`
+(`aiagent/translation`) turns the binding of a request into the domain record, rewriting a v1 binding to its
+v2 equivalent first. A provider never reads a binding. A user-supplied factory receives the generic
+`CustomChatModelConfiguration` record (see [§25.1](#251-add-an-llm-provider)).
 `ChatModelRegistryImpl` asks every registered `ChatModelFactory` whether it `supports` the
 configuration and routes to the single match; a configuration matched by zero factories throws
 `IllegalArgumentException`, and one matched by more than one throws `IllegalStateException` — fail
@@ -1036,10 +1047,11 @@ conversation memory.
 
 The LangChain4j integration is a generic bridge for custom providers, not a provider stack
 ([ADR 016](../adr/016-agent-core-and-provider-modules.md) D6). It ships no factory for a vendor; a custom
-`ChatModelFactory` brings its own configuration type and LangChain4j model:
-- `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans. Provider selection is by
-  `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads unconditionally rather than
-  behind a global framework toggle.
+`ChatModelFactory` brings its own configuration type and LangChain4j model. The bridge is the opt-in module
+`aiagent-provider-langchain4j`, which neither the connector nor the bundle depends on:
+- `AgenticAiLangChain4JAutoConfiguration` of the module wires the converter beans. Provider selection is by
+  `ChatModelFactory.supports(...)` via the SPI registry, so the auto-configuration is active with the module on the
+  class path, under the `camunda.connector.agenticai.enabled` switch of the other auto-configurations.
 - `LangChain4JChatModelFactory<T extends ChatModelConfiguration>` is an optional abstract base: `supports` matches
   a configuration of the type `T` (override it to narrow the match), and `create` builds the underlying LangChain4j
   model once via the abstract `createChatModel` and wraps it in a `LangChain4JChatModel`.
@@ -1158,7 +1170,11 @@ On tool call iteration (tool calls present):
 ### AgentErrorCodes
 
 The codes are defined in
-[`AgentErrorCodes`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java)
+[`AgentErrorCodes`](../../aiagent-core/src/main/java/io/camunda/connector/agenticai/aiagent/agent/AgentErrorCodes.java),
+for the agent instance in
+[`AgentInstanceErrorCodes`](../../aiagent-core/src/main/java/io/camunda/connector/agenticai/aiagent/agentinstance/AgentInstanceErrorCodes.java)
+and, for a failed or rejected model call, in
+[`ChatModelErrorCodes`](../../aiagent-api/src/main/java/io/camunda/connector/agenticai/aiagent/api/chatmodel/ChatModelErrorCodes.java),
 and thrown as `ConnectorException(errorCode, message)`. To find a code's current throw site, search the
 codebase for its constant. `Value` is the externally visible error code (what BPMN error handling keys
 on).
@@ -1214,9 +1230,9 @@ The AI Agent does not reference the MCP and A2A integrations. It collects every 
 and `SystemPromptContributor` bean through list injection, so the order of the integration
 auto-configurations does not matter.
 
-`AgenticAiConnectorsAutoConfiguration` imports:
-- `AgenticAiLangChain4JFrameworkConfiguration` — LangChain4j converter chain (no `ChatModelFactory` beans)
-- `AgenticAiNativeProvidersConfiguration` — native provider `ChatModelFactory` beans
+`AgenticAiConnectorsAutoConfiguration` imports `AgenticAiNativeProvidersConfiguration`, which holds the native
+provider `ChatModelFactory` beans. The LangChain4j converter chain (no `ChatModelFactory` beans) is the
+auto-configuration of the opt-in module `aiagent-provider-langchain4j`.
 
 Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatModelFactory` bean) directly.
 
@@ -1900,16 +1916,19 @@ The module owns a framework-agnostic domain model in `io.camunda.connector.agent
   for the converters).
 - **Why**: a leak here re-couples the whole codebase to the framework and defeats I1.
 
-### I3. Interface in package root, single `*Impl` alongside
+### I3. Interfaces only where they pay
 
-Public collaborators are interfaces; the single implementation is named `<Interface>Impl` in the same
-package (e.g. `ConversationStoreRegistry` / `ConversationStoreRegistryImpl`). The convention is
-pervasive, so follow the nearest existing pair.
+Use an interface for an extension point of the extension API, for a type of the extension API that the framework
+implements and extension authors call (so members can be added without breaking them), and for a seam with at
+least two real adapters, such as a port with a production adapter and an in-memory fake. Use a concrete class in all
+other cases ([ADR 016](../adr/016-agent-core-and-provider-modules.md) D8).
 
-- **Rule**: depend on the interface (constructor injection); register the `Impl` as a Spring bean
-  (typically `@ConditionalOnMissingBean` so it can be overridden). Don't inject `*Impl` directly.
-- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review
-  checks that there is a single implementation and that it is registered as an overridable bean.
+- **Rule**: do not add an interface with a single `*Impl`. Existing pairs (for example `ConversationStoreRegistry` /
+  `ConversationStoreRegistryImpl`) stay until the class changes for another reason; follow the nearest existing pair
+  when you touch one. Depend on the interface or class through constructor injection and register the implementation
+  as a Spring bean, typically `@ConditionalOnMissingBean` so it can be overridden. Don't inject `*Impl` directly.
+- **Enforced by**: a class named `FooImpl` implements the interface `Foo` (architecture tests). Review checks the
+  rest.
 
 ### I4. Extension points are plug-in SPIs
 
@@ -1959,16 +1978,17 @@ subclass as a bean. `supports`/`create` are implemented by the base class, which
 
 **Native.** Implement `ChatModel`/`ChatModelFactory` directly with your own
 `ChatModelConfiguration`, staying out of the `langchain4j` package. Reference implementation:
-`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with
-`AnthropicChatModelConfiguration` (`request/v2`); the other native providers under
-`aiagent/chatmodel/provider/**` follow the same shape. A provider without a built-in factory falls
-through to `CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid
-only): it carries a user-chosen `providerType` (dispatch discriminator), a dedicated `model` field (so
-agent-instance reporting works without digging it out of opaque config), and an opaque `parameters` map
-understood only by your factory. No built-in factory ever matches `CustomProviderConfiguration`, so the
-registry fails with the ordinary "no factory registered" error until you register one. A factory for it
-can extend `LangChain4JChatModelFactory<CustomProviderConfiguration>` and narrow `supports` to its
-`providerType`.
+`AnthropicChatModelFactory` (`aiagent/chatmodel/provider/anthropic`) with `AnthropicConfiguration`; the other
+native providers under `aiagent/chatmodel/provider/**` follow the same shape. A built-in provider adds its
+binding in `request/v2`, its domain record next to its factory, and a branch in
+`ChatModelConfigurationTranslator`. A provider without a built-in factory falls through to
+`CustomProviderConfiguration` (`request/v2`, discriminator `custom`, Self-Managed/Hybrid only), which the
+translator turns into `CustomChatModelConfiguration`: it carries a user-chosen `providerType` (dispatch
+discriminator), a dedicated `model` field (so agent-instance reporting works without digging it out of opaque
+config), and an opaque `parameters` map understood only by your factory. No built-in factory ever matches
+`CustomChatModelConfiguration`, so the registry fails with the ordinary "no factory registered" error until you
+register one. A factory for it can extend `LangChain4JChatModelFactory<CustomChatModelConfiguration>` and narrow
+`supports` to its `providerType`.
 
 Every new v2 provider backend must follow three conventions, regardless of provider:
 
@@ -1986,7 +2006,7 @@ Every new v2 provider backend must follow three conventions, regardless of provi
   object's mapped fields — on a content block's `metadata` ([§5](#5-data-model-agent-context)) or on
   `AssistantMessage#metadata()` — must nest under a single provider key, never as top-level entries.
 - **Stamping `AssistantMessage#metadata()`.** Build it through
-  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent/util`), passing only your own
+  `AssistantMessageMetadata.withDefaults(providerMetadata)` (`aiagent.chatmodel.wire`), passing only your own
   provider-namespaced entries (or `Map.of()`); it adds the common `timestamp` entry. Never call
   `AssistantMessage.builder().metadata(...)` with a raw map directly.
 

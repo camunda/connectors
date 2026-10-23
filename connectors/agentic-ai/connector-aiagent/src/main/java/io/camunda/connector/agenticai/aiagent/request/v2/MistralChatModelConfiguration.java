@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.chatmodel.wire.LoggingSupport.redactValues;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MISTRAL_API_ID;
 import static io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend.CUSTOM_ID;
-import static io.camunda.connector.agenticai.aiagent.util.LoggingSupport.redactValues;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -40,21 +40,6 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
   @TemplateProperty(ignore = true)
   public static final String MISTRAL_ID = "mistral";
 
-  @Override
-  public String provider() {
-    return MISTRAL_ID;
-  }
-
-  @Override
-  public String model() {
-    return mistral.model().model();
-  }
-
-  @Override
-  public String descriptiveProvider() {
-    return "%s/%s".formatted(provider(), mistral.backend().type());
-  }
-
   /** All Mistral-specific configuration, nested under the {@code mistral} wire key. */
   public record MistralConnection(
       @Valid @NotNull MistralBackend backend,
@@ -78,8 +63,6 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
     /** The backend discriminator string. */
     String type();
 
-    OpenAiRequestCustomizations requestCustomizations();
-
     @TemplateSubType(id = MISTRAL_API_ID, label = "Mistral API")
     record MistralApiBackend(@Valid @NotNull MistralApiConnection mistral)
         implements MistralBackend {
@@ -90,12 +73,6 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
       @Override
       public String type() {
         return MISTRAL_API_ID;
-      }
-
-      @Override
-      public OpenAiRequestCustomizations requestCustomizations() {
-        return new OpenAiRequestCustomizations(
-            mistral.headers(), mistral.queryParameters(), mistral.bodyProperties());
       }
 
       public record MistralApiConnection(
@@ -167,12 +144,6 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
       @Override
       public String type() {
         return CUSTOM_ID;
-      }
-
-      @Override
-      public OpenAiRequestCustomizations requestCustomizations() {
-        return new OpenAiRequestCustomizations(
-            custom.headers(), custom.queryParameters(), custom.bodyProperties());
       }
 
       public record CustomBackend(

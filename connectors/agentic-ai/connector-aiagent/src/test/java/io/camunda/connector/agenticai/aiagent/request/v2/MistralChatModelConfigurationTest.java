@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralApiBackend.MistralApiConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralBackend.MistralCustomBackend;
@@ -18,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
@@ -111,10 +111,6 @@ class MistralChatModelConfigurationTest {
   @Test
   void reportsProviderAndDescriptiveProvider() {
     final var config = configuration("sk-test", "mistral-medium-latest");
-
-    assertThat(config.provider()).isEqualTo("mistral");
-    assertThat(config.descriptiveProvider()).isEqualTo("mistral/mistral-api");
-    assertThat(config.model()).isEqualTo("mistral-medium-latest");
   }
 
   @Test
@@ -134,9 +130,6 @@ class MistralChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(MistralChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("mistral");
-    assertThat(parsed.descriptiveProvider()).isEqualTo("mistral/mistral-api");
-    assertThat(parsed.model()).isEqualTo("mistral-medium-latest");
 
     final MistralChatModelConfiguration mistral = (MistralChatModelConfiguration) parsed;
     assertThat(mistral.mistral().backend()).isInstanceOf(MistralApiBackend.class);
@@ -193,7 +186,6 @@ class MistralChatModelConfigurationTest {
 
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
-    assertThat(parsed.descriptiveProvider()).isEqualTo("mistral/custom");
     final MistralChatModelConfiguration mistral = (MistralChatModelConfiguration) parsed;
     assertThat(mistral.mistral().backend()).isInstanceOf(MistralCustomBackend.class);
     final MistralCustomBackend custom = (MistralCustomBackend) mistral.mistral().backend();

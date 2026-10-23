@@ -41,13 +41,25 @@ The module is split into Maven modules with a fixed dependency direction
 | `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                              |
 | `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
 | `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
+| `aiagent-provider-support`      | `aiagent.chatmodel.connection`, `aiagent.chatmodel.envelope`, `aiagent.chatmodel.wire` | Vendor-neutral provider code: connection settings, model call envelope, wire helpers | api, model, common                |
+| `aiagent-azure-support`         | `aiagent.chatmodel.provider.azure`, `aiagent.proxy.azure` | Microsoft Entra ID credentials, Foundry authentication, Azure HTTP proxy support | common                            |
+| `aiagent-aws-support`           | `aiagent.chatmodel.provider.aws`, `aiagent.proxy.aws` | AWS authentication, AWS SDK HTTP proxy support | common                            |
+| `aiagent-provider-openai`       | `aiagent.chatmodel.provider.openai`  | Native OpenAI provider (Responses and Chat Completions)        | provider-support, azure-support, api, model, common |
+| `aiagent-provider-mistral` | `aiagent.chatmodel.provider.mistral` | Native Mistral AI provider | provider-support, provider-openai, api, model, common |
+| `aiagent-provider-anthropic` | `aiagent.chatmodel.provider.anthropic` | Native Anthropic provider (Anthropic API, AWS Bedrock Mantle, Foundry) | provider-support, azure-support, aws-support, api, model, common |
+| `aiagent-provider-gemini` | `aiagent.chatmodel.provider.gemini` | Native Google Gemini provider (Developer API, Vertex AI) | provider-support, api, model, common |
+| `aiagent-provider-bedrock` | `aiagent.chatmodel.provider.bedrock` | Native AWS Bedrock Converse provider | provider-support, aws-support, api, model, common |
+| `aiagent-provider-langchain4j`  | `aiagent.chatmodel.provider.langchain4j` | Generic LangChain4j bridge (converters, chat model adapter, wiring). Opt-in: not in the bundle, not a dependency of `connector-aiagent` | provider-support, api, model, common |
+| `aiagent-memory-agentcore` | `aiagent.memory.conversation.awsagentcore` | AWS AgentCore conversation store | aws-support, api, model, common |
+| `aiagent-core` | `aiagent.agent`, `aiagent.agentinstance`, `aiagent.conversation`, `aiagent.document`, `aiagent.memory` (except the AgentCore store), `aiagent.systemprompt`, `aiagent.tool` and the package `aiagent.chatmodel` | Agent loop: request handlers, initializer, conversation turn composer, memory stores, system prompt composition, tool call handling, agent instance client, chat model registry | tools-schema, api, model, common |
+| `aiagent-test-support` | `aiagent.testsupport` | Fixtures for the tests of the AI Agent modules (messages, agent configurations, object mapper, envelope and log helpers). Test scope only, never published | provider-support, api, model, common |
 | `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
 | `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
 | `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
 | `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
 | `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
 | `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
-| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
+| `connector-aiagent`             | `aiagent` (except `model`, `api` and the roots of the support modules) | AI Agent connectors, request records and translation, wiring   | core, provider-mistral, provider-openai, azure-support, aws-support, provider-support, memory-agentcore, provider-anthropic, provider-gemini, provider-bedrock, tools-schema, api, model, common  |
 | `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
 | `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
 
@@ -60,6 +72,8 @@ bundles) depend on `agentic-ai-bundle` with `<type>pom</type>`; add a new connec
 modules depend on the connector modules they test instead (see the
 [e2e tests `AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#modules)).
 Build all of them with `./mvnw clean install -f connectors/agentic-ai/pom.xml`.
+The tests of a module live in the module. A test that needs a fixture of `aiagent-test-support` declares it with
+`<scope>test</scope>`; the module is not deployed. A test that spans several providers lives in `connector-aiagent`.
 
 ### Architecture tests
 
@@ -71,12 +85,12 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   and every module contains only classes of its own package root.
 - `NullMarkedPackagesArchTest`: every package has a `@NullMarked` `package-info`.
 - `ProxySupportArchTest`: the HTTP proxy support depends only on itself and the common library.
-- `ChatModelProviderIndependenceArchTest`: the vendor chat model providers (packages below `aiagent.chatmodel.provider`,
-  except `azure` and `configuration`) do not depend on each other, except for the allowed
-  dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
-  and `aiagent.configuration`) does not depend on the providers.
+- `ChatModelProviderAccessArchTest`: the AI Agent connector reaches the vendor chat model providers only through the
+  chat model API; only `aiagent.translation` and `aiagent.configuration` know them. That the providers do not depend on
+  each other (except Mistral on OpenAI), on the agent core or on the connector follows from the module layers.
 - `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+  LangChain4j, A2A, MCP) is only used by the modules that integrate it. The connector sees all provider SDKs on its
+  class path, so this rule keeps them out of it.
 - `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
   `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
   in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource
@@ -92,7 +106,7 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   `@OutboundConnector` or implementing `OutboundConnectorFunction`) are annotated `@Scope("prototype")`.
 - `PackageCyclesArchTest`: no package cycles between the chat model providers, between the conversation stores,
   and between the sub-packages of the A2A client and of the tools schema. The first-level packages of the AI Agent
-  connector and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
+  connector, of the agent core and of the MCP client have no cycles except the known ones in `KNOWN_CYCLES` (the ADR 015 follow-up).
   When you break a cycle, delete its entry; never add one.
 - `ElementTemplateAnnotationsArchTest`: the library modules do not use the element template generator annotations,
   except the records listed in the test (the ADR 015 follow-up). The list must only shrink.
@@ -233,10 +247,13 @@ Do not break these (full statement and rationale in
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
   [§12](docs/reference/ai-agent.md#12-framework-abstraction).
-- **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
-  `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
-  named `FooImpl` implements the interface `Foo`; review checks the rest.
+- **Interfaces only where they pay.** Use an interface for an extension point of the extension API, for a
+  type of the extension API that the framework implements and extension authors call, and for a seam with at least
+  two real adapters (for example a production adapter and an in-memory fake). Use a concrete class in all other
+  cases; do not add an interface with a single `*Impl`. Existing pairs stay until the class changes for another
+  reason. Wire implementations as Spring beans and depend on the type, never on an `*Impl`. The architecture tests
+  check that a class named `FooImpl` implements the interface `Foo`; review checks the rest
+  ([ADR 016](docs/adr/016-agent-core-and-provider-modules.md) D8).
 - **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).

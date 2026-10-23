@@ -9,10 +9,10 @@ package io.camunda.connector.agenticai.aiagent.request.v2;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.aiagent.request.shared.ConnectorUtils;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.BedrockConverseChatModelConfiguration.BedrockConverseModel.BedrockConverseModelParameters;
-import io.camunda.connector.agenticai.aiagent.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Map;
@@ -66,9 +66,6 @@ class BedrockConverseChatModelConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(BedrockConverseChatModelConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("bedrock");
-    assertThat(parsed.descriptiveProvider()).isEqualTo(parsed.provider());
-    assertThat(parsed.model()).isEqualTo("us.amazon.nova-2-lite-v1:0");
 
     final BedrockConverseChatModelConfiguration bedrock =
         (BedrockConverseChatModelConfiguration) parsed;

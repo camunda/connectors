@@ -6,17 +6,14 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 public record AgentSubProcessRequestData(
-    @Valid @NotNull PromptConfiguration.SystemPromptConfiguration systemPrompt,
-    @Valid @NotNull PromptConfiguration.UserPromptConfiguration userPrompt,
+    @Valid @NotNull PromptTemplateConfiguration.SystemPromptTemplateConfiguration systemPrompt,
+    @Valid @NotNull PromptTemplateConfiguration.UserPromptTemplateConfiguration userPrompt,
     @Valid @Nullable MemoryTemplateConfiguration memory,
-    @Valid @Nullable LimitsConfiguration limits,
-    @Valid @Nullable EventHandlingConfiguration events,
+    @Valid @Nullable LimitsTemplateConfiguration limits,
+    @Valid @Nullable EventHandlingTemplateConfiguration events,
     @Valid @Nullable AgentSubProcessResponseConfiguration response) {}

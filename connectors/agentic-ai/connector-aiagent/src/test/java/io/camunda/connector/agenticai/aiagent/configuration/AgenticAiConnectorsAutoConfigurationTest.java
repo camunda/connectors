@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV2Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV1Function;
 import io.camunda.connector.agenticai.aiagent.AgentTaskV2Function;
+import io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture;
 import io.camunda.connector.agenticai.aiagent.agent.AgentConversationTurnInputComposer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
@@ -25,20 +26,13 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
+import io.camunda.connector.agenticai.aiagent.chatmodel.connection.ConnectionResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageResponseConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.azure.FoundryCredentialResolver;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.bedrock.BedrockConverseChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.gemini.GeminiChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatMessageConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ChatModelHttpProxySupport;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.ToolCallMetadataDecorator;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
-import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.OpenAiApiFamilyStrategy;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -66,7 +60,6 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.CachingProc
 import io.camunda.connector.agenticai.tools.schema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
-import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
@@ -115,21 +108,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
           OpenAiChatModelFactory.class,
           GeminiChatModelFactory.class);
 
-  private static final List<Class<?>> LANGCHAIN4J_BEANS =
-      List.of(
-          ChatModelHttpProxySupport.class,
-          ToolCallMetadataDecorator.class,
-          DocumentToContentConverter.class,
-          ContentConverter.class,
-          ToolCallConverter.class,
-          JsonSchemaConverter.class,
-          ToolSpecificationConverter.class,
-          ChatMessageConverter.class);
-
-  // this will need to be updated in case we support different frameworks
-  private static final List<Class<?>> ALL_BEANS =
-      Stream.concat(AGENTIC_AI_BEANS.stream(), LANGCHAIN4J_BEANS.stream()).toList();
-
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
@@ -139,14 +117,14 @@ class AgenticAiConnectorsAutoConfigurationTest {
   void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=true")
-        .run(context -> assertHasAllBeansOf(context, ALL_BEANS));
+        .run(context -> assertHasAllBeansOf(context, AGENTIC_AI_BEANS));
   }
 
   @Test
   void whenAgenticAiConfigurationDisabled_thenNoAgenticConnectorBeansAreCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.enabled=false")
-        .run(context -> assertDoesNotHaveAnyBeansOf(context, ALL_BEANS));
+        .run(context -> assertDoesNotHaveAnyBeansOf(context, AGENTIC_AI_BEANS));
   }
 
   @Test
@@ -157,7 +135,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream()
+                  AGENTIC_AI_BEANS.stream()
                       .filter(
                           notAnyOf(
                               AgentTaskRequestHandler.class,
@@ -179,7 +157,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
             context -> {
               assertHasAllBeansOf(
                   context,
-                  ALL_BEANS.stream()
+                  AGENTIC_AI_BEANS.stream()
                       .filter(
                           notAnyOf(
                               AgentSubProcessRequestHandler.class,
@@ -286,7 +264,9 @@ class AgenticAiConnectorsAutoConfigurationTest {
           assertThat(context).hasSingleBean(resolutionCase.factoryClass());
 
           final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
-          try (var chatModel = chatModelRegistry.resolve(resolutionCase.configuration())) {
+          try (var chatModel =
+              chatModelRegistry.resolve(
+                  ChatModelTranslationFixture.translate(resolutionCase.configuration()))) {
             assertThat(chatModel).isNotNull();
           }
         });
@@ -333,7 +313,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   record ChatModelResolutionCase(
       String label,
-      ChatModelConfiguration configuration,
+      io.camunda.connector.agenticai.aiagent.request.v2.ProviderConfiguration configuration,
       Class<? extends ChatModelFactory> factoryClass) {
 
     @Override
@@ -397,12 +377,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomAnthropicChatModelFactory() {
           super(
-              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(AgenticAiHttpProxySupport.class),
+              mock(ConnectionResolver.class),
+              mock(FoundryCredentialResolver.class),
               mock(AnthropicMessageRequestConverter.class),
-              mock(AnthropicMessageResponseConverter.class),
-              mock(OAuthClientCredentialsTokenResolver.class),
-              mock(FoundryCredentialResolver.class));
+              mock(AnthropicMessageResponseConverter.class));
         }
 
         @Override
@@ -422,12 +400,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
         CustomOpenAiChatModelFactory() {
           super(
-              mock(AgenticAiConnectorsConfigurationProperties.ChatModelProperties.class),
-              mock(AgenticAiHttpProxySupport.class),
-              mock(OpenAiApiFamilyStrategy.class),
-              mock(OpenAiApiFamilyStrategy.class),
+              mock(ConnectionResolver.class),
               mock(FoundryCredentialResolver.class),
-              mock(OAuthClientCredentialsTokenResolver.class));
+              mock(OpenAiApiFamilyStrategy.class),
+              mock(OpenAiApiFamilyStrategy.class));
         }
 
         @Override

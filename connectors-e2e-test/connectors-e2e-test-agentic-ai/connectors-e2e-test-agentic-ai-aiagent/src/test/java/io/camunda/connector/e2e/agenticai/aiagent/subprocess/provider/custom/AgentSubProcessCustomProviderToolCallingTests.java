@@ -19,12 +19,12 @@ package io.camunda.connector.e2e.agenticai.aiagent.subprocess.provider.custom;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.request.v2.CustomProviderConfiguration;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.TestChatModelFactoryConfiguration.TestChatModelFactory;
@@ -85,7 +85,7 @@ class AgentSubProcessCustomProviderToolCallingTests extends BaseAgentSubProcessT
         .hasSize(2)
         .last()
         .isInstanceOfSatisfying(
-            CustomProviderConfiguration.class,
+            CustomChatModelConfiguration.class,
             customProviderConfiguration ->
                 assertThat(customProviderConfiguration.parameters())
                     .containsExactly(Map.entry("type", "sub-process")));

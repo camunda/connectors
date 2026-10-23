@@ -6,26 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotNull;
-
-public record EventHandlingConfiguration(
-    @TemplateProperty(
-            label = "Event handling behavior",
-            description = "Behavior on completing an event sub-process.",
-            group = "events",
-            type = TemplateProperty.PropertyType.Dropdown,
-            defaultValue = "WAIT_FOR_TOOL_CALL_RESULTS",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "WAIT_FOR_TOOL_CALL_RESULTS",
-                  label = "Wait for tool call results"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "INTERRUPT_TOOL_CALLS",
-                  label = "Cancel tool calls")
-            })
-        @NotNull
-        EventHandlingBehavior behavior) {
+/**
+ * How an agent handles the completion of an event sub-process.
+ *
+ * @param behavior the behavior on completing an event sub-process
+ */
+public record EventHandlingConfiguration(EventHandlingBehavior behavior) {
 
   public enum EventHandlingBehavior {
     WAIT_FOR_TOOL_CALL_RESULTS,

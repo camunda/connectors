@@ -51,6 +51,78 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-azure-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-aws-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-openai</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-mistral</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-anthropic</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-gemini</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-bedrock</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-provider-langchain4j</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-memory-agentcore</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-core</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
+      <artifactId>aiagent-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector.agenticai</groupId>
       <artifactId>aiagent-tools-schema</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -133,6 +205,18 @@
                 <dependency>io.camunda.connector.agenticai:agentic-ai-common</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-model</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-api</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-support</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-core</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-test-support</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-memory-agentcore</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-langchain4j</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-bedrock</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-gemini</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-anthropic</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-mistral</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-provider-openai</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-aws-support</dependency>
+                <dependency>io.camunda.connector.agenticai:aiagent-azure-support</dependency>
                 <dependency>io.camunda.connector.agenticai:aiagent-tools-schema</dependency>
                 <dependency>io.camunda.connector.agenticai:connector-ad-hoc-tools-schema</dependency>
                 <dependency>io.camunda.connector.agenticai:connector-mcp</dependency>

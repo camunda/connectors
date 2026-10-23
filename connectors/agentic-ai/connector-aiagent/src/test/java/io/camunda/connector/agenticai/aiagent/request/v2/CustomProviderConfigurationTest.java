@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.request.v2;
 
+import static io.camunda.connector.agenticai.aiagent.ChatModelTranslationFixture.translate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -14,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.CustomChatModelConfiguration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -38,8 +40,6 @@ class CustomProviderConfigurationTest {
     final ProviderConfiguration parsed = mapper.readValue(json, ProviderConfiguration.class);
 
     assertThat(parsed).isInstanceOf(CustomProviderConfiguration.class);
-    assertThat(parsed.provider()).isEqualTo("acme-llm");
-    assertThat(parsed.model()).isEqualTo("acme-model-v1");
 
     final CustomProviderConfiguration custom = (CustomProviderConfiguration) parsed;
     assertThat(custom.providerType()).isEqualTo("acme-llm");
@@ -69,24 +69,16 @@ class CustomProviderConfigurationTest {
   }
 
   @Test
-  void providerAndModelAreDerivedFromDedicatedFields() {
-    final var config =
-        new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of("key", "value"));
-
-    assertThat(config.provider()).isEqualTo("acme-llm");
-    assertThat(config.model()).isEqualTo("acme-model-v1");
-  }
-
-  @Test
   void userSuppliedFactoryResolvesCustomProviderConfiguration() {
-    final var config = new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of());
+    final var config =
+        translate(new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of()));
     final var expectedChatModel = Mockito.mock(ChatModel.class);
 
     final ChatModelFactory userFactory =
         new ChatModelFactory() {
           @Override
           public boolean supports(ChatModelConfiguration configuration) {
-            return configuration instanceof CustomProviderConfiguration custom
+            return configuration instanceof CustomChatModelConfiguration custom
                 && "acme-llm".equals(custom.providerType());
           }
 
@@ -103,7 +95,8 @@ class CustomProviderConfigurationTest {
 
   @Test
   void resolvingWithoutARegisteredFactoryYieldsTheNoFactoryRegisteredError() {
-    final var config = new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of());
+    final var config =
+        translate(new CustomProviderConfiguration("acme-llm", "acme-model-v1", Map.of()));
 
     final var registry = new ChatModelRegistryImpl(List.of());
 

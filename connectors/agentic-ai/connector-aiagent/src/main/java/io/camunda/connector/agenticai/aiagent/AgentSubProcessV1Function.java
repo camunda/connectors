@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
+import io.camunda.connector.agenticai.aiagent.agent.AgentProcessVariables;
+import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessExecutionContext;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.request.AgentSubProcessV1Request;
-import io.camunda.connector.agenticai.aiagent.request.V1ToV2ProviderConfigurationMapper;
+import io.camunda.connector.agenticai.aiagent.translation.AgentExecutionContextTranslator;
+import io.camunda.connector.agenticai.aiagent.translation.ChatModelConfigurationTranslator;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -45,13 +48,13 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
   public static final String JOB_WORKER_TYPE = "io.camunda.agenticai:aiagent-job-worker:1";
 
   private final AgentSubProcessRequestHandler agentRequestHandler;
-  private final V1ToV2ProviderConfigurationMapper providerConfigurationMapper;
+  private final ChatModelConfigurationTranslator chatModelTranslator;
 
   public AgentSubProcessV1Function(
       AgentSubProcessRequestHandler agentRequestHandler,
-      V1ToV2ProviderConfigurationMapper providerConfigurationMapper) {
+      ChatModelConfigurationTranslator chatModelTranslator) {
     this.agentRequestHandler = agentRequestHandler;
-    this.providerConfigurationMapper = providerConfigurationMapper;
+    this.chatModelTranslator = chatModelTranslator;
   }
 
   @Override
@@ -64,8 +67,8 @@ public class AgentSubProcessV1Function implements AgentConnectorFunction {
 
   private AgentSubProcessExecutionContext buildExecutionContext(
       JobContext jobContext, AgentSubProcessV1Request request) {
-    var nativeConfig = providerConfigurationMapper.map(request.provider());
-    return new AgentSubProcessExecutionContext(
+    var nativeConfig = chatModelTranslator.translate(request.provider());
+    return AgentExecutionContextTranslator.subProcess(
         jobContext,
         request.data(),
         request.agentContext(),

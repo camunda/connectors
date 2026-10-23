@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.request;
 
-import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -31,5 +30,4 @@ public record MemoryTemplateConfiguration(
             defaultValue = "20",
             defaultValueType = TemplateProperty.DefaultValueType.Number)
         @Min(3)
-        @Nullable Integer contextWindowSize)
-    implements MemoryConfiguration {}
+        @Nullable Integer contextWindowSize) {}

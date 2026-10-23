@@ -34,9 +34,9 @@ class AgentSubProcessV2RequestTest {
    * FEEL-aware deserializer. This mapper reproduces that by simply never registering the FEEL
    * Jackson module, which has the same effect without pulling in the {@code connector-feel}
    * dependency (undeclared in this module's pom) just to construct a disabled instance of it.
-   * {@link io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier} deliberately does NOT
-   * mirror this (it enables FEEL annotation processing for other test needs), so it must not be
-   * used here.
+   * {@link io.camunda.connector.agenticai.aiagent.testsupport.TestObjectMapperSupplier}
+   * deliberately does NOT mirror this (it enables FEEL annotation processing for other test needs),
+   * so it must not be used here.
    */
   private static ObjectMapper outboundObjectMapper() {
     var copy = ConnectorsObjectMapperSupplier.getCopy();
