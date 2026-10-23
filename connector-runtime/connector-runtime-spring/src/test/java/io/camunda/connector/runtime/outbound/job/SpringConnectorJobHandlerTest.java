@@ -95,6 +95,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -3309,14 +3310,24 @@ class SpringConnectorJobHandlerTest {
               .withHeaders(
                   Map.of(
                       Keywords.RESULT_EXPRESSION_KEYWORD,
-                      "={myDoc: createDocument(response.body.file)}",
+                      "={kept: createDocument(response.body.file),"
+                          + " discarded: createDocument(response.body.file)}",
                       Keywords.ERROR_EXPRESSION_KEYWORD,
-                      "=bpmnError(\"FAILED\", \"kept\", {doc: response.myDoc})"))
+                      "=bpmnError(\"FAILED\", \"kept\", {doc: response.kept})"))
               .executeAndCaptureResult(jobHandler, false, true);
 
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
-      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
-          .hasSize(documentsBefore.size() + 1);
+      var kept = (Document) result.getVariables().get("doc");
+      var documentsAfter = new HashSet<>(documentsBefore);
+      documentsAfter.add(((CamundaDocumentReference) kept.reference()).getDocumentId());
+      // cleanup visits documents in creation order, so once the discarded one is gone it has
+      // already passed the kept one
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsAfter));
+      assertThat(kept.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
