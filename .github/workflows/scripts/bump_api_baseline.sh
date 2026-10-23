@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sets the API compatibility baseline (api.baseline.version in parent/pom.xml) to the given released
-# version and clears the accepted breaks of every gated module, since they are part of the new baseline.
-# See docs/api-compatibility.md.
+# version. Removes the accepted breaks that the released version contains, i.e. those in the
+# api-changes.json of its tag; breaks accepted after the release (e.g. on main after the release
+# branch was cut) are kept. Requires the release tag to be fetched. See docs/api-compatibility.md.
 set -euo pipefail
 
 if [[ $# -ne 1 || ! "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -20,7 +21,12 @@ perl -pi -e "s#<api.baseline.version>[^<]*</api.baseline.version>#<api.baseline.
 echo "Set api.baseline.version to ${version}"
 
 git ls-files -z '*api-changes.json' | while IFS= read -r -d '' file; do
-  jq '(.[] | select(.extension == "revapi.differences") | .configuration.differences) = []' "$file" > "$file.tmp"
+  released=$(git show "refs/tags/${version}:${file}" 2>/dev/null \
+    | jq '[.[] | select(.extension == "revapi.differences") | .configuration.differences[]]' \
+    || echo '[]')
+  jq --argjson released "$released" \
+    '(.[] | select(.extension == "revapi.differences") | .configuration.differences)
+       |= map(select(. as $d | $released | any(. == $d) | not))' "$file" > "$file.tmp"
   mv "$file.tmp" "$file"
-  echo "Cleared accepted breaks in $file"
+  echo "Removed the accepted breaks released in ${version} from $file"
 done
