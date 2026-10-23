@@ -32,6 +32,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.LoadDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -68,7 +70,8 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
   public static final String HTTPS_KEYSTORE_PASSWORD = "changeit";
 
   /** The built-in c8__ tools that the model is offered next to the tools of the process. */
-  protected static final List<String> BUILT_IN_TOOL_NAMES = List.of(LoadDocumentTool.NAME);
+  protected static final List<String> BUILT_IN_TOOL_NAMES =
+      List.of(ReturnDocumentTool.NAME, LoadDocumentTool.NAME);
 
   /**
    * Self-signed keystore backing the WireMock HTTPS port. Also usable as a truststore by clients
@@ -265,14 +268,15 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
       OpenAiCompletionsRecordedConversation.RecordedChatRequest request) {
     // the model sees the tools of the process next to the built-in c8__ tools
     final var expected = new ArrayList<>(expectedTools());
-    final var loadDocument = new LoadDocumentTool().definition();
     // a recorded request does not tell the kind of a tool
-    expected.add(
-        new ToolDefinition(
-            loadDocument.name(),
-            loadDocument.description(),
-            loadDocument.inputSchema(),
-            ToolKind.PROCESS));
+    Stream.of(new ReturnDocumentTool().definition(), new LoadDocumentTool().definition())
+        .map(definition ->
+            new ToolDefinition(
+                definition.name(),
+                definition.description(),
+                definition.inputSchema(),
+                ToolKind.PROCESS))
+        .forEach(expected::add);
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 
