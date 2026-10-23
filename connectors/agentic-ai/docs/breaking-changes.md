@@ -221,6 +221,12 @@ response carries the Camunda document references in place of the document handle
 them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameterResolver`, a bean of the
 auto-configuration.
 
+`ToolCallResultsInputBuilder` is a new interface (implementation `ToolCallResultsInputBuilderImpl`) that builds the tool
+call result message and the messages that follow it from the results of all tool calls of a turn, for the composer and for
+the rounds of local tool call results of the request handler. It registers the documents of the results and applies the effects of the
+results of runtime tools (the content of a known document, see "Runtime tools and tool names"). The composer and the
+request handler take it as a constructor argument.
+
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
 implement the response handler interface directly, hand only the process tool calls to the process and resolve their document parameters.
@@ -255,11 +261,13 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 ### Replaceable bean constructors
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
-`RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`, and the constructor of
+`RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, and the
-constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The
-auto-configuration provides these beans, each `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra
-arguments; inject them as beans.
+`ToolCallResultsInputBuilder` takes the `DocumentContentGuard`, the check of the documents whose content the agent adds, and the `DocumentRestorer`
+that restores a document from its reference. The size limits of the guard are set by the properties
+`camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the [reference](reference/ai-agent.md)). The
+auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
+built with `new` needs the extra arguments; inject them as beans.
 
 ### Conversation window
 
@@ -271,12 +279,12 @@ applies it to its persisted context, and the next round continues with the conte
 
 ### Runtime tools and tool names
 
-- Agent instances created from 8.11 on have the `runtimeTools` feature. An agent job fails with the error code
+- Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
+  runtime tool `c8__get_document`, which the agent runs itself. An agent job fails with the error code
   `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
-  not enabled reserves no name. The connector registers no runtime tool itself, so only the runtime tools of your own runtime matter;
-  give them a name with a prefix of your own. The prefix `c8__` is meant for the tools the connector ships; no prefix is
-  checked or reserved, only the exact name. Agent instances created before keep their behavior: they are offered no
-  runtime tool and no name is checked.
+  not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own. The prefix
+  `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent instances
+  created before keep their behavior: they are offered no runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
@@ -289,9 +297,13 @@ applies it to its persisted context, and the next round continues with the conte
   `call(RuntimeToolContext, RuntimeToolCall)`) and expose it as a Spring bean (see
   [Add a runtime tool](architecture/extension-points.md#add-a-runtime-tool)). `RuntimeToolContext.documents()` gives the documents the agent knows when the
   batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
-  message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A rejected
-  call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is executed gets an
-  error result from `RuntimeTools`; neither goes to the process.
+  message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
+  ask the agent to add the content of a known document to the request that follows the tool results
+  (`withDocumentContent(AgentDocumentId)`), which the agent applies after all calls of the message ran, in call order, and
+  after its content guard accepted the document. An error result has no effects, and `AgentDocument` gains
+  `contentInConversation()`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
+  rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
+  executed gets an error result from `RuntimeTools`; neither goes to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -315,7 +327,8 @@ applies it to its persisted context, and the next round continues with the conte
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
   document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
-  the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
+  the reference JSON, and the content of a document follows in a user message only when the model loaded it with
+  `c8__get_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
   therefore sees text for these instances; instances without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
@@ -337,7 +350,10 @@ applies it to its persisted context, and the next round continues with the conte
   persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
   agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`. The
+  four-argument `RuntimeTools.execute` takes the ids of the documents whose content the model reads as of the start of the
+  batch before the calls, and a `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the
+  tool call result that becomes part of the conversation is `toolCallResult()`.
 
 <a id="persisted-data-8-11"></a>
 
