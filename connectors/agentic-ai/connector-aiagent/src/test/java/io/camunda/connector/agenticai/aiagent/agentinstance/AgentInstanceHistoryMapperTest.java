@@ -149,6 +149,52 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
+  void theMessageThatLoadsADocumentIsReportedAsAUserItemWithTheHandleAndTheDocumentReference() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var agentDocuments =
+        AgentDocuments.empty()
+            .register(List.of(new NewDocument(document, DocumentOrigin.toolCall("fetch", "call-1"))));
+    final var tag =
+        AgentDocumentContent.of(AgentDocumentId.of(document)).withDelivery(DocumentDelivery.CONTENT);
+    final var loadedMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "System message, not written by the user: the content of the documents loaded for the tool results above follows."),
+                    tag))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            loadedMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            WITH_DOCUMENTS.withDocuments(agentDocuments).documentHandling(), TestDocuments.documentFactory());
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(item -> {
+          assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
+          assertThat(texts(item.content()))
+              .containsExactly(
+                  "System message, not written by the user: the content of the documents loaded for the tool results above follows.");
+          assertThat(item.content()).hasSize(3);
+          assertThat(objectJson(item.content().get(1)))
+              .isEqualTo(TestDocuments.handleText(agentDocuments, tag.id()));
+          assertThat(item.content().get(2))
+              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+        });
+  }
+
+  @Test
   void aDocumentBlockOfAnUnknownDocumentIsReportedAsTheHandleObjectOnly() {
     final var tag =
         new AgentDocumentContent(AgentDocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);
