@@ -19,7 +19,7 @@ import java.util.List;
 public class ClassificationRequestData extends DocumentRequestData {
   @TemplateProperty(
       id = "converseData",
-      label = "AWS Bedrock Converse Parameters",
+      label = "AI converse parameters",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5\n}",

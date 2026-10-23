@@ -6,9 +6,10 @@
  */
 package io.camunda.connector.idp.extraction.request.structured;
 
-import io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider;
+import io.camunda.connector.idp.extraction.request.common.extraction.StructuredExtractionProvider;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record StructuredExtractionRequest(
-    @Valid ExtractionProvider extractor, @Valid @NotNull StructuredExtractionRequestData input) {}
+    @Valid StructuredExtractionProvider extractor,
+    @Valid @NotNull StructuredExtractionRequestData input) {}
