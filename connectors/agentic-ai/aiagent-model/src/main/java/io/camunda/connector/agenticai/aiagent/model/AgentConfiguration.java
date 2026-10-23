@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -14,12 +16,14 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.nio.charset.StandardCharsets;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,6 +45,8 @@ public record AgentConfiguration(
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+
+  private static final ObjectMapper FINGERPRINT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
@@ -76,23 +82,34 @@ public record AgentConfiguration(
    * CONFIGURATION} agent-instance history item (model, provider, system prompt, model-call limit,
    * tools): equal attributes always yield an equal fingerprint. Used both to detect whether the
    * agent instance's recorded configuration is stale, and as that history item's id, so a repeat
-   * send with unchanged content dedups for free.
+   * send with unchanged content dedups for free. The result is the SHA-256 digest as lower-case
+   * hex.
+   *
+   * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
+   * immutable map whose top-level iteration order is unspecified and differs between JVMs, so the
+   * top-level keys of the schema are sorted. Everything below keeps its order: the order of the
+   * parameters, of the tools and of values such as {@code required} is part of what the model sees,
+   * so a change of it changes the fingerprint.
    */
   public String fingerprint() {
-    var input =
-        String.join(
-            " ",
-            chatModel.model(),
-            chatModel.descriptiveProvider(),
-            systemPrompt.prompt(),
-            String.valueOf(maxModelCalls()),
-            String.valueOf(toolDefinitions));
     try {
-      var digest =
-          MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest);
+      var json =
+          FINGERPRINT_MAPPER.writeValueAsBytes(
+              List.of(
+                  chatModel.model(),
+                  chatModel.descriptiveProvider(),
+                  systemPrompt.prompt(),
+                  maxModelCalls(),
+                  toolDefinitions.stream().map(AgentConfiguration::fingerprintInput).toList()));
+      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json));
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("The configuration cannot be serialized", e);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 is not available", e);
     }
+  }
+
+  private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
+    return Arrays.asList(tool.name(), tool.description(), new TreeMap<>(tool.inputSchema()));
   }
 }

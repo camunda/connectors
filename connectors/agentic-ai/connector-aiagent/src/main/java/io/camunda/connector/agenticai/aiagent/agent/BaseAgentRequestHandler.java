@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -32,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -149,6 +149,11 @@ public abstract class BaseAgentRequestHandler<
     }
   }
 
+  private static @Nullable AgentInstanceKey agentInstanceKeyOf(AgentContext agentContext) {
+    final var metadata = agentContext.metadata();
+    return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
   /**
    * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
    * previous turn to correlate against.
@@ -163,7 +168,7 @@ public abstract class BaseAgentRequestHandler<
     }
     agentInstanceClient.applyToolCallResults(
         executionContext,
-        AgentInstanceKey.from(agentContext.metadata()),
+        agentInstanceKeyOf(agentContext),
         arrivedResults,
         previousConversation.turns().getLast());
   }
@@ -368,8 +373,7 @@ public abstract class BaseAgentRequestHandler<
             .context(agentContext)
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    agentInstanceClient.applyToolDiscoveryStart(
-        executionContext, AgentInstanceKey.from(agentContext.metadata()));
+    agentInstanceClient.applyToolDiscoveryStart(executionContext, agentInstanceKeyOf(agentContext));
     return buildConnectorResponse(executionContext, null, response, null);
   }
 
