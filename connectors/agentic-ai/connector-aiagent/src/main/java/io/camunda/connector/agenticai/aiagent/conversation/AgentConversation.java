@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationCon
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -297,11 +298,13 @@ public final class AgentConversation {
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
-   * tools.
+   * tools. Document parameters of the tools are offered to the provider as string parameters.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+    return new ConversationSnapshot(
+        windowed,
+        DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));
   }
 
   /**
