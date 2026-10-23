@@ -24,6 +24,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.DO
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FINAL_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_AGAIN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.GET_CALL_ID;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.LARGE_FILE_MARKER;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.PING_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_CALL_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.RETURN_KEY;
@@ -37,12 +39,14 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.re
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithSlowToolTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.roundTripTurns;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.servedFile;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubLargeTextFile;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.unknownUploadWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadCount;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
+import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentTag;
 import static io.camunda.connector.e2e.agenticai.aiagent.wiremock.DocumentIdPlaceholderTransformer.documentId;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.DocumentWithContent;
 import io.camunda.connector.e2e.agenticai.aiagent.common.AgentCoreMemoryTestConfiguration;
 import io.camunda.connector.e2e.agenticai.aiagent.common.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
@@ -87,6 +92,9 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
   @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
   private Resource documentsProcess;
+
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
+  private Resource contentDocumentsProcess;
 
   @Autowired private CamundaProcessTestContext processTestContext;
 
@@ -284,6 +292,97 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
+   * A tool whose activity sets the document delivery {@code content} returns a document: the agent
+   * adds its content to the request in the message after the tool result, so the model reads it
+   * without a {@code c8__get_document} call and still passes its tag to a tool. The tool receives
+   * the real bytes.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"test.txt", "test.pdf"})
+  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel(String file)
+      throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    assertDocumentContentUserMessage(
+        afterDownload.get(4),
+        DocumentWithContent.forToolCall(
+            DOWNLOAD_CALL_ID,
+            "Download_A_File",
+            tag,
+            block ->
+                assertDocumentContentBlockJson(
+                    block,
+                    file.endsWith(".pdf") ? "base64" : "text",
+                    file.endsWith(".pdf") ? "application/pdf" : "text/plain")));
+
+    // no load by the model: the next request holds the upload and nothing else
+    final var afterUpload = recorded.lastRequest().messages();
+    assertThat(afterUpload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
+    assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
+    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__get_document"));
+    assertUploaded(servedFile(file));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * A document of a tool with the delivery {@code content} that fails the content guard (a type
+   * outside the allowlist, a size above the limit) stays a reference: a note tells the model that
+   * no content was added and why, no content reaches the model, and the tool still receives the
+   * real bytes.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"unsupported.zip", LARGE_FILE})
+  void keepsADocumentOfAToolWithTheDeliveryContentThatFailsTheGuardAsAReferenceWithANote(
+      String file) throws Exception {
+    final var expectedBytes = LARGE_FILE.equals(file) ? stubLargeTextFile() : servedFile(file);
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    assertThat(afterDownload.get(4).textContent())
+        .startsWith("Document %s was not loaded automatically: it ".formatted(tag.id()))
+        .endsWith("Pass its tag to a tool that processes it.");
+    assertThat(OpenAiCompletionsRecordedConversation.recordedRawBodies())
+        .noneMatch(body -> body.contains(LARGE_FILE_MARKER));
+
+    assertUploaded(expectedBytes);
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(FINAL_TEXT));
+  }
+
+  /**
    * The valid {@code c8__return_document} call is answered by the agent, the real call runs in the
    * process, and the model sees both results in the order of its calls without an extra model call:
    * one call before the tools run and one after. The agent instance lists the runtime tool without
@@ -449,6 +548,17 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier) throws Exception {
     return createProcessInstance(
         elementTemplateModifier,
+        Map.of(
+            "userPrompt",
+            "Download the file, upload it and give it back to me.",
+            "uploadUrl",
+            uploadUrl(wireMock.getHttpBaseUrl())));
+  }
+
+  private io.camunda.connector.e2e.ZeebeTest startDocumentsContentProcess() throws Exception {
+    return createProcessInstance(
+        contentDocumentsProcess,
+        e -> e,
         Map.of(
             "userPrompt",
             "Download the file, upload it and give it back to me.",

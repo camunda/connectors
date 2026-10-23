@@ -51,4 +51,34 @@ class ToolDefinitionTest {
         .doesNotContain("documentParameters");
     assertThat(restored).isEqualTo(toolDefinition);
   }
+
+  @Test
+  void roundTripsTheDocumentDeliveryAndOmitsItWhenAbsent() throws Exception {
+    final var content =
+        ToolDefinition.builder()
+            .name("tool")
+            .inputSchema(Map.of("type", "object"))
+            .documentDelivery(DocumentDelivery.CONTENT)
+            .build();
+    final var byReference =
+        ToolDefinition.builder().name("tool").inputSchema(Map.of("type", "object")).build();
+
+    final var contentJson = objectMapper.writeValueAsString(content);
+    final var referenceJson = objectMapper.writeValueAsString(byReference);
+
+    assertThat(contentJson).contains("\"documentDelivery\":\"content\"");
+    assertThat(objectMapper.readValue(contentJson, ToolDefinition.class)).isEqualTo(content);
+    assertThat(referenceJson).doesNotContain("documentDelivery");
+    assertThat(objectMapper.readValue(referenceJson, ToolDefinition.class).documentDelivery())
+        .isNull();
+  }
+
+  @Test
+  void readsAStoredDefinitionWithoutADocumentDeliveryAsByReference() throws Exception {
+    final var restored =
+        objectMapper.readValue(
+            "{\"name\":\"tool\",\"inputSchema\":{\"type\":\"object\"}}", ToolDefinition.class);
+
+    assertThat(restored.documentDelivery()).isNull();
+  }
 }

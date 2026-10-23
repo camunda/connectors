@@ -58,7 +58,22 @@ public interface PromptConfiguration {
               feel = FeelMode.required,
               optional = true)
           @Nullable List<Document> documents,
-      @TemplateProperty(ignore = true) @Nullable DocumentDelivery documentDelivery)
+      @TemplateProperty(
+              group = "userPrompt",
+              label = "Document delivery",
+              description =
+                  "How the documents of the user prompt reach the model: as references or with their content.",
+              tooltip =
+                  "<code>Reference</code>: the model sees a reference to each document and loads the content it needs with a tool. "
+                      + "<code>Content</code>: the content of text, PDF and image documents is part of the conversation right away. "
+                      + "Large documents cost many tokens in every model call; a document that is too large or of an unsupported type stays a reference.",
+              type = TemplateProperty.PropertyType.Dropdown,
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(value = "reference", label = "Reference"),
+                @TemplateProperty.DropdownPropertyChoice(value = "content", label = "Content")
+              },
+              defaultValue = "reference")
+          @Nullable DocumentDelivery documentDelivery)
       implements PromptConfiguration {
 
     public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {

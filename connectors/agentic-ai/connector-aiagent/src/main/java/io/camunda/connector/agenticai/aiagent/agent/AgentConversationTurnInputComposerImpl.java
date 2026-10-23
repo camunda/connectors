@@ -13,7 +13,6 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
-import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -30,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
@@ -194,7 +194,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       final var toolCallResultsInput =
           resultsInputBuilder.build(
               agentContext,
-              orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions),
+              orderedEntries(
+                  agentContext, previousTurn.toolCalls(), processResults.resultsById(), executions),
               previousConversation.documentIdsWithContent(configuration.contextWindowSize()));
       messages.addAll(toolCallResultsInput.messages());
       ingestedDocuments.addAll(toolCallResultsInput.documents());
@@ -267,7 +268,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           content.add(reference.withDelivery(DocumentDelivery.CONTENT));
         } else {
           content.add(reference);
-          content.add(textContent(noContentNote(reference.id(), rejection)));
+          content.add(
+              textContent(
+                  ToolCallResultsInputBuilderImpl.noContentNote(reference.id(), rejection)));
         }
       }
     } else {
@@ -353,16 +356,18 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   /**
    * The results of all tool calls of the turn in call order: the process results, with the
-   * documents extracted from the result as the process returned it, and the results of the runtime
-   * tools, with the documents of their content.
+   * documents extracted from the result as the process returned it and the document delivery of
+   * their tool, and the results of the runtime tools, with the documents of their content.
    */
   private List<ToolCallResultsInputBuilder.Entry> orderedEntries(
+      AgentContext agentContext,
       List<ToolCall> toolCalls,
       Map<String, ToolCallResult> processResultsById,
       List<RuntimeToolExecution> executions) {
     final var executionsById =
         executions.stream()
             .collect(Collectors.toMap(execution -> execution.call().id(), Function.identity()));
+    final var contentDeliveryToolNames = contentDeliveryToolNames(agentContext);
     return toolCalls.stream()
         .map(
             toolCall ->
@@ -372,38 +377,37 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                           Objects.requireNonNull(
                               processResultsById.get(toolCall.id()),
                               "No result of the process tool call '%s' was resolved"
-                                  .formatted(toolCall.id())));
+                                  .formatted(toolCall.id())),
+                          contentDeliveryToolNames);
                   case RUNTIME -> runtimeEntry(toolCall, executionsById.get(toolCall.id()));
                 })
         .toList();
   }
 
-  private ToolCallResultsInputBuilder.Entry processEntry(ToolCallResult result) {
+  /**
+   * The names of the tools whose definition sets the document delivery {@code content}. Only the
+   * results of process tools have it: a runtime tool asks for the content of a document by naming
+   * it.
+   */
+  private static Set<String> contentDeliveryToolNames(AgentContext agentContext) {
+    return agentContext.toolDefinitions().stream()
+        .filter(tool -> tool.documentDelivery() == DocumentDelivery.CONTENT)
+        .map(ToolDefinition::name)
+        .collect(Collectors.toSet());
+  }
+
+  private ToolCallResultsInputBuilder.Entry processEntry(
+      ToolCallResult result, Set<String> contentDeliveryToolNames) {
     final var documents =
         documentExtractor.extractDocuments(List.of(result)).stream()
             .flatMap(group -> group.documents().stream())
             .toList();
-    return new ToolCallResultsInputBuilder.Entry(ToolCallResultContent.from(result), documents);
-  }
-
-  /**
-   * The note that tells the model a document got no content and why. A reason that a retry can
-   * overcome says that a tool for loading documents can try again. The note holds the content type
-   * and the size at most; the failure behind a document that could not be read is logged only.
-   */
-  private static String noContentNote(DocumentId documentId, Rejection rejection) {
-    LOGGER.debug(
-        "The content of the document {} is not added: {}",
-        documentId,
-        rejection.problem(),
-        rejection.cause());
-    return "Document %s was not loaded automatically: it %s. %s"
-        .formatted(
-            documentId,
-            rejection.problem(),
-            rejection.retryable()
-                ? "A tool for loading documents can try to load it again."
-                : "Pass its tag to a tool that processes it.");
+    final var delivery =
+        contentDeliveryToolNames.contains(result.name())
+            ? DocumentDelivery.CONTENT
+            : DocumentDelivery.REFERENCE;
+    return new ToolCallResultsInputBuilder.Entry(
+        ToolCallResultContent.from(result), documents, List.of(), List.of(), delivery);
   }
 
   private ToolCallResultsInputBuilder.Entry runtimeEntry(

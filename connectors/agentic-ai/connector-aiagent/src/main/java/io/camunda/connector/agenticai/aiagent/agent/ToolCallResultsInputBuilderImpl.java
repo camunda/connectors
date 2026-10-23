@@ -43,8 +43,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Builds the input of a turn from the tool call results of the previous turn and applies the
- * effects of the results of runtime tools: the content of documents the model gets, and the
- * response documents of the agent context.
+ * effects of the results: the content of documents the model gets, and the response documents of
+ * the agent context.
  */
 public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuilder {
 
@@ -77,17 +77,22 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
     final var applied = applyEffects(agentContext, documentFlow, entries, documentIdsWithContent);
     final var input =
         documentFlow
-            ? buildWithDocumentTags(applied.entries(), applied.tagsWithContent())
+            ? buildWithDocumentTags(
+                applied.entries(), applied.tagsWithContent(), applied.noContentNotes())
             : buildWithDocumentMessage(applied.entries());
     return new Input(applied.agentContext(), input.messages(), input.documents());
   }
 
   /**
    * The entries after their effects were applied, the references with the delivery content of the
-   * documents to add, in call order, and the agent context with the response documents selected.
+   * documents to add, in call order, the notes for the documents of tools with the delivery content
+   * that got none, and the agent context with the response documents selected.
    */
   private record Applied(
-      List<Entry> entries, List<Content> tagsWithContent, AgentContext agentContext) {}
+      List<Entry> entries,
+      List<Content> tagsWithContent,
+      List<Content> noContentNotes,
+      AgentContext agentContext) {}
 
   /**
    * Applies the effects in the order of the entries. An entry sees the documents of the registry
@@ -103,10 +108,14 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
     final var handledIds = new HashSet<>(documentIdsWithContent);
     final var appliedEntries = new ArrayList<Entry>();
     final var tagsWithContent = new ArrayList<Content>();
+    final var noContentNotes = new ArrayList<Content>();
+    final var notedIds = new HashSet<DocumentId>();
     var updatedContext = agentContext;
 
     for (final var entry : entries) {
-      if (entry.documentContent().isEmpty() && entry.responseDocuments().isEmpty()) {
+      // an agent instance without the documents feature ignores the delivery of a tool
+      final boolean delivery = documentFlow && entry.documentDelivery() == DocumentDelivery.CONTENT;
+      if (entry.documentContent().isEmpty() && entry.responseDocuments().isEmpty() && !delivery) {
         appliedEntries.add(entry);
         continue;
       }
@@ -129,12 +138,44 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
             tagsWithContent.add(
                 DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT));
           });
+      if (delivery) {
+        deliverContent(entry, handledIds, notedIds, tagsWithContent, noContentNotes);
+      }
       for (final var selection : entry.responseDocuments()) {
         updatedContext = updatedContext.withResponseDocument(selection);
       }
       appliedEntries.add(entry);
     }
-    return new Applied(appliedEntries, tagsWithContent, updatedContext);
+    return new Applied(appliedEntries, tagsWithContent, noContentNotes, updatedContext);
+  }
+
+  /**
+   * Adds the content of the documents of an entry of a tool with the delivery content: the tag with
+   * content of a document that passes the content guard, a note for one that does not. A document
+   * whose content is handled already is left out. Only a document that gets content is handled: a
+   * rejected one stays rejected for a later result that asks for its content, and gets one note.
+   */
+  private void deliverContent(
+      Entry entry,
+      Set<DocumentId> handledIds,
+      Set<DocumentId> notedIds,
+      List<Content> tagsWithContent,
+      List<Content> noContentNotes) {
+    final var source = DocumentSource.toolCall(entry.result().name(), entry.result().id());
+    for (final var document : entry.documents()) {
+      final var reference = DocumentReferences.from(document, source);
+      if (handledIds.contains(reference.id()) || notedIds.contains(reference.id())) {
+        continue;
+      }
+      final var rejection = contentGuard.check(document).orElse(null);
+      if (rejection == null) {
+        handledIds.add(reference.id());
+        tagsWithContent.add(reference.withDelivery(DocumentDelivery.CONTENT));
+      } else {
+        notedIds.add(reference.id());
+        noContentNotes.add(textContent(noContentNote(reference.id(), rejection)));
+      }
+    }
   }
 
   private static void requireKnownResponseDocuments(Entry entry, DocumentRegistry known) {
@@ -194,6 +235,26 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
     }
   }
 
+  /**
+   * The note that tells the model a document got no content and why. A reason that a retry can
+   * overcome says that a tool for loading documents can try again. The note holds the content type
+   * and the size at most; the failure behind a document that could not be read is logged only.
+   */
+  static String noContentNote(DocumentId documentId, Rejection rejection) {
+    LOGGER.debug(
+        "The content of the document {} is not added: {}",
+        documentId,
+        rejection.problem(),
+        rejection.cause());
+    return "Document %s was not loaded automatically: it %s. %s"
+        .formatted(
+            documentId,
+            rejection.problem(),
+            rejection.retryable()
+                ? "A tool for loading documents can try to load it again."
+                : "Pass its tag to a tool that processes it.");
+  }
+
   /** The error result that replaces a result whose document content was rejected. */
   private static Entry rejectedEntry(Entry entry, Rejection rejection) {
     return new Entry(
@@ -225,9 +286,11 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
   /**
    * A document that is a whole result is persisted as its tag, like the documents that are not a
    * whole result. The documents of every result are registered with the tool call as their source.
-   * The content of the documents the results asked for follows in a message of its own.
+   * The content of the documents the results asked for follows in a message of its own: the tags
+   * with content after the preamble, then the notes of the documents without content.
    */
-  private static Turn buildWithDocumentTags(List<Entry> entries, List<Content> tagsWithContent) {
+  private static Turn buildWithDocumentTags(
+      List<Entry> entries, List<Content> tagsWithContent, List<Content> noContentNotes) {
     final var results =
         entries.stream()
             .map(Entry::result)
@@ -242,10 +305,13 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
             .results(results)
             .metadata(defaultMessageMetadata())
             .build());
-    if (!tagsWithContent.isEmpty()) {
+    if (!tagsWithContent.isEmpty() || !noContentNotes.isEmpty()) {
       final var content = new ArrayList<Content>();
-      content.add(textContent(DOCUMENT_CONTENT_PREAMBLE));
-      content.addAll(tagsWithContent);
+      if (!tagsWithContent.isEmpty()) {
+        content.add(textContent(DOCUMENT_CONTENT_PREAMBLE));
+        content.addAll(tagsWithContent);
+      }
+      content.addAll(noContentNotes);
 
       final var metadata = new HashMap<>(defaultMessageMetadata());
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);

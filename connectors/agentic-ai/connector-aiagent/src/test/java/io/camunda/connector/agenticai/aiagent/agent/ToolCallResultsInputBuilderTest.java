@@ -30,6 +30,8 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -38,6 +40,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -533,5 +536,215 @@ class ToolCallResultsInputBuilderTest {
 
     assertThat(builder.build(context, List.of(entry), Set.of()).agentContext())
         .isEqualTo(builder.build(context, List.of(entry), Set.of()).agentContext());
+  }
+
+  // --- the document delivery of a tool
+
+  private static Entry contentToolEntry(ToolCallResultContent result, Document... documents) {
+    return new Entry(result, List.of(documents), List.of(), List.of(), DocumentDelivery.CONTENT);
+  }
+
+  private static Content tagOf(Document document, String toolName, String id) {
+    return DocumentReferences.from(document, DocumentSource.toolCall(toolName, id))
+        .withDelivery(DocumentDelivery.CONTENT);
+  }
+
+  @Test
+  void theDocumentsOfAToolWithTheDeliveryContentGetTheirContentInAMessageAfterTheResults() {
+    final var entry =
+        contentToolEntry(
+            result("c1", "alpha", objectContent(Map.of("file", first, "again", nested))),
+            first,
+            nested);
+
+    final var input = builder.build(WITH_DOCUMENTS, List.of(entry), Set.of());
+
+    assertThat(input.messages()).hasSize(2);
+    assertThat(input.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(input.messages().get(1))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            message -> {
+              assertThat(message.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(message.content())
+                  .containsExactly(
+                      textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+                      tagOf(first, "alpha", "c1"),
+                      tagOf(nested, "alpha", "c1"));
+            });
+    // the documents are reported for the registry like those of every other result
+    assertThat(input.documents())
+        .containsExactly(
+            new IngestedDocument(first, DocumentSource.toolCall("alpha", "c1")),
+            new IngestedDocument(nested, DocumentSource.toolCall("alpha", "c1")));
+  }
+
+  @Test
+  void theDocumentsOfAToolWithoutTheDeliveryContentStayReferences() {
+    final var entry =
+        new Entry(result("c1", "alpha", objectContent(Map.of("file", first))), List.of(first));
+
+    final var input = builder.build(WITH_DOCUMENTS, List.of(entry), Set.of());
+
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    assertThat(input.documents()).hasSize(1);
+  }
+
+  @Test
+  void aDocumentOfAToolWithTheDeliveryContentThatFailsTheGuardGetsANoteAndStaysAReference() {
+    final var entry =
+        contentToolEntry(
+            result("c1", "alpha", objectContent(Map.of("a", first, "b", archive))), first, archive);
+
+    final var input = builder.build(WITH_DOCUMENTS, List.of(entry), Set.of());
+
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+            tagOf(first, "alpha", "c1"),
+            textContent(
+                "Document %s was not loaded automatically: it is of type application/zip which cannot be loaded into the conversation. Pass its tag to a tool that processes it."
+                    .formatted(idOf(archive))));
+    // the result keeps the document, so the model can pass its tag to a tool
+    assertThat(input.documents())
+        .contains(new IngestedDocument(archive, DocumentSource.toolCall("alpha", "c1")));
+  }
+
+  @Test
+  void anExternalDocumentOfAToolWithTheDeliveryContentGetsANoteOnly() {
+    final var external =
+        new ExternalDocument("https://files.example.com/report.pdf", "report.pdf", url -> null);
+    final var entry =
+        contentToolEntry(result("c1", "alpha", objectContent(Map.of("file", external))), external);
+
+    final var input = builder.build(WITH_DOCUMENTS, List.of(entry), Set.of());
+
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(
+                "Document %s was not loaded automatically: it is an external document, which cannot be loaded into the conversation. Pass its tag to a tool that processes it."
+                    .formatted(idOf(external))));
+  }
+
+  @Test
+  void aDocumentOfAToolWithTheDeliveryContentWhoseContentTheModelReadsIsNotAddedAgain() {
+    final var entry =
+        contentToolEntry(result("c1", "alpha", objectContent(Map.of("file", known))), known);
+
+    final var input = builder.build(knowing(known), List.of(entry), Set.of(idOf(known)));
+
+    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  @Test
+  void aDocumentThatAnEarlierResultOfTheTurnAskedForOrDeliveredIsAddedOnce() {
+    final var requesting =
+        runtimeEntry(
+            "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
+    final var delivering =
+        contentToolEntry(result("c2", "beta", objectContent(Map.of("file", known))), known);
+    final var deliveringAgain =
+        contentToolEntry(result("c3", "gamma", objectContent(Map.of("file", known))), known);
+
+    final var input =
+        builder.build(knowing(known), List.of(requesting, delivering, deliveringAgain), Set.of());
+
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+            DocumentReferences.from(known, DocumentSource.userMessage())
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void theContentIsAddedInTheOrderOfTheCallsWhateverAsksForIt() {
+    final var other = createDocument("other", "other.txt");
+    final var delivering =
+        contentToolEntry(result("c1", "alpha", objectContent(Map.of("file", other))), other);
+    final var requesting =
+        runtimeEntry(
+            "c2", "beta", RuntimeToolResult.success("loaded").withDocumentContent(idOf(known)));
+
+    final var input = builder.build(knowing(known), List.of(delivering, requesting), Set.of());
+
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+            tagOf(other, "alpha", "c1"),
+            DocumentReferences.from(known, DocumentSource.userMessage())
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void aRejectedContentRequestOfARuntimeToolDoesNotAffectTheDeliveryOfAnotherResult() {
+    final var rejected =
+        runtimeEntry(
+            "c1", "alpha", RuntimeToolResult.success("loaded").withDocumentContent(idOf(archive)));
+    final var delivering =
+        contentToolEntry(result("c2", "beta", objectContent(Map.of("file", first))), first);
+
+    final var input = builder.build(knowing(archive), List.of(rejected, delivering), Set.of());
+
+    final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
+    assertThat(results.get(0).content()).singleElement().isInstanceOf(TextContent.class);
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+            tagOf(first, "beta", "c2"));
+  }
+
+  @Test
+  void aDocumentThatAToolDeliveryRejectedIsStillRejectedForALaterRuntimeRequestAndNotedOnce() {
+    final var delivering =
+        contentToolEntry(result("c1", "alpha", objectContent(Map.of("file", archive))), archive);
+    final var deliveringAgain =
+        contentToolEntry(result("c2", "beta", objectContent(Map.of("file", archive))), archive);
+    final var requesting =
+        runtimeEntry(
+            "c3", "gamma", RuntimeToolResult.success("loaded").withDocumentContent(idOf(archive)));
+
+    final var input =
+        builder.build(knowing(archive), List.of(delivering, deliveringAgain, requesting), Set.of());
+
+    // the runtime result is an error result: no content follows
+    final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
+    assertThat(results.get(2).content()).singleElement().isInstanceOf(TextContent.class);
+    assertThat(((TextContent) results.get(2).content().getFirst()).text())
+        .contains("application/zip");
+    // one note only
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .singleElement()
+        .isInstanceOf(TextContent.class);
+  }
+
+  @Test
+  void withoutTheDocumentsFeatureTheDeliveryOfAToolIsIgnored() {
+    final var entry =
+        contentToolEntry(result("c1", "alpha", objectContent(Map.of("file", first))), first);
+
+    final var input = builder.build(WITHOUT_DOCUMENTS, List.of(entry), Set.of());
+
+    assertThat(input.messages()).hasSize(2);
+    assertThat(((UserMessage) input.messages().get(1)).content())
+        .contains(DocumentContent.documentContent(first))
+        .noneMatch(
+            content ->
+                content instanceof DocumentReferenceContent reference
+                    && reference.delivery() == DocumentDelivery.CONTENT);
+  }
+
+  @Test
+  void theResultOfARuntimeToolIsNeverDeliveredByATool() {
+    final var entry =
+        runtimeEntry(
+            "c1",
+            "alpha",
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(first))));
+
+    assertThat(entry.documentDelivery()).isEqualTo(DocumentDelivery.REFERENCE);
+    assertThat(builder.build(WITH_DOCUMENTS, List.of(entry), Set.of()).messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
   }
 }

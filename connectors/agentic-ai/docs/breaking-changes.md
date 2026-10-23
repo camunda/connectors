@@ -221,7 +221,9 @@ keeps the arguments as the model sent them.
 `ToolCallResultsInputBuilder` is a new interface (implementation `ToolCallResultsInputBuilderImpl`) that builds the tool
 call result message and the messages that follow it from the results of all tool calls of a turn, for the composer and for
 the runtime tool round of the request handler. It applies the effects of the results of runtime tools (the content of a
-known document and the response documents, see "Runtime tools and tool names") and returns the agent context with the
+known document and the response documents, see "Runtime tools and tool names") and adds the content of the documents of
+the results of process tools whose tool definition has the document delivery `content`: an `Entry` carries the delivery
+of its tool, `REFERENCE` unless the composer sets it. It returns the agent context with the
 response documents selected together with the input and the documents of the results, which the caller registers. The
 composer and the request handler take it as a constructor argument.
 
@@ -291,6 +293,20 @@ have the format of their document parameters removed for the model provider.
   binds it to a `DocumentId` or a `String` property). A call whose value is not the tag of a known document gets an error
   result and the tool does not run, and a call of a tool of the process is not activated. Only agent instances with the
   `documents` feature have document parameters.
+- A tool activity can opt its documents into the delivery `content` with the extension property
+  `io.camunda.agenticai.documents.delivery` = `content`. The agent then adds the content of the documents the tool returns
+  to the request that follows the tool results, after the content guard accepted them; a document the guard rejects stays
+  a reference and the model gets a note. A custom `GatewayToolHandler` opts its tools in with
+  `ToolDefinition.documentDelivery`; the MCP and A2A handlers set none. The result of a runtime tool is never affected: it
+  names the documents whose content it wants.
+- The v2 AI Agent templates have the dropdown *Document delivery* next to the documents of the user prompt
+  (`data.userPrompt.documentDelivery`, `reference` by default), so a process modeled with them gives the model the tags of
+  the prompt documents, which it loads with `c8__get_document`, unless the dropdown is set to `content`. A process that has
+  no value, such as one deployed before the dropdown existed and every v1 template, keeps the content of every prompt
+  document.
+- The documents with inline content of an agent instance may have 1 MiB of content in total, besides the 1 MiB limit per
+  document. A document that would exceed it fails the job with the error code `INLINE_DOCUMENTS_TOO_LARGE`; return the
+  files as Camunda documents instead.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -299,8 +315,8 @@ have the format of their document parameters removed for the model provider.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments: `AgentContext` (`documents`, a list of
   registry entries, `responseDocuments`, a list of selections with a `key`, and `features`, a list), `AgentResponse` and
-  `AgentSubProcessResponse` (`responseDocuments`, a map by key; the order of its entries is not specified) and `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by
-  default). The agent sets the kind of the tool calls of an assistant message once, when it receives the message. `RUNTIME`
+  `AgentSubProcessResponse` (`responseDocuments`, a map by key; the order of its entries is not specified), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by
+  default) and `ToolDefinition` (`documentDelivery`; the three-argument constructor remains). The agent sets the kind of the tool calls of an assistant message once, when it receives the message. `RUNTIME`
   stands for a call the connector runtime answers itself: a runtime tool owns the name, or the call of a tool of the
   process was rejected for its document parameters.
 - `AgentInput.UserPrompt`, a record without a builder, takes the `documentDelivery` as a third argument (`null` for the
@@ -309,11 +325,13 @@ have the format of their document parameters removed for the model provider.
 - The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
   request is built.
-- For agent instances created from 8.11 on, documents reach a chat model provider differently. A user prompt document keeps
-  going out as content, now after its tag as text. A document in a tool result is text, its tag, instead of a
-  `DocumentContent` or the reference JSON, and the content of a document follows in a user message only when the model
-  loaded it with `c8__get_document`. A custom `ChatModel` that handles `DocumentContent` in tool results therefore sees
-  text for these instances; instances created before keep the earlier form.
+- For agent instances created from 8.11 on, documents reach a chat model provider differently. A user prompt document goes
+  out as content, now after its tag as text, unless the process sets the delivery `reference` (the v2 templates preset it)
+  and its content is added on request or with the delivery `content`; a document of an external URL always goes out as
+  content. A document in a tool result is text, its tag, instead of a `DocumentContent` or the reference JSON, and the
+  content of a document follows in a user message only when the model loaded it with `c8__get_document` or the tool has
+  the delivery `content`. A custom `ChatModel` that handles `DocumentContent` in tool results therefore sees text for
+  these instances; instances created before keep the earlier form.
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
@@ -355,6 +373,8 @@ have the format of their document parameters removed for the model provider.
   missing value reads as `PROCESS`, so state written by 8.10 loads unchanged. The agent never computes the kind again, so a
   custom `ConversationStore` must keep it: a store that drops it turns a runtime tool call into a process tool call that
   never gets a result. Serializing the `ToolCall` record with Jackson keeps it.
+- A stored `ToolDefinition` (`AgentContext.toolDefinitions`) can carry `documentDelivery`; it is omitted when absent and
+  part of the configuration fingerprint when set, and an 8.10 definition without it reads as the delivery `reference`.
 - A stored message can hold a `DocumentReferenceContent`, which a custom `ConversationStore` must keep like any other
   content block (serializing `Content` with Jackson keeps it). What a reference stands for is in the registry of the agent
   context, not in the store, so code that rewrites the agent context must keep `documents` and `responseDocuments`.

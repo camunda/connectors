@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
@@ -89,7 +90,8 @@ public record AgentConfiguration(
    * immutable map whose top-level iteration order is unspecified and differs between JVMs, so the
    * top-level keys of the schema are sorted. Everything below keeps its order: the order of the
    * parameters, of the tools and of values such as {@code required} is part of what the model sees,
-   * so a change of it changes the fingerprint.
+   * so a change of it changes the fingerprint. The document delivery of a tool is part of the
+   * attributes, so a tool that gets another delivery changes the fingerprint.
    */
   public String fingerprint() {
     try {
@@ -110,6 +112,13 @@ public record AgentConfiguration(
   }
 
   private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
-    return Arrays.asList(tool.name(), tool.description(), new TreeMap<>(tool.inputSchema()));
+    final var input =
+        new ArrayList<@Nullable Object>(
+            Arrays.asList(tool.name(), tool.description(), new TreeMap<>(tool.inputSchema())));
+    // a definition without a document delivery hashes as it does without the property
+    if (tool.documentDelivery() != null) {
+      input.add(tool.documentDelivery());
+    }
+    return input;
   }
 }

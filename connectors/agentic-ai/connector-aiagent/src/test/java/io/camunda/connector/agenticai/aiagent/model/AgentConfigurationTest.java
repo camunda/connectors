@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.v1.OpenAiProviderConfiguration.OpenAiConnection;
@@ -355,6 +356,40 @@ class AgentConfigurationTest {
       // silently suppress a real update or dedup two distinct configurations
       final var fingerprint = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
       assertThat(fingerprint).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void toolWithoutDocumentDeliveryKeepsItsFingerprint() {
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("getWeather")
+                  .description("Get the weather forecast")
+                  .inputSchema(Map.of("type", "object", "required", List.of("city")))
+                  .build());
+
+      assertThat(configuration("gpt-4o", "Be nice.", 10, tools).fingerprint())
+          .isEqualTo("7134811b1582130d22accc354ebb80f5f20cf548916668067fb68fc963854813");
+    }
+
+    @Test
+    void documentDeliveryOfAToolChangesTheFingerprint() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("getWeather")
+              .description("Get the weather forecast")
+              .inputSchema(Map.of("type", "object", "required", List.of("city")))
+              .build();
+
+      final var byReference = configuration("gpt-4o", "Be nice.", 10, List.of(tool));
+      final var content =
+          configuration(
+              "gpt-4o",
+              "Be nice.",
+              10,
+              List.of(tool.withDocumentDelivery(DocumentDelivery.CONTENT)));
+
+      assertThat(content.fingerprint()).isNotEqualTo(byReference.fingerprint());
     }
   }
 }
