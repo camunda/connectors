@@ -334,6 +334,10 @@ have the format of their document parameters removed for the model provider.
   (`DocumentParameterSchema`). The stored definition keeps its description as authored; the model providers get the
   description with a hint appended and without the format. A gateway handler that defines its tools itself can declare
   document parameters in them and receives the Camunda document references in the arguments of a call.
+- A parameter that takes text or a document is a union schema (`anyOf` or `oneOf`, one alternative a document schema,
+  created with `RuntimeToolSchemas.textOrDocument` or `DocumentParameterSchema.textOrDocumentSchema`). Only a value that
+  is exactly one `<doc />` tag is a document; every other value is passed as it is. `RuntimeToolCall.argumentsAs` binds
+  such a parameter to a property of the type `Object`, which receives a `DocumentId` or the value the model sent.
 
 <a id="persisted-data-8-11"></a>
 

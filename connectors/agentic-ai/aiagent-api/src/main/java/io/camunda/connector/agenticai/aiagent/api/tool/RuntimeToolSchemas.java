@@ -12,9 +12,9 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Creates the schema of a parameter of a runtime tool that carries a document, so that nobody
- * writes the format that marks it by hand. Put the schema into the {@code properties} of the input
- * schema of the {@link RuntimeTool#definition() definition}.
+ * Creates the schemas of the parameters of a runtime tool that carry a document, so that nobody
+ * writes the format that marks them by hand. Put the schema into the {@code properties} of the
+ * input schema of the {@link RuntimeTool#definition() definition}.
  *
  * <p>{@link Experimental}, see {@link RuntimeTool}.
  *
@@ -39,5 +39,18 @@ public final class RuntimeToolSchemas {
    */
   public static Map<String, Object> document(@Nullable String description) {
     return DocumentParameterSchema.documentSchema(description);
+  }
+
+  /**
+   * The schema of a parameter that is text or a document. The call holds a {@link
+   * io.camunda.connector.agenticai.aiagent.model.document.DocumentId} when the model passed exactly
+   * one document tag and the text otherwise; a tag of an unknown document answers the call with an
+   * error result before the tool runs.
+   *
+   * @param description what the parameter is for, shown to the model, or {@code null}
+   * @return an insertion-ordered map
+   */
+  public static Map<String, Object> textOrDocument(@Nullable String description) {
+    return DocumentParameterSchema.textOrDocumentSchema(description);
   }
 }

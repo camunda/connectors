@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.tools.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -421,6 +422,71 @@ class AdHocToolSchemaGeneratorTest {
           "required": ["doc", "note"]
         }
         """);
+  }
+
+  @Test
+  void mapsTheDocumentTypeInsideAlternativesToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.body",
+                    "The body",
+                    "string",
+                    Map.of("anyOf", List.of(Map.of("type", "string"), Map.of("type", "document")))),
+                new AdHocToolElementParameter(
+                    "toolCall.value",
+                    "The value",
+                    null,
+                    Map.of(
+                        "oneOf", List.of(Map.of("type", "number"), Map.of("type", "document"))))));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "body": {
+              "anyOf": [
+                {"type": "string"},
+                {"type": "string", "format": "camunda-document-id"}
+              ],
+              "type": "string",
+              "description": "The body"
+            },
+            "value": {
+              "oneOf": [
+                {"type": "number"},
+                {"type": "string", "format": "camunda-document-id"}
+              ],
+              "description": "The value"
+            }
+          },
+          "required": ["body", "value"]
+        }
+        """);
+  }
+
+  @Test
+  void stillDefaultsTheTypeOfAnAlternativesSchemaWithoutADocumentToString() {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter(
+                    "toolCall.value",
+                    null,
+                    null,
+                    Map.of("anyOf", List.of(Map.of("type", "number"), Map.of("type", "string"))))));
+
+    assertThat(generator.generateToolSchema(element))
+        .extracting(schema -> ((Map<?, ?>) schema.get("properties")).get("value"))
+        .isEqualTo(
+            Map.of(
+                "anyOf",
+                List.of(Map.of("type", "number"), Map.of("type", "string")),
+                "type",
+                "string"));
   }
 
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)

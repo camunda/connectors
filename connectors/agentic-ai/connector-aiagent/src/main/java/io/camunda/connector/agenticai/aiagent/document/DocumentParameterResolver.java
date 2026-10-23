@@ -27,13 +27,18 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Resolves the document parameters of a tool call. The document parameters are the schema nodes
- * with the document format of the tool's input schema (see {@link DocumentParameterSchema}), found
- * at the top level, as array items and nested in objects; the arguments of a tool call mirror the
- * schema, so each such node addresses the argument values that carry a document.
+ * with the document format of the tool's input schema and its union parameters (see {@link
+ * DocumentParameterSchema}), found at the top level, as array items and nested in objects; the
+ * arguments of a tool call mirror the schema, so each such node addresses the argument values that
+ * carry a document.
  *
- * <p>The model passes the {@code <doc />} tag of a known document: a value that is exactly one tag,
- * surrounded by whitespace at most, stands for the document of its {@code id} attribute. Any other
- * value is invalid, also a string that equals the id of a known document.
+ * <p>For a document parameter the model passes the {@code <doc />} tag of a known document: a value
+ * that is exactly one tag, surrounded by whitespace at most, stands for the document of its {@code
+ * id} attribute. Any other value is invalid, also a string that equals the id of a known document.
+ *
+ * <p>For a union parameter only a value that is exactly one tag stands for a document. Any other
+ * value is left as it is: a plain string, also one that equals the id of a known document, text
+ * that holds a tag, and a value that is not a string.
  *
  * <p>Every document is replaced by the Camunda document reference JSON of the registered document
  * ({@link #resolve}), or, for a runtime tool that looks the documents up itself, by its {@link
@@ -108,9 +113,10 @@ public final class DocumentParameterResolver {
 
   /**
    * Resolves the document parameters of {@code toolCall}. A parameter that is missing or {@code
-   * null} is left as is. A value that is not exactly one tag with the id of a registered document
-   * (not a string, a bare id, text around a tag, more than one tag, an unknown id) is reported as a
-   * problem naming the parameter.
+   * null} is left as is. For a document parameter, a value that is not exactly one tag with the id
+   * of a registered document (not a string, a bare id, text around a tag, more than one tag, an
+   * unknown id) is reported as a problem naming the parameter. For a union parameter, only a tag
+   * with an unknown id is reported.
    */
   public static Resolution resolve(
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -121,7 +127,8 @@ public final class DocumentParameterResolver {
 
   /**
    * Validates the document parameters of {@code toolCall} like {@link #resolve}, but replaces each
-   * valid value by the {@link DocumentId} of its document: a tag becomes the id of the tag.
+   * valid value by the {@link DocumentId} of its document: a tag becomes the id of the tag. A union
+   * parameter that holds text stays that text.
    */
   public static Resolution resolveIds(
       ToolCall toolCall, ToolDefinition toolDefinition, DocumentRegistry registry) {
@@ -169,7 +176,9 @@ public final class DocumentParameterResolver {
       List<String> problems) {
     final var steps = parameter.path();
     if (index == steps.size()) {
-      return resolveId(node, path, registry, replacement, problems);
+      return parameter.union()
+          ? resolveUnion(node, path, registry, replacement, problems)
+          : resolveId(node, path, registry, replacement, problems);
     }
 
     return switch (steps.get(index)) {
@@ -217,6 +226,31 @@ public final class DocumentParameterResolver {
     };
   }
 
+  /**
+   * A union parameter: only a value that is exactly one tag stands for a document, every other
+   * value is returned as it is.
+   */
+  private static @Nullable Object resolveUnion(
+      @Nullable Object value,
+      String path,
+      DocumentRegistry registry,
+      Function<DocumentRegistryEntry, Object> replacement,
+      List<String> problems) {
+    if (!(value instanceof String text)) {
+      return value;
+    }
+    final var tagId = DocumentTag.idOfSingleTag(text);
+    if (tagId == null) {
+      return text;
+    }
+    final var entry = registry.findById(tagId);
+    if (entry.isEmpty()) {
+      problems.add(unknownUnionTagProblem(path, tagId));
+      return text;
+    }
+    return replacement.apply(entry.get());
+  }
+
   private static Object resolveId(
       @Nullable Object value,
       String path,
@@ -244,5 +278,11 @@ public final class DocumentParameterResolver {
     return ("Parameter '%s' must be the <doc /> tag of a known document, exactly as you read it,"
             + " got '%s'.")
         .formatted(path, value);
+  }
+
+  private static String unknownUnionTagProblem(String path, DocumentId id) {
+    return ("Parameter '%s' holds a <doc /> tag with the id '%s'. That is not a known document."
+            + " Pass the tag of a document exactly as you read it, or pass other text.")
+        .formatted(path, id);
   }
 }
