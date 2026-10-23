@@ -9,15 +9,16 @@ package io.camunda.connector.box;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.box.model.BoxCredentialConfiguration;
 import io.camunda.connector.box.model.BoxRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "Box",
-    inputVariables = {"authentication", "operation", "documentReturnFormat"},
+    inputVariables = {"boxCredential", "authentication", "operation", "documentReturnFormat"},
     type = "io.camunda:box:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.box",
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",
@@ -33,6 +34,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       "document management"
     },
     inputDataClass = BoxRequest.class,
+    configurations = {BoxCredentialConfiguration.class},
     version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
