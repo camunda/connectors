@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -221,6 +222,8 @@ public class AgentInstanceHistoryMapper {
       case TextContent textContent -> AgentInstanceHistoryContent.text(textContent.text());
       case ObjectContent objectContent -> objectHistoryContent(objectContent.content());
       case DocumentContent documentContent -> documentHistoryContent(documentContent);
+      case DocumentReferenceContent reference ->
+          AgentInstanceHistoryContent.text(reference.toTag());
       case ReasoningContent reasoningContent -> reasoningHistoryContent(reasoningContent);
       case ProviderContent providerContent -> providerHistoryContent(providerContent);
     };

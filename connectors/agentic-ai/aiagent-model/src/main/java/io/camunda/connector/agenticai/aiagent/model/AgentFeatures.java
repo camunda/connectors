@@ -18,6 +18,13 @@ public final class AgentFeatures {
    */
   public static final String RUNTIME_TOOLS = "runtimeTools";
 
+  /**
+   * Keeps the documents of the conversation in the document registry of the agent context and shows
+   * the model a tag for each of them. An instance created without it keeps the document handling it
+   * was created with.
+   */
+  public static final String DOCUMENTS = "documents";
+
   private AgentFeatures() {}
 
   /** The features of an agent instance that is created now. */
