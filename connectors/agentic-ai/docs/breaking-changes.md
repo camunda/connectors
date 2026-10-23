@@ -215,6 +215,12 @@ itself and never hands them to the process. The response carries the Camunda doc
 tags in the arguments of these calls (`DocumentParameterResolver.resolveProcessCall`), and the stored assistant message
 keeps the arguments as the model sent them.
 
+`ToolCallResultsInputBuilder` is a new interface (implementation `ToolCallResultsInputBuilderImpl`) that builds the tool
+call result message and the messages that follow it from the results of all tool calls of a turn, for the composer and for
+the runtime tool round of the request handler. It registers the documents of the results and applies the effects of the
+results of runtime tools (the content of a known document, see "Runtime tools and tool names"). The composer and the
+request handler take it as a constructor argument.
+
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the interfaces directly, add the new method, handle the new variant, hand only the process
 tool calls to the process and resolve their document parameters.
@@ -238,11 +244,16 @@ decorate them instead.
 ### Replaceable bean constructors
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
-`RuntimeToolRegistry`, a `RuntimeToolExecutor` and a `DocumentExpander` after the agent instance client. The constructor of
-`AgentToolsResolverImpl` takes a `RuntimeToolRegistry`, and the constructor of `RuntimeToolRegistryImpl` takes the
-`ObjectMapper` that reads a document from its reference. The auto-configuration provides the beans `RuntimeToolRegistry`,
-`RuntimeToolExecutor` and `DocumentExpander`, all `@ConditionalOnMissingBean`. A custom bean built with `new` needs the
-extra arguments; inject them as beans.
+`RuntimeToolRegistry`, a `RuntimeToolExecutor`, a `ToolCallResultsInputBuilder` and a `DocumentExpander` after the agent
+instance client. `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and a
+`DocumentContentGuard`, the check of the documents whose content the agent adds, and `ToolCallResultsInputBuilderImpl`
+takes the `DocumentContentGuard` and the `ObjectMapper` that reads a document from its reference. The size limits of the
+guard are set by the properties `camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the
+[reference](reference/ai-agent.md)). The constructor of `AgentToolsResolverImpl` takes a `RuntimeToolRegistry`, and the
+constructor of `RuntimeToolRegistryImpl` takes the `ObjectMapper` that reads a document from its reference. The
+auto-configuration provides the beans `RuntimeToolRegistry`, `RuntimeToolExecutor`, `ToolCallResultsInputBuilder`,
+`DocumentExpander`, `DocumentContentGuard` and the built-in runtime tool, all `@ConditionalOnMissingBean`. A custom bean
+built with `new` needs the extra arguments; inject them as beans.
 
 ### Conversation window
 
@@ -253,18 +264,21 @@ have the format of their document parameters removed for the model provider.
 
 ### Runtime tools and tool names
 
-- Agent instances created from 8.11 on have the `runtimeTools` feature. An ad-hoc tool element of the process
+- Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
+  runtime tool `c8__get_document`, which the agent runs itself. An ad-hoc tool element of the process
   that has the name of a registered runtime tool makes tool discovery and process migration fail with the error code
   `RUNTIME_TOOL_NAME_CONFLICT`, whether the tool is enabled or not. The agent also fails with this error code when the
-  tools of a job contain such a name. The connector registers no runtime tool itself, so only the runtime tools of your
-  own runtime matter. Rename the element. Agent instances created before keep their behavior: they are offered no runtime
-  tool and no name is checked.
+  tools of a job contain such a name. Rename the element. Agent instances created before keep their behavior: they are
+  offered no runtime tool and no name is checked.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolCall, RuntimeToolContext)`) and expose it as a Spring bean (see §25.4 of the
   [reference](reference/ai-agent.md)). `RuntimeToolContext.documents()` gives the documents the agent knows when the batch
   of calls starts; a tool can return documents in its result, which the agent registers after all calls of the message
   ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
-  `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
+  `Error`); a `Success` can ask the agent to add the content of a known document to the request that follows the tool
+  results (`withDocumentContent(DocumentId)`), which the agent applies after all calls of the message ran, in call order,
+  and after its content guard accepted the document. An error result has no effects, and `AgentDocument` gains
+  `contentInConversation()`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
   registered runtime tool that is not enabled when it runs gets an error result and does not go to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
   `RuntimeToolSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
@@ -283,13 +297,17 @@ have the format of their document parameters removed for the model provider.
   default). The agent sets the kind of the tool calls of an assistant message once, when it receives the message. `RUNTIME`
   stands for a call the connector runtime answers itself: a runtime tool owns the name, or the call of a tool of the
   process was rejected for its document parameters.
+- `AgentInput.UserPrompt`, a record without a builder, takes the `documentDelivery` as a third argument (`null` for the
+  earlier behavior: the content of every document). `PromptConfiguration.UserPromptConfiguration` gains `documentDelivery`
+  too; the two-argument constructor remains.
 - The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
   request is built.
-- For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before. A document in a tool result is text, its tag, instead of a `DocumentContent` or
-  the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
-  therefore sees text for these instances; instances without the feature keep the earlier form.
+- For agent instances created from 8.11 on, documents reach a chat model provider differently. A user prompt document keeps
+  going out as content, now after its tag as text. A document in a tool result is text, its tag, instead of a
+  `DocumentContent` or the reference JSON, and the content of a document follows in a user message only when the model
+  loaded it with `c8__get_document`. A custom `ChatModel` that handles `DocumentContent` in tool results therefore sees
+  text for these instances; instances created before keep the earlier form.
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
@@ -301,7 +319,10 @@ have the format of their document parameters removed for the model provider.
 - New in the libraries: the persisted document state (`DocumentRegistry`, `DocumentRegistryEntry`, `DocumentSource`) is in
   `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`,
-  `RuntimeToolSchemas`) is in `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolSchemas`) is in `aiagent.api.tool` of `aiagent-api`. `RuntimeToolExecutor.execute` takes the ids of the
+  documents whose content the model reads as a last parameter, and a `RuntimeToolExecution` carries the
+  `RuntimeToolResult` the tool returned (`result()`); the tool call result that becomes part of the conversation is
+  `toolCallResult()`.
 - A document parameter in a tool definition is a string schema with the format `camunda-document-id`
   (`DocumentParameterSchema`). The stored definition keeps its description as authored; the model providers get the
   description with a hint appended and without the format. A gateway handler that defines its tools itself can declare

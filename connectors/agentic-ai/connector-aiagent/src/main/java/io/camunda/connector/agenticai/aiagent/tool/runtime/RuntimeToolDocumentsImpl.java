@@ -12,35 +12,43 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** The documents of a registry, as a runtime tool reads them. */
 public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
   private final DocumentRegistry registry;
+  private final Set<DocumentId> idsWithContent;
   private final ObjectMapper objectMapper;
 
   /**
    * @param registry the documents the agent knows
+   * @param idsWithContent the ids of the documents whose content the model reads
    * @param objectMapper the mapper that reads a document from its reference
    */
-  public RuntimeToolDocumentsImpl(DocumentRegistry registry, ObjectMapper objectMapper) {
+  public RuntimeToolDocumentsImpl(
+      DocumentRegistry registry, Set<DocumentId> idsWithContent, ObjectMapper objectMapper) {
     this.registry = registry;
+    this.idsWithContent = Set.copyOf(idsWithContent);
     this.objectMapper = objectMapper;
   }
 
   @Override
   public Optional<AgentDocument> find(DocumentId id) {
-    return registry.findById(id).map(entry -> new AgentDocumentImpl(entry, objectMapper));
+    return registry.findById(id).map(this::documentOf);
   }
 
   @Override
   public List<AgentDocument> all() {
-    return registry.entries().stream()
-        .<AgentDocument>map(entry -> new AgentDocumentImpl(entry, objectMapper))
-        .toList();
+    return registry.entries().stream().map(this::documentOf).toList();
+  }
+
+  private AgentDocument documentOf(DocumentRegistryEntry entry) {
+    return new AgentDocumentImpl(entry, idsWithContent.contains(entry.id()), objectMapper);
   }
 
   @Override

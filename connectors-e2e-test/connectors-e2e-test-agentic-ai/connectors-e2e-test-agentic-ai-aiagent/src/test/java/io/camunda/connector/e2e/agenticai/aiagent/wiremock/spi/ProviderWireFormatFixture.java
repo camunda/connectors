@@ -65,6 +65,15 @@ public interface ProviderWireFormatFixture {
   }
 
   /**
+   * Whether the documents of the user prompt go out as content. A template that has no document
+   * delivery property for the user prompt leaves the delivery unset, and an unset delivery adds the
+   * content of every prompt document. No template has the property.
+   */
+  default boolean promptDocumentsAsContent() {
+    return true;
+  }
+
+  /**
    * Wires the WireMock scenario chain returning each turn's response in order, mirroring the
    * conversation loop the connector is expected to drive.
    */
@@ -72,6 +81,15 @@ public interface ProviderWireFormatFixture {
 
   /** Reads and parses all recorded model-call requests, oldest first. */
   List<RecordedChatRequest> recordedRequests();
+
+  /**
+   * Whether the stubbed responses of this provider can carry document id placeholders (see {@code
+   * DocumentIdPlaceholderTransformer}). A provider that answers with a binary event stream cannot:
+   * its frames carry lengths and checksums.
+   */
+  default boolean supportsDocumentIdPlaceholders() {
+    return true;
+  }
 
   default int modelCallCount() {
     return recordedRequests().size();

@@ -111,6 +111,38 @@ Alternatives: *register the documents while the calls run* lets a call see the d
 contract to a sequential execution; *a method of the tool context that registers a document* gives a tool write access
 to the state of the agent, which ADR 016 avoids.
 
+### State changes only through the named effects
+
+A runtime tool does not change the agent context ([ADR 016](016-runtime-tools.md)). What the document flow needs beyond
+the content of a result is a request to the agent, and a successful result names it: add the content of a known document
+to the request that follows the tool results. The effects belong to a successful result only. An error result has none,
+so a failed call never applies half of what it asked for.
+
+The agent applies the effects after all calls of a message ran, in the order of the calls, in the place that registers
+the returned documents and builds the input of the next turn. The composer of a mixed batch and the runtime tool round of
+a job share that place, so both give the same input. A call neither sees nor depends on the effect of another call, which
+follows the contract of ADR 016. Whether an effect is applied depends on the agent context, the results and the documents
+whose content the model reads as of the start of the batch only, so a job that runs again computes the same input. A
+result can name a document it returns itself. A document that nobody knows is a defect of the tool and fails the job. The
+content guard checks every document: when it rejects one, the whole result becomes an error result and the documents it
+returned are not registered. A document whose content the model reads already, or that an earlier result of the same
+message asked for, is not added again.
+
+Alternatives:
+
+* *A general update of the agent context* (a function from the context to the context). Rejected: a tool could rewrite
+  anything, including metrics and persisted tool definitions; effects could not be discarded with a failed attempt or
+  applied in a defined order; and the SPI would be bound to the whole shape of the context.
+* *State per tool.* Rejected: it needs a namespace in the agent context and a migration story, and no tool needs it. The
+  author keeps no state in the bean, because the agent runs on any worker.
+* *A property of the agent context, set by a tool.* Deferred: the properties of the context hold the state of the
+  gateway tools (the MCP and A2A client elements), and a tool needs its own key namespace first. It is added when a tool
+  needs it.
+* *Apply the effects of a call before the next call runs.* Rejected: a call would see what earlier calls did, which ties
+  the contract to a sequential execution.
+* *A method of the tool context that adds the content right away.* Rejected: it gives a tool write access to the state of
+  the agent while it runs, and a failed attempt would have to undo it.
+
 ### The model reads short tags only
 
 The model sees a self-closing `<doc/>` tag with the id and a few attributes (file name, content type and size when
@@ -225,6 +257,14 @@ writes tags in prose for other reasons; *an opt-in response option* is not neede
 
 Both tools are offered to every new instance and cannot be switched off yet (see Follow-up). They use only the runtime
 tool SPI of ADR 016.
+
+### Built-in tools use the public SPI
+
+The connector ships `c8__get_document` as a built-in runtime tool. It is an ordinary bean of the SPI, depends only on the
+API, the model and a few libraries (an architecture test enforces it), and is replaced by registering a bean with its
+bean name. A bean with another bean name but the name of a built-in tool fails the startup, because tool names are unique.
+The core names no built-in tool in its own code. A built-in tool is enabled for the agent instances that have the feature
+it needs, as a custom tool would be: `c8__get_document` works with the registry, so it needs the `documents` feature.
 
 ### Where content comes from, and how tool results render
 

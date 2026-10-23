@@ -10,12 +10,16 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolResultTest {
+
+  private static final DocumentId DOC_1 = DocumentId.of("doc-1");
+  private static final DocumentId DOC_2 = DocumentId.of("doc-2");
 
   @Test
   void aTextBecomesTheContent() {
@@ -70,6 +74,42 @@ class RuntimeToolResultTest {
 
     assertThat(result.content()).containsExactly(textContent("a"));
     assertThatThrownBy(() -> result.content().add(textContent("c")))
+        .isInstanceOf(UnsupportedOperationException.class);
+  }
+
+  @Test
+  void aSuccessfulResultKeepsTheDocumentContentEffectsInTheOrderTheyWereNamed() {
+    final var result =
+        RuntimeToolResult.success("ok").withDocumentContent(DOC_2).withDocumentContent(DOC_1);
+
+    assertThat(result.documentContent()).containsExactly(DOC_2, DOC_1);
+    assertThat(result.content()).containsExactly(textContent("ok"));
+  }
+
+  @Test
+  void aSuccessfulResultWithoutEffectsNamesNoDocument() {
+    assertThat(RuntimeToolResult.success("ok").documentContent()).isEmpty();
+  }
+
+  @Test
+  void anErrorResultHasNoEffects() {
+    assertThat(RuntimeToolResult.error("no").documentContent()).isEmpty();
+  }
+
+  @Test
+  void aWitherLeavesTheOriginalResultUnchanged() {
+    final var original = RuntimeToolResult.success("ok");
+
+    original.withDocumentContent(DOC_1);
+
+    assertThat(original.documentContent()).isEmpty();
+  }
+
+  @Test
+  void theEffectsAreACopyThatCannotBeChanged() {
+    final var result = RuntimeToolResult.success("ok").withDocumentContent(DOC_1);
+
+    assertThatThrownBy(() -> result.documentContent().add(DOC_2))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 }

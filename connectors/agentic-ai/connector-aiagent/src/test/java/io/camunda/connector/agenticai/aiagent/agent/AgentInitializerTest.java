@@ -171,7 +171,7 @@ class AgentInitializerTest {
     }
 
     @Test
-    void shouldCreateNewAgentInstanceWithTheRuntimeToolsFeature() {
+    void shouldCreateNewAgentInstanceWithTheRuntimeToolsAndDocumentsFeatures() {
       when(toolsResolver.loadAdHocToolsSchema(
               any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
@@ -183,8 +183,9 @@ class AgentInitializerTest {
               ReadyToConverse.class,
               res -> {
                 assertThat(res.agentContext().features())
-                    .containsExactly(AgentFeatures.RUNTIME_TOOLS);
+                    .containsExactly(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS);
                 assertThat(res.agentContext().supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+                assertThat(res.agentContext().supports(AgentFeatures.DOCUMENTS)).isTrue();
               });
     }
 

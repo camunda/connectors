@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.chatmodel.provider;
+package io.camunda.connector.agenticai.aiagent.document;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
@@ -16,10 +16,10 @@ import org.apache.hc.core5.http.ContentType;
 import org.jspecify.annotations.Nullable;
 
 /**
- * MIME-type primitives shared by every provider's document content-type classification: the parts
- * that are byte-identical everywhere. How a provider buckets a document from there - which native
- * block/part shape a MIME type maps to - differs per provider and stays in that provider's own
- * classifier.
+ * MIME-type primitives shared by every provider's document content-type classification and by the
+ * {@link DocumentContentGuard}: the parts that are byte-identical everywhere. How a provider
+ * buckets a document from there - which native block/part shape a MIME type maps to - differs per
+ * provider and stays in that provider's own classifier.
  */
 public final class DocumentMimeTypes {
 
