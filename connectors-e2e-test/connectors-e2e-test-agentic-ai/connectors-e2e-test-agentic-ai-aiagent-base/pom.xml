@@ -39,5 +39,11 @@
       <artifactId>mockito-core</artifactId>
       <scope>compile</scope>
     </dependency>
+    <!-- Awaitility's overloads that take a Hamcrest matcher need the matcher class at compile time -->
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 </project>
