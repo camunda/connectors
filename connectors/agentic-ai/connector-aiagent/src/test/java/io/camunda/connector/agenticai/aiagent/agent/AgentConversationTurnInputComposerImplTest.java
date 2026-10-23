@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
@@ -666,17 +667,17 @@ class AgentConversationTurnInputComposerImplTest {
 
   private static List<RuntimeToolExecution> executionsOf(
       List<ToolCall> calls, ToolCallResultContent... results) {
-    final var now = OffsetDateTime.now();
     return Arrays.stream(results)
-        .map(result ->
-            new RuntimeToolExecution(
-                calls.stream()
-                    .filter(call -> call.id().equals(result.id()))
-                    .findFirst()
-                    .orElseThrow(),
-                result,
-                now,
-                now))
+        .map(
+            result ->
+                new RuntimeToolExecution(
+                    calls.stream()
+                        .filter(call -> call.id().equals(result.id()))
+                        .findFirst()
+                        .orElseThrow(),
+                    RuntimeToolResult.success(result.content()),
+                    result.completedAt(),
+                    result.completedAt()))
         .toList();
   }
 

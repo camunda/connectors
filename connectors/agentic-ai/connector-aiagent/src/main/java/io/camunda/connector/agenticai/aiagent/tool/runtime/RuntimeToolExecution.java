@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import java.time.OffsetDateTime;
@@ -14,7 +15,18 @@ import java.time.OffsetDateTime;
  * The execution of one runtime tool call: the result for the conversation and when it was executed.
  */
 public record RuntimeToolExecution(
-    ToolCall call,
-    ToolCallResultContent result,
-    OffsetDateTime startedAt,
-    OffsetDateTime completedAt) {}
+    ToolCall call, RuntimeToolResult result, OffsetDateTime startedAt, OffsetDateTime completedAt) {
+
+  /**
+   * The tool call result that becomes part of the conversation: the content of {@link #result()}
+   * for the call, completed when the execution completed.
+   */
+  public ToolCallResultContent toolCallResult() {
+    return ToolCallResultContent.builder()
+        .id(call.id())
+        .name(call.name())
+        .content(result.content())
+        .completedAt(completedAt)
+        .build();
+  }
+}
