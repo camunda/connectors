@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -36,6 +37,7 @@ public class ContentConverterImpl implements ContentConverter {
           new dev.langchain4j.data.message.TextContent(textContent.text());
       case DocumentContent documentContent ->
           documentToContentConverter.convert(documentContent.document());
+      case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(
               Objects.requireNonNull(convertToString(objectContent.content())));

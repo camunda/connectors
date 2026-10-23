@@ -17,6 +17,7 @@ import com.openai.models.responses.ResponseInputTextContent;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.DocumentMimeTypes;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
@@ -52,6 +53,7 @@ public class OpenAiContentConverter {
                 ResponseInputContent.ofInputText(
                     ResponseInputText.builder().text(text.text()).build()));
         case DocumentContent doc -> parts.add(responsesDocumentPart(doc));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj ->
             parts.add(
                 ResponseInputContent.ofInputText(
@@ -93,6 +95,7 @@ public class OpenAiContentConverter {
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
                     ResponseInputTextContent.builder().text(writeAsJson(doc.document())).build()));
+        case DocumentReferenceContent reference -> throw reference.notExpandedFailure();
         case ObjectContent obj ->
             items.add(
                 ResponseFunctionCallOutputItem.ofInputText(
