@@ -762,6 +762,13 @@ class RuntimeToolsTest {
             "The call 'r1' of the tool 'c8__read_file' is admitted, but its document parameters are invalid: "
                 + BOGUS_FILE);
     assertThat(runs).hasValue(0);
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.toolCallResult().id()).isEqualTo("r1");
+          assertThat(text(execution)).isEqualTo(BOGUS_FILE);
+        });
   }
 
   @Test
@@ -832,7 +839,7 @@ class RuntimeToolsTest {
         toolsOf(tool)
             .execute(
                 WITH_MEMORY,
-                NEW_INSTANCE,
+                AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
                 List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
