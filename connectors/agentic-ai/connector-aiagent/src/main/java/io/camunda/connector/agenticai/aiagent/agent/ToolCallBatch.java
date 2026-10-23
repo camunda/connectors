@@ -187,5 +187,33 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
             throw UnsupportedDocumentReferenceException.inToolCallResult(result.name(), document);
           });
     }
+
+    /**
+     * Checks a result of a runtime tool for an agent instance that tracks its documents: its
+     * documents are Camunda documents, and its effects name documents the agent knows or the result
+     * returns. A result that breaks this is a defect of its tool.
+     *
+     * @param known the documents the agent knows as of the start of the batch
+     * @throws UnsupportedDocumentReferenceException if a document of the result is not a Camunda
+     *     document
+     * @throws IllegalArgumentException if an effect names a document that is neither known nor
+     *     returned by the result
+     */
+    void requireWellFormed(AgentDocuments known) {
+      requireCamundaDocuments();
+      final var returned = documents.stream().map(AgentDocumentId::of).collect(Collectors.toSet());
+      for (final var effect : effects) {
+        final var id =
+            switch (effect) {
+              case ToolCallEffect.AddDocumentContent add -> add.id();
+              case ToolCallEffect.SelectResponseDocument select -> select.selection().document();
+            };
+        if (known.find(id).isEmpty() && !returned.contains(id)) {
+          throw new IllegalArgumentException(
+              "The runtime tool '%s' refers to the document '%s', which the agent does not know and the result does not return"
+                  .formatted(result.name(), id));
+        }
+      }
+    }
   }
 }
