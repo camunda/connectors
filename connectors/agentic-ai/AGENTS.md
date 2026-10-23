@@ -238,20 +238,28 @@ High-frequency traps (detail behind each link):
   result, and the registry in `AgentContext.documents` holds what the references stand for. The window decorator
   (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
   in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
-  document is a reference with the delivery `content` (an unset delivery, the delivery of every user prompt since no
-  template sets one, adds the content of every document without the guard; an explicit `reference` gives tags, an explicit
-  `content` runs the guard and leaves a rejected document a reference with a note, and the documents of an external URL
-  always go out as content). The documents a runtime tool returns are registered, and the effects of its result applied
-  (the content of a document added, a document selected for the final response), after the calls of a message ran, in call
-  order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch starts. The effects are
+  document is a reference whose delivery the process chooses with the dropdown `data.userPrompt.documentDelivery` (`reference`
+  by default, or `content`; the v2 templates have it, the frozen v1 templates leave it out through `v1OmittedPropertyIds`
+  in the pom). An unset delivery (a process modeled before the dropdown, every v1 template) adds the content of every document without the
+  guard; an explicit `reference` gives tags, an explicit `content` runs the guard and leaves a rejected document a reference
+  with a note, and the documents of an external URL always go out as content. The same opt-in exists for the documents a
+  process tool returns: the extension property `io.camunda.agenticai.documents.delivery` = `content` on the tool activity
+  (`ToolDefinition.documentDelivery`, set by `AdHocToolsSchemaResolver`, or by a gateway handler on its definitions) makes
+  the agent add the content of the documents of its results through the same guard, with a note for a rejected document and
+  never an error. The documents a runtime tool returns are registered, and the effects of the results applied (the content of a document a
+  runtime tool names or of the documents of a tool with the delivery `content`, a document selected for the final response),
+  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known
+  when the batch starts. The delivery of a tool concerns the results of process tools only. The effects of a runtime tool are
   declared on `RuntimeToolResult.Success` only; the builder returns the agent context with the response documents
   selected (`AgentContext.responseDocuments`, which every final response carries as `responseDocuments`) together with the
   input, so the composer (`CompositionResult.NextTurn.agentContext`) and the runtime tool round of the handler persist the
   same context. The model sees a `<doc/>` tag for the documents of a tool result and gets content only through
-  `c8__get_document`: the agent runs the content guard (`DocumentContentGuard`, limits in
-  `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
-  turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
-  into an error result, no incident. Passing a tag to a tool never adds content. A tool parameter of the type `document` of `fromAi` holds a tag the model passed, and a parameter that takes text or a
+  `c8__get_document` or the delivery `content`: the agent runs the content guard (`DocumentContentGuard`, limits in
+  `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content is added, and
+  turns a result with a document that a tool asked to load and that fails it (an external document, a type no provider
+  renders, a size above the limit) into an error result, no incident. Passing a tag to a tool never adds content. The
+  inline documents of the registry are limited to 1 MiB each and in total (`DocumentRegistries`, `INLINE_DOCUMENT_TOO_LARGE`
+  and `INLINE_DOCUMENTS_TOO_LARGE`). A tool parameter of the type `document` of `fromAi` holds a tag the model passed, and a parameter that takes text or a
   document (an `anyOf` or `oneOf` with a document alternative) holds a tag only when the model passed exactly one tag, and
   text otherwise; `DocumentParameterResolver` turns the tag into the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for
   a runtime tool (`RuntimeToolExecutorImpl`), and the stored messages and the history keep the tag. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
@@ -436,6 +444,13 @@ hidden `zeebe:agentDefinition` property so the engine detects a native agent at 
 Maven property. Both scripts drop any incoming `zeebe:agentDefinition` before adding their own, so
 execution order does not matter — the sub-process transformer cannot carry the task marker into the
 derived template regardless of when the task-marker script runs.
+
+### Properties the v1 templates leave out
+
+The v1 and v2 templates are generated from shared data classes, so a property added for v2 only would reach the
+frozen v1 templates. List its template property id in the pom property `v1OmittedPropertyIds`
+(comma-separated); the transform scripts get it as `omittedPropertyIds` in the four v1 executions and drop those
+properties. Check that the diff of the v1 template files against the base branch stays empty.
 
 ### Deprecation marker (v1 only)
 
