@@ -19,9 +19,9 @@ public final class AgentFeatures {
   public static final String RUNTIME_TOOLS = "runtimeTools";
 
   /**
-   * Keeps the documents of the conversation in the document registry of the agent context and shows
-   * the model a tag for each of them. An instance created without it keeps the document handling it
-   * was created with.
+   * Keeps the documents of the conversation in the document registry of the agent context, shows
+   * the model a tag for each of them and offers the tools of the agent that work with the
+   * documents. An instance created without it keeps the document handling it was created with.
    */
   public static final String DOCUMENTS = "documents";
 
@@ -29,6 +29,6 @@ public final class AgentFeatures {
 
   /** The features of an agent instance that is created now. */
   public static List<String> ofNewInstance() {
-    return List.of(RUNTIME_TOOLS);
+    return List.of(RUNTIME_TOOLS, DOCUMENTS);
   }
 }

@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
@@ -33,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -743,5 +745,45 @@ class AgentConversationTest {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
     assertThat(conv.withPersistedContext(conv.persistedContext())).isSameAs(conv);
+  }
+
+  @Test
+  void documentIdsWithContent_followTheContextWindow() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("a.txt")
+                    .build());
+    var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    DocumentReferences.from(document, DocumentSource.userMessage())
+                        .withDelivery(DocumentDelivery.CONTENT)))
+            .build();
+
+    for (var windowSize : List.of(3, 2)) {
+      var conv =
+          AgentConversation.rehydrate(
+                  new AgentConfiguration(
+                      TEST_CHAT_MODEL,
+                      TEST_SYSTEM_PROMPT,
+                      null,
+                      new MemoryTemplateConfiguration(null, windowSize),
+                      null,
+                      null,
+                      null),
+                  BASE_CONTEXT,
+                  TurnReconstructor.reconstruct(List.of()),
+                  SYSTEM_MESSAGE,
+                  List.of(userMessage))
+              .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+      // a window of 3 holds the system message, the user message and the assistant message
+      assertThat(conv.documentIdsWithContent().contains(DocumentHandle.idFor(document)))
+          .isEqualTo(windowSize == 3);
+    }
   }
 }

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request;
 
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -56,6 +57,12 @@ public interface PromptConfiguration {
                       + "for details and supported file types.",
               feel = FeelMode.required,
               optional = true)
-          @Nullable List<Document> documents)
-      implements PromptConfiguration {}
+          @Nullable List<Document> documents,
+      @TemplateProperty(ignore = true) @Nullable DocumentDelivery documentDelivery)
+      implements PromptConfiguration {
+
+    public UserPromptConfiguration(String prompt, @Nullable List<Document> documents) {
+      this(prompt, documents, null);
+    }
+  }
 }

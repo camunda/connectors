@@ -34,7 +34,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -77,6 +76,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentInstanceClient agentInstanceClient;
   private final RuntimeToolRegistry runtimeToolRegistry;
   private final RuntimeToolExecutor runtimeToolExecutor;
+  private final ToolCallResultsInputBuilder resultsInputBuilder;
   private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
@@ -89,6 +89,7 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       RuntimeToolRegistry runtimeToolRegistry,
       RuntimeToolExecutor runtimeToolExecutor,
+      ToolCallResultsInputBuilder resultsInputBuilder,
       DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
@@ -99,6 +100,7 @@ public abstract class BaseAgentRequestHandler<
     this.agentInstanceClient = agentInstanceClient;
     this.runtimeToolRegistry = runtimeToolRegistry;
     this.runtimeToolExecutor = runtimeToolExecutor;
+    this.resultsInputBuilder = resultsInputBuilder;
     this.documentExpander = documentExpander;
   }
 
@@ -152,7 +154,11 @@ public abstract class BaseAgentRequestHandler<
           instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
         // the results of the process arrived: the agent executes its own calls now
         final var executions =
-            runtimeToolExecutor.execute(executionContext, agentContext, runtimeToolCalls);
+            runtimeToolExecutor.execute(
+                executionContext,
+                agentContext,
+                runtimeToolCalls,
+                previousConversation.documentIdsWithContent(configuration.contextWindowSize()));
         compositionResult =
             agentInputComposer.composeWithRuntimeToolResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -351,17 +357,20 @@ public abstract class BaseAgentRequestHandler<
             currentTurn.iterationKey());
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
+        final var documentIdsWithContent = workingConversation.documentIdsWithContent();
         final var executions =
             runtimeToolExecutor.execute(
                 executionContext,
                 workingConversation.persistedContext(),
-                currentTurn.runtimeToolCalls());
-        // the documents of the results are registered after all calls ran, in call order, so a call
-        // never sees what another call of the same message returned
+                currentTurn.runtimeToolCalls(),
+                documentIdsWithContent);
+        // the documents of the results are registered and their effects applied after all calls
+        // ran, in call order, so a call never sees what another call of the same message returned
         final var input =
-            ToolCallResultsInputBuilder.build(
+            resultsInputBuilder.build(
+                workingConversation.persistedContext(),
                 executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
-                workingConversation.persistedContext().supports(AgentFeatures.DOCUMENTS));
+                documentIdsWithContent);
         workingConversation =
             workingConversation
                 .withPersistedContext(

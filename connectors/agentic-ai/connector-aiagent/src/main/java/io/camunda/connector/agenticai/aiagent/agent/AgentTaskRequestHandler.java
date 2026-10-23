@@ -30,6 +30,7 @@ public class AgentTaskRequestHandler
       AgentInstanceClient agentInstanceClient,
       RuntimeToolRegistry runtimeToolRegistry,
       RuntimeToolExecutor runtimeToolExecutor,
+      ToolCallResultsInputBuilder resultsInputBuilder,
       DocumentExpander documentExpander) {
     super(
         agentInitializer,
@@ -41,6 +42,7 @@ public class AgentTaskRequestHandler
         agentInstanceClient,
         runtimeToolRegistry,
         runtimeToolExecutor,
+        resultsInputBuilder,
         documentExpander);
   }
 

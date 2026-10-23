@@ -18,19 +18,25 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * <p>The tool types of this package, including {@link RuntimeToolDocuments}, {@link AgentDocument}
  * and {@link RuntimeToolSchemas}, are {@link Experimental}.
  *
+ * <p>The connector ships tools of this kind itself, with names that start with {@code c8__}, and
+ * they use no other extension point than this one.
+ *
  * <h2>Execution contract</h2>
  *
  * <ul>
  *   <li><b>At least once.</b> An agent job is retried when it fails after the tool ran, for example
  *       when the model call fails, and then runs the call again. Side effects outside the agent,
- *       such as a request to another system, are not undone. A tool must make them idempotent.
+ *       such as a request to another system, are not undone. A tool must make them idempotent. The
+ *       {@link RuntimeToolResult effects} of the result are discarded with the attempt.
  *   <li><b>Concurrency.</b> The calls of one assistant message may run concurrently. Their results
  *       are returned and applied in the order of the calls. {@link #call} and {@link #isEnabled}
  *       may be called from different threads, and a {@link RuntimeToolContext} is safe to read
  *       concurrently. The calls of one message see the same {@link RuntimeToolContext#documents()
  *       documents}, the ones known when the first of them starts: a call must not depend on a
  *       document another call of the same message returned. The agent registers the documents the
- *       results contain after all calls of the message ran, so the next turn knows them.
+ *       results contain and applies their {@link RuntimeToolResult effects} after all calls of the
+ *       message ran, in the order of the calls, so the next turn knows them. A tool changes the
+ *       agent only through these effects.
  *   <li><b>Bounded run time.</b> A call runs within the agent job, and the framework neither
  *       cancels nor times it out. It must return well within the timeout of the job.
  *   <li><b>Mixed batches.</b> The agent classifies the calls of an assistant message once, when it
@@ -53,8 +59,8 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * through its constructor.
  *
  * <p>The name of a runtime tool must not equal the name of a tool of a process: the agent then
- * fails with an error, whether the runtime tool is enabled or not. A tool should use a name with a
- * prefix of its own.
+ * fails with an error, whether the runtime tool is enabled or not. A tool that is not part of the
+ * connector should use a name with a prefix of its own.
  */
 @Experimental
 public interface RuntimeTool {

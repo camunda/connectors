@@ -9,8 +9,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Executes the calls of runtime tools: the one place a {@link RuntimeTool} runs.
@@ -35,10 +37,14 @@ public interface RuntimeToolExecutor {
    * @param executionContext the invocation of the agent
    * @param agentContext the persisted state of the agent
    * @param runtimeToolCalls the calls to execute
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch, which the tools read as {@link
+   *     io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument#contentInConversation()}
    * @return one execution per call, in the order of the calls
    */
   List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<ToolCall> runtimeToolCalls);
+      List<ToolCall> runtimeToolCalls,
+      Set<DocumentId> documentIdsWithContent);
 }

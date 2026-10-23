@@ -19,6 +19,8 @@ import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
@@ -113,7 +115,13 @@ class LegacyDocumentConversationTest {
     when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(invocation -> invocation.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
-    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilderImpl(
+                new DocumentContentGuard(DocumentContentLimits.defaults()),
+                TestObjectMapperSupplier.INSTANCE),
+            new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   @Test
@@ -200,7 +208,7 @@ class LegacyDocumentConversationTest {
     final var documentMessage = (UserMessage) nextTurn.messages().get(1);
     assertThat(documentMessage.content())
         .containsExactly(
-            textContent(ToolCallResultsInputBuilder.TOOL_CALL_DOCUMENTS_PREAMBLE),
+            textContent(ToolCallResultsInputBuilderImpl.TOOL_CALL_DOCUMENTS_PREAMBLE),
             textContent(legacyTag("toolName=\"Download_A_File\" toolCallId=\"call-2\" ", document)),
             DocumentContent.documentContent(document));
     assertThat(documentMessage.metadata())
