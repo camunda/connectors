@@ -74,4 +74,6 @@ acceptable and where it is documented for users:
 ]
 ```
 
-The baseline bump clears all accepted breaks, because they are part of the new baseline.
+The baseline bump removes the accepted breaks that the released version contains, i.e. those in the
+`api-changes.json` of its tag. Breaks accepted after the release, for example on `main` after the
+release branch was cut, are kept.

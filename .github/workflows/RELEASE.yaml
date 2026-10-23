@@ -471,8 +471,7 @@ jobs:
       !contains(inputs.version, '-')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     strategy:
       matrix:
         target: [release-branch, main]
@@ -497,25 +496,55 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ steps.target.outputs.branch }}
+          persist-credentials: false
+
+      - name: Fetch the release tag
+        if: steps.target.outputs.branch != ''
+        run: git fetch --no-tags origin "refs/tags/${RELEASE_VERSION}:refs/tags/${RELEASE_VERSION}"
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Bump API baseline
         if: steps.target.outputs.branch != ''
         run: ./.github/workflows/scripts/bump_api_baseline.sh "${{ inputs.version }}"
         shell: bash
 
+      - name: Import Secrets
+        if: steps.target.outputs.branch != ''
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      # A GitHub App token instead of GITHUB_TOKEN, so that the pull request triggers the PR checks.
+      - name: Generate a GitHub App token
+        if: steps.target.outputs.branch != ''
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
       - name: Create pull request
         if: steps.target.outputs.branch != ''
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-api-baseline-${{ inputs.version }}-${{ steps.target.outputs.branch }}
           commit-message: "ci: bump API compatibility baseline to ${{ inputs.version }}"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: ${{ steps.target.outputs.branch }}
           title: "chore(api): bump API compatibility baseline to ${{ inputs.version }} on ${{ steps.target.outputs.branch }}"
           body: |
-            Compares the API-gated modules against the just released ${{ inputs.version }} and clears the
-            accepted breaks, which are part of the new baseline. See `docs/api-compatibility.md`.
+            Compares the API-gated modules against the just released ${{ inputs.version }} and removes the
+            accepted breaks that this version contains. See `docs/api-compatibility.md`.
 
   docker-release:
     needs: [setup, e2e-tests]
