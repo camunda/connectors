@@ -185,10 +185,10 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.LocalToolCallResultsRequired ignored ->
             throw new IllegalStateException(
                 "The turn input was composed without the results of the local tool calls after they were computed");
-        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
+        case CompositionResult.NextTurn(var updatedContext, var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                DocumentIngestion.register(agentContext, newDocuments),
+                DocumentIngestion.register(updatedContext, newDocuments),
                 configuration,
                 previousConversation,
                 newMessages,
@@ -484,7 +484,7 @@ public abstract class BaseAgentRequestHandler<
     final var nextConversation =
         conversation
             .withPersistedContext(
-                DocumentIngestion.register(conversation.persistedContext(), input.documents()))
+                DocumentIngestion.register(input.agentContext(), input.documents()))
             .nextRuntimeToolRound(input.messages());
     // the previous turn is the one whose tool calls these results belong to
     agentInstanceClient.applyTurnStart(
