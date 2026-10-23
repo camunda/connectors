@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Produces the tool call results of the local tool calls that are executed: the calls of runtime
@@ -28,10 +30,15 @@ public class LocalToolCallExecutor {
   /**
    * Returns one entry per call.
    *
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
    * @throws IllegalStateException if a call is not a call of a runtime tool
    */
   public List<ToolCallBatch.Entry> execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      List<ToolCall> calls) {
     for (final var call : calls) {
       if (!isExecutedByTheAgent(call)) {
         throw new IllegalStateException(
@@ -42,8 +49,12 @@ public class LocalToolCallExecutor {
     if (calls.isEmpty()) {
       return List.of();
     }
-    return runtimeTools.execute(executionContext, agentContext, calls).stream()
-        .map(execution -> ToolCallBatch.Entry.from(execution.toolCallResult()))
+    return runtimeTools
+        .execute(executionContext, agentContext, documentIdsWithContent, calls)
+        .stream()
+        .map(execution ->
+            ToolCallBatch.Entry.from(
+                execution.toolCallResult(), execution.result().documentContent()))
         .toList();
   }
 

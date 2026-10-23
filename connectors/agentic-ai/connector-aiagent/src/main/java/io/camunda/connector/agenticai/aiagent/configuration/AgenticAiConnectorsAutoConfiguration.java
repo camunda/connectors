@@ -248,8 +248,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder() {
-    return new ToolCallResultsInputBuilder();
+  public ToolCallResultsInputBuilder aiAgentToolCallResultsInputBuilder(
+      DocumentContentGuard documentContentGuard, DocumentRestorer documentRestorer) {
+    return new ToolCallResultsInputBuilder(documentContentGuard, documentRestorer);
   }
 
   @Bean

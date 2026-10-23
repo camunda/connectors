@@ -20,6 +20,8 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
@@ -124,7 +126,10 @@ class LegacyDocumentConversationTest {
     when(gatewayToolHandlers.handlerForToolDefinition(any())).thenReturn(Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(
+                new DocumentContentGuard(DocumentContentLimits.defaults()),
+                TestDocuments.documentRestorer()));
   }
 
   @Test

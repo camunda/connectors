@@ -13,14 +13,17 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -302,6 +305,15 @@ public final class AgentConversation {
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
     return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+  }
+
+  /**
+   * Returns the ids of the documents whose content the model reads as of now: {@link
+   * #allMessages()} within the context window of the {@link #configuration()}.
+   */
+  public Set<AgentDocumentId> documentIdsWithContent() {
+    return MessageUtil.documentIdsWithContent(
+        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
   }
 
   /**

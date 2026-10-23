@@ -14,16 +14,23 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * Spring bean of this type. The tool types of this package, including {@link DocumentSchemas}, are
  * {@link Experimental}.
  *
+ * <p>The connector ships tools of this kind itself, with names that start with {@code c8__}, and
+ * they use no other extension point than this one.
+ *
  * <h2>Execution contract</h2>
  *
  * <ul>
  *   <li><b>At least once.</b> A job that fails after the call was executed is retried and executes
- *       the call again, so side effects outside the agent must be idempotent.
+ *       the call again, so side effects outside the agent must be idempotent. The {@link
+ *       RuntimeToolResult effects} of the result are discarded with the attempt.
  *   <li><b>Concurrency.</b> The calls of one assistant message may be executed concurrently, their
  *       results are applied in call order. {@link #call} and {@link #isEnabled} may be called from
  *       different threads. The calls of one message see the same {@link
  *       RuntimeToolContext#documents() documents}, the ones known when the first of them starts: a
- *       call must not depend on a document another call of the same message returned.
+ *       call must not depend on a document another call of the same message returned. The agent
+ *       registers the documents the results contain and applies their {@link RuntimeToolResult
+ *       effects} after all calls were executed, in call order. A tool changes the agent only
+ *       through these effects.
  *   <li><b>Bounded execution time.</b> A call is executed within the agent job and is neither
  *       cancelled nor timed out by the framework, so it must return well within the job timeout.
  *   <li><b>Mixed batches.</b> When an assistant message calls runtime tools and tools of the

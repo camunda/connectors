@@ -40,6 +40,8 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -109,6 +111,12 @@ class AgentTaskRequestHandlerTest {
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver());
+
+  @Spy
+  private ToolCallResultsInputBuilder resultsInputBuilder =
+      new ToolCallResultsInputBuilder(
+          new DocumentContentGuard(DocumentContentLimits.defaults()),
+          TestDocuments.documentRestorer());
 
   @Spy private DocumentExpander documentExpander = TestDocuments.documentExpander();
 

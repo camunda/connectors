@@ -296,12 +296,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   @Test
   void whenNoContentLimitsAreConfigured_thenTheDocumentContentGuardUsesTheDefaultLimits() {
-    contextRunner.run(
-        context ->
-            assertThat(context)
-                .getBean(DocumentContentGuard.class)
-                .extracting("limits")
-                .isEqualTo(DocumentContentLimits.defaults()));
+    contextRunner.run(context ->
+        assertThat(context)
+            .getBean(DocumentContentGuard.class)
+            .extracting("limits")
+            .isEqualTo(DocumentContentLimits.defaults()));
   }
 
   @Test
@@ -311,27 +310,25 @@ class AgenticAiConnectorsAutoConfigurationTest {
             "camunda.connector.agenticai.aiagent.document.content-limits.text=1KB",
             "camunda.connector.agenticai.aiagent.document.content-limits.pdf=2MB",
             "camunda.connector.agenticai.aiagent.document.content-limits.image=512KB")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(DocumentContentGuard.class)
-                    .extracting("limits")
-                    .isEqualTo(new DocumentContentLimits(1024, 2 * 1024 * 1024, 512 * 1024)));
+        .run(context ->
+            assertThat(context)
+                .getBean(DocumentContentGuard.class)
+                .extracting("limits")
+                .isEqualTo(new DocumentContentLimits(1024, 2 * 1024 * 1024, 512 * 1024)));
   }
 
   @Test
   void whenAContentLimitIsNotPositive_thenFailsTheBinding() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.document.content-limits.pdf=0KB")
-        .run(
-            context ->
-                assertThat(context)
-                    .hasFailed()
-                    .getFailure()
-                    .rootCause()
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(
-                        "The property camunda.connector.agenticai.aiagent.document.content-limits.pdf must be positive."));
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                    "The property camunda.connector.agenticai.aiagent.document.content-limits.pdf must be positive."));
   }
 
   @Test

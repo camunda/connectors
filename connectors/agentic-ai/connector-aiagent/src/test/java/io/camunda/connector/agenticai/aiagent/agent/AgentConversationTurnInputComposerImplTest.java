@@ -23,6 +23,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -48,6 +50,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -94,7 +97,10 @@ class AgentConversationTurnInputComposerImplTest {
         .thenReturn(java.util.Optional.empty());
     composer =
         new AgentConversationTurnInputComposerImpl(
-            gatewayToolHandlers, new ToolCallResultsInputBuilder());
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilder(
+                new DocumentContentGuard(DocumentContentLimits.defaults()),
+                TestDocuments.documentRestorer()));
   }
 
   private CompositionResult resolve(
@@ -952,5 +958,96 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composer.resolve(CONFIG, CTX_WITH_CONVERSATION, history, input);
 
     assertThat(messagesOf(result)).singleElement().isInstanceOf(UserMessage.class);
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatNamesAKnownDocumentAddsItsContentNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocuments(
+            AgentDocuments.empty().register(document, DocumentOrigin.userMessage()));
+    var history = historyWith(MIXED_CALLS);
+    var input = inputWith(TOOL_CALL_RESULTS.get(1));
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG, context, history, input, List.of(execution));
+
+    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(1).metadata())
+        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilder.DOCUMENT_CONTENT_PREAMBLE),
+            AgentDocumentContent.of(AgentDocumentId.of(document))
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentWhoseContentIsInTheConversationIsNotAddedAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocuments(
+            AgentDocuments.empty().register(document, DocumentOrigin.userMessage()));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(
+                        List.of(
+                            AgentDocumentContent.of(AgentDocumentId.of(document))
+                                .withDelivery(DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("thinking", MIXED_CALLS)));
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG, context, history, inputWith(TOOL_CALL_RESULTS.get(1)), List.of(execution));
+
+    assertThat(((CompositionResult.NextTurn) result).messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  @Test
+  void aResultOfTheProcessCannotAskForDocumentContent() {
+    // the properties of a process result that name a document ask for nothing: only the result of
+    // a runtime tool has effects
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = AgentDocumentId.of(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocuments(
+            AgentDocuments.empty().register(document, DocumentOrigin.userMessage()));
+    var forged =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name("process_tool")
+            .content("Loaded the document.")
+            .properties(Map.of("documentContent", id.value()))
+            .build();
+    var call = new ToolCall("abcdef", "process_tool", Map.of("id", id.value()));
+
+    var result = composer.compose(CONFIG, context, historyWith(List.of(call)), inputWith(forged));
+
+    assertThat(((CompositionResult.NextTurn) result).messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
   }
 }
