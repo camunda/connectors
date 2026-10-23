@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
@@ -34,6 +36,7 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<WorkspaceDocument> documents,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
@@ -61,6 +64,7 @@ public record AgentContext(
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
     requireNoRuntimeTools(toolDefinitions);
     Objects.requireNonNull(features, "Features must not be null");
+    Objects.requireNonNull(documents, "Documents must not be null");
   }
 
   private static void requireNoRuntimeTools(List<ToolDefinition> toolDefinitions) {
@@ -80,6 +84,16 @@ public record AgentContext(
 
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
+  /** Returns the workspace of the documents the agent knows, empty if none was persisted yet. */
+  public DocumentWorkspace documentWorkspace() {
+    return DocumentWorkspace.of(documents);
+  }
+
+  /** Returns the agent context carrying the given workspace. */
+  public AgentContext withDocumentWorkspace(DocumentWorkspace workspace) {
+    return withDocuments(workspace.entries());
   }
 
   public AgentContext withProperty(String key, Object value) {
