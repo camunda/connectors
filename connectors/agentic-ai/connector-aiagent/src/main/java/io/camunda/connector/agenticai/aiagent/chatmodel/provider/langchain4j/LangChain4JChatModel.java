@@ -22,11 +22,11 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ContentFilteredExcep
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason.UnknownStopReason;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.Optional;
@@ -51,7 +51,7 @@ public class LangChain4JChatModel implements ChatModel {
   private static final Logger LOG = LoggerFactory.getLogger(LangChain4JChatModel.class);
 
   private final CloseableChatModel chatModel;
-  private final ProviderConfiguration providerConfiguration;
+  private final ChatModelConfiguration chatModelConfiguration;
   private final ChatMessageConverter chatMessageConverter;
   private final ToolSpecificationConverter toolSpecificationConverter;
   private final JsonSchemaConverter jsonSchemaConverter;
@@ -59,13 +59,13 @@ public class LangChain4JChatModel implements ChatModel {
 
   public LangChain4JChatModel(
       CloseableChatModel chatModel,
-      ProviderConfiguration providerConfiguration,
+      ChatModelConfiguration chatModelConfiguration,
       ChatMessageConverter chatMessageConverter,
       ToolSpecificationConverter toolSpecificationConverter,
       JsonSchemaConverter jsonSchemaConverter,
       Function<@Nullable TokenUsage, AgentMetrics.TokenUsage> tokenUsageMapper) {
     this.chatModel = chatModel;
-    this.providerConfiguration = providerConfiguration;
+    this.chatModelConfiguration = chatModelConfiguration;
     this.chatMessageConverter = chatMessageConverter;
     this.toolSpecificationConverter = toolSpecificationConverter;
     this.jsonSchemaConverter = jsonSchemaConverter;
@@ -78,7 +78,7 @@ public class LangChain4JChatModel implements ChatModel {
     final var executionContext = request.executionContext();
     final var snapshot = request.snapshot();
 
-    final var messages = chatMessageConverter.map(snapshot.messages(), providerConfiguration);
+    final var messages = chatMessageConverter.map(snapshot.messages(), chatModelConfiguration);
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(snapshot.toolDefinitions());
 
@@ -92,7 +92,7 @@ public class LangChain4JChatModel implements ChatModel {
     final Duration executionTime = Duration.ofNanos(System.nanoTime() - startNanos);
 
     final AssistantMessage assistantMessage =
-        chatMessageConverter.toAssistantMessage(chatResponse, providerConfiguration);
+        chatMessageConverter.toAssistantMessage(chatResponse, chatModelConfiguration);
     final var metrics = buildMetrics(chatResponse, assistantMessage, executionTime);
 
     if (assistantMessage.stopReason() instanceof UnknownStopReason unknown

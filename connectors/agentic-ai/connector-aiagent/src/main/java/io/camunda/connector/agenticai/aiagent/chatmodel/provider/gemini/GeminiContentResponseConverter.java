@@ -227,11 +227,10 @@ public class GeminiContentResponseConverter {
 
   /**
    * Preserves a {@code thoughtSignature} carried on a {@code functionCall} part — Gemini 3 rejects
-   * a follow-up tool-calling request whose history dropped it. Namespaced under the provider id,
-   * mirroring how the langchain4j path persists the same value onto {@link ToolCall#metadata()}
-   * (see {@code ToolCallMetadataDecorator}), so switching a running instance's provider cannot leak
-   * one provider's metadata into another. {@link ReasoningContent#metadata()} needs no such
-   * namespace: it carries the provider as a first-class field.
+   * a follow-up tool-calling request whose history dropped it. Namespaced under the provider id, so
+   * switching a running instance's provider cannot leak one provider's metadata into another.
+   * {@link ReasoningContent#metadata()} needs no such namespace: it carries the provider as a
+   * first-class field.
    */
   private @Nullable Map<String, Object> toolCallMetadata(Part part) {
     return part.thoughtSignature()
