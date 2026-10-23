@@ -211,8 +211,8 @@ client in its properties does not start.
   select; the request handler applies it to the agent context it persists (`TurnInput.applyTo`). `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
-- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an
-  `ObjectHandleRenderer`, beans of the auto-configuration.
+- The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, a
+  `DocumentContentDelivery` and an `ObjectHandleRenderer`, beans of the auto-configuration.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
@@ -223,10 +223,12 @@ them. The constructor of `AgentResponseHandlerImpl` takes the `DocumentParameter
 auto-configuration.
 
 `ToolCallResultsInputBuilder` builds the tool call result message and the messages that follow it from the results of a
-`ToolCallBatch`, for the composer. It returns the documents of the results and the response documents they select in the
-`TurnInput`, which the caller applies with `TurnInput.applyTo`, and it applies the effects that add content (see
-"Runtime tools and tool names"). It fails the job for an effect that names a document that is neither known when the
-batch starts nor returned by the result.
+`ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
+the results of runtime tools (the content of a known document and the response documents, see "Runtime tools and tool
+names"). The composer gives the entry of a process tool whose tool definition has the document delivery `content` an
+`AddDocumentContent` effect for every document of the result (`ToolCallBatch.Entry.from(result, extractor, delivery)`;
+`AgentContext.documentDeliveryOf(toolName)` is the delivery of a tool, `REFERENCE` for a tool without one), so the builder
+treats such a document like one a runtime tool asks to load.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
@@ -263,8 +265,11 @@ extensions should keep `CamundaAgentInstanceClient` and the mappers and decorate
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take
 `RuntimeTools`, `ToolCallAdmission`, `LocalToolCallExecutor` and `DocumentExpander`. The constructor of
-`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
-constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
+`AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder`, the `DocumentContentDelivery` (for the
+documents of the user prompt) and an `ObjectHandleRenderer`, the constructor of `LocalToolCallExecutor` takes
+`RuntimeTools` and an `ObjectHandleRenderer`, and the `ToolCallResultsInputBuilder` takes the `DocumentContentDelivery`,
+which decides whether the content of a document is added.
+The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
 never with a `DocumentFactory` bean. The
 auto-configuration provides these beans and the two built-in runtime tools, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
@@ -311,6 +316,20 @@ applies it to its persisted context, and the next round continues with the conte
   The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
   rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
   executed gets an error result from `RuntimeTools`; neither goes to the process.
+- A tool activity can opt its documents into the delivery `content` with the extension property
+  `io.camunda.agenticai.documents.delivery` = `content`. The agent then adds the content of the documents the tool returns
+  to the request that follows the tool results, without a check of the type or the size of the document. A custom `GatewayToolHandler` opts its tools in with
+  `ToolDefinition.documentDelivery`; the MCP and A2A handlers set none. The result of a runtime tool is never affected: it
+  names the documents whose content it wants. The property takes `reference` or `content`; any other value fails the tool
+  discovery of the agent with a message that names the element. A tool without the property has the delivery `reference`
+  (`DocumentDelivery.fromExtension`).
+- The v2 AI Agent templates have the dropdown *Document delivery* next to the documents of the user prompt
+  (`data.userPrompt.documentDelivery`, `reference` by default), so a process modeled with them gives the model the tags of
+  the prompt documents, which it loads with `c8__get_document`, unless the dropdown is set to `content`. A process that has
+  no value, such as one deployed before the dropdown existed and every v1 template, keeps the content of every prompt
+  document. Updating a task or sub-process to the v2 template version that has the dropdown in the Modeler applies the
+  default `reference`: from then on the prompt documents of an agent instance that tracks its documents are tags, and so
+  are the documents of a tool result, which no option could turn into content before.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -327,19 +346,26 @@ applies it to its persisted context, and the next round continues with the conte
   entries is not specified), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
   by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
-  runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
+  runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`, and `documentDelivery`, none by
+  default; the canonical constructor has the five components `name`, `description`, `inputSchema`, `kind` and
+  `documentDelivery`). The agent sets the kind and the
   rejection of the tool calls of an assistant message once, when it receives the message. `ToolCall.resultSource()`
   (`PROCESS`, `RUNTIME` or `REJECTED`) and `ToolCall.isLocal()` derive who produces the tool call result; neither is
   written to JSON.
+- `PromptConfiguration.UserPromptConfiguration` gains `documentDelivery`, the delivery of the documents of the user
+  prompt, `null` when the process sets none; the two-argument constructor remains. `AgentInput.UserPrompt`, a record
+  without a builder, takes the `UserPromptDocumentDelivery` as a third argument (`UNSET` for the earlier behavior: the
+  content of every document).
 - The sealed `Content` interface permits `AgentDocumentContent` (content type `agent_document`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the agent expands it before the request is
   built.
 - For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
-  document goes out as content, as before. A document in a tool result is text, its handle, instead of a `DocumentContent` or
-  the reference JSON, and the content of a document follows in a user message only when the model loaded it with
-  `c8__load_document`. A custom `ChatModel` that handles `DocumentContent` in tool results
-  therefore sees text for these instances; instances without the feature, also the new instances of the v1 connectors,
-  keep the earlier form.
+  document goes out as content, as before, unless the process sets the delivery `reference` (the v2 templates preset it):
+  then the content is added on request; a document of an external URL always goes out as content. A document in a tool
+  result is text, its handle, instead of a `DocumentContent` or the reference JSON, and the content of a document follows
+  in a user message only when the model loaded it with `c8__load_document` or the tool has the delivery `content`. A
+  custom `ChatModel` that handles `DocumentContent` in tool results therefore sees text for these instances; instances
+  without the feature keep the earlier form.
 - New in the model: `AgentDocumentId`, the value type of a document id (persisted as a plain string), used by the agent
   documents and `AgentDocumentContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
   identity of the document (the store and the id in the store of a Camunda document), so it is no longer the id of the
@@ -384,6 +410,8 @@ applies it to its persisted context, and the next round continues with the conte
   state written by 8.10 loads unchanged. The agent never computes them again, so a custom `ConversationStore` must keep
   them: a store that drops them turns a runtime tool call or a rejected call into a process tool call that never gets a
   result. Serializing the `ToolCall` record with Jackson keeps them.
+- A stored `ToolDefinition` (`AgentContext.toolDefinitions`) can carry `documentDelivery`; it is omitted when absent and
+  part of the configuration fingerprint when set, and an 8.10 definition without it reads as the delivery `reference`.
 - A stored message can hold an `AgentDocumentContent`, which a custom `ConversationStore` must keep like any other
   content block (serializing `Content` with Jackson keeps it). What a block stands for is in the agent documents of the agent
   context, not in the store, so code that rewrites the agent context must keep `documents` and `responseDocuments`.
