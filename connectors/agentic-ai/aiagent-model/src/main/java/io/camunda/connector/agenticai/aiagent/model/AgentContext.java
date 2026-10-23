@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
@@ -34,6 +36,7 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<DocumentRegistryEntry> documents,
     // the features the agent instance was created with, fixed at creation and never added later: an
     // instance without a feature keeps the behavior it started with
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
@@ -59,6 +62,7 @@ public record AgentContext(
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
+    Objects.requireNonNull(documents, "Documents must not be null");
     Objects.requireNonNull(features, "Features must not be null");
     features = List.copyOf(new LinkedHashSet<>(features));
   }
@@ -71,6 +75,16 @@ public record AgentContext(
   /** Returns the agent instance key from the metadata, or {@code null} if there is none. */
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return metadata != null ? metadata.agentInstanceKey() : null;
+  }
+
+  /** Returns the registry of the documents the agent knows, empty if none was persisted yet. */
+  public DocumentRegistry documentRegistry() {
+    return DocumentRegistry.of(documents);
+  }
+
+  /** Returns the agent context carrying the given registry. */
+  public AgentContext withDocumentRegistry(DocumentRegistry registry) {
+    return withDocuments(registry.entries());
   }
 
   public AgentContext withProperty(String key, Object value) {
