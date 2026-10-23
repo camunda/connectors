@@ -13,11 +13,13 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput.UserPrompt;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
@@ -33,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -70,13 +73,16 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
   private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
+  private final DocumentContentDelivery contentDelivery;
   private final ObjectHandleRenderer objectHandleRenderer;
 
   public AgentConversationTurnInputComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
       ToolCallResultsInputBuilder toolCallResultsInputBuilder,
+      DocumentContentDelivery contentDelivery,
       ObjectHandleRenderer objectHandleRenderer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.contentDelivery = contentDelivery;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
     this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
     this.objectHandleRenderer = objectHandleRenderer;
@@ -151,7 +157,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           agentContext, documentIdsWithContent, batch, TurnInput.empty(), events);
     }
 
-    final var userPrompt = userPromptInput(agentInput.userPrompt(), documentHandling);
+    final var userPrompt =
+        userPromptInput(agentInput.userPrompt(), documentHandling, documentIdsWithContent);
     if (userPrompt.isEmpty() && events.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
@@ -182,7 +189,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   /** The user message of the user prompt and its documents, empty without user content. */
-  private TurnInput userPromptInput(UserPrompt userPrompt, DocumentHandling documentHandling) {
+  private TurnInput userPromptInput(
+      UserPrompt userPrompt,
+      DocumentHandling documentHandling,
+      Set<AgentDocumentId> idsWithContent) {
 
     final var messageId = MessageUtil.generateId();
     final var content = new ArrayList<Content>();
@@ -195,7 +205,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     switch (documentHandling) {
-      case DocumentHandling.Tracked ignored -> {
+      case DocumentHandling.Tracked tracked -> {
         // add the documents as blocks with the delivery content: the content is added when the
         // model is called
         userPrompt.documents().stream()
@@ -205,12 +215,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               throw UnsupportedDocumentReferenceException.inUserPrompt(doc);
             });
         final var origin = AgentDocumentOrigin.userMessage(messageId);
-        for (var doc : userPrompt.documents()) {
-          content.add(
-              AgentDocumentContent.of(AgentDocumentId.of(doc))
-                  .withDelivery(DocumentDelivery.CONTENT));
-          newDocuments.add(AgentDocument.of(doc, origin));
-        }
+        userPrompt.documents().forEach(doc -> newDocuments.add(AgentDocument.of(doc, origin)));
+        content.addAll(
+            trackedPromptDocuments(
+                userPrompt, tracked.documents().register(newDocuments), idsWithContent));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -230,6 +238,42 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                 .metadata(MessageMetadata.defaults())
                 .build()),
         newDocuments);
+  }
+
+  /**
+   * The blocks of the documents of the user prompt. The content of a document is added when the
+   * model is called, for a block with the delivery content. The documents of an external URL always
+   * go out as content: the model provider reads them.
+   */
+  private List<Content> trackedPromptDocuments(
+      UserPrompt userPrompt, AgentDocuments known, Set<AgentDocumentId> idsWithContent) {
+    var handled = DocumentContentDelivery.Handled.of(idsWithContent);
+    final var blocks = new ArrayList<Content>();
+    for (final var doc : userPrompt.documents()) {
+      final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
+      final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
+      if (doc.reference() instanceof ExternalDocumentReference) {
+        blocks.add(withContent);
+        continue;
+      }
+      switch (userPrompt.documentDelivery()) {
+        case UNSET -> blocks.add(withContent);
+        case REFERENCE -> blocks.add(reference);
+        case CONTENT -> {
+          final var decision = contentDelivery.deliver(known, List.of(reference.id()), handled);
+          handled = decision.handled();
+          for (final var outcome : decision.outcomes()) {
+            switch (outcome) {
+              case DocumentContentDelivery.Outcome.Delivered delivered ->
+                  blocks.add(delivered.withContent());
+              case DocumentContentDelivery.Outcome.AlreadyInConversation ignored ->
+                  blocks.add(reference);
+            }
+          }
+        }
+      }
+    }
+    return blocks;
   }
 
   /**

@@ -27,9 +27,11 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO.
+   * DTO. The {@code documentDelivery} says how the documents reach the model; the documents of an
+   * external URL always go out as content, as the model provider reads them.
    */
-  public record UserPrompt(String prompt, List<Document> documents) {
+  public record UserPrompt(
+      String prompt, List<Document> documents, UserPromptDocumentDelivery documentDelivery) {
     public UserPrompt {
       documents = List.copyOf(documents);
     }
@@ -52,7 +54,8 @@ public final class AgentInput {
     return new AgentInput(
         new UserPrompt(
             userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents(),
+            UserPromptDocumentDelivery.of(userPrompt.documentDelivery())),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }
