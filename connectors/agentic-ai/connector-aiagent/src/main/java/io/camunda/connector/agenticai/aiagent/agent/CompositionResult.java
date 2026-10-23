@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
-import org.jspecify.annotations.Nullable;
 
 /** Whether the next turn can be composed, as resolved by AgentConversationTurnInputComposer. */
 public sealed interface CompositionResult {
@@ -40,26 +38,29 @@ public sealed interface CompositionResult {
    * results: the calls of runtime tools. The results of the process calls and of the rejected calls
    * are in the batch, and so are the cancelled results of an interrupted turn.
    *
+   * @param agentContext the agent context the next turn is composed with
    * @param toolCallBatch the calls of the previous turn, none when the next turn has no tool call
    *     results
-   * @param userPrompt the user message of a turn without tool call results, if there is any
-   * @param eventMessages the messages of the events, added after the other input
+   * @param userPrompt the input of the user prompt of a turn without tool call results
+   * @param events the input of the events, added after the other input
    */
   record Ready(
-      ToolCallBatch toolCallBatch, @Nullable UserMessage userPrompt, List<Message> eventMessages)
+      AgentContext agentContext,
+      ToolCallBatch toolCallBatch,
+      TurnInput userPrompt,
+      TurnInput events)
       implements CompositionResult {
 
     public Ready {
-      if (userPrompt != null && !toolCallBatch.toolCalls().isEmpty()) {
+      if (!userPrompt.isEmpty() && !toolCallBatch.toolCalls().isEmpty()) {
         throw new IllegalArgumentException(
             "The next turn has either tool call results or a user prompt, not both");
       }
-      eventMessages = List.copyOf(eventMessages);
     }
 
     /** The next turn that answers the calls of the batch only. */
-    public static Ready of(ToolCallBatch toolCallBatch) {
-      return new Ready(toolCallBatch, null, List.of());
+    public static Ready of(AgentContext agentContext, ToolCallBatch toolCallBatch) {
+      return new Ready(agentContext, toolCallBatch, TurnInput.empty(), TurnInput.empty());
     }
 
     public List<ToolCall> unansweredToolCalls() {
@@ -67,7 +68,7 @@ public sealed interface CompositionResult {
     }
 
     public Ready withResults(List<ToolCallBatch.Entry> entries) {
-      return new Ready(toolCallBatch.withEntries(entries), userPrompt, eventMessages);
+      return new Ready(agentContext, toolCallBatch.withEntries(entries), userPrompt, events);
     }
   }
 }

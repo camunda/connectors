@@ -9,18 +9,25 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -30,12 +37,14 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -445,5 +454,98 @@ class RuntimeToolsTest {
   @Test
   void anEmptyBatchHasNoExecutions() {
     assertThat(tools.execute(WITH_MEMORY, NEW_INSTANCE, List.of())).isEmpty();
+  }
+
+  private static AgentContext knowing(Document... documents) {
+    return NEW_INSTANCE.withDocumentWorkspace(
+        DocumentIngestion.withDocuments(
+            DocumentWorkspace.empty(),
+            Arrays.stream(documents)
+                .map(document -> new IngestedDocument(document, DocumentOrigin.userMessage()))
+                .toList()));
+  }
+
+  @Test
+  void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
+    final var needsDocuments =
+        toolsOf(tool("acme_documents", context -> !context.documents().all().isEmpty()));
+    final var knowingADocument = knowing(createDocument("report", "report.txt"));
+
+    assertThat(needsDocuments.enabledDefinitions(PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(needsDocuments.enabledDefinitions(PLAIN, knowingADocument)).hasSize(1);
+  }
+
+  @Test
+  void aToolReadsTheDocumentsTheAgentKnowsAndRestoresThem() {
+    final var report = createDocument("report", "report.txt");
+    final var seen = new ArrayList<Object>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (context, call) -> {
+              seen.add(context.documents().all().stream().map(AgentDocument::id).toList());
+              final var found =
+                  context.documents().find(DocumentHandle.idFor(report)).orElseThrow();
+              seen.add(new String(found.document().asByteArray(), StandardCharsets.UTF_8));
+              seen.add(found.source());
+              return RuntimeToolResult.success("read");
+            });
+
+    toolsOf(reading)
+        .execute(
+            WITH_MEMORY,
+            knowing(report),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+
+    assertThat(seen)
+        .containsExactly(
+            List.of(DocumentHandle.idFor(report)), "report", DocumentOrigin.userMessage());
+  }
+
+  @Test
+  void theCallsOfABatchSeeTheDocumentsKnownAtTheStartAndNotTheOnesAnotherCallReturned() {
+    final var report = createDocument("report", "report.txt");
+    final var counting =
+        StubRuntimeTool.of(
+            "acme_count",
+            (context, call) ->
+                RuntimeToolResult.success("documents: " + context.documents().all().size()));
+    final var batch = toolsOf(new SaveNoteTool(), counting);
+
+    final var executions =
+        batch.execute(
+            WITH_MEMORY,
+            knowing(report),
+            List.of(
+                runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
+                runtimeCall("c1", "acme_count", Map.of()),
+                runtimeCall("n2", SaveNoteTool.NAME, Map.of("text", "b"))));
+
+    // the second note is numbered like the first one: neither call saw the document of the other
+    assertThat(executions.get(0).result().content().getFirst())
+        .isEqualTo(TextContent.textContent("Saved note #1"));
+    assertThat(executions.get(1).result().content())
+        .containsExactly(TextContent.textContent("documents: 1"));
+    assertThat(executions.get(2).result().content().getFirst())
+        .isEqualTo(TextContent.textContent("Saved note #1"));
+  }
+
+  @Test
+  void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
+    final var agentContext = knowing();
+
+    final var executions =
+        toolsOf(new SaveNoteTool())
+            .execute(
+                WITH_MEMORY,
+                agentContext,
+                List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))));
+
+    assertThat(executions.getFirst().result().content())
+        .hasSize(2)
+        .last()
+        .isInstanceOf(DocumentContent.class);
+    // the agent context is the one the tools were given
+    assertThat(agentContext.documents()).isEmpty();
   }
 }

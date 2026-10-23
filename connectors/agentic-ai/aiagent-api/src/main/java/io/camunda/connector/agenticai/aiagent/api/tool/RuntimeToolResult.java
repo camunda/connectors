@@ -19,8 +19,10 @@ import java.util.Objects;
  *
  * <p>The content is handled like the result of a tool of the process: text is shown as it is, an
  * {@link io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} as
- * JSON, and a {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent
- * document}, also one nested in an object, in a message that follows the tool results.
+ * JSON. A {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent
+ * document}, also one nested in an object, is new to the agent: the agent registers it, and the
+ * model reads its tag, never its content, store id, content hash or URL. A {@link
+ * RuntimeToolDocuments#reference reference} to a known document is shown as its tag, too.
  */
 @Experimental
 public sealed interface RuntimeToolResult {
@@ -31,7 +33,8 @@ public sealed interface RuntimeToolResult {
   }
 
   /**
-   * A successful result with the given blocks as its content, in the order the model reads them.
+   * A successful result with the given blocks as its content, in the order the model reads them:
+   * text, objects, documents and references to known documents.
    */
   static RuntimeToolResult success(List<Content> content) {
     return new Success(content);
