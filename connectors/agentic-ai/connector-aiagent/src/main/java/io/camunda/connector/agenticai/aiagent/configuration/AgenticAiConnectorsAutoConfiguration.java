@@ -96,8 +96,9 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public RuntimeToolRegistry aiAgentRuntimeToolRegistry(List<RuntimeTool> runtimeTools) {
-    return new RuntimeToolRegistryImpl(runtimeTools);
+  public RuntimeToolRegistry aiAgentRuntimeToolRegistry(
+      List<RuntimeTool> runtimeTools, @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new RuntimeToolRegistryImpl(runtimeTools, objectMapper);
   }
 
   @Bean

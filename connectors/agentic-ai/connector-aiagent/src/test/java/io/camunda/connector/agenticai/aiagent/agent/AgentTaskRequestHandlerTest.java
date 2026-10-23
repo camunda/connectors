@@ -101,7 +101,8 @@ class AgentTaskRequestHandlerTest {
   @Spy
   private RuntimeToolRegistry runtimeToolRegistry =
       new RuntimeToolRegistryImpl(
-          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)));
+          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)),
+          TestObjectMapperSupplier.INSTANCE);
 
   @Spy
   private RuntimeToolExecutor runtimeToolExecutor =
