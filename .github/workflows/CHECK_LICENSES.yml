@@ -48,11 +48,12 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | NEXUS_PASSWORD;
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | NEXUS_USER;
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Setup Java

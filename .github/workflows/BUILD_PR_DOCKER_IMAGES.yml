@@ -57,12 +57,13 @@ jobs:
           app-id: ${{ steps.secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         continue-on-error: true # cache failures should not fail the build
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
 
