@@ -235,8 +235,10 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public AgentConversationTurnInputComposer aiAgentConversationTurnInputComposer(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      ToolCallResultsInputBuilder resultsInputBuilder) {
-    return new AgentConversationTurnInputComposerImpl(gatewayToolHandlers, resultsInputBuilder);
+      ToolCallResultsInputBuilder resultsInputBuilder,
+      DocumentContentGuard documentContentGuard) {
+    return new AgentConversationTurnInputComposerImpl(
+        gatewayToolHandlers, resultsInputBuilder, documentContentGuard);
   }
 
   @Bean

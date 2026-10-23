@@ -90,7 +90,8 @@ class ToolResultDocumentRenderingTest {
             gatewayToolHandlers,
             new ToolCallResultsInputBuilderImpl(
                 new DocumentContentGuard(DocumentContentLimits.defaults()),
-                TestObjectMapperSupplier.INSTANCE));
+                TestObjectMapperSupplier.INSTANCE),
+            new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   private Document document(String content, String fileName, String contentType) {

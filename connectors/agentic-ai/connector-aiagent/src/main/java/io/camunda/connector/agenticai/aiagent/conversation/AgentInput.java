@@ -7,11 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Per-invocation input: pre-partitioned from the raw engine data. {@link #toolCallResults} holds
@@ -27,9 +29,14 @@ public final class AgentInput {
   /**
    * Domain representation of the per-invocation user prompt, derived from the request-level {@link
    * UserPromptConfiguration} so the conversation turn composition does not depend on the request
-   * DTO.
+   * DTO. The {@code documentDelivery} is {@code null} when the process does not set one: the agent
+   * then adds the content of every document to the request, without checking it. With {@link
+   * DocumentDelivery#CONTENT} it adds the content of the documents it can read, with {@link
+   * DocumentDelivery#REFERENCE} it leaves the documents as references; the documents of an external
+   * URL always go out as content.
    */
-  public record UserPrompt(String prompt, List<Document> documents) {
+  public record UserPrompt(
+      String prompt, List<Document> documents, @Nullable DocumentDelivery documentDelivery) {
     public UserPrompt {
       documents = List.copyOf(documents);
     }
@@ -52,7 +59,8 @@ public final class AgentInput {
     return new AgentInput(
         new UserPrompt(
             userPrompt.prompt(),
-            userPrompt.documents() == null ? List.of() : userPrompt.documents()),
+            userPrompt.documents() == null ? List.of() : userPrompt.documents(),
+            userPrompt.documentDelivery()),
         partitioned.getOrDefault(true, List.of()),
         partitioned.getOrDefault(false, List.of()));
   }

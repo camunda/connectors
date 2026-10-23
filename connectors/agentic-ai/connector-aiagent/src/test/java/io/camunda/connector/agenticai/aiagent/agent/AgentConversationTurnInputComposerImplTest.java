@@ -103,7 +103,8 @@ class AgentConversationTurnInputComposerImplTest {
             gatewayToolHandlers,
             new ToolCallResultsInputBuilderImpl(
                 new DocumentContentGuard(DocumentContentLimits.defaults()),
-                TestObjectMapperSupplier.INSTANCE));
+                TestObjectMapperSupplier.INSTANCE),
+            new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   private CompositionResult compose(
@@ -238,11 +239,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  void firstTurn_withUserPromptDocumentsOfTheDeliveryReference_addsTheTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document), DocumentDelivery.REFERENCE),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = compose(CONFIG, CTX, history, input);
@@ -257,7 +260,7 @@ class AgentConversationTurnInputComposerImplTest {
                 "notes.txt",
                 "text/plain",
                 DocumentSource.userMessage(),
-                DocumentDelivery.CONTENT));
+                DocumentDelivery.REFERENCE));
     assertThat(((DocumentReferenceContent) userMessage.content().get(1)).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
