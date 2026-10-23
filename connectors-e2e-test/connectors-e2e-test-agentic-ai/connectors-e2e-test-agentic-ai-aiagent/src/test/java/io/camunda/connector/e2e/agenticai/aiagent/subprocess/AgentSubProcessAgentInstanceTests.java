@@ -26,6 +26,7 @@ import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.client.api.search.enums.AgentInstanceStatus;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -81,7 +82,8 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
             argThat(
                 (List<ToolCallResultContent> results) ->
                     results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
-            any(AgentConversationTurn.class));
+            any(AgentConversationTurn.class),
+            any(AgentContext.class));
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
   }
 

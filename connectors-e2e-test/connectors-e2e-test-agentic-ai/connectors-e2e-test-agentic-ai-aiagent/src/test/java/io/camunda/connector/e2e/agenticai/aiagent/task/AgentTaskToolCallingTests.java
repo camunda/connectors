@@ -23,8 +23,8 @@ import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtu
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs;
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsChatModelStubs.ToolCall;

@@ -7,17 +7,35 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.*;
+import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,8 +43,15 @@ import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
 
+  private static final DocumentExpander DOCUMENT_EXPANDER =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
+
   private static final AgentContext BASE_CONTEXT =
-      AgentContext.builder().state(AgentState.READY).toolDefinitions(TOOL_DEFINITIONS).build();
+      AgentContext.builder()
+          .state(AgentState.READY)
+          .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+          .toolDefinitions(TOOL_DEFINITIONS)
+          .build();
 
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null)
@@ -157,9 +182,201 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20);
+    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv));
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
+  }
+
+  @Test
+  void window_leavesOutTheDocumentOfAnEvictedMessageAndAddsNoNote() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var documentMessage =
+        UserMessage.builder()
+            .content(List.of(textContent("see"), DocumentContent.documentContent(document)))
+            .build();
+    var entry =
+        DocumentRegistries.entryFor(new IngestedDocument(document, DocumentSource.userMessage()));
+    var context = BASE_CONTEXT.withDocuments(List.of(entry));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            context,
+            TurnReconstructor.reconstruct(
+                List.of(
+                    documentMessage,
+                    assistantMessage("a1"),
+                    userMessage("q2"),
+                    assistantMessage("a2"))),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("next")));
+
+    var windowed = conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+    var allBefore = conv.allMessages();
+
+    // the document message is outside of the window and nothing takes its place
+    assertThat(windowed).doesNotContain(documentMessage);
+    assertThat(windowed.getLast().id()).isEqualTo(conv.allMessages().getLast().id());
+    assertThat(windowed)
+        .filteredOn(UserMessage.class::isInstance)
+        .map(message -> ((UserMessage) message).content())
+        .allSatisfy(content -> assertThat(content).noneMatch(DocumentContent.class::isInstance));
+    // the conversation itself is untouched
+    assertThat(conv.allMessages()).isEqualTo(allBefore).contains(documentMessage);
+  }
+
+  @Test
+  void window_expandsDocumentReferencesFromTheRegistryAndLeavesTheStoredMessagesAlone() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var entry =
+        DocumentRegistries.entryFor(new IngestedDocument(document, DocumentSource.userMessage()));
+    var reference = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    var storedMessage =
+        UserMessage.builder().content(List.of(textContent("see"), reference)).build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(storedMessage));
+
+    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+
+    assertThat(windowed).hasSize(2);
+    assertThat(windowed.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            expanded -> {
+              assertThat(expanded.id()).isEqualTo(storedMessage.id());
+              assertThat(expanded.content()).hasSize(3);
+              assertThat(expanded.content().subList(0, 2))
+                  .containsExactly(textContent("see"), textContent(reference.toTag()));
+              assertThat(expanded.content().get(2))
+                  .isInstanceOfSatisfying(
+                      DocumentContent.class,
+                      documentContent ->
+                          assertThat(
+                                  TestObjectMapperSupplier.INSTANCE.convertValue(
+                                      documentContent.document(), Map.class))
+                              .isEqualTo(entry.reference()));
+            });
+    // the stored conversation keeps the document reference only
+    assertThat(conv.allMessages().getLast()).isSameAs(storedMessage);
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
+  }
+
+  @Test
+  void window_expandsAReferenceWithReferenceDeliveryToItsTagWithoutContent() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var entry =
+        DocumentRegistries.entryFor(new IngestedDocument(document, DocumentSource.userMessage()));
+    var reference = DocumentReferences.from(entry);
+    var storedMessage =
+        UserMessage.builder().content(List.of(textContent("see"), reference)).build();
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(storedMessage));
+
+    var windowed = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+
+    assertThat(windowed).hasSize(2);
+    assertThat(windowed.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            expanded -> {
+              assertThat(expanded.id()).isEqualTo(storedMessage.id());
+              assertThat(expanded.content())
+                  .containsExactly(textContent("see"), textContent(reference.toTag()));
+            });
+    assertThat(storedMessage.content()).containsExactly(textContent("see"), reference);
+  }
+
+  @Test
+  void window_addsNoDocumentContentForAReferenceWithContentThatLeftTheWindow() {
+    var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    var withContent = UserMessage.builder().content(List.of(textContent("see"))).build();
+    var entry =
+        DocumentRegistries.entryFor(new IngestedDocument(document, DocumentSource.userMessage()));
+    var evictedMessage =
+        withContent.withContent(
+            List.of(
+                textContent("see"),
+                DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT)));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            BASE_CONTEXT.withDocuments(List.of(entry)),
+            TurnReconstructor.reconstruct(
+                List.of(
+                    evictedMessage,
+                    assistantMessage("one"),
+                    userMessage("two"),
+                    assistantMessage("three"))),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("next")));
+
+    var windowed = conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages();
+
+    assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
+    assertThat(windowed)
+        .filteredOn(UserMessage.class::isInstance)
+        .map(message -> ((UserMessage) message).content())
+        .allSatisfy(content -> assertThat(content).noneMatch(DocumentContent.class::isInstance));
+    assertThat(windowed.getLast().id()).isEqualTo(conv.allMessages().getLast().id());
+  }
+
+  @Test
+  void documentRegistryOfTheRehydratedContextSurvivesEveryCopyOnWrite() {
+    var entry =
+        new DocumentRegistryEntry(
+            DocumentId.of("doc-1"),
+            DocumentSource.userMessage(),
+            Map.of("camunda.document.type", "camunda"));
+    var context = BASE_CONTEXT.withDocuments(List.of(entry));
+    var conv =
+        AgentConversation.rehydrate(
+            CONFIG,
+            context,
+            TurnReconstructor.reconstruct(List.of()),
+            SYSTEM_MESSAGE,
+            List.of(userMessage("hi")));
+
+    var ingested = conv.ingest(assistantMessage("hello"), AgentMetrics.empty());
+    var stored =
+        ingested.withStoredConversation(InProcessConversationContext.builder("conv").build());
+
+    assertThat(ingested.toAgentContext().documents()).containsExactly(entry);
+    assertThat(stored.toAgentContext().documents()).containsExactly(entry);
+    assertThat(ingested.nextContinuationRound().toAgentContext().documents())
+        .containsExactly(entry);
   }
 
   @Test
@@ -400,8 +617,10 @@ class AgentConversationTest {
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(conv.window(3).messages()).containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(conv.window(2).messages()).containsExactly(SYSTEM_MESSAGE);
+    assertThat(conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
+        .containsExactly(SYSTEM_MESSAGE, calling, results);
+    assertThat(conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv)).messages())
+        .containsExactly(SYSTEM_MESSAGE);
   }
 
   @Test
@@ -446,9 +665,30 @@ class AgentConversationTest {
   }
 
   @Test
-  void persistedContext_isTheContextTheConversationIsBuiltOn() {
+  void withPersistedContext_replacesThePersistedContextOnly() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    final var entry =
+        new DocumentRegistryEntry(
+            DocumentId.of("doc-a"),
+            DocumentSource.userMessage(),
+            Map.of("camunda.document.type", "camunda", "documentId", "doc-a"));
+
+    var updated =
+        conv.withPersistedContext(
+            conv.persistedContext().withDocuments(List.of(entry)).withProperty("note", "x"));
+
+    assertThat(conv.documentRegistry().isEmpty()).isTrue();
+    assertThat(updated.documentRegistry().entries()).containsExactly(entry);
+    assertThat(updated.toAgentContext().documents()).containsExactly(entry);
+    assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
+    // the metrics of the persisted context are not touched by a change of it
+    assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void withPersistedContext_returnsTheSameInstanceForTheSameContext() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
-    assertThat(conv.persistedContext()).isSameAs(BASE_CONTEXT);
+    assertThat(conv.withPersistedContext(conv.persistedContext())).isSameAs(conv);
   }
 }

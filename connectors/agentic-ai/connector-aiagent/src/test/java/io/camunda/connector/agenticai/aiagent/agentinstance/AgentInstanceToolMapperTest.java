@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,7 +39,8 @@ class AgentInstanceToolMapperTest {
       mock(GatewayToolHandlerRegistry.class);
   private final RuntimeToolRegistry runtimeToolRegistry =
       new RuntimeToolRegistryImpl(
-          List.of(StubRuntimeTool.of(RUNTIME_TOOL, (call, context) -> null)));
+          List.of(StubRuntimeTool.of(RUNTIME_TOOL, (call, context) -> null)),
+          TestObjectMapperSupplier.INSTANCE);
   private final AgentInstanceToolMapper mapper =
       new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
 
