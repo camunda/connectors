@@ -22,3 +22,7 @@ These are usually only ready on the day of the release.
 ## Bump docs link to new minor version
 
 1. Merge the PR the RELEASE workflow creates for the first new minor release, with the version bump of the documentation links.
+
+## Bump the API compatibility baseline
+
+1. Merge the PRs the RELEASE workflow creates for the first new minor release, which move the [API compatibility baseline](api-compatibility.md#baseline) of `main` and of the release branch to the new minor.
