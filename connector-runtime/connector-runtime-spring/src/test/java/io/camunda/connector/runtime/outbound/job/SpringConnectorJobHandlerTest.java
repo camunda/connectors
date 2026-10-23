@@ -76,6 +76,7 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFactory;
+import io.camunda.connector.runtime.core.secret.LegacySecretsNotResolved;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -2049,6 +2050,49 @@ class SpringConnectorJobHandlerTest {
         .startsWith(
             "jakarta.validation.ValidationException: Found constraints violated while validating input: \n"
                 + " - Property: test: Validation failed. Original message: numeric value out of bounds (<2 digits>.<0 digits> expected)");
+  }
+
+  @Test
+  void shouldLeaveLegacySecretsUnresolvedForAnOptedOutConnector() throws Exception {
+    // given
+    var connector = new LegacySecretsOptOutConnector();
+    var jobHandler = newConnectorJobHandler(connector);
+
+    // when
+    JobBuilder.create()
+        .withVariables("{ \"value\" : \"{{secrets.FOO}}\" }")
+        .executeAndCaptureResult(jobHandler);
+
+    // then
+    assertThat(connector.input).containsEntry("value", "{{secrets.FOO}}");
+  }
+
+  @Test
+  void shouldResolveLegacySecretsByDefault() throws Exception {
+    // given
+    var jobHandler = newConnectorJobHandler(context -> context.bindVariables(Map.class));
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"value\" : \"{{secrets.FOO}}\" }")
+            .withResultVariableHeader("result")
+            .executeAndCaptureResult(jobHandler);
+
+    // then
+    assertThat(result.getVariables()).containsEntry("result", Map.of("value", "bar"));
+  }
+
+  private static final class LegacySecretsOptOutConnector
+      implements OutboundConnectorFunction, LegacySecretsNotResolved {
+    private Map<String, Object> input;
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object execute(OutboundConnectorContext context) {
+      input = context.bindVariables(Map.class);
+      return null;
+    }
   }
 
   @Test

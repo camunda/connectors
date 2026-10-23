@@ -34,6 +34,11 @@ public interface SecretFilter {
     return context -> true;
   }
 
+  /** Leaves every placeholder unreplaced. */
+  static SecretFilter denyAll() {
+    return context -> false;
+  }
+
   /**
    * Returns a filter that permits only the secret names in {@code names}. An empty list denies all
    * secrets.

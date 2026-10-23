@@ -20,6 +20,7 @@
   <modules>
     <module>connector-runtime-core</module>
     <module>connector-runtime-spring</module>
+    <module>connector-runtime-managed-code</module>
     <module>spring-boot-starter-camunda-connectors</module>
     <module>connector-feel</module>
     <module>jackson-datatype-feel</module>
