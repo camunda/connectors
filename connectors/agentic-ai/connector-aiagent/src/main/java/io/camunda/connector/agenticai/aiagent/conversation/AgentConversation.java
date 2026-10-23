@@ -223,8 +223,8 @@ public final class AgentConversation {
 
   /**
    * The agent context this conversation is built on, with the changes made since: the registered
-   * documents and the properties. Unlike {@link #toAgentContext()} it does not hold the metrics and
-   * the iteration bookkeeping of this invocation.
+   * documents, the response documents and the properties. Unlike {@link #toAgentContext()} it does
+   * not hold the metrics and the iteration bookkeeping of this invocation.
    */
   public AgentContext persistedContext() {
     return currentContext;

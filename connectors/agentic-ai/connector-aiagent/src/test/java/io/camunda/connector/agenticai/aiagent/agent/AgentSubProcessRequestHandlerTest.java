@@ -76,6 +76,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -2598,6 +2599,34 @@ class AgentSubProcessRequestHandlerTest {
                     .extracting(ToolCallResultContent::id)
                     .containsExactly("call-1", "call-2"));
     assertContentMessageOf(messages.getLast(), document);
+  }
+
+  @Test
+  void carriesTheResponseDocumentsIntoTheAgentResponseVariable() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    mockChatModelExecution(assistantMessage("here you go"));
+    final var returned =
+        new ReturnedDocument(Map.<String, Object>of("camunda.document.type", "camunda"), "Report");
+    when(responseHandler.createResponse(any(AgentConversation.class)))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                    .responseText("here you go")
+                    .responseDocuments(Map.of("report", returned))
+                    .build());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.variables().get("agent"))
+        .isInstanceOfSatisfying(
+            AgentSubProcessResponse.class,
+            agent ->
+                assertThat(agent.responseDocuments())
+                    .containsExactly(Map.entry("report", returned)));
   }
 
   private static void assertContentMessageOf(Message message, Document document) {
