@@ -106,7 +106,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
 
       - name: Determine Maven cache key
         id: maven-cache-key
@@ -155,7 +155,7 @@ jobs:
             secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           # Two mirrors, because the HeroDevs NES repo is not served by the CI Nexus cache:
@@ -363,7 +363,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
 
       - name: Import Secrets
         id: secrets
@@ -390,7 +390,7 @@ jobs:
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
