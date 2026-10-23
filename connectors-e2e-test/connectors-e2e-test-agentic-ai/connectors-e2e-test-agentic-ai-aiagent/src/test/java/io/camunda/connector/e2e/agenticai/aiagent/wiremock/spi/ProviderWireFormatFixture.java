@@ -76,6 +76,16 @@ public interface ProviderWireFormatFixture {
   }
 
   /**
+   * Whether the documents of the user prompt go out as content. A template that has no document
+   * delivery property for the user prompt (the v1 templates) leaves the delivery unset, and an
+   * unset delivery adds the content of every prompt document; the v2 templates preset the delivery
+   * to {@code reference}.
+   */
+  default boolean promptDocumentsAsContent() {
+    return false;
+  }
+
+  /**
    * Wires the WireMock scenario chain returning each turn's response in order, mirroring the
    * conversation loop the connector is expected to drive.
    */

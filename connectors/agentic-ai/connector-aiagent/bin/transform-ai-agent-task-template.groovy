@@ -40,9 +40,17 @@ if (deprecationMessage && !json.name?.toString()?.endsWith(" (Deprecated)")) {
     json.name += " (Deprecated)"
 }
 
+// optional: comma-separated ids of template properties to leave out; unset keeps every property
+def omittedPropertyIds = (binding.hasVariable('omittedPropertyIds') && omittedPropertyIds
+        ? ((String) omittedPropertyIds).split(',').collect { it.trim() }.findAll { it }
+        : [])
 def updatedProperties = []
 
 properties.each { property ->
+    if (property.id in omittedPropertyIds) {
+        return
+    }
+
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
         return
