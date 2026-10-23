@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,25 @@ class AgentInstanceToolMapperTest {
             agentTool -> {
               assertThat(agentTool.getName()).isEqualTo("acme_lookup");
               assertThat(agentTool.getDescription()).isEqualTo("Looks up a customer");
+              assertThat(agentTool.getElementId()).isNull();
+            });
+  }
+
+  @Test
+  void theBuiltInReturnDocumentToolHasNoElementId() {
+    final var registry =
+        new RuntimeToolRegistryImpl(
+            List.of(new ReturnDocumentTool()), TestObjectMapperSupplier.INSTANCE);
+
+    final var mapped =
+        new AgentInstanceToolMapper(gatewayToolHandlers, registry)
+            .mapTools(NEW_INSTANCE, List.of(new ReturnDocumentTool().definition()));
+
+    assertThat(mapped)
+        .singleElement()
+        .satisfies(
+            agentTool -> {
+              assertThat(agentTool.getName()).isEqualTo("c8__return_document");
               assertThat(agentTool.getElementId()).isNull();
             });
   }
