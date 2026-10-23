@@ -11,6 +11,16 @@
             "columns": null
           },
           "id": "Field_0e59eom"
+        },
+        {
+          "label": "Response Documents",
+          "type": "documentPreview",
+          "layout": {
+            "row": "Row_05vkio3",
+            "columns": null
+          },
+          "id": "Field_13n34q9",
+          "dataSource": "=responseDocuments"
         }
       ],
       "showOutline": true,
@@ -81,7 +91,7 @@
   "executionPlatformVersion": "8.10.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.51.1"
+    "version": "5.52.0"
   },
   "schemaVersion": 19
 }

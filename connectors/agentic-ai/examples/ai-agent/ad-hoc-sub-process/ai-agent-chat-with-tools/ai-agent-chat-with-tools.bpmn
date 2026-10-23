@@ -19,6 +19,7 @@
         <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
         <zeebe:ioMapping>
           <zeebe:input source="=agent.responseText" target="responseText" />
+          <zeebe:input source="=if agent.responseDocuments != null then (for e in get entries(agent.responseDocuments) return e.value.document) else []" target="responseDocuments" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0m7etfk</bpmn:incoming>
@@ -52,11 +53,13 @@
           <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.anthropic.backend.awsBedrockMantle.authentication.secretKey" />
           <zeebe:input source="anthropic.claude-sonnet-5" target="provider.anthropic.model.model" />
           <zeebe:input source="modelDefault" target="provider.anthropic.model.parameters.effort" />
-          <zeebe:input source="modelDefault" target="provider.anthropic.model.parameters.thinking.mode" />
+          <zeebe:input source="adaptive" target="provider.anthropic.model.parameters.thinking.mode" />
+          <zeebe:input source="summarized" target="provider.anthropic.model.parameters.thinking.display" />
           <zeebe:input source="=true" target="provider.anthropic.model.parameters.promptCaching.enabled" />
           <zeebe:input source="=&#34;You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#34;" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
+          <zeebe:input source="reference" target="data.userPrompt.documentDelivery" />
           <zeebe:input source="=agent.context" target="agentContext" />
           <zeebe:input source="in-process" target="data.memory.storage.type" />
           <zeebe:input source="=20" target="data.memory.contextWindowSize" />
@@ -172,6 +175,7 @@
             <zeebe:input source="=fromAi(toolCall.recipient_email, &#34;The the recipient&#39;s email address.&#34;)" target="recipient_email" />
             <zeebe:input source="=fromAi(toolCall.email_subject, &#34;The subject of the email.&#34;)" target="email_subject" />
             <zeebe:input source="=fromAi(toolCall.email_body, &#34;The body of the email.&#34;)" target="email_body" />
+            <zeebe:input source="=fromAi(toolCall.email_document, &#34;Optional document to attach to the e-mail&#34;, &#34;document&#34;, {}, { required: false })" target="email_document" />
             <zeebe:output source="={&#10;  operatorFeedback: operatorFeedback,&#10;  emailOk: emailOk&#10;}" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
