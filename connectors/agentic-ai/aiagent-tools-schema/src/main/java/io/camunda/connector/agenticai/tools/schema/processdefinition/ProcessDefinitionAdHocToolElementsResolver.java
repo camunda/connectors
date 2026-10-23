@@ -18,6 +18,8 @@ import org.jspecify.annotations.Nullable;
 public interface ProcessDefinitionAdHocToolElementsResolver {
 
   /**
+   * Resolves the tool elements of the given ad-hoc subprocess.
+   *
    * @param physicalTenantId the physical tenant (orchestration cluster) the job was activated from,
    *     or {@code null} when it carries none. The definition has to be read from that cluster:
    *     process definition keys are only unique within one cluster, so a key alone identifies a

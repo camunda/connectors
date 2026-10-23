@@ -136,8 +136,8 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
       return true;
     }
 
-    if (requiredValue instanceof Boolean) {
-      return (Boolean) requiredValue;
+    if (requiredValue instanceof Boolean required) {
+      return required;
     }
 
     throw new AdHocToolSchemaGenerationException(

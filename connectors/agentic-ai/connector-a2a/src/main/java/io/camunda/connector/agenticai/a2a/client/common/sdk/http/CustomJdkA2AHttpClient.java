@@ -105,7 +105,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       return (T) this;
     }
 
-    protected HttpRequest.Builder createRequestBuilder() throws IOException {
+    HttpRequest.Builder createRequestBuilder() throws IOException {
       HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url));
       for (Map.Entry<String, String> headerEntry : headers.entrySet()) {
         builder.header(headerEntry.getKey(), headerEntry.getValue());
@@ -113,7 +113,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
       return builder;
     }
 
-    protected CompletableFuture<Void> asyncRequest(
+    CompletableFuture<Void> asyncRequest(
         HttpRequest request,
         Consumer<String> messageConsumer,
         Consumer<Throwable> errorConsumer,
@@ -217,11 +217,7 @@ public class CustomJdkA2AHttpClient implements A2AHttpClient {
                     && response.statusCode() != HTTP_UNAUTHORIZED
                     && response.statusCode() != HTTP_FORBIDDEN) {
                   subscriber.onError(
-                      new IOException(
-                          "Request failed with status "
-                              + response.statusCode()
-                              + ":"
-                              + response.body()));
+                      new IOException("Request failed with status " + response.statusCode()));
                 }
               });
     }

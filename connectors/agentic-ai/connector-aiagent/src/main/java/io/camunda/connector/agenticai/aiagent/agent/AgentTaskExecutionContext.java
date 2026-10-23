@@ -82,7 +82,8 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
       return toolElements;
     }
 
-    return toolElements = resolveToolElements();
+    toolElements = resolveToolElements();
+    return toolElements;
   }
 
   private List<AdHocToolElement> resolveToolElements() {
