@@ -63,12 +63,14 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
+      # this job doesn't save a second ~1 GB copy. Keep the key in sync with that workflow.
       - name: Restore cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
 
