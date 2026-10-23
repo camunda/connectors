@@ -13,7 +13,8 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateSubType(id = "credentials", label = "Username/Password")
 public record CredentialsAuthentication(
     @NotBlank @TemplateProperty(group = "authentication", label = "Username") String userName,
-    @NotBlank @TemplateProperty(group = "authentication", label = "Password") String password)
+    @NotBlank @TemplateProperty(group = "authentication", label = "Password", secret = true)
+        String password)
     implements RabbitMqAuthentication {
   @Override
   public String toString() {

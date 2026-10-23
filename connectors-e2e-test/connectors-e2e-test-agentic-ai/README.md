@@ -5,31 +5,34 @@ them or apply the opt-in label without authorization.
 
 ## Test ownership
 
-- **Deterministic Camunda Process Tests (CPT)**: the regular `*Tests` under
-  [`src/test/java/io/camunda/connector/e2e/agenticai/`](src/test/java/io/camunda/connector/e2e/agenticai/)
+- **Deterministic Camunda Process Tests (CPT)**: the regular `*Tests` in the
+  [AI Agent](connectors-e2e-test-agentic-ai-aiagent/src/test/java/io/camunda/connector/e2e/agenticai/),
+  [MCP](connectors-e2e-test-agentic-ai-mcp/src/test/java/io/camunda/connector/e2e/agenticai/mcp/) and
+  [A2A](connectors-e2e-test-agentic-ai-a2a/src/test/java/io/camunda/connector/e2e/agenticai/a2a/) e2e modules
   use test chat models or WireMock instead of paid provider APIs. Process tests still need Docker.
+  [`AGENTS.md`](AGENTS.md) lists all e2e modules.
 - **Native real-provider CPT**: the
-  [`RealProvider*E2ETestIT` classes](src/test/java/io/camunda/connector/e2e/agenticai/e2e/)
+  [`RealProvider*E2ETestIT` classes](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/)
   run the connector in process against real provider APIs, grouped by capability.
 - **Document CPT**:
-  [`RealProviderMultimodalE2ETestIT.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/RealProviderMultimodalE2ETestIT.java)
+  [`RealProviderMultimodalE2ETestIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/RealProviderMultimodalE2ETestIT.java)
   owns user-message documents.
-  [`DocumentToolCallResultsIT.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/DocumentToolCallResultsIT.java)
+  [`DocumentToolCallResultsIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/DocumentToolCallResultsIT.java)
   owns tool-result documents across legacy v1 and native v2 providers.
 - **Bundle end-to-end tests**:
-  [`AiAgentE2ETestIT.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/AiAgentE2ETestIT.java)
+  [`AiAgentE2ETestIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/AiAgentE2ETestIT.java)
   tests the packaged connectors bundle in a separate container.
 
 ## Sources of truth
 
 - Provider/model rows, required environment variables, and capabilities:
-  [`RealProviderApiSmokeSupport.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/RealProviderApiSmokeSupport.java).
+  [`RealProviderApiSmokeSupport.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/RealProviderApiSmokeSupport.java).
 - Document provider/model rows:
-  [`DocumentToolCallResultsIT.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/DocumentToolCallResultsIT.java).
+  [`DocumentToolCallResultsIT.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/DocumentToolCallResultsIT.java).
 - Capability group names:
-  [`RealProviderCapabilityTags.java`](src/test/java/io/camunda/connector/e2e/agenticai/e2e/RealProviderCapabilityTags.java).
+  [`RealProviderCapabilityTags.java`](connectors-e2e-test-agentic-ai-real-llm/src/test/java/io/camunda/connector/e2e/agenticai/realllm/RealProviderCapabilityTags.java).
 - Continuous integration (CI) execution rows and required capability coverage:
-  [`registry.json`](src/test/resources/ai-agent-cpt/registry.json).
+  [`registry.json`](connectors-e2e-test-agentic-ai-real-llm/src/test/resources/ai-agent-cpt/registry.json).
 - Curated change-selection rules:
   [`impact-map.json`](../../.github/ai-agent-cpt/impact-map.json).
 
@@ -66,7 +69,7 @@ repository's required artifacts. If reactor dependencies are not installed local
 without running tests:
 
 ```bash
-./mvnw install -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+./mvnw install -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -am -DskipTests -DskipChecks
 ```
 
@@ -77,7 +80,7 @@ history. This command runs the OpenAI group's core capability against paid APIs:
 RUN_NATIVE_LLM_E2E=true \
 REQUIRE_NATIVE_LLM_PROVIDER=true \
 REAL_LLM_PROVIDER_GROUP=openai \
-./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+./mvnw verify -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -Pit-real-llm -Dgroups=core-smoke
 ```
 
@@ -86,13 +89,13 @@ fails on an empty provider/capability selection. It does not require every catal
 Without a provider group, all eligible rows with available credentials can run.
 
 Check provider labels in the output and this run's reports under
-`connectors-e2e-test/connectors-e2e-test-agentic-ai/target/failsafe-reports`; do not count old reports.
+`connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm/target/failsafe-reports`; do not count old reports.
 Require positive test counts with no failures, errors, or unexpected skips. `BUILD SUCCESS` alone
 does not prove live coverage.
 
 For a credential-free provider-selection check that does not call paid APIs:
 
 ```bash
-./mvnw test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai \
+./mvnw test -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
   -Dtest=RealProviderSelectionTest
 ```

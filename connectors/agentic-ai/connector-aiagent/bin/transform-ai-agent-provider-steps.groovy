@@ -31,6 +31,18 @@ def compatiblePresets = [
      ]]
 ]
 
+// Prefixes every leaf step (one with a presetId) with the element kind, so the Append element popup
+// tells the task entries from the sub-process entries. The sub-process transform swaps the tag.
+static def tagLeafSteps(List steps, String tag) {
+    steps.each { step ->
+        if (step.presetId) {
+            step.name = (tag + step.name).toString()
+        } else if (step.steps) {
+            tagLeafSteps((List) step.steps, tag)
+        }
+    }
+}
+
 ((String) sourceFiles).eachLine { path ->
     if (!path.trim()) return
     println("Transforming provider steps in ${path.trim()}")
@@ -95,6 +107,8 @@ def compatiblePresets = [
             ])
         }
     }
+
+    tagLeafSteps(steps, "AI Agent Task: ")
 
     json.presets = presets
     json.steps = steps

@@ -63,27 +63,34 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
+      # this job doesn't save a second ~1 GB copy. Keep the key in sync with that workflow.
       - name: Restore cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        continue-on-error: true  # Cache failures should not fail the build
+        uses: ./.github/actions/cache-maven-wrapper
 
       - name: Setup Java Build
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.4+101.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       # Mirror uses id=nexus-mirror (distinct from deploy id=camunda-nexus) so each gets the right credentials:
       # - nexus-mirror: CI Nexus creds for the pull-through cache at repository.nexus.camunda.cloud
       # - camunda-nexus: Artifactory creds for deploying snapshots to artifacts.camunda.com
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
@@ -173,6 +180,7 @@ jobs:
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
         with:
           platforms: 'arm64,arm'
+          cache-image: false
 
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4

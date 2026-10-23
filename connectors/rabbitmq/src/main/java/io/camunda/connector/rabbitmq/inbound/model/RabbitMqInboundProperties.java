@@ -6,19 +6,59 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqConnectionConfiguration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
 
 public class RabbitMqInboundProperties {
-  @Valid @NotNull private RabbitMqAuthentication authentication;
-  @Valid private FactoryRoutingData routing;
+
+  /**
+   * Reusable connection credential; when bound, its authentication and routing data take precedence
+   * over the inline ones (see {@link #getAuthentication()} and {@link #getRouting()}). Declared
+   * first so it renders before the fields it gates, as required by ConditionPropertyOrderRule.
+   */
+  @FEEL
+  @Valid
+  @TemplateProperty(
+      id = RabbitMqConnectionConfiguration.CHOOSER_ID,
+      label = "Connection credential",
+      group = "authentication",
+      type = TemplateProperty.PropertyType.Configuration,
+      optional = true,
+      feel = FeelMode.disabled,
+      tooltip =
+          "Choose a reusable RabbitMQ connection credential, or configure one-time connection parameters below.")
+  private RabbitMqConnectionConfiguration rabbitMqConnection;
+
+  // Neither inline field is @Valid: Modeler leaves the inline authentication's default
+  // discriminator in place even after a credential is bound, and cascading validation into that
+  // leftover would fail its @NotBlank members. They are validated through
+  // getInlineAuthenticationWhenNoCredentialBound() and getInlineRoutingWhenNoCredentialBound().
+  @NestedProperties(
+      condition =
+          @PropertyCondition(
+              property = RabbitMqConnectionConfiguration.CHOOSER_ID,
+              isEmpty = NullableBoolean.TRUE))
+  private RabbitMqAuthentication authentication;
+
+  @NestedProperties(
+      condition =
+          @PropertyCondition(
+              property = RabbitMqConnectionConfiguration.CHOOSER_ID,
+              isEmpty = NullableBoolean.TRUE))
+  private FactoryRoutingData routing;
 
   @NotBlank
   @TemplateProperty(
@@ -49,16 +89,47 @@ public class RabbitMqInboundProperties {
       defaultValue = "false")
   private boolean exclusive;
 
+  public RabbitMqConnectionConfiguration getRabbitMqConnection() {
+    return rabbitMqConnection;
+  }
+
+  public void setRabbitMqConnection(RabbitMqConnectionConfiguration rabbitMqConnection) {
+    this.rabbitMqConnection = rabbitMqConnection;
+  }
+
+  /** The bound credential wins over the inline authentication. */
   public RabbitMqAuthentication getAuthentication() {
-    return authentication;
+    return rabbitMqConnection != null ? rabbitMqConnection.authentication() : authentication;
   }
 
   public void setAuthentication(RabbitMqAuthentication authentication) {
     this.authentication = authentication;
   }
 
+  /** The bound credential wins over the inline routing data. */
   public FactoryRoutingData getRouting() {
-    return routing;
+    return rabbitMqConnection != null ? rabbitMqConnection.routing() : routing;
+  }
+
+  @AssertTrue(
+      message = "No authentication provided by the reusable credential or the element template")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return getAuthentication() != null;
+  }
+
+  /** Validates the inline authentication only when no credential is bound. */
+  @Valid
+  @JsonIgnore
+  public RabbitMqAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+    return rabbitMqConnection != null ? null : authentication;
+  }
+
+  /** Validates the inline routing data only when no credential is bound. */
+  @Valid
+  @JsonIgnore
+  public FactoryRoutingData getInlineRoutingWhenNoCredentialBound() {
+    return rabbitMqConnection != null ? null : routing;
   }
 
   public void setRouting(FactoryRoutingData routing) {
@@ -107,6 +178,7 @@ public class RabbitMqInboundProperties {
     }
     RabbitMqInboundProperties that = (RabbitMqInboundProperties) o;
     return exclusive == that.exclusive
+        && Objects.equals(rabbitMqConnection, that.rabbitMqConnection)
         && Objects.equals(authentication, that.authentication)
         && Objects.equals(routing, that.routing)
         && Objects.equals(queueName, that.queueName)
@@ -116,13 +188,16 @@ public class RabbitMqInboundProperties {
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, routing, queueName, consumerTag, arguments, exclusive);
+    return Objects.hash(
+        rabbitMqConnection, authentication, routing, queueName, consumerTag, arguments, exclusive);
   }
 
   @Override
   public String toString() {
     return "RabbitMqInboundProperties{"
-        + "authentication="
+        + "rabbitMqConnection="
+        + rabbitMqConnection
+        + ", authentication="
         + authentication
         + ", routing="
         + routing

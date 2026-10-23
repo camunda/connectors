@@ -20,6 +20,7 @@ import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqConnectionConfiguration;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import java.io.IOException;
@@ -31,11 +32,12 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "RabbitMQ Consumer", type = "io.camunda:connector-rabbitmq-inbound:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.inbound.RabbitMQ",
     name = "RabbitMQ Connector",
     icon = "icon.svg",
-    version = 8,
+    version = 9,
+    configurations = {RabbitMqConnectionConfiguration.class},
     inputDataClass = RabbitMqInboundProperties.class,
     description = "Receive a message from RabbitMQ",
     keywords = {

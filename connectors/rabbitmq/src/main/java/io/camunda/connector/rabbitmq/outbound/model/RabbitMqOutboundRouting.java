@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqConnectionConfiguration;
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -39,12 +40,14 @@ public record RabbitMqOutboundRouting(
             tooltip =
                 "A binding is a \"link\" that was set up to bind a queue to an exchange. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
         String routingKey,
+    // FactoryRoutingData's own fields are already shown for username/password only; this hides
+    // them once a reusable credential, which carries its own routing data, is bound.
     @NestedProperties(
             addNestedPath = false,
             condition =
                 @TemplateProperty.PropertyCondition(
-                    property = "authentication.authType",
-                    equals = "credentials"))
+                    property = RabbitMqConnectionConfiguration.CHOOSER_ID,
+                    isEmpty = TemplateProperty.NullableBoolean.TRUE))
         @JsonUnwrapped
         FactoryRoutingData routingData) {
   @JsonCreator

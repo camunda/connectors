@@ -227,10 +227,12 @@ The decision comprises:
   `connector-aiagent` and of `connector-ad-hoc-tools-schema` scans the classes of its library
   dependencies (`includeDependencies`) to find the annotated records. When the annotated records live
   in the connector modules, each connector generates its templates from its own classes only.
-* Split the e2e tests in `connectors-e2e-test-agentic-ai` along the modules, so that each connector
-  and integration has its own e2e module. The tests share runtime and agent fixtures, which must move
-  to a shared test library first. The split also adds checks that a runtime with only the AI Agent,
-  only the MCP connectors or only the A2A connectors starts and runs.
+* Check on every build that a runtime with only the AI Agent connector starts and runs. The MCP and
+  A2A client connectors have e2e modules that depend only on their own connector. The AI Agent e2e
+  module also tests the ad-hoc tools schema connector and the MCP and A2A gateway tools, so it
+  depends on all connectors and integrations. The real LLM e2e module runs only the AI Agent and
+  HTTP JSON connectors, but its tests call paid providers and run on demand. Done when a stubbed e2e test runs the
+  AI Agent on a runtime without the other connector modules.
 * Remove the dependency of `connector-a2a` on the webhook connector. The A2A webhook uses the webhook
   authorization and HMAC verification of `connector-webhook`, so anyone who depends on the A2A client
   gets the webhook connector and its registration, and the A2A template generation includes its

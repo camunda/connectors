@@ -9,7 +9,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '25.0.4+101.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
           distribution: 'temurin'
 
       - name: Checkout repository
@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch_name }}
+
+      - name: Cache Maven wrapper distribution
+        uses: ./.github/actions/cache-maven-wrapper
 
       - name: install-uniquet
         run: |
