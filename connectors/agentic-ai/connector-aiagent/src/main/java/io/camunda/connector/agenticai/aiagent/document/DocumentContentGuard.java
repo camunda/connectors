@@ -24,19 +24,19 @@ import org.jspecify.annotations.Nullable;
  * fails the model call for it. A document with content stays in the conversation until its message
  * leaves the window, so a document that a provider cannot render would fail every later model call.
  *
- * <p>The content of an external document, one that is a URL, is never added on request of a tool:
- * its content type and size are only known after the runtime downloaded the whole body, so the
- * guard could neither check nor bound them. The model passes its tag to a tool that processes it.
- * The content of an external document in a user prompt is not guarded: the model provider reads it
- * as it reads every document of a prompt.
+ * <p>The content of an external document, one that is a URL, is never added on request of a tool or
+ * of a tool activity: its content type and size are only known after the runtime downloaded the
+ * whole body, so the guard could neither check nor bound them. The model passes its tag to a tool
+ * that processes it. The content of an external document in a user prompt is not guarded: the model
+ * provider reads it as it reads every document of a prompt.
  *
  * <p>The size is read from the reference metadata without reading the document; when the metadata
  * has none, at most one byte more than the limit is read.
  *
  * <p>A runtime tool asks for content by naming a document (see {@code
  * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard. The
- * agent checks the documents of a user prompt with the delivery {@code content} the same way, so
- * the same documents pass whoever asks.
+ * agent checks the documents of a user prompt and of the result of a tool with the delivery {@code
+ * content} the same way, so the same documents pass whoever asks.
  */
 public final class DocumentContentGuard {
 
