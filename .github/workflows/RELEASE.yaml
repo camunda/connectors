@@ -111,11 +111,12 @@ jobs:
       - name: Determine Maven cache key
         id: maven-cache-key
         env:
-          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
         run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
@@ -390,8 +391,9 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
           key: ${{ needs.setup.outputs.mavenCacheKey }}
