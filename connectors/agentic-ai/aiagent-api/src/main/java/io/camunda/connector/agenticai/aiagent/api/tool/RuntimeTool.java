@@ -72,8 +72,8 @@ public interface RuntimeTool {
   }
 
   /**
-   * Handles {@code call}, only when the tool is enabled and the document parameters of the call name
-   * known documents: any other call gets an error result and does not reach the tool. A {@link
+   * Handles {@code call}, only when the tool is enabled and the document parameters of the call
+   * name known documents: any other call gets an error result and does not reach the tool. A {@link
    * RuntimeToolException} becomes an error result; any other exception fails the job.
    *
    * @return the result, never {@code null}
