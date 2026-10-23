@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCallImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
@@ -21,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,20 +50,24 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
-      List<ToolCall> runtimeToolCalls) {
+      List<ToolCall> runtimeToolCalls,
+      Set<DocumentId> documentIdsWithContent) {
     return runtimeToolCalls.stream()
-        .map(toolCall -> execute(executionContext, agentContext, toolCall))
+        .map(toolCall -> execute(executionContext, agentContext, documentIdsWithContent, toolCall))
         .toList();
   }
 
   private RuntimeToolExecution execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, ToolCall toolCall) {
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      ToolCall toolCall) {
     final var startedAt = OffsetDateTime.now();
     final var tool =
         runtimeToolRegistry.findEnabled(executionContext, agentContext, toolCall.name());
     final var result =
         tool.isPresent()
-            ? run(executionContext, agentContext, tool.get(), toolCall)
+            ? run(executionContext, agentContext, documentIdsWithContent, tool.get(), toolCall)
             : unansweredByATool(agentContext, toolCall);
     final var completedAt = OffsetDateTime.now();
     return new RuntimeToolExecution(toolCall, result, startedAt, completedAt);
@@ -89,6 +95,7 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   private RuntimeToolResult run(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
       RuntimeTool tool,
       ToolCall toolCall) {
     return switch (DocumentParameterResolver.resolveRuntimeCall(
@@ -96,7 +103,13 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
       case DocumentParameterResolver.Resolution.Invalid invalid ->
           RuntimeToolResult.error(invalid.message());
       case DocumentParameterResolver.Resolution.Resolved resolved ->
-          call(executionContext, agentContext, tool, toolCall, resolved.arguments());
+          call(
+              executionContext,
+              agentContext,
+              documentIdsWithContent,
+              tool,
+              toolCall,
+              resolved.arguments());
     };
   }
 
@@ -104,13 +117,15 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   private RuntimeToolResult call(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
       RuntimeTool tool,
       ToolCall toolCall,
       Map<String, Object> arguments) {
     final var runtimeToolCall =
         new RuntimeToolCallImpl(toolCall.id(), toolCall.name(), arguments, argumentsMapper);
     final var runtimeToolContext =
-        RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+        RuntimeToolContextImpl.of(
+            executionContext, agentContext, documentIdsWithContent, objectMapper);
 
     RuntimeToolResult result;
     try {

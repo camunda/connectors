@@ -66,9 +66,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
+  private final ToolCallResultsInputBuilder resultsInputBuilder;
 
-  public AgentConversationTurnInputComposerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentConversationTurnInputComposerImpl(
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      ToolCallResultsInputBuilder resultsInputBuilder) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.resultsInputBuilder = resultsInputBuilder;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }
 
@@ -179,9 +183,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       }
 
       final var toolCallResultsInput =
-          ToolCallResultsInputBuilder.build(
+          resultsInputBuilder.build(
+              agentContext,
               orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions),
-              documentFlow);
+              previousConversation.documentIdsWithContent(configuration.contextWindowSize()));
       messages.addAll(toolCallResultsInput.messages());
       ingestedDocuments.addAll(toolCallResultsInput.documents());
       messages.addAll(eventMessages);
@@ -240,7 +245,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     return UserMessage.builder()
         .content(content)
-        .metadata(ToolCallResultsInputBuilder.defaultMessageMetadata())
+        .metadata(ToolCallResultsInputBuilderImpl.defaultMessageMetadata())
         .build();
   }
 
@@ -383,13 +388,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           }
         }
       } else {
-        userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+        userMessageContent.addAll(ToolCallResultsInputBuilderImpl.documentPairs(eventDocuments));
       }
     }
 
     return UserMessage.builder()
         .content(userMessageContent)
-        .metadata(ToolCallResultsInputBuilder.defaultMessageMetadata())
+        .metadata(ToolCallResultsInputBuilderImpl.defaultMessageMetadata())
         .build();
   }
 

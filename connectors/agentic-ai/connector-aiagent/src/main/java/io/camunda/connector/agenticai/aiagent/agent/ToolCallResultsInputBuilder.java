@@ -6,24 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
-
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
-import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Builds the input of the turn that follows a turn with tool calls from the tool call results of
@@ -31,36 +22,45 @@ import java.util.Map;
  * process tool calls, the request handler for a turn with runtime tool calls only, so the input and
  * the documents that enter the conversation with it are the same for both.
  *
- * <p>An agent instance with the documents feature shows a document as its tag inside the tool
- * result and reports it for the document registry. An agent instance without it keeps the document
- * in a message of its own, next to its tag.
+ * <p>This is the one place that applies what the results of runtime tools ask of the agent, after
+ * all calls ran, in the order of the calls: it registers the documents they return and adds the
+ * content of the documents they name (see {@link RuntimeToolResult.Success#withDocumentContent}).
+ * The input is a function of the agent context, the results and the documents whose content the
+ * model reads already, so a job that runs again composes the same input.
  */
-final class ToolCallResultsInputBuilder {
-
-  static final String TOOL_CALL_DOCUMENTS_PREAMBLE =
-      "Documents extracted from tool calls (<doc /> tag + content pair):";
-
-  private ToolCallResultsInputBuilder() {}
+public interface ToolCallResultsInputBuilder {
 
   /**
-   * A tool call result with the documents extracted from it.
+   * A tool call result with the documents extracted from it and the effects it asks for.
    *
    * @param result the tool call result that becomes part of the conversation
    * @param documents the documents of the result, in order of appearance
+   * @param documentContent the documents whose content the result asks to add, in the order they
+   *     were named; always empty for the result of a process tool
    */
-  record Entry(ToolCallResultContent result, List<Document> documents) {
+  record Entry(
+      ToolCallResultContent result, List<Document> documents, List<DocumentId> documentContent) {
 
-    Entry {
+    public Entry {
       documents = List.copyOf(documents);
+      documentContent = List.copyOf(documentContent);
+    }
+
+    /** An entry whose result asks for no effect. */
+    public Entry(ToolCallResultContent result, List<Document> documents) {
+      this(result, documents, List.of());
     }
 
     /**
      * The entry for the result of a runtime tool; its documents are the ones of its content, so the
-     * result of a failed call, whose content is text, has none.
+     * result of a failed call, whose content is text, has none. An error result asks for no effect.
      */
-    static Entry of(RuntimeToolExecution execution) {
+    public static Entry of(RuntimeToolExecution execution) {
       final var result = execution.toolCallResult();
-      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
+      return new Entry(
+          result,
+          ToolCallResultDocumentExtractor.documentsOf(result.content()),
+          execution.result().documentContent());
     }
   }
 
@@ -73,94 +73,31 @@ final class ToolCallResultsInputBuilder {
    */
   record Input(List<Message> messages, List<IngestedDocument> documents) {
 
-    Input {
+    public Input {
       messages = List.copyOf(messages);
       documents = List.copyOf(documents);
     }
   }
 
   /**
-   * The input for the results of all tool calls of a turn.
+   * The input for the results of all tool calls of a turn. An agent instance with the documents
+   * feature shows a document as its tag inside the tool result and reports it for the document
+   * registry. An agent instance without it keeps the document in a message of its own, next to its
+   * tag.
    *
+   * <p>A result that asks for the content of a document the content guard rejects becomes an error
+   * result, and the documents it returned are not reported. A document whose content the model
+   * reads already, or that an earlier result of the turn asked for, is not added again. The content
+   * follows the tool call result message in a message of its own.
+   *
+   * @param agentContext the agent context the results were computed with; its document registry
+   *     does not hold the documents of the results yet
    * @param entries the results in the order of the tool calls
-   * @param documentFlow whether the agent instance has the documents feature
-   * @return the tool call result message and, with the documents feature, the documents of the
-   *     results to register; without it, the message with the documents of the results if there are
-   *     any
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
+   * @throws IllegalArgumentException if a result asks for the content of a document that neither
+   *     {@code agentContext} nor the result knows
    */
-  static Input build(List<Entry> entries, boolean documentFlow) {
-    return documentFlow ? buildWithDocumentTags(entries) : buildWithDocumentMessage(entries);
-  }
-
-  /**
-   * A document that is a whole result is persisted as its tag, like the documents that are not a
-   * whole result. The documents of every result are registered with the tool call as their source.
-   */
-  private static Input buildWithDocumentTags(List<Entry> entries) {
-    final var results =
-        entries.stream()
-            .map(Entry::result)
-            .map(DocumentReferences::withDocumentReferences)
-            .toList();
-    final var documents = new ArrayList<IngestedDocument>();
-    for (final var entry : entries) {
-      final var source = DocumentSource.toolCall(entry.result().name(), entry.result().id());
-      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, source)));
-    }
-    return new Input(
-        List.of(
-            ToolCallResultMessage.builder()
-                .results(results)
-                .metadata(defaultMessageMetadata())
-                .build()),
-        documents);
-  }
-
-  private static Input buildWithDocumentMessage(List<Entry> entries) {
-    final var messages = new ArrayList<Message>();
-    messages.add(
-        ToolCallResultMessage.builder()
-            .results(entries.stream().map(Entry::result).toList())
-            .metadata(defaultMessageMetadata())
-            .build());
-
-    final var documentGroups =
-        entries.stream()
-            .filter(entry -> !entry.documents().isEmpty())
-            .map(
-                entry ->
-                    new ToolCallResultDocumentExtractor.ToolCallDocuments(
-                        entry.result().id(), entry.result().name(), entry.documents()))
-            .toList();
-    if (!documentGroups.isEmpty()) {
-      final var content = new ArrayList<Content>();
-      content.add(textContent(TOOL_CALL_DOCUMENTS_PREAMBLE));
-      content.addAll(documentPairs(documentGroups));
-
-      final var metadata = new HashMap<>(defaultMessageMetadata());
-      metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
-      messages.add(UserMessage.builder().content(content).metadata(metadata).build());
-    }
-    return new Input(messages, List.of());
-  }
-
-  /** A document tag followed by the document, for every document of every group. */
-  static List<Content> documentPairs(
-      List<ToolCallResultDocumentExtractor.ToolCallDocuments> documentGroups) {
-    final var content = new ArrayList<Content>();
-    for (var group : documentGroups) {
-      for (var doc : group.documents()) {
-        content.add(
-            textContent(
-                LegacyDocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
-                    .toXml()));
-        content.add(DocumentContent.documentContent(doc));
-      }
-    }
-    return content;
-  }
-
-  static Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now());
-  }
+  Input build(
+      AgentContext agentContext, List<Entry> entries, Set<DocumentId> documentIdsWithContent);
 }

@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -115,7 +116,7 @@ class RuntimeToolExecutorImplTest {
 
   private List<RuntimeToolExecution> execute(
       RuntimeToolExecutor executor, AgentExecutionContext executionContext, ToolCall... calls) {
-    return executor.execute(executionContext, NEW_INSTANCE, List.of(calls));
+    return executor.execute(executionContext, NEW_INSTANCE, List.of(calls), Set.of());
   }
 
   @Test
@@ -198,7 +199,7 @@ class RuntimeToolExecutorImplTest {
             runtimeCall("c2", "acme_order", Map.of()),
             runtimeCall("c3", "acme_order", Map.of()));
 
-    final var executions = executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, calls);
+    final var executions = executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, calls, Set.of());
 
     assertThat(order).containsExactly("c1", "c2", "c3");
     assertThat(executions)
@@ -237,7 +238,7 @@ class RuntimeToolExecutorImplTest {
   @Test
   void givesACallOfAnAgentWithoutTheRuntimeToolsFeatureAnErrorResult() {
     final var executions =
-        executor.execute(WITH_MEMORY, AgentContext.empty(), List.of(note("n1", "a")));
+        executor.execute(WITH_MEMORY, AgentContext.empty(), List.of(note("n1", "a")), Set.of());
 
     assertThat(executions)
         .singleElement()
@@ -252,8 +253,9 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("f1", "acme_featured", Map.of());
     final var withFeature = AgentContext.empty().withFeatures(List.of("runtimeTools", "acme"));
 
-    final var without = executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
-    final var with = executorOf(tool).execute(WITH_MEMORY, withFeature, List.of(call));
+    final var without =
+        executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call), Set.of());
+    final var with = executorOf(tool).execute(WITH_MEMORY, withFeature, List.of(call), Set.of());
 
     assertThat(without)
         .singleElement()
@@ -341,7 +343,11 @@ class RuntimeToolExecutorImplTest {
     final var agentContext = NEW_INSTANCE.withProperty("hello", "world");
 
     executorOf(reading)
-        .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
+        .execute(
+            WITH_MEMORY,
+            agentContext,
+            List.of(runtimeCall("r1", "acme_reading", Map.of())),
+            Set.of());
 
     assertThat(seen)
         .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
@@ -374,7 +380,10 @@ class RuntimeToolExecutorImplTest {
 
     executorOf(reading)
         .execute(
-            WITH_MEMORY, knowing(report), List.of(runtimeCall("r1", "acme_reading", Map.of())));
+            WITH_MEMORY,
+            knowing(report),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())),
+            Set.of());
 
     assertThat(seen)
         .containsExactly(
@@ -398,7 +407,8 @@ class RuntimeToolExecutorImplTest {
             List.of(
                 runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
                 runtimeCall("c1", "acme_count", Map.of()),
-                runtimeCall("n2", SaveNoteTool.NAME, Map.of("text", "b"))));
+                runtimeCall("n2", SaveNoteTool.NAME, Map.of("text", "b"))),
+            Set.of());
 
     // the second note is numbered like the first one: neither call saw the document of the other
     assertThat(executions.get(0).toolCallResult().content().getFirst())
@@ -418,7 +428,8 @@ class RuntimeToolExecutorImplTest {
             .execute(
                 WITH_MEMORY,
                 agentContext,
-                List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))));
+                List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))),
+                Set.of());
 
     assertThat(executions.getFirst().toolCallResult().content())
         .hasSize(2)
@@ -426,6 +437,58 @@ class RuntimeToolExecutorImplTest {
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the executor was given
     assertThat(agentContext.documents()).isEmpty();
+  }
+
+  @Test
+  void aToolReadsWhetherTheContentOfADocumentIsInTheConversationAsOfTheStartOfTheBatch() {
+    final var read = createDocument("read", "read.txt");
+    final var unread = createDocument("unread", "unread.txt");
+    final var seen = new ArrayList<Boolean>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (call, context) -> {
+              context
+                  .documents()
+                  .all()
+                  .forEach(document -> seen.add(document.contentInConversation()));
+              return RuntimeToolResult.success("read");
+            });
+
+    executorOf(reading)
+        .execute(
+            WITH_MEMORY,
+            knowing(read, unread),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())),
+            Set.of(DocumentHandle.idFor(read)));
+
+    assertThat(seen).containsExactly(true, false);
+  }
+
+  @Test
+  void theExecutionKeepsTheEffectsOfASuccessfulResultAndNoneOfAnErrorResult() {
+    final var report = createDocument("report", "report.txt");
+    final var id = DocumentHandle.idFor(report);
+    final var loading =
+        StubRuntimeTool.of(
+            "acme_load",
+            (call, context) -> RuntimeToolResult.success("ok").withDocumentContent(id));
+    final var failing =
+        StubRuntimeTool.of("acme_fail", (call, context) -> RuntimeToolResult.error("no"));
+
+    final var executions =
+        executorOf(loading, failing)
+            .execute(
+                WITH_MEMORY,
+                knowing(report),
+                List.of(
+                    runtimeCall("l1", "acme_load", Map.of()),
+                    runtimeCall("f1", "acme_fail", Map.of())),
+                Set.of());
+
+    assertThat(executions.get(0).result().documentContent()).containsExactly(id);
+    assertThat(executions.get(1).result().documentContent()).isEmpty();
+    assertThat(executions.get(1).result()).isInstanceOf(RuntimeToolResult.Error.class);
   }
 
   // document parameters
@@ -478,7 +541,8 @@ class RuntimeToolExecutorImplTest {
             .execute(
                 WITH_MEMORY,
                 knowingWithDocumentsFeature(report),
-                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", tagOf(report)))));
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", tagOf(report)))),
+                Set.of());
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
     assertThat(received).containsExactly(DocumentHandle.idFor(report), null);
@@ -506,7 +570,8 @@ class RuntimeToolExecutorImplTest {
         .execute(
             WITH_MEMORY,
             knowingWithDocumentsFeature(report),
-            List.of(runtimeCall("r1", "c8__read_file", arguments)));
+            List.of(runtimeCall("r1", "c8__read_file", arguments)),
+            Set.of());
 
     assertThat(received)
         .containsExactly(Map.of("file", DocumentHandle.idFor(report), "other", "kept"));
@@ -525,7 +590,8 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
     final var executions =
-        executorOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call));
+        executorOf(tool)
+            .execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call), Set.of());
 
     assertThat(runs).hasValue(0);
     assertThat(executions)
@@ -543,7 +609,7 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("u1", "upload", Map.of("file", "bogus"));
     final var agentContext = knowingWithDocumentsFeature().withToolDefinitions(List.of(UPLOAD));
 
-    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call), Set.of());
 
     assertThat(executions)
         .singleElement()
@@ -562,8 +628,8 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("u1", "upload", Map.of("file", "bogus"));
     final var agentContext = knowingWithDocumentsFeature().withToolDefinitions(List.of(UPLOAD));
 
-    final var first = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
-    final var again = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+    final var first = executorOf().execute(WITH_MEMORY, agentContext, List.of(call), Set.of());
+    final var again = executorOf().execute(WITH_MEMORY, agentContext, List.of(call), Set.of());
 
     assertThat(text(first.getFirst())).isEqualTo(text(again.getFirst()));
   }
@@ -575,7 +641,7 @@ class RuntimeToolExecutorImplTest {
     final var agentContext =
         knowingWithDocumentsFeature(report).withToolDefinitions(List.of(UPLOAD));
 
-    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call), Set.of());
 
     // no tool of the agent owns the name and nothing was rejected: the call is not enabled
     assertThat(text(executions.getFirst())).isEqualTo("The tool 'upload' is not enabled.");
@@ -597,7 +663,8 @@ class RuntimeToolExecutorImplTest {
             .execute(
                 WITH_MEMORY,
                 NEW_INSTANCE,
-                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))),
+                Set.of());
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
     assertThat(received).containsExactly(Map.of("file", "bogus"));
@@ -605,6 +672,6 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void anEmptyBatchHasNoExecutions() {
-    assertThat(executor.execute(WITH_MEMORY, NEW_INSTANCE, List.of())).isEmpty();
+    assertThat(executor.execute(WITH_MEMORY, NEW_INSTANCE, List.of(), Set.of())).isEmpty();
   }
 }
