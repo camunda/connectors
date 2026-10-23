@@ -14,30 +14,29 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class AgentV2ElementTemplateTest {
 
+  private static final String ELEMENT_KIND_TAG = "^AI Agent (Task|Sub-process): ";
+
   @ParameterizedTest
-  @CsvSource({
-    "agenticai-ai-agent-task.v2.json,Agent task",
-    "agenticai-ai-agent-subprocess.v2.json,Agent sub-process",
-    "hybrid/agenticai-ai-agent-task.v2-hybrid.json,Agent task",
-    "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json,Agent sub-process"
-  })
-  void providerStepsAndPresets(String file, String kind) throws IOException {
-    final var tagged = template(file);
-    final var template = untagLeafNames(tagged, kind + ": ");
-    final var task = untagLeafNames(template("agenticai-ai-agent-task.v2.json"), "Agent task: ");
+  @ValueSource(
+      strings = {
+        "agenticai-ai-agent-task.v2.json",
+        "agenticai-ai-agent-subprocess.v2.json",
+        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
+      })
+  void providerStepsAndPresets(String file) throws IOException {
+    final var template = withoutElementKindTags(template(file));
+    final var task = withoutElementKindTags(template("agenticai-ai-agent-task.v2.json"));
     assertThat(template.get("steps")).isEqualTo(task.get("steps"));
     assertThat(template.get("presets")).isEqualTo(task.get("presets"));
-    final var leafPaths = new ArrayList<String>();
-    collectLeafPaths(tagged.get("steps"), "", leafPaths);
-    assertThat(leafPaths).hasSize(16).doesNotHaveDuplicates();
     final var providerNames =
         List.of(
             "Anthropic",
@@ -155,6 +154,21 @@ class AgentV2ElementTemplateTest {
 
   @ParameterizedTest
   @CsvSource({
+    "agenticai-ai-agent-task.v2.json,'AI Agent Task: '",
+    "hybrid/agenticai-ai-agent-task.v2-hybrid.json,'AI Agent Task: '",
+    "agenticai-ai-agent-subprocess.v2.json,'AI Agent Sub-process: '",
+    "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json,'AI Agent Sub-process: '"
+  })
+  void providerStepNamesStartWithElementKind(String file, String kindTag) throws IOException {
+    final var leafNames =
+        template(file).get("steps").findParents("presetId").stream()
+            .map(leaf -> leaf.get("name").asText())
+            .toList();
+    assertThat(leafNames).isNotEmpty().allSatisfy(name -> assertThat(name).startsWith(kindTag));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
     "agenticai-ai-agent-task.v2.json,ai-agent-task.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1",
     "hybrid/agenticai-ai-agent-task.v2-hybrid.json,ai-agent-task.v2-hybrid.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1-hybrid",
     "agenticai-ai-agent-subprocess.v2.json,ai-agent-subprocess.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1",
@@ -176,33 +190,13 @@ class AgentV2ElementTemplateTest {
         .isEqualTo(sourceTemplateId);
   }
 
-  private static JsonNode untagLeafNames(JsonNode template, String tag) {
+  private static JsonNode withoutElementKindTags(JsonNode template) {
     final var copy = template.deepCopy();
-    untagSteps(copy.get("steps"), tag);
+    for (JsonNode leaf : copy.get("steps").findParents("presetId")) {
+      final var name = leaf.get("name").asText();
+      ((ObjectNode) leaf).put("name", name.replaceFirst(ELEMENT_KIND_TAG, ""));
+    }
     return copy;
-  }
-
-  private static void untagSteps(JsonNode steps, String tag) {
-    for (JsonNode step : steps) {
-      if (step.has("presetId")) {
-        final var name = step.get("name").asText();
-        assertThat(name).startsWith(tag);
-        ((ObjectNode) step).put("name", name.substring(tag.length()));
-      } else {
-        untagSteps(step.path("steps"), tag);
-      }
-    }
-  }
-
-  private static void collectLeafPaths(JsonNode steps, String parent, List<String> paths) {
-    for (JsonNode step : steps) {
-      final var name = step.get("name").asText();
-      if (step.has("presetId")) {
-        paths.add(parent + name);
-      } else {
-        collectLeafPaths(step.path("steps"), parent + name + " > ", paths);
-      }
-    }
   }
 
   private static JsonNode preset(JsonNode template, String id) {

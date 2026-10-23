@@ -108,7 +108,7 @@ static def tagLeafSteps(List steps, String tag) {
         }
     }
 
-    tagLeafSteps(steps, "Agent task: ")
+    tagLeafSteps(steps, "AI Agent Task: ")
 
     json.presets = presets
     json.steps = steps

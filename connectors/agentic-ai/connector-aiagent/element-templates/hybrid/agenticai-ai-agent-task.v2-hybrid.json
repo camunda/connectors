@@ -4831,24 +4831,24 @@
     "name" : "Anthropic",
     "description" : "Claude models via the Anthropic API, AWS Bedrock, Microsoft Foundry, or a compatible endpoint.",
     "steps" : [ {
-      "name" : "Agent task: Anthropic API",
+      "name" : "AI Agent Task: Anthropic API",
       "keywords" : [ "Anthropic", "Claude", "Anthropic API" ],
       "presetId" : "type_anthropic_type_anthropic-api"
     }, {
-      "name" : "Agent task: AWS Bedrock Mantle",
+      "name" : "AI Agent Task: AWS Bedrock Mantle",
       "keywords" : [ "Anthropic", "Claude", "AWS Bedrock Mantle" ],
       "presetId" : "type_anthropic_type_aws-bedrock-mantle"
     }, {
-      "name" : "Agent task: Microsoft Foundry (Azure)",
+      "name" : "AI Agent Task: Microsoft Foundry (Azure)",
       "keywords" : [ "Anthropic", "Claude", "Microsoft Foundry (Azure)" ],
       "presetId" : "type_anthropic_type_foundry"
     }, {
-      "name" : "Agent task: Anthropic custom / compatible endpoint",
+      "name" : "AI Agent Task: Anthropic custom / compatible endpoint",
       "keywords" : [ "Anthropic", "Claude", "Custom / compatible endpoint" ],
       "presetId" : "type_anthropic_type_custom"
     } ]
   }, {
-    "name" : "Agent task: AWS Bedrock Converse",
+    "name" : "AI Agent Task: AWS Bedrock Converse",
     "description" : "Any Bedrock model via the Converse API.",
     "keywords" : [ "Bedrock", "AWS" ],
     "presetId" : "type_bedrock"
@@ -4856,15 +4856,15 @@
     "name" : "OpenAI",
     "description" : "GPT models via OpenAI, Microsoft Foundry, or an OpenAI-compatible endpoint.",
     "steps" : [ {
-      "name" : "Agent task: OpenAI API",
+      "name" : "AI Agent Task: OpenAI API",
       "keywords" : [ "OpenAI", "GPT", "OpenAI API" ],
       "presetId" : "type_openai_type_openai-api"
     }, {
-      "name" : "Agent task: Microsoft Foundry (Azure)",
+      "name" : "AI Agent Task: Microsoft Foundry (Azure)",
       "keywords" : [ "OpenAI", "GPT", "Microsoft Foundry (Azure)" ],
       "presetId" : "type_openai_type_foundry"
     }, {
-      "name" : "Agent task: OpenAI custom / compatible endpoint",
+      "name" : "AI Agent Task: OpenAI custom / compatible endpoint",
       "keywords" : [ "OpenAI", "GPT", "Custom / compatible endpoint" ],
       "presetId" : "type_openai_type_custom"
     } ]
@@ -4872,17 +4872,17 @@
     "name" : "OpenAI compatible",
     "description" : "Models like Ollama, LM Studio, and Camunda-provided LLM.",
     "steps" : [ {
-      "name" : "Agent task: Ollama",
+      "name" : "AI Agent Task: Ollama",
       "description" : "Local models via Ollama.",
       "keywords" : [ "Ollama", "Local", "Llama" ],
       "presetId" : "type_openai_type_custom_ollama"
     }, {
-      "name" : "Agent task: LM Studio",
+      "name" : "AI Agent Task: LM Studio",
       "description" : "Local models via LM Studio.",
       "keywords" : [ "LM Studio", "Local" ],
       "presetId" : "type_openai_type_custom_lmstudio"
     }, {
-      "name" : "Agent task: Camunda-provided LLM (SaaS only)",
+      "name" : "AI Agent Task: Camunda-provided LLM (SaaS only)",
       "description" : "Only on select plans.",
       "keywords" : [ "Camunda", "LLM", "SaaS" ],
       "presetId" : "type_openai_type_custom_camunda"
@@ -4891,11 +4891,11 @@
     "name" : "Google Gemini",
     "description" : "Gemini models via the Gemini API or Vertex AI.",
     "steps" : [ {
-      "name" : "Agent task: Google Gemini API",
+      "name" : "AI Agent Task: Google Gemini API",
       "keywords" : [ "Gemini", "Google", "Google Gemini API" ],
       "presetId" : "type_google-gemini_type_google-gemini-api"
     }, {
-      "name" : "Agent task: Enterprise Agent Platform (Vertex AI)",
+      "name" : "AI Agent Task: Enterprise Agent Platform (Vertex AI)",
       "keywords" : [ "Gemini", "Google", "Enterprise Agent Platform (Vertex AI)" ],
       "presetId" : "type_google-gemini_type_google-vertex-ai"
     } ]
@@ -4903,16 +4903,16 @@
     "name" : "Mistral AI",
     "description" : "Mistral models via the Mistral API or a compatible endpoint.",
     "steps" : [ {
-      "name" : "Agent task: Mistral API",
+      "name" : "AI Agent Task: Mistral API",
       "keywords" : [ "Mistral", "Mistral API" ],
       "presetId" : "type_mistral_type_mistral-api"
     }, {
-      "name" : "Agent task: Mistral custom / compatible endpoint",
+      "name" : "AI Agent Task: Mistral custom / compatible endpoint",
       "keywords" : [ "Mistral", "Custom / compatible endpoint" ],
       "presetId" : "type_mistral_type_custom"
     } ]
   }, {
-    "name" : "Agent task: Custom Implementation (Self-Managed/Hybrid only)",
+    "name" : "AI Agent Task: Custom Implementation (Self-Managed/Hybrid only)",
     "description" : "Your own provider implementation.",
     "keywords" : [ "Custom" ],
     "presetId" : "type_custom"

@@ -158,7 +158,7 @@ if (deprecationMessage) {
     json.name += " (Deprecated)"
 }
 
-retagLeafSteps((List) json.get('steps'), "Agent task: ", "Agent sub-process: ")
+retagLeafSteps((List) json.get('steps'), "AI Agent Task: ", "AI Agent Sub-process: ")
 
 // Change BPMN element configuration
 json.appliesTo = ["bpmn:SubProcess"]
