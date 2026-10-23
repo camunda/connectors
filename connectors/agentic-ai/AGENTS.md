@@ -327,6 +327,9 @@ Before claiming a change is complete:
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
+  A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
+  `api-changes.json` with a link to its `breaking-changes.md` anchor
+  ([API compatibility check](../../docs/api-compatibility.md)).
 
 ## Extension points
 
