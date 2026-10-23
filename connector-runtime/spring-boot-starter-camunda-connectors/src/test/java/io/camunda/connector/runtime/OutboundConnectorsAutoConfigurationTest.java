@@ -41,12 +41,14 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class OutboundConnectorsAutoConfigurationTest {
@@ -71,6 +73,69 @@ class OutboundConnectorsAutoConfigurationTest {
               .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
               .isInstanceOf(MeteredCamundaClientExecutorService.class);
         });
+  }
+
+  @Test
+  void shouldRunJobsOnVirtualThreadsBeforeJava24() {
+    assertThat(OutboundConnectorsAutoConfiguration.useVirtualThreads(new MockEnvironment(), 21))
+        .isTrue();
+    assertThat(OutboundConnectorsAutoConfiguration.useVirtualThreads(new MockEnvironment(), 23))
+        .isTrue();
+  }
+
+  @Test
+  void shouldRunJobsOnPlatformThreadsByDefaultFromJava24() {
+    // JEP 491 virtual threads can starve their carriers in the nested jar class loader, see #8440
+    assertThat(OutboundConnectorsAutoConfiguration.useVirtualThreads(new MockEnvironment(), 24))
+        .isFalse();
+    assertThat(OutboundConnectorsAutoConfiguration.useVirtualThreads(new MockEnvironment(), 25))
+        .isFalse();
+  }
+
+  @Test
+  void shouldRunJobsOnVirtualThreadsFromJava24WhenExplicitlyEnabled() {
+    var environment =
+        new MockEnvironment().withProperty("camunda.connector.virtual-threads.enabled", "true");
+
+    assertThat(OutboundConnectorsAutoConfiguration.useVirtualThreads(environment, 25)).isTrue();
+  }
+
+  @Test
+  void shouldRunJobsOnThreadKindMatchingTheCurrentJava() {
+    boolean expectVirtual =
+        OutboundConnectorsAutoConfiguration.useVirtualThreads(
+            new MockEnvironment(), Runtime.version().feature());
+
+    contextRunner.run(
+        context -> {
+          var jobThread =
+              runOnJobHandlingExecutor(context.getBean(CamundaClientExecutorService.class));
+          assertThat(jobThread.isVirtual()).isEqualTo(expectVirtual);
+          assertThat(jobThread.getName())
+              .startsWith(expectVirtual ? "job-worker-virtual-" : "job-worker-");
+          assertThat(jobThread.isDaemon()).isTrue();
+        });
+  }
+
+  @Test
+  void shouldRunJobsOnVirtualThreadsWhenExplicitlyEnabled() {
+    contextRunner
+        .withPropertyValues("camunda.connector.virtual-threads.enabled=true")
+        .run(
+            context -> {
+              var jobThread =
+                  runOnJobHandlingExecutor(context.getBean(CamundaClientExecutorService.class));
+              assertThat(jobThread.isVirtual()).isTrue();
+              assertThat(jobThread.getName()).startsWith("job-worker-virtual-");
+            });
+  }
+
+  private static Thread runOnJobHandlingExecutor(CamundaClientExecutorService executorService)
+      throws Exception {
+    return executorService
+        .getJobHandlingExecutor()
+        .submit(Thread::currentThread)
+        .get(10, TimeUnit.SECONDS);
   }
 
   @Test
