@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
@@ -85,6 +86,34 @@ class AgentToolsResolverTest {
               response ->
                   assertThat(response.toolDefinitions())
                       .containsExactly(CONFLICTING_TOOL, CONFLICTING_DISABLED_TOOL));
+    }
+
+    @Test
+    void rejectsAnAdHocToolWithTheNameOfABuiltInToolOnToolDiscovery() {
+      final var resolver =
+          new AgentToolsResolverImpl(
+              toolsSchemaResolver,
+              gatewayToolHandlers,
+              new RuntimeToolRegistryImpl(
+                  List.of(new ReturnDocumentTool()), TestObjectMapperSupplier.INSTANCE));
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(
+              new AdHocToolsSchemaResponse(
+                  List.of(
+                      ToolDefinition.builder()
+                          .name(ReturnDocumentTool.NAME)
+                          .inputSchema(Map.of("type", "object"))
+                          .build()),
+                  List.of()));
+
+      assertThatThrownBy(
+              () -> resolver.loadAdHocToolsSchema(executionContext, NEW_INSTANCE_CONTEXT))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("RUNTIME_TOOL_NAME_CONFLICT");
+                assertThat(e.getMessage()).contains("c8__return_document", "runtime tool");
+              });
     }
 
     @Test

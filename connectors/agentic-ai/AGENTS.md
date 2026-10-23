@@ -219,7 +219,8 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature (created before it) keeps the previous document handling: bare content and
-  the older tag format, no registry, no document parameters, and no `c8__get_document`. Without the `runtimeTools`
+  the older tag format, no registry, no response documents, no document parameters, and no built-in document tools
+  (`c8__return_document`, `c8__get_document`). Without the `runtimeTools`
   feature it has no runtime tools and no tool element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
@@ -240,9 +241,13 @@ High-frequency traps (detail behind each link):
   document is a reference with the delivery `content` (an unset delivery, the delivery of every user prompt since no
   template sets one, adds the content of every document without the guard; an explicit `reference` gives tags, an explicit
   `content` runs the guard and leaves a rejected document a reference with a note, and the documents of an external URL
-  always go out as content). The documents a runtime tool returns are registered, and the effects of its result applied,
-  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known
-  when the batch starts. The model sees a `<doc/>` tag for the documents of a tool result and gets content only through
+  always go out as content). The documents a runtime tool returns are registered, and the effects of its result applied
+  (the content of a document added, a document selected for the final response), after the calls of a message ran, in call
+  order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch starts. The effects are
+  declared on `RuntimeToolResult.Success` only; the builder returns the agent context with the response documents
+  selected (`AgentContext.responseDocuments`, which every final response carries as `responseDocuments`) together with the
+  input, so the composer (`CompositionResult.NextTurn.agentContext`) and the runtime tool round of the handler persist the
+  same context. The model sees a `<doc/>` tag for the documents of a tool result and gets content only through
   `c8__get_document`: the agent runs the content guard (`DocumentContentGuard`, limits in
   `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
   turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
@@ -374,7 +379,7 @@ Before claiming a change is complete:
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
 tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the
-connector ships, such as `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
+connector ships, such as `c8__return_document` or `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
 a Spring bean. A runtime tool is the three-method interface `RuntimeTool` (`definition`, `isEnabled`, `call`), an
 experimental SPI in 8.11; the built-in tools in `aiagent/tool/runtime/builtin` use only that SPI. Where to start (SPI + reference implementation per
 type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -52,20 +53,24 @@ public sealed interface CompositionResult {
   /**
    * Messages assembled and ready to be applied to the conversation.
    *
+   * @param agentContext the agent context the turn continues with: the one the composer was given
+   *     with the response documents the runtime tool results selected; its document registry does
+   *     not hold {@code documents} yet
    * @param documents the documents that entered the conversation with these messages (user prompt,
    *     tool call results of the process and of runtime tools, in call order, and events), to be
-   *     registered in the document registry; empty for an agent instance without the documents
-   *     feature
+   *     registered in the document registry of {@code agentContext}; empty for an agent instance
+   *     without the documents feature
    */
-  record NextTurn(List<Message> messages, List<IngestedDocument> documents)
+  record NextTurn(
+      AgentContext agentContext, List<Message> messages, List<IngestedDocument> documents)
       implements CompositionResult {
     public NextTurn {
       messages = List.copyOf(messages);
       documents = List.copyOf(documents);
     }
 
-    public NextTurn(List<Message> messages) {
-      this(messages, List.of());
+    public NextTurn(AgentContext agentContext, List<Message> messages) {
+      this(agentContext, messages, List.of());
     }
   }
 }

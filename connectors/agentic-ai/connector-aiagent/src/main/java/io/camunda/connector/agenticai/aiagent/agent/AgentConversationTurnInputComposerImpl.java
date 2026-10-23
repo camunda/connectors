@@ -150,6 +150,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     // tool call results first, those of the events after them
     final var ingestedDocuments = new ArrayList<IngestedDocument>();
     final var eventDocuments = new ArrayList<IngestedDocument>();
+    var updatedContext = agentContext;
 
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
@@ -197,6 +198,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               previousConversation.documentIdsWithContent(configuration.contextWindowSize()));
       messages.addAll(toolCallResultsInput.messages());
       ingestedDocuments.addAll(toolCallResultsInput.documents());
+      updatedContext = toolCallResultsInput.agentContext();
       messages.addAll(eventMessages);
     } else {
       messages.add(
@@ -218,7 +220,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     ingestedDocuments.addAll(eventDocuments);
-    return new CompositionResult.NextTurn(messages, ingestedDocuments);
+    return new CompositionResult.NextTurn(updatedContext, messages, ingestedDocuments);
   }
 
   private @Nullable UserMessage createUserPromptMessage(

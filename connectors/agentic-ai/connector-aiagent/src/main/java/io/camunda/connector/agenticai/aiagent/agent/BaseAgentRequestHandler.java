@@ -177,10 +177,10 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.RuntimeToolResultsRequired ignored ->
             throw new IllegalStateException(
                 "The turn input was composed without the runtime tool results after they were computed");
-        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
+        case CompositionResult.NextTurn(var updatedContext, var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                DocumentRegistries.register(agentContext, newDocuments),
+                DocumentRegistries.register(updatedContext, newDocuments),
                 configuration,
                 previousConversation,
                 newMessages,
@@ -374,8 +374,7 @@ public abstract class BaseAgentRequestHandler<
         workingConversation =
             workingConversation
                 .withPersistedContext(
-                    DocumentRegistries.register(
-                        workingConversation.persistedContext(), input.documents()))
+                    DocumentRegistries.register(input.agentContext(), input.documents()))
                 .nextRuntimeToolRound(input.messages());
         // the previous turn is the one whose tool calls these results belong to
         agentInstanceClient.applyTurnStart(

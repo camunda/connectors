@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -738,6 +739,19 @@ class AgentConversationTest {
     assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
     assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void withPersistedContext_carriesTheResponseDocumentsIntoTheAgentContext() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    final var selection = new ResponseDocumentSelection("b", DocumentId.of("doc-b"), null);
+
+    var updated =
+        conv.withPersistedContext(conv.persistedContext().withResponseDocument(selection));
+
+    assertThat(conv.persistedContext().responseDocuments()).isEmpty();
+    assertThat(updated.persistedContext().responseDocuments()).containsExactly(selection);
+    assertThat(updated.toAgentContext().responseDocuments()).containsExactly(selection);
   }
 
   @Test

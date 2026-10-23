@@ -33,6 +33,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
@@ -256,7 +257,7 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
     final var objectMapper = new ObjectMapper();
     expected.addAll(
         DocumentParameterSchema.toProviderToolDefinitions(
-            List.of(new GetDocumentTool().definition())));
+            List.of(new ReturnDocumentTool().definition(), new GetDocumentTool().definition())));
     assertThat(request.toolDefinitions()).containsExactlyInAnyOrderElementsOf(expected);
   }
 
