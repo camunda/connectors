@@ -16,5 +16,11 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
  * desired format (such as JSON).
  */
 public interface AgentResponseHandler {
+
+  /**
+   * Creates the response for the last assistant message of the conversation. Its tool calls are the
+   * process tool calls of that message: the runtime tool calls are executed by the agent and are
+   * not handed to the process.
+   */
   AgentResponse createResponse(AgentConversation conversation);
 }

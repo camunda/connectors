@@ -30,8 +30,8 @@ import org.jspecify.annotations.Nullable;
  * Static per-invocation configuration. Built once from AgentExecutionContext at the start of each
  * handler invocation; does not change mid-conversation, with the exception of {@link
  * #toolDefinitions()}, which the handler fills in once tool resolution has run (see {@link
- * #withToolDefinitions}) and which then becomes the authoritative source of the current tool list
- * for the rest of the invocation.
+ * #withToolDefinitions}) with the tools of the process and the enabled runtime tools, and which
+ * then becomes the authoritative source of the current tool list for the rest of the invocation.
  */
 public record AgentConfiguration(
     ChatModelConfiguration chatModel,
