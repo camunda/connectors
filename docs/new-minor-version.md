@@ -25,4 +25,4 @@ These are usually only ready on the day of the release.
 
 ## Bump the API compatibility baseline
 
-1. Merge the PRs the RELEASE workflow creates for the first new minor release, which move the [API compatibility baseline](api-compatibility.md#baseline) of `main` and of the release branch to the new minor.
+1. Merge the PRs the RELEASE workflow creates for the first new minor release, which move the [API compatibility baseline](api-compatibility.md#baseline) of `main` and of the new `stable/x.y` branch to the new minor.
