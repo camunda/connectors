@@ -283,6 +283,7 @@ class A2aGatewayToolHandlerTest {
       var toolDefinition = result.getFirst();
       assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
           .isFalse();
+      assertThat(toolDefinition.documentDelivery()).isNull();
       assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
           .isSameAs(toolDefinition);
     }

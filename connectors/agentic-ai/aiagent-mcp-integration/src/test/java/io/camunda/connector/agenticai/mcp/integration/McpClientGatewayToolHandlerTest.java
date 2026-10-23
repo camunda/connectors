@@ -335,6 +335,7 @@ class McpClientGatewayToolHandlerTest {
       assertThat(toolDefinition.inputSchema()).isEqualTo(inputSchema);
       assertThat(DocumentParameterSchema.hasDocumentParameters(toolDefinition.inputSchema()))
           .isFalse();
+      assertThat(toolDefinition.documentDelivery()).isNull();
       assertThat(DocumentParameterSchema.toProviderToolDefinitions(result).getFirst())
           .isSameAs(toolDefinition);
     }

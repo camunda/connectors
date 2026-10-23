@@ -25,7 +25,9 @@ import java.util.List;
  * ToolDefinition}s it returns from {@link #handleToolDiscoveryResults}, in the stored form of
  * {@link io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema#documentSchema}.
  * The document parameters of a call are resolved before {@link #transformToolCalls}, so the handler
- * receives the Camunda document references in the call arguments.
+ * receives the Camunda document references in the call arguments. A handler can also set {@link
+ * ToolDefinition#documentDelivery()} to give the documents its tools return the delivery {@code
+ * content}.
  */
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();
