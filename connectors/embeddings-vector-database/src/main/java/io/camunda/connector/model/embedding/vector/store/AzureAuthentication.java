@@ -33,6 +33,7 @@ public sealed interface AzureAuthentication {
   record AzureApiKeyAuthentication(
       @NotBlank
           @TemplateProperty(
+              secret = true,
               group = "embeddingsStore",
               label = "API key",
               type = TemplateProperty.PropertyType.String,
@@ -60,6 +61,7 @@ public sealed interface AzureAuthentication {
           String clientId,
       @NotBlank
           @TemplateProperty(
+              secret = true,
               group = "embeddingsStore",
               label = "Client secret",
               description = "Secret of a Microsoft Entra application",

@@ -73,6 +73,7 @@ class GoogleVertexAiEmbeddingModelProviderTest {
         new GoogleVertexAiEmbeddingModelProvider.Configuration(
             "my-project-id",
             "us-central1",
+            null,
             new GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication(),
             "embedding-model",
             768,
@@ -85,6 +86,7 @@ class GoogleVertexAiEmbeddingModelProviderTest {
         new GoogleVertexAiEmbeddingModelProvider.Configuration(
             "my-project-id",
             "us-central1",
+            null,
             new GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication("{}"),
             "embedding-model",
             768,
