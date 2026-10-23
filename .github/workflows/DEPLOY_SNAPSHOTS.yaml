@@ -80,14 +80,14 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           server-id: camunda-nexus
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
