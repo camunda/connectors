@@ -13,11 +13,14 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard.Rejection;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -30,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -41,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -70,12 +75,15 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
   private final ToolCallResultsInputBuilder resultsInputBuilder;
+  private final DocumentContentGuard contentGuard;
 
   public AgentConversationTurnInputComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      ToolCallResultsInputBuilder resultsInputBuilder) {
+      ToolCallResultsInputBuilder resultsInputBuilder,
+      DocumentContentGuard contentGuard) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.resultsInputBuilder = resultsInputBuilder;
+    this.contentGuard = contentGuard;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
   }
 
@@ -191,7 +199,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       messages.addAll(eventMessages);
     } else {
       messages.add(
-          createUserPromptMessage(agentInput.userPrompt(), documentFlow, ingestedDocuments));
+          createUserPromptMessage(
+              agentInput.userPrompt(),
+              documentFlow,
+              documentFlow
+                  ? previousConversation.documentIdsWithContent(configuration.contextWindowSize())
+                  : Set.of(),
+              ingestedDocuments));
       messages.addAll(eventMessages);
     }
 
@@ -209,6 +223,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private @Nullable UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt,
       boolean documentFlow,
+      Set<DocumentId> idsWithContent,
       List<IngestedDocument> ingestedDocuments) {
 
     final var content = new ArrayList<Content>();
@@ -221,10 +236,36 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var origin = DocumentOrigin.userMessage();
     if (documentFlow) {
-      // add documents as references with the delivery content: the content is added, from the
-      // workspace, when the model is called
+      // add documents as references; the content is added, from the workspace when the model is
+      // called, for the references with the delivery content. Without a delivery every document
+      // goes out as content, as it does for an agent instance without the documents feature
+      final var handledDocumentIds = new HashSet<>(idsWithContent);
+      final var delivery = userPrompt.documentDelivery();
       for (var doc : userPrompt.documents()) {
-        content.add(DocumentReferences.from(doc).withDelivery(DocumentDelivery.CONTENT));
+        final var reference = DocumentReferences.from(doc);
+        if (delivery == null) {
+          content.add(reference.withDelivery(DocumentDelivery.CONTENT));
+          continue;
+        }
+
+        // the model provider reads the document of an external URL, which is never guarded
+        final var external = doc.reference() instanceof ExternalDocumentReference;
+        if ((delivery == DocumentDelivery.REFERENCE && !external)
+            || !handledDocumentIds.add(reference.id())) {
+          content.add(reference);
+          continue;
+        }
+
+        final var rejection =
+            delivery == DocumentDelivery.CONTENT && !external
+                ? contentGuard.check(doc).orElse(null)
+                : null;
+        if (rejection == null) {
+          content.add(reference.withDelivery(DocumentDelivery.CONTENT));
+        } else {
+          content.add(reference);
+          content.add(textContent(noContentNote(reference.id(), rejection)));
+        }
       }
     } else {
       // an agent instance without the documents feature keeps the documents as content
@@ -332,6 +373,26 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             .flatMap(group -> group.documents().stream())
             .toList();
     return new ToolCallResultsInputBuilder.Entry(ToolCallResultContent.from(result), documents);
+  }
+
+  /**
+   * The note that tells the model a document got no content and why. A reason that a retry can
+   * overcome says that a tool for loading documents can try again. The note holds the content type
+   * and the size at most; the failure behind a document that could not be read is logged only.
+   */
+  private static String noContentNote(DocumentId documentId, Rejection rejection) {
+    LOGGER.debug(
+        "The content of the document {} is not added: {}",
+        documentId,
+        rejection.problem(),
+        rejection.cause());
+    return "Document %s was not loaded automatically: it %s. %s"
+        .formatted(
+            documentId,
+            rejection.problem(),
+            rejection.retryable()
+                ? "A tool for loading documents can try to load it again."
+                : "Pass its tag to a tool that processes it.");
   }
 
   private ToolCallResultsInputBuilder.Entry localEntry(

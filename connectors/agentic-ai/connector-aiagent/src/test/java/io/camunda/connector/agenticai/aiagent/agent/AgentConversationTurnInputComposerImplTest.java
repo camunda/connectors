@@ -31,14 +31,12 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -107,7 +105,8 @@ class AgentConversationTurnInputComposerImplTest {
             gatewayToolHandlers,
             new ToolCallResultsInputBuilderImpl(
                 new DocumentContentGuard(DocumentContentLimits.defaults()),
-                TestObjectMapperSupplier.INSTANCE));
+                TestObjectMapperSupplier.INSTANCE),
+            new DocumentContentGuard(DocumentContentLimits.defaults()));
   }
 
   private CompositionResult compose(
@@ -242,11 +241,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  void firstTurn_withUserPromptDocumentsOfTheDeliveryReference_addsTheTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document), DocumentDelivery.REFERENCE),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = compose(CONFIG, CTX, history, input);
@@ -255,7 +256,8 @@ class AgentConversationTurnInputComposerImplTest {
     var userMessage = (UserMessage) ((CompositionResult.NextTurn) result).messages().getFirst();
     assertThat(userMessage.content())
         .containsExactly(
-            textContent("Tell me a story"), documentReference(document, DocumentDelivery.CONTENT));
+            textContent("Tell me a story"),
+            documentReference(document, DocumentDelivery.REFERENCE));
     final var ingested = ((CompositionResult.NextTurn) result).documents();
     assertThat(ingested)
         .containsExactly(new IngestedDocument(document, DocumentOrigin.userMessage()));
@@ -678,16 +680,15 @@ class AgentConversationTurnInputComposerImplTest {
   private static List<RuntimeToolExecution> executionsOf(
       List<ToolCall> calls, ToolCallResultContent... results) {
     return Arrays.stream(results)
-        .map(
-            result ->
-                new RuntimeToolExecution(
-                    calls.stream()
-                        .filter(call -> call.id().equals(result.id()))
-                        .findFirst()
-                        .orElseThrow(),
-                    RuntimeToolResult.success(result.content()),
-                    result.completedAt(),
-                    result.completedAt()))
+        .map(result ->
+            new RuntimeToolExecution(
+                calls.stream()
+                    .filter(call -> call.id().equals(result.id()))
+                    .findFirst()
+                    .orElseThrow(),
+                RuntimeToolResult.success(result.content()),
+                result.completedAt(),
+                result.completedAt()))
         .toList();
   }
 
@@ -1046,8 +1047,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((UserMessage) messages.get(1)).content())
         .containsExactly(
             textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
-            DocumentReferences.from(document, DocumentOrigin.userMessage())
-                .withDelivery(DocumentDelivery.CONTENT));
+            DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT));
   }
 
   @Test
@@ -1065,7 +1065,7 @@ class AgentConversationTurnInputComposerImplTest {
                 UserMessage.builder()
                     .content(
                         List.of(
-                            DocumentReferences.from(document, DocumentOrigin.userMessage())
+                            DocumentReferences.from(document)
                                 .withDelivery(DocumentDelivery.CONTENT)))
                     .build(),
                 assistantMessage("thinking", MIXED_CALLS)));
