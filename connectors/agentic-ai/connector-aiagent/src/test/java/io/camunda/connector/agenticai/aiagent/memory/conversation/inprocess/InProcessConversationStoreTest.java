@@ -8,16 +8,25 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -137,6 +146,41 @@ class InProcessConversationStoreTest {
                     .extracting(ToolCall::kind)
                     .containsExactly(ToolKind.RUNTIME, ToolKind.PROCESS);
               });
+    }
+  }
+
+  @Test
+  void keepsDocumentReferencesAndTheRegistryWhenTheAgentContextIsSerializedAndLoadedAgain()
+      throws Exception {
+    final var objectMapper = TestObjectMapperSupplier.INSTANCE;
+    final var document = createDocument("report", "report.txt");
+    final var entry =
+        DocumentRegistries.entryFor(
+            new IngestedDocument(document, DocumentSource.toolCall("fetch", "call-1")));
+    final var reference = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var message =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
+
+    final var agentContext =
+        AgentContext.empty().withDocumentRegistry(DocumentRegistry.of(List.of(entry)));
+    AgentContext storedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      var storedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(List.of(message)));
+      storedAgentContext = agentContext.withConversation(storedConversation);
+    }
+
+    // the agent context is persisted as a process variable
+    final var reloadedAgentContext =
+        objectMapper.readValue(
+            objectMapper.writeValueAsString(storedAgentContext), AgentContext.class);
+
+    assertThat(reloadedAgentContext.documents()).containsExactly(entry);
+    try (var session = store.createSession(executionContext, reloadedAgentContext)) {
+      assertThat(session.loadMessages(reloadedAgentContext).messages())
+          .singleElement()
+          .isEqualTo(message);
     }
   }
 

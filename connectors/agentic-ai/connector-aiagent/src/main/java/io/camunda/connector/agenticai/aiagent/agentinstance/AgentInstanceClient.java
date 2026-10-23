@@ -55,8 +55,8 @@ public interface AgentInstanceClient {
    * {@code agentInstanceKey} is {@code null} (e.g. agents that pre-date the agent-instance
    * feature).
    *
-   * @param agentContext the persisted state of the agent: its features decide what the history
-   *     shows (the runtime tools)
+   * @param agentContext the persisted state of the agent: its features decide how the documents of
+   *     the messages are shown, its document registry is what the document tags are expanded with
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -95,6 +95,8 @@ public interface AgentInstanceClient {
    * without changing the agent instance's status. Silently skips when {@code agentInstanceKey} is
    * {@code null}.
    *
+   * @param agentContext the persisted state of the agent: its features decide how the documents of
+   *     the results are shown
    * @throws ConnectorException with code {@code AGENT_INSTANCE_UPDATE_FAILED} when retries are
    *     exhausted or a non-retryable error occurs
    * @throws ConnectorRetryException with code {@code AGENT_INSTANCE_SUPERSEDED} and zero retries
@@ -104,5 +106,6 @@ public interface AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
-      AgentConversationTurn previousTurn);
+      AgentConversationTurn previousTurn,
+      AgentContext agentContext);
 }
