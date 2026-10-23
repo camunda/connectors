@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
@@ -61,10 +60,9 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
 import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -76,8 +74,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -217,7 +215,7 @@ class AgentSubProcessRequestHandlerTest {
   private static final RuntimeTool LOAD_DOCUMENT_TOOL =
       StubRuntimeTool.of(
           "acme_load_document",
-          (call, context) ->
+          (context, call) ->
               RuntimeToolResult.success("Loaded the document.")
                   .withDocumentContent(DocumentHandle.idFor(KNOWN_DOCUMENT)));
 
@@ -1729,7 +1727,12 @@ class AgentSubProcessRequestHandlerTest {
         .filteredOn(tool -> tool.kind() == ToolKind.RUNTIME)
         .extracting(ToolDefinition::name)
         .containsExactly(
-            "acme_lookup", "acme_toggle", "acme_create_report", "acme_count_documents");
+            "acme_lookup",
+            "acme_toggle",
+            "acme_create_report",
+            "acme_count_documents",
+            "acme_load_document",
+            GetDocumentTool.NAME);
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
@@ -2303,10 +2306,9 @@ class AgentSubProcessRequestHandlerTest {
     final var firstRequestMessages =
         chatModelRequestCaptor.getAllValues().get(0).snapshot().messages();
     assertThat(firstRequestMessages)
-        .noneMatch(
-            message ->
-                message instanceof UserMessage user
-                    && user.content().stream().anyMatch(DocumentContent.class::isInstance));
+        .noneMatch(message ->
+            message instanceof UserMessage user
+                && user.content().stream().anyMatch(DocumentContent.class::isInstance));
     assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
         .extracting(ToolDefinition::name)
         .contains(GetDocumentTool.NAME);
@@ -2320,21 +2322,17 @@ class AgentSubProcessRequestHandlerTest {
             message ->
                 assertThat(message.results())
                     .singleElement()
-                    .satisfies(
-                        result -> {
-                          assertThat(result.id()).isEqualTo("call-1");
-                          assertThat(result.content()).hasSize(3);
-                          assertThat(result.content().get(0))
-                              .isEqualTo(TextContent.textContent("Loaded the document."));
-                          assertThat(result.content().get(1))
-                              .isEqualTo(
-                                  TextContent.textContent(
-                                      DocumentReferences.from(document).toTag()));
-                          assertThat(result.content().get(2))
-                              .isEqualTo(
-                                  TextContent.textContent(
-                                      "Its content follows in the next message."));
-                        }));
+                    .satisfies(result -> {
+                      assertThat(result.id()).isEqualTo("call-1");
+                      assertThat(result.content()).hasSize(3);
+                      assertThat(result.content().get(0))
+                          .isEqualTo(TextContent.textContent("Loaded the document."));
+                      assertThat(result.content().get(1))
+                          .isEqualTo(TextContent.textContent(DocumentTags.shortTag(document)));
+                      assertThat(result.content().get(2))
+                          .isEqualTo(
+                              TextContent.textContent("Its content follows in the next message."));
+                    }));
     assertContentMessageOf(secondRequestMessages.getLast(), documentId);
 
     // the stored conversation keeps the follow-up message as the document reference with the
@@ -2516,7 +2514,9 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT.withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
+                INITIAL_AGENT_CONTEXT
+                    .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                    .withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
                 List.of()));
 
     final var call = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));

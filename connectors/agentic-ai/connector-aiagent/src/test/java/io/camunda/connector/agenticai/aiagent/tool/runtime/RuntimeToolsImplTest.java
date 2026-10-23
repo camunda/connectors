@@ -246,14 +246,13 @@ class RuntimeToolsImplTest {
 
     assertThat(executions)
         .singleElement()
-        .satisfies(
-            execution -> {
-              assertThat(execution.call()).isEqualTo(call);
-              assertThat(execution.toolCallResult().id()).isEqualTo("n1");
-              assertThat(execution.toolCallResult().name()).isEqualTo("acme_note");
-              assertThat(text(execution)).isEqualTo("Saved note: buy milk");
-              assertThat(execution.toolCallResult().elementId()).isNull();
-            });
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.toolCallResult().id()).isEqualTo("n1");
+          assertThat(execution.toolCallResult().name()).isEqualTo("acme_note");
+          assertThat(text(execution)).isEqualTo("Saved note: buy milk");
+          assertThat(execution.toolCallResult().elementId()).isNull();
+        });
   }
 
   @Test
@@ -265,13 +264,11 @@ class RuntimeToolsImplTest {
     final var after = OffsetDateTime.now();
     assertThat(executions)
         .singleElement()
-        .satisfies(
-            execution -> {
-              assertThat(execution.startedAt()).isBetween(before, after);
-              assertThat(execution.completedAt()).isBetween(execution.startedAt(), after);
-              assertThat(execution.toolCallResult().completedAt())
-                  .isEqualTo(execution.completedAt());
-            });
+        .satisfies(execution -> {
+          assertThat(execution.startedAt()).isBetween(before, after);
+          assertThat(execution.completedAt()).isBetween(execution.startedAt(), after);
+          assertThat(execution.toolCallResult().completedAt()).isEqualTo(execution.completedAt());
+        });
   }
 
   @Test
@@ -296,10 +293,8 @@ class RuntimeToolsImplTest {
 
     assertThat(executions)
         .singleElement()
-        .satisfies(
-            execution ->
-                assertThat(execution.toolCallResult().content())
-                    .containsExactlyElementsOf(content));
+        .satisfies(execution ->
+            assertThat(execution.toolCallResult().content()).containsExactlyElementsOf(content));
   }
 
   @Test
@@ -704,12 +699,11 @@ class RuntimeToolsImplTest {
     assertThat(runs).hasValue(0);
     assertThat(executions)
         .singleElement()
-        .satisfies(
-            execution -> {
-              assertThat(execution.call()).isEqualTo(call);
-              assertThat(execution.toolCallResult().id()).isEqualTo("r1");
-              assertThat(text(execution)).isEqualTo(BOGUS_FILE);
-            });
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.toolCallResult().id()).isEqualTo("r1");
+          assertThat(text(execution)).isEqualTo(BOGUS_FILE);
+        });
   }
 
   @Test
@@ -727,7 +721,7 @@ class RuntimeToolsImplTest {
         toolsOf(tool)
             .execute(
                 WITH_MEMORY,
-                NEW_INSTANCE,
+                AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
                 List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
 
     assertThat(text(executions.getFirst())).isEqualTo("read");
