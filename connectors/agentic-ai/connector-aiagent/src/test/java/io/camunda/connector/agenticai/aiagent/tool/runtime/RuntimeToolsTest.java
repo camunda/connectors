@@ -525,9 +525,7 @@ class RuntimeToolsTest {
 
     toolsOf(reading)
         .execute(
-            WITH_MEMORY,
-            knowing(report),
-            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+            WITH_MEMORY, knowing(report), List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(

@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -77,6 +78,7 @@ public abstract class BaseAgentRequestHandler<
   private final RuntimeTools runtimeTools;
   private final ToolCallAdmission toolCallAdmission;
   private final LocalToolCallExecutor localToolCallExecutor;
+  private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -88,7 +90,8 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
       ToolCallAdmission toolCallAdmission,
-      LocalToolCallExecutor localToolCallExecutor) {
+      LocalToolCallExecutor localToolCallExecutor,
+      DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -99,6 +102,7 @@ public abstract class BaseAgentRequestHandler<
     this.runtimeTools = runtimeTools;
     this.toolCallAdmission = toolCallAdmission;
     this.localToolCallExecutor = localToolCallExecutor;
+    this.documentExpander = documentExpander;
   }
 
   @Override
@@ -213,7 +217,8 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentContext.agentInstanceKey(),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
-        previousConversation.turns().getLast());
+        previousConversation.turns().getLast(),
+        agentContext);
   }
 
   private R proceed(
@@ -240,7 +245,8 @@ public abstract class BaseAgentRequestHandler<
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now(ZoneId.systemDefault()));
+        OffsetDateTime.now(ZoneId.systemDefault()),
+        conversation.toAgentContext());
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -352,7 +358,9 @@ public abstract class BaseAgentRequestHandler<
     LOGGER.debug(
         "Sending turn (iterationKey={}) to the model", conversation.currentTurn().iterationKey());
 
-    final var windowedSnapshot = conversation.window(agentConfiguration.contextWindowSize());
+    final var windowedSnapshot =
+        conversation.window(
+            agentConfiguration.contextWindowSize(), documentExpander.windowDecorator(conversation));
     final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
     final var assistantMessage =
@@ -415,7 +423,8 @@ public abstract class BaseAgentRequestHandler<
         agentInstanceKey,
         nextConversation.currentTurn(),
         nextConversation.lastTurn(),
-        OffsetDateTime.now(ZoneId.systemDefault()));
+        OffsetDateTime.now(ZoneId.systemDefault()),
+        nextConversation.toAgentContext());
     return nextConversation;
   }
 
