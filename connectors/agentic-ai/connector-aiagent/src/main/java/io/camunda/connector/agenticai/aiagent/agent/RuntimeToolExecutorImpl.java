@@ -13,9 +13,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolCallImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
@@ -66,8 +64,7 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
             ? run(executionContext, agentContext, tool.get(), toolCall)
             : unansweredByATool(agentContext, toolCall);
     final var completedAt = OffsetDateTime.now();
-    return new RuntimeToolExecution(
-        toolCall, resultContent(toolCall, result.content(), completedAt), startedAt, completedAt);
+    return new RuntimeToolExecution(toolCall, result, startedAt, completedAt);
   }
 
   /**
@@ -124,15 +121,5 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
     }
     return Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
-  }
-
-  private static ToolCallResultContent resultContent(
-      ToolCall toolCall, List<Content> content, OffsetDateTime completedAt) {
-    return ToolCallResultContent.builder()
-        .id(toolCall.id())
-        .name(toolCall.name())
-        .content(content)
-        .completedAt(completedAt)
-        .build();
   }
 }

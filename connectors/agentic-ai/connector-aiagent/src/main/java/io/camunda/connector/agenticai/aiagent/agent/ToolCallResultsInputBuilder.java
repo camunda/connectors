@@ -59,9 +59,8 @@ final class ToolCallResultsInputBuilder {
      * result of a failed call, whose content is text, has none.
      */
     static Entry of(RuntimeToolExecution execution) {
-      return new Entry(
-          execution.result(),
-          ToolCallResultDocumentExtractor.documentsOf(execution.result().content()));
+      final var result = execution.toolCallResult();
+      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
     }
   }
 
