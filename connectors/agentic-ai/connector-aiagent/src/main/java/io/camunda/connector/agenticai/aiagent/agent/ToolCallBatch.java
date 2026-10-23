@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.document.ObjectHandleRenderer;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocument;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -97,12 +98,24 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
     return toolCalls.stream().map(call -> entriesById.get(call.id())).toList();
   }
 
-  /** A tool call result of the batch, with the documents the agent takes from it. */
-  public record Entry(ToolCallResultContent result, List<Document> documents) {
+  /**
+   * A tool call result of the batch, with the documents the agent takes from it and what the result
+   * asks of the agent.
+   *
+   * @param documentContent the documents whose content the result asks to add, in the order they
+   *     were named
+   */
+  public record Entry(
+      ToolCallResultContent result, List<Document> documents, List<DocumentId> documentContent) {
 
     public Entry {
       Objects.requireNonNull(result.id(), "The tool call result of an entry must have an id");
       documents = List.copyOf(documents);
+      documentContent = List.copyOf(documentContent);
+    }
+
+    public Entry(ToolCallResultContent result, List<Document> documents) {
+      this(result, documents, List.of());
     }
 
     /**
@@ -138,7 +151,16 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * the ones the generic walker finds in its content.
      */
     public static Entry from(ToolCallResultContent result) {
-      return new Entry(result, ToolCallResultDocumentExtractor.documentsOf(result.content()));
+      return from(result, List.of());
+    }
+
+    /**
+     * The entry of a result with structured content that asks for the content of documents; the
+     * documents are the ones of its content.
+     */
+    public static Entry from(ToolCallResultContent result, List<DocumentId> documentContent) {
+      return new Entry(
+          result, ToolCallResultDocumentExtractor.documentsOf(result.content()), documentContent);
     }
 
     /**

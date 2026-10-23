@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
@@ -557,6 +558,7 @@ class RuntimeToolsTest {
         batch.execute(
             WITH_MEMORY,
             knowing(report),
+            Set.of(),
             List.of(
                 runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
                 runtimeCall("c1", "acme_count", Map.of()),
@@ -588,6 +590,58 @@ class RuntimeToolsTest {
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the tools were given
     assertThat(agentContext.documents().all()).isEmpty();
+  }
+
+  @Test
+  void aToolReadsWhetherTheContentOfADocumentIsInTheConversationAsOfTheStartOfTheBatch() {
+    final var read = createDocument("read", "read.txt");
+    final var unread = createDocument("unread", "unread.txt");
+    final var seen = new ArrayList<Boolean>();
+    final var reading =
+        StubRuntimeTool.of(
+            "acme_reading",
+            (context, call) -> {
+              context
+                  .documents()
+                  .all()
+                  .forEach(document -> seen.add(document.contentInConversation()));
+              return RuntimeToolResult.success("read");
+            });
+
+    toolsOf(reading)
+        .execute(
+            WITH_MEMORY,
+            knowing(read, unread),
+            Set.of(AgentDocumentHandle.idFor(read)),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+
+    assertThat(seen).containsExactly(true, false);
+  }
+
+  @Test
+  void theExecutionKeepsTheEffectsOfASuccessfulResultAndNoneOfAnErrorResult() {
+    final var report = createDocument("report", "report.txt");
+    final var id = AgentDocumentHandle.idFor(report);
+    final var loading =
+        StubRuntimeTool.of(
+            "acme_load",
+            (context, call) -> RuntimeToolResult.success("ok").withDocumentContent(id));
+    final var failing =
+        StubRuntimeTool.of("acme_fail", (context, call) -> RuntimeToolResult.error("no"));
+
+    final var executions =
+        toolsOf(loading, failing)
+            .execute(
+                WITH_MEMORY,
+                knowing(report),
+                Set.of(),
+                List.of(
+                    runtimeCall("l1", "acme_load", Map.of()),
+                    runtimeCall("f1", "acme_fail", Map.of())));
+
+    assertThat(executions.get(0).result().documentContent()).containsExactly(id);
+    assertThat(executions.get(1).result().documentContent()).isEmpty();
+    assertThat(executions.get(1).result()).isInstanceOf(RuntimeToolResult.Error.class);
   }
 
   // document parameters

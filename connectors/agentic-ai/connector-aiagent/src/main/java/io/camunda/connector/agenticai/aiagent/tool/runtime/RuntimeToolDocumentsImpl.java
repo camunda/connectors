@@ -11,36 +11,44 @@ import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** The documents of a workspace, as a runtime tool reads them. */
 public final class RuntimeToolDocumentsImpl implements RuntimeToolDocuments {
 
   private final DocumentWorkspace workspace;
+  private final Set<DocumentId> idsWithContent;
   private final ObjectMapper objectMapper;
 
   /**
    * @param workspace the documents the agent knows
+   * @param idsWithContent the ids of the documents whose content the model reads
    * @param objectMapper the mapper that reads a document from its reference
    */
-  public RuntimeToolDocumentsImpl(DocumentWorkspace workspace, ObjectMapper objectMapper) {
+  public RuntimeToolDocumentsImpl(
+      DocumentWorkspace workspace, Set<DocumentId> idsWithContent, ObjectMapper objectMapper) {
     this.workspace = workspace;
+    this.idsWithContent = Set.copyOf(idsWithContent);
     this.objectMapper = objectMapper;
   }
 
   @Override
   public Optional<AgentDocument> find(DocumentId id) {
-    return workspace.findById(id).map(entry -> new AgentDocumentImpl(entry, objectMapper));
+    return workspace.findById(id).map(this::documentOf);
   }
 
   @Override
   public List<AgentDocument> all() {
-    return workspace.entries().stream()
-        .<AgentDocument>map(entry -> new AgentDocumentImpl(entry, objectMapper))
-        .toList();
+    return workspace.entries().stream().map(this::documentOf).toList();
+  }
+
+  private AgentDocument documentOf(WorkspaceDocument entry) {
+    return new AgentDocumentImpl(entry, idsWithContent.contains(entry.id()), objectMapper);
   }
 
   @Override

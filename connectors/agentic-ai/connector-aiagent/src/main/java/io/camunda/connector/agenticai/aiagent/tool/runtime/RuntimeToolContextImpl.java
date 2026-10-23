@@ -11,6 +11,8 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import java.util.Set;
 
 public record RuntimeToolContextImpl(
     AgentExecutionContext executionContext,
@@ -22,15 +24,29 @@ public record RuntimeToolContextImpl(
    * The context of the given agent state. Its documents are the ones of the document workspace of
    * {@code agentContext}.
    *
+   * @param documentIdsWithContent the ids of the documents whose content the model reads
    * @param objectMapper the mapper that reads a document from its reference
    */
   public static RuntimeToolContextImpl of(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
       ObjectMapper objectMapper) {
     return new RuntimeToolContextImpl(
         executionContext,
         agentContext,
-        new RuntimeToolDocumentsImpl(agentContext.documentWorkspace(), objectMapper));
+        new RuntimeToolDocumentsImpl(
+            agentContext.documentWorkspace(), documentIdsWithContent, objectMapper));
+  }
+
+  /**
+   * The context of the given agent state outside a batch of calls, in which no document has its
+   * content in the conversation.
+   */
+  public static RuntimeToolContextImpl of(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      ObjectMapper objectMapper) {
+    return of(executionContext, agentContext, Set.of(), objectMapper);
   }
 }

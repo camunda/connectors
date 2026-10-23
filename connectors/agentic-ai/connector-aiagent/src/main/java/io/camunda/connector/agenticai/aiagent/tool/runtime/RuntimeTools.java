@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,10 +107,18 @@ public class RuntimeTools {
    * the assistant message. When the message also has calls of process tools, the runtime calls are
    * executed in a later job, and the definition of a tool can differ there, such as after an update
    * of the connector runtime. That is when a call has an invalid document parameter here.
+   *
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
    */
   public List<RuntimeToolExecution> execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      List<ToolCall> calls) {
+    final var context =
+        RuntimeToolContextImpl.of(
+            executionContext, agentContext, documentIdsWithContent, objectMapper);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
@@ -161,7 +171,8 @@ public class RuntimeTools {
     Objects.requireNonNull(
         result, "The runtime tool '%s' returned no result".formatted(toolCall.name()));
     return result instanceof RuntimeToolResult.Success success
-        ? RuntimeToolResult.success(success.content().stream().map(this::plainContent).toList())
+        ? new RuntimeToolResult.Success(
+            success.content().stream().map(this::plainContent).toList(), success.effects())
         : result;
   }
 

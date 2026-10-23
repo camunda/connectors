@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class CompositionResultTest {
@@ -29,7 +30,7 @@ class CompositionResultTest {
   void readyWithAUserPromptHasNoToolCalls() {
     final var ready =
         new CompositionResult.Ready(
-            AGENT_CONTEXT, ToolCallBatch.of(List.of()), USER_PROMPT, TurnInput.empty());
+            AGENT_CONTEXT, Set.of(), ToolCallBatch.of(List.of()), USER_PROMPT, TurnInput.empty());
 
     assertThat(ready.userPrompt()).isEqualTo(USER_PROMPT);
     assertThat(ready.unansweredToolCalls()).isEmpty();
@@ -39,8 +40,9 @@ class CompositionResultTest {
   void readyRejectsToolCallsTogetherWithAUserPrompt() {
     final var batch = ToolCallBatch.of(List.of(new ToolCall("call-1", "getWeather", Map.of())));
 
-    assertThatThrownBy(
-            () -> new CompositionResult.Ready(AGENT_CONTEXT, batch, USER_PROMPT, TurnInput.empty()))
+    assertThatThrownBy(() ->
+            new CompositionResult.Ready(
+                AGENT_CONTEXT, Set.of(), batch, USER_PROMPT, TurnInput.empty()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("The next turn has either tool call results or a user prompt, not both");
   }
