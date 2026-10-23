@@ -460,10 +460,11 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
-  # See docs/api-compatibility.md: the release branch compares against its last patch, main against the
-  # last released minor.
+  # See docs/api-compatibility.md: stable/x.y compares against its last patch, main against the last
+  # released minor. The PRs target stable/x.y rather than the release-x.y.z branch, which is merged
+  # back into stable/x.y shortly after the release and would leave a later-merged bump behind.
   bump-api-baseline:
-    needs: [setup, maven-release]
+    needs: [maven-release]
     name: Bump the API compatibility baseline on ${{ matrix.target }}
     if: |
       always() &&
@@ -474,18 +475,17 @@ jobs:
       contents: read
     strategy:
       matrix:
-        target: [release-branch, main]
+        target: [stable, main]
     steps:
       - name: Determine target branch
         id: target
         env:
           TARGET: ${{ matrix.target }}
           VERSION: ${{ inputs.version }}
-          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
         run: |
-          if [ "$TARGET" = "release-branch" ]; then
-            echo "branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
-          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.0$ && "$RELEASE_BRANCH" != "main" ]]; then
+          if [ "$TARGET" = "stable" ]; then
+            echo "branch=stable/${VERSION%.*}" >> "$GITHUB_OUTPUT"
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.0$ ]]; then
             echo "branch=main" >> "$GITHUB_OUTPUT"
           else
             echo "main only moves its baseline on the first release of a minor"

@@ -46,8 +46,9 @@ The baseline is the `api.baseline.version` property in `parent/pom.xml`:
 - A stable branch compares against its last released patch.
 
 The `bump-api-baseline` job of the release workflow opens a pull request that moves the baseline
-to the released version: on the release branch for every release, and on `main` for the first
-release of a minor. Merge it like the other release follow-up pull requests. When backporting this
+to the released version: on `stable/x.y` for every `x.y.z` release, and on `main` for the first
+release of a minor. The release branch itself (`release-x.y.z`) is not targeted, because it is merged
+back into `stable/x.y` independently. Merge it like the other release follow-up pull requests. When backporting this
 setup to a stable branch, set the baseline to that branch's last released patch.
 
 ## Accepting a break
