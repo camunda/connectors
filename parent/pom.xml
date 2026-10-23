@@ -126,9 +126,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>8.2.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.5</version.logback>
 
-    <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.aws-sdk2>2.57.2</version.aws-sdk2>
-    <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -590,26 +588,6 @@ limitations under the License.</license.inlineheader>
           <version>${version.auth0.jwt}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-lambda</artifactId>
-        <version>${version.aws-java-sdk}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sns</artifactId>
-        <version>${version.aws-java-sdk}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sqs</artifactId>
-        <version>${version.aws-java-sdk}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sagemaker</artifactId>
-        <version>${version.aws-java-sdk}</version>
-      </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>lambda</artifactId>
