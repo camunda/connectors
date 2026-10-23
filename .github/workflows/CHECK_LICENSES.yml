@@ -49,11 +49,12 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
             secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Setup Java
