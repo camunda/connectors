@@ -62,6 +62,11 @@ public final class BedrockConverseV1WireFormatFixture
   }
 
   @Override
+  public boolean promptDocumentsAsContent() {
+    return true;
+  }
+
+  @Override
   public Map<String, String> elementTemplateBaselineProperties(
       Map<String, String> defaultProperties) {
     return AgentTestFixtures.AI_AGENT_SUB_PROCESS_V1_ELEMENT_TEMPLATE_PROPERTIES;
