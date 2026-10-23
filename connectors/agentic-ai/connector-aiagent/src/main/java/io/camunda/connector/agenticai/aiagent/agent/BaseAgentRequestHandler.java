@@ -28,10 +28,12 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -158,12 +160,13 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.Ready ready -> {
           // before the local tool calls are executed: a job at the limit executes no tool
           throwIfLimitsReached(agentContext.metrics(), configuration);
+          final var input = answerLocalToolCalls(executionContext, ready);
           yield proceed(
               executionContext,
-              agentContext,
+              DocumentIngestion.register(agentContext, input.documents()),
               configuration,
               previousConversation,
-              answerLocalToolCalls(executionContext, agentContext, ready).messages(),
+              input.messages(),
               session,
               store);
         }
@@ -393,12 +396,18 @@ public abstract class BaseAgentRequestHandler<
         currentTurn.iterationKey());
 
     throwIfLimitsReached(conversation, agentConfiguration);
+    // the documents of the results are registered after all calls ran, in call order, so a call
+    // never sees what another call of the same message returned
     final var input =
         answerLocalToolCalls(
             executionContext,
-            conversation.persistedContext(),
-            CompositionResult.Ready.of(ToolCallBatch.of(currentTurn.toolCalls())));
-    final var nextConversation = conversation.nextRuntimeToolRound(input.messages());
+            CompositionResult.Ready.of(
+                conversation.persistedContext(), ToolCallBatch.of(currentTurn.toolCalls())));
+    final var nextConversation =
+        conversation
+            .withPersistedContext(
+                DocumentIngestion.register(conversation.persistedContext(), input.documents()))
+            .nextRuntimeToolRound(input.messages());
     // the previous turn is the one whose tool calls these results belong to
     agentInstanceClient.applyTurnStart(
         executionContext,
@@ -412,13 +421,11 @@ public abstract class BaseAgentRequestHandler<
 
   /** The input of the next turn, with the results of the local tool calls of the batch. */
   private TurnInput answerLocalToolCalls(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      CompositionResult.Ready ready) {
+      AgentExecutionContext executionContext, CompositionResult.Ready ready) {
     return agentInputComposer.assemble(
         ready.withResults(
             localToolCallExecutor.execute(
-                executionContext, agentContext, ready.unansweredToolCalls())));
+                executionContext, ready.agentContext(), ready.unansweredToolCalls())));
   }
 
   /**

@@ -119,7 +119,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         // calls that were not executed yet; a rejected call keeps its rejection
         batch = batch.withEntries(batch.unanswered().stream().map(this::cancelled).toList());
       }
-      return new CompositionResult.Ready(batch, null, eventMessages);
+      return new CompositionResult.Ready(
+          agentContext, batch, TurnInput.empty(), new TurnInput(eventMessages));
     }
 
     final var userPrompt = createUserPromptMessage(agentInput.userPrompt());
@@ -127,19 +128,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
     }
-    return new CompositionResult.Ready(ToolCallBatch.of(List.of()), userPrompt, eventMessages);
+    return new CompositionResult.Ready(
+        agentContext,
+        ToolCallBatch.of(List.of()),
+        userPrompt == null ? TurnInput.empty() : new TurnInput(List.of(userPrompt)),
+        new TurnInput(eventMessages));
   }
 
   @Override
   public TurnInput assemble(CompositionResult.Ready ready) {
-    final var messages = new ArrayList<Message>();
-    if (!ready.toolCallBatch().toolCalls().isEmpty()) {
-      messages.addAll(toolCallResultsInputBuilder.build(ready.toolCallBatch()));
-    } else if (ready.userPrompt() != null) {
-      messages.add(ready.userPrompt());
-    }
-    messages.addAll(ready.eventMessages());
-    return new TurnInput(messages);
+    final var input =
+        ready.toolCallBatch().toolCalls().isEmpty()
+            ? ready.userPrompt()
+            : toolCallResultsInputBuilder.build(ready.agentContext(), ready.toolCallBatch());
+    return input.followedBy(ready.events());
   }
 
   private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
