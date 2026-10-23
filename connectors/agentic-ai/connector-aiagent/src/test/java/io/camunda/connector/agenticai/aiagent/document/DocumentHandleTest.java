@@ -36,7 +36,7 @@ class DocumentHandleTest {
                 .build());
     final var ref = (CamundaDocumentReference) doc.reference();
 
-    assertThat(DocumentHandle.idFor(doc)).isEqualTo(ref.getDocumentId());
+    assertThat(DocumentHandle.idFor(doc).value()).isEqualTo(ref.getDocumentId());
   }
 
   @Test
@@ -45,8 +45,8 @@ class DocumentHandleTest {
         documentFactory.create(
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
 
-    assertThat(DocumentHandle.idFor(doc))
-        .isEqualTo(DocumentHandle.idFor(doc))
+    assertThat(DocumentHandle.idFor(doc).value())
+        .isEqualTo(DocumentHandle.idFor(doc).value())
         .isEqualTo(((CamundaDocumentReference) doc.reference()).getDocumentId());
   }
 
@@ -58,8 +58,8 @@ class DocumentHandleTest {
     final var doc1 = new ExternalDocument(url, "Report A", u -> null);
     final var doc2 = new ExternalDocument(url, "Report B", u -> null);
 
-    final var id1 = DocumentHandle.idFor(doc1);
-    final var id2 = DocumentHandle.idFor(doc2);
+    final var id1 = DocumentHandle.idFor(doc1).value();
+    final var id2 = DocumentHandle.idFor(doc2).value();
 
     assertThat(id1).startsWith("ext-").hasSize(16);
     assertThat(id1).isEqualTo(id2);
@@ -70,7 +70,7 @@ class DocumentHandleTest {
     final var doc1 = new ExternalDocument("https://example.com/a.pdf", null, u -> null);
     final var doc2 = new ExternalDocument("https://example.com/b.pdf", null, u -> null);
 
-    assertThat(DocumentHandle.idFor(doc1)).isNotEqualTo(DocumentHandle.idFor(doc2));
+    assertThat(DocumentHandle.idFor(doc1).value()).isNotEqualTo(DocumentHandle.idFor(doc2).value());
   }
 
   @Test
@@ -78,7 +78,9 @@ class DocumentHandleTest {
     final var url = "https://example.com/secret.pdf";
     final var doc = new ExternalDocument(url, "Secret", u -> null);
 
-    assertThat(DocumentHandle.idFor(doc)).doesNotContain("example.com").doesNotContain("secret");
+    assertThat(DocumentHandle.idFor(doc).value())
+        .doesNotContain("example.com")
+        .doesNotContain("secret");
   }
 
   // ── Inline document ───────────────────────────────────────────────────────
@@ -89,11 +91,11 @@ class DocumentHandleTest {
     final var doc1 = new InlineDocument(content, "a.txt", "text/plain");
     final var doc2 = new InlineDocument(content, "b.txt", "text/csv");
 
-    final var id1 = DocumentHandle.idFor(doc1);
+    final var id1 = DocumentHandle.idFor(doc1).value();
 
     assertThat(id1).startsWith("inline-").hasSize(19);
     // Same content → same id regardless of name/contentType metadata
-    assertThat(id1).isEqualTo(DocumentHandle.idFor(doc2));
+    assertThat(id1).isEqualTo(DocumentHandle.idFor(doc2).value());
   }
 
   @Test
@@ -101,15 +103,15 @@ class DocumentHandleTest {
     final var doc1 = new InlineDocument("content A", "file.txt", null);
     final var doc2 = new InlineDocument("content B", "file.txt", null);
 
-    assertThat(DocumentHandle.idFor(doc1)).isNotEqualTo(DocumentHandle.idFor(doc2));
+    assertThat(DocumentHandle.idFor(doc1).value()).isNotEqualTo(DocumentHandle.idFor(doc2).value());
   }
 
   @Test
   void inlineDocumentIdIsStableAcrossMultipleCalls() {
     final var doc = new InlineDocument("stable content", "file.txt", "text/plain");
-    final var id1 = DocumentHandle.idFor(doc);
-    final var id2 = DocumentHandle.idFor(doc);
-    final var id3 = DocumentHandle.idFor(doc);
+    final var id1 = DocumentHandle.idFor(doc).value();
+    final var id2 = DocumentHandle.idFor(doc).value();
+    final var id3 = DocumentHandle.idFor(doc).value();
 
     assertThat(id1).isEqualTo(id2).isEqualTo(id3);
   }
@@ -120,7 +122,7 @@ class DocumentHandleTest {
   void inlineDocumentWithBlankContentThrowsConnectorException() {
     final var doc = new InlineDocument("   ", "file.txt", "text/plain");
 
-    assertThatThrownBy(() -> DocumentHandle.idFor(doc))
+    assertThatThrownBy(() -> DocumentHandle.idFor(doc).value())
         .isInstanceOf(ConnectorException.class)
         .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
   }
@@ -140,7 +142,7 @@ class DocumentHandleTest {
     // cross-references documents by, so it must stay exactly what the caller supplied. Any
     // provider-specific wire-format constraint (e.g. Bedrock's DocumentBlock.name charset) is
     // handled at that provider's own call site, not here.
-    assertThat(DocumentHandle.idFor(doc)).isEqualTo(customId);
+    assertThat(DocumentHandle.idFor(doc).value()).isEqualTo(customId);
   }
 
   // ── Hashed-branch charset (ext-/inline- only) ─────────────────────────────
@@ -154,7 +156,9 @@ class DocumentHandleTest {
     // Only the hashed branches (ext-/inline-) carry this guarantee by construction (hex digits).
     // The CamundaDocumentReference branch is deliberately excluded - it stays verbatim.
     for (final var id :
-        new String[] {DocumentHandle.idFor(externalDoc), DocumentHandle.idFor(inlineDoc)}) {
+        new String[] {
+          DocumentHandle.idFor(externalDoc).value(), DocumentHandle.idFor(inlineDoc).value()
+        }) {
       assertThat(id).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}");
     }
   }
