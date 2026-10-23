@@ -2205,7 +2205,9 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT.withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
+                INITIAL_AGENT_CONTEXT
+                    .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                    .withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
                 List.of()));
 
     final var call = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));

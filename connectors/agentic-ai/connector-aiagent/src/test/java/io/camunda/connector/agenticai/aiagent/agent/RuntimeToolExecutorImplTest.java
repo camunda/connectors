@@ -662,7 +662,7 @@ class RuntimeToolExecutorImplTest {
         executorOf(tool)
             .execute(
                 WITH_MEMORY,
-                NEW_INSTANCE,
+                AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
                 List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))),
                 Set.of());
 
