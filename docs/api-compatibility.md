@@ -88,4 +88,5 @@ release branch was cut, are kept.
 `.github/workflows/scripts/check_api_changes.py` checks in CI that every accepted break has a
 justification. For the AI Agent modules, the justification must also link an existing anchor of
 [`connectors/agentic-ai/docs/breaking-changes.md`](../connectors/agentic-ai/docs/breaking-changes.md),
-for example `see docs/breaking-changes.md#module-split`.
+for example `see docs/breaking-changes.md#module-split`. The link path must be a trailing part of
+the document's repository path, or a URL that ends with that complete path.
