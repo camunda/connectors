@@ -120,11 +120,24 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * has one.
      */
     public static Entry from(ToolCallResult result, ToolCallResultDocumentExtractor extractor) {
+      return from(result, extractor, DocumentDelivery.REFERENCE);
+    }
+
+    /**
+     * The entry of a result as the process returned it, from a tool with the given document
+     * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content
+     * of every document of the result.
+     */
+    public static Entry from(
+        ToolCallResult result,
+        ToolCallResultDocumentExtractor extractor,
+        DocumentDelivery documentDelivery) {
       final var documents =
           extractor.extractDocuments(List.of(result)).stream()
               .flatMap(group -> group.documents().stream())
               .toList();
-      return new Entry(ToolCallResultContent.from(result), documents, List.of());
+      return new Entry(
+          ToolCallResultContent.from(result), documents, effectsOf(documents, documentDelivery));
     }
 
     /**
@@ -152,6 +165,34 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
           ToolCallResultDocumentExtractor.renderedDocumentsOf(
               result.content(), objectHandleRenderer),
           effects);
+    }
+
+    /**
+     * The entry of a result of a tool with the given document delivery, for an agent instance that
+     * tracks its documents, with the documents of {@link
+     * #withRenderedDocuments(ToolCallResultContent, ObjectHandleRenderer)}. With the delivery {@link
+     * DocumentDelivery#CONTENT} the entry asks for the content of every document of the result.
+     */
+    public static Entry withRenderedDocuments(
+        ToolCallResultContent result,
+        ObjectHandleRenderer objectHandleRenderer,
+        DocumentDelivery documentDelivery) {
+      final var documents =
+          ToolCallResultDocumentExtractor.renderedDocumentsOf(
+              result.content(), objectHandleRenderer);
+      return new Entry(result, documents, effectsOf(documents, documentDelivery));
+    }
+
+    private static List<ToolCallEffect> effectsOf(
+        List<Document> documents, DocumentDelivery documentDelivery) {
+      return switch (documentDelivery) {
+        case REFERENCE -> List.of();
+        case CONTENT ->
+            documents.stream()
+                .<ToolCallEffect>map(
+                    document -> new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
+                .toList();
+      };
     }
 
     /**

@@ -94,6 +94,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 @SlowTest
 public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  @Value("classpath:agentic-ai-ahsp-connectors-documents.bpmn")
+  private Resource documentsProcess;
+
+  @Value("classpath:agentic-ai-ahsp-connectors-documents-content.bpmn")
+  private Resource contentDocumentsProcess;
+
   @Autowired private CamundaProcessTestContext processTestContext;
 
   @Override
@@ -251,12 +259,114 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The agent answers the valid {@code c8__return_document} call. The real call of the same message
-   * runs in the process. While it runs, the history of the agent instance holds only the results
-   * that already arrived. After it ends, the model sees both results in the order of its calls,
-   * each once. The batch costs no extra model call: one call before the tools run and one after.
-   * The agent instance lists the runtime tool without a BPMN element and reports its call and its
-   * result next to the real call.
+   * Two tools return the attached document: one as the whole result, one nested in an object (and
+   * twice in it). The history shows the document of the first result as its handle and the document
+   * and the second result as the object with the handles nested in it followed by the document
+   * once.
+   */
+  @Test
+  void everyModelVisibleMessageOfToolResultDocumentsIsInTheHistory() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(
+            "I will fetch the file and describe it.",
+            10,
+            20,
+            ToolCall.of("call_fetch", "Fetch_A_File", "{}"),
+            ToolCall.of("call_describe", "Describe_A_File", "{}")),
+        finalTurn());
+
+    final var agentInstanceKey = runWithPromptDocument(documentsProcess);
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    final var history = awaitCommittedHistory(agentInstanceKey);
+
+    final var fetched = toolResultOf(history, "call_fetch");
+    final var described = toolResultOf(history, "call_describe");
+    final var promptDocumentHandle = promptDocumentHandleInRequest(recorded);
+    assertThat(fetched.getContent()).hasSize(2);
+    assertThat(fetched.getContent().get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object -> assertThat(object.getObject()).isEqualTo(promptDocumentHandle));
+    assertThat(fetched.getContent().get(1))
+        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+
+    assertThat(described.getContent()).hasSize(2);
+    assertThat(described.getContent().get(0))
+        .isInstanceOfSatisfying(
+            AgentInstanceHistoryContent.ObjectContent.class,
+            object ->
+                assertThat(object.getObject())
+                    .isEqualTo(
+                        Map.of(
+                            "status",
+                            "found",
+                            "file",
+                            promptDocumentHandle,
+                            "related",
+                            List.of(promptDocumentHandle))));
+    assertThat(described.getContent().get(1))
+        .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+  }
+
+  /**
+   * A tool whose activity sets the document delivery {@code content} returns a document: the agent
+   * adds its content to the request in the message after the tool result, so the model reads it
+   * without a {@code c8__get_document} call and still passes its tag to a tool. The tool receives
+   * the real bytes.
+   */
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(strings = {"test.txt", "test.pdf"})
+  void addsTheContentOfTheDocumentsOfAToolWithTheDeliveryContentForTheModel(String file)
+      throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        downloadTurn(wireMock.getHttpBaseUrl(), file), uploadTurn(), finalTurn());
+
+    final var zeebeTest = awaitProcessCompletion(startDocumentsContentProcess());
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(3);
+    final var afterDownload = recorded.requests().get(1).messages();
+    assertThat(afterDownload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user");
+    assertThat(afterDownload.get(3).toolCallId()).isEqualTo(DOWNLOAD_CALL_ID);
+    final var tag = parseDocumentTag(afterDownload.get(3).content());
+    assertDocumentContentUserMessage(
+        afterDownload.get(4),
+        DocumentWithContent.forToolCall(
+            DOWNLOAD_CALL_ID,
+            "Download_A_File",
+            tag,
+            block ->
+                assertDocumentContentBlockJson(
+                    block,
+                    file.endsWith(".pdf") ? "base64" : "text",
+                    file.endsWith(".pdf") ? "application/pdf" : "text/plain")));
+
+    // no load by the model: the next request holds the upload and nothing else
+    final var afterUpload = recorded.lastRequest().messages();
+    assertThat(afterUpload)
+        .extracting(m -> m.role())
+        .containsExactly("system", "user", "assistant", "tool", "user", "assistant", "tool");
+    assertThat(afterUpload.get(6).toolCallId()).isEqualTo(UPLOAD_CALL_ID);
+    assertThat(afterUpload).noneMatch(m -> m.toString().contains("c8__get_document"));
+    assertUploaded(servedFile(file));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(FINAL_TEXT));
+    assertNoDocumentInternalsInLlmRequests();
+  }
+
+  /**
+   * The valid {@code c8__return_document} call is answered by the agent, the real call runs in the
+   * process, and the model sees both results in the order of its calls without an extra model call:
+   * one call before the tools run and one after. The agent instance lists the runtime tool without
+   * a BPMN element and reports its call and its result next to the real call.
    */
   @Test
   void mixedBatchOfReturnDocumentAndARealToolCostsNoExtraModelCall() throws Exception {
@@ -421,6 +531,17 @@ public class AgentSubProcessDocumentFlowTests extends BaseAgentSubProcessTest {
       throws Exception {
     return createProcessInstance(
         elementTemplateModifier,
+        Map.of(
+            "userPrompt",
+            "Download the file, upload it and give it back to me.",
+            "uploadUrl",
+            uploadUrl(wireMock.getHttpBaseUrl())));
+  }
+
+  private io.camunda.connector.e2e.ZeebeTest startDocumentsContentProcess() throws Exception {
+    return createProcessInstance(
+        contentDocumentsProcess,
+        e -> e,
         Map.of(
             "userPrompt",
             "Download the file, upload it and give it back to me.",

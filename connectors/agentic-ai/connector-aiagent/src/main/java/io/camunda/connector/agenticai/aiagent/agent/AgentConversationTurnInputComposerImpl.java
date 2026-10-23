@@ -121,7 +121,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
               interruptMissingToolCalls);
       final var processEntries =
           processResults.arrivedResults().stream()
-              .map(result -> processEntry(result, documentHandling))
+              .map(result ->
+                  processEntry(
+                      result, documentHandling, documentDeliveryOf(agentContext, result.name())))
               .toList();
       switch (documentHandling) {
         case DocumentHandling.Tracked ignored ->
@@ -166,6 +168,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
             : toolCallResultsInputBuilder.build(
                 ready.agentContext(), ready.toolCallBatch(), ready.documentIdsWithContent());
     return input.followedBy(ready.events());
+  }
+
+  /**
+   * The delivery of the documents a process tool returns. An agent instance that does not track its
+   * documents ignores the delivery of a tool.
+   */
+  private static DocumentDelivery documentDeliveryOf(AgentContext agentContext, String toolName) {
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked ignored -> agentContext.documentDeliveryOf(toolName);
+      case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;
+    };
   }
 
   /** The user message of the user prompt and its documents, empty without user content. */
@@ -267,13 +280,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
    * the documents its gateway tool handler extracts in a message of their own.
    */
   private ToolCallBatch.Entry processEntry(
-      ToolCallResult result, DocumentHandling documentHandling) {
+      ToolCallResult result, DocumentHandling documentHandling, DocumentDelivery documentDelivery) {
     return switch (documentHandling) {
       case DocumentHandling.Tracked ignored ->
           ToolCallBatch.Entry.withRenderedDocuments(
-              ToolCallResultContent.from(result), objectHandleRenderer);
+              ToolCallResultContent.from(result), objectHandleRenderer, documentDelivery);
       case DocumentHandling.Untracked ignored ->
-          ToolCallBatch.Entry.from(result, documentExtractor);
+          ToolCallBatch.Entry.from(result, documentExtractor, documentDelivery);
     };
   }
 

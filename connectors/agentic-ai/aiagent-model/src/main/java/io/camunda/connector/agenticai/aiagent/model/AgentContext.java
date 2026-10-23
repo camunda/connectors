@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -110,6 +111,19 @@ public record AgentContext(
   /** The tool definition with the given name, or empty if the agent context has none. */
   public Optional<ToolDefinition> toolDefinition(String name) {
     return toolDefinitions.stream().filter(tool -> tool.name().equals(name)).findFirst();
+  }
+
+  /**
+   * The document delivery of the documents the tool with the given name returns: the one of its
+   * stored definition, {@code reference} when the definition sets none or the tool is unknown.
+   */
+  public DocumentDelivery documentDeliveryOf(String toolName) {
+    return toolDefinitions.stream()
+        .filter(tool -> tool.name().equals(toolName))
+        .map(ToolDefinition::documentDelivery)
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(DocumentDelivery.REFERENCE);
   }
 
   /**
