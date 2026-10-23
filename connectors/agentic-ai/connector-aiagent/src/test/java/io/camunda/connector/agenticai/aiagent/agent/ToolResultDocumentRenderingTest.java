@@ -22,6 +22,8 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiCo
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -87,8 +89,9 @@ class ToolResultDocumentRenderingTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(),
-            TestDocuments.objectHandleRenderer());
+            new ToolCallResultsInputBuilder(
+                new DocumentContentGuard(DocumentContentLimits.defaults()),
+                TestDocuments.documentRestorer()), TestDocuments.objectHandleRenderer());
   }
 
   private Document document(String content, String fileName, String contentType) {

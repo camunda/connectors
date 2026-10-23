@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
+import java.util.Set;
 
 /** Whether the next turn can be composed, as resolved by AgentConversationTurnInputComposer. */
 public sealed interface CompositionResult {
@@ -39,6 +41,8 @@ public sealed interface CompositionResult {
    * are in the batch, and so are the cancelled results of an interrupted turn.
    *
    * @param agentContext the agent context the next turn is composed with
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
    * @param toolCallBatch the calls of the previous turn, none when the next turn has no tool call
    *     results
    * @param userPrompt the input of the user prompt of a turn without tool call results
@@ -46,6 +50,7 @@ public sealed interface CompositionResult {
    */
   record Ready(
       AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
       ToolCallBatch toolCallBatch,
       TurnInput userPrompt,
       TurnInput events)
@@ -56,11 +61,20 @@ public sealed interface CompositionResult {
         throw new IllegalArgumentException(
             "The next turn has either tool call results or a user prompt, not both");
       }
+      documentIdsWithContent = Set.copyOf(documentIdsWithContent);
     }
 
     /** The next turn that answers the calls of the batch only. */
-    public static Ready of(AgentContext agentContext, ToolCallBatch toolCallBatch) {
-      return new Ready(agentContext, toolCallBatch, TurnInput.empty(), TurnInput.empty());
+    public static Ready of(
+        AgentContext agentContext,
+        Set<DocumentId> documentIdsWithContent,
+        ToolCallBatch toolCallBatch) {
+      return new Ready(
+          agentContext,
+          documentIdsWithContent,
+          toolCallBatch,
+          TurnInput.empty(),
+          TurnInput.empty());
     }
 
     public List<ToolCall> unansweredToolCalls() {
@@ -68,7 +82,12 @@ public sealed interface CompositionResult {
     }
 
     public Ready withResults(List<ToolCallBatch.Entry> entries) {
-      return new Ready(agentContext, toolCallBatch.withEntries(entries), userPrompt, events);
+      return new Ready(
+          agentContext,
+          documentIdsWithContent,
+          toolCallBatch.withEntries(entries),
+          userPrompt,
+          events);
     }
   }
 }

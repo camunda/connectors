@@ -421,7 +421,9 @@ public abstract class BaseAgentRequestHandler<
         answerLocalToolCalls(
             executionContext,
             CompositionResult.Ready.of(
-                conversation.persistedContext(), ToolCallBatch.of(currentTurn.toolCalls())));
+                conversation.persistedContext(),
+                conversation.documentIdsWithContent(),
+                ToolCallBatch.of(currentTurn.toolCalls())));
     final var nextConversation =
         conversation.nextRuntimeToolRound(input.messages(), input::applyTo);
     // the previous turn is the one whose tool calls these results belong to
@@ -442,7 +444,10 @@ public abstract class BaseAgentRequestHandler<
     return agentInputComposer.assemble(
         ready.withResults(
             localToolCallExecutor.execute(
-                executionContext, ready.agentContext(), ready.unansweredToolCalls())));
+                executionContext,
+                ready.agentContext(),
+                ready.documentIdsWithContent(),
+                ready.unansweredToolCalls())));
   }
 
   /**

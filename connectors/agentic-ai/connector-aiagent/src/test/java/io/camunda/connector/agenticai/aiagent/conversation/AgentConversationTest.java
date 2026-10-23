@@ -32,6 +32,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameter;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestDocuments;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
@@ -754,5 +755,39 @@ class AgentConversationTest {
     assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
     assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void documentIdsWithContent_followTheContextWindow() {
+    var document = TestDocuments.createDocument("content", "a.txt");
+    var userMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    AgentDocumentContent.of(AgentDocumentId.of(document))
+                        .withDelivery(DocumentDelivery.CONTENT)))
+            .build();
+
+    for (var windowSize : List.of(3, 2)) {
+      var conv =
+          AgentConversation.rehydrate(
+                  new AgentConfiguration(
+                      TEST_CHAT_MODEL,
+                      TEST_SYSTEM_PROMPT,
+                      null,
+                      new MemoryTemplateConfiguration(null, windowSize),
+                      null,
+                      null,
+                      null),
+                  BASE_CONTEXT,
+                  TurnReconstructor.reconstruct(List.of()),
+                  SYSTEM_MESSAGE,
+                  List.of(userMessage))
+              .ingest(assistantMessage("one"), AgentMetrics.empty());
+
+      // a window of 3 holds the system message, the user message and the assistant message
+      assertThat(conv.documentIdsWithContent().contains(AgentDocumentId.of(document)))
+          .isEqualTo(windowSize == 3);
+    }
   }
 }
