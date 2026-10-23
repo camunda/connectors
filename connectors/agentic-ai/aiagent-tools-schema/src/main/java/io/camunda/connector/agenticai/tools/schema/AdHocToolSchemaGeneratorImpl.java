@@ -15,6 +15,7 @@ import static io.camunda.connector.agenticai.common.jsonschema.JsonSchemaConstan
 
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElementParameter;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,15 +64,20 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                         .formatted(element.elementId(), parameter.name()));
               }
 
-              final var propertySchema =
+              final var authoredSchema =
                   Optional.ofNullable(parameter.schema())
                       .map(LinkedHashMap::new)
                       .orElseGet(LinkedHashMap::new);
 
               // apply type from parameter if it is set
               if (StringUtils.isNotBlank(parameter.type())) {
-                propertySchema.put(PROPERTY_TYPE, parameter.type());
+                authoredSchema.put(PROPERTY_TYPE, parameter.type());
               }
+
+              // the shorthand type "document" becomes a string with the document format
+              final var propertySchema =
+                  new LinkedHashMap<>(
+                      DocumentParameterSchema.normalizeAuthoredSchema(authoredSchema));
 
               // default to string if no type is set (not on parameter, not in schema directly)
               if (!propertySchema.containsKey(PROPERTY_TYPE)) {

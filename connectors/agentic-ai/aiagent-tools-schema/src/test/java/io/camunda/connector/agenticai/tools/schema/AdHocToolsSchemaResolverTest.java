@@ -58,6 +58,49 @@ class AdHocToolsSchemaResolverTest {
             });
   }
 
+  @Test
+  void keepsTheDocumentParametersOfTheGeneratedSchemaAsAuthored() {
+    final var element =
+        AdHocToolElement.builder().elementId("Test_Tool").documentation("A tool.").build();
+    final var schema =
+        Map.<String, Object>of(
+            "type",
+            "object",
+            "properties",
+            Map.of(
+                "doc",
+                Map.of(
+                    "type",
+                    "string",
+                    "format",
+                    "camunda-document-id",
+                    "description",
+                    "The invoice")));
+
+    when(schemaGenerator.generateToolSchema(element)).thenReturn(schema);
+
+    final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
+    assertThat(schemaResponse.toolDefinitions())
+        .singleElement()
+        .satisfies(
+            toolDefinition ->
+                assertThat(toolDefinition.inputSchema())
+                    .isEqualTo(
+                        Map.of(
+                            "type",
+                            "object",
+                            "properties",
+                            Map.of(
+                                "doc",
+                                Map.of(
+                                    "type",
+                                    "string",
+                                    "format",
+                                    "camunda-document-id",
+                                    "description",
+                                    "The invoice")))));
+  }
+
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = {"  "})

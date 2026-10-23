@@ -26,8 +26,11 @@ public interface RuntimeToolExecutor {
    * io.camunda.connector.agenticai.aiagent.model.tool.ToolKind#RUNTIME runtime tools}.
    *
    * <p>A call of a tool that is not enabled when it runs, or that is not registered, gets an error
-   * result. A {@link io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException} gives
-   * the call an error result carrying its message. Any other exception propagates.
+   * result. A call whose document parameter does not name a known document gets an error result and
+   * does not reach the tool; the call of a tool of the process that was rejected for its document
+   * parameters is answered the same way. A {@link
+   * io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException} gives the call an error
+   * result carrying its message. Any other exception propagates.
    *
    * @param executionContext the invocation of the agent
    * @param agentContext the persisted state of the agent

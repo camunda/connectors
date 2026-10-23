@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolSchemas;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
@@ -24,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -31,6 +33,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
@@ -47,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class RuntimeToolExecutorImplTest {
@@ -420,6 +424,181 @@ class RuntimeToolExecutorImplTest {
         .isInstanceOf(DocumentContent.class);
     // the agent context is the one the executor was given
     assertThat(agentContext.documents()).isEmpty();
+  }
+
+  // document parameters
+
+  private static final String BOGUS_FILE =
+      "Parameter 'file' must be the <doc /> tag of a known document, exactly as you read it, got 'bogus'.";
+
+  private static final ToolDefinition UPLOAD =
+      definitionOf("upload", Map.of("file", RuntimeToolSchemas.document("The file")));
+
+  private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
+    return ToolDefinition.builder()
+        .name(name)
+        .inputSchema(Map.of("type", "object", "properties", properties))
+        .build();
+  }
+
+  private static AgentContext knowingWithDocumentsFeature(Document... documents) {
+    return knowing(documents)
+        .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+  }
+
+  private static String tagOf(Document document) {
+    return "<doc id=\"" + DocumentHandle.idFor(document) + "\" />";
+  }
+
+  @Test
+  void handsTheIdsOfTheDocumentParametersToARuntimeToolAfterCheckingThem() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    record Args(DocumentId file, List<String> files) {}
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf(
+                "c8__read_file",
+                Map.of(
+                    "file",
+                    RuntimeToolSchemas.document("The file"),
+                    "files",
+                    Map.of("type", "array", "items", Map.of("type", "string")))),
+            (call, context) -> {
+              final var args = call.argumentsAs(Args.class);
+              received.add(args.file());
+              received.add(args.files());
+              return RuntimeToolResult.success("read");
+            });
+
+    final var executions =
+        executorOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(report),
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", tagOf(report)))));
+
+    assertThat(text(executions.getFirst())).isEqualTo("read");
+    assertThat(received).containsExactly(DocumentHandle.idFor(report), null);
+  }
+
+  @Test
+  void handsTheIdOfATagWithMoreAttributesAndKeepsTheOtherArguments() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            (call, context) -> {
+              received.add(call.arguments());
+              return RuntimeToolResult.success("read");
+            });
+    final var arguments =
+        Map.<String, Object>of(
+            "file",
+            "<doc id=\"" + DocumentHandle.idFor(report) + "\" fileName=\"report.txt\" />",
+            "other",
+            "kept");
+
+    executorOf(tool)
+        .execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(report),
+            List.of(runtimeCall("r1", "c8__read_file", arguments)));
+
+    assertThat(received)
+        .containsExactly(Map.of("file", DocumentHandle.idFor(report), "other", "kept"));
+  }
+
+  @Test
+  void answersAValueThatIsNotATagOfARuntimeToolWithAnErrorAndDoesNotRunIt() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            (call, context) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("read");
+            });
+    final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
+
+    final var executions =
+        executorOf(tool).execute(WITH_MEMORY, knowingWithDocumentsFeature(), List.of(call));
+
+    assertThat(runs).hasValue(0);
+    assertThat(executions)
+        .singleElement()
+        .satisfies(
+            execution -> {
+              assertThat(execution.call()).isEqualTo(call);
+              assertThat(execution.result().id()).isEqualTo("r1");
+              assertThat(text(execution)).isEqualTo(BOGUS_FILE);
+            });
+  }
+
+  @Test
+  void answersTheCallOfAToolOfTheProcessThatWasRejectedForItsDocumentParameters() {
+    final var call = runtimeCall("u1", "upload", Map.of("file", "bogus"));
+    final var agentContext = knowingWithDocumentsFeature().withToolDefinitions(List.of(UPLOAD));
+
+    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+
+    assertThat(executions)
+        .singleElement()
+        .satisfies(
+            execution -> {
+              assertThat(execution.result().id()).isEqualTo("u1");
+              assertThat(execution.result().name()).isEqualTo("upload");
+              assertThat(execution.result().elementId()).isNull();
+              assertThat(execution.result().completedAt()).isNotNull();
+              assertThat(text(execution)).isEqualTo(BOGUS_FILE);
+            });
+  }
+
+  @Test
+  void answersARejectedCallWithTheSameErrorWheneverItIsExecuted() {
+    final var call = runtimeCall("u1", "upload", Map.of("file", "bogus"));
+    final var agentContext = knowingWithDocumentsFeature().withToolDefinitions(List.of(UPLOAD));
+
+    final var first = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+    final var again = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+
+    assertThat(text(first.getFirst())).isEqualTo(text(again.getFirst()));
+  }
+
+  @Test
+  void aCallOfAToolOfTheProcessWithValidDocumentParametersIsNotAnsweredByTheAgent() {
+    final var report = createDocument("report", "report.txt");
+    final var call = runtimeCall("u1", "upload", Map.of("file", tagOf(report)));
+    final var agentContext =
+        knowingWithDocumentsFeature(report).withToolDefinitions(List.of(UPLOAD));
+
+    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call));
+
+    // no tool of the agent owns the name and nothing was rejected: the call is not enabled
+    assertThat(text(executions.getFirst())).isEqualTo("The tool 'upload' is not enabled.");
+  }
+
+  @Test
+  void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
+    final var received = new ArrayList<Object>();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__read_file", Map.of("file", RuntimeToolSchemas.document("The file"))),
+            (call, context) -> {
+              received.add(call.arguments());
+              return RuntimeToolResult.success("read");
+            });
+
+    final var executions =
+        executorOf(tool)
+            .execute(
+                WITH_MEMORY,
+                NEW_INSTANCE,
+                List.of(runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"))));
+
+    assertThat(text(executions.getFirst())).isEqualTo("read");
+    assertThat(received).containsExactly(Map.of("file", "bogus"));
   }
 
   @Test

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.api.tool;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 import java.util.Map;
 
@@ -14,6 +15,11 @@ import java.util.Map;
  * added in a later release.
  *
  * <p>{@link Experimental}, see {@link RuntimeTool}.
+ *
+ * <p>The arguments are the values the model sent, with one difference: a parameter that carries a
+ * document, which the schema marks as such (see {@link RuntimeToolSchemas}), holds the {@link
+ * DocumentId} of the document instead of the {@code <doc id="..." />} tag the model wrote. The
+ * framework has checked that the document is known before it hands the call to the tool.
  */
 @Experimental
 public interface RuntimeToolCall {
@@ -27,13 +33,14 @@ public interface RuntimeToolCall {
   /**
    * The arguments in the order the model sent them, unmodifiable. The values are JSON values: a
    * {@link String}, a {@link Number}, a {@link Boolean}, a {@link java.util.List}, a {@link Map} or
-   * {@code null}.
+   * {@code null}, and a {@link DocumentId} for a parameter that carries a document.
    */
   Map<String, Object> arguments();
 
   /**
    * Binds the {@link #arguments() arguments} to {@code type}, a record or a bean with a property
-   * per argument.
+   * per argument. A {@link DocumentId} property receives the document of a document parameter. A
+   * property typed {@link String} receives the text of the id.
    *
    * <p>Properties of {@code type} without an argument are {@code null}, and arguments without a
    * property are ignored.

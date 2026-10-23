@@ -15,8 +15,8 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * {@link #call handler}, run by the agent when the model calls the tool. Register a tool as a
  * Spring bean of this type.
  *
- * <p>The tool types of this package, including {@link RuntimeToolDocuments} and {@link
- * AgentDocument}, are {@link Experimental}.
+ * <p>The tool types of this package, including {@link RuntimeToolDocuments}, {@link AgentDocument}
+ * and {@link RuntimeToolSchemas}, are {@link Experimental}.
  *
  * <h2>Execution contract</h2>
  *
@@ -67,7 +67,8 @@ public interface RuntimeTool {
    * <p>Build the schema with maps of a stable key order, for example {@link
    * java.util.LinkedHashMap}s, as the schema is serialized in that order and the order is part of
    * the request: a map of unspecified order, such as the one {@link java.util.Map#of} returns,
-   * serializes differently in different JVMs.
+   * serializes differently in different JVMs. {@link RuntimeToolSchemas} creates the schema of a
+   * parameter that carries a document.
    */
   ToolDefinition definition();
 
@@ -85,7 +86,9 @@ public interface RuntimeTool {
   }
 
   /**
-   * Runs the tool for {@code call}. The framework calls it only when the tool is enabled.
+   * Runs the tool for {@code call}. The framework calls it only when the tool is enabled, after the
+   * document parameters of the call have been checked: a call that does not name a known document
+   * in a document parameter is answered with an error result and does not reach the tool.
    *
    * <p>A {@link RuntimeToolException} becomes an error result; any other exception fails the job.
    *
