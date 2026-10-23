@@ -78,6 +78,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
 import io.camunda.connector.agenticai.aiagent.model.ReturnedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -225,6 +226,15 @@ class AgentSubProcessRequestHandlerTest {
               RuntimeToolResult.success("Loaded the document.")
                   .withDocumentContent(AgentDocumentId.of(KNOWN_DOCUMENT)));
 
+  /** A tool that asks the agent to select the known document for the final response. */
+  private static final RuntimeTool SELECT_DOCUMENT_TOOL =
+      StubRuntimeTool.of(
+          "acme_select_document",
+          (call, context) ->
+              RuntimeToolResult.success("Selected the document.")
+                  .withResponseDocument(
+                      "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(
           "acme_lookup", (context, call) -> RuntimeToolResult.success("found the customer"));
@@ -266,6 +276,7 @@ class AgentSubProcessRequestHandlerTest {
               UPLOAD_RUNTIME_TOOL,
               COUNT_DOCUMENTS_TOOL,
               LOAD_DOCUMENT_TOOL,
+              SELECT_DOCUMENT_TOOL,
               new LoadDocumentTool()),
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver());
@@ -1266,20 +1277,11 @@ class AgentSubProcessRequestHandlerTest {
                             .build()))
                 .build());
     mockSystemPrompt();
-    // the results of the process arrived: the call of the runtime tool is the only one unanswered
-    final var processResult =
-        ToolCallResultContent.builder()
-            .id("call-2")
-            .name("getWeather")
-            .content(List.of(TextContent.textContent("Sunny")))
-            .build();
-    final var batch =
-        ToolCallBatch.of(List.of(lookupCall, processCall))
-            .withEntries(List.of(ToolCallBatch.Entry.from(processResult)));
-    when(agentInputComposer.resolve(any(), any(), any(), any()))
-        .thenReturn(CompositionResult.Ready.of(context, Set.of(), batch));
-    when(agentInputComposer.assemble(any(), any()))
-        .thenReturn(new TurnInput(List.of(USER_MESSAGE)));
+    // the results of the process arrived: the turn needs the results of the runtime tools
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.LocalToolCallResultsRequired(List.of(lookupCall)));
+    when(agentInputComposer.composeWithLocalToolCallResults(any(), any(), any(), any(), any()))
+        .thenAnswer(i -> new CompositionResult.NextTurn(i.getArgument(1), List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -2602,6 +2604,57 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
+  void appliesTheResponseDocumentOfARuntimeToolRoundToTheAgentContextOfTheSameJob() {
+    final var selection =
+        new ResponseDocumentSelection("report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report");
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_KNOWING_A_DOCUMENT, List.of()));
+    final var selectCall = new ToolCall("call-1", "acme_select_document", Map.of());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(selectCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    assertThat(response.responseValue().context().responseDocuments()).containsExactly(selection);
+    // the selection is part of the context the history reporter gets with the round that follows
+    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
+    verify(agentInstanceClient, times(2))
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), contextCaptor.capture());
+    assertThat(contextCaptor.getAllValues().get(0).responseDocuments()).isEmpty();
+    assertThat(contextCaptor.getAllValues().get(1).responseDocuments()).containsExactly(selection);
+    // the result the model reads is the text of the tool, whatever the effect
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(TextContent.textContent("Selected the document.")));
+  }
+
+  @Test
+  void appliesTheResponseDocumentOfAMixedBatchToTheAgentContextOfTheTurnThatFollowsTheProcess() {
+    final var run =
+        runMixedBatchInTwoJobs(
+            "acme_select_document", CONTEXT_KNOWING_A_DOCUMENT, "Sunny", () -> {});
+
+    assertThat(run.finalContext().responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection(
+                "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+  }
+
+  @Test
   void carriesTheResponseDocumentsIntoTheAgentResponseVariable() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
@@ -2963,31 +3016,8 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   private void mockProceed(Message... inputMessages) {
-    mockProceed(new TurnInput(List.of(inputMessages)));
-  }
-
-  private void mockProceed(TurnInput firstTurnInput) {
-    // stubbed with doAnswer so that a test can stub the composer more than once
-    doAnswer(invocation ->
-            CompositionResult.Ready.of(
-                invocation.getArgument(1, AgentContext.class),
-                Set.of(),
-                ToolCallBatch.of(List.of())))
-        .when(agentInputComposer)
-        .resolve(any(), any(), any(), any());
-    lenient()
-        .doAnswer(invocation -> {
-          final var ready = invocation.getArgument(0, CompositionResult.Ready.class);
-          return ready.toolCallBatch().toolCalls().isEmpty()
-              ? firstTurnInput
-              : resultsInputBuilder.build(
-                  ready.agentContext(),
-                  ready.toolCallBatch(),
-                  ready.documentIdsWithContent(),
-                  TestDocuments.documentFactory());
-        })
-        .when(agentInputComposer)
-        .assemble(any(), any());
+    when(agentInputComposer.compose(any(), any(), any(), any()))
+        .thenAnswer(i -> new CompositionResult.NextTurn(i.getArgument(1), List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {

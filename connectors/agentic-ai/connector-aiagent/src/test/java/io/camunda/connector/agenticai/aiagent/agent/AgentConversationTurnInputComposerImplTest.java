@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -1220,6 +1221,82 @@ class AgentConversationTurnInputComposerImplTest {
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(eventResult())));
 
     assertThat(ready.documentIdsWithContent()).containsExactly(AgentDocumentId.of(document));
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatSelectsAResponseDocumentIsAppliedToTheContextOfTheNextTurn() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = DocumentHandle.idFor(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocumentWorkspace(
+            DocumentIngestion.withDocuments(
+                DocumentWorkspace.empty(),
+                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Returned the document.")
+                .withResponseDocument("report", id, "The report"),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG,
+            context,
+            historyWith(MIXED_CALLS),
+            inputWith(TOOL_CALL_RESULTS.get(1)),
+            List.of(execution));
+
+    var nextTurn = (CompositionResult.NextTurn) result;
+    assertThat(nextTurn.agentContext().responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("report", id, "The report"));
+    assertThat(nextTurn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
+    // nothing but the response documents differs from the context the composer was given
+    assertThat(nextTurn.agentContext().withResponseDocuments(List.of())).isEqualTo(context);
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatReturnsADocumentCanSelectItInTheSameResult() {
+    var document = createDocument("created", "text/plain", "created.txt");
+    var id = DocumentHandle.idFor(document);
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success(List.of(DocumentContent.documentContent(document)))
+                .withResponseDocument("created", id, null),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG,
+            CTX_WITH_CONVERSATION.withFeatures(List.of(AgentFeatures.DOCUMENTS)),
+            historyWith(MIXED_CALLS),
+            inputWith(TOOL_CALL_RESULTS.get(1)),
+            List.of(execution));
+
+    var nextTurn = (CompositionResult.NextTurn) result;
+    assertThat(nextTurn.documents())
+        .containsExactly(
+            new IngestedDocument(document, DocumentOrigin.toolCall("getWeather", "abcdef")));
+    assertThat(nextTurn.agentContext().responseDocuments())
+        .containsExactly(new ResponseDocumentSelection("created", id, null));
+  }
+
+  @Test
+  void aTurnWithoutRuntimeToolResultsContinuesWithTheContextItWasGiven() {
+    var result =
+        composer.compose(
+            CONFIG,
+            CTX_WITH_CONVERSATION,
+            historyWith(TOOL_CALLS),
+            inputWith(TOOL_CALL_RESULTS.toArray(ToolCallResult[]::new)));
+
+    assertThat(((CompositionResult.NextTurn) result).agentContext())
+        .isEqualTo(CTX_WITH_CONVERSATION);
   }
 
   @Test

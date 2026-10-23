@@ -125,7 +125,7 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
 
     /** The entry of a result with structured content; the documents are the ones of its content. */
     public static Entry from(ToolCallResultContent result) {
-      return from(result, List.of());
+      return from(result, List.of(), List.of());
     }
 
     /**

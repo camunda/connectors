@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -116,17 +117,47 @@ class RuntimeToolResultTest {
   }
 
   @Test
+  void aSuccessfulResultKeepsTheEffectsInTheOrderTheyWereAdded() {
+    final var result =
+        RuntimeToolResult.success("ok")
+            .withResponseDocument("second", DOC_2, null)
+            .withDocumentContent(DOC_1)
+            .withResponseDocument("first", DOC_1, "A document");
+
+    assertThat(result.effects())
+        .containsExactly(
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("second", DOC_2, null)),
+            new ToolCallEffect.AddDocumentContent(DOC_1),
+            new ToolCallEffect.SelectResponseDocument(
+                new ResponseDocumentSelection("first", DOC_1, "A document")));
+    assertThat(result.content()).containsExactly(textContent("ok"));
+  }
+
+  @Test
+  void aResponseDocumentKeyMustNotBeBlank() {
+    final var result = RuntimeToolResult.success("ok");
+
+    assertThatThrownBy(() -> result.withResponseDocument(" ", DOC_1, null))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   void aWitherLeavesTheOriginalResultUnchanged() {
     final var original = RuntimeToolResult.success("ok");
 
     original.withDocumentContent(DOC_1);
+    original.withResponseDocument("key", DOC_1, null);
 
     assertThat(original.effects()).isEmpty();
   }
 
   @Test
   void theEffectsAreACopyThatCannotBeChanged() {
-    final var result = RuntimeToolResult.success("ok").withDocumentContent(DOC_1);
+    final var result =
+        RuntimeToolResult.success("ok")
+            .withDocumentContent(DOC_1)
+            .withResponseDocument("key", DOC_1, null);
 
     assertThatThrownBy(() -> result.effects().add(new ToolCallEffect.AddDocumentContent(DOC_2)))
         .isInstanceOf(UnsupportedOperationException.class);
