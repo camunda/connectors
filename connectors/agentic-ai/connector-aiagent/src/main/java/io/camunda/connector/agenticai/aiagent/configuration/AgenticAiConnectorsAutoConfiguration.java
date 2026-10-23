@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.configuration.AgenticAiNativeProvidersConfiguration;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.configuration.AgenticAiLangChain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
@@ -113,8 +114,8 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AgentInstanceHistoryMapper aiAgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInstanceHistoryMapper(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, DocumentExpander documentExpander) {
+    return new AgentInstanceHistoryMapper(gatewayToolHandlers, documentExpander);
   }
 
   @Bean
@@ -229,6 +230,13 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public DocumentExpander aiAgentDocumentExpander(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new DocumentExpander(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public RuntimeToolExecutor aiAgentRuntimeToolExecutor(
       RuntimeToolRegistry runtimeToolRegistry, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new RuntimeToolExecutorImpl(runtimeToolRegistry, objectMapper);
@@ -269,7 +277,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeToolExecutor runtimeToolExecutor,
+      DocumentExpander documentExpander) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -279,7 +288,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeToolExecutor,
+        documentExpander);
   }
 
   @Bean
@@ -315,7 +325,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeToolExecutor runtimeToolExecutor,
+      DocumentExpander documentExpander) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -325,7 +336,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         responseHandler,
         agentInstanceClient,
         runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeToolExecutor,
+        documentExpander);
   }
 
   @Bean

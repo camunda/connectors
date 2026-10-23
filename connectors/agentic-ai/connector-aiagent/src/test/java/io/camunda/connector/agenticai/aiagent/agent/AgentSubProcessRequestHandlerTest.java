@@ -56,7 +56,9 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -138,6 +140,10 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   /** The document a runtime tool of the test returns without the agent knowing it before. */
   private static final Document NEW_REPORT = createDocument("new report", "new-report.txt");
@@ -493,7 +499,8 @@ class AgentSubProcessRequestHandlerTest {
     final ArgumentCaptor<List<ToolCallResultContent>> resultsCaptor =
         ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
-        .applyToolCallResults(eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+        .applyToolCallResults(
+            eq(agentExecutionContext), any(), resultsCaptor.capture(), any(), any());
     assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
   }
 
@@ -1539,6 +1546,16 @@ class AgentSubProcessRequestHandlerTest {
                   .isEqualTo(DocumentSource.toolCall("acme_create_report", "call-1"));
             });
 
+    // the model reads the tag of the document in the tool result, never the document
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent("Created the report."),
+                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
+
     // the history of the second round is written with the registry that holds the document
     final var startContexts = ArgumentCaptor.forClass(AgentContext.class);
     verify(agentInstanceClient, times(2))
@@ -1672,6 +1689,15 @@ class AgentSubProcessRequestHandlerTest {
             tuple(
                 DocumentHandle.idFor(processDocument),
                 DocumentSource.toolCall("getWeather", "call-2")));
+    // the document of the runtime tool is shown as its tag in the tool result of the next request
+    assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent("Created the report."),
+                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
   }
 
   /**

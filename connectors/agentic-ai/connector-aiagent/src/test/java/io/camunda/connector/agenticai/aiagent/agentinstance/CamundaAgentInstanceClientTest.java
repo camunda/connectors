@@ -42,6 +42,7 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -155,7 +156,9 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
+    var historyMapper =
+        new AgentInstanceHistoryMapper(
+            gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
     client =
         new CamundaAgentInstanceClient(
@@ -186,7 +189,8 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(gatewayToolHandlers),
+                new AgentInstanceHistoryMapper(
+                    gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE)),
                 new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry))
             .create(executionContext);
 
@@ -1325,7 +1329,8 @@ class CamundaAgentInstanceClientTest {
           List.of(
               ToolCallResultContent.from(
                   ToolCallResult.builder().id("a").name("getWeather").build())),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verifyNoInteractions(camundaClient);
     }
@@ -1361,7 +1366,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(ToolCallResultContent.from(arrivedResult)),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verify(updateCommandStep2, never()).status(any());
       verify(updateCommandStep2).jobKey(JOB_KEY);
@@ -1436,7 +1442,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(runtimeResult),
-          assistantTurn);
+          assistantTurn,
+          NEW_INSTANCE);
       // the other write carries it together with the result of the process, with the turn start
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
@@ -1476,7 +1483,8 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCallResultContent.from(
                               ToolCallResult.builder().id("orphan").name("getWeather").build())),
-                      previousTurn))
+                      previousTurn,
+                      NEW_INSTANCE))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1590,7 +1598,8 @@ class CamundaAgentInstanceClientTest {
                                   .name("getWeather")
                                   .completedAt(TURN_INGESTION_TIMESTAMP)
                                   .build())),
-                      previousTurn))
+                      previousTurn,
+                      NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }
