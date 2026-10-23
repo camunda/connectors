@@ -90,6 +90,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
 - `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
 - `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
+- `BuiltInRuntimeToolsArchTest`: the built-in runtime tools (`aiagent.tool.runtime.builtin`) depend only on the API, the
+  model, the common library, the connector SDK, Jackson, jspecify, the JDK and their own package.
 - `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
   `ConversationContext` implementation is annotated with `@JsonTypeName`.
 - `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
@@ -222,8 +224,7 @@ High-frequency traps (detail behind each link):
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
   keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
-  parameters), a `Tracked` one holds
-  its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
+  parameters, and no `c8__get_document`), a `Tracked` one holds its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
   behavior that changes the wire format or the persisted shape on a feature and keep the legacy
@@ -264,8 +265,13 @@ High-frequency traps (detail behind each link):
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order; a runtime
-  tool reads the documents known when the batch starts. A tool
+  documents of a turn input, also those a runtime tool returns; the documents a runtime tool returns are registered, and
+  the effects of its result applied, after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and
+  a tool reads the documents known when the batch starts. The model sees the handle of the documents of a tool result
+  and gets content only through `c8__get_document`: the agent runs the content guard (`DocumentContentGuard`, limits in
+  `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
+  turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
+  into an error result, no incident. Passing a handle to a tool never adds content. A tool
   parameter of the type `document` of `fromAi` is the object schema of a handle (no format marker, no hint, sent to the
   provider as it is) and holds the handle object the model passed or a string with its JSON, never a bare id;
   a union parameter (an `anyOf` or `oneOf` with more than one alternative and a handle schema inside an alternative, also in an object or
@@ -361,9 +367,10 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime executes itself, without activating a BPMN element; a process tool must not have its name)
+tool (a tool the connector runtime executes itself, without activating a BPMN element; a built-in tool is a runtime tool
+the connector ships, such as `c8__get_document`; a process tool must not have its name)
 by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
-(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
+(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11; the built-in tools use only that public API. Where to start (SPI + reference implementation per
 type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
