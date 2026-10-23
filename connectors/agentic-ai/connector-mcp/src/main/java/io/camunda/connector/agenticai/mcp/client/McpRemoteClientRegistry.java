@@ -157,12 +157,10 @@ public class McpRemoteClientRegistry implements AutoCloseable {
 
   public void closeClient(McpRemoteClientIdentifier clientId, McpClientDelegate client) {
     LOGGER.info("MCP({}): Closing remote HTTP client", clientId);
-    if (client instanceof AutoCloseable autoCloseable) {
-      try {
-        autoCloseable.close();
-      } catch (Exception e) {
-        LOGGER.error("MCP({}): Error closing remote HTTP client", clientId, e);
-      }
+    try {
+      client.close();
+    } catch (Exception e) {
+      LOGGER.error("MCP({}): Error closing remote HTTP client", clientId, e);
     }
   }
 

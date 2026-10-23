@@ -158,7 +158,8 @@ public class ChatModelHttpProxySupport {
         if (builtClient != null) {
           throw new IllegalStateException("HttpClient has already been built");
         }
-        return builtClient = delegate.build();
+        builtClient = delegate.build();
+        return builtClient;
       }
     }
   }
@@ -195,11 +196,6 @@ public class ChatModelHttpProxySupport {
               }
               return proxyOptions;
             });
-  }
-
-  private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
-    return URI.create(
-        proxyDetails.scheme() + "://" + proxyDetails.host() + ":" + proxyDetails.port());
   }
 
   /**

@@ -49,6 +49,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -152,13 +153,15 @@ public class AnthropicMessageRequestConverter {
         final var adaptiveBuilder = ThinkingConfigAdaptive.builder();
         if (thinking.display() != null) {
           adaptiveBuilder.display(
-              ThinkingConfigAdaptive.Display.of(thinking.display().name().toLowerCase()));
+              ThinkingConfigAdaptive.Display.of(
+                  thinking.display().name().toLowerCase(Locale.ROOT)));
         }
         builder.thinking(ThinkingConfigParam.ofAdaptive(adaptiveBuilder.build()));
       }
       case DISABLED ->
           builder.thinking(
               ThinkingConfigParam.ofDisabled(ThinkingConfigDisabled.builder().build()));
+      case MODEL_DEFAULT -> {}
     }
   }
 
@@ -365,7 +368,7 @@ public class AnthropicMessageRequestConverter {
     final var outputConfigBuilder = OutputConfig.builder();
 
     if (effort != null) {
-      outputConfigBuilder.effort(OutputConfig.Effort.of(effort.name().toLowerCase()));
+      outputConfigBuilder.effort(OutputConfig.Effort.of(effort.name().toLowerCase(Locale.ROOT)));
     }
 
     if (jsonSchema != null) {

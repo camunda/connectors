@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -190,7 +191,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                   "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
               orderedToolCallResults.add(
                   ToolCallResult.forCancelledToolCall(
-                      toolCall.id(), toolCall.name(), OffsetDateTime.now()));
+                      toolCall.id(), toolCall.name(), OffsetDateTime.now(ZoneId.systemDefault())));
             }
           }
         });
@@ -292,6 +293,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private Map<String, Object> defaultMessageMetadata() {
-    return Map.of("timestamp", ZonedDateTime.now());
+    return Map.of("timestamp", ZonedDateTime.now(ZoneId.systemDefault()));
   }
 }

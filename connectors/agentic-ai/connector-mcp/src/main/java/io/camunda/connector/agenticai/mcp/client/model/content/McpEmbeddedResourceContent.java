@@ -49,6 +49,8 @@ public record McpEmbeddedResourceContent(
   }
 
   /** Binary embedded resource. */
+  // byte[] is serialized by Jackson as Base64; value equality on these DTOs is not relied upon
+  @SuppressWarnings("ArrayRecordComponent")
   public record BlobResource(String uri, String mimeType, byte[] blob) implements EmbeddedResource {
     public BlobResource {
       if (uri == null) {

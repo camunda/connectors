@@ -33,6 +33,8 @@ public final class TurnReconstructor {
   }
 
   /**
+   * Reconstructs the previous conversation turns from the given messages.
+   *
    * @param metadata supplies {@link AgentMetadata#configurationFingerprintAt}, used to stamp each
    *     reconstructed turn with the fingerprint that was actually effective at its iteration; pass
    *     {@code null} to leave every turn's fingerprint unstamped (e.g. when it's not needed by the

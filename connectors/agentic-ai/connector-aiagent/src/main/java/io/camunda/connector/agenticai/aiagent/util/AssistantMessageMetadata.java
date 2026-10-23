@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.util;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,7 +38,7 @@ public final class AssistantMessageMetadata {
    */
   public static Map<String, Object> withDefaults(Map<String, ?> providerMetadata) {
     final Map<String, Object> merged = new LinkedHashMap<>();
-    merged.put(TIMESTAMP_KEY, ZonedDateTime.now());
+    merged.put(TIMESTAMP_KEY, ZonedDateTime.now(ZoneId.systemDefault()));
     merged.putAll(providerMetadata);
     return merged;
   }
