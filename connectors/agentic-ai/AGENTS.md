@@ -221,7 +221,8 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. The
   `documents` feature decides `AgentContext.documentHandling()`, the sealed `DocumentHandling`: an `Untracked` instance
-  keeps the previous document handling (bare content and the older XML tag format, no agent documents), a `Tracked` one holds
+  keeps the previous document handling (bare content and the older XML tag format, no agent documents, no document
+  parameters), a `Tracked` one holds
   its `AgentDocuments`. Branch on it with an exhaustive `switch`, never on `supports(AgentFeatures.DOCUMENTS)` or a
   `boolean` parameter. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
@@ -233,9 +234,11 @@ High-frequency traps (detail behind each link):
 - **Tool calls are admitted once, and the agent produces the tool call results of local tool calls itself**: before an
   assistant message enters the conversation, `ToolCallAdmission` sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the call must not be carried out, such as a name that is not offered, and never computes either
-  again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
+  again, for every agent instance, with or without the `runtimeTools` feature. For an instance with the `documents`
+  feature, a call of a tool of either kind whose document parameter is not the `<doc />` tag of a known document also
+  gets a `rejection` and keeps its kind. Both are persisted (`kind` written only
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
-  (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
+  (a rejected call) gets its rejection as its tool call result and is never executed or activated, also when a runtime tool of that
   name is enabled later; the calls of runtime tools go to `RuntimeTools`. Both are local tool calls
   (`ToolCall.isLocal()`), the calls whose tool call result the agent produces itself: the rejection when the
   `ToolCallBatch` is created, the calls of runtime tools in `LocalToolCallExecutor` only. An interrupting event cancels
@@ -261,7 +264,12 @@ High-frequency traps (detail behind each link):
   (`ObjectHandleRenderer`), so the providers have no document specific code. The history shows the same handle as an `OBJECT` block of its own and a
   chip (the document) where a document enters the conversation. The word "handle" is this JSON, never the
   SDK `DocumentReference`. A user prompt document is a block with the delivery `content`. `TurnInput.applyTo(agentContext)` registers the
-  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order.
+  documents of a turn input, also those a runtime tool returns after the calls of a message ran, in call order. A tool
+  parameter of the type `document` of `fromAi` holds a handle the model passed; `DocumentParameterResolver` turns it into
+  the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into an `AgentDocumentId` for a
+  runtime tool (`RuntimeTools`), and the stored messages and the history keep the handle. A process tool call whose value
+  is not the handle of a known document is rejected at tagging; a runtime tool call with such a value gets an error
+  result and the tool is not called.
   [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
