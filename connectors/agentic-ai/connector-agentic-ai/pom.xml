@@ -1002,6 +1002,29 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
             </configuration>
           </execution>
           <execution>
+            <id>inject-migrates-from-v2</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/inject-migrates-from.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>migrationRecipes</name>
+                  <value>
+${project.basedir}/element-templates/agenticai-ai-agent-task.v2.json=${project.basedir}/element-template-overrides/ai-agent-task.v2.migrates-from.json
+${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.json=${project.basedir}/element-template-overrides/ai-agent-task.v2-hybrid.migrates-from.json
+${project.basedir}/element-templates/agenticai-ai-agent-subprocess.v2.json=${project.basedir}/element-template-overrides/ai-agent-subprocess.v2.migrates-from.json
+${project.basedir}/element-templates/hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json=${project.basedir}/element-template-overrides/ai-agent-subprocess.v2-hybrid.migrates-from.json
+                  </value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
             <id>transform-a2a-polling-inbound-connector-intermediate-template</id>
             <phase>process-classes</phase>
             <goals>

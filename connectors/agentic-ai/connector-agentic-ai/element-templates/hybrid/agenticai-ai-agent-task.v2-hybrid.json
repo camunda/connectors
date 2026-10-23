@@ -4,6 +4,357 @@
   "id" : "io.camunda.connectors.agenticai.ai-agent-task.v2-hybrid",
   "description" : "Execute a single AI-powered action with tool calling capabilities",
   "keywords" : [ "AI", "Agent", "agentic orchestration", "LLM" ],
+  "metadata" : {
+    "migratesFrom" : {
+      "schemaVersion" : 1,
+      "sources" : [ {
+        "kind" : "change",
+        "sourceTemplateId" : "io.camunda.connectors.agenticai.aiagent.v1-hybrid",
+        "minSourceVersion" : 12,
+        "paths" : [ {
+          "from" : "provider.type",
+          "to" : "provider.type",
+          "valueMap" : {
+            "rules" : [ {
+              "match" : "anthropic",
+              "value" : "anthropic"
+            }, {
+              "match" : "bedrock",
+              "value" : "bedrock"
+            }, {
+              "match" : "openai",
+              "value" : "openai"
+            }, {
+              "match" : "azureOpenAi",
+              "value" : "openai"
+            }, {
+              "match" : "openaiCompatible",
+              "value" : "openai"
+            }, {
+              "match" : "google-vertex-ai",
+              "value" : "google-gemini"
+            } ]
+          }
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "anthropic"
+          },
+          "rules" : [ {
+            "to" : "provider.anthropic.model.parameters.promptCaching.enabled",
+            "set" : true,
+            "note" : "Anthropic prompt caching is now enabled, and effort and thinking use the model default. v1 sent no caching or reasoning settings."
+          }, {
+            "when" : {
+              "path" : "provider.anthropic.endpoint",
+              "exists" : false
+            },
+            "rules" : [ {
+              "to" : "provider.anthropic.backend.type",
+              "set" : "anthropic-api"
+            }, {
+              "from" : "provider.anthropic.authentication.apiKey",
+              "to" : "provider.anthropic.backend.anthropic.apiKey"
+            } ]
+          }, {
+            "when" : {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.com*"
+            },
+            "rules" : [ {
+              "to" : "provider.anthropic.backend.type",
+              "set" : "foundry"
+            }, {
+              "to" : "provider.anthropic.backend.foundry.authentication.type",
+              "set" : "apiKey"
+            }, {
+              "from" : "provider.anthropic.authentication.apiKey",
+              "to" : "provider.anthropic.backend.foundry.authentication.apiKey"
+            }, {
+              "from" : "provider.anthropic.endpoint",
+              "to" : "provider.anthropic.backend.foundry.endpoint",
+              "note" : {
+                "level" : "warning",
+                "message" : "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+              }
+            } ]
+          }, {
+            "when" : {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.us*"
+            },
+            "rules" : [ {
+              "to" : "provider.anthropic.backend.type",
+              "set" : "foundry"
+            }, {
+              "to" : "provider.anthropic.backend.foundry.authentication.type",
+              "set" : "apiKey"
+            }, {
+              "from" : "provider.anthropic.authentication.apiKey",
+              "to" : "provider.anthropic.backend.foundry.authentication.apiKey"
+            }, {
+              "from" : "provider.anthropic.endpoint",
+              "to" : "provider.anthropic.backend.foundry.endpoint",
+              "note" : {
+                "level" : "warning",
+                "message" : "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+              }
+            } ]
+          }, {
+            "when" : {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.cn*"
+            },
+            "rules" : [ {
+              "to" : "provider.anthropic.backend.type",
+              "set" : "foundry"
+            }, {
+              "to" : "provider.anthropic.backend.foundry.authentication.type",
+              "set" : "apiKey"
+            }, {
+              "from" : "provider.anthropic.authentication.apiKey",
+              "to" : "provider.anthropic.backend.foundry.authentication.apiKey"
+            }, {
+              "from" : "provider.anthropic.endpoint",
+              "to" : "provider.anthropic.backend.foundry.endpoint",
+              "note" : {
+                "level" : "warning",
+                "message" : "The Anthropic endpoint was copied as-is to the Microsoft Foundry backend. v2 adds /anthropic if missing and appends /v1/messages, so remove a trailing /anthropic/v1 or /v1."
+              }
+            } ]
+          }, {
+            "when" : [ {
+              "path" : "provider.anthropic.endpoint",
+              "exists" : true
+            }, {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.com*",
+              "not" : true
+            }, {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.us*",
+              "not" : true
+            }, {
+              "path" : "provider.anthropic.endpoint",
+              "matches" : "*.azure.cn*",
+              "not" : true
+            } ],
+            "rules" : [ {
+              "to" : "provider.anthropic.backend.type",
+              "set" : "custom"
+            }, {
+              "to" : "provider.anthropic.backend.custom.authentication.type",
+              "set" : "apiKey"
+            }, {
+              "from" : "provider.anthropic.authentication.apiKey",
+              "to" : "provider.anthropic.backend.custom.authentication.apiKey"
+            }, {
+              "from" : "provider.anthropic.endpoint",
+              "to" : "provider.anthropic.backend.custom.endpoint",
+              "note" : {
+                "level" : "warning",
+                "message" : "The Anthropic endpoint was copied as-is to the custom backend. v2 appends /v1/messages, so remove a trailing /v1."
+              }
+            } ]
+          } ]
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "bedrock"
+          },
+          "rules" : [ {
+            "to" : "provider.bedrock.model.parameters.promptCaching.enabled",
+            "set" : true,
+            "note" : "AWS Bedrock prompt caching is now enabled. v1 sent no caching settings."
+          } ]
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "openai"
+          },
+          "rules" : [ {
+            "to" : "provider.openai.api.type",
+            "set" : "completions"
+          }, {
+            "to" : "provider.openai.backend.type",
+            "set" : "openai-api"
+          }, {
+            "from" : "provider.openai.authentication.apiKey",
+            "to" : "provider.openai.backend.openai.apiKey"
+          }, {
+            "from" : "provider.openai.authentication.organizationId",
+            "to" : "provider.openai.backend.openai.organizationId"
+          }, {
+            "from" : "provider.openai.authentication.projectId",
+            "to" : "provider.openai.backend.openai.projectId"
+          }, {
+            "from" : "provider.openai.model.parameters.maxCompletionTokens",
+            "to" : "provider.openai.api.completions.maxCompletionTokens"
+          }, {
+            "from" : "provider.openai.model.parameters.temperature",
+            "to" : "provider.openai.api.completions.temperature"
+          }, {
+            "from" : "provider.openai.model.parameters.topP",
+            "to" : "provider.openai.api.completions.topP"
+          } ]
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "azureOpenAi"
+          },
+          "rules" : [ {
+            "to" : "provider.openai.api.type",
+            "set" : "completions"
+          }, {
+            "to" : "provider.openai.backend.type",
+            "set" : "foundry"
+          }, {
+            "from" : "provider.azureOpenAi.endpoint",
+            "to" : "provider.openai.backend.foundry.endpoint"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.type",
+            "to" : "provider.openai.backend.foundry.authentication.type"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.apiKey",
+            "to" : "provider.openai.backend.foundry.authentication.apiKey"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.clientId",
+            "to" : "provider.openai.backend.foundry.authentication.clientId"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.clientSecret",
+            "to" : "provider.openai.backend.foundry.authentication.clientSecret"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.tenantId",
+            "to" : "provider.openai.backend.foundry.authentication.tenantId"
+          }, {
+            "from" : "provider.azureOpenAi.authentication.authorityHost",
+            "to" : "provider.openai.backend.foundry.authentication.authorityHost"
+          }, {
+            "from" : "provider.azureOpenAi.timeouts.timeout",
+            "to" : "provider.openai.timeouts.timeout"
+          }, {
+            "from" : "provider.azureOpenAi.model.deploymentName",
+            "to" : "provider.openai.model.model"
+          }, {
+            "from" : "provider.azureOpenAi.model.parameters.maxTokens",
+            "to" : "provider.openai.api.completions.maxCompletionTokens"
+          }, {
+            "from" : "provider.azureOpenAi.model.parameters.temperature",
+            "to" : "provider.openai.api.completions.temperature"
+          }, {
+            "from" : "provider.azureOpenAi.model.parameters.topP",
+            "to" : "provider.openai.api.completions.topP"
+          } ]
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "openaiCompatible"
+          },
+          "rules" : [ {
+            "to" : "provider.openai.api.type",
+            "set" : "completions"
+          }, {
+            "to" : "provider.openai.backend.type",
+            "set" : "custom"
+          }, {
+            "from" : "provider.openaiCompatible.endpoint",
+            "to" : "provider.openai.backend.custom.endpoint"
+          }, {
+            "from" : "provider.openaiCompatible.headers",
+            "to" : "provider.openai.backend.custom.headers"
+          }, {
+            "from" : "provider.openaiCompatible.queryParameters",
+            "to" : "provider.openai.backend.custom.queryParameters"
+          }, {
+            "from" : "provider.openaiCompatible.timeouts.timeout",
+            "to" : "provider.openai.timeouts.timeout"
+          }, {
+            "from" : "provider.openaiCompatible.model.model",
+            "to" : "provider.openai.model.model"
+          }, {
+            "from" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+            "to" : "provider.openai.api.completions.maxCompletionTokens"
+          }, {
+            "from" : "provider.openaiCompatible.model.parameters.temperature",
+            "to" : "provider.openai.api.completions.temperature"
+          }, {
+            "from" : "provider.openaiCompatible.model.parameters.topP",
+            "to" : "provider.openai.api.completions.topP"
+          }, {
+            "from" : "provider.openaiCompatible.model.parameters.customParameters",
+            "to" : "provider.openai.backend.custom.bodyProperties"
+          }, {
+            "when" : {
+              "path" : "provider.openaiCompatible.authentication.apiKey",
+              "exists" : true
+            },
+            "rules" : [ {
+              "to" : "provider.openai.backend.custom.authentication.type",
+              "set" : "apiKey"
+            }, {
+              "from" : "provider.openaiCompatible.authentication.apiKey",
+              "to" : "provider.openai.backend.custom.authentication.apiKey"
+            } ]
+          }, {
+            "when" : {
+              "path" : "provider.openaiCompatible.authentication.apiKey",
+              "exists" : false
+            },
+            "rules" : [ {
+              "to" : "provider.openai.backend.custom.authentication.type",
+              "set" : "none"
+            } ]
+          } ]
+        }, {
+          "when" : {
+            "path" : "provider.type",
+            "equals" : "google-vertex-ai"
+          },
+          "rules" : [ {
+            "to" : "provider.googleGemini.backend.type",
+            "set" : "google-vertex-ai"
+          }, {
+            "from" : "provider.googleVertexAi.projectId",
+            "to" : "provider.googleGemini.backend.googleVertexAi.projectId"
+          }, {
+            "from" : "provider.googleVertexAi.region",
+            "to" : "provider.googleGemini.backend.googleVertexAi.region"
+          }, {
+            "from" : "provider.googleVertexAi.endpoint",
+            "to" : "provider.googleGemini.backend.googleVertexAi.endpoint",
+            "note" : {
+              "level" : "warning",
+              "message" : "The custom Vertex AI endpoint was moved to a hidden v2 field. It applies at runtime, but Modeler no longer shows or edits it."
+            }
+          }, {
+            "from" : "provider.googleVertexAi.authentication.type",
+            "to" : "provider.googleGemini.backend.googleVertexAi.authentication.type"
+          }, {
+            "from" : "provider.googleVertexAi.authentication.jsonKey",
+            "to" : "provider.googleGemini.backend.googleVertexAi.authentication.jsonKey"
+          }, {
+            "from" : "provider.googleVertexAi.timeouts.timeout",
+            "to" : "provider.googleGemini.timeouts.timeout"
+          }, {
+            "from" : "provider.googleVertexAi.model.model",
+            "to" : "provider.googleGemini.model.model"
+          }, {
+            "from" : "provider.googleVertexAi.model.parameters.maxOutputTokens",
+            "to" : "provider.googleGemini.model.parameters.maxTokens"
+          }, {
+            "from" : "provider.googleVertexAi.model.parameters.temperature",
+            "to" : "provider.googleGemini.model.parameters.temperature"
+          }, {
+            "from" : "provider.googleVertexAi.model.parameters.topP",
+            "to" : "provider.googleGemini.model.parameters.topP"
+          }, {
+            "from" : "provider.googleVertexAi.model.parameters.topK",
+            "to" : "provider.googleGemini.model.parameters.topK"
+          } ]
+        } ]
+      } ]
+    }
+  },
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
   "version" : 1,
   "category" : {
@@ -4480,24 +4831,24 @@
     "name" : "Anthropic",
     "description" : "Claude models via the Anthropic API, AWS Bedrock, Microsoft Foundry, or a compatible endpoint.",
     "steps" : [ {
-      "name" : "Anthropic API",
+      "name" : "AI Agent Task: Anthropic API",
       "keywords" : [ "Anthropic", "Claude", "Anthropic API" ],
       "presetId" : "type_anthropic_type_anthropic-api"
     }, {
-      "name" : "AWS Bedrock Mantle",
+      "name" : "AI Agent Task: AWS Bedrock Mantle",
       "keywords" : [ "Anthropic", "Claude", "AWS Bedrock Mantle" ],
       "presetId" : "type_anthropic_type_aws-bedrock-mantle"
     }, {
-      "name" : "Microsoft Foundry (Azure)",
+      "name" : "AI Agent Task: Microsoft Foundry (Azure)",
       "keywords" : [ "Anthropic", "Claude", "Microsoft Foundry (Azure)" ],
       "presetId" : "type_anthropic_type_foundry"
     }, {
-      "name" : "Anthropic custom / compatible endpoint",
+      "name" : "AI Agent Task: Anthropic custom / compatible endpoint",
       "keywords" : [ "Anthropic", "Claude", "Custom / compatible endpoint" ],
       "presetId" : "type_anthropic_type_custom"
     } ]
   }, {
-    "name" : "AWS Bedrock Converse",
+    "name" : "AI Agent Task: AWS Bedrock Converse",
     "description" : "Any Bedrock model via the Converse API.",
     "keywords" : [ "Bedrock", "AWS" ],
     "presetId" : "type_bedrock"
@@ -4505,15 +4856,15 @@
     "name" : "OpenAI",
     "description" : "GPT models via OpenAI, Microsoft Foundry, or an OpenAI-compatible endpoint.",
     "steps" : [ {
-      "name" : "OpenAI API",
+      "name" : "AI Agent Task: OpenAI API",
       "keywords" : [ "OpenAI", "GPT", "OpenAI API" ],
       "presetId" : "type_openai_type_openai-api"
     }, {
-      "name" : "Microsoft Foundry (Azure)",
+      "name" : "AI Agent Task: Microsoft Foundry (Azure)",
       "keywords" : [ "OpenAI", "GPT", "Microsoft Foundry (Azure)" ],
       "presetId" : "type_openai_type_foundry"
     }, {
-      "name" : "OpenAI custom / compatible endpoint",
+      "name" : "AI Agent Task: OpenAI custom / compatible endpoint",
       "keywords" : [ "OpenAI", "GPT", "Custom / compatible endpoint" ],
       "presetId" : "type_openai_type_custom"
     } ]
@@ -4521,17 +4872,17 @@
     "name" : "OpenAI compatible",
     "description" : "Models like Ollama, LM Studio, and Camunda-provided LLM.",
     "steps" : [ {
-      "name" : "Ollama",
+      "name" : "AI Agent Task: Ollama",
       "description" : "Local models via Ollama.",
       "keywords" : [ "Ollama", "Local", "Llama" ],
       "presetId" : "type_openai_type_custom_ollama"
     }, {
-      "name" : "LM Studio",
+      "name" : "AI Agent Task: LM Studio",
       "description" : "Local models via LM Studio.",
       "keywords" : [ "LM Studio", "Local" ],
       "presetId" : "type_openai_type_custom_lmstudio"
     }, {
-      "name" : "Camunda-provided LLM (SaaS only)",
+      "name" : "AI Agent Task: Camunda-provided LLM (SaaS only)",
       "description" : "Only on select plans.",
       "keywords" : [ "Camunda", "LLM", "SaaS" ],
       "presetId" : "type_openai_type_custom_camunda"
@@ -4540,11 +4891,11 @@
     "name" : "Google Gemini",
     "description" : "Gemini models via the Gemini API or Vertex AI.",
     "steps" : [ {
-      "name" : "Google Gemini API",
+      "name" : "AI Agent Task: Google Gemini API",
       "keywords" : [ "Gemini", "Google", "Google Gemini API" ],
       "presetId" : "type_google-gemini_type_google-gemini-api"
     }, {
-      "name" : "Enterprise Agent Platform (Vertex AI)",
+      "name" : "AI Agent Task: Enterprise Agent Platform (Vertex AI)",
       "keywords" : [ "Gemini", "Google", "Enterprise Agent Platform (Vertex AI)" ],
       "presetId" : "type_google-gemini_type_google-vertex-ai"
     } ]
@@ -4552,16 +4903,16 @@
     "name" : "Mistral AI",
     "description" : "Mistral models via the Mistral API or a compatible endpoint.",
     "steps" : [ {
-      "name" : "Mistral API",
+      "name" : "AI Agent Task: Mistral API",
       "keywords" : [ "Mistral", "Mistral API" ],
       "presetId" : "type_mistral_type_mistral-api"
     }, {
-      "name" : "Mistral custom / compatible endpoint",
+      "name" : "AI Agent Task: Mistral custom / compatible endpoint",
       "keywords" : [ "Mistral", "Custom / compatible endpoint" ],
       "presetId" : "type_mistral_type_custom"
     } ]
   }, {
-    "name" : "Custom Implementation (Self-Managed/Hybrid only)",
+    "name" : "AI Agent Task: Custom Implementation (Self-Managed/Hybrid only)",
     "description" : "Your own provider implementation.",
     "keywords" : [ "Custom" ],
     "presetId" : "type_custom"
