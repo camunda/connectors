@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -23,6 +26,10 @@ import java.util.List;
 
 /**
  * Builds the input of the turn that follows a turn with tool calls, from the results of all calls.
+ *
+ * <p>An agent instance with the documents feature shows a document as its tag inside the tool
+ * result and reports it for the document workspace. An agent instance without it keeps the document
+ * in a message of its own, next to its tag.
  */
 final class ToolCallResultsInputBuilder {
 
@@ -37,7 +44,10 @@ final class ToolCallResultsInputBuilder {
       documents = List.copyOf(documents);
     }
 
-    /** The entry for the result of a runtime tool; its documents are the ones of its content. */
+    /**
+     * The entry for the result of a runtime tool; its documents are the ones of its content, so the
+     * result of a failed call, whose content is text, has none.
+     */
     static Entry of(RuntimeToolExecution execution) {
       return new Entry(
           execution.result(),
@@ -46,10 +56,54 @@ final class ToolCallResultsInputBuilder {
   }
 
   /**
-   * The tool call result message for the results of all tool calls of a turn, in call order,
-   * followed by the message with their documents if there are any.
+   * The input of the turn that follows the results.
+   *
+   * @param messages the messages of the input, in order
+   * @param documents the documents of the results to register, in the order of the tool calls;
+   *     empty without the documents feature
    */
-  static List<Message> build(List<Entry> entries) {
+  record Input(List<Message> messages, List<IngestedDocument> documents) {
+
+    Input {
+      messages = List.copyOf(messages);
+      documents = List.copyOf(documents);
+    }
+  }
+
+  /**
+   * The input for the results of all tool calls of a turn, in call order.
+   *
+   * @param documentFlow whether the agent instance has the documents feature
+   */
+  static Input build(List<Entry> entries, boolean documentFlow) {
+    return documentFlow ? buildWithDocumentTags(entries) : buildWithDocumentMessage(entries);
+  }
+
+  /**
+   * A document that is a whole result is persisted as its tag, like the documents that are not a
+   * whole result. The documents of every result are registered with the tool call as their source.
+   */
+  private static Input buildWithDocumentTags(List<Entry> entries) {
+    final var results =
+        entries.stream()
+            .map(Entry::result)
+            .map(DocumentReferences::withDocumentReferences)
+            .toList();
+    final var documents = new ArrayList<IngestedDocument>();
+    for (final var entry : entries) {
+      final var source = DocumentOrigin.toolCall(entry.result().name(), entry.result().id());
+      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, source)));
+    }
+    return new Input(
+        List.of(
+            ToolCallResultMessage.builder()
+                .results(results)
+                .metadata(MessageMetadata.defaults())
+                .build()),
+        documents);
+  }
+
+  private static Input buildWithDocumentMessage(List<Entry> entries) {
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
@@ -73,7 +127,7 @@ final class ToolCallResultsInputBuilder {
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
-    return List.copyOf(messages);
+    return new Input(messages, List.of());
   }
 
   static List<Content> documentPairs(

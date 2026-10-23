@@ -43,6 +43,11 @@ public interface AgentConversationTurnInputComposer {
    * calls, in call order. The result is never {@link
    * CompositionResult.LocalToolCallResultsRequired}.
    *
+   * <p>The documents the executions returned are not in {@code agentContext}: they are part of the
+   * {@link CompositionResult.NextTurn#documents() documents of the turn}, and the caller registers
+   * them in the agent context it persists.
+   *
+   * @param agentContext the agent context the executions ran with
    * @param executions the results of the local tool calls of the last assistant message of {@code
    *     previousConversation}, none for a turn without such calls
    */
