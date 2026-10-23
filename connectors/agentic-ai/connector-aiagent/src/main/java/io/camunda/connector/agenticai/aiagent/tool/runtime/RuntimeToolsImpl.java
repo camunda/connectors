@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,8 +66,13 @@ public class RuntimeToolsImpl implements RuntimeTools {
 
   @Override
   public List<RuntimeToolExecution> execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      List<ToolCall> calls) {
+    final var context =
+        RuntimeToolContextImpl.of(
+            executionContext, agentContext, documentIdsWithContent, objectMapper);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 

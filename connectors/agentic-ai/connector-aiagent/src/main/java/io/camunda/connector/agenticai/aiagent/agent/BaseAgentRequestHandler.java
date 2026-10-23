@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -61,6 +62,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -83,6 +85,7 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final RuntimeTools runtimeTools;
+  private final ToolCallResultsInputBuilder resultsInputBuilder;
   private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
@@ -94,6 +97,7 @@ public abstract class BaseAgentRequestHandler<
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
       RuntimeTools runtimeTools,
+      ToolCallResultsInputBuilder resultsInputBuilder,
       DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
@@ -103,6 +107,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.runtimeTools = runtimeTools;
+    this.resultsInputBuilder = resultsInputBuilder;
     this.documentExpander = documentExpander;
   }
 
@@ -156,7 +161,12 @@ public abstract class BaseAgentRequestHandler<
           instanceof CompositionResult.LocalToolCallResultsRequired(var localToolCalls)) {
         // the results of the process arrived: the agent produces the results of its own tool calls
         // now
-        final var executions = localToolCallResults(executionContext, agentContext, localToolCalls);
+        final var executions =
+            localToolCallResults(
+                executionContext,
+                agentContext,
+                previousConversation.documentIdsWithContent(configuration.contextWindowSize()),
+                localToolCalls);
         compositionResult =
             agentInputComposer.composeWithLocalToolCallResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -457,15 +467,20 @@ public abstract class BaseAgentRequestHandler<
         currentTurn.iterationKey());
 
     throwIfLimitsReached(conversation, agentConfiguration);
+    final var documentIdsWithContent = conversation.documentIdsWithContent();
     final var executions =
         localToolCallResults(
-            executionContext, conversation.persistedContext(), currentTurn.localToolCalls());
-    // the documents of the results are registered after all calls ran, in call order, so a call
-    // never sees what another call of the same message returned
+            executionContext,
+            conversation.persistedContext(),
+            documentIdsWithContent,
+            currentTurn.localToolCalls());
+    // the documents of the results are registered and their effects applied after all calls ran, in
+    // call order, so a call never sees what another call of the same message returned
     final var input =
-        ToolCallResultsInputBuilder.build(
+        resultsInputBuilder.build(
+            conversation.persistedContext(),
             executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
-            conversation.persistedContext().supports(AgentFeatures.DOCUMENTS));
+            documentIdsWithContent);
     final var nextConversation =
         conversation
             .withPersistedContext(
@@ -489,12 +504,16 @@ public abstract class BaseAgentRequestHandler<
    * tool.
    */
   private List<RuntimeToolExecution> localToolCallResults(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      List<ToolCall> calls) {
     final var runtimeCalls = calls.stream().filter(call -> call.rejection() == null).toList();
     final var executionsOfRuntimeCalls =
         (runtimeCalls.isEmpty()
                 ? List.<RuntimeToolExecution>of()
-                : runtimeTools.execute(executionContext, agentContext, runtimeCalls))
+                : runtimeTools.execute(
+                    executionContext, agentContext, documentIdsWithContent, runtimeCalls))
             .iterator();
     return calls.stream()
         .map(call -> call.rejection() == null ? executionsOfRuntimeCalls.next() : rejected(call))

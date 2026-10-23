@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
@@ -56,9 +57,13 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -70,11 +75,13 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
@@ -193,6 +200,23 @@ class AgentSubProcessRequestHandlerTest {
           (context, call) ->
               RuntimeToolResult.success("documents: " + context.documents().all().size()));
 
+  /** A document the agent knows before the job starts, whose content a tool can load. */
+  private static final Document KNOWN_DOCUMENT = createDocument("known content", "known.txt");
+
+  private static final AgentContext CONTEXT_KNOWING_A_DOCUMENT =
+      CONTEXT_WITH_DOCUMENTS.withDocumentWorkspace(
+          DocumentIngestion.withDocuments(
+              DocumentWorkspace.empty(),
+              List.of(new IngestedDocument(KNOWN_DOCUMENT, DocumentOrigin.userMessage()))));
+
+  /** A tool that asks the agent to add the content of the known document. */
+  private static final RuntimeTool LOAD_DOCUMENT_TOOL =
+      StubRuntimeTool.of(
+          "acme_load_document",
+          (call, context) ->
+              RuntimeToolResult.success("Loaded the document.")
+                  .withDocumentContent(DocumentHandle.idFor(KNOWN_DOCUMENT)));
+
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(
           "acme_lookup", (context, call) -> RuntimeToolResult.success("found the customer"));
@@ -210,7 +234,19 @@ class AgentSubProcessRequestHandlerTest {
   @Spy
   private RuntimeTools runtimeTools =
       new RuntimeToolsImpl(
-          List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL, CREATE_REPORT_TOOL, COUNT_DOCUMENTS_TOOL),
+          List.of(
+              LOOKUP_TOOL,
+              HIDDEN_TOOL,
+              TOGGLE_TOOL,
+              CREATE_REPORT_TOOL,
+              COUNT_DOCUMENTS_TOOL,
+              LOAD_DOCUMENT_TOOL),
+          TestObjectMapperSupplier.INSTANCE);
+
+  @Spy
+  private ToolCallResultsInputBuilder resultsInputBuilder =
+      new ToolCallResultsInputBuilderImpl(
+          new DocumentContentGuard(DocumentContentLimits.defaults()),
           TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -1221,7 +1257,7 @@ class AgentSubProcessRequestHandlerTest {
     // the first job hands out the call of the process only and executes no tool, the second one
     // executes
     // the tool and returns the results of all calls in the order of the calls
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1317,7 +1353,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
         .filteredOn(ToolCallResultMessage.class::isInstance)
         .singleElement()
@@ -1360,7 +1396,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(3)).execute(any());
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(2).snapshot().messages().getLast())
         .isInstanceOf(ToolCallResultMessage.class);
     assertThat(response.responseValue().responseMessage()).isEqualTo(doneMessage);
@@ -1420,7 +1456,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(2)).execute(any());
     // the tool of the first round was executed; the limit stopped the second round before its
     // tool was executed
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
   }
 
   @ParameterizedTest
@@ -1477,7 +1513,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(chatModel, times(1)).execute(any());
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(hiddenCall));
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
   }
 
   @Test
@@ -1531,7 +1567,7 @@ class AgentSubProcessRequestHandlerTest {
     // the agent answers the call in the same job and calls the model again; no runtime tool
     // receives the call
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
             ToolCallResultMessage.class,
@@ -1571,7 +1607,7 @@ class AgentSubProcessRequestHandlerTest {
 
     @SuppressWarnings("unchecked")
     final ArgumentCaptor<List<ToolCall>> executedCalls = ArgumentCaptor.forClass(List.class);
-    verify(runtimeTools).execute(any(), any(), executedCalls.capture());
+    verify(runtimeTools).execute(any(), any(), any(), executedCalls.capture());
     assertThat(executedCalls.getValue()).extracting(ToolCall::id).containsExactly("call-2");
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1603,7 +1639,7 @@ class AgentSubProcessRequestHandlerTest {
                 new ToolCall("call-3", "getWeather", Map.of("location", "MUC"))),
             () -> {});
 
-    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1833,6 +1869,58 @@ class AgentSubProcessRequestHandlerTest {
                         TextContent.textContent(DocumentTags.shortTag(NEW_REPORT))));
   }
 
+  private List<ChatRequest> runLoadingRounds(AgentContext context, String... toolCallIds) {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), toolCallIds.length);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    final var results = new ArrayList<ChatResult>();
+    for (final var toolCallId : toolCallIds) {
+      results.add(
+          new ChatResult.Completed(
+              AssistantMessage.builder()
+                  .toolCalls(List.of(new ToolCall(toolCallId, "acme_load_document", Map.of())))
+                  .build(),
+              metrics));
+    }
+    results.add(new ChatResult.Completed(assistantMessage("done"), metrics));
+    doReturn(results.getFirst(), results.stream().skip(1).toArray())
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    requestHandler.handleRequest(agentExecutionContext);
+    return chatModelRequestCaptor.getAllValues();
+  }
+
+  @Test
+  void addsTheContentOfADocumentAToolAsksForToTheRequestOfTheNextRound() {
+    final var requests = runLoadingRounds(CONTEXT_KNOWING_A_DOCUMENT, "call-1");
+
+    final var messages = requests.get(1).snapshot().messages();
+    assertThat(messages.get(messages.size() - 2)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(messages.getLast())
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            message -> {
+              assertThat(message.metadata())
+                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+              assertThat(message.content()).anyMatch(DocumentContent.class::isInstance);
+            });
+  }
+
+  @Test
+  void doesNotAddTheContentOfADocumentTheModelReadsAlreadyAgain() {
+    final var requests = runLoadingRounds(CONTEXT_KNOWING_A_DOCUMENT, "call-1", "call-2");
+
+    // the first round adds the content, the second one finds it in the window
+    assertThat(requests.get(1).snapshot().messages().getLast()).isInstanceOf(UserMessage.class);
+    assertThat(requests.get(2).snapshot().messages().getLast())
+        .isInstanceOf(ToolCallResultMessage.class);
+  }
+
   @Test
   void anErrorResultOfARuntimeToolRegistersNoDocument() {
     mockSystemPrompt();
@@ -1990,7 +2078,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(2)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     assertThat(response.responseValue().toolCalls()).isEmpty();
     assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -2033,7 +2121,7 @@ class AgentSubProcessRequestHandlerTest {
     // only the call of the process goes to the process
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(processCall));
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
   }
 
   @Test
@@ -2062,7 +2150,7 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     // the call never runs a tool and is never activated
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
 
     // the second request carries the error result of the first round
     final var secondRequestMessages =
@@ -2198,7 +2286,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // no extra model call and no tool run: the valid call is handed to the process
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(otherCall));
@@ -2246,7 +2334,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // the first job runs no tool, the second one answers the rejected call from the same context
     // and returns the results of all calls in the order of the calls
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     assertThat(run.chatRequests()).hasSize(2);
     assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -2281,7 +2369,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // the call goes to the process untagged
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(call));
   }
@@ -2321,7 +2409,7 @@ class AgentSubProcessRequestHandlerTest {
                     .isEqualTo(AgentErrorCodes.ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED));
 
     verify(chatModel, times(1)).execute(any());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
     // no further round was started
     verify(agentInstanceClient, times(1))
         .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
@@ -2336,7 +2424,8 @@ class AgentSubProcessRequestHandlerTest {
     lenient()
         .when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(i -> i.getArgument(1));
-    final var realComposer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    final var realComposer =
+        new AgentConversationTurnInputComposerImpl(gatewayToolHandlers, resultsInputBuilder);
     lenient()
         .when(agentInputComposer.compose(any(), any(), any(), any()))
         .thenAnswer(i ->
@@ -2430,7 +2519,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(firstJob.responseValue().toolCalls())
         .extracting(call -> call.metadata().id())
         .containsExactly(processCall.id());
-    verify(runtimeTools, never()).execute(any(), any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
 
     betweenJobs.run();
 

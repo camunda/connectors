@@ -9,9 +9,11 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The runtime tools registered as beans: offers the enabled ones to the model and executes their
@@ -27,12 +29,29 @@ public interface RuntimeTools {
 
   /**
    * Executes the calls, which must be calls of runtime tools offered in this job, and returns one
+   * execution per call in call order. No document has its content in the conversation.
+   *
+   * @see #execute(AgentExecutionContext, AgentContext, Set, List)
+   */
+  default List<RuntimeToolExecution> execute(
+      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
+    return execute(executionContext, agentContext, Set.of(), calls);
+  }
+
+  /**
+   * Executes the calls, which must be calls of runtime tools offered in this job, and returns one
    * execution per call in call order.
    *
    * <p>A call of a tool that is no longer enabled when it is executed gets an error result, and so
    * does a {@link io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException}. Any other
    * exception propagates.
+   *
+   * @param documentIdsWithContent the ids of the documents whose content the model reads as of the
+   *     start of the batch
    */
   List<RuntimeToolExecution> execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls);
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      Set<DocumentId> documentIdsWithContent,
+      List<ToolCall> calls);
 }

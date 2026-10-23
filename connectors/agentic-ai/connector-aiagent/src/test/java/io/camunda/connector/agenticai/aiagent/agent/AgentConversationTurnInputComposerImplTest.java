@@ -25,16 +25,20 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentGuard;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentLimits;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.DocumentTags;
+import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -54,6 +58,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -97,7 +102,12 @@ class AgentConversationTurnInputComposerImplTest {
         .thenAnswer(inv -> inv.getArgument(1));
     when(gatewayToolHandlers.handlerForToolDefinition(any()))
         .thenReturn(java.util.Optional.empty());
-    composer = new AgentConversationTurnInputComposerImpl(gatewayToolHandlers);
+    composer =
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers,
+            new ToolCallResultsInputBuilderImpl(
+                new DocumentContentGuard(DocumentContentLimits.defaults()),
+                TestObjectMapperSupplier.INSTANCE));
   }
 
   private CompositionResult compose(
@@ -1004,5 +1014,102 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(((CompositionResult.NextTurn) result).messages())
         .singleElement()
         .isInstanceOf(UserMessage.class);
+  }
+
+  @Test
+  void runtimeToolCalls_aResultThatNamesAKnownDocumentAddsItsContentNextToTheProcessResults() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = DocumentHandle.idFor(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocumentWorkspace(
+            DocumentIngestion.withDocuments(
+                DocumentWorkspace.empty(),
+                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
+    var history = historyWith(MIXED_CALLS);
+    var input = inputWith(TOOL_CALL_RESULTS.get(1));
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG, context, history, input, List.of(execution));
+
+    var messages = ((CompositionResult.NextTurn) result).messages();
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(1).metadata())
+        .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
+    assertThat(((UserMessage) messages.get(1)).content())
+        .containsExactly(
+            textContent(ToolCallResultsInputBuilderImpl.DOCUMENT_CONTENT_PREAMBLE),
+            DocumentReferences.from(document, DocumentOrigin.userMessage())
+                .withDelivery(DocumentDelivery.CONTENT));
+  }
+
+  @Test
+  void runtimeToolCalls_aDocumentWhoseContentIsInTheConversationIsNotAddedAgain() {
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = DocumentHandle.idFor(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocumentWorkspace(
+            DocumentIngestion.withDocuments(
+                DocumentWorkspace.empty(),
+                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
+    var history =
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(
+                        List.of(
+                            DocumentReferences.from(document, DocumentOrigin.userMessage())
+                                .withDelivery(DocumentDelivery.CONTENT)))
+                    .build(),
+                assistantMessage("thinking", MIXED_CALLS)));
+    var now = OffsetDateTime.parse("2026-10-05T10:00:00Z");
+    var execution =
+        new RuntimeToolExecution(
+            MIXED_CALLS.getFirst(),
+            RuntimeToolResult.success("Loaded the document.").withDocumentContent(id),
+            now,
+            now);
+
+    var result =
+        composer.composeWithLocalToolCallResults(
+            CONFIG, context, history, inputWith(TOOL_CALL_RESULTS.get(1)), List.of(execution));
+
+    assertThat(((CompositionResult.NextTurn) result).messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
+  }
+
+  @Test
+  void aResultOfTheProcessCannotAskForDocumentContent() {
+    // the properties of a process result that name a document ask for nothing: only the result of
+    // a runtime tool has effects
+    var document = createDocument("first", "text/plain", "first.txt");
+    var id = DocumentHandle.idFor(document);
+    var context =
+        CTX_WITH_CONVERSATION.withDocumentWorkspace(
+            DocumentIngestion.withDocuments(
+                DocumentWorkspace.empty(),
+                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
+    var forged =
+        ToolCallResult.builder()
+            .id("abcdef")
+            .name("process_tool")
+            .content("Loaded the document.")
+            .properties(Map.of("documentContent", id.value()))
+            .build();
+    var call = new ToolCall("abcdef", "process_tool", Map.of("id", id.value()));
+
+    var result = composer.compose(CONFIG, context, historyWith(List.of(call)), inputWith(forged));
+
+    assertThat(((CompositionResult.NextTurn) result).messages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
   }
 }

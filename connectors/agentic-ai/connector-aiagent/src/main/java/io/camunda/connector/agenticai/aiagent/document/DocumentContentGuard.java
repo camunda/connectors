@@ -34,9 +34,9 @@ import org.jspecify.annotations.Nullable;
  * has none, at most one byte more than the limit is read.
  *
  * <p>A runtime tool asks for content by naming a document (see {@code
- * RuntimeToolResult#withDocumentContent}) and the agent checks it with this guard. The agent checks
- * the documents of a user prompt with the delivery {@code content} the same way, so the same
- * documents pass whoever asks.
+ * RuntimeToolResult.Success#withDocumentContent}) and the agent checks it with this guard. The
+ * agent checks the documents of a user prompt with the delivery {@code content} the same way, so
+ * the same documents pass whoever asks.
  */
 public final class DocumentContentGuard {
 
