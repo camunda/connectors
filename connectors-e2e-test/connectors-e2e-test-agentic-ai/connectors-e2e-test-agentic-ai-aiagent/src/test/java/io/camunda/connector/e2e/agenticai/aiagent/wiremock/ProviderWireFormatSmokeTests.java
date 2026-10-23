@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtu
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_JSON_ASSERTIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.fixtures.AgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -224,11 +225,77 @@ public class ProviderWireFormatSmokeTests extends BaseAgentSubProcessTest {
                     "downloadUrls",
                     List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
 
+    // the document is referenced by its tag; its content is sent only for a template without a
+    // delivery of the prompt documents
     assertThat(fixture.modelCallCount()).isEqualTo(1);
     ProviderWireFormatExpectedMessage.assertConversationMessages(
         fixture.lastRecordedRequest(),
         ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
-        ProviderWireFormatExpectedMessage.userWithDocument(userPrompt));
+        fixture.promptDocumentsAsContent()
+            ? ProviderWireFormatExpectedMessage.userWithDocument(userPrompt)
+            : ProviderWireFormatExpectedMessage.userWithDocumentTag(userPrompt));
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasResponseText(responseText));
+  }
+
+  @Test
+  void documentRequestedByTheModel() throws Exception {
+    assumeThat(fixture.supportsDocumentIdPlaceholders()).isTrue();
+    final var userPrompt = "Summarize the following document";
+    final var toolCallMessage = "I will read the document.";
+    final var responseText = "TL;DR: it is pretty interesting";
+
+    fixture.stubConversation(
+        TurnStub.toolCalls(
+            toolCallMessage,
+            10,
+            20,
+            new ToolCallStub(
+                "get111", "c8__get_document", "{\"id\": \"<doc id=\\\"@@DOC_ID_0@@\\\" />\"}")),
+        TurnStub.text(responseText, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(
+            createProcessInstance(
+                Map.of(
+                    "userPrompt",
+                    userPrompt,
+                    "downloadUrls",
+                    List.of(wireMock.getHttpBaseUrl() + "/test.jpg"))));
+
+    assertThat(fixture.modelCallCount()).isEqualTo(2);
+    if (fixture.promptDocumentsAsContent()) {
+      // the content of the document is in the conversation already
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocument(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__get_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111", "Document [0-9a-fA-F-]{36} is already in the conversation\\."));
+    } else {
+      // the content of the document follows the tool result, next to its tag; the answer is a
+      // text, the tag and a text, which the recorded text joins by a newline (chat completions
+      // formats) or by nothing (formats with a part per block)
+      ProviderWireFormatExpectedMessage.assertConversationMessages(
+          fixture.lastRecordedRequest(),
+          ProviderWireFormatExpectedMessage.system(expectedSystemPrompt()),
+          ProviderWireFormatExpectedMessage.userWithDocumentTag(userPrompt),
+          ProviderWireFormatExpectedMessage.assistantWithToolCalls(
+              toolCallMessage, "c8__get_document"),
+          ProviderWireFormatExpectedMessage.toolCallResultMatching(
+              "get111",
+              "Loaded the document\\.\n?<doc id=\"[0-9a-fA-F-]{36}\"[^>]*/>\n?Its content follows in the next message\\."),
+          ProviderWireFormatExpectedMessage.userWithDocument(
+              "System message, not written by the user: the content of the documents loaded for the tool results above follows."));
+    }
 
     assertAgentResponse(
         zeebeTest,
