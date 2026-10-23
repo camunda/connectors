@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,14 @@ class RuntimeToolCallImplTest {
       String text, int count, boolean flag, List<String> tags, Map<String, Object> extra) {}
 
   record CountArguments(int count) {}
+
+  record DocumentArguments(DocumentId document, @Nullable String note) {}
+
+  record TextArguments(@Nullable String body) {}
+
+  record DocumentsArguments(List<DocumentId> documents) {}
+
+  private static final DocumentId DOC = DocumentId.of("doc-1");
 
   private RuntimeToolCallImpl call(Map<String, Object> arguments) {
     return new RuntimeToolCallImpl("call-1", "tool", arguments, argumentsMapper);
@@ -59,6 +68,30 @@ class RuntimeToolCallImplTest {
 
     assertThat(arguments)
         .isEqualTo(new MixedArguments("hello", 3, true, List.of("a", "b"), Map.of("k", "v")));
+  }
+
+  @Test
+  void aDocumentParameterBindsToADocumentId() {
+    final var arguments =
+        call(Map.of("document", DOC, "note", "hello")).argumentsAs(DocumentArguments.class);
+
+    assertThat(arguments).isEqualTo(new DocumentArguments(DOC, "hello"));
+  }
+
+  @Test
+  void aDocumentBindsToTheTextOfItsIdForAStringProperty() {
+    assertThat(call(Map.of("body", DOC)).argumentsAs(TextArguments.class).body())
+        .isEqualTo("doc-1");
+  }
+
+  @Test
+  void documentsInAListBindToDocumentIds() {
+    final var other = DocumentId.of("doc-2");
+
+    final var arguments =
+        call(Map.of("documents", List.of(DOC, other))).argumentsAs(DocumentsArguments.class);
+
+    assertThat(arguments.documents()).containsExactly(DOC, other);
   }
 
   @Test

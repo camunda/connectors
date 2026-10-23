@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -63,24 +64,54 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
     final var result =
         tool.isPresent()
             ? run(executionContext, agentContext, tool.get(), toolCall)
-            : RuntimeToolResult.error("The tool '%s' is not enabled.".formatted(toolCall.name()));
+            : unansweredByATool(agentContext, toolCall);
     final var completedAt = OffsetDateTime.now();
     return new RuntimeToolExecution(
         toolCall, resultContent(toolCall, result.content(), completedAt), startedAt, completedAt);
   }
 
-  /** Runs the call of a tool. A {@link RuntimeToolException} becomes an error result. */
+  /**
+   * The error result of a call that no enabled runtime tool answers: the call of a tool of the
+   * process that was rejected for its document parameters gets the rejection, any other call the
+   * statement that the tool is not enabled.
+   */
+  private static RuntimeToolResult unansweredByATool(AgentContext agentContext, ToolCall toolCall) {
+    return switch (DocumentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
+      case DocumentParameterResolver.Resolution.Invalid invalid ->
+          RuntimeToolResult.error(invalid.message());
+      case DocumentParameterResolver.Resolution.Resolved ignored ->
+          RuntimeToolResult.error("The tool '%s' is not enabled.".formatted(toolCall.name()));
+    };
+  }
+
+  /**
+   * Runs the call of a tool with the documents of its document parameters resolved to {@link
+   * io.camunda.connector.agenticai.aiagent.model.document.DocumentId}s. A call with an invalid
+   * document parameter does not reach the tool and gets an error result.
+   */
   private RuntimeToolResult run(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       RuntimeTool tool,
       ToolCall toolCall) {
+    return switch (DocumentParameterResolver.resolveRuntimeCall(
+        agentContext, toolCall, tool.definition())) {
+      case DocumentParameterResolver.Resolution.Invalid invalid ->
+          RuntimeToolResult.error(invalid.message());
+      case DocumentParameterResolver.Resolution.Resolved resolved ->
+          call(executionContext, agentContext, tool, toolCall, resolved.arguments());
+    };
+  }
+
+  /** Calls the tool. A {@link RuntimeToolException} becomes an error result. */
+  private RuntimeToolResult call(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeTool tool,
+      ToolCall toolCall,
+      Map<String, Object> arguments) {
     final var runtimeToolCall =
-        new RuntimeToolCallImpl(
-            toolCall.id(),
-            toolCall.name(),
-            toolCall.arguments() == null ? Map.of() : toolCall.arguments(),
-            argumentsMapper);
+        new RuntimeToolCallImpl(toolCall.id(), toolCall.name(), arguments, argumentsMapper);
     final var runtimeToolContext =
         RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
 
