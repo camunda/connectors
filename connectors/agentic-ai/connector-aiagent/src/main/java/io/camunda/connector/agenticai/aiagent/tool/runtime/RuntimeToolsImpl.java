@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -92,9 +93,22 @@ public class RuntimeToolsImpl implements RuntimeTools {
 
   private RuntimeToolResult callTool(
       RuntimeToolContext context, RuntimeTool tool, ToolCall toolCall) {
+    return switch (DocumentParameterResolver.resolveRuntimeCall(
+        context.agentContext(), toolCall, tool.definition())) {
+      case DocumentParameterResolver.Resolution.Invalid invalid ->
+          RuntimeToolResult.error(invalid.message());
+      case DocumentParameterResolver.Resolution.Resolved resolved ->
+          callTool(context, tool, toolCall, resolved.arguments());
+    };
+  }
+
+  private RuntimeToolResult callTool(
+      RuntimeToolContext context,
+      RuntimeTool tool,
+      ToolCall toolCall,
+      Map<String, Object> arguments) {
     final var runtimeToolCall =
-        new RuntimeToolCallImpl(
-            toolCall.id(), toolCall.name(), toolCall.arguments(), argumentsMapper);
+        new RuntimeToolCallImpl(toolCall.id(), toolCall.name(), arguments, argumentsMapper);
 
     RuntimeToolResult result;
     try {

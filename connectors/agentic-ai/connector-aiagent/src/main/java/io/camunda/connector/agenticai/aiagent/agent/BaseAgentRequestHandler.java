@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentIngestion;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -41,10 +42,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
@@ -58,6 +61,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -209,28 +213,40 @@ public abstract class BaseAgentRequestHandler<
 
   /**
    * Tags the calls with the kind of the offered tool of their name. A call of a name that is not
-   * offered is rejected: its tool call result is an error, and it never reaches the process or a
-   * runtime tool, whatever the tools offered in a later job.
+   * offered, and the call of a tool of the process with a document parameter that does not name a
+   * known document, are rejected: the tool call result is the error, and the call never reaches the
+   * process or a runtime tool, whatever the tools offered in a later job.
    */
   private AssistantMessage tagToolCalls(
-      List<ToolDefinition> offeredTools, AssistantMessage message) {
+      List<ToolDefinition> offeredTools, AgentContext agentContext, AssistantMessage message) {
     if (!message.hasToolCalls()) {
       return message;
     }
-    final var kindsByName =
+    final var definitionsByName =
         offeredTools.stream()
             .collect(
                 Collectors.toMap(
-                    ToolDefinition::name, ToolDefinition::kind, (first, second) -> first));
+                    ToolDefinition::name, Function.identity(), (first, second) -> first));
     return message.withToolCalls(
         message.toolCalls().stream()
-            .map(call -> {
-              final var kind = kindsByName.get(call.name());
-              return kind == null
-                  ? call.withRejection("The tool '%s' does not exist.".formatted(call.name()))
-                  : call.withKind(kind);
-            })
+            .map(call -> tagToolCall(definitionsByName.get(call.name()), agentContext, call))
             .toList());
+  }
+
+  private static ToolCall tagToolCall(
+      @Nullable ToolDefinition definition, AgentContext agentContext, ToolCall call) {
+    if (definition == null) {
+      return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
+    }
+    final var tagged = call.withKind(definition.kind());
+    if (definition.kind() == ToolKind.PROCESS
+        && agentContext.supports(AgentFeatures.DOCUMENTS)
+        && DocumentParameterSchema.hasDocumentParameters(definition.inputSchema())
+        && DocumentParameterResolver.resolve(call, definition, agentContext.documentWorkspace())
+            instanceof DocumentParameterResolver.Resolution.Invalid invalid) {
+      return tagged.withRejection(invalid.message());
+    }
+    return tagged;
   }
 
   /**
@@ -399,7 +415,10 @@ public abstract class BaseAgentRequestHandler<
 
     // the one place the tool calls are tagged with the kind of their tool or rejected
     final var assistantMessage =
-        tagToolCalls(agentConfiguration.toolDefinitions(), chatResult.assistantMessage());
+        tagToolCalls(
+            agentConfiguration.toolDefinitions(),
+            conversation.persistedContext(),
+            chatResult.assistantMessage());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }
