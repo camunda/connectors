@@ -136,7 +136,7 @@ class DocumentHandleTest {
                 .documentId(customId)
                 .build());
 
-    // Not sanitized, not hashed: this is the handle other code (e.g. a document registry)
+    // Not sanitized, not hashed: this is the handle other code (e.g. a document workspace)
     // cross-references documents by, so it must stay exactly what the caller supplied. Any
     // provider-specific wire-format constraint (e.g. Bedrock's DocumentBlock.name charset) is
     // handled at that provider's own call site, not here.

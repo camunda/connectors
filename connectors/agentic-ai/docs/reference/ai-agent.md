@@ -1070,7 +1070,7 @@ per-invocation resources without a shared singleton lifecycle. A `ChatModelFacto
 `ChatModelConfiguration` is a neutral descriptor a factory inspects to decide whether it can serve a
 request. It exposes just `provider()` (the provider discriminator) and `model()` (the model
 identifier) — enough for routing and agent-instance reporting — and is the type carried through
-`AgentConfiguration` (`chatModel()`) and dispatched on by the registry, so a provider can supply its
+`AgentConfiguration` (`chatModel()`) and dispatched on by the workspace, so a provider can supply its
 own configuration through the SPI rather than being confined to the module's built-in provider union.
 The sealed `ProviderConfiguration` (`AnthropicProviderConfiguration`, `BedrockProviderConfiguration`,
 etc.) is the concrete implementation contributed by this module. Today the v1 request supplies
@@ -1119,7 +1119,7 @@ LangChain4j is the first (and currently only) implementation behind the SPI, res
 factories:
 - `AgenticAiLangChain4JFrameworkConfiguration` wires the converter beans;
   `AgenticAiLangChain4JChatModelConfiguration` wires one `ChatModelFactory` bean per provider. Provider
-  selection is by `ChatModelFactory.supports(...)` via the SPI registry, so the configuration loads
+  selection is by `ChatModelFactory.supports(...)` via the SPI workspace, so the configuration loads
   unconditionally rather than behind a global framework toggle.
 - `LangChain4JChatModelFactory<T extends ProviderConfiguration>` (the v1 `ProviderConfiguration`) is the
   abstract base: `supports` matches a `ProviderConfiguration` whose `provider()` equals the factory's
@@ -1310,7 +1310,7 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 ### Key Differences from Standard Connectors
 
 1. **Dual activation modes**: Both an outbound connector (`AgentTaskV1Function`) and a job worker (`AgentSubProcessV1Function`) are registered. The job worker bypasses the standard connector runtime, handling variable resolution, secret injection, and exception handling directly.
-2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI registry; the LangChain4j configuration loads unconditionally.
+2. **Pluggable LLM providers**: the `ChatModel` provider SPI ([§12](#12-framework-abstraction)) allows the LangChain4j stack to be replaced or extended per provider. Provider selection is by `ChatModelFactory.supports(...)` via the SPI workspace; the LangChain4j configuration loads unconditionally.
 3. **Pluggable system prompt contributors**: All `SystemPromptContributor` beans are auto-collected into `SystemPromptComposerImpl`.
 4. **Pluggable gateway tool handlers**: All `GatewayToolHandler` beans are auto-collected into `GatewayToolHandlerRegistryImpl`.
 5. **Caffeine caching of BPMN resolution**: Process definition fetch (API + XML parse + FEEL extraction) is cached with configurable TTL and max size.

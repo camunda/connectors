@@ -23,7 +23,7 @@ import java.util.HexFormat;
  * Derives a stable id for a document, verbatim wherever possible.
  *
  * <p>This id is the caller-visible handle other code cross-references a document by (e.g. a
- * document registry) - it is never sanitized or hashed away for a specific provider's wire-format
+ * document workspace) - it is never sanitized or hashed away for a specific provider's wire-format
  * constraints. A provider whose native id field has narrower requirements (e.g. Bedrock's {@code
  * DocumentBlock.name}) derives its own wire-safe value from this id at its own call site instead of
  * relying on this class to produce one.

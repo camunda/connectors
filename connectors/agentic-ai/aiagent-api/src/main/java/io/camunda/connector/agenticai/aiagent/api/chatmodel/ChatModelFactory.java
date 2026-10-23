@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfigura
 
 /**
  * Builds a {@link ChatModel} for the {@link ChatModelConfiguration}s it supports. Each provider
- * contributes one factory; the registry routes a configuration to the single factory whose {@link
+ * contributes one factory; the workspace routes a configuration to the single factory whose {@link
  * #supports} returns true.
  */
 public interface ChatModelFactory {
