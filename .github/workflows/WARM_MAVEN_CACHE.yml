@@ -1,7 +1,7 @@
 name: Warm Maven cache
 
 # Writes the ~/.m2 dependency and Maven wrapper caches that "Test branch"
-# (TEST_FEATURE_BRANCH.yml) restores. Caches saved on main are readable from every
+# (TEST_FEATURE_BRANCH.yml) and "Deploy snapshots" (DEPLOY_SNAPSHOTS.yaml) restore. Caches saved on main are readable from every
 # PR and merge-queue run, and "Test branch" is restore-only so per-PR saves don't
 # evict these entries.
 #
@@ -35,7 +35,12 @@ jobs:
         with:
           persist-credentials: false
 
+<<<<<<< HEAD
       # Must match the key used by the internal jobs in TEST_FEATURE_BRANCH.yml.
+=======
+      # Must match the key used by the internal jobs in the checked-out branch's
+      # TEST_FEATURE_BRANCH.yml and DEPLOY_SNAPSHOTS.yaml; the pom hash comes from that branch.
+>>>>>>> 90e7e96f (ci: restore the warmed Maven cache in Deploy snapshots (#9754))
       - name: Compute cache key
         id: key
         run: echo "value=${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal" >> "$GITHUB_OUTPUT"
