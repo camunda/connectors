@@ -73,6 +73,8 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
   /**
    * Blob messages hold arbitrary binary data which is supposed to be stored as a Camunda document.
    */
+  // byte[] is serialized by Jackson as Base64; value equality on these DTOs is not relied upon
+  @SuppressWarnings("ArrayRecordComponent")
   public record BlobMessage(String mimeType, byte[] data)
       implements PromptMessageContent, StorableMcpDataContainer<PromptMessageContent> {
 
@@ -105,6 +107,8 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
 
     public sealed interface EmbeddedResource {
 
+      // byte[] is serialized by Jackson as Base64; value equality on these DTOs is not relied upon
+      @SuppressWarnings("ArrayRecordComponent")
       record BlobResource(String uri, String mimeType, byte[] blob) implements EmbeddedResource {}
 
       record TextResource(String uri, String mimeType, String text) implements EmbeddedResource {}

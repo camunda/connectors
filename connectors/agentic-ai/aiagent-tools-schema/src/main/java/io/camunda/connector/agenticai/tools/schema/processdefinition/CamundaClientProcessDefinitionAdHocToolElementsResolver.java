@@ -24,10 +24,10 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeOutput;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,11 +109,10 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
       return Collections.emptyList();
     }
 
-    List<AdHocToolElementParameter> result = new ArrayList<>();
-    result.addAll(extractParameters(element, ioMapping.getInputs()));
-    result.addAll(extractParameters(element, ioMapping.getOutputs()));
-
-    return result;
+    return Stream.concat(
+            extractParameters(element, ioMapping.getInputs()).stream(),
+            extractParameters(element, ioMapping.getOutputs()).stream())
+        .toList();
   }
 
   private List<AdHocToolElementParameter> extractParameters(

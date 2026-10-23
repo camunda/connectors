@@ -25,6 +25,7 @@ import software.amazon.awssdk.core.protocol.MarshallingKnownType;
 import software.amazon.awssdk.core.traits.ListTrait;
 import software.amazon.awssdk.core.traits.MapTrait;
 import software.amazon.awssdk.utils.builder.Buildable;
+import software.amazon.awssdk.utils.builder.SdkBuilder;
 
 /**
  * Generic bidirectional codec between AWS SDK v2 {@link SdkPojo} instances (as generated for {@code
@@ -88,26 +89,20 @@ final class BedrockConverseSdkPojoCodec {
    *
    * @param builderSupplier supplies the (empty) builder to populate, e.g. {@code
    *     ContentBlock::builder}. AWS SDK v2 builders implement both {@link SdkPojo} (for {@link
-   *     SdkField#set(Object, Object)}) and {@link Buildable} (for the final {@link
-   *     Buildable#build()} call), which this method relies on via a runtime cast.
+   *     SdkField#set(Object, Object)}) and {@link SdkBuilder} (for the final {@link
+   *     SdkBuilder#build()} call).
    */
-  static <T extends SdkPojo> T replay(
-      Map<String, Object> captured, Supplier<SdkPojo> builderSupplier) {
-    @SuppressWarnings("unchecked")
-    final T result = (T) replayInto(captured, builderSupplier);
-    return result;
+  static <T, B extends SdkPojo & SdkBuilder<B, T>> T replay(
+      Map<String, Object> captured, Supplier<B> builderSupplier) {
+    final B builder = builderSupplier.get();
+    populate(captured, builder);
+    return builder.build();
   }
 
   private static SdkPojo replayInto(
       Map<String, Object> captured, Supplier<SdkPojo> builderSupplier) {
     final SdkPojo builder = builderSupplier.get();
-    for (final SdkField<?> field : builder.sdkFields()) {
-      final String key = field.locationName();
-      if (captured.containsKey(key)) {
-        final Object rawValue = captured.get(key);
-        field.set(builder, rawValue == null ? null : replayValue(rawValue, field));
-      }
-    }
+    populate(captured, builder);
     if (!(builder instanceof Buildable buildable)) {
       throw new IllegalStateException(
           "Builder "
@@ -117,6 +112,16 @@ final class BedrockConverseSdkPojoCodec {
               + "; cannot build() it generically");
     }
     return (SdkPojo) buildable.build();
+  }
+
+  private static void populate(Map<String, Object> captured, SdkPojo builder) {
+    for (final SdkField<?> field : builder.sdkFields()) {
+      final String key = field.locationName();
+      if (captured.containsKey(key)) {
+        final Object rawValue = captured.get(key);
+        field.set(builder, rawValue == null ? null : replayValue(rawValue, field));
+      }
+    }
   }
 
   // -- value-level capture/replay, shared between top-level fields and LIST/MAP elements --
@@ -270,26 +275,26 @@ final class BedrockConverseSdkPojoCodec {
   }
 
   private static Document replayDocument(@Nullable Object value) {
-    if (value == null) {
-      return Document.fromNull();
-    } else if (value instanceof Boolean bool) {
-      return Document.fromBoolean(bool);
-    } else if (value instanceof String string) {
-      return Document.fromString(string);
-    } else if (value instanceof BigDecimal number) {
-      return Document.fromNumber(number);
-    } else if (value instanceof Map<?, ?> map) {
-      final Map<String, Document> result = new LinkedHashMap<>();
-      map.forEach((key, nested) -> result.put((String) key, replayDocument(nested)));
-      return Document.fromMap(result);
-    } else if (value instanceof List<?> list) {
-      final List<Document> result = new ArrayList<>(list.size());
-      for (final Object nested : list) {
-        result.add(replayDocument(nested));
+    return switch (value) {
+      case null -> Document.fromNull();
+      case Boolean bool -> Document.fromBoolean(bool);
+      case String string -> Document.fromString(string);
+      case BigDecimal number -> Document.fromNumber(number);
+      case Map<?, ?> map -> {
+        final Map<String, Document> result = new LinkedHashMap<>();
+        map.forEach((key, nested) -> result.put((String) key, replayDocument(nested)));
+        yield Document.fromMap(result);
       }
-      return Document.fromList(result);
-    }
-    throw new IllegalArgumentException(
-        "Cannot replay a Document from value of type " + value.getClass().getName());
+      case List<?> list -> {
+        final List<Document> result = new ArrayList<>(list.size());
+        for (final Object nested : list) {
+          result.add(replayDocument(nested));
+        }
+        yield Document.fromList(result);
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot replay a Document from value of type " + value.getClass().getName());
+    };
   }
 }

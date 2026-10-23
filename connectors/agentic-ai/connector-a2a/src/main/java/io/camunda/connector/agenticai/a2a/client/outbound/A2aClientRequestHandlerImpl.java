@@ -46,16 +46,16 @@ public class A2aClientRequestHandlerImpl implements A2aClientRequestHandler {
 
   @Override
   public A2aClientResponse handle(A2aClientRequest request) {
-    A2aStandaloneOperationConfiguration operation;
-    switch (request.data().connectorMode()) {
-      case StandaloneModeConfiguration standaloneOperationConfiguration ->
-          operation = standaloneOperationConfiguration.operation();
-      case ToolModeConfiguration toolOperationConfiguration ->
-          operation = convertOperation(toolOperationConfiguration.toolOperation());
-      default ->
-          throw new IllegalArgumentException(
-              "Unsupported connectorMode: " + request.data().connectorMode());
-    }
+    A2aStandaloneOperationConfiguration operation =
+        switch (request.data().connectorMode()) {
+          case StandaloneModeConfiguration standaloneOperationConfiguration ->
+              standaloneOperationConfiguration.operation();
+          case ToolModeConfiguration toolOperationConfiguration ->
+              convertOperation(toolOperationConfiguration.toolOperation());
+          default ->
+              throw new IllegalArgumentException(
+                  "Unsupported connectorMode: " + request.data().connectorMode());
+        };
     return switch (operation) {
       case FetchAgentCardOperationConfiguration ignored -> handleFetchAgentCard(request);
       case SendMessageOperationConfiguration sendMessageOperation ->
@@ -98,10 +98,9 @@ public class A2aClientRequestHandlerImpl implements A2aClientRequestHandler {
 
   private A2aStandaloneOperationConfiguration convertOperation(
       A2aToolOperationConfiguration operation) {
-    switch (operation.operation()) {
-      case FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID -> {
-        return new FetchAgentCardOperationConfiguration();
-      }
+    return switch (operation.operation()) {
+      case FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID ->
+          new FetchAgentCardOperationConfiguration();
       case SendMessageOperationConfiguration.SEND_MESSAGE_ID -> {
         if (MapUtils.isEmpty(operation.params())) {
           throw new IllegalArgumentException(
@@ -110,11 +109,11 @@ public class A2aClientRequestHandlerImpl implements A2aClientRequestHandler {
         }
         final var parameters =
             objectMapper.convertValue(operation.params(), A2aSendMessageOperationParameters.class);
-        return new SendMessageOperationConfiguration(parameters, operation.sendMessageSettings());
+        yield new SendMessageOperationConfiguration(parameters, operation.sendMessageSettings());
       }
       default ->
           throw new IllegalArgumentException(
               "Unsupported operation: '%s'".formatted(operation.operation()));
-    }
+    };
   }
 }

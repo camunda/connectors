@@ -24,6 +24,8 @@ import java.io.IOException;
 public enum AgentInstanceErrorClassifier implements ErrorClassifier {
   INSTANCE;
 
+  // Identity check guards against getCause() overrides that return the throwable itself
+  @SuppressWarnings("ReferenceEquality")
   @Override
   public Decision classify(Throwable t) {
     Throwable current = t;

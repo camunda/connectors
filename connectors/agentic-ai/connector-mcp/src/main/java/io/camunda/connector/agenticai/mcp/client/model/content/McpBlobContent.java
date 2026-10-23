@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 import java.util.Objects;
 
+// byte[] is serialized by Jackson as Base64; value equality on these DTOs is not relied upon
+@SuppressWarnings("ArrayRecordComponent")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record McpBlobContent(
     byte[] blob,
