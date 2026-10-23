@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -98,7 +98,7 @@ final class ToolCallResultsInputBuilder {
       for (var doc : group.documents()) {
         content.add(
             textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                LegacyDocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
                     .toXml()));
         content.add(DocumentContent.documentContent(doc));
       }
