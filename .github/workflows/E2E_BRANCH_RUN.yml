@@ -87,11 +87,12 @@ jobs:
         id: maven-cache-key
         env:
           PROVIDED_KEY: ${{ inputs.maven-cache-key }}
-          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
         run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
