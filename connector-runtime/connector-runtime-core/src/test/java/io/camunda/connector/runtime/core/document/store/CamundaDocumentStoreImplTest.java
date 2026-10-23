@@ -21,21 +21,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientException;
-import io.camunda.client.api.response.DeleteDocumentResponse;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.concurrent.CompletableFuture;
 import org.apache.hc.core5.http.ConnectionClosedException;
 import org.junit.jupiter.api.Test;
 
@@ -148,21 +144,5 @@ class CamundaDocumentStoreImplTest {
 
     assertThatThrownBy(() -> store.getDocumentContent(REFERENCE)).isSameAs(secondError);
     verify(camundaClient, times(2)).newDocumentContentGetRequest("doc-1");
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void deleteDocumentAsyncDoesNotWaitForTheStore() {
-    var camundaClient = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
-    CamundaFuture<DeleteDocumentResponse> pendingDelete = mock(CamundaFuture.class);
-    when(pendingDelete.toCompletableFuture()).thenReturn(new CompletableFuture<>());
-    when(camundaClient.newDeleteDocumentCommand(anyString()).storeId(anyString()).send())
-        .thenReturn(pendingDelete);
-    var store = new CamundaDocumentStoreImpl(camundaClient);
-
-    var deletion = store.deleteDocumentAsync(REFERENCE);
-
-    assertThat(deletion).isNotDone();
-    verify(pendingDelete, never()).join();
   }
 }

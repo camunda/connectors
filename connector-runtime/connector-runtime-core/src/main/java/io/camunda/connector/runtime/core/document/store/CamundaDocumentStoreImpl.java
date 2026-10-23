@@ -22,7 +22,6 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.io.InputStream;
-import java.util.concurrent.CompletableFuture;
 import org.apache.hc.core5.http.ConnectionClosedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -118,16 +117,6 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
         .storeId(reference.getStoreId())
         .send()
         .join();
-  }
-
-  @Override
-  public CompletableFuture<Void> deleteDocumentAsync(CamundaDocumentReference reference) {
-    return camundaClient
-        .newDeleteDocumentCommand(reference.getDocumentId())
-        .storeId(reference.getStoreId())
-        .send()
-        .toCompletableFuture()
-        .thenApply(response -> null);
   }
 
   @Override

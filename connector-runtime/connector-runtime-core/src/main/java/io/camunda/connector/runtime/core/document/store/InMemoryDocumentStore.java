@@ -28,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 /** Use this document store to store documents in memory. This is useful for testing purposes. */
@@ -90,12 +89,6 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public void deleteDocument(CamundaDocumentReference reference) {
     logWarning();
     documents.remove(reference.getDocumentId());
-  }
-
-  @Override
-  public CompletableFuture<Void> deleteDocumentAsync(CamundaDocumentReference reference) {
-    deleteDocument(reference);
-    return CompletableFuture.completedFuture(null);
   }
 
   @Override

@@ -22,6 +22,7 @@ import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWO
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -99,8 +100,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -3285,7 +3288,11 @@ class SpringConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, true);
 
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
-      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet()).isEqualTo(documentsBefore);
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
     }
 
     @Test
@@ -3334,7 +3341,11 @@ class SpringConnectorJobHandlerTest {
 
       // the submitted variables carry the message under "error", not the document
       assertThat(result.getVariables()).containsEntry("error", "failed");
-      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet()).isEqualTo(documentsBefore);
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
     }
 
     @Test
@@ -3365,14 +3376,19 @@ class SpringConnectorJobHandlerTest {
 
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
       assertThat(result.getVariables()).isEmpty();
-      assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet()).isEqualTo(documentsBefore);
+      await()
+          .untilAsserted(
+              () ->
+                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                      .isEqualTo(documentsBefore));
     }
 
     @Test
     @Timeout(10)
     void submitsTheErrorWithoutWaitingForThePendingDelete() throws Exception {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
-      var deleteRequested = new AtomicBoolean();
+      var deleteRequested = new CountDownLatch(1);
+      var releaseDelete = new CountDownLatch(1);
       var storeWithPendingDelete =
           new CamundaDocumentStore() {
             @Override
@@ -3387,13 +3403,12 @@ class SpringConnectorJobHandlerTest {
 
             @Override
             public void deleteDocument(CamundaDocumentReference reference) {
-              throw new AssertionError("the blocking delete must not be used");
-            }
-
-            @Override
-            public CompletableFuture<Void> deleteDocumentAsync(CamundaDocumentReference reference) {
-              deleteRequested.set(true);
-              return new CompletableFuture<>();
+              deleteRequested.countDown();
+              try {
+                releaseDelete.await();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
             }
 
             @Override
@@ -3418,7 +3433,8 @@ class SpringConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, true);
 
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
-      assertThat(deleteRequested).isTrue();
+      assertThat(deleteRequested.await(5, TimeUnit.SECONDS)).isTrue();
+      releaseDelete.countDown();
     }
   }
 }

@@ -20,7 +20,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import java.io.InputStream;
-import java.util.concurrent.CompletableFuture;
 
 public interface CamundaDocumentStore {
 
@@ -29,9 +28,6 @@ public interface CamundaDocumentStore {
   InputStream getDocumentContent(CamundaDocumentReference reference);
 
   void deleteDocument(CamundaDocumentReference reference);
-
-  /** Starts deleting the document and returns without waiting for the store to answer. */
-  CompletableFuture<Void> deleteDocumentAsync(CamundaDocumentReference reference);
 
   String generateLink(CamundaDocumentReference reference, DocumentLinkParameters parameters);
 }
