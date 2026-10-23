@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -106,6 +107,10 @@ class AgentTaskRequestHandlerTest {
       new RuntimeToolsImpl(
           List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
           TestObjectMapperSupplier.INSTANCE);
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
@@ -459,7 +464,7 @@ class AgentTaskRequestHandlerTest {
   private void verifyTurnLifecycleRecorded(
       AgentInstanceUpdateStatus expectedFinalStatus, AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
     final var turnCaptor = ArgumentCaptor.forClass(AgentConversationTurn.class);
     verify(agentInstanceClient)
         .applyTurnCompletion(

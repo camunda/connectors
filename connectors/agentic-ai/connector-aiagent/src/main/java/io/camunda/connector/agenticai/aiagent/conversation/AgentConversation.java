@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
@@ -346,10 +347,16 @@ public final class AgentConversation {
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
    * tools.
+   *
+   * <p>The decorator is applied to the windowed messages, and what it returns is sent to the LLM;
+   * {@link #allMessages()} and the stored conversation are not affected.
+   *
+   * @param decorator turns the windowed messages into the messages of the snapshot; the identity
+   *     leaves them as they are
    */
-  public ConversationSnapshot window(int size) {
+  public ConversationSnapshot window(int size, UnaryOperator<List<Message>> decorator) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+    return new ConversationSnapshot(decorator.apply(windowed), configuration.toolDefinitions());
   }
 
   /**

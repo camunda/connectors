@@ -56,7 +56,9 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -142,6 +144,10 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   /** The document a runtime tool of the test returns without the agent knowing it before. */
   private static final Document NEW_REPORT = createDocument("new report", "new-report.txt");
@@ -491,7 +497,8 @@ class AgentSubProcessRequestHandlerTest {
     final ArgumentCaptor<List<ToolCallResultContent>> resultsCaptor =
         ArgumentCaptor.forClass(List.class);
     verify(agentInstanceClient)
-        .applyToolCallResults(eq(agentExecutionContext), any(), resultsCaptor.capture(), any());
+        .applyToolCallResults(
+            eq(agentExecutionContext), any(), resultsCaptor.capture(), any(), any());
     assertThat(resultsCaptor.getValue()).containsExactly(ToolCallResultContent.from(arrivedResult));
   }
 
@@ -794,7 +801,7 @@ class AgentSubProcessRequestHandlerTest {
     // applyTurnStart is only called once, at the top of proceed() — continuation rounds carry no
     // new input and don't restart the turn
     verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
 
     // one applyTurnCompletion call per round: the continuation round re-asserts THINKING with its
     // own metrics, the final round sends the terminal status with its own metrics -- no summing
@@ -926,7 +933,7 @@ class AgentSubProcessRequestHandlerTest {
     inOrder
         .verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -944,6 +951,7 @@ class AgentSubProcessRequestHandlerTest {
             any(),
             turnCaptor.capture(),
             previousTurnCaptor.capture(),
+            any(),
             any());
     inOrder
         .verify(agentInstanceClient)
@@ -1053,7 +1061,7 @@ class AgentSubProcessRequestHandlerTest {
     final var inOrder = inOrder(agentInstanceClient);
     inOrder
         .verify(agentInstanceClient)
-        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any());
+        .applyTurnStart(eq(agentExecutionContext), any(), any(), any(), any(), any(), any());
     inOrder
         .verify(agentInstanceClient)
         .applyTurnCompletion(
@@ -1103,7 +1111,8 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(1)).execute(any());
     // no further round was started
-    verify(agentInstanceClient, times(1)).applyTurnStart(any(), any(), any(), any(), any(), any());
+    verify(agentInstanceClient, times(1))
+        .applyTurnStart(any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -1655,7 +1664,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.RUNTIME)
         .extracting(ToolDefinition::name)
-        .containsExactly("acme_lookup", "acme_toggle");
+        .containsExactly(
+            "acme_lookup", "acme_toggle", "acme_create_report", "acme_count_documents");
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
@@ -1707,14 +1717,13 @@ class AgentSubProcessRequestHandlerTest {
     final var context = response.responseValue().context();
     assertThat(context.documents())
         .singleElement()
-        .satisfies(
-            entry -> {
-              assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-              assertThat(entry.source().type()).isEqualTo(DocumentOrigin.Type.TOOL_CALL);
-              assertThat(entry.source().toolName()).isEqualTo("search");
-              assertThat(entry.source().toolCallId()).isEqualTo("call-1");
-              assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
-            });
+        .satisfies(entry -> {
+          assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
+          assertThat(entry.source().type()).isEqualTo(DocumentOrigin.Type.TOOL_CALL);
+          assertThat(entry.source().toolName()).isEqualTo("search");
+          assertThat(entry.source().toolCallId()).isEqualTo("call-1");
+          assertThat(entry.reference()).containsEntry("camunda.document.type", "camunda");
+        });
     assertThat(response.variables().get("agentContext")).isEqualTo(context);
 
     // the agent instance history is written with the workspace of the turn
@@ -1750,12 +1759,21 @@ class AgentSubProcessRequestHandlerTest {
     // the document is registered with the call that returned it
     assertThat(response.responseValue().context().documents())
         .singleElement()
-        .satisfies(
-            entry -> {
-              assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(NEW_REPORT));
-              assertThat(entry.source())
-                  .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
-            });
+        .satisfies(entry -> {
+          assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(NEW_REPORT));
+          assertThat(entry.source())
+              .isEqualTo(DocumentOrigin.toolCall("acme_create_report", "call-1"));
+        });
+
+    // the model reads the tag of the document in the tool result, never the document
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent("Created the report."),
+                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
 
     // the history of the second round is written with the workspace that holds the document
     final var startContexts = ArgumentCaptor.forClass(AgentContext.class);
@@ -1783,6 +1801,15 @@ class AgentSubProcessRequestHandlerTest {
             tuple(
                 DocumentHandle.idFor(processDocument),
                 DocumentOrigin.toolCall("getWeather", "call-2")));
+    // the document of the runtime tool is shown as its tag in the tool result of the next request
+    assertThat(run.chatRequests().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent("Created the report."),
+                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
   }
 
   @Test
@@ -1895,7 +1922,7 @@ class AgentSubProcessRequestHandlerTest {
   private List<ToolDefinition> toolDefinitionsOfTheAgentInstanceHistory() {
     final var configurationCaptor = ArgumentCaptor.forClass(AgentConfiguration.class);
     verify(agentInstanceClient)
-        .applyTurnStart(any(), configurationCaptor.capture(), any(), any(), any(), any());
+        .applyTurnStart(any(), configurationCaptor.capture(), any(), any(), any(), any(), any());
     return configurationCaptor.getValue().toolDefinitions();
   }
 
@@ -2019,11 +2046,7 @@ class AgentSubProcessRequestHandlerTest {
    */
   private List<ChatRequest> handleMixedBatchInTwoJobs(
       String runtimeToolName, Runnable betweenJobs) {
-    return handleBatchInTwoJobs(
-        List.of(
-            new ToolCall("call-1", runtimeToolName, Map.of()),
-            new ToolCall("call-2", "getWeather", Map.of("location", "MUC"))),
-        betweenJobs);
+    return handleBatchInTwoJobs(mixedBatch(runtimeToolName), betweenJobs);
   }
 
   /**
@@ -2033,6 +2056,32 @@ class AgentSubProcessRequestHandlerTest {
    * @return the requests sent to the chat model, one per job
    */
   private List<ChatRequest> handleBatchInTwoJobs(List<ToolCall> calls, Runnable betweenJobs) {
+    return runBatchInTwoJobs(calls, INITIAL_AGENT_CONTEXT, "Sunny", betweenJobs).chatRequests();
+  }
+
+  /** What the two jobs of a batch produced. */
+  private record MixedBatchRun(List<ChatRequest> chatRequests, AgentContext finalContext) {}
+
+  private MixedBatchRun runMixedBatchInTwoJobs(
+      String runtimeToolName,
+      AgentContext initialContext,
+      Object processResultContent,
+      Runnable betweenJobs) {
+    return runBatchInTwoJobs(
+        mixedBatch(runtimeToolName), initialContext, processResultContent, betweenJobs);
+  }
+
+  private static List<ToolCall> mixedBatch(String runtimeToolName) {
+    return List.of(
+        new ToolCall("call-1", runtimeToolName, Map.of()),
+        new ToolCall("call-2", "getWeather", Map.of("location", "MUC")));
+  }
+
+  private MixedBatchRun runBatchInTwoJobs(
+      List<ToolCall> calls,
+      AgentContext initialContext,
+      Object processResultContent,
+      Runnable betweenJobs) {
     final var processCall =
         calls.stream().filter(call -> call.name().equals("getWeather")).findFirst().orElseThrow();
     mockSystemPrompt();
@@ -2055,8 +2104,12 @@ class AgentSubProcessRequestHandlerTest {
 
     betweenJobs.run();
 
-    final var processResult =
-        ToolCallResult.builder().id(processCall.id()).name("getWeather").content("Sunny").build();
+    final var arrivedResult =
+        ToolCallResult.builder()
+            .id(processCall.id())
+            .name("getWeather")
+            .content(processResultContent)
+            .build();
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(firstJob.responseValue().context(), List.of(arrivedResult)));
@@ -2110,7 +2163,7 @@ class AgentSubProcessRequestHandlerTest {
       AgentMetrics expectedMetrics) {
     verify(agentInstanceClient)
         .applyTurnStart(
-            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any());
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
     assertThat(turnCaptor.getValue().inputMessages()).containsExactly(USER_MESSAGE);
 
     verify(agentInstanceClient)
@@ -2134,5 +2187,122 @@ class AgentSubProcessRequestHandlerTest {
 
   private static ToolCall rejectedAsUnknown(ToolCall call) {
     return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
+  }
+
+  @Test
+  void runsABatchOfRuntimeToolCallsInTheJobAndCallsTheModelAgain() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+
+    final var lookupCall = new ToolCall("call-1", "acme_lookup", Map.of("customerId", "42"));
+    final var firstMessage = AssistantMessage.builder().toolCalls(List.of(lookupCall)).build();
+    final var secondMessage = assistantMessage("done");
+    final var firstMetrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    final var secondMetrics = new AgentMetrics(1, new TokenUsage(10, 20), 0);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(new ChatResult.Completed(firstMessage, firstMetrics))
+        .doReturn(new ChatResult.Completed(secondMessage, secondMetrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+
+    // the tool is offered next to the tools of the process, in every request
+    for (final var request : chatModelRequestCaptor.getAllValues()) {
+      assertThat(request.snapshot().toolDefinitions())
+          .extracting(ToolDefinition::name)
+          .contains("acme_lookup");
+    }
+
+    // the second request carries the runtime tool results of the first round
+    final var secondRequestMessages =
+        chatModelRequestCaptor.getAllValues().get(1).snapshot().messages();
+    assertThat(secondRequestMessages.getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(result -> {
+                      assertThat(result.id()).isEqualTo("call-1");
+                      assertThat(result.name()).isEqualTo("acme_lookup");
+                      assertThat(result.elementId()).isNull();
+                      assertThat(result.completedAt()).isNotNull();
+                      assertThat(result.content())
+                          .containsExactly(TextContent.textContent("found the customer"));
+                    }));
+
+    // no call goes to the process, the runtime tool is not persisted with the tools
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(agentResponse.context().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain("acme_lookup");
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(2, new TokenUsage(20, 40), 1));
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> {
+              assertThat(c.messages()).hasSize(5);
+              // the stored message carries the tag of the tool the call targets
+              assertThat(c.messages().get(2))
+                  .isEqualTo(
+                      firstMessage.withToolCalls(List.of(lookupCall.withKind(ToolKind.RUNTIME))));
+              assertThat(c.messages().get(3)).isInstanceOf(ToolCallResultMessage.class);
+              assertThat(c.messages().get(4)).isEqualTo(secondMessage);
+            });
+
+    // history: start of the first turn, completion (THINKING: another round follows), start of the
+    // second round with the tool result correlated to the first turn, final completion
+    final var inOrder = inOrder(agentInstanceClient);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), turnCaptor.capture(), any(), any(), any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.THINKING));
+    final var previousTurnCaptor = ArgumentCaptor.forClass(Optional.class);
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnStart(
+            eq(agentExecutionContext),
+            any(),
+            any(),
+            turnCaptor.capture(),
+            previousTurnCaptor.capture(),
+            any(),
+            any());
+    inOrder
+        .verify(agentInstanceClient)
+        .applyTurnCompletion(
+            eq(agentExecutionContext),
+            any(),
+            turnCaptor.capture(),
+            any(),
+            eq(AgentInstanceUpdateStatus.IDLE));
+    inOrder.verifyNoMoreInteractions();
+    final var turns = turnCaptor.getAllValues();
+    assertThat(turns.get(2).iterationKey()).isEqualTo(2);
+    assertThat(turns.get(2).inputMessages())
+        .singleElement()
+        .isInstanceOf(ToolCallResultMessage.class);
+    assertThat(previousTurnCaptor.getValue())
+        .containsInstanceOf(AgentConversationTurn.class)
+        .get()
+        .extracting(turn -> ((AgentConversationTurn) turn).assistantMessage())
+        .isEqualTo(firstMessage.withToolCalls(List.of(lookupCall.withKind(ToolKind.RUNTIME))));
   }
 }
