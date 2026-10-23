@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallEffect;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -116,11 +118,33 @@ public record ToolCallBatch(List<ToolCall> toolCalls, Map<String, Entry> entries
      * result, by its gateway tool handler if it has one.
      */
     public static Entry from(ToolCallResult result, ToolCallResultDocumentExtractor extractor) {
+      return from(result, extractor, DocumentDelivery.REFERENCE);
+    }
+
+    /**
+     * The entry of a result as the process returned it, from a tool with the given document
+     * delivery. With the delivery {@link DocumentDelivery#CONTENT} the entry asks for the content of
+     * every document of the result.
+     */
+    public static Entry from(
+        ToolCallResult result,
+        ToolCallResultDocumentExtractor extractor,
+        DocumentDelivery documentDelivery) {
       final var documents =
           extractor.extractDocuments(List.of(result)).stream()
               .flatMap(group -> group.documents().stream())
               .toList();
-      return new Entry(ToolCallResultContent.from(result), documents, List.of());
+      final var effects =
+          switch (documentDelivery) {
+            case REFERENCE -> List.<ToolCallEffect>of();
+            case CONTENT ->
+                documents.stream()
+                    .<ToolCallEffect>map(
+                        document ->
+                            new ToolCallEffect.AddDocumentContent(AgentDocumentId.of(document)))
+                    .toList();
+          };
+      return new Entry(ToolCallResultContent.from(result), documents, effects);
     }
 
     /** The entry of a result with structured content; the documents are the ones of its content. */

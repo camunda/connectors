@@ -131,7 +131,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           ToolCallBatch.of(previousTurn.toolCalls())
               .withEntries(
                   processResults.arrivedResults().stream()
-                      .map(result -> ToolCallBatch.Entry.from(result, documentExtractor))
+                      .map(result ->
+                          ToolCallBatch.Entry.from(
+                              result,
+                              documentExtractor,
+                              documentDeliveryOf(agentContext, result.name())))
                       .toList());
       if (interruptMissingToolCalls) {
         // every call without a result is cancelled: the missing process calls and the runtime
@@ -178,6 +182,17 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
                 ready.documentIdsWithContent(),
                 documentFactory);
     return input.followedBy(ready.events());
+  }
+
+  /**
+   * The delivery of the documents a process tool returns. An agent instance that does not track its
+   * documents ignores the delivery of a tool.
+   */
+  private static DocumentDelivery documentDeliveryOf(AgentContext agentContext, String toolName) {
+    return switch (agentContext.documentHandling()) {
+      case DocumentHandling.Tracked ignored -> agentContext.documentDeliveryOf(toolName);
+      case DocumentHandling.Untracked ignored -> DocumentDelivery.REFERENCE;
+    };
   }
 
   private @Nullable UserMessage createUserPromptMessage(
