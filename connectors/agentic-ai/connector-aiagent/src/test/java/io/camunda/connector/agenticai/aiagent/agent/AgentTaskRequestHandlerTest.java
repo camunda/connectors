@@ -398,7 +398,7 @@ class AgentTaskRequestHandlerTest {
 
   private void mockProceed(Message... inputMessages) {
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.NextTurn(List.of(inputMessages)));
+        .thenAnswer(i -> new CompositionResult.NextTurn(i.getArgument(1), List.of(inputMessages)));
   }
 
   private void mockResponseHandler() {
