@@ -217,7 +217,7 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature keeps the previous document handling: bare content and the older tag
-  format, no registry. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
+  format, no registry, no document parameters. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
   against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
@@ -226,7 +226,9 @@ High-frequency traps (detail behind each link):
   computes it again. When the model issues runtime and process calls together, only the process calls are activated, and
   the runtime calls run when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
   persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A call of a
-  runtime tool that is not enabled when it runs gets an error result. `ai-agent.md` §9,
+  runtime tool that is not enabled when it runs gets an error result. `RUNTIME` means "answered by the connector runtime":
+  also a call of a tool of the process whose document parameter is not a known document is tagged `RUNTIME`, never
+  activated, and answered by the executor with an error result computed again from the call and the agent context. `ai-agent.md` §9,
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
   conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
@@ -235,7 +237,9 @@ High-frequency traps (detail behind each link):
   in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
   document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
   of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
-  starts. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
+  starts. A tool parameter of the type `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver`
+  turns it into the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for
+  a runtime tool (`RuntimeToolExecutorImpl`), and the stored messages and the history keep the tag. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
