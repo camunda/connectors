@@ -12,15 +12,18 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
@@ -56,6 +59,9 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       EVENT_CONTENT_EMPTY
           + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  static final String EVENT_DOCUMENT_TAGS_PREAMBLE = "Documents attached to the event:";
+
+  // the preamble of the tag and content pairs of an agent instance without the documents feature
   static final String EVENT_DOCUMENTS_PREAMBLE =
       "Documents extracted from event data (<doc /> tag + content pair):";
 
@@ -129,12 +135,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
     final boolean documentFlow = agentContext.supports(AgentFeatures.DOCUMENTS);
 
-    // the documents that enter the conversation with this turn
+    // the documents that enter the conversation with this turn: those of the prompt or of the
+    // tool call results first, those of the events after them
     final var ingestedDocuments = new ArrayList<IngestedDocument>();
+    final var eventDocuments = new ArrayList<IngestedDocument>();
 
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
-            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
+            .map(
+                eventResult ->
+                    createEventMessage(
+                        eventResult,
+                        interruptToolCallsOnEventResults,
+                        documentFlow,
+                        eventDocuments))
             .toList();
 
     List<Message> messages = new ArrayList<>();
@@ -173,7 +187,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       ingestedDocuments.addAll(toolCallResultsInput.documents());
       messages.addAll(eventMessages);
     } else {
-      messages.add(createUserPromptMessage(agentInput.userPrompt()));
+      messages.add(
+          createUserPromptMessage(agentInput.userPrompt(), documentFlow, ingestedDocuments));
       messages.addAll(eventMessages);
     }
 
@@ -184,10 +199,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
 
+    ingestedDocuments.addAll(eventDocuments);
     return new CompositionResult.NextTurn(messages, ingestedDocuments);
   }
 
-  private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {
+  private @Nullable UserMessage createUserPromptMessage(
+      AgentInput.UserPrompt userPrompt,
+      boolean documentFlow,
+      List<IngestedDocument> ingestedDocuments) {
 
     final var content = new ArrayList<Content>();
 
@@ -197,12 +216,27 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       content.add(textContent(userPromptText));
     }
 
-    // add documents
-    userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+    final var source = DocumentSource.userMessage();
+    if (documentFlow) {
+      // add documents as references with the delivery content: the content is added, from the
+      // registry, when the model is called
+      for (var doc : userPrompt.documents()) {
+        content.add(DocumentReferences.from(doc, source).withDelivery(DocumentDelivery.CONTENT));
+      }
+    } else {
+      // an agent instance without the documents feature keeps the documents as content
+      userPrompt.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+    }
 
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
       return null;
+    }
+
+    if (documentFlow) {
+      userPrompt
+          .documents()
+          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
     }
 
     return UserMessage.builder()
@@ -315,7 +349,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private Message createEventMessage(
-      ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
+      ToolCallResult eventResult,
+      boolean interruptToolCallsOnEventResults,
+      boolean documentFlow,
+      List<IngestedDocument> ingestedDocuments) {
     Object eventContent = eventResult.content();
 
     List<Content> userMessageContent = new ArrayList<>();
@@ -333,12 +370,22 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
           });
     }
 
-    // events arrive as ToolCallResult with null id/name — no tool-call attributes
-    // on the rendered tag, but the extraction shape is otherwise the same
+    // events arrive as ToolCallResult with null id/name, so their documents have no tool call
     final var eventDocuments = documentExtractor.extractDocuments(List.of(eventResult));
     if (!eventDocuments.isEmpty()) {
-      userMessageContent.add(textContent(EVENT_DOCUMENTS_PREAMBLE));
-      userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+      userMessageContent.add(
+          textContent(documentFlow ? EVENT_DOCUMENT_TAGS_PREAMBLE : EVENT_DOCUMENTS_PREAMBLE));
+      if (documentFlow) {
+        final var source = DocumentSource.event();
+        for (var group : eventDocuments) {
+          for (var doc : group.documents()) {
+            ingestedDocuments.add(new IngestedDocument(doc, source));
+            userMessageContent.add(DocumentReferences.from(doc, source));
+          }
+        }
+      } else {
+        userMessageContent.addAll(ToolCallResultsInputBuilder.documentPairs(eventDocuments));
+      }
     }
 
     return UserMessage.builder()

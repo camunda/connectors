@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -75,6 +76,7 @@ public abstract class BaseAgentRequestHandler<
   private final ResponseSchemaValidator responseSchemaValidator;
   private final RuntimeToolRegistry runtimeToolRegistry;
   private final RuntimeToolExecutor runtimeToolExecutor;
+  private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -86,7 +88,8 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       ResponseSchemaValidator responseSchemaValidator,
       RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeToolExecutor runtimeToolExecutor,
+      DocumentExpander documentExpander) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -97,6 +100,7 @@ public abstract class BaseAgentRequestHandler<
     this.responseSchemaValidator = responseSchemaValidator;
     this.runtimeToolRegistry = runtimeToolRegistry;
     this.runtimeToolExecutor = runtimeToolExecutor;
+    this.documentExpander = documentExpander;
   }
 
   @Override
@@ -222,7 +226,8 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentContext.agentInstanceKey(),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
-        previousConversation.turns().getLast());
+        previousConversation.turns().getLast(),
+        agentContext);
   }
 
   private R proceed(
@@ -305,7 +310,9 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.currentTurn().iterationKey());
 
       final var windowedSnapshot =
-          workingConversation.window(agentConfiguration.contextWindowSize());
+          workingConversation.window(
+              agentConfiguration.contextWindowSize(),
+              documentExpander.windowDecorator(workingConversation));
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       // the one place the tool calls are tagged with the kind of their tool
