@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -34,9 +35,9 @@ import java.util.Set;
 
 /**
  * Builds the input of the turn that follows a batch of tool calls from its results, in call order.
- * It applies what the results ask of the agent after all calls ran: it returns the documents of the
- * results in the {@link TurnInput}, which {@link TurnInput#applyTo} registers, and it applies the
- * effects of the results. It is the one place that checks that an effect names a known document.
+ * It applies what the results ask of the agent after all calls ran: the documents they return are
+ * registered, the effects of the results are applied, and the response documents they select are
+ * handed on in call order.
  *
  * <p>An agent instance that tracks its documents shows a document as its handle inside the tool
  * result and reports it in the {@link TurnInput} to be registered in its documents. For every
@@ -95,8 +96,10 @@ public class ToolCallResultsInputBuilder {
       AgentDocuments documents,
       List<ToolCallBatch.Entry> entries,
       Set<AgentDocumentId> documentIdsWithContent) {
-    return buildWithDocumentBlocks(
-        entries, applyEffects(documents, entries, documentIdsWithContent));
+    entries.forEach(ToolCallBatch.Entry::requireCamundaDocuments);
+    final var applied = applyEffects(documents, entries, documentIdsWithContent);
+    final var input = buildWithDocumentBlocks(entries, applied);
+    return new TurnInput(input.messages(), input.documents(), applied.responseDocuments());
   }
 
   /**
@@ -105,9 +108,12 @@ public class ToolCallResultsInputBuilder {
    * @param statements for every entry, in the order of the entries, the sentences that tell what
    *     happens to the content of the documents it asked for
    * @param delivered the documents whose content is added, in the order of the entries
+   * @param responseDocuments the response documents to select, in call order
    */
   private record AppliedEffects(
-      List<List<Content>> statements, List<AgentDocumentContent> delivered) {}
+      List<List<Content>> statements,
+      List<AgentDocumentContent> delivered,
+      List<ResponseDocumentSelection> responseDocuments) {}
 
   /**
    * Applies the effects in the order of the entries. An entry sees the documents of the agent and
@@ -121,12 +127,15 @@ public class ToolCallResultsInputBuilder {
     var delivery = DocumentContentDelivery.of(documentIdsWithContent);
     final var statements = new ArrayList<List<Content>>();
     final var delivered = new ArrayList<AgentDocumentContent>();
+    final var responseDocuments = new ArrayList<ResponseDocumentSelection>();
 
     for (final var entry : entries) {
       final var requestedContent = new ArrayList<AgentDocumentId>();
       for (final var effect : entry.effects()) {
         switch (effect) {
           case ToolCallEffect.AddDocumentContent add -> requestedContent.add(add.id());
+          case ToolCallEffect.SelectResponseDocument select ->
+              responseDocuments.add(select.selection());
         }
       }
       if (requestedContent.isEmpty()) {
@@ -153,7 +162,8 @@ public class ToolCallResultsInputBuilder {
       }
       statements.add(List.copyOf(entryStatements));
     }
-    return new AppliedEffects(List.copyOf(statements), List.copyOf(delivered));
+    return new AppliedEffects(
+        List.copyOf(statements), List.copyOf(delivered), List.copyOf(responseDocuments));
   }
 
   private static void requireKnown(

@@ -76,6 +76,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.UnsupportedDocumentReferenceException;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -219,6 +220,15 @@ class AgentSubProcessRequestHandlerTest {
               RuntimeToolResult.success("Loaded the document.")
                   .withDocumentContent(AgentDocumentId.of(KNOWN_DOCUMENT)));
 
+  /** A tool that asks the agent to select the known document for the final response. */
+  private static final RuntimeTool SELECT_DOCUMENT_TOOL =
+      StubRuntimeTool.of(
+          "acme_select_document",
+          (call, context) ->
+              RuntimeToolResult.success("Selected the document.")
+                  .withResponseDocument(
+                      "report", AgentDocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+
   private static final RuntimeTool LOOKUP_TOOL =
       StubRuntimeTool.of(
           "acme_lookup", (context, call) -> RuntimeToolResult.success("found the customer"));
@@ -260,6 +270,7 @@ class AgentSubProcessRequestHandlerTest {
               UPLOAD_RUNTIME_TOOL,
               COUNT_DOCUMENTS_TOOL,
               LOAD_DOCUMENT_TOOL,
+              SELECT_DOCUMENT_TOOL,
               new LoadDocumentTool()),
           TestObjectMapperSupplier.INSTANCE,
           new DocumentParameterResolver(TestObjectMapperSupplier.INSTANCE));
@@ -2609,6 +2620,58 @@ class AgentSubProcessRequestHandlerTest {
                     .extracting(ToolCallResultContent::id)
                     .containsExactly("call-1", "call-2"));
     assertContentMessageOf(messages.getLast(), document);
+  }
+
+  @Test
+  void appliesTheResponseDocumentOfARuntimeToolRoundToTheAgentContextOfTheSameJob() {
+    final var selection =
+        new ResponseDocumentSelection(
+            "report", AgentDocumentHandle.idFor(KNOWN_DOCUMENT), "The report");
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_KNOWING_A_DOCUMENT, List.of()));
+    final var selectCall = new ToolCall("call-1", "acme_select_document", Map.of());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(selectCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    assertThat(response.responseValue().context().responseDocuments()).containsExactly(selection);
+    // the selection is part of the context the history reporter gets with the round that follows
+    final var contextCaptor = ArgumentCaptor.forClass(AgentContext.class);
+    verify(agentInstanceClient, times(2))
+        .applyTurnStart(
+            eq(agentExecutionContext), any(), any(), any(), any(), any(), contextCaptor.capture());
+    assertThat(contextCaptor.getAllValues().get(0).responseDocuments()).isEmpty();
+    assertThat(contextCaptor.getAllValues().get(1).responseDocuments()).containsExactly(selection);
+    // the result the model reads is the text of the tool, whatever the effect
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(TextContent.textContent("Selected the document.")));
+  }
+
+  @Test
+  void appliesTheResponseDocumentOfAMixedBatchToTheAgentContextOfTheTurnThatFollowsTheProcess() {
+    final var run =
+        runMixedBatchInTwoJobs(
+            "acme_select_document", CONTEXT_KNOWING_A_DOCUMENT, "Sunny", () -> {});
+
+    assertThat(run.finalContext().responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection(
+                "report", AgentDocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
   }
 
   @Test
