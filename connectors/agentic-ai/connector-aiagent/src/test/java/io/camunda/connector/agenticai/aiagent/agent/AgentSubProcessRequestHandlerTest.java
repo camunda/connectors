@@ -214,7 +214,7 @@ class AgentSubProcessRequestHandlerTest {
   private static final RuntimeTool LOAD_DOCUMENT_TOOL =
       StubRuntimeTool.of(
           "acme_load_document",
-          (call, context) ->
+          (context, call) ->
               RuntimeToolResult.success("Loaded the document.")
                   .withDocumentContent(AgentDocumentId.of(KNOWN_DOCUMENT)));
 
@@ -1808,7 +1808,12 @@ class AgentSubProcessRequestHandlerTest {
         .filteredOn(tool -> tool.kind() == ToolKind.RUNTIME)
         .extracting(ToolDefinition::name)
         .containsExactly(
-            "acme_lookup", "acme_toggle", "acme_create_report", "acme_count_documents");
+            "acme_lookup",
+            "acme_toggle",
+            "acme_create_report",
+            "acme_count_documents",
+            "acme_load_document",
+            GetDocumentTool.NAME);
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
         .containsExactlyElementsOf(TOOL_DEFINITIONS);
@@ -2732,7 +2737,9 @@ class AgentSubProcessRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(
             new ReadyToConverse(
-                INITIAL_AGENT_CONTEXT.withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
+                INITIAL_AGENT_CONTEXT
+                    .withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS))
+                    .withToolDefinitions(TOOL_DEFINITIONS_WITH_UPLOAD),
                 List.of()));
 
     final var call = new ToolCall("call-1", "upload", Map.of("doc", "bogus"));
