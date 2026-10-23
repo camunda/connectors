@@ -14,15 +14,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -50,10 +55,14 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
     final var agentContext = conversation.toAgentContext();
     final var lastTurn = lastTurnOf(conversation);
     final var assistantMessage = assistantMessageOf(lastTurn);
-    // the stored assistant message keeps every tool call the model sent; only the calls handed to
-    // the process become tool calls of the response
+    // the stored assistant message keeps every tool call as the model sent it; only the calls
+    // handed to the process become tool calls of the response, and these carry the Camunda
+    // document references in place of the document tags
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, lastTurn.processToolCalls()).stream()
+        gatewayToolHandlers
+            .transformToolCalls(
+                agentContext, withDocumentReferences(agentContext, lastTurn.processToolCalls()))
+            .stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 
@@ -72,6 +81,34 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
+  }
+
+  /**
+   * The calls with the documents of their document parameters resolved. The calls that go to the
+   * process have valid document parameters: a call with an invalid one is answered by the agent
+   * (see {@link ToolKind#RUNTIME}).
+   */
+  private static List<ToolCall> withDocumentReferences(
+      AgentContext agentContext, List<ToolCall> processToolCalls) {
+    return processToolCalls.stream()
+        .map(
+            toolCall ->
+                switch (DocumentParameterResolver.resolveProcessCall(agentContext, toolCall)) {
+                  case DocumentParameterResolver.Resolution.Resolved resolved ->
+                      // not ToolCall#withArguments: a model can send an explicit null value, which
+                      // the immutable copy of the builder would reject
+                      new ToolCall(
+                          toolCall.id(),
+                          toolCall.name(),
+                          resolved.arguments(),
+                          toolCall.metadata(),
+                          toolCall.kind());
+                  case DocumentParameterResolver.Resolution.Invalid invalid ->
+                      throw new IllegalStateException(
+                          "The call '%s' of the tool '%s' goes to the process, but its document parameters are invalid: %s"
+                              .formatted(toolCall.id(), toolCall.name(), invalid.message()));
+                })
+        .toList();
   }
 
   private static AgentConversationTurn lastTurnOf(AgentConversation conversation) {

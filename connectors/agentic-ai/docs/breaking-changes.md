@@ -210,12 +210,14 @@ client in its properties does not start.
   results that arrived from the process.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
-process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent executes the runtime tool calls
-itself and never hands them to the process.
+process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent answers the runtime tool calls
+itself and never hands them to the process. The response carries the Camunda document references in place of the document
+tags in the arguments of these calls (`DocumentParameterResolver.resolveProcessCall`), and the stored assistant message
+keeps the arguments as the model sent them.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
-change. If you implement the interfaces directly, add the new method, handle the new variant and hand only the process
-tool calls to the process.
+change. If you implement the interfaces directly, add the new method, handle the new variant, hand only the process
+tool calls to the process and resolve their document parameters.
 
 ### Agent instance client and mappers
 
@@ -246,7 +248,8 @@ extra arguments; inject them as beans.
 
 `AgentConversation.window(int size)` is replaced by `window(int size, UnaryOperator<List<Message>> decorator)`. The
 decorator turns the windowed messages into the messages of the snapshot; `UnaryOperator.identity()` leaves them as they
-are. The request handler passes `DocumentExpander.windowDecorator(conversation)`.
+are. The request handler passes `DocumentExpander.windowDecorator(conversation)`. The tool definitions of the snapshot
+have the format of their document parameters removed for the model provider.
 
 ### Runtime tools and tool names
 
@@ -263,6 +266,12 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
   registered runtime tool that is not enabled when it runs gets an error result and does not go to the process.
+- A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
+  `RuntimeToolSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
+  document in place of the tag the model passed; a runtime tool receives its `DocumentId` (`RuntimeToolCall.argumentsAs`
+  binds it to a `DocumentId` or a `String` property). A call whose value is not the tag of a known document gets an error
+  result and the tool does not run, and a call of a tool of the process is not activated. Only agent instances with the
+  `documents` feature have document parameters.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
   tools.
 
@@ -271,7 +280,9 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments: `AgentContext` (`documents`, a list of
   registry entries, and `features`, a list) and `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by
-  default). The agent sets the kind of the tool calls of an assistant message once, when it receives the message.
+  default). The agent sets the kind of the tool calls of an assistant message once, when it receives the message. `RUNTIME`
+  stands for a call the connector runtime answers itself: a runtime tool owns the name, or the call of a tool of the
+  process was rejected for its document parameters.
 - The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
   `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
   request is built.
@@ -289,8 +300,12 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   which only agent instances without the `documents` feature use.
 - New in the libraries: the persisted document state (`DocumentRegistry`, `DocumentRegistryEntry`, `DocumentSource`) is in
   `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
-  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) is in
-  `aiagent.api.tool` of `aiagent-api`.
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`,
+  `RuntimeToolSchemas`) is in `aiagent.api.tool` of `aiagent-api`.
+- A document parameter in a tool definition is a string schema with the format `camunda-document-id`
+  (`DocumentParameterSchema`). The stored definition keeps its description as authored; the model providers get the
+  description with a hint appended and without the format. A gateway handler that defines its tools itself can declare
+  document parameters in them and receives the Camunda document references in the arguments of a call.
 
 <a id="persisted-data-8-11"></a>
 
@@ -303,7 +318,8 @@ are. The request handler passes `DocumentExpander.windowDecorator(conversation)`
   the `documents` feature can contain `documentReference` content blocks. There is no schema version bump, and a missing
   field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
   fields and drops them on its next write.
-- A `ToolCall` of a stored assistant message carries `kind`. The JSON holds it only for a call of a runtime tool, and a
+- A `ToolCall` of a stored assistant message carries `kind`. The JSON holds it only for a call that the agent answers
+  itself (the call of a runtime tool and the call of a tool of the process rejected for its document parameters), and a
   missing value reads as `PROCESS`, so state written by 8.10 loads unchanged. The agent never computes the kind again, so a
   custom `ConversationStore` must keep it: a store that drops it turns a runtime tool call into a process tool call that
   never gets a result. Serializing the `ToolCall` record with Jackson keeps it.

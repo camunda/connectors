@@ -560,6 +560,176 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Nested
+  class DocumentArguments {
+
+    private final Document document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    private final DocumentId documentId = DocumentHandle.idFor(document);
+    private final DocumentRegistry registry =
+        DocumentRegistries.withDocuments(
+            DocumentRegistry.empty(),
+            List.of(new IngestedDocument(document, DocumentSource.userMessage())));
+    private final AgentContext agentContext = WITH_DOCUMENTS.withDocumentRegistry(registry);
+
+    private final ToolCall uploadCall =
+        ToolCall.builder()
+            .id("call-1")
+            .name("upload")
+            .arguments(
+                Map.of(
+                    "file",
+                    "<doc id=\"" + documentId + "\" />",
+                    "attachments",
+                    List.of("<doc id=\"" + documentId + "\" />", "unknown"),
+                    "note",
+                    "n"))
+            .build();
+
+    @Test
+    void assistantToolCallShowsTheArgumentsAsTheModelSentThem() {
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(uploadCall)).build());
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(call -> assertThat(call.getArguments()).isEqualTo(uploadCall.arguments()));
+    }
+
+    @Test
+    void toolResultShowsTheSameArgumentsAsTheAssistantToolCall() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              agentContext);
+
+      assertThat(items)
+          .singleElement()
+          .satisfies(
+              item ->
+                  assertThat(item.toolCalls())
+                      .singleElement()
+                      .satisfies(
+                          call ->
+                              assertThat(call.getArguments()).isEqualTo(uploadCall.arguments())));
+    }
+
+    @Test
+    void showsTheTagOfTheDocumentParameterOfARuntimeToolCallAsTheModelSentIt() {
+      final var tag = "<doc id=\"" + documentId + "\" />";
+      final var call =
+          ToolCall.builder()
+              .id("call-2")
+              .name("acme_lookup")
+              .arguments(Map.of("key", "report", "document", tag))
+              .kind(ToolKind.RUNTIME)
+              .build();
+
+      final var calls =
+          mapper.assistantToolCalls(AssistantMessage.builder().toolCalls(List.of(call)).build());
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(
+              reported ->
+                  assertThat(reported.getArguments())
+                      .isEqualTo(Map.of("key", "report", "document", tag)));
+    }
+
+    @Test
+    void aRejectedCallOfAToolOfTheProcessHasNoElementIdAndShowsTheArgumentsAsTheModelSentThem() {
+      final var rejected =
+          ToolCall.builder()
+              .id("call-3")
+              .name("upload")
+              .arguments(Map.of("file", "bogus"))
+              .kind(ToolKind.RUNTIME)
+              .build();
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-3")
+              .name("upload")
+              .content(List.of(TextContent.textContent("Parameter 'file' must be a tag.")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var calls =
+          mapper.assistantToolCalls(
+              AssistantMessage.builder().toolCalls(List.of(rejected)).build());
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-3", rejected),
+              TURN_INGESTION_TIMESTAMP,
+              agentContext);
+
+      assertThat(calls)
+          .singleElement()
+          .satisfies(
+              call -> {
+                assertThat(call.getElementId()).isNull();
+                assertThat(call.getArguments()).isEqualTo(rejected.arguments());
+              });
+      assertThat(items)
+          .singleElement()
+          .satisfies(
+              item ->
+                  assertThat(item.toolCalls())
+                      .singleElement()
+                      .satisfies(
+                          call -> {
+                            assertThat(call.getElementId()).isNull();
+                            assertThat(call.getArguments()).isEqualTo(rejected.arguments());
+                          }));
+    }
+
+    @Test
+    void showsTheArgumentsAsGivenForAnAgentWithoutDocuments() {
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("upload")
+              .elementId("upload")
+              .content(List.of(TextContent.textContent("200")))
+              .completedAt(TOOL_RESULT_COMPLETED_AT)
+              .build();
+
+      final var items =
+          mapper.inputHistoryItems(
+              ToolCallResultMessage.builder().results(List.of(result)).build(),
+              Map.of("call-1", uploadCall),
+              TURN_INGESTION_TIMESTAMP,
+              NEW_INSTANCE);
+
+      assertThat(items)
+          .singleElement()
+          .satisfies(
+              item ->
+                  assertThat(item.toolCalls())
+                      .singleElement()
+                      .satisfies(
+                          call ->
+                              assertThat(call.getArguments()).isEqualTo(uploadCall.arguments())));
+    }
+  }
+
+  @Nested
   class ToolResultDocuments {
 
     private final ObjectMapper objectMapper = TestObjectMapperSupplier.INSTANCE;
@@ -901,6 +1071,20 @@ class AgentInstanceHistoryMapperTest {
       assertThat(
               ((AgentInstanceHistoryContent.ObjectContent) nested.content().getFirst()).getObject())
           .isEqualTo(Map.of("file", inlineTag));
+    }
+
+    @Test
+    void theArgumentsAreTheOnesTheModelSent() {
+      final var item =
+          item(
+              message(
+                  DocumentReferences.from(document),
+                  ObjectContent.objectContent(Map.of("file", otherDocument))),
+              agentContext);
+
+      assertThat(item.toolCalls())
+          .singleElement()
+          .satisfies(reported -> assertThat(reported.getArguments()).isEqualTo(call.arguments()));
     }
 
     @Test

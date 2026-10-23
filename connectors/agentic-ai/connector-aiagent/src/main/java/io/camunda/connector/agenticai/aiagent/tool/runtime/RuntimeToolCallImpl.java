@@ -10,13 +10,17 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** The call of a runtime tool as the agent hands it to the tool. */
+/**
+ * The call of a runtime tool as the agent hands it to the tool. The arguments are the resolved
+ * ones: a {@link DocumentId} replaces every document of a document parameter.
+ */
 public final class RuntimeToolCallImpl implements RuntimeToolCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeToolCallImpl.class);

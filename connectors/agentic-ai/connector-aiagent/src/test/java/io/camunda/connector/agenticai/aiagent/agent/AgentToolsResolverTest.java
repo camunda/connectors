@@ -249,6 +249,55 @@ class AgentToolsResolverTest {
     }
 
     @Test
+    void doesNotTreatUnchangedToolWithDocumentParametersAsChanged() {
+      final var toolWithDocuments =
+          ToolDefinition.builder()
+              .name("tool1")
+              .description("Tool 1 description")
+              .inputSchema(
+                  Map.of(
+                      "type",
+                      "object",
+                      "properties",
+                      Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
+              .build();
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(toolWithDocuments));
+
+      final var regenerated = toolWithDocuments.withDescription(toolWithDocuments.description());
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(regenerated), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(toolWithDocuments);
+    }
+
+    @Test
+    void updatesToolDefinitionWhenDocumentParametersChange() {
+      final var agentContext = AgentContext.empty().withToolDefinitions(List.of(TOOL_1));
+      final var withDocuments =
+          TOOL_1.withInputSchema(
+              Map.of(
+                  "type",
+                  "object",
+                  "properties",
+                  Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))));
+
+      when(toolsSchemaResolver.resolveAdHocToolsSchema(any()))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(withDocuments), List.of()));
+      when(gatewayToolHandlers.resolveUpdatedGatewayToolDefinitions(any(), any()))
+          .thenReturn(Map.of());
+      when(gatewayToolHandlers.isGatewayManaged(any())).thenReturn(false);
+
+      final var result = agentToolsResolver.updateToolDefinitions(executionContext, agentContext);
+
+      assertThat(result.toolDefinitions()).containsExactly(withDocuments);
+    }
+
+    @Test
     void throwsErrorWhenToolsAreRemoved() {
       final var existingTools = List.of(TOOL_1, TOOL_2);
       final var agentContext = AgentContext.empty().withToolDefinitions(existingTools);
