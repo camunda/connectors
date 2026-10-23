@@ -11,5 +11,5 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record StructuredExtractionRequest(
-    @Valid StructuredExtractionProvider extractor,
+    @Valid @NotNull StructuredExtractionProvider extractor,
     @Valid @NotNull StructuredExtractionRequestData input) {}
