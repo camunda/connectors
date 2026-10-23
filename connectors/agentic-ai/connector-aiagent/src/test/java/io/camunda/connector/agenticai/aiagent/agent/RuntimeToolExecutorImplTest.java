@@ -499,6 +499,13 @@ class RuntimeToolExecutorImplTest {
   private static final ToolDefinition UPLOAD =
       definitionOf("upload", Map.of("file", RuntimeToolSchemas.document("The file")));
 
+  private static final String UNKNOWN_BODY =
+      "Parameter 'body' holds a <doc /> tag with the id 'nope'. That is not a known document."
+          + " Pass the tag of a document exactly as you read it, or pass other text.";
+
+  private static final ToolDefinition SEND =
+      definitionOf("send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body")));
+
   private static ToolDefinition definitionOf(String name, Map<String, Object> properties) {
     return ToolDefinition.builder()
         .name(name)
@@ -621,6 +628,64 @@ class RuntimeToolExecutorImplTest {
               assertThat(execution.toolCallResult().completedAt()).isNotNull();
               assertThat(text(execution)).isEqualTo(BOGUS_FILE);
             });
+  }
+
+  @Test
+  void handsTheIdOfATagInAUnionParameterToARuntimeToolAndKeepsTextAsText() {
+    final var report = createDocument("report", "report.txt");
+    final var received = new ArrayList<Object>();
+    record Args(Object body) {}
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            (call, context) -> {
+              received.add(call.argumentsAs(Args.class).body());
+              return RuntimeToolResult.success("sent");
+            });
+
+    executorOf(tool)
+        .execute(
+            WITH_MEMORY,
+            knowingWithDocumentsFeature(report),
+            List.of(
+                runtimeCall("r1", "c8__send", Map.of("body", tagOf(report))),
+                runtimeCall("r2", "c8__send", Map.of("body", "hello"))),
+            Set.of());
+
+    assertThat(received).containsExactly(DocumentHandle.idFor(report), "hello");
+  }
+
+  @Test
+  void answersATagOfAnUnknownDocumentInAUnionParameterOfARuntimeToolWithAnErrorAndDoesNotRunIt() {
+    final var runs = new AtomicInteger();
+    final var tool =
+        StubRuntimeTool.of(
+            definitionOf("c8__send", Map.of("body", RuntimeToolSchemas.textOrDocument("The body"))),
+            (call, context) -> {
+              runs.incrementAndGet();
+              return RuntimeToolResult.success("sent");
+            });
+
+    final var executions =
+        executorOf(tool)
+            .execute(
+                WITH_MEMORY,
+                knowingWithDocumentsFeature(),
+                List.of(runtimeCall("r1", "c8__send", Map.of("body", "<doc id=\"nope\" />"))),
+                Set.of());
+
+    assertThat(runs).hasValue(0);
+    assertThat(text(executions.getFirst())).isEqualTo(UNKNOWN_BODY);
+  }
+
+  @Test
+  void answersTheCallOfAToolOfTheProcessRejectedForATagInAUnionParameter() {
+    final var call = runtimeCall("s1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    final var agentContext = knowingWithDocumentsFeature().withToolDefinitions(List.of(SEND));
+
+    final var executions = executorOf().execute(WITH_MEMORY, agentContext, List.of(call), Set.of());
+
+    assertThat(text(executions.getFirst())).isEqualTo(UNKNOWN_BODY);
   }
 
   @Test
