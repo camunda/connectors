@@ -207,7 +207,8 @@ client in its properties does not start.
   Between the two, the request handler produces the tool call results of the local tool calls (calls of runtime tools and
   rejected calls) and adds them to the `Ready`. The composer executes no tool.
 - `CompositionResult` has the variants `Deferred`, `NoInput` and `Ready`. `NextTurn` is removed; its messages are in
-  `TurnInput`, with the documents that enter the conversation with it, which the request handler registers. `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
+  `TurnInput`, with the documents that enter the conversation with it and the response documents the runtime tool results
+  select; the request handler applies it to the agent context it persists (`TurnInput.applyTo`). `Ready` holds the agent context, the ids of the documents whose content the model reads, the tool calls of the previous turn and their results as a `ToolCallBatch`, the user prompt
   of a turn without tool call results, and the event messages. `Deferred.arrivedResults` holds only the results that
   arrived from the process.
 - The constructor of `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an
@@ -223,7 +224,8 @@ auto-configuration.
 
 `ToolCallResultsInputBuilder` builds the tool call result message and the messages that follow it from the results of a
 `ToolCallBatch`, for the composer. It reports the documents of the results for registration and applies the effects of
-the results of runtime tools (the content of a known document, see "Runtime tools and tool names").
+the results of runtime tools (the content of a known document and the response documents, see "Runtime tools and tool
+names").
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the composer interface directly, replace `compose` with `resolve` and `assemble`. If you
@@ -263,7 +265,7 @@ The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler
 `AgentConversationTurnInputComposerImpl` takes a `ToolCallResultsInputBuilder` and an `ObjectHandleRenderer`, the
 constructor of `LocalToolCallExecutor` takes `RuntimeTools` and an `ObjectHandleRenderer`. The runtime tools restore documents with the document factory of the job (`AgentExecutionContext.documentFactory()`),
 never with a `DocumentFactory` bean. The
-auto-configuration provides these beans and the built-in runtime tool, each `@ConditionalOnMissingBean`. A custom bean
+auto-configuration provides these beans and the two built-in runtime tools, each `@ConditionalOnMissingBean`. A custom bean
 built with `new` needs the extra arguments; inject them as beans.
 
 ### Conversation window
@@ -276,13 +278,12 @@ applies it to its persisted context, and the next round continues with the conte
 
 ### Runtime tools and tool names
 
-- Agent instances created by a v2 connector from 8.11 on have the `runtimeTools` and the `documents` feature and are
-  offered the built-in runtime tool `c8__load_document`, which the agent runs itself. An agent job fails with the error code
-  `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
-  not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own. The prefix
-  `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent instances
-  created before, and new instances of the deprecated v1 connectors, keep their behavior: they are offered no runtime
-  tool and no name is checked.
+- Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
+  runtime tools `c8__load_document` and `c8__return_document`, which the agent runs itself. An agent job fails with the
+  error code `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime
+  tool that is not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own.
+  The prefix `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent
+  instances created before keep their behavior: they are offered no runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
@@ -297,9 +298,10 @@ applies it to its persisted context, and the next round continues with the conte
   document the agent knows when the batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
-  (`withDocumentContent(AgentDocumentId)`, which adds a variant of the sealed
-  `ToolCallEffect`, listed by `Success.effects()`), which the agent applies after all calls of the message ran, in call
-  order, without a check of the type or the size of the document. The agent
+  (`withDocumentContent(AgentDocumentId)`) or to select a known document for the final
+  response (`withResponseDocument(key, AgentDocumentId, description)`); each adds a variant of the sealed
+  `ToolCallEffect`, listed by `Success.effects()`, which the agent applies after all calls of the message ran, in call
+  order. The content effect adds the content without a check of the type or the size of the document. The agent
   also writes, after the content a result returned, one sentence per document whose content the result asks for; a tool
   needs no text of its own for it. An error result has no effects. A result holds a document as the `Document` of the connector SDK:
   an `AgentDocument` or an `AgentDocumentContent` block in a result, and an effect that names a document neither known to
@@ -318,7 +320,9 @@ applies it to its persisted context, and the next round continues with the conte
   implementation returns the `OutboundConnectorContext` of the job, which is a `DocumentFactory`.
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
-  three arguments: `AgentContext` (`documents`, the `AgentDocuments`, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
+  three arguments: `AgentContext` (`documents`, the `AgentDocuments`, `responseDocuments`, a list of selections with a `key`, and
+  `features`, a list), `AgentResponse` and `AgentSubProcessResponse` (`responseDocuments`, a map by key; the order of its
+  entries is not specified), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
   by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
   runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
@@ -351,8 +355,9 @@ applies it to its persisted context, and the next round continues with the conte
   Derive the id of a document with `AgentDocumentId.of(Document)` or `AgentDocumentId.of(DocumentReference)`; the id has
   the format described above.
 - New in the libraries: the persisted document state (`AgentDocuments`, `AgentDocument`, the sealed `AgentDocumentOrigin`,
-  persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, and the sealed `DocumentHandling` of an
-  agent instance, `Untracked` or `Tracked`) is in `aiagent.model.document` of `aiagent-model`, which depends on the
+  persisted with the discriminator `type`: `user_message`, `event` or `tool_call`, the sealed `DocumentHandling` of an
+  agent instance, `Untracked` or `Tracked`, `ResponseDocumentSelection` and `ReturnedDocument`, a response document in
+  `responseDocuments` of the agent response) is in `aiagent.model.document` of `aiagent-model`, which depends on the
   `jackson-datatype-document` library of the connector SDK for the document reference, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolResult`, `ToolCallEffect`, `RuntimeToolException`) are in `aiagent.api.tool` of `aiagent-api`. A
   `RuntimeToolExecution` carries the `RuntimeToolResult` the tool returned (`result()`); the
@@ -365,9 +370,9 @@ applies it to its persisted context, and the next round continues with the conte
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
-- `AgentContext` gains `documents` (the agent documents), and the conversation of an agent instance with the `documents`
-  feature can contain `agent_document` content blocks. A missing field binds to its empty value, so state written by 8.10
-  loads unchanged.
+- `AgentContext` gains `documents` (the agent documents) and `responseDocuments`, and the conversation of an agent instance
+  with the `documents` feature can contain `agent_document` content blocks. A missing field binds to its empty value, so
+  state written by 8.10 loads unchanged.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
   and without the `runtimeTools` feature. `kind` is the kind of the tool the call names; a call of a tool name that is not
   offered, or of a tool of either kind whose document parameter is not the handle of a known document (only with the `documents`
@@ -379,7 +384,7 @@ applies it to its persisted context, and the next round continues with the conte
   result. Serializing the `ToolCall` record with Jackson keeps them.
 - A stored message can hold an `AgentDocumentContent`, which a custom `ConversationStore` must keep like any other
   content block (serializing `Content` with Jackson keeps it). What a block stands for is in the agent documents of the agent
-  context, not in the store, so code that rewrites the agent context must keep `documents`.
+  context, not in the store, so code that rewrites the agent context must keep `documents` and `responseDocuments`.
 - The assistant message in the `responseMessage` of an `AgentResponse` (`includeAssistantMessage`) also carries `kind`
   for a runtime tool call and `rejection` for a rejected call.
 - Do not rely on the JSON shape of these fields in external systems.
