@@ -209,10 +209,13 @@ client in its properties does not start.
   calls and composes again with `composeWithLocalToolCallResults`, which merges them with the process results in call
   order and returns the turn input.
 - `CompositionResult` gains the variant `LocalToolCallResultsRequired(List<ToolCall> localToolCalls)`, so a `switch` over
-  it must handle it. `NextTurn` gains the component `documents` (the documents that entered the conversation with the
-  turn, which the request handler registers); the constructor `NextTurn(messages)` remains, so a pattern
-  `NextTurn(var messages)` must become `NextTurn(var messages, var documents)`. `Deferred.arrivedResults` holds only the
-  results that arrived from the process.
+  it must handle it. `NextTurn` gains the components `agentContext` and `documents`: the agent context the turn continues
+  with (the one the composer was given, with the response documents the runtime tool results selected) and the documents
+  that entered the conversation with the turn, which the request handler registers in that context. The constructor
+  `NextTurn(messages)` is replaced by `NextTurn(agentContext, messages)`, and a pattern `NextTurn(var messages)` must
+  become `NextTurn(var agentContext, var messages, var documents)`. A custom composer returns the agent context it was
+  given when no runtime tool result changes it. `Deferred.arrivedResults` holds only the results that arrived from the
+  process.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent produces the tool call
@@ -223,9 +226,11 @@ them.
 
 `ToolCallResultsInputBuilder` is a new interface (implementation `ToolCallResultsInputBuilderImpl`) that builds the tool
 call result message and the messages that follow it from the results of all tool calls of a turn, for the composer and for
-the rounds of local tool call results of the request handler. It registers the documents of the results and applies the effects of the
-results of runtime tools (the content of a known document, see "Runtime tools and tool names"). The composer and the
-request handler take it as a constructor argument.
+the rounds of local tool call results of the request handler. It registers the documents of the results and applies the
+effects of the results of runtime tools (the content of a known document and the response documents, see "Runtime tools
+and tool names"), and returns the agent context with the response documents selected together with the input and the
+documents of the results, which the caller registers. The composer and the request handler take it as a constructor
+argument.
 
 Migration: extend `AgentConversationTurnInputComposerImpl` and `AgentResponseHandlerImpl` and override only what you
 change. If you implement the interfaces directly, add the new method, handle the new variant, hand only the process
@@ -256,7 +261,7 @@ single `RuntimeTools` and a `DocumentExpander`. `AgentConversationTurnInputCompo
 documents whose content the agent adds, and the `ObjectMapper` that reads a document from its reference. The size limits
 of the guard are set by the properties `camunda.connector.agenticai.aiagent.document.content-limits.*` (see §16 of the
 [reference](reference/ai-agent.md)). The auto-configuration provides the beans `RuntimeTools`,
-`ToolCallResultsInputBuilder`, `DocumentExpander`, `DocumentContentGuard` and the built-in runtime tool, all
+`ToolCallResultsInputBuilder`, `DocumentExpander`, `DocumentContentGuard` and the two built-in runtime tools, all
 `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject them as beans.
 
 ### Conversation window
@@ -269,11 +274,11 @@ have the format of their document parameters removed for the model provider.
 ### Runtime tools and tool names
 
 - Agent instances created from 8.11 on have the `runtimeTools` and the `documents` feature and are offered the built-in
-  runtime tool `c8__get_document`, which the agent runs itself. An agent job fails with the error code
-  `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime tool that is
-  not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own. The prefix
-  `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent instances
-  created before keep their behavior: they are offered no runtime tool and no name is checked.
+  runtime tools `c8__get_document` and `c8__return_document`, which the agent runs itself. An agent job fails with the
+  error code `RUNTIME_TOOL_NAME_CONFLICT` when a tool of the process has the name of an enabled runtime tool; a runtime
+  tool that is not enabled reserves no name. Give the runtime tools of your own runtime a name with a prefix of your own.
+  The prefix `c8__` is for the tools the connector ships; no prefix is checked or reserved, only the exact name. Agent
+  instances created before keep their behavior: they are offered no runtime tool and no name is checked.
 - Behavior change for every agent instance, with or without the `runtimeTools` feature, in both flavors: every tool call
   is matched against the tools offered in the job. A call of a tool name that is not offered, for example a name the model
   invented, no longer reaches the process. The agent rejects it once, when the model response arrives, and adds the tool
@@ -288,11 +293,12 @@ have the format of their document parameters removed for the model provider.
   batch of calls starts; a tool can return documents in its result, which the agent registers after all calls of the
   message ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and `Error`); a `Success` can
   ask the agent to add the content of a known document to the request that follows the tool results
-  (`withDocumentContent(DocumentId)`), which the agent applies after all calls of the message ran, in call order, and
-  after its content guard accepted the document. An error result has no effects, and `AgentDocument` gains
-  `contentInConversation()`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A
-  rejected call gets an error result from the agent, and a call of a runtime tool that is not enabled when it is
-  executed gets an error result from `RuntimeTools`; neither goes to the process.
+  (`withDocumentContent(DocumentId)`) or to select a known document for the final response
+  (`withResponseDocument(key, DocumentId, description)`), which the agent applies after all calls of the message ran, in
+  call order; the content is added after its content guard accepted the document. An error result has no effects, and
+  `AgentDocument` gains `contentInConversation()`. The runtime tool SPI is marked `@Experimental` in 8.11 and may change
+  in a minor release. A rejected call gets an error result from the agent, and a call of a runtime tool that is not
+  enabled when it is executed gets an error result from `RuntimeTools`; neither goes to the process.
 - A tool parameter that carries a document is declared with the type `document` of `fromAi`, or with
   `RuntimeToolSchemas.document(...)` for a runtime tool. A process tool receives the Camunda document reference of the
   document in place of the tag the model passed; a runtime tool receives its `DocumentId` (`RuntimeToolCall.argumentsAs`
@@ -307,8 +313,10 @@ have the format of their document parameters removed for the model provider.
 
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
   builder, or for `ToolCall` the constructors with three or four arguments and for `ToolDefinition` the constructor with
-  three arguments: `AgentContext` (`documents`, a list of workspace documents, and `features`, a list), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS`
-  by default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
+  three arguments: `AgentContext` (`documents`, a list of workspace documents, `responseDocuments`, a list of selections
+  with a `key`, and `features`, a list), `AgentResponse` and `AgentSubProcessResponse` (`responseDocuments`, a map by key;
+  the order of its entries is not specified), `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by
+  default, and `rejection`, an optional error text, none by default; the canonical constructor has the six components
   `id`, `name`, `arguments`, `metadata`, `kind` and `rejection`) and `ToolDefinition` (`kind`, `PROCESS` by default; a
   runtime tool declares `RUNTIME`, for example with `ToolDefinition.runtime(...)`). The agent sets the kind and the
   rejection of the tool calls of an assistant message once, when it receives the message.
@@ -324,17 +332,19 @@ have the format of their document parameters removed for the model provider.
   loaded it with `c8__get_document`. A custom `ChatModel` that handles `DocumentContent` in tool results therefore sees
   text for these instances; instances created before keep the earlier form.
 - New in the model: `DocumentId`, the value type of a document id (persisted as a plain string), used by the document
-  workspace and `DocumentReferenceContent`. The id is `doc_` followed by 12 lowercase hex characters derived from the
-  identity of the document (the store and the id in the store of a Camunda document, the URL of an external document, the
-  content of an inline document), so it is no longer the id of the document in its store.
+  workspace, `DocumentReferenceContent` and `ResponseDocumentSelection`. The id is `doc_` followed by 12 lowercase hex
+  characters derived from the identity of the document (the store and the id in the store of a Camunda document, the URL
+  of an external document, the content of an inline document), so it is no longer the id of the document in its store.
   `DocumentReferenceContent` holds the `DocumentId`, the `delivery` and the content `metadata`; the file name, content
   type, size and origin the model reads are those of the workspace document of the id, and `aiagent.document.DocumentTags`
   renders the tag.
 - Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
   which only agent instances without the `documents` feature use.
-- New in the libraries: the persisted document state (`DocumentWorkspace`, `WorkspaceDocument` and the sealed
-  `DocumentOrigin`, persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`) is in
-  `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
+- New in the libraries: the persisted document state (`DocumentWorkspace`, `WorkspaceDocument`, the sealed
+  `DocumentOrigin`, persisted with the discriminator `type`: `USER_MESSAGE`, `EVENT` or `TOOL_CALL`, and
+  `ResponseDocumentSelection`) is in `aiagent.model.document` of `aiagent-model`, `ReturnedDocument` (a response document
+  in `responseDocuments` of the agent response) is in `aiagent.model`, and the runtime tool SPI (`RuntimeTool`,
+  `RuntimeToolCall`,
   `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`,
   `RuntimeToolSchemas`) is in `aiagent.api.tool` of `aiagent-api`. The four-argument
   `RuntimeTools.execute` takes the ids of the documents whose content the model reads as of the start of the batch before
@@ -352,8 +362,8 @@ have the format of their document parameters removed for the model provider.
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
   one additional `CONFIGURATION` history item on its first job after the upgrade.
-- `AgentContext` gains `features` and `documents` (the document workspace), and the conversation of an agent instance with
-  the `documents` feature can contain `documentReference` content blocks. There is no schema version bump, and a missing
+- `AgentContext` gains `features`, `documents` (the document workspace) and `responseDocuments`, and the conversation of an
+  agent instance with the `documents` feature can contain `documentReference` content blocks. There is no schema version bump, and a missing
   field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
   fields and drops them on its next write.
 - A `ToolCall` of a stored assistant message carries `kind` and `rejection`, also in an agent instance created before 8.11
@@ -366,7 +376,7 @@ have the format of their document parameters removed for the model provider.
   result. Serializing the `ToolCall` record with Jackson keeps them.
 - A stored message can hold a `DocumentReferenceContent`, which a custom `ConversationStore` must keep like any other
   content block (serializing `Content` with Jackson keeps it). What a reference stands for is in the workspace of the agent
-  context, not in the store, so code that rewrites the agent context must keep `documents`.
+  context, not in the store, so code that rewrites the agent context must keep `documents` and `responseDocuments`.
 - Rolling back to 8.10 after 8.11 wrote the conversation of an agent instance with the `documents` feature is not
   supported: an 8.10 runtime fails to read a conversation that contains a `documentReference` block (an unknown content
   type).
