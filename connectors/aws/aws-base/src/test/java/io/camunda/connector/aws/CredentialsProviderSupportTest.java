@@ -15,20 +15,20 @@ import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 
-class CredentialsProviderSupportV2Test {
+class CredentialsProviderSupportTest {
 
   @Test
   void staticCredentials_shouldReturnStaticCredentialsProvider() {
     var request =
         requestWith(new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
-    var provider = CredentialsProviderSupportV2.credentialsProvider(request);
+    var provider = CredentialsProviderSupport.credentialsProvider(request);
     assertThat(provider.resolveCredentials().accessKeyId()).isEqualTo("key");
   }
 
   @Test
   void defaultCredentials_shouldReturnDefaultCredentialsProvider() {
     var request = requestWith(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
-    var provider = CredentialsProviderSupportV2.credentialsProvider(request);
+    var provider = CredentialsProviderSupport.credentialsProvider(request);
     assertThat(provider).isInstanceOf(DefaultCredentialsProvider.class);
   }
 
