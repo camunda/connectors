@@ -105,6 +105,7 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.ReturnDocumentTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
@@ -225,7 +226,7 @@ class AgentSubProcessRequestHandlerTest {
   private static final RuntimeTool SELECT_DOCUMENT_TOOL =
       StubRuntimeTool.of(
           "acme_select_document",
-          (call, context) ->
+          (context, call) ->
               RuntimeToolResult.success("Selected the document.")
                   .withResponseDocument(
                       "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
@@ -255,6 +256,7 @@ class AgentSubProcessRequestHandlerTest {
               COUNT_DOCUMENTS_TOOL,
               LOAD_DOCUMENT_TOOL,
               SELECT_DOCUMENT_TOOL,
+              new ReturnDocumentTool(),
               new GetDocumentTool()),
           TestObjectMapperSupplier.INSTANCE);
 
@@ -1744,6 +1746,8 @@ class AgentSubProcessRequestHandlerTest {
             "acme_create_report",
             "acme_count_documents",
             "acme_load_document",
+            "acme_select_document",
+            ReturnDocumentTool.NAME,
             GetDocumentTool.NAME);
     assertThat(offered)
         .filteredOn(tool -> tool.kind() == ToolKind.PROCESS)
@@ -1781,14 +1785,12 @@ class AgentSubProcessRequestHandlerTest {
     final var document = createDocument("tool data", "tool.txt");
     mockSystemPrompt();
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenAnswer(
-            i ->
-                new CompositionResult.NextTurn(
-                    i.getArgument(1),
-                    List.of(USER_MESSAGE),
-                    List.of(
-                        new IngestedDocument(
-                            document, DocumentOrigin.toolCall("search", "call-1")))));
+        .thenAnswer(i ->
+            new CompositionResult.NextTurn(
+                i.getArgument(1),
+                List.of(USER_MESSAGE),
+                List.of(
+                    new IngestedDocument(document, DocumentOrigin.toolCall("search", "call-1")))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -2466,6 +2468,134 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
+  void selectsTheResponseDocumentOfAReturnDocumentCallInARuntimeToolRound() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_KNOWING_A_DOCUMENT, List.of()));
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of(
+                "key",
+                "report",
+                "document",
+                docTag(DocumentHandle.idFor(KNOWN_DOCUMENT)),
+                "description",
+                "The report"));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    // the built-in tool is offered next to the tools of the process, and never persisted with them
+    assertThat(chatModelRequestCaptor.getAllValues().get(0).snapshot().toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .contains(ReturnDocumentTool.NAME);
+    final var context = response.responseValue().context();
+    assertThat(context.toolDefinitions())
+        .extracting(ToolDefinition::name)
+        .doesNotContain(ReturnDocumentTool.NAME);
+    assertThat(context.responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection(
+                "report", DocumentHandle.idFor(KNOWN_DOCUMENT), "The report"));
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent("Returned the document under the key 'report'.")));
+  }
+
+  @Test
+  void selectsNothingForAReturnDocumentCallWithAnInvalidKey() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_KNOWING_A_DOCUMENT, List.of()));
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "not a key", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT))));
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(returnCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void selectsNoResponseDocumentInTheJobThatActivatesTheProcessCallOfAMixedBatch() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_KNOWING_A_DOCUMENT, List.of()));
+    final var returnCall =
+        new ToolCall(
+            "call-1",
+            ReturnDocumentTool.NAME,
+            Map.of("key", "report", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT))));
+    final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(returnCall, processCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // no extra model call: only the call of the process is handed out, and the call of the
+    // built-in tool runs when the results of the process arrived
+    verify(chatModel, times(1)).execute(any());
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(processCall));
+    assertThat(response.responseValue().context().responseDocuments()).isEmpty();
+    verify(runtimeTools, never()).execute(any(), any(), any(), anyList());
+  }
+
+  @Test
+  void leavesTheReturnDocumentCallOfAMixedBatchToTheNextTurnAndSelectsItsDocumentThen() {
+    final var arguments =
+        Map.<String, Object>of(
+            "key", "report", "document", docTag(DocumentHandle.idFor(KNOWN_DOCUMENT)));
+
+    final var run =
+        runMixedBatchInTwoJobs(
+            ReturnDocumentTool.NAME, arguments, CONTEXT_KNOWING_A_DOCUMENT, "Sunny", () -> {});
+
+    // the model reads the results of both calls in call order, as for a runtime round
+    final var messages = run.chatRequests().get(1).snapshot().messages();
+    assertThat(messages.getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .extracting(ToolCallResultContent::id)
+                    .containsExactly("call-1", "call-2"));
+    assertThat(run.finalContext().responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection("report", DocumentHandle.idFor(KNOWN_DOCUMENT), null));
+  }
+
+  @Test
   void carriesTheResponseDocumentsIntoTheAgentResponseVariable() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
@@ -2475,13 +2605,12 @@ class AgentSubProcessRequestHandlerTest {
     final var returned =
         new ReturnedDocument(Map.<String, Object>of("camunda.document.type", "camunda"), "Report");
     when(responseHandler.createResponse(any(AgentConversation.class)))
-        .thenAnswer(
-            i ->
-                AgentResponse.builder()
-                    .context(i.getArgument(0, AgentConversation.class).toAgentContext())
-                    .responseText("here you go")
-                    .responseDocuments(Map.of("report", returned))
-                    .build());
+        .thenAnswer(i ->
+            AgentResponse.builder()
+                .context(i.getArgument(0, AgentConversation.class).toAgentContext())
+                .responseText("here you go")
+                .responseDocuments(Map.of("report", returned))
+                .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
@@ -2803,12 +2932,11 @@ class AgentSubProcessRequestHandlerTest {
 
   private void mockProceedWithDocument(Document document) {
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenAnswer(
-            i ->
-                new CompositionResult.NextTurn(
-                    i.getArgument(1),
-                    List.of(USER_MESSAGE),
-                    List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
+        .thenAnswer(i ->
+            new CompositionResult.NextTurn(
+                i.getArgument(1),
+                List.of(USER_MESSAGE),
+                List.of(new IngestedDocument(document, DocumentOrigin.userMessage()))));
   }
 
   private void mockProceed(Message... inputMessages) {
