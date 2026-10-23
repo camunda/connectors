@@ -9,6 +9,7 @@ package io.camunda.connector.rabbitmq.common.model;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.apache.commons.lang3.StringUtils;
 
 public record FactoryRoutingData(
     @NotBlank
@@ -43,4 +44,18 @@ public record FactoryRoutingData(
                     equals = "credentials"),
             tooltip =
                 "Get from RabbitMQ external application configurations. See the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\" target=\"_blank\">RabbitMQ routing data docs</a>")
-        String port) {}
+        String port) {
+
+  /**
+   * Username/password authentication carries no address of its own, so it needs complete routing
+   * data; a URI already contains it.
+   */
+  public static boolean isPresentWhenRequired(
+      RabbitMqAuthentication authentication, FactoryRoutingData routing) {
+    if (!(authentication instanceof CredentialsAuthentication)) {
+      return true;
+    }
+    return routing != null
+        && StringUtils.isNoneBlank(routing.virtualHost(), routing.hostName(), routing.port());
+  }
+}

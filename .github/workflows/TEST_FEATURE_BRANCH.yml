@@ -75,10 +75,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        uses: ./.github/actions/cache-maven-wrapper
+        with:
+          restore-only: 'true'
+
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.4+101.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -108,7 +114,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |
@@ -239,10 +245,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        uses: ./.github/actions/cache-maven-wrapper
+        with:
+          restore-only: 'true'
+
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: 'temurin'
-          java-version: '25.0.4+101.0.LTS'
+          java-version: '25.0.5+8.0.LTS'
 
       - name: Import Nexus Secrets (internal only)
         if: ${{ steps.internal.outputs.internal == 'true' }}
@@ -264,7 +276,7 @@ jobs:
 
       - name: Create internal Maven settings.xml (Nexus mirror)
         if: ${{ steps.internal.outputs.internal == 'true' }}
-        uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
         with:
           githubServer: false
           servers: |

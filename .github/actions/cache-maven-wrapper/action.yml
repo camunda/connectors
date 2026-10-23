@@ -1,0 +1,39 @@
+name: Cache Maven wrapper distribution
+description: >
+  Caches the Maven distribution downloaded by ./mvnw (~/.m2/wrapper), keyed on
+  .mvn/wrapper/maven-wrapper.properties. Requires the repository to be checked out first.
+
+inputs:
+  restore-only:
+    description: When 'true', only restore the cache and never save it
+    required: false
+    default: 'false'
+
+outputs:
+  cache-hit:
+    description: Whether an exact match was found for the key
+    value: ${{ steps.cache.outputs.cache-hit || steps.restore.outputs.cache-hit }}
+  cache-primary-key:
+    description: The resolved cache key, for a later actions/cache/save step
+    value: ${{ steps.restore.outputs.cache-primary-key || steps.key.outputs.value }}
+
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      run: echo "value=${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}" >> "$GITHUB_OUTPUT"
+
+    - id: cache
+      if: inputs.restore-only != 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/wrapper
+        key: ${{ steps.key.outputs.value }}
+
+    - id: restore
+      if: inputs.restore-only == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/wrapper
+        key: ${{ steps.key.outputs.value }}

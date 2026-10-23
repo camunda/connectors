@@ -13,6 +13,20 @@ static def replaceDocumentationLinks(String text) {
     )
 }
 
+// Swaps the element kind tag on leaf steps (those with a presetId) that the provider-steps
+// transform set on the task template. A source template without steps is left alone.
+static def retagLeafSteps(List steps, String fromTag, String toTag) {
+    steps?.each { step ->
+        if (step.presetId) {
+            if (step.name.startsWith(fromTag)) {
+                step.name = (toTag + step.name.substring(fromTag.length())).toString()
+            }
+        } else if (step.steps) {
+            retagLeafSteps((List) step.steps, fromTag, toTag)
+        }
+    }
+}
+
 // Moves the given property ids to sit right after another property id. No-op if either side
 // isn't found. Duplicated in transform-ai-agent-task-template.groovy since this script's
 // execution runs before that one's, per the pom's execution order for the v2 task/sub-process
@@ -143,6 +157,8 @@ if (isHybrid) {
 if (deprecationMessage) {
     json.name += " (Deprecated)"
 }
+
+retagLeafSteps((List) json.get('steps'), "AI Agent Task: ", "AI Agent Sub-process: ")
 
 // Change BPMN element configuration
 json.appliesTo = ["bpmn:SubProcess"]
