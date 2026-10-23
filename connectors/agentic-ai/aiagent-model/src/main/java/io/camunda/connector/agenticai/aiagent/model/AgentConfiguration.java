@@ -106,7 +106,8 @@ public record AgentConfiguration(
    * {@code required} is part of what the model sees, so it stays significant: sorting the keys of
    * the schema would lose the parameter order, so the hash input carries it as a list. The input is
    * written and read once before it is hashed, so a number hashes the same whether the tool
-   * definition is fresh or was loaded from the process variable.
+   * definition is fresh or was loaded from the process variable. The document delivery of a tool is
+   * part of the attributes, so a tool that gets another delivery changes the fingerprint.
    *
    * <p>The mapper is configured for the fingerprint alone and does not inherit the settings of the
    * connectors mapper: a date or a duration is written as ISO text, never as a timestamp, so that
@@ -147,6 +148,10 @@ public record AgentConfiguration(
                 parameterOrder(tool.inputSchema())));
     if (tool.kind() == ToolKind.RUNTIME) {
       input.add(tool.kind().name());
+    }
+    // a definition without a document delivery hashes as it does without the property
+    if (tool.documentDelivery() != null) {
+      input.add(tool.documentDelivery());
     }
     return input;
   }

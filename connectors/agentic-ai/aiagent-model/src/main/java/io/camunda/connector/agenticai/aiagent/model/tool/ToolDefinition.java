@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
@@ -24,6 +25,12 @@ import org.jspecify.annotations.Nullable;
  * ToolKind#PROCESS}.
  *
  * <p>A parameter that carries a document has the schema {@link DocumentParameter#documentSchema}.
+ *
+ * <p>{@code documentDelivery} is the optional document delivery of the documents the tool returns
+ * ({@link DocumentDelivery}); absent means {@code reference}. The agent reads it from the stored
+ * definition when a result of the tool arrives. The model providers never see it: it is not part of
+ * the tool as the model knows it, and the conversation drops it from the definitions they get. It
+ * is part of the configuration fingerprint.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
@@ -33,19 +40,29 @@ public record ToolDefinition(
     Map<String, Object> inputSchema,
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ProcessKindFilter.class)
         @RecordBuilder.Initializer("DEFAULT_KIND")
-        ToolKind kind)
+        ToolKind kind,
+    @Nullable DocumentDelivery documentDelivery)
     implements ToolDefinitionBuilder.With {
 
   public static final ToolKind DEFAULT_KIND = ToolKind.PROCESS;
 
   public ToolDefinition(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
-    this(name, description, inputSchema, DEFAULT_KIND);
+    this(name, description, inputSchema, DEFAULT_KIND, null);
+  }
+
+  /** Creates a tool definition with the given document delivery. */
+  public ToolDefinition(
+      String name,
+      @Nullable String description,
+      Map<String, Object> inputSchema,
+      @Nullable DocumentDelivery documentDelivery) {
+    this(name, description, inputSchema, DEFAULT_KIND, documentDelivery);
   }
 
   public static ToolDefinition runtime(
       String name, @Nullable String description, Map<String, Object> inputSchema) {
-    return new ToolDefinition(name, description, inputSchema, ToolKind.RUNTIME);
+    return new ToolDefinition(name, description, inputSchema, ToolKind.RUNTIME, null);
   }
 
   /** The parameters of the input schema that carry a document, in schema order. */
