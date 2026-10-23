@@ -3026,7 +3026,10 @@ class AgentSubProcessRequestHandlerTest {
         .when(gatewayToolHandlers.transformToolCallResults(any(), any()))
         .thenAnswer(i -> i.getArgument(1));
     final var realComposer =
-        new AgentConversationTurnInputComposerImpl(gatewayToolHandlers, resultsInputBuilder);
+        new AgentConversationTurnInputComposerImpl(
+            gatewayToolHandlers,
+            resultsInputBuilder,
+            TestDocuments.documentContentDelivery());
     lenient()
         .when(agentInputComposer.resolve(any(), any(), any(), any()))
         .thenAnswer(i ->

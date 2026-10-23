@@ -87,7 +87,8 @@ class ToolResultDocumentRenderingTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery());
   }
 
   private Document document(String content, String fileName, String contentType) {

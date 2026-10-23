@@ -101,7 +101,8 @@ class AgentConversationTurnInputComposerImplTest {
     composer =
         new AgentConversationTurnInputComposerImpl(
             gatewayToolHandlers,
-            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()));
+            new ToolCallResultsInputBuilder(TestDocuments.documentContentDelivery()),
+            TestDocuments.documentContentDelivery());
   }
 
   private CompositionResult resolve(
@@ -253,11 +254,13 @@ class AgentConversationTurnInputComposerImplTest {
   }
 
   @Test
-  void firstTurn_withUserPromptDocuments_addsTheReferencesWithTheDeliveryContent() {
+  void firstTurn_withUserPromptDocumentsOfTheDeliveryReference_addsTheTagWithoutTheContent() {
     var document = createDocument("story notes", "text/plain", "notes.txt");
     var input =
         AgentInput.from(
-            new UserPromptConfiguration("Tell me a story", List.of(document)), List.of());
+            new UserPromptConfiguration(
+                "Tell me a story", List.of(document), DocumentDelivery.REFERENCE),
+            List.of());
     var history = TurnReconstructor.reconstruct(List.of());
 
     var result = resolve(CONFIG, CTX, history, input);

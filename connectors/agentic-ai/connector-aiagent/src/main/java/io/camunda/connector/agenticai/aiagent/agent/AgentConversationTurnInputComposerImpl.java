@@ -12,9 +12,11 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.DocumentContentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments.NewDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentHandling;
@@ -29,14 +31,17 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -67,11 +72,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final ToolCallResultDocumentExtractor documentExtractor;
   private final ToolCallResultsInputBuilder toolCallResultsInputBuilder;
+  private final DocumentContentDelivery contentDelivery;
 
   public AgentConversationTurnInputComposerImpl(
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      ToolCallResultsInputBuilder toolCallResultsInputBuilder) {
+      ToolCallResultsInputBuilder toolCallResultsInputBuilder,
+      DocumentContentDelivery contentDelivery) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.contentDelivery = contentDelivery;
     this.documentExtractor = new ToolCallResultDocumentExtractor(gatewayToolHandlers);
     this.toolCallResultsInputBuilder = toolCallResultsInputBuilder;
   }
@@ -152,7 +160,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var promptDocuments = new ArrayList<NewDocument>();
     final var userPrompt =
-        createUserPromptMessage(agentInput.userPrompt(), documentHandling, promptDocuments);
+        createUserPromptMessage(
+            agentInput.userPrompt(), documentHandling, documentIdsWithContent, promptDocuments);
     if (userPrompt == null && eventMessages.isEmpty()) {
       LOGGER.debug("Not proceeding as no user content was found to add.");
       return new CompositionResult.NoInput();
@@ -198,6 +207,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   private @Nullable UserMessage createUserPromptMessage(
       AgentInput.UserPrompt userPrompt,
       DocumentHandling documentHandling,
+      Set<AgentDocumentId> idsWithContent,
       List<NewDocument> newDocuments) {
 
     final var content = new ArrayList<Content>();
@@ -209,16 +219,14 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     switch (documentHandling) {
-      case DocumentHandling.Tracked ignored -> {
-        // add the documents as blocks with the delivery content: the content is added when the
-        // model is called
+      case DocumentHandling.Tracked tracked -> {
         final var origin = DocumentOrigin.userMessage();
-        for (var doc : userPrompt.documents()) {
-          content.add(
-              AgentDocumentContent.of(AgentDocumentId.of(doc))
-                  .withDelivery(DocumentDelivery.CONTENT));
-          newDocuments.add(new NewDocument(doc, origin));
-        }
+        userPrompt.documents().forEach(doc -> newDocuments.add(new NewDocument(doc, origin)));
+        content.addAll(
+            trackedPromptDocuments(
+                userPrompt,
+                tracked.documents().register(newDocuments),
+                idsWithContent));
       }
       case DocumentHandling.Untracked ignored ->
           userPrompt.documents().stream()
@@ -231,6 +239,50 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return null;
     }
     return UserMessage.builder().content(content).metadata(MessageMetadata.defaults()).build();
+  }
+
+  /**
+   * The blocks of the documents of the user prompt. The content of a document is added when the
+   * model is called, for a block with the delivery content. The documents of an external URL always
+   * go out as content: the model provider reads them, so the content guard could neither check nor
+   * bound them.
+   */
+  private List<Content> trackedPromptDocuments(
+      AgentInput.UserPrompt userPrompt,
+      AgentDocuments known,
+      Set<AgentDocumentId> idsWithContent) {
+    final var handled = new HashSet<>(idsWithContent);
+    final var blocks = new ArrayList<Content>();
+    for (final var doc : userPrompt.documents()) {
+      final var reference = AgentDocumentContent.of(AgentDocumentId.of(doc));
+      final var withContent = reference.withDelivery(DocumentDelivery.CONTENT);
+      if (doc.reference() instanceof ExternalDocumentReference) {
+        blocks.add(withContent);
+        continue;
+      }
+      switch (userPrompt.documentDelivery()) {
+        case UNSET -> blocks.add(withContent);
+        case REFERENCE -> blocks.add(reference);
+        case CONTENT -> {
+          final var outcomes = contentDelivery.deliver(known, List.of(reference.id()), handled);
+          handled.add(reference.id());
+          if (outcomes.isEmpty()) {
+            blocks.add(reference);
+          }
+          for (final var outcome : outcomes) {
+            switch (outcome) {
+              case DocumentContentDelivery.Outcome.Delivered delivered ->
+                  blocks.add(delivered.withContent());
+              case DocumentContentDelivery.Outcome.Withheld withheld -> {
+                blocks.add(reference);
+                blocks.add(textContent(withheld.note()));
+              }
+            }
+          }
+        }
+      }
+    }
+    return blocks;
   }
 
   /**
