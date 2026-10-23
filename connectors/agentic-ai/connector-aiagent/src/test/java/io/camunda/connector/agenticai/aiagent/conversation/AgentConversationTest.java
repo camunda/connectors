@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.AgentDocuments;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentDelivery;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -758,6 +759,23 @@ class AgentConversationTest {
     assertThat(next.toAgentContext().properties()).containsEntry("note", "x");
     // the metrics of the persisted context are not touched by a change of it
     assertThat(next.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void nextRuntimeToolRound_carriesTheResponseDocumentsIntoTheAgentContext() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
+    final var selection = new ResponseDocumentSelection("b", AgentDocumentId.of("doc-b"), null);
+
+    var next =
+        conv.nextRuntimeToolRound(
+            List.of(toolCallResultMessage(TOOL_CALL_RESULTS)),
+            persisted -> persisted.withResponseDocument(selection));
+
+    assertThat(conv.persistedContext().responseDocuments()).isEmpty();
+    assertThat(next.persistedContext().responseDocuments()).containsExactly(selection);
+    assertThat(next.toAgentContext().responseDocuments()).containsExactly(selection);
   }
 
   @ParameterizedTest
