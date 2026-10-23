@@ -779,6 +779,13 @@ class RuntimeToolsTest {
           assertThat(execution.result()).isEqualTo(RuntimeToolResult.error(BOGUS_FILE));
         });
     assertThat(runs).hasValue(0);
+    assertThat(executions)
+        .singleElement()
+        .satisfies(execution -> {
+          assertThat(execution.call()).isEqualTo(call);
+          assertThat(execution.toolCallResult().id()).isEqualTo("r1");
+          assertThat(text(execution)).isEqualTo(BOGUS_FILE);
+        });
   }
 
   @Test
@@ -865,7 +872,12 @@ class RuntimeToolsTest {
 
     final var call = runtimeCall("r1", "c8__read_file", Map.of("file", "bogus"));
 
-    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
+    final var executions =
+        toolsOf(tool)
+            .execute(
+                WITH_MEMORY,
+                AgentContext.empty().withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
+                List.of(call));
 
     assertThat(executions)
         .extracting(RuntimeToolExecution::call, RuntimeToolExecution::result)
