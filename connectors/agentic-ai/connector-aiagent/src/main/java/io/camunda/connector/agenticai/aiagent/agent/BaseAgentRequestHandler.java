@@ -27,10 +27,12 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -162,10 +164,10 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.RuntimeToolResultsRequired ignored ->
             throw new IllegalStateException(
                 "The turn input was composed without the runtime tool results after they were computed");
-        case CompositionResult.NextTurn(var newMessages) ->
+        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
             proceed(
                 executionContext,
-                agentContext,
+                DocumentRegistries.register(agentContext, newDocuments),
                 configuration,
                 previousConversation,
                 newMessages,
@@ -345,10 +347,18 @@ public abstract class BaseAgentRequestHandler<
                 executionContext,
                 workingConversation.persistedContext(),
                 currentTurn.runtimeToolCalls());
+        // the documents of the results are registered after all calls ran, in call order, so a call
+        // never sees what another call of the same message returned
+        final var input =
+            ToolCallResultsInputBuilder.build(
+                executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
+                workingConversation.persistedContext().supports(AgentFeatures.DOCUMENTS));
         workingConversation =
-            workingConversation.nextRuntimeToolRound(
-                ToolCallResultsInputBuilder.build(
-                    executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList()));
+            workingConversation
+                .withPersistedContext(
+                    DocumentRegistries.register(
+                        workingConversation.persistedContext(), input.documents()))
+                .nextRuntimeToolRound(input.messages());
         // the previous turn is the one whose tool calls these results belong to
         agentInstanceClient.applyTurnStart(
             executionContext,

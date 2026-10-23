@@ -12,8 +12,10 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -124,6 +126,10 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     }
 
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
+    final boolean documentFlow = agentContext.supports(AgentFeatures.DOCUMENTS);
+
+    // the documents that enter the conversation with this turn
+    final var ingestedDocuments = new ArrayList<IngestedDocument>();
 
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
@@ -158,9 +164,12 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         return new CompositionResult.RuntimeToolResultsRequired(previousTurn.runtimeToolCalls());
       }
 
-      messages.addAll(
+      final var toolCallResultsInput =
           ToolCallResultsInputBuilder.build(
-              orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions)));
+              orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions),
+              documentFlow);
+      messages.addAll(toolCallResultsInput.messages());
+      ingestedDocuments.addAll(toolCallResultsInput.documents());
       messages.addAll(eventMessages);
     } else {
       messages.add(createUserPromptMessage(agentInput.userPrompt()));
@@ -174,7 +183,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
 
-    return new CompositionResult.NextTurn(messages);
+    return new CompositionResult.NextTurn(messages, ingestedDocuments);
   }
 
   private @Nullable UserMessage createUserPromptMessage(AgentInput.UserPrompt userPrompt) {

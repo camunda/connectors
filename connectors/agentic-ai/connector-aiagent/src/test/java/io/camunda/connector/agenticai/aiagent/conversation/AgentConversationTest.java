@@ -15,6 +15,9 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -446,9 +449,30 @@ class AgentConversationTest {
   }
 
   @Test
-  void persistedContext_isTheContextTheConversationIsBuiltOn() {
+  void withPersistedContext_replacesThePersistedContextOnly() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+    final var entry =
+        new DocumentRegistryEntry(
+            DocumentId.of("doc-a"),
+            DocumentSource.userMessage(),
+            Map.of("camunda.document.type", "camunda", "documentId", "doc-a"));
+
+    var updated =
+        conv.withPersistedContext(
+            conv.persistedContext().withDocuments(List.of(entry)).withProperty("note", "x"));
+
+    assertThat(conv.documentRegistry().isEmpty()).isTrue();
+    assertThat(updated.documentRegistry().entries()).containsExactly(entry);
+    assertThat(updated.toAgentContext().documents()).containsExactly(entry);
+    assertThat(updated.toAgentContext().properties()).containsEntry("note", "x");
+    // the metrics of the persisted context are not touched by a change of it
+    assertThat(updated.toAgentContext().metrics()).isEqualTo(conv.toAgentContext().metrics());
+  }
+
+  @Test
+  void withPersistedContext_returnsTheSameInstanceForTheSameContext() {
     var conv = rehydrate(List.of(), List.of(userMessage("hi")));
 
-    assertThat(conv.persistedContext()).isSameAs(BASE_CONTEXT);
+    assertThat(conv.withPersistedContext(conv.persistedContext())).isSameAs(conv);
   }
 }

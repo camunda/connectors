@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -16,15 +17,20 @@ import static org.assertj.core.api.Assertions.tuple;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -60,7 +66,8 @@ class RuntimeToolRegistryImplTest {
               tool(ALWAYS, context -> true),
               tool(
                   WITH_MEMORY_ONLY,
-                  context -> context.executionContext().configuration().memory() != null)));
+                  context -> context.executionContext().configuration().memory() != null)),
+          TestObjectMapperSupplier.INSTANCE);
 
   private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
     return StubRuntimeTool.of(name, (call, context) -> RuntimeToolResult.success(name))
@@ -101,7 +108,8 @@ class RuntimeToolRegistryImplTest {
   void aToolCanBeEnabledOnlyWithAFeatureOfTheAgentInstance() {
     final var featured =
         new RuntimeToolRegistryImpl(
-            List.of(tool("acme_featured", context -> context.agentContext().supports("acme"))));
+            List.of(tool("acme_featured", context -> context.agentContext().supports("acme"))),
+            TestObjectMapperSupplier.INSTANCE);
 
     assertThat(featured.findEnabled(PLAIN, NEW_INSTANCE, "acme_featured")).isEmpty();
     assertThat(
@@ -113,6 +121,24 @@ class RuntimeToolRegistryImplTest {
   }
 
   @Test
+  void aToolCanBeEnabledOnlyWhileTheAgentKnowsADocument() {
+    final var needsDocuments =
+        new RuntimeToolRegistryImpl(
+            List.of(tool("acme_documents", context -> !context.documents().all().isEmpty())),
+            TestObjectMapperSupplier.INSTANCE);
+    final var document = createDocument("report", "report.txt");
+    final var knowingADocument =
+        NEW_INSTANCE.withDocumentRegistry(
+            DocumentRegistries.withDocuments(
+                DocumentRegistry.empty(),
+                List.of(new IngestedDocument(document, DocumentSource.userMessage()))));
+
+    assertThat(needsDocuments.enabledTools(PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(needsDocuments.enabledTools(PLAIN, knowingADocument)).hasSize(1);
+    assertThat(needsDocuments.findEnabled(PLAIN, knowingADocument, "acme_documents")).isPresent();
+  }
+
+  @Test
   void keepsTheRegistrationOrderOfTheEnabledTools() {
     final var ordered =
         new RuntimeToolRegistryImpl(
@@ -120,7 +146,8 @@ class RuntimeToolRegistryImplTest {
                 tool("acme_c", context -> true),
                 tool("acme_hidden", context -> false),
                 tool("acme_a", context -> true),
-                tool("acme_b", context -> true)));
+                tool("acme_b", context -> true)),
+            TestObjectMapperSupplier.INSTANCE);
 
     assertThat(names(ordered.enabledToolDefinitions(PLAIN, NEW_INSTANCE)))
         .containsExactly("acme_c", "acme_a", "acme_b");
@@ -135,7 +162,8 @@ class RuntimeToolRegistryImplTest {
   void rejectsABlankToolName() {
     final var blank = StubRuntimeTool.of(" ", (call, context) -> null);
 
-    assertThatThrownBy(() -> new RuntimeToolRegistryImpl(List.of(blank)))
+    assertThatThrownBy(
+            () -> new RuntimeToolRegistryImpl(List.of(blank), TestObjectMapperSupplier.INSTANCE))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("non-blank");
   }
@@ -145,7 +173,10 @@ class RuntimeToolRegistryImplTest {
     final var first = StubRuntimeTool.of("acme_lookup", (call, context) -> null);
     final var second = StubRuntimeTool.of("acme_lookup", (call, context) -> null);
 
-    assertThatThrownBy(() -> new RuntimeToolRegistryImpl(List.of(first, second)))
+    assertThatThrownBy(
+            () ->
+                new RuntimeToolRegistryImpl(
+                    List.of(first, second), TestObjectMapperSupplier.INSTANCE))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("acme_lookup");
   }
