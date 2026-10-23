@@ -30,7 +30,7 @@ import org.jspecify.annotations.Nullable;
 public record AgentMetadata(
     Long processDefinitionKey,
     Long processInstanceKey,
-    @Nullable Long agentInstanceKey,
+    @Nullable AgentInstanceKey agentInstanceKey,
     @Nullable Integer lastIterationKey,
     Map<Integer, String> configurationFingerprintHistory)
     implements AgentMetadataBuilder.With {
@@ -51,7 +51,7 @@ public record AgentMetadata(
   public AgentMetadata(
       Long processDefinitionKey,
       Long processInstanceKey,
-      @Nullable Long agentInstanceKey,
+      @Nullable AgentInstanceKey agentInstanceKey,
       @Nullable Integer lastIterationKey) {
     this(processDefinitionKey, processInstanceKey, agentInstanceKey, lastIterationKey, Map.of());
   }
