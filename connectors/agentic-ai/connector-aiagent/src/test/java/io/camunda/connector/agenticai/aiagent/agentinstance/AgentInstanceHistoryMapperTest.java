@@ -132,6 +132,51 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
+  void theMessageThatLoadsADocumentIsReportedAsAUserItemWithTheTagAndTheDocumentReference() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                    .contentType("text/plain")
+                    .fileName("report.txt")
+                    .build());
+    final var workspace =
+        DocumentIngestion.withDocuments(
+            DocumentWorkspace.empty(),
+            List.of(new IngestedDocument(document, DocumentOrigin.toolCall("fetch", "call-1"))));
+    final var tag = DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT);
+    final var loadedMessage =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    TextContent.textContent(
+                        "System message, not written by the user: the content of the documents loaded for the tool results above follows."),
+                    tag))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    final var items =
+        mapper.inputHistoryItems(
+            loadedMessage,
+            Map.of(),
+            TURN_INGESTION_TIMESTAMP,
+            WITH_DOCUMENTS.withDocumentWorkspace(workspace));
+
+    assertThat(items)
+        .singleElement()
+        .satisfies(item -> {
+          assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.USER);
+          assertThat(texts(item.content()))
+              .containsExactly(
+                  "System message, not written by the user: the content of the documents loaded for the tool results above follows.",
+                  "`" + DocumentTags.longTag(workspace, tag.id()) + "`");
+          assertThat(item.content()).hasSize(3);
+          assertThat(item.content().get(2))
+              .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
+        });
+  }
+
+  @Test
   void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
     final var tag =
         new DocumentReferenceContent(DocumentId.of("unknown"), DocumentDelivery.REFERENCE, null);

@@ -24,6 +24,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.anthropic.AnthropicMessageRequestConverter;
@@ -93,6 +95,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.builtin.GetDocumentTool;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -288,12 +292,11 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   @Test
   void whenNoContentLimitsAreConfigured_thenTheDocumentContentGuardUsesTheDefaultLimits() {
-    contextRunner.run(
-        context ->
-            assertThat(context)
-                .getBean(DocumentContentGuard.class)
-                .extracting("limits")
-                .isEqualTo(DocumentContentLimits.defaults()));
+    contextRunner.run(context ->
+        assertThat(context)
+            .getBean(DocumentContentGuard.class)
+            .extracting("limits")
+            .isEqualTo(DocumentContentLimits.defaults()));
   }
 
   @Test
@@ -303,27 +306,64 @@ class AgenticAiConnectorsAutoConfigurationTest {
             "camunda.connector.agenticai.aiagent.document.content-limits.text=1KB",
             "camunda.connector.agenticai.aiagent.document.content-limits.pdf=2MB",
             "camunda.connector.agenticai.aiagent.document.content-limits.image=512KB")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(DocumentContentGuard.class)
-                    .extracting("limits")
-                    .isEqualTo(new DocumentContentLimits(1024, 2 * 1024 * 1024, 512 * 1024)));
+        .run(context ->
+            assertThat(context)
+                .getBean(DocumentContentGuard.class)
+                .extracting("limits")
+                .isEqualTo(new DocumentContentLimits(1024, 2 * 1024 * 1024, 512 * 1024)));
+  }
+
+  @Test
+  void theBuiltInGetDocumentToolIsRegisteredAsARuntimeTool() {
+    contextRunner.run(context ->
+        assertThat(context.getBeansOfType(RuntimeTool.class).values())
+            .extracting(tool -> tool.definition().name())
+            .containsExactly(GetDocumentTool.NAME));
+  }
+
+  @Test
+  void aBeanWithTheBeanNameOfABuiltInToolReplacesIt() {
+    final var custom =
+        StubRuntimeTool.of(GetDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("aiAgentGetDocumentRuntimeTool", RuntimeTool.class, () -> custom)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context.getBeansOfType(RuntimeTool.class)).containsValue(custom);
+          assertThat(context.getBeansOfType(RuntimeTool.class).values())
+              .noneMatch(GetDocumentTool.class::isInstance);
+        });
+  }
+
+  @Test
+  void aBeanWithAnotherBeanNameAndTheNameOfABuiltInToolFailsTheStartup() {
+    final var custom =
+        StubRuntimeTool.of(GetDocumentTool.NAME, (context, call) -> RuntimeToolResult.success("x"));
+
+    contextRunner
+        .withBean("acmeGetDocument", RuntimeTool.class, () -> custom)
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("More than one runtime tool is named 'c8__get_document'"));
   }
 
   @Test
   void whenAContentLimitIsNotPositive_thenFailsTheBinding() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.document.content-limits.pdf=0KB")
-        .run(
-            context ->
-                assertThat(context)
-                    .hasFailed()
-                    .getFailure()
-                    .rootCause()
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(
-                        "The property camunda.connector.agenticai.aiagent.document.content-limits.pdf must be positive."));
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .rootCause()
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                    "The property camunda.connector.agenticai.aiagent.document.content-limits.pdf must be positive."));
   }
 
   @Test
