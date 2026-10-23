@@ -20,7 +20,7 @@ public class AwsClientSupport {
 
   public static <B extends AwsClientBuilder<B, C>, C extends AutoCloseable> B configureClient(
       B builder, AwsBaseRequest request) {
-    builder.credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
+    builder.credentialsProvider(CredentialsProviderSupport.credentialsProvider(request));
     var config = request.getConfiguration();
     if (config != null && config.region() != null) {
       builder.region(Region.of(config.region()));

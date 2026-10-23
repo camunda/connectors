@@ -25,6 +25,8 @@
   </licenses>
 
   <properties>
+    <!-- Only v1 SDK left in the repo; see the aws-java-sdk-sns dependency below. -->
+    <version.aws-java-sdk-sns>1.12.797</version.aws-java-sdk-sns>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -64,11 +66,11 @@ except in compliance with the proprietary license.</license.inlineheader>
          Excludes aws-java-sdk-sqs and jmespath-java: unused transitive deps, confirmed by a
          bytecode scan of aws-java-sdk-sns (only com.amazonaws.services.sns.util.Topics references
          SQS, and this connector never calls it; jmespath is referenced by nothing). Re-check by
-         bytecode scan, not just a green test suite, when version.aws-java-sdk is bumped. -->
+         bytecode scan, not just a green test suite, when version.aws-java-sdk-sns is bumped. -->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <version>${version.aws-java-sdk-sns}</version>
       <exclusions>
         <exclusion>
           <groupId>com.amazonaws</groupId>

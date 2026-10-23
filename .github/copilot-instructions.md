@@ -568,7 +568,8 @@ Key workflow files in `.github/workflows/`:
   (see https://github.com/aws/aws-sdk-java-v2/issues/1302) — and for
   `SnsSubscriptionConfirmation#confirmSubscription`, called on the object `SnsMessageManager`
   already returns. This is the one accepted v1 exception in the AWS v1→v2 migration; any other
-  v1 usage is a regression, not precedent.
+  v1 usage is a regression, not precedent. Its version is pinned locally in
+  `connectors/aws/aws-sns/pom.xml` (`version.aws-java-sdk-sns`), not in the parent POM.
 - **Investigating `camunda-client-java` / `camunda-spring-boot-starter` behavior**: don't decompile
   the jars (`javap`, unzip + bytecode reading, etc.). If the `camunda/camunda` monorepo is checked
   out locally (often as a sibling of this repo, e.g. `../camunda`), read the actual source instead
