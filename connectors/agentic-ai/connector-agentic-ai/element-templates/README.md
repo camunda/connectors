@@ -51,7 +51,9 @@ deprecated in favor of (v2).
 
 ### Provider selection in v2 templates
 
-All four v2 templates share provider/backend steps. The **OpenAI compatible** category includes
+All four v2 templates share provider/backend steps. Each entry name starts with the element kind,
+`AI Agent Task: ` in the task templates and `AI Agent Sub-process: ` in the sub-process templates, so the
+Append element popup lists both kinds apart. The **OpenAI compatible** category includes
 Ollama, LM Studio, and the Camunda-provided LLM. Ollama and LM Studio select Chat Completions without
 authentication at `http://localhost:11434/v1` and `http://localhost:1234/v1`.
 
