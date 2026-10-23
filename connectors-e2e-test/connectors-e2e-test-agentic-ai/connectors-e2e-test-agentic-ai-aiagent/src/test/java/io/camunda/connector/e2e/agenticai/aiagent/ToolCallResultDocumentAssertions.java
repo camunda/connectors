@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.CamundaDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag.ExternalDocumentReferenceXmlTag;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
@@ -100,9 +100,9 @@ public final class ToolCallResultDocumentAssertions {
    * standard "extracted documents" structure: a preamble text block followed by an {@code (xml-tag,
    * content-block)} pair per expected document.
    *
-   * <p>The XML tag is built using the production {@link DocumentReferenceXmlTag}, so the assertion
-   * stays in sync with the production format. The content-block {@link JsonNode} is passed directly
-   * to each {@link ExtractedDocument#contentBlockAssertion()}.
+   * <p>The XML tag is built using the production {@link LegacyDocumentReferenceXmlTag}, so the
+   * assertion stays in sync with the production format. The content-block {@link JsonNode} is
+   * passed directly to each {@link ExtractedDocument#contentBlockAssertion()}.
    */
   public static void assertExtractedDocumentsUserMessage(
       RecordedMessage message, ExtractedDocument... expectedDocuments) {

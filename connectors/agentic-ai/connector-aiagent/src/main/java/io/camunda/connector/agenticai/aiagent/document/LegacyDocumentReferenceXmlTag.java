@@ -17,7 +17,8 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Represents a self-closing XML tag used to label a document in the synthetic user message, e.g.:
+ * The self-closing XML tag that labels a document in the synthetic user message of an agent
+ * instance created without the documents feature, e.g.:
  *
  * <pre>{@code
  * <doc toolName="search" toolCallId="call_abc" documentId="25ece9fa-aeea-..." storeId="in-memory" contentType="application/pdf" fileName="report.pdf" />
@@ -25,7 +26,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Attribute names mirror the JSON field names emitted by the standard {@code DocumentSerializer}
  * so the model can correlate references in the tool result JSON with the actual document content
- * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted.
+ * blocks 1:1 without inferring partial-id matches. Blank/null attributes are omitted. The tag has
+ * no stable document id and is not the tag of the documents feature (see {@link
+ * io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent}).
  *
  * <p>Only {@link CamundaDocumentReferenceXmlTag} carries {@code contentType} and {@code fileName}:
  * Camunda references read their metadata in-memory from the document store on resolve, so surfacing
@@ -33,7 +36,7 @@ import org.jspecify.annotations.Nullable;
  * learn their content type or filename — the tag deliberately omits the metadata block for those to
  * avoid a download just to render a label.
  */
-public sealed interface DocumentReferenceXmlTag {
+public sealed interface LegacyDocumentReferenceXmlTag {
 
   @Nullable String toolCallId();
 
@@ -51,7 +54,7 @@ public sealed interface DocumentReferenceXmlTag {
    *   <li>any other reference type (including inline) → {@link GenericDocumentReferenceXmlTag}
    * </ul>
    */
-  static DocumentReferenceXmlTag from(
+  static LegacyDocumentReferenceXmlTag from(
       Document document, @Nullable String toolCallId, @Nullable String toolName) {
     return switch (document.reference()) {
       case CamundaDocumentReference ref -> {
@@ -72,7 +75,7 @@ public sealed interface DocumentReferenceXmlTag {
   }
 
   /** Creates a tag from a document without tool call context (e.g. for event documents). */
-  static DocumentReferenceXmlTag from(Document document) {
+  static LegacyDocumentReferenceXmlTag from(Document document) {
     return from(document, null, null);
   }
 
@@ -83,7 +86,7 @@ public sealed interface DocumentReferenceXmlTag {
       @Nullable String storeId,
       @Nullable String contentType,
       @Nullable String fileName)
-      implements DocumentReferenceXmlTag {
+      implements LegacyDocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -100,7 +103,7 @@ public sealed interface DocumentReferenceXmlTag {
 
   record ExternalDocumentReferenceXmlTag(
       @Nullable String toolCallId, @Nullable String toolName, String url, @Nullable String name)
-      implements DocumentReferenceXmlTag {
+      implements LegacyDocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
@@ -114,7 +117,7 @@ public sealed interface DocumentReferenceXmlTag {
   }
 
   record GenericDocumentReferenceXmlTag(@Nullable String toolCallId, @Nullable String toolName)
-      implements DocumentReferenceXmlTag {
+      implements LegacyDocumentReferenceXmlTag {
 
     @Override
     public String toXml() {
