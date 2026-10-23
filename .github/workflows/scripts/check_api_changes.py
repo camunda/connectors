@@ -15,12 +15,19 @@ BREAKING_CHANGES_DOCS = {
     "connectors/agentic-ai/": "connectors/agentic-ai/docs/breaking-changes.md",
 }
 
-LINK = re.compile(r"breaking-changes\.md#([^\s)\]>`\"',;]+)")
+LINK = re.compile(r"([^\s()\[\]<>`\"',;]*breaking-changes\.md)#([^\s)\]>`\"',;]+)")
 
 
-def linked_anchors(justification: str) -> list[str]:
+def linked_anchors(justification: str) -> list[tuple[str, str]]:
     # A sentence may end right after the link, e.g. "see breaking-changes.md#module-split."
-    return [anchor.rstrip(".:!?") for anchor in LINK.findall(justification)]
+    return [(path, anchor.rstrip(".:!?")) for path, anchor in LINK.findall(justification)]
+
+
+def links_to(path: str, doc: str) -> bool:
+    """Whether a link path denotes doc: a trailing part of its repository path, such as
+    docs/breaking-changes.md, or a URL ending with the complete repository path."""
+    path = path.removeprefix("./")
+    return path == doc or doc.endswith("/" + path) or path.endswith("/" + doc)
 
 
 def github_anchors(markdown: str) -> set[str]:
@@ -67,8 +74,10 @@ def check(file: str) -> list[str]:
             links = linked_anchors(justification)
             if not links:
                 errors.append(f"{name}: justification must link {doc}#<anchor>")
-            for anchor in links:
-                if anchor not in anchors:
+            for path, anchor in links:
+                if not links_to(path, doc):
+                    errors.append(f"{name}: {path} is not {doc}")
+                elif anchor not in anchors:
                     errors.append(f"{name}: anchor #{anchor} does not exist in {doc}")
     return errors
 
