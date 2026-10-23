@@ -213,7 +213,8 @@ The loop operates as a distributed state machine between the connector runtime a
      input — until a `Completed` result ends the turn (see [§12](#12-framework-abstraction)). The same happens when every
      tool call of the message is a local tool call: the handler adds their tool call results, after it checks the
      model-call limit, and builds the input of the next round from them (`ToolCallResultsInputBuilder`,
-     `nextRuntimeToolRound`) and registers the documents of the results in the document workspace
+     `nextRuntimeToolRound`), registers the documents of the results in the document workspace and applies the effects of
+     the results (the content of a document a tool asked for)
    - Store the updated conversation back to the memory store (via `ConversationSession`) and reduce it back to `AgentContext`
    - Resolve the document parameters of the process tool calls, transform them and create the response
 
@@ -465,7 +466,10 @@ invocation and transformed through copy-on-write methods.
   bookkeeping that `toAgentContext()` adds, and a copy built on a changed one (the documents registered after a round of
   local tool calls); it is what a runtime tool reads. `nextRuntimeToolRound(inputMessages)` opens the next round of the job
   with the tool call results of the local tool calls, and the messages that follow them, as its input.
-  `documentWorkspace()` is the workspace of the persisted context.
+  `documentWorkspace()` is the workspace of the persisted context. `documentIdsWithContent()` holds the ids of the
+  documents whose content the model reads as of now, from the references with the delivery `content` in the windowed
+  messages; `PreviousConversation` has the same for the conversation before the invocation
+  (`documentIdsWithContent(contextWindowSize)`).
 - `toAgentContext()`: reduces back to the serialized `AgentContext`, incrementing the durable
   `AgentContext.metrics` by the current turn's delta and, once the current turn has been `ingest`ed,
   stamping `AgentMetadata.lastIterationKey` with its `iterationKey` (when metadata is present).
@@ -512,8 +516,14 @@ the workspace does not know stays its tag text, and the expansion never fails th
 messages and the workspace, so the request bytes are stable across requests (prompt caching). For an agent instance
 without the `documents` feature the decorator is the identity: the messages are left as they are and a `Document` in a
 tool result is serialized as its Camunda reference JSON. No provider receives a document inside a tool result, so the
-content of a document reaches the model only in a user message. The content of a document stays in every request until
-the message that holds it leaves the window; there is no removal.
+content of a document reaches the model only in a user message after the tool results. A later native representation of
+documents in tool results would be one more branch of the expander plus provider code (see the follow-up of
+[ADR 017](../adr/017-document-flow.md)). The content of a document stays in every request until the message that holds
+it leaves the window; there is no removal.
+
+The window never announces a document whose message it hides. The workspace still resolves the tag of such a document, so
+a tag that is still in the model's context, in its own text for example, can be passed to a tool or loaded again within
+the guard.
 
 `MessageWindowFilter.apply(List<Message>, int maxMessages)` (`...aiagent.memory.runtime`) is a pure
 static window filter:
@@ -935,7 +945,7 @@ assistant message against them (`ProcessToolCallResults(resultsById, arrivedResu
   with those calls; the handler produces their tool call results (`localToolCallResults`, which hands the calls without
   a rejection to `RuntimeTools`, the one place a tool is called) and `composeWithLocalToolCallResults` builds the
   `ToolCallResultMessage` from the process results and the local tool call results, ordered to match the original tool
-  call order
+  call order and applies the effects of the runtime tool results (§25.4)
 - If missing and NOT interrupting: `complete` is `false`; `arrivedResults` holds only the process
   results that arrived so far → `compose` returns `CompositionResult.Deferred(arrivedResults)`
   (ADR 011) → handler reports them to agent instance history and completes as a no-op. The agent adds the tool call results of
@@ -982,9 +992,12 @@ on the message:
   it holds back every other result of the batch.
 
 `RuntimeTools.execute` executes the calls in call order, one after the other. Its contract allows the calls of one
-message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps the
-call, the tool call result and the time the call started and completed. No state about the local tool calls is
-persisted between jobs apart from the `kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
+message to be executed concurrently, with the results applied in call order. Every execution (`RuntimeToolExecution`) keeps
+the call, the `RuntimeToolResult` the tool returned (with the effects of a successful one), the time the call started and
+completed, and derives the tool call result that becomes part of the conversation (`toolCallResult()`). It also receives
+the ids of the documents whose content the model reads as of the start of the batch, which the tools read as
+`AgentDocument.contentInConversation()`. No state about the local tool calls is persisted between jobs apart from the
+`kind` and the `rejection` of the calls. See [ADR 016](../adr/016-runtime-tools.md).
 
 ### No-Op Detection in BaseAgentRequestHandler
 
@@ -1000,7 +1013,7 @@ return switch (compositionResult) {
     case CompositionResult.NoInput ignored ->
         handleNoInput(executionContext);       // nothing to add; handler decides
     case CompositionResult.LocalToolCallResultsRequired ignored ->
-        throw new IllegalStateException(...); // cannot happen: the handler executed the runtime tool calls and composed again
+        throw new IllegalStateException(...); // cannot happen: the handler produced the local tool call results and composed again
     case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
         proceed(...);                          // register the documents, call the LLM
 };
@@ -1431,13 +1444,32 @@ Also registers `ChatModelRegistry` (`ChatModelRegistryImpl`, taking every `ChatM
 
 ### Key Configuration Defaults
 
-Configurable under the `camunda.connector.agenticai.*` prefix, in three main areas: process-definition
-fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), and the chat-model
-API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
+Configurable under the `camunda.connector.agenticai.*` prefix, in four main areas: process-definition
+fetch retries and the BPMN-resolution Caffeine cache (`tools.processDefinition.*`), the chat-model
+API timeout (`aiagent.chatModel.api.*`), and the size limits of the document content (below). For the current defaults, see
 [`ToolsSchemaProperties`](../../aiagent-tools-schema/src/main/java/io/camunda/connector/agenticai/tools/schema/configuration/ToolsSchemaProperties.java)
 (`tools.*`) and
 [`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
+
+### Document content limits
+
+The agent adds the content of a document to the conversation only when the document passes the content guard (see "The
+guard" under "Document Extraction from Tool Call Results" in §19). The size limits of the guard are properties of the
+connector, not of a job: the operator sets them for every agent of the runtime, and they are not FEEL expressions. A value
+is a Spring `DataSize` such as `256KB` or `4MB` and must be positive; a bean of type `DocumentContentGuard` replaces the
+configuration.
+
+| Property                                                            | Default           | Limit of                        |
+|---------------------------------------------------------------------|-------------------|---------------------------------|
+| `camunda.connector.agenticai.aiagent.document.content-limits.text`  | `256KB`           | a text-based document           |
+| `camunda.connector.agenticai.aiagent.document.content-limits.pdf`   | `3584KB` (3.5 MB) | a PDF document                  |
+| `camunda.connector.agenticai.aiagent.document.content-limits.image` | `3584KB` (3.5 MB) | an image (PNG, JPEG, GIF, WebP) |
+
+The defaults stay below the limits of the most restrictive supported model provider (Amazon Bedrock Converse: 4.5 MB for a
+document, 3.75 MB for an image) and apply to every provider. Limits per provider, together with a capability matrix of the
+providers, are a follow-up (follow-up of [ADR 017](../adr/017-document-flow.md)): raise a limit only when every provider
+of the runtime accepts the larger document.
 
 ---
 
@@ -1492,11 +1524,11 @@ instance itself, so its key is invariant.
 - `BaseAgentRequestHandler.callModel()` → Calls `tagToolCalls`, the one place the tool calls of an assistant message get the kind of their tool (`PROCESS` / `RUNTIME`) or, when the tool is not offered, a `rejection`, before `ingest`
 - `BaseAgentRequestHandler.localToolCallResults()` → Produces the tool call results of the calls of `AgentConversationTurn.isLocalToolCall(ToolCall)`, in the job that has them in a message that has local tool calls only (`addLocalToolCallResults`, after the model-call limit check) and in the job that composes the next turn: a call with a `rejection` gets it as the error result and is never executed, every other call goes to `RuntimeTools.execute`; one execution per call, in call order
 - `RuntimeToolsImpl.execute()` → Executes calls of runtime tools, the one place a `RuntimeTool` is called; a call of a tool that is not enabled gets the error result "is not available"
-- `ToolCallResultsInputBuilder.build()` → Builds the tool call result message (and the document message) from the results of all tool calls of a turn, for the composer and the runtime tool round
+- `ToolCallResultsInputBuilderImpl.build()` → Builds the tool call result message (and the document message) from the results of all tool calls of a turn, applying the effects of the runtime tool results, for the composer and the request handler's rounds of local tool call results
 - `AgentConversation.rehydrate()` / `ingest()` / `window()` / `nextContinuationRound()` / `nextRuntimeToolRound()` / `toAgentContext()` → Immutable turn aggregate lifecycle
 - `BaseAgentRequestHandler.throwIfLimitsReached()` → Model-call limit check (reads `totalMetrics().modelCalls()`)
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting; hands the process tool calls of the last turn to the gateway handlers
-- `RuntimeToolsImpl.enabledDefinitions()` → The enabled runtime tools of a job, registered as beans (§25.4)
+- `RuntimeToolsImpl.enabledDefinitions()` / `GetDocumentTool` → The enabled runtime tools of a job, registered as beans, and the built-in tool `c8__get_document` (§25.4)
 
 ### Job Completion
 - `AgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
@@ -1588,6 +1620,10 @@ classDiagram
     class RuntimeTool {
         <<interface>>
     }
+    class ToolCallResultsInputBuilder {
+        <<interface>>
+    }
+    class DocumentContentGuard
     class DocumentExpander
 
     BaseAgentRequestHandler --> AgentInitializer
@@ -1595,7 +1631,10 @@ classDiagram
     BaseAgentRequestHandler --> ChatModelRegistry
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> RuntimeTools
+    BaseAgentRequestHandler --> ToolCallResultsInputBuilder
     BaseAgentRequestHandler --> DocumentExpander
+    AgentConversationTurnInputComposer --> ToolCallResultsInputBuilder
+    ToolCallResultsInputBuilder --> DocumentContentGuard
     RuntimeTools o-- RuntimeTool : collects *
     BaseAgentRequestHandler --> ConversationStoreRegistry
     BaseAgentRequestHandler --> SystemPromptComposer
@@ -1706,10 +1745,18 @@ The e2e modules, their test base classes and how to run them are described in th
 The document workspace and the document parameters are covered by unit tests, each rule where it lives: schema walking and
 the provider rewrite, the resolver and its error texts, the workspace and its entries, the document reference block and the
 tags rendered from the workspace, the composer and `ToolCallResultsInputBuilder` (document references, origins, the merge of
-local tool call results and process results in call order), the expander and the window decorator, `RuntimeTools` and the
-request handler with a test-only stateful tool, the response handler (the references the process receives), the history
-mapper, and the persistence round trips. A conversation persisted by Camunda
-8.10 pins the behavior of instances without the `documents` feature.
+local tool call results and process results in call order, the content effects, the delivery of the user prompt), the guard,
+the built-in tool, the expander and the window decorator, `RuntimeTools` and the request handler with a test-only stateful
+tool, the response handler (the references the process receives), the history mapper, and the persistence round trips. A
+conversation persisted by Camunda 8.10 pins the behavior of instances without the `documents` feature. End-to-end tests
+run against a WireMock model, with a placeholder transformer that lets scripted tool calls name the ids of documents the
+store generated. The sub-process flavor runs the detailed scenarios: a document parameter, loading a document, unknown
+tags, eviction, a runtime tool that returns a document, and the history audit. The task flavor keeps the user prompt
+document tests and the tests of instances without the feature. A shared assertion checks every recorded model request for
+store ids, content hashes and the document format in tool schemas. Not covered end to end are real-provider document tests
+(paid model calls), a gateway handler with document parameters (unit tests only) and the wire format of a document with
+content on Bedrock (converter unit tests only, because the event-stream response bodies cannot carry the id
+placeholders).
 
 ---
 
@@ -1877,8 +1924,8 @@ behavior of [ADR-004](../adr/004-document-handling-in-tool-call-results.md): the
 The documents of the result of a runtime tool (§25.4), in a batch of local tool calls only or in a mixed one, are extracted from its
 typed content (`ToolCallResultDocumentExtractor.documentsOf`) and handled the same way. They are registered after all calls
 of the message ran, in the order of the calls and together with the documents of the process results, by
-`ToolCallResultsInputBuilder`, which the composer and the runtime tool round of the request handler share; the result of a
-call that failed has none.
+`ToolCallResultsInputBuilder`, which the composer and the request handler's rounds of local tool call results share; the result of a
+call that failed has none. The same place applies the effects of the results (below).
 
 **The tag.** `<doc id="..." fileName="..." contentType="..." size="..." source="..." toolName="..." toolCallId="..." />`,
 attributes in that order, XML-escaped, blank or unknown attributes omitted. `DocumentTags` renders it from the workspace
@@ -1902,9 +1949,63 @@ and its UTF-8 bytes. The content hash and the metadata are not part of it, so th
 other kind of reference, or an inline reference with blank content, fails with `FAILED_MODEL_CALL`. The id never exposes
 a store id, the id of the document in its store or a URL.
 
-**The user prompt.** The documents of the user prompt are references with the delivery `content`: the content of every
-document goes out with the prompt, with no size limit and no type check, and a document the provider cannot read fails the
-model call. Documents of events stay references, and so do those of the MCP and A2A gateway tools.
+**Loading content: `c8__get_document`.** The model calls it with the tag of a document (`id`, a document parameter; the
+tool receives a `DocumentId`). It loads the whole document, no ranges. The tool answers without asking for content when the
+document is already in the windowed conversation (a reference with the delivery `content` in a windowed user message,
+`AgentDocument.contentInConversation()`): success, `Document <id> is already in the conversation.`; loadable again after
+that message left the window. Otherwise the result is the text `Loaded the document.`, a reference block of the document
+(the tag the model saw, the delivery `reference`) and the text `Its content follows in the next message.`, and it asks the
+agent to add the content (`RuntimeToolResult.Success.withDocumentContent`). The agent, not the tool, applies the effect
+after all calls of the message ran, in the order of the calls, in `ToolCallResultsInputBuilder`: it runs the content guard
+for every document a result names, and does not add the content of a document the model reads already or an earlier
+result of the same message asked for. A document the guard rejects turns the whole result into an error result, whose
+documents are not registered:
+
+| Check | Answer |
+|-------|--------|
+| the document is an external one (a URL) | error, `The document is an external document, which cannot be loaded into the conversation; pass its tag to a tool that processes it.` |
+| the content type is missing or no model provider renders it | error, `The document is of type X which cannot be loaded into the conversation; pass its tag to a tool that processes it.` (`The document has no content type, so it cannot be loaded into the conversation; ...` without a content type) |
+| the size exceeds the limit of the kind of content | error, `The document is N KB, too large to load into the conversation (limit L KB); pass its tag to a tool that processes it.` |
+| the size cannot be read | error, `The document could not be read; it is not loaded.` (the cause is logged); the model can retry |
+
+Every answer is plain text with no incident; the model retries or goes another way. The builder then follows the tool
+result message with a user message with the preamble `System message, not written by the user: the content of the
+documents loaded for the tool results above follows.` and a reference with the delivery `content` per document. Its
+metadata `toolCallDocuments` makes it leave the context window together with its tool results (`MessageWindowFilter`). The
+tag text and the content are added from the workspace when the conversation is windowed. Passing the tag of a document to
+a tool parameter declared with `fromAi(..., "document")` never adds content: the tool receives the full Camunda document
+reference. `c8__get_document` is offered to every agent instance with the `documents` feature (every instance created from
+this version on) and cannot be switched off; an instance created before the feature is not offered it. A switch for it is a
+follow-up of [ADR 017](../adr/017-document-flow.md).
+
+**The guard.** `DocumentContentGuard` is the one check for every addition of content, whoever asks. An external document
+(a URL) is never loadable on request of a tool: its content type and size are known only after the runtime downloaded the
+whole body, so the guard can neither check nor bound them without that download; the model passes its tag to a tool that
+processes it. (The content of an external document in a user prompt with the delivery `content` is not guarded: the model
+provider reads it, as it reads every document of a user prompt.) It classifies a document by its content type with the
+classification of the model providers (`DocumentMimeTypes`): text-based types (`text/*`, `application/json`, `xml`, `yaml`,
+`x-yaml` and the suffixes `+json`, `+xml`, `+yaml`), `application/pdf`, and the images PNG, JPEG, GIF and WebP; parameters
+of a type and its case are ignored. A document without a content type, or with one that no provider renders, is not
+loadable, because a provider fails the model call for it. The limit depends on the kind and is configurable (see
+"Document content limits" in §16); the defaults are 256 KB for text, 3.5 MB for PDF and 3.5 MB for images. The size is read
+from the `size` of the reference metadata and, without one, by reading at most one byte more than the limit. The limits
+apply to every provider and are those of the most restrictive one; a provider without support for a type it shares with
+the others, a PDF for example, still fails at the model call.
+
+What the model reads about a rejected document is a fixed sentence with the content type or the size and the limit at
+most. The message and the cause of a failure, such as one while reading the document, are only logged: a message can hold a
+URL with a token, and the text is part of the persisted conversation.
+
+**The user prompt.** The documents of the user prompt are references with the delivery `content` when the delivery of the
+user prompt is not set, as in a process modeled before the option existed and in every template: the content of every
+document goes out with the prompt, with no guard (no size limit, no type check), and a document the provider cannot read
+fails the model call. An explicit delivery `content` runs the guard: a document that passes goes out as content, one that
+fails stays a reference and the model gets a note, `Document <id> was not loaded automatically: it <problem>. <advice>`,
+where the advice is `Pass its tag to a tool that processes it.` or, for a read failure, `A tool for loading documents can
+try to load it again.`; the delivery `content` never fails the run. An explicit `reference` gives the tags. The documents
+of an external URL in the user prompt always go out as content, unguarded, whatever the delivery. A document whose content
+is already in the conversation is not added twice. Documents of events stay references, and so do those of the MCP and A2A
+gateway tools. See [ADR-004](../adr/004-document-handling-in-tool-call-results.md).
 
 A document with inline content (a reference that holds the content itself, as opposed to a Camunda or an external
 document) is registered only if its content has at most 1 MiB (`DocumentIngestion.MAX_INLINE_CONTENT_LENGTH`,
@@ -1920,8 +2021,10 @@ file as a Camunda document instead.
   user message with a preamble, then per document the tag in the older attribute format
   (`LegacyDocumentReferenceXmlTag`: `toolName`, `toolCallId`, `documentId`, `storeId`, `contentType`, `fileName`, or `url`
   and `name` for an external document) and the `DocumentContent`, as in ADR-004. Nothing is registered.
-- `documents` stays empty; the window expands nothing, and a `Document` in a tool result renders as its reference JSON.
-- Without the `runtimeTools` feature there are no runtime tools, no mixed-batch handling and no tool name check (§25.4).
+- `documents` stays empty; the window expands nothing and adds no note, and a `Document` in a tool result renders as its
+  reference JSON.
+- Without the `runtimeTools` feature there are no runtime tools (`c8__get_document` included), no mixed-batch handling and
+  no tool name check (§25.4).
 - The document parameters of tool calls are not resolved or checked: a `fromAi(..., "document")` parameter reaches the
   process as the plain string the model sent.
 - The schema of a tool and the provider rewrite of the document format apply to every instance.
@@ -1929,10 +2032,11 @@ file as a Camunda document instead.
 
 `LegacyDocumentConversationTest` pins this behavior with a conversation persisted by Camunda 8.10.
 
-**Limits.** A document that expires in its store is not noticed by the agent. Documents named only in the content of an
-evicted assistant message are not tracked, and `<doc/>` tags the model writes in the final text are not interpreted. A
-content type is not sniffed from the bytes for documents of unknown type. The follow-ups that close these limits are
-listed in [ADR 017](../adr/017-document-flow.md).
+**Limits.** The delivery is stored on each block, so the history can show the same document with different deliveries.
+MCP and A2A tools take no documents. A document that expires in its store is not noticed by the agent. Documents named only
+in the content of an evicted assistant message are not tracked, and `<doc/>` tags the model writes in the final text are not
+interpreted. A content type is not sniffed from the bytes for documents of unknown type. `fromAi` with the type `document`
+has no Modeler support. The follow-ups that close these limits are listed in [ADR 017](../adr/017-document-flow.md).
 
 `ToolCallResultDocumentExtractor` is the entrypoint, called from `AgentConversationTurnInputComposerImpl` for each
 process tool call result, before `ToolCallResultsInputBuilder` builds the `ToolCallResultMessage`. For each result it asks the registry which handler manages
@@ -2081,8 +2185,8 @@ lease-fenced `update()` mechanism).
 
 ### Conversation history items
 
-- A `UserMessage` → one `USER` item (covers the user prompt, event messages, and virtual
-  document-reference messages). The document references of a user message are reported as their tag in backticks and the
+- A `UserMessage` → one `USER` item (covers the user prompt, event messages, virtual
+  document-reference messages and the follow-up message of documents with content). The document references of a user message are reported as their tag in backticks and the
   document from the workspace (`DocumentExpander`) as a `DOCUMENT` block (an `OBJECT` block for an external reference), so
   the history shows at least what the model receives. A message of an agent instance without the `documents` feature is
   reported as stored.
@@ -2365,16 +2469,22 @@ see [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-
 > `aiagent-api`) is experimental since 8.11 and may change in an incompatible way in a minor release.
 
 A runtime tool is a tool the connector runtime executes itself, without activating a BPMN element: the model sees its
-definition next to the tools of the process and the agent executes the call, in process. The connector registers no
-runtime tool of its own; `RuntimeTools` has no tool until a runtime registers a bean. The rationale is in
-[ADR 016](../adr/016-runtime-tools.md). The contract of every type is in its javadoc; `RuntimeTool` is the entry point,
-and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small example.
+definition next to the tools of the process and the agent executes the call, in process. A built-in tool is a runtime tool
+the connector ships. The built-in tool `GetDocumentTool` (`c8__get_document`) is in `aiagent/tool/runtime/builtin` of
+`connector-aiagent`, uses only this SPI and gets no special handling anywhere: an architecture rule
+(`BuiltInRuntimeToolsArchTest`) lets it depend on the API, the model, the common library, the connector SDK, Jackson,
+jspecify and the JDK only. It is wired in `AgenticAiConnectorsAutoConfiguration` as the bean `aiAgentGetDocumentRuntimeTool`
+(`@ConditionalOnMissingBean(name = ...)`: a bean with the bean name of a built-in tool replaces it; a bean with another bean
+name that has the name of a built-in tool fails the startup, as tool names are unique). The rationale is in
+[ADR 016](../adr/016-runtime-tools.md) and [ADR 017](../adr/017-document-flow.md). The contract of every type is in its
+javadoc; `RuntimeTool` is the entry point, and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small
+example.
 
 **To add a tool**
 
-1. Pick a name with a vendor prefix such as `acme_`; `c8__` is meant for the tools the connector ships. A tool of the
-   process must not have the name while the tool is enabled: the agent job fails with
-   `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix is checked or reserved, only the exact name.
+1. Pick a name with a vendor prefix such as `acme_`; `c8__` is the prefix of the built-in tools. A tool of the process must
+   not have the name while the tool is enabled: the agent job fails with `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix
+   is checked or reserved, only the exact name.
 2. Build the definition with `ToolDefinition.runtime(...)` and `LinkedHashMap`s for the schema: the order of a map such
    as `Map.of` differs between JVMs, and the order of the parameters is part of the configuration fingerprint.
 3. Implement `call`. Return `RuntimeToolResult.error(...)` or throw a `RuntimeToolException` for a failure the model can
@@ -2390,11 +2500,13 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 
 **Execution contract**
 
-- *At least once.* A retried job executes the call again, so make side effects outside the agent idempotent.
+- *At least once.* A retried job executes the call again, so make side effects outside the agent idempotent. The effects of
+  an attempt that did not complete the job are discarded.
 - *Bounded execution time.* A call is executed in the thread of the job, without a timeout: stay well below the job timeout.
 - *Order and concurrency.* The results of a batch are applied in call order. `call` and `isEnabled` may be called from different
   threads, and a `RuntimeToolContext` is safe to read concurrently.
-  The calls of one message see the same `documents()`, the ones known when the batch starts.
+  The calls of one message see the same `documents()`, the ones known when the batch starts; the agent applies the effects
+  of the results after all calls ran, in call order.
 - *Mixed batches.* Runtime calls of a message that also calls process tools are executed in the job that composes the next turn
   (§9); a message that calls runtime tools only has them executed in the same job and calls the model again.
 - *Failures.* A call of a tool that is not offered in the job is rejected and gets the error result "does not exist" from the
@@ -2410,7 +2522,16 @@ result and does not reach the tool.
 **Documents.** `RuntimeToolContext#documents()` gives a read-only view of the documents the agent knows (`find`, `all`) and
 `reference(DocumentId)`, a content block the model reads as the tag of a known document. A `DocumentContent` block in the
 result is a new document: after the calls of the message ran, the agent registers it with the tool call as its origin, and
-the model reads its tag only (§19). An error result registers nothing.
+the model reads its tag only (§19). An error result registers nothing. `AgentDocument#contentInConversation()` tells a tool
+whether the model reads the content of a document already.
+
+**Effects.** `RuntimeToolResult.success(...)` returns a `Success`, which has the effect `withDocumentContent(DocumentId)`:
+the agent adds the content of a known document, or of one the result returns itself, to the request that follows the tool
+results. `GetDocumentTool` is the reference. The agent runs the content guard (`DocumentContentGuard`: the content type and
+the size limit of its kind) before it adds anything. A document that is not allowed turns the whole result into an error
+result, drops its effects and registers none of its documents; a document the model reads already, or that an earlier result
+of the message asked for, is not added again. A document an effect names that neither the agent nor the result knows is a
+defect of the tool and fails the job with an `IllegalArgumentException`.
 
 The framework offers the definitions next to the process tools (they are part of the configuration fingerprint and never
 of `AgentContext.toolDefinitions`), turns the content into a tool result, registers the documents it returns after the
