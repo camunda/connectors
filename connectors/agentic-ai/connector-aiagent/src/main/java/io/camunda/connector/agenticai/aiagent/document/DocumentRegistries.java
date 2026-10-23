@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -31,9 +32,10 @@ import java.util.Map;
  * Registers ingested documents in a {@link DocumentRegistry}: derives the stable id of a document
  * (see {@link DocumentHandle#idFor}) and its registry entry.
  *
- * <p>The reference of an inline document holds its content in the registry and in the tool result,
- * both of which are part of the job completion. An inline document whose content exceeds {@link
- * #MAX_INLINE_CONTENT_LENGTH} is therefore rejected.
+ * <p>The reference of an inline document holds its content in the registry, in the tool result and
+ * in the response documents, all of which are part of the job completion. An inline document whose
+ * content exceeds {@link #MAX_INLINE_CONTENT_LENGTH}, and a registry whose inline documents have
+ * more content than {@link #MAX_TOTAL_INLINE_CONTENT_LENGTH} in total, are therefore rejected.
  */
 public final class DocumentRegistries {
 
@@ -44,6 +46,20 @@ public final class DocumentRegistries {
    * carries the content several times, stays well below the message size limit of the broker.
    */
   public static final int MAX_INLINE_CONTENT_LENGTH = 1024 * 1024;
+
+  /**
+   * The largest total content of all inline documents of a registry, counted like {@link
+   * #MAX_INLINE_CONTENT_LENGTH}. More is rejected with {@code
+   * ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE} when a document is registered.
+   *
+   * <p>The content is held about three times in the job completion (the registry, the tool result
+   * and the response documents), which must stay below the message size limit of the broker, 4 MiB
+   * by default. With a total of 1 MiB the content takes about 3 MiB, and the remaining 1 MiB is for
+   * the rest of the completion: the messages of the in-process conversation store, the tool
+   * definitions, the metrics and the other documents. The total is the limit of one document, so a
+   * single document may use all of it.
+   */
+  public static final int MAX_TOTAL_INLINE_CONTENT_LENGTH = 1024 * 1024;
 
   // the persisted reference keeps the numeric form of durations in the custom properties
   private static final ObjectMapper REFERENCE_MAPPER =
@@ -62,7 +78,9 @@ public final class DocumentRegistries {
    *
    * @throws ConnectorException with {@code ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE} if a new document
    *     is an inline document with more than {@link #MAX_INLINE_CONTENT_LENGTH} characters of
-   *     content
+   *     content, and with {@code ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE} if the inline documents of
+   *     the resulting registry have more than {@link #MAX_TOTAL_INLINE_CONTENT_LENGTH} characters
+   *     of content in total
    */
   public static DocumentRegistry withDocuments(
       DocumentRegistry registry, List<IngestedDocument> documents) {
@@ -77,6 +95,7 @@ public final class DocumentRegistries {
         newEntries.add(entryFor(ingested));
       }
     }
+    rejectLargeTotalInlineContent(registry, newEntries);
     return registry.withEntries(newEntries);
   }
 
@@ -125,6 +144,33 @@ public final class DocumentRegistries {
                   inline.content().length(),
                   MAX_INLINE_CONTENT_LENGTH));
     }
+  }
+
+  private static void rejectLargeTotalInlineContent(
+      DocumentRegistry registry, List<DocumentRegistryEntry> newEntries) {
+    final var newLength = newEntries.stream().mapToLong(e -> inlineContentLength(e)).sum();
+    if (newLength == 0) {
+      return;
+    }
+    final var total =
+        newLength + registry.entries().stream().mapToLong(e -> inlineContentLength(e)).sum();
+    if (total > MAX_TOTAL_INLINE_CONTENT_LENGTH) {
+      throw new ConnectorException(
+          ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE,
+          ("The inline documents are too large: their content has %d characters in total, the limit"
+                  + " is %d. Model the process so that files are returned as Camunda documents instead"
+                  + " of inline content.")
+              .formatted(total, MAX_TOTAL_INLINE_CONTENT_LENGTH));
+    }
+  }
+
+  /** The characters of content an entry holds: those of an inline document, none otherwise. */
+  private static long inlineContentLength(DocumentRegistryEntry entry) {
+    final var reference = entry.reference();
+    return "inline".equals(reference.get("camunda.document.type"))
+            && reference.get("content") instanceof String content
+        ? content.length()
+        : 0;
   }
 
   private static Map<String, Object> serializeReference(Document document) {

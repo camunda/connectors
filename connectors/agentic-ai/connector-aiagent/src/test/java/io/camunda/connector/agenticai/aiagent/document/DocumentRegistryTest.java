@@ -6,12 +6,14 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_INLINE_DOCUMENT_TOO_LARGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
@@ -104,6 +106,102 @@ class DocumentRegistryTest {
     return new IngestedDocument(
         documentWith(new InlineDocumentReferenceModel(content, name, "text/plain")),
         DocumentSource.userMessage());
+  }
+
+  @Test
+  void acceptsInlineDocumentsUpToTheTotalLimit() {
+    final var half = DocumentRegistries.MAX_TOTAL_INLINE_CONTENT_LENGTH / 2;
+
+    final var registry =
+        DocumentRegistries.withDocuments(
+            DocumentRegistries.withDocuments(
+                DocumentRegistry.empty(), List.of(inline("a".repeat(half), "a.txt"))),
+            List.of(inline("b".repeat(half), "b.txt")));
+
+    assertThat(registry.size()).isEqualTo(2);
+  }
+
+  @Test
+  void rejectsInlineDocumentsAboveTheTotalLimitOfOneBatch() {
+    final var batch =
+        List.of(inline("a".repeat(600 * 1024), "a.txt"), inline("b".repeat(600 * 1024), "b.txt"));
+
+    assertThatThrownBy(() -> DocumentRegistries.withDocuments(DocumentRegistry.empty(), batch))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> {
+              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE);
+              assertThat(e.getMessage())
+                  .contains("1228800 characters in total", "limit is 1048576")
+                  .contains("Camunda document");
+            });
+  }
+
+  @Test
+  void countsTheInlineDocumentsTheRegistryHoldsAlready() {
+    final var registry =
+        DocumentRegistries.withDocuments(
+            DocumentRegistry.empty(), List.of(inline("a".repeat(600 * 1024), "a.txt")));
+    final var next = List.of(inline("b".repeat(600 * 1024), "b.txt"));
+
+    assertThatThrownBy(() -> DocumentRegistries.withDocuments(registry, next))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE));
+  }
+
+  @Test
+  void theTotalLimitHoldsForTheRegistryOfAnAgentContextAndLeavesItUntouchedWhenItFails() {
+    final var context =
+        DocumentRegistries.register(
+            AgentContext.empty(), List.of(inline("a".repeat(600 * 1024), "a.txt")));
+    final var next = List.of(inline("b".repeat(600 * 1024), "b.txt"));
+
+    assertThatThrownBy(() -> DocumentRegistries.register(context, next))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_INLINE_DOCUMENTS_TOO_LARGE));
+    assertThat(context.documentRegistry().size()).isEqualTo(1);
+  }
+
+  @Test
+  void theOrderOfTheDocumentsOfABatchDoesNotChangeWhetherTheTotalLimitIsExceeded() {
+    final var small = inline("a".repeat(100 * 1024), "a.txt");
+    final var large = inline("b".repeat(1000 * 1024), "b.txt");
+
+    assertThatThrownBy(
+            () -> DocumentRegistries.withDocuments(DocumentRegistry.empty(), List.of(small, large)))
+        .isInstanceOf(ConnectorException.class);
+    assertThatThrownBy(
+            () -> DocumentRegistries.withDocuments(DocumentRegistry.empty(), List.of(large, small)))
+        .isInstanceOf(ConnectorException.class);
+  }
+
+  @Test
+  void aDocumentTheRegistryKnowsAlreadyDoesNotCountAgain() {
+    final var big = inline("a".repeat(DocumentRegistries.MAX_TOTAL_INLINE_CONTENT_LENGTH), "a.txt");
+    final var registry = DocumentRegistries.withDocuments(DocumentRegistry.empty(), List.of(big));
+
+    assertThat(DocumentRegistries.withDocuments(registry, List.of(big))).isSameAs(registry);
+  }
+
+  @Test
+  void camundaDocumentsDoNotCountForTheTotalOfInlineContent() {
+    final var registry =
+        DocumentRegistries.withDocuments(
+            DocumentRegistry.empty(),
+            List.of(
+                inline("a".repeat(DocumentRegistries.MAX_TOTAL_INLINE_CONTENT_LENGTH), "a.txt")));
+
+    final var withCamunda =
+        DocumentRegistries.withDocuments(
+            registry,
+            List.of(
+                new IngestedDocument(
+                    document("x".repeat(2 * 1024 * 1024), "large.txt"),
+                    DocumentSource.userMessage())));
+
+    assertThat(withCamunda.size()).isEqualTo(2);
   }
 
   @Test
