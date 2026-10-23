@@ -41,6 +41,7 @@
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
+    <module>idp-extraction/element-templates-artifact</module>
     <module>embeddings-vector-database</module>
   </modules>
 
