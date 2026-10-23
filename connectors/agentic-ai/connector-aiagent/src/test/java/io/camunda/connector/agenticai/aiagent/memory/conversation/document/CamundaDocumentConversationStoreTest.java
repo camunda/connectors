@@ -35,6 +35,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -450,8 +451,9 @@ class CamundaDocumentConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentReferencesWhenTheStoredConversationIsLoadedAgainAndLeavesTheRegistryAlone()
-      throws Exception {
+  void
+      keepsDocumentReferencesWhenTheStoredConversationIsLoadedAgainAndLeavesTheRegistryAndTheResponseDocumentsAlone()
+          throws Exception {
     mockJobContext();
     final var document = createDocument("report", "report.txt");
     final var entry =
@@ -465,8 +467,11 @@ class CamundaDocumentConversationStoreTest {
     when(documentFactory.create(documentCreationRequestCaptor.capture()))
         .thenReturn(storedDocument);
 
+    final var selection = new ResponseDocumentSelection("report", entry.id(), "The report");
     final var agentContext =
-        AgentContext.empty().withDocumentRegistry(DocumentRegistry.of(List.of(entry)));
+        AgentContext.empty()
+            .withDocumentRegistry(DocumentRegistry.of(List.of(entry)))
+            .withResponseDocument(selection);
     AgentContext storedAgentContext;
     try (var session = store.createSession(executionContext, agentContext)) {
       session.loadMessages(agentContext);
@@ -478,8 +483,10 @@ class CamundaDocumentConversationStoreTest {
     final var storedContent = documentCreationRequestCaptor.getValue().content().readAllBytes();
     when(storedDocument.asInputStream()).thenReturn(new ByteArrayInputStream(storedContent));
 
-    // the registry is part of the agent context, which the store does not touch
+    // the registry and the response documents are part of the agent context, which the store does
+    // not touch
     assertThat(storedAgentContext.documents()).containsExactly(entry);
+    assertThat(storedAgentContext.responseDocuments()).containsExactly(selection);
     try (var session = store.createSession(executionContext, storedAgentContext)) {
       assertThat(session.loadMessages(storedAgentContext).messages())
           .singleElement()

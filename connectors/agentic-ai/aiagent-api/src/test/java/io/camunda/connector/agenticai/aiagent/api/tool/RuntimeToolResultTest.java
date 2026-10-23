@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,13 +88,43 @@ class RuntimeToolResultTest {
   }
 
   @Test
+  void aSuccessfulResultKeepsTheResponseDocumentEffectsInTheOrderTheyWereNamed() {
+    final var result =
+        RuntimeToolResult.success("ok")
+            .withResponseDocument("second", DOC_2, null)
+            .withResponseDocument("first", DOC_1, "A document")
+            .withDocumentContent(DOC_1);
+
+    assertThat(result.responseDocuments())
+        .containsExactly(
+            new ResponseDocumentSelection("second", DOC_2, null),
+            new ResponseDocumentSelection("first", DOC_1, "A document"));
+    assertThat(result.documentContent()).containsExactly(DOC_1);
+    assertThat(result.content()).containsExactly(textContent("ok"));
+  }
+
+  @Test
   void aSuccessfulResultWithoutEffectsNamesNoDocument() {
-    assertThat(RuntimeToolResult.success("ok").documentContent()).isEmpty();
+    final var result = RuntimeToolResult.success("ok");
+
+    assertThat(result.documentContent()).isEmpty();
+    assertThat(result.responseDocuments()).isEmpty();
   }
 
   @Test
   void anErrorResultHasNoEffects() {
-    assertThat(RuntimeToolResult.error("no").documentContent()).isEmpty();
+    final var result = RuntimeToolResult.error("no");
+
+    assertThat(result.documentContent()).isEmpty();
+    assertThat(result.responseDocuments()).isEmpty();
+  }
+
+  @Test
+  void aResponseDocumentKeyMustNotBeBlank() {
+    final var result = RuntimeToolResult.success("ok");
+
+    assertThatThrownBy(() -> result.withResponseDocument(" ", DOC_1, null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -101,15 +132,23 @@ class RuntimeToolResultTest {
     final var original = RuntimeToolResult.success("ok");
 
     original.withDocumentContent(DOC_1);
+    original.withResponseDocument("key", DOC_1, null);
 
     assertThat(original.documentContent()).isEmpty();
+    assertThat(original.responseDocuments()).isEmpty();
   }
 
   @Test
   void theEffectsAreACopyThatCannotBeChanged() {
-    final var result = RuntimeToolResult.success("ok").withDocumentContent(DOC_1);
+    final var result =
+        RuntimeToolResult.success("ok")
+            .withDocumentContent(DOC_1)
+            .withResponseDocument("key", DOC_1, null);
 
     assertThatThrownBy(() -> result.documentContent().add(DOC_2))
+        .isInstanceOf(UnsupportedOperationException.class);
+    assertThatThrownBy(
+            () -> result.responseDocuments().add(new ResponseDocumentSelection("k", DOC_2, null)))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 }
