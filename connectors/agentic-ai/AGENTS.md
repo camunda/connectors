@@ -219,7 +219,7 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature keeps the previous document handling: bare content and the older tag
-  format, no workspace. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
+  format, no workspace, no document parameters. An instance without the `runtimeTools` feature (created before it) is offered no runtime tools
   and no tool element is checked against runtime tool names; the features gate only what is offered. Gate new
   behavior that changes the wire format or the persisted shape on `AgentContext.supports(...)` and keep the legacy
   path covered by `LegacyDocumentConversationTest`. The one deliberate exception is the tagging and the rejection of
@@ -229,9 +229,11 @@ High-frequency traps (detail behind each link):
 - **Tool calls are tagged once, and the agent produces the tool call results of local tool calls itself**: before an
   assistant message enters the conversation, the agent sets `ToolCall.kind` to the kind of the tool of the call's name among the
   tools offered in the job, and `ToolCall.rejection` (the error text) when the name is not offered, and never computes either
-  again, for every agent instance, with or without the `runtimeTools` feature. Both are persisted (`kind` written only
+  again, for every agent instance, with or without the `runtimeTools` feature. For an instance with the `documents`
+  feature, a call of a process tool whose document parameter is not the `<doc />` tag of a known document also gets a
+  `rejection` and keeps the kind `PROCESS`. Both are persisted (`kind` written only
   for `RUNTIME`, `rejection` only when set), so every conversation store must keep them. A call with a rejection
-  (a rejected call) gets its rejection as its tool call result and is never executed, also when a runtime tool of that
+  (a rejected call) gets its rejection as its tool call result and is never executed or activated, also when a runtime tool of that
   name is enabled later; the calls of runtime tools go to `RuntimeTools` (`localToolCallResults`). Both are local tool
   calls, the calls whose tool call result the agent produces itself. When the model issues local tool calls and process tool calls together, only
   the process tool calls are activated, and the agent adds the tool call results of the local tool calls when the next
@@ -247,7 +249,11 @@ High-frequency traps (detail behind each link):
   window decorator (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content
   from the workspace; in a tool result it renders the short tag as text, so the providers have no document specific code.
   A user prompt document is a reference with the delivery `content`. The documents a runtime tool returns are registered
-  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`.
+  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`. A tool parameter of the type
+  `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver` turns it into the Camunda document
+  reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for a runtime tool (`RuntimeToolsImpl`),
+  and the stored messages and the history keep the tag. A process tool call whose value is not the tag of a known document
+  is rejected at tagging; a runtime tool call with such a value gets an error result and the tool is not called.
   [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
