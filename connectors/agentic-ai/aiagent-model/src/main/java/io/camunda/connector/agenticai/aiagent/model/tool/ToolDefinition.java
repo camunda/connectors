@@ -20,6 +20,13 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code kind} is the kind of tool offered; the agent instance history reads it. It is written
  * to JSON only for a {@link ToolKind#RUNTIME} definition; a missing value reads as {@link
  * ToolKind#PROCESS}.
+ *
+ * <p>A parameter that carries a document has the string schema with the format {@code
+ * camunda-document-id} (see {@link DocumentParameterSchema}). The stored schema keeps that format
+ * and does not hold the description hint the model gets for such a parameter; the model providers
+ * get the schema with the hint and without the format, which {@link
+ * DocumentParameterSchema#toProviderToolDefinitions} derives where the conversation snapshot is
+ * built.
  */
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
