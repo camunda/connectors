@@ -31,7 +31,8 @@ import jakarta.validation.constraints.NotNull;
  * @param boxCredential reusable Box credential; when bound, its authentication takes precedence
  *     over the inline one (see {@link #authentication()}). Declared first so it renders before the
  *     fields it gates, as required by ConditionPropertyOrderRule.
- * @param authentication hidden and validated only while no credential is bound.
+ * @param authentication hidden once a credential is bound, and then dropped in the compact
+ *     constructor, so a leftover inline discriminator default is neither used nor validated.
  */
 public record BoxRequest(
     @TemplateProperty(
@@ -50,8 +51,15 @@ public record BoxRequest(
         @NestedProperties(
             condition =
                 @PropertyCondition(property = "boxCredential", isEmpty = NullableBoolean.TRUE))
+        @Valid
         Authentication authentication,
     @TemplateProperty(group = "operation", id = "operation") @Valid @NotNull Operation operation) {
+
+  public BoxRequest {
+    if (boxCredential != null) {
+      authentication = null;
+    }
+  }
 
   /** Convenience constructor for the shape without a bound credential. */
   public BoxRequest(Authentication authentication, Operation operation) {
@@ -71,16 +79,6 @@ public record BoxRequest(
   @JsonIgnore
   public boolean isAuthenticationPresent() {
     return authentication() != null;
-  }
-
-  /**
-   * Validates the inline authentication only when no credential is bound, so a leftover inline
-   * discriminator default does not fail validation once the credential supplies the login.
-   */
-  @Valid
-  @JsonIgnore
-  public Authentication getInlineAuthenticationWhenNoCredentialBound() {
-    return boxCredential != null ? null : authentication;
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

@@ -112,7 +112,8 @@ class BoxCredentialTest {
   void validatesInlineAuthentication_whenNoCredentialBound() {
     assertThatThrownBy(() -> bind("\"authentication\": {\"type\": \"developerToken\"},"))
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessageContaining("accessToken");
+        .hasMessageContaining("authentication.accessToken")
+        .hasMessageNotContaining("inlineAuthenticationWhenNoCredentialBound");
   }
 
   @Test
