@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
+import io.camunda.connector.agenticai.aiagent.model.document.ResponseDocumentSelection;
 import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
@@ -219,6 +220,59 @@ class AgentContextTest {
   }
 
   @Test
+  void responseDocumentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty()
+      throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.responseDocuments()).isEmpty();
+
+    assertThat(objectMapper.writeValueAsString(context)).doesNotContain("responseDocuments");
+  }
+
+  @Test
+  void agentContextWithoutResponseDocumentsFieldBindsToEmptyList() throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 1,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": []
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.responseDocuments()).isEmpty();
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
+  void responseDocumentsAreSerializedAndDeserializedInInsertionOrder()
+      throws JsonProcessingException {
+    var context = AgentContext.empty();
+    for (final var key : List.of("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta")) {
+      context =
+          context.withResponseDocument(
+              new ResponseDocumentSelection(key, DocumentId.of("doc-" + key), null));
+    }
+    context =
+        context.withResponseDocument(
+            new ResponseDocumentSelection("alpha", DocumentId.of("doc-alpha-2"), "Replaced"));
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized)
+        .contains(
+            "\"responseDocuments\":[{\"key\":\"zeta\",\"document\":\"doc-zeta\"},"
+                + "{\"key\":\"alpha\",\"document\":\"doc-alpha-2\",\"description\":\"Replaced\"},");
+    assertThat(deserialized.responseDocuments())
+        .extracting(ResponseDocumentSelection::key)
+        .containsExactly("zeta", "alpha", "mid", "beta", "omega", "gamma", "delta");
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
   void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
     final var context = AgentContext.empty();
 
@@ -315,6 +369,7 @@ class AgentContextTest {
                 metrics,
                 toolDefinitions,
                 InProcessConversationContext.builder("test-conversation").build(),
+                List.of(),
                 List.of(),
                 List.of(),
                 Map.of()))
