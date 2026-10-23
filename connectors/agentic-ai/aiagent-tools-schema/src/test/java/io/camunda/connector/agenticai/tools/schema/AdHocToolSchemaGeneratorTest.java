@@ -394,6 +394,35 @@ class AdHocToolSchemaGeneratorTest {
         """);
   }
 
+  @Test
+  void mapsDocumentTypeToTheDocumentFormat() throws Exception {
+    final var element =
+        createToolElement(
+            List.of(
+                new AdHocToolElementParameter("toolCall.doc", "The invoice", "document"),
+                new AdHocToolElementParameter("toolCall.note", "A note", "string")));
+
+    assertJsonSchema(
+        element,
+        """
+        {
+          "type": "object",
+          "properties": {
+            "doc": {
+              "type": "string",
+              "format": "camunda-document-id",
+              "description": "The invoice"
+            },
+            "note": {
+              "type": "string",
+              "description": "A note"
+            }
+          },
+          "required": ["doc", "note"]
+        }
+        """);
+  }
+
   private void assertJsonSchema(AdHocToolElement element, String expectedJsonSchema)
       throws Exception {
     Map<String, Object> schema = generator.generateToolSchema(element);
