@@ -179,7 +179,7 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -238,7 +238,7 @@ jobs:
 
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -606,7 +606,7 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
