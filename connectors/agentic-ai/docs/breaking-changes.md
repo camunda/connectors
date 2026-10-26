@@ -187,6 +187,15 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
 
+### Response schema limits
+
+- JSON response schemas are now limited to 262144 UTF-8 JSON bytes and 64 levels of object/array
+  nesting by default. Larger schemas fail with `INVALID_RESPONSE_SCHEMA` before agent initialization.
+  Deployments requiring larger schemas can raise
+  `camunda.connector.agenticai.aiagent.response-schema.max-size-bytes` and
+  `camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth` in Spring application
+  properties. Both settings must be positive; provider API limits still apply.
+
 ### Model classes
 
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
@@ -198,8 +207,8 @@ client in its properties does not start.
 ### Persisted data
 
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
-  SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
-  one additional `CONFIGURATION` history item on its first job after the upgrade.
+  SHA-256 over a JSON serialization of the configuration with normalized schema-key ordering. An existing tracked agent
+  instance writes one additional `CONFIGURATION` history item when it next reports a turn after the upgrade.
 
 ## Camunda 8.9 to 8.10
 

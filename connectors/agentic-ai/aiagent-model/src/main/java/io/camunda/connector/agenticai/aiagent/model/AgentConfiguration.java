@@ -21,7 +21,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
@@ -86,10 +88,10 @@ public record AgentConfiguration(
    * hex.
    *
    * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
-   * immutable map whose top-level iteration order is unspecified and differs between JVMs, so the
-   * top-level keys of the schema are sorted. Everything below keeps its order: the order of the
-   * parameters, of the tools and of values such as {@code required} is part of what the model sees,
-   * so a change of it changes the fingerprint.
+   * immutable map whose iteration order is unspecified and differs between JVMs. Schema map keys
+   * are sorted recursively, except for {@code properties} maps, which retain parameter order. Tool
+   * and list order (including {@code required}) is also retained. Normalization only affects the
+   * hash input; the tool definitions are unchanged.
    */
   public String fingerprint() {
     try {
@@ -110,6 +112,23 @@ public record AgentConfiguration(
   }
 
   private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
-    return Arrays.asList(tool.name(), tool.description(), new TreeMap<>(tool.inputSchema()));
+    return Arrays.asList(
+        tool.name(), tool.description(), normalizeSchema(tool.inputSchema(), false));
+  }
+
+  private static @Nullable Object normalizeSchema(@Nullable Object value, boolean properties) {
+    if (value instanceof Map<?, ?> map) {
+      final Map<String, @Nullable Object> normalized =
+          properties ? new LinkedHashMap<>() : new TreeMap<>();
+      map.forEach(
+          (key, child) ->
+              normalized.put(
+                  (String) key, normalizeSchema(child, !properties && "properties".equals(key))));
+      return normalized;
+    }
+    if (value instanceof List<?> list) {
+      return list.stream().map(child -> normalizeSchema(child, false)).toList();
+    }
+    return value;
   }
 }

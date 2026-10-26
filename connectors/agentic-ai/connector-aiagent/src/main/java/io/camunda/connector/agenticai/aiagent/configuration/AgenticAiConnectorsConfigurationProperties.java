@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -23,6 +24,7 @@ public record AgenticAiConnectorsConfigurationProperties(
   public record AiAgentProperties(
       @Valid @DefaultValue ChatModelProperties chatModel,
       @Valid @DefaultValue AgentInstanceProperties agentInstance,
+      @Valid @DefaultValue ResponseSchemaProperties responseSchema,
       /**
        * When {@code true} (the default), v1 provider configurations are rewritten to their v2
        * equivalent and executed through the v2 provider path. When {@code false}, the original v1
@@ -32,6 +34,10 @@ public record AgenticAiConnectorsConfigurationProperties(
 
     public record AgentInstanceProperties(
         @Valid @DefaultValue @NestedConfigurationProperty RetriesProperties retries) {}
+
+    public record ResponseSchemaProperties(
+        @DefaultValue("262144") @Positive long maxSizeBytes,
+        @DefaultValue("64") @Positive int maxNestingDepth) {}
   }
 
   public record ChatModelProperties(

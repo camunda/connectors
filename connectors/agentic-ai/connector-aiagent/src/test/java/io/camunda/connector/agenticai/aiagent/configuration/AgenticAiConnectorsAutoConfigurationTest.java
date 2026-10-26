@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.aiagent.configuration;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.aiagent.configuration.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.agenticai.aiagent.AgentSubProcessV1Function;
@@ -21,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
+import io.camunda.connector.agenticai.aiagent.agent.ResponseSchemaValidator;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelFactory;
@@ -57,6 +60,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.m
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.proxy.aws.AwsSdkHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.proxy.azure.AzureHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.request.v1.AnthropicProviderConfiguration;
@@ -97,9 +101,11 @@ import io.camunda.connector.agenticai.tools.schema.processdefinition.CachingProc
 import io.camunda.connector.agenticai.tools.schema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.feel.AdHocToolElementParameterExtractor;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.authentication.OAuthClientCredentialsTokenResolver;
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -107,6 +113,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.context.properties.bind.validation.BindValidationException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -126,6 +133,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           GatewayToolHandlerRegistry.class,
           AgentToolsResolver.class,
           AgentInitializer.class,
+          ResponseSchemaValidator.class,
           InProcessConversationStore.class,
           CamundaDocumentConversationStore.class,
           AwsAgentCoreConversationMapper.class,
@@ -173,6 +181,93 @@ class AgenticAiConnectorsAutoConfigurationTest {
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
           .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS);
+
+  @Test
+  void responseSchemaLimitsHaveSafeDefaults() {
+    contextRunner.run(
+        context -> {
+          final var limits =
+              context
+                  .getBean(AgenticAiConnectorsConfigurationProperties.class)
+                  .aiagent()
+                  .responseSchema();
+          assertThat(limits.maxSizeBytes()).isEqualTo(262144);
+          assertThat(limits.maxNestingDepth()).isEqualTo(64);
+        });
+  }
+
+  @Test
+  void responseSchemaLimitsCanBeOverriddenAndAreEnforced() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.agenticai.aiagent.response-schema.max-size-bytes=13",
+            "camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth=1")
+        .run(
+            context -> {
+              final var validator = context.getBean(ResponseSchemaValidator.class);
+              assertThatCode(
+                      () ->
+                          validator.validate(
+                              new JsonResponseFormatConfiguration(
+                                  Map.of("title", "a"), "Response")))
+                  .doesNotThrowAnyException();
+              assertThatThrownBy(
+                      () ->
+                          validator.validate(
+                              new JsonResponseFormatConfiguration(
+                                  Map.of("title", "ab"), "Response")))
+                  .isInstanceOf(ConnectorException.class);
+              assertThatThrownBy(
+                      () ->
+                          validator.validate(
+                              new JsonResponseFormatConfiguration(
+                                  Map.of("a", Map.of()), "Response")))
+                  .isInstanceOf(ConnectorException.class);
+            });
+  }
+
+  @Test
+  void responseSchemaLimitsCanBeRaisedAboveDefaults() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.agenticai.aiagent.response-schema.max-size-bytes=524288",
+            "camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth=96")
+        .run(
+            context -> {
+              final var validator = context.getBean(ResponseSchemaValidator.class);
+              assertThatCode(
+                      () ->
+                          validator.validate(
+                              new JsonResponseFormatConfiguration(
+                                  Map.of("description", "x".repeat(262144)), "Response")))
+                  .doesNotThrowAnyException();
+              Map<String, Object> schema = Map.of("type", "string");
+              for (int i = 0; i < 70; i++) {
+                schema = Map.of("items", schema);
+              }
+              final var format = new JsonResponseFormatConfiguration(schema, "Response");
+              assertThatCode(() -> validator.validate(format)).doesNotThrowAnyException();
+            });
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "max-size-bytes=0",
+        "max-size-bytes=-1",
+        "max-nesting-depth=0",
+        "max-nesting-depth=-1"
+      })
+  void nonPositiveResponseSchemaLimitsFailAtStartup(String setting) {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.aiagent.response-schema." + setting)
+        .run(
+            context ->
+                assertThat(context)
+                    .hasFailed()
+                    .getFailure()
+                    .hasRootCauseInstanceOf(BindValidationException.class));
+  }
 
   @Test
   void whenAgenticAiConfigurationEnabled_thenAgenticConnectorBeansAreCreated() {

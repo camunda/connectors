@@ -38,20 +38,25 @@ public class AgentInitializerImpl implements AgentInitializer {
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final AgentInstanceClient agentInstanceClient;
   private final ToolCallResultCompletedAtResolver completedAtResolver;
+  private final ResponseSchemaValidator responseSchemaValidator;
 
   public AgentInitializerImpl(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AgentInstanceClient agentInstanceClient,
-      ToolCallResultCompletedAtResolver completedAtResolver) {
+      ToolCallResultCompletedAtResolver completedAtResolver,
+      ResponseSchemaValidator responseSchemaValidator) {
     this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.agentInstanceClient = agentInstanceClient;
     this.completedAtResolver = completedAtResolver;
+    this.responseSchemaValidator = responseSchemaValidator;
   }
 
   @Override
   public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
+    final var response = executionContext.configuration().response();
+    responseSchemaValidator.validate(response != null ? response.format() : null);
     AgentContext agentContext =
         Optional.ofNullable(executionContext.initialAgentContext())
             .orElseGet(() -> createAgentContext(executionContext));

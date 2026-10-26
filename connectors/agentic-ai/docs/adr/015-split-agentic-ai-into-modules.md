@@ -183,18 +183,19 @@ The decision comprises:
   dependency that closes it, and the list must only shrink. An ignored dependency also hides the
   longer cycles that run through it, so the tests do not catch a new cycle that uses one of these
   dependencies:
+  * `aiagent.agentinstance` and `aiagent.conversation`.
   * `aiagent.chatmodel` and `aiagent.configuration`.
   * `aiagent.chatmodel` and `aiagent.request`.
   * `aiagent.configuration` and `aiagent.request`.
   * `aiagent.memory` and `aiagent.request`.
   * `mcp.client.configuration` and `mcp.client.framework`.
 
-  Without the ignored dependencies, the tests report longer cycles in `connector-aiagent` on top
-  of these five. They run through `aiagent.agent`, `aiagent.agentinstance`, `aiagent.chatmodel`,
+  Without the ignored dependencies, the tests report 16 longer cycles in `connector-aiagent` on top
+  of these six. They run through `aiagent.agent`, `aiagent.agentinstance`, `aiagent.chatmodel`,
   `aiagent.configuration`, `aiagent.conversation`, `aiagent.memory` and `aiagent.request`, and 10
   of them run through `aiagent.agent`, for example `aiagent.agent` → `aiagent.chatmodel` →
   `aiagent.configuration` → `aiagent.agent`. Each longer cycle uses at least one of the ignored
-  dependencies, so breaking the five cycles also breaks the longer ones. The ignored dependencies come
+  dependencies, so breaking the six cycles also breaks the longer ones. The ignored dependencies come
   from a few classes, which makes them candidates for separate follow-ups:
   * 13 classes in `aiagent.chatmodel`, among them the chat model factories and `ChatModelTimeouts`, and
     `V1ToV2ProviderConfigurationMapperImpl` in `aiagent.request` read
@@ -207,6 +208,8 @@ The decision comprises:
     `ChatModelTimeouts.deriveTimeoutSetting` from `aiagent.chatmodel`.
   * The request records in `aiagent.request` use `VersionedAgentContextDeserializer` from
     `aiagent.memory`.
+  * `AgentConversation` in `aiagent.conversation` uses `AgentInstanceKey` from
+    `aiagent.agentinstance`.
 
   In addition, `aiagent.chatmodel`, `aiagent.agentinstance` and `aiagent.document` use the error code
   constants in `aiagent.agent.AgentErrorCodes`, while `aiagent.agent` uses these packages. The

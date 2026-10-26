@@ -1170,6 +1170,7 @@ on).
 | `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`         | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | tool results arrive but there is no prior conversation                  |
 | `ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`      | `MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`        | model calls reached the configured maximum                              |
 | `ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT`           | `FAILED_TO_PARSE_RESPONSE_CONTENT`             | JSON parse failure (explicit JSON response format only)                 |
+| `ERROR_CODE_INVALID_RESPONSE_SCHEMA`                    | `INVALID_RESPONSE_SCHEMA`                      | Response schema cannot be serialized within configured size/depth limits |
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | the chat model call threw                                               |
 | `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`            | `UNSUPPORTED_MODEL_CONFIGURATION`              | model configuration is invalid for the provider                         |
 | `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`            | `MODEL_RESPONSE_CONTENT_FILTERED`              | provider blocked the model response with content filtering              |
@@ -1248,6 +1249,37 @@ API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 (`tools.*`) and
 [`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
+
+### Response Schema Safety Limits
+
+Both AI Agent flavors validate the configured JSON response schema before agent initialization
+and provider-specific conversion. These runtime limits are independent of the provider's schema
+compatibility and compilation limits.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| `camunda.connector.agenticai.aiagent.response-schema.max-size-bytes` | `262144` (256 KiB) | Maximum compact UTF-8 JSON size of the response schema |
+| `camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth` | `64` | Maximum nesting of JSON objects and arrays, counting the root object as depth 1 |
+
+Both values must be positive; invalid values prevent application startup. Override them through
+Spring application properties, for example:
+
+```yaml
+camunda:
+  connector:
+    agenticai:
+      aiagent:
+        response-schema:
+          max-size-bytes: 524288
+          max-nesting-depth: 96
+```
+
+Validation streams the already-bound schema into a bounded output without retaining a serialized
+copy. It does not resolve `$ref` references or change property order. A schema that cannot be
+serialized within the configured limits fails with `INVALID_RESPONSE_SCHEMA`, without including
+schema contents in the error. Missing or empty schemas remain unconstrained JSON mode. These checks
+protect subsequent schema processing, not the initial binding of process variables. Raising the
+limits increases local resource exposure and does not override provider API limits.
 
 ---
 
@@ -1816,8 +1848,9 @@ early report and the later batch write for the same result dedup for free), fall
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
 too. The fingerprint is a SHA-256 over a JSON serialization of the model, provider, system prompt, model-call limit and
-tool definitions. The top-level keys of each tool's input schema are sorted, because their order is unspecified after a
-persistence round trip; the order of the parameters, of the tools and of list values is significant.
+tool definitions. Schema map keys are sorted recursively, except for `properties` maps, whose parameter
+order is significant. Tool and list order is also significant. Parameter order must be preserved by
+the schema producer; normalization cannot recover an order already lost upstream.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

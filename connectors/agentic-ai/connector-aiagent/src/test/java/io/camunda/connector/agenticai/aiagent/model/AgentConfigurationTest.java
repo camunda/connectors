@@ -205,6 +205,54 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void nestedSchemaKeywordOrderIsIrrelevant() {
+      final var first =
+          ordered("properties", ordered("city", ordered("type", "string", "minLength", 1)));
+      final var second =
+          ordered("properties", ordered("city", ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void schemaKeywordOrderInsideArraysIsIrrelevant() {
+      final var first = ordered("anyOf", List.of(ordered("type", "string", "minLength", 1)));
+      final var second = ordered("anyOf", List.of(ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void nestedParameterOrderRemainsSignificant() {
+      final var first =
+          ordered(
+              "properties",
+              ordered(
+                  "address",
+                  ordered(
+                      "properties",
+                      ordered(
+                          "city",
+                          ordered("type", "string"),
+                          "country",
+                          ordered("type", "string")))));
+      final var second =
+          ordered(
+              "properties",
+              ordered(
+                  "address",
+                  ordered(
+                      "properties",
+                      ordered(
+                          "country",
+                          ordered("type", "string"),
+                          "city",
+                          ordered("type", "string")))));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
     void parameterOrderIsSignificant() {
       final var first =
           ordered(
