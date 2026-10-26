@@ -43,7 +43,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Builds the input of a turn from the tool call results of the previous turn and applies the
- * effects of the results of runtime tools.
+ * effects of the results of runtime tools: the content of documents the model gets, and the
+ * response documents of the agent context.
  */
 public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuilder {
 
@@ -73,35 +74,39 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
   public Input build(
       AgentContext agentContext, List<Entry> entries, Set<DocumentId> documentIdsWithContent) {
     final boolean documentFlow = agentContext.supports(AgentFeatures.DOCUMENTS);
-    final var applied =
-        applyDocumentContentEffects(
-            agentContext.documentRegistry(), documentFlow, entries, documentIdsWithContent);
-    return documentFlow
-        ? buildWithDocumentTags(applied.entries(), applied.tagsWithContent())
-        : buildWithDocumentMessage(applied.entries());
+    final var applied = applyEffects(agentContext, documentFlow, entries, documentIdsWithContent);
+    final var input =
+        documentFlow
+            ? buildWithDocumentTags(applied.entries(), applied.tagsWithContent())
+            : buildWithDocumentMessage(applied.entries());
+    return new Input(applied.agentContext(), input.messages(), input.documents());
   }
 
   /**
-   * The entries after their effects were applied, and the references with the delivery content of
-   * the documents to add, in call order.
+   * The entries after their effects were applied, the references with the delivery content of the
+   * documents to add, in call order, and the agent context with the response documents selected.
    */
-  private record Applied(List<Entry> entries, List<Content> tagsWithContent) {}
+  private record Applied(
+      List<Entry> entries, List<Content> tagsWithContent, AgentContext agentContext) {}
 
   /**
-   * Applies the content effects in the order of the entries. An entry sees the documents of the
-   * registry and its own documents only, never the ones of another entry.
+   * Applies the effects in the order of the entries. An entry sees the documents of the registry
+   * and its own documents only, never the ones of another entry. An entry whose content is rejected
+   * has no effect at all.
    */
-  private Applied applyDocumentContentEffects(
-      DocumentRegistry registry,
+  private Applied applyEffects(
+      AgentContext agentContext,
       boolean documentFlow,
       List<Entry> entries,
       Set<DocumentId> documentIdsWithContent) {
+    final var registry = agentContext.documentRegistry();
     final var handledIds = new HashSet<>(documentIdsWithContent);
     final var appliedEntries = new ArrayList<Entry>();
     final var tagsWithContent = new ArrayList<Content>();
+    var updatedContext = agentContext;
 
     for (final var entry : entries) {
-      if (entry.documentContent().isEmpty()) {
+      if (entry.documentContent().isEmpty() && entry.responseDocuments().isEmpty()) {
         appliedEntries.add(entry);
         continue;
       }
@@ -111,6 +116,7 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
           documentFlow
               ? DocumentRegistries.withDocuments(registry, ingestedDocumentsOf(entry))
               : registry;
+      requireKnownResponseDocuments(entry, known);
       final var accepted = new ArrayList<DocumentRegistryEntry>();
       final var rejection = checkDocumentContent(entry, known, handledIds, accepted);
       if (rejection != null) {
@@ -123,9 +129,22 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
             tagsWithContent.add(
                 DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT));
           });
+      for (final var selection : entry.responseDocuments()) {
+        updatedContext = updatedContext.withResponseDocument(selection);
+      }
       appliedEntries.add(entry);
     }
-    return new Applied(appliedEntries, tagsWithContent);
+    return new Applied(appliedEntries, tagsWithContent, updatedContext);
+  }
+
+  private static void requireKnownResponseDocuments(Entry entry, DocumentRegistry known) {
+    for (final var selection : entry.responseDocuments()) {
+      if (known.findById(selection.document()).isEmpty()) {
+        throw new IllegalArgumentException(
+            "The runtime tool '%s' selected the document '%s' for the response, which the agent does not know"
+                .formatted(entry.result().name(), selection.document()));
+      }
+    }
   }
 
   /**
@@ -200,12 +219,15 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
         .toList();
   }
 
+  /** The messages of the input and the documents to register. */
+  private record Turn(List<Message> messages, List<IngestedDocument> documents) {}
+
   /**
    * A document that is a whole result is persisted as its tag, like the documents that are not a
    * whole result. The documents of every result are registered with the tool call as their source.
    * The content of the documents the results asked for follows in a message of its own.
    */
-  private static Input buildWithDocumentTags(List<Entry> entries, List<Content> tagsWithContent) {
+  private static Turn buildWithDocumentTags(List<Entry> entries, List<Content> tagsWithContent) {
     final var results =
         entries.stream()
             .map(Entry::result)
@@ -229,10 +251,10 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
-    return new Input(messages, documents);
+    return new Turn(messages, documents);
   }
 
-  private static Input buildWithDocumentMessage(List<Entry> entries) {
+  private static Turn buildWithDocumentMessage(List<Entry> entries) {
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
@@ -257,7 +279,7 @@ public class ToolCallResultsInputBuilderImpl implements ToolCallResultsInputBuil
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
-    return new Input(messages, List.of());
+    return new Turn(messages, List.of());
   }
 
   /** A document tag followed by the document, for every document of every group. */

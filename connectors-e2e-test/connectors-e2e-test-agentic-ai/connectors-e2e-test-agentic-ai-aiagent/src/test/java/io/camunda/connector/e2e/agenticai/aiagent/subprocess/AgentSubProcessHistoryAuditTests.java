@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.FI
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.downloadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.finalTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.getDocumentTurn;
+import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.returnDocumentWithPingTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.stubUploadEndpoint;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadTurn;
 import static io.camunda.connector.e2e.agenticai.aiagent.DocumentFlowFixtures.uploadUrl;
@@ -87,8 +88,8 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
   }
 
   /**
-   * The user prompt carries a document, a tool returns one, the model loads the one of the tool and
-   * passes it to a tool.
+   * The user prompt carries a document, a tool returns one, the model loads the one of the tool,
+   * passes it to a tool and returns one next to a real call.
    */
   @Test
   void everyModelVisibleMessageOfADocumentFlowIsInTheHistory() throws Exception {
@@ -159,6 +160,7 @@ public class AgentSubProcessHistoryAuditTests extends BaseAgentSubProcessTest {
         // referenced until the model loads it
         getDocumentTurn(documentId(1)),
         uploadTurn(documentId(1)),
+        returnDocumentWithPingTurn(),
         finalTurn());
   }
 
