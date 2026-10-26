@@ -37,12 +37,8 @@ public final class TemplateFinder {
   public static final Set<String> DEFAULT_SKIPPED_DIRECTORIES =
       Set.of("target", "node_modules", ".git", ".idea", ".m2");
 
-  /**
-   * Connector directories whose templates the validator skips entirely by default. Agentic-AI
-   * templates are generated/maintained outside the standard connector workflow and intentionally
-   * diverge from the conventions enforced here.
-   */
-  public static final Set<String> DEFAULT_SKIPPED_CONNECTORS = Set.of("agentic-ai");
+  /** Connector directories whose templates the validator skips entirely by default. */
+  public static final Set<String> DEFAULT_SKIPPED_CONNECTORS = Set.of();
 
   private TemplateFinder() {}
 

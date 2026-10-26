@@ -96,8 +96,7 @@ public class ValidatorCommand implements Callable<Integer> {
       description =
           "Connector directory names whose templates are skipped entirely (by exact name, not path). "
               + "Repeatable; comma-separated values are also accepted. "
-              + "When specified, replaces the default set entirely. "
-              + "Default: agentic-ai.")
+              + "Default: none.")
   private Set<String> skippedConnectors =
       new LinkedHashSet<>(TemplateFinder.DEFAULT_SKIPPED_CONNECTORS);
 

@@ -1,0 +1,494 @@
+{
+  "suppressions": [
+    {
+      "rule": "condition-property-order",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "double-word",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "data.connectorMode.operation.params.text",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "data.connectorMode.operation.settings.responseRetrievalMode.token",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.token",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-outbound-connector.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "activationCondition",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "correlationKeyPayload",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "correlationKeyProcess",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "data.taskPollingInterval",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "deduplicationModeManualFlag",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "messageIdExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-intermediate.json",
+      "property": "messageTtl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "activationCondition",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "correlationKeyPayload",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "correlationKeyProcess",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "data.taskPollingInterval",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "deduplicationModeManualFlag",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "messageIdExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-polling-inbound-connector-receive.json",
+      "property": "messageTtl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacTolerance",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "activationCondition",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "correlationKeyPayload",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "correlationKeyProcess",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "deduplicationModeManualFlag",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.apiKeyLocator",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.jwt.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.jwt.issuer",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.jwt.jwkUrl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.jwt.permissionsExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.jwt.requiredPermissions",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.password",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.auth.username",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.context",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacAlgorithm",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacHeader",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacScopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacTimestampHeader",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.hmacTolerance",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "inbound.shouldValidateHmac",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "messageIdExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-intermediate.json",
+      "property": "messageTtl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacTolerance",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "activationCondition",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "correlationKeyPayload",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "correlationKeyProcess",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "deduplicationModeManualFlag",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.apiKeyLocator",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.jwt.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.jwt.issuer",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.jwt.jwkUrl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.jwt.permissionsExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.jwt.requiredPermissions",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.password",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.auth.username",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.context",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacAlgorithm",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacHeader",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacScopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacTimestampHeader",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.hmacTolerance",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "inbound.shouldValidateHmac",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "messageIdExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-a2a-client-webhook-inbound-connector-receive.json",
+      "property": "messageTtl",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "double-word",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.operation.params.text",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.operation.settings.responseRetrievalMode.token",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.token",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-a2a-client-outbound-connector-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    }
+  ]
+}
