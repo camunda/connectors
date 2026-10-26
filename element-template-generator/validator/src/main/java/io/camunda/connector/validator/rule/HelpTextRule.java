@@ -66,7 +66,7 @@ public abstract class HelpTextRule implements Rule {
   }
 
   static boolean appliesTo(Path file) {
-    for (Path segment : file) {
+    for (Path segment : file.toAbsolutePath().normalize()) {
       if (CONNECTORS.contains(segment.toString())) {
         return true;
       }
