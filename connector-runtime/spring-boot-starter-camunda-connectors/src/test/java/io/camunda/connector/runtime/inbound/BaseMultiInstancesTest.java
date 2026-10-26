@@ -87,6 +87,7 @@ abstract class BaseMultiInstancesTest {
           .withSeverity(Severity.DEBUG)
           .withTag("runtime2")
           .withMessage("myMessage")
+          .withData(Map.of("messageKey", 456, "correlationKey", "order-456"))
           .build();
   static final Activity RUNTIME2_ACTIVITY2 =
       Activity.newBuilder()
@@ -99,6 +100,7 @@ abstract class BaseMultiInstancesTest {
           .withSeverity(Severity.INFO)
           .withTag("runtime1")
           .withMessage("myMessage")
+          .withData(Map.of("messageKey", 123, "correlationKey", "order-123"))
           .build();
   static final Activity RUNTIME1_ACTIVITY2 =
       Activity.newBuilder()

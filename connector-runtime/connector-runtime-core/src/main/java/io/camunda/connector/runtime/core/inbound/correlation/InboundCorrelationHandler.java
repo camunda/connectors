@@ -305,7 +305,8 @@ public class InboundCorrelationHandler {
           activatedElement.element(),
           response.getProcessInstanceKey(),
           response.getMessageKey(),
-          response.getTenantId());
+          response.getTenantId(),
+          correlationKey.isBlank() ? "" : correlationKey);
 
     } catch (ClientStatusException ex) {
       LOG.info("Failed to correlate message synchronously: {}", ex.getMessage());
@@ -349,7 +350,10 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: {}", response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              activatedElement.element(), response.getMessageKey(), response.getTenantId());
+              activatedElement.element(),
+              response.getMessageKey(),
+              response.getTenantId(),
+              correlationKey);
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
         result = new MessageAlreadyCorrelated(activatedElement.element());
@@ -387,6 +391,7 @@ public class InboundCorrelationHandler {
             Optional.ofNullable(
                 feelExpressionEvaluator.evaluate(correlationKeyExpression, String.class, context));
       } catch (Exception e) {
+        LOG.warn("Failed to evaluate correlation key (error type: {})", e.getClass().getSimpleName());
         correlationKey = Optional.empty();
       }
     } else {

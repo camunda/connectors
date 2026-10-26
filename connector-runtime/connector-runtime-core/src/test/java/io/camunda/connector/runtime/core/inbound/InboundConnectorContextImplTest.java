@@ -54,6 +54,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
 class InboundConnectorContextImplTest {
@@ -238,6 +240,56 @@ class InboundConnectorContextImplTest {
               assertThat(log.tag()).isEqualTo(ActivityLogTag.CORRELATION);
               assertThat(log.severity()).isEqualTo(Severity.ERROR);
               assertThat(log.message()).contains("resolved to null");
+            });
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void correlate_messageSuccess_preservesCorrelationKeyAndLogsData(boolean synchronous) {
+    var definition = getInboundConnectorDefinition(Map.of());
+    var element = definition.connectorElements().getFirst().element();
+    var correlationHandler = mock(InboundCorrelationHandler.class);
+    var success =
+        synchronous
+            ? new CorrelationResult.Success.MessageCorrelated(
+                element, 42L, 123L, "<default>", "order-123")
+            : new CorrelationResult.Success.MessagePublished(
+                element, 123L, "<default>", "order-123");
+    when(correlationHandler.correlate(any(), any())).thenReturn(success);
+    var context =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            (e) -> {},
+            definition,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            activityLogRegistry,
+            camundaClient);
+
+    var result = context.correlate(CorrelationRequest.builder().variables(Map.of()).build());
+
+    if (synchronous) {
+      assertThat(((CorrelationResult.Success.MessageCorrelated) result).correlationKey())
+          .isEqualTo("order-123");
+    } else {
+      assertThat(((CorrelationResult.Success.MessagePublished) result).correlationKey())
+          .isEqualTo("order-123");
+    }
+    var logs =
+        activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
+    assertThat(logs)
+        .singleElement()
+        .satisfies(
+            log -> {
+              assertThat(log.tag()).isEqualTo(ActivityLogTag.CORRELATION);
+              assertThat(log.severity()).isEqualTo(Severity.INFO);
+              assertThat(log.data())
+                  .containsEntry("messageKey", 123L)
+                  .containsEntry("correlationKey", "order-123");
+              if (synchronous) {
+                assertThat(log.data()).containsEntry("processInstanceKey", 42L);
+              }
             });
   }
 

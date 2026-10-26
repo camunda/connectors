@@ -129,7 +129,8 @@ public class InboundConnectorRestController {
                               activity.tag(),
                               activity.timestamp(),
                               activity.message(),
-                              hostname);
+                              hostname,
+                              activity.data());
                         })
                     .toList())
         .collect(Collectors.toList());
