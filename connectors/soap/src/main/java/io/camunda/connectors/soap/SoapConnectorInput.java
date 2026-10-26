@@ -6,14 +6,19 @@
  */
 package io.camunda.connectors.soap;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.None;
@@ -29,10 +34,18 @@ import io.camunda.connectors.soap.SoapConnectorInput.SoapHeaderPart.HeaderTempla
 import io.camunda.connectors.soap.SoapConnectorInput.Version._1_1;
 import io.camunda.connectors.soap.SoapConnectorInput.Version._1_2;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @param soapCredential reusable SOAP credential; when bound, its authentication takes precedence
+ *     over the inline one (see {@link #authentication()}). Declared before the fields it gates, as
+ *     required by ConditionPropertyOrderRule.
+ * @param authentication hidden once a credential is bound, and then dropped in the compact
+ *     constructor, so a leftover inline discriminator default is neither used nor validated.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SoapConnectorInput(
     @TemplateProperty(
@@ -41,7 +54,23 @@ public record SoapConnectorInput(
             tooltip = "The URL where the service runs")
         @NotNull
         String serviceUrl,
-    @Valid Authentication authentication,
+    @TemplateProperty(
+            id = "soapCredential",
+            label = "SOAP credential",
+            group = "authentication",
+            type = PropertyType.Configuration,
+            optional = true,
+            binding = @PropertyBinding(name = "soapCredential"),
+            description =
+                "Choose a reusable SOAP credential, or configure one-time authentication parameters"
+                    + " below.")
+        @Valid
+        SoapCredentialConfiguration soapCredential,
+    @NestedProperties(
+            condition =
+                @PropertyCondition(property = "soapCredential", isEmpty = NullableBoolean.TRUE))
+        @Valid
+        Authentication authentication,
     @Valid Version soapVersion,
     @Valid SoapHeaderPart header,
     @Valid SoapBodyPart body,
@@ -60,6 +89,28 @@ public record SoapConnectorInput(
             tooltip =
                 "Time in seconds to wait when establishing a connection, or 0 to wait indefinitely")
         Integer connectionTimeoutInSeconds) {
+
+  public SoapConnectorInput {
+    if (soapCredential != null) {
+      authentication = null;
+    }
+  }
+
+  /** The bound credential's authentication wins over the inline one. */
+  @Override
+  public Authentication authentication() {
+    return soapCredential != null && soapCredential.authentication() != null
+        ? soapCredential.authentication().toAuthentication()
+        : authentication;
+  }
+
+  @AssertTrue(
+      message = "No authentication provided by the reusable credential or the element template")
+  @JsonIgnore
+  public boolean isAuthenticationPresent() {
+    return authentication() != null;
+  }
+
   public enum YesNo {
     Yes,
     No
@@ -189,11 +240,12 @@ public record SoapConnectorInput(
     @TemplateSubType(id = "usernameToken", label = "WSS username token")
     record UsernameToken(
         @TemplateProperty(label = "Username", group = "authentication") @NotNull String username,
-        @TemplateProperty(label = "Password", group = "authentication") String password,
+        @TemplateProperty(label = "Password", group = "authentication", secret = true)
+            String password,
         @TemplateProperty(label = "Encoded", group = "authentication", type = PropertyType.Dropdown)
             @NotNull
             SoapConnectorInput.YesNo encoded)
-        implements Authentication {
+        implements Authentication, CredentialAuthentication {
       @Override
       public String toString() {
         return "UsernameToken{"
@@ -204,6 +256,11 @@ public record SoapConnectorInput(
             + ", encoded="
             + encoded
             + "}";
+      }
+
+      @Override
+      public Authentication toAuthentication() {
+        return this;
       }
     }
 
@@ -259,6 +316,7 @@ public record SoapConnectorInput(
             @TemplateProperty(
                     label = "Private key",
                     group = "authentication",
+                    secret = true,
                     tooltip = "The private key for the certificate")
                 @NotNull
                 String privateKey)
@@ -278,7 +336,8 @@ public record SoapConnectorInput(
         record KeystoreCertificate(
             @TemplateProperty(label = "Keystore location", group = "authentication") @NotNull
                 String keystoreLocation,
-            @TemplateProperty(label = "Keystore password", group = "authentication") @NotNull
+            @TemplateProperty(label = "Keystore password", group = "authentication", secret = true)
+                @NotNull
                 String keystorePassword,
             @TemplateProperty(
                     label = "Certificate alias",
@@ -286,7 +345,11 @@ public record SoapConnectorInput(
                     group = "authentication")
                 @NotNull
                 String alias,
-            @TemplateProperty(label = "Certificate password", group = "authentication") @NotNull
+            @TemplateProperty(
+                    label = "Certificate password",
+                    group = "authentication",
+                    secret = true)
+                @NotNull
                 String password)
             implements Certificate {
           @Override
@@ -307,6 +370,89 @@ public record SoapConnectorInput(
 
       public record EncryptionPart(
           String namespace, String localName, String encryptionModifier, String id) {}
+    }
+  }
+
+  /**
+   * The authentication variants a reusable credential can hold. {@link
+   * Authentication.Signature.Certificate.KeystoreCertificate} is left out: it points at a file
+   * mounted into the connector runtime, which a credential shared across runtimes cannot guarantee,
+   * so it is only offered inline.
+   */
+  @JsonTypeInfo(use = Id.NAME, property = "type")
+  @JsonSubTypes({
+    @Type(value = UsernameToken.class, name = "usernameToken"),
+    @Type(value = CredentialAuthentication.SingleCertificateSignature.class, name = "signature")
+  })
+  @TemplateDiscriminatorProperty(
+      name = "type",
+      label = "Authentication",
+      description = "Authentication mechanism to use",
+      group = "authentication",
+      defaultValue = "usernameToken")
+  public sealed interface CredentialAuthentication
+      permits UsernameToken, CredentialAuthentication.SingleCertificateSignature {
+
+    /** The inline authentication the SOAP client understands. */
+    Authentication toAuthentication();
+
+    @TemplateSubType(id = "signature", label = "WSS signature (single certificate)")
+    record SingleCertificateSignature(
+        @TemplateProperty(
+                label = "Certificate",
+                group = "authentication",
+                tooltip = "The X.509 certificate to use to sign the request")
+            @NotNull
+            String certificate,
+        @TemplateProperty(
+                label = "Private key",
+                group = "authentication",
+                secret = true,
+                tooltip = "The private key for the certificate")
+            @NotNull
+            String privateKey,
+        @TemplateProperty(
+                label = "Signature algorithm",
+                group = "authentication",
+                optional = true,
+                tooltip = "Fully qualified name of an alternative signature algorithm")
+            String signatureAlgorithm,
+        @TemplateProperty(
+                label = "Digest algorithm",
+                group = "authentication",
+                optional = true,
+                tooltip = "Fully qualified name of an alternative digest algorithm")
+            String digestAlgorithm,
+        @TemplateProperty(
+                label = "Timestamp timeout in seconds",
+                tooltip = "If set, adds a timestamp header with the given timeout",
+                group = "authentication",
+                optional = true)
+            Integer timestamp)
+        implements CredentialAuthentication {
+
+      @Override
+      public Authentication toAuthentication() {
+        return new Signature(
+            new SingleCertificate(certificate, privateKey),
+            signatureAlgorithm,
+            digestAlgorithm,
+            timestamp,
+            null);
+      }
+
+      @Override
+      public String toString() {
+        return "SingleCertificateSignature{certificate='"
+            + certificate
+            + "', privateKey=[REDACTED], signatureAlgorithm="
+            + signatureAlgorithm
+            + ", digestAlgorithm="
+            + digestAlgorithm
+            + ", timestamp="
+            + timestamp
+            + "}";
+      }
     }
   }
 }

@@ -31,6 +31,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
     type = SoapConnector.SOAP_CONNECTOR_TYPE,
     inputVariables = {
       "serviceUrl",
+      "soapCredential",
       "authentication",
       "soapVersion",
       "header",
@@ -39,12 +40,13 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
       "connectionTimeoutInSeconds"
     })
 @ElementTemplate(
-    engineVersion = "^8.5",
+    engineVersion = "^8.11",
     id = "io.camunda:soap",
     name = "Send SOAP Request",
     icon = "icon.svg",
-    version = 2,
+    version = 3,
     inputDataClass = SoapConnectorInput.class,
+    configurations = {SoapCredentialConfiguration.class},
     description = "A Connector to execute a SOAP request",
     keywords = {
       "web service",
