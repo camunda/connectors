@@ -103,11 +103,12 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
       # Inlined rather than using .github/actions/maven-cache-key: the checked-out branch
-      # may predate that action. Keep the line derivation in sync with it.
+      # may predate that action. Keep the line derivation in sync with it. For PR-triggered
+      # runs, inputs.branch is the PR head, so the PR base determines the line.
       - name: Resolve Maven cache key
         id: maven-cache-key
         env:
-          BRANCH: ${{ inputs.branch }}
+          BRANCH: ${{ github.base_ref || inputs.branch }}
           PROVIDED_KEY: ${{ inputs.maven-cache-key }}
           HASH: ${{ hashFiles('**/pom.xml') }}
         run: |
