@@ -142,7 +142,7 @@ module root, next to its `element-templates/` directory:
 |------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `rule`     | yes      | Rule id from the tables above. `schema`, `json-parse`, and `duplicate-keys` cannot be suppressed.                                                    |
 | `template` | yes      | Glob relative to `element-templates/`. `*` stays within a directory; `**` also matches `hybrid/` and `versioned/`.                                   |
-| `property` | no       | Property `id`. Limits the suppression to findings under that property, independent of its position in `properties[]`. Omit to cover the whole template, for example for properties without an `id`. |
+| `property` | no       | Property `id`, in `properties[]` or in an embedded `configurationTemplates[*].properties[]`. Limits the suppression to findings under that property, independent of its position. Omit to cover the whole template, for example for properties without an `id`. |
 | `reason`   | yes      | Why the finding is accepted.                                                                                                                         |
 
 The file is validated on every run and reported under the rule id `suppression`. The run fails

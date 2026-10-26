@@ -91,6 +91,32 @@ class SuppressionFilterTest {
   }
 
   @Test
+  void propertySuppression_matchesEmbeddedConfigurationTemplateProperty() throws Exception {
+    templates.put(
+        template,
+        MAPPER.readTree(
+            """
+            { "properties": [ { "id": "first" } ],
+              "configurationTemplates": [ { "properties": [ { "id": "x" }, { "id": "embedded" } ] } ] }
+            """));
+    write(
+        """
+        { "suppressions": [
+          { "rule": "text-rule", "template": "a.json", "property": "embedded", "reason": "R." }
+        ] }
+        """);
+    Finding onEmbedded =
+        finding(template, "/configurationTemplates/0/properties/1/condition/property", "text-rule");
+    Finding onOtherEmbedded =
+        finding(template, "/configurationTemplates/0/properties/0/condition", "text-rule");
+
+    var result = apply(List.of(onEmbedded, onOtherEmbedded));
+
+    assertThat(result.suppressed()).isEqualTo(1);
+    assertThat(result.findings()).containsExactly(onOtherEmbedded);
+  }
+
+  @Test
   void invalidOrUnusedSuppressions_reported() throws Exception {
     write(
         """

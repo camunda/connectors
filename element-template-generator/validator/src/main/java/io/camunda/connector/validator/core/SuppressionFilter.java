@@ -41,7 +41,8 @@ import java.util.regex.Pattern;
 public final class SuppressionFilter {
 
   private static final String ELEMENT_TEMPLATES = "element-templates";
-  private static final Pattern PROPERTY_POINTER = Pattern.compile("^/properties/(\\d+)(?:/.*)?$");
+  private static final Pattern PROPERTY_POINTER =
+      Pattern.compile("^(?:/configurationTemplates/(\\d+))?/properties/(\\d+)(?:/.*)?$");
 
   private SuppressionFilter() {}
 
@@ -196,7 +197,10 @@ public final class SuppressionFilter {
     return Optional.empty();
   }
 
-  /** Resolves {@code /properties/<i>/...} to {@code properties[i].id}, or {@code null}. */
+  /**
+   * Resolves {@code /properties/<i>/...} and {@code /configurationTemplates/<j>/properties/<i>/...}
+   * to the property's {@code id}, or {@code null}.
+   */
   private static String propertyId(JsonNode template, String pointer) {
     if (template == null || pointer == null) {
       return null;
@@ -205,17 +209,38 @@ public final class SuppressionFilter {
     if (!m.matches()) {
       return null;
     }
-    int index;
+    JsonNode owner = template;
     try {
-      index = Integer.parseInt(m.group(1));
+      if (m.group(1) != null) {
+        owner =
+            template
+                .path(ElementTemplate.CONFIGURATION_TEMPLATES)
+                .path(Integer.parseInt(m.group(1)));
+      }
+      JsonNode id =
+          owner
+              .path(ElementTemplate.PROPERTIES)
+              .path(Integer.parseInt(m.group(2)))
+              .path(ElementTemplate.ID);
+      return id.isTextual() ? id.asText() : null;
     } catch (NumberFormatException e) {
       return null;
     }
-    JsonNode id = template.path(ElementTemplate.PROPERTIES).path(index).path(ElementTemplate.ID);
-    return id.isTextual() ? id.asText() : null;
   }
 
   private static boolean hasProperty(JsonNode template, String propertyId) {
+    if (hasOwnProperty(template, propertyId)) {
+      return true;
+    }
+    for (JsonNode configurationTemplate : template.path(ElementTemplate.CONFIGURATION_TEMPLATES)) {
+      if (hasOwnProperty(configurationTemplate, propertyId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean hasOwnProperty(JsonNode template, String propertyId) {
     for (JsonNode p : template.path(ElementTemplate.PROPERTIES)) {
       if (propertyId.equals(p.path(ElementTemplate.ID).asText(null))) {
         return true;
