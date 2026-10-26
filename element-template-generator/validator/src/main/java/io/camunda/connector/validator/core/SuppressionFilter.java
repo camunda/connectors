@@ -17,16 +17,19 @@
 package io.camunda.connector.validator.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Removes findings covered by a module's {@value SuppressionFile#FILE_NAME} and reports problems
@@ -62,16 +65,28 @@ public final class SuppressionFilter {
               dir -> templatesByDir.computeIfAbsent(dir, k -> new ArrayList<>()).add(template));
     }
 
+    // A scan root inside a module (its element-templates/ or hybrid/) still applies the module's
+    // suppressions, but sees only part of its templates, so scope-dependent checks are skipped.
+    Set<Path> partialScope = new LinkedHashSet<>();
+    for (Path dir : templatesByDir.keySet()) {
+      Path file = dir.resolveSibling(SuppressionFile.FILE_NAME);
+      if (!suppressionFiles.contains(file) && Files.isRegularFile(file)) {
+        partialScope.add(file);
+      }
+    }
+
     List<Finding> problems = new ArrayList<>();
     Map<Path, List<Suppression>> suppressionsByDir = new LinkedHashMap<>();
-    for (Path file : suppressionFiles) {
+    for (Path file : Stream.concat(suppressionFiles.stream(), partialScope.stream()).toList()) {
       Path dir = file.resolveSibling(ELEMENT_TEMPLATES);
       List<Path> dirTemplates = templatesByDir.getOrDefault(dir, List.of());
+      boolean fullScope = !partialScope.contains(file);
       SuppressionFile.Result loaded = SuppressionFile.load(file);
       problems.addAll(loaded.findings());
       List<Suppression> valid = new ArrayList<>();
       for (Suppression s : loaded.suppressions()) {
-        Optional<Finding> problem = check(s, dir, dirTemplates, templates, suppressibleRules);
+        Optional<Finding> problem =
+            check(s, dir, dirTemplates, templates, suppressibleRules, fullScope);
         problem.ifPresentOrElse(problems::add, () -> valid.add(s));
       }
       suppressionsByDir.put(dir, valid);
@@ -92,7 +107,7 @@ public final class SuppressionFilter {
 
     for (List<Suppression> list : suppressionsByDir.values()) {
       for (Suppression s : list) {
-        if (!used.contains(s)) {
+        if (!used.contains(s) && !partialScope.contains(s.file())) {
           problems.add(
               SuppressionFile.error(
                   s.file(), s.pointer(), "Suppression matches no finding. Remove it."));
@@ -108,13 +123,17 @@ public final class SuppressionFilter {
       Path dir,
       List<Path> dirTemplates,
       Map<Path, JsonNode> templates,
-      Set<String> suppressibleRules) {
+      Set<String> suppressibleRules,
+      boolean fullScope) {
     if (!suppressibleRules.contains(s.rule())) {
       return Optional.of(
           SuppressionFile.error(
               s.file(),
               s.pointer() + "/" + SuppressionFile.RULE,
               "Unknown or non-suppressible rule \"" + s.rule() + "\"."));
+    }
+    if (!fullScope) {
+      return Optional.empty();
     }
     List<Path> matched =
         dirTemplates.stream().filter(t -> s.templateMatcher().matches(dir.relativize(t))).toList();

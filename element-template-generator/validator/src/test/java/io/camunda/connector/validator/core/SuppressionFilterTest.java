@@ -143,6 +143,33 @@ class SuppressionFilterTest {
         .containsExactly("/suppressions/0/template");
   }
 
+  @Test
+  void scanRootInsideModule_appliesModuleSuppressionsWithoutScopeChecks() throws Exception {
+    templates.remove(template);
+    write(
+        """
+        { "suppressions": [
+          { "rule": "text-rule", "template": "hybrid/*.json", "property": "second", "reason": "R." },
+          { "rule": "text-rule", "template": "a.json", "reason": "Out of scope." },
+          { "rule": "unknown-rule", "template": "a.json", "reason": "Still invalid." }
+        ] }
+        """);
+    Finding onHybrid = finding(hybrid, "/properties/1/tooltip", "text-rule");
+    Path scanRoot = Files.createDirectories(module.resolve("element-templates/hybrid"));
+
+    var result =
+        SuppressionFilter.apply(
+            List.of(onHybrid),
+            templates,
+            TemplateFinder.findSuppressionFiles(scanRoot, Set.of(), Set.of()),
+            RULES);
+
+    assertThat(result.suppressed()).isEqualTo(1);
+    assertThat(result.findings())
+        .extracting(Finding::jsonPointer)
+        .containsExactly("/suppressions/2/rule");
+  }
+
   private SuppressionFilter.Result apply(List<Finding> findings) {
     return SuppressionFilter.apply(
         findings,

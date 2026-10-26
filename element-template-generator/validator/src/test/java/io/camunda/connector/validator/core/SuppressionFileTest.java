@@ -19,8 +19,10 @@ package io.camunda.connector.validator.core;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class SuppressionFileTest {
 
@@ -51,6 +53,19 @@ class SuppressionFileTest {
         .extracting(Finding::jsonPointer)
         .containsExactly("");
     assertThat(parse("{ \"suppressions\": [], \"extra\": 1 }").findings()).hasSize(1);
+  }
+
+  @Test
+  void trailingContent_rejected(@TempDir Path dir) throws Exception {
+    Path file = dir.resolve(SuppressionFile.FILE_NAME);
+    Files.writeString(file, "{ \"suppressions\": [] } { \"unexpected\": true }");
+
+    var result = SuppressionFile.load(file);
+
+    assertThat(result.suppressions()).isEmpty();
+    assertThat(result.findings())
+        .extracting(Finding::ruleId)
+        .containsExactly(TemplateLoader.JSON_PARSE_RULE);
   }
 
   @Test
