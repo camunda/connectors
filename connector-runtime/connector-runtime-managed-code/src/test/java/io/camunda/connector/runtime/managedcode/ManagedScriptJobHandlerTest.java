@@ -25,7 +25,6 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.managedcode.ManagedScriptJobHandler.Outcome;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +39,7 @@ import org.junit.jupiter.api.Test;
 class ManagedScriptJobHandlerTest {
 
   private static final Duration BACKOFF = Duration.ofSeconds(7);
+  private static final Duration EXECUTION_TIMEOUT = Duration.ofSeconds(30);
   private static final Map<String, Object> INPUT = Map.of("a", 2, "b", 3);
   private static final String SCRIPT =
       """
@@ -53,8 +53,8 @@ class ManagedScriptJobHandlerTest {
   private final Map<Long, ScriptResources.ScriptResource> resources = new HashMap<>();
   private final AtomicInteger fetches = new AtomicInteger();
   private final ControlledProvider provider = new ControlledProvider();
-  private final DeploymentRegistry registry =
-      new DeploymentRegistry(provider, Executors.newFixedThreadPool(2), Clock.systemUTC());
+  private final ExecutorReadiness executors =
+      new ExecutorReadiness(provider, Duration.ofMillis(10));
 
   {
     resources.put(1L, resource("sum.js", SCRIPT));
@@ -62,12 +62,12 @@ class ManagedScriptJobHandlerTest {
   }
 
   @AfterEach
-  void closeRegistry() {
-    registry.close();
+  void closeExecutors() {
+    executors.close();
   }
 
   @Test
-  void completesWithScriptVariables() {
+  void sendsTheScriptWithItsInputAndCompletesWithItsVariables() {
     provider.respond(ExecutionResponse.completed(Map.of("sum", 5)));
 
     final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L)));
@@ -76,17 +76,16 @@ class ManagedScriptJobHandlerTest {
     final var request = provider.requests.getFirst();
     assertThat(request.contractVersion()).isEqualTo("1");
     assertThat(request.executionId()).isEqualTo("1");
+    assertThat(request.script()).isEqualTo(SCRIPT);
+    assertThat(request.timeoutMs()).isEqualTo(EXECUTION_TIMEOUT.toMillis());
     assertThat(request.variables()).isEqualTo(INPUT);
     assertThat(request.context())
         .containsEntry("tenantId", "tenant-a")
         .containsEntry("jobKey", "1")
         .containsEntry("processDefinitionId", "process");
-    assertThat(registry.find(provider.provisioned.getFirst().key()))
-        .hasValueSatisfying(
-            entry -> {
-              assertThat(entry.status()).isEqualTo(DeploymentRegistry.Status.READY);
-              assertThat(entry.lastUsedAt()).isNotNull();
-            });
+    assertThat(request.payload())
+        .containsEntry("script", SCRIPT)
+        .containsEntry("timeoutMs", EXECUTION_TIMEOUT.toMillis());
   }
 
   @Test
@@ -97,104 +96,97 @@ class ManagedScriptJobHandlerTest {
     final var outcome = handle(handler(Duration.ofSeconds(5)), job);
 
     assertThat(outcome).isInstanceOf(Outcome.Completed.class);
-    assertThat(provider.provisioned.getFirst().language()).isEqualTo(ScriptLanguage.JAVASCRIPT);
-    assertThat(provider.provisioned.getFirst().runtime()).isEqualTo("nodejs");
+    assertThat(provider.languages).containsExactly(ScriptLanguage.JAVASCRIPT);
   }
 
   @Test
-  void prefixesTheDeploymentName() {
-    final var handler =
-        new ManagedScriptJobHandler(
-            provider,
-            registry,
-            scriptResources(),
-            objectMapper,
-            Duration.ofSeconds(5),
-            BACKOFF,
-            "camunda-ms-c1-");
-
-    handle(handler, job(1L, 3, scriptLink(1L)));
-
-    assertThat(provider.provisioned.getFirst().deploymentName()).startsWith("camunda-ms-c1-");
-  }
-
-  @Test
-  void reusesDeploymentAndCachedContentForTheSameArtifact() {
+  void createsTheExecutorsOnceForEveryScriptAndJob() {
+    resources.put(3L, resource("other.js", "export function execute() { return {}; }"));
     final var handler = handler(Duration.ofSeconds(5));
 
     handle(handler, job(1L, 3, scriptLink(1L)));
     handle(handler, job(2L, 3, scriptLink(1L)));
+    handle(handler, job(3L, 3, scriptLink(3L)));
 
-    assertThat(provider.provisionings).hasValue(1);
-    assertThat(fetches).hasValue(1);
-    assertThat(provider.requests).hasSize(2);
+    assertThat(provider.ensures).hasValue(1);
+    assertThat(provider.requests).hasSize(3);
+    assertThat(fetches).hasValue(2);
   }
 
   @Test
-  void concurrentJobsShareOneProvisioning() throws Exception {
-    final var ready = new CompletableFuture<ProviderDeployment>();
+  void concurrentJobsWaitForTheSameExecutors() throws Exception {
+    final var ready = new CompletableFuture<Void>();
     provider.readyWhen(ready);
     final var handler = handler(Duration.ofSeconds(10));
     final Future<Outcome> first;
     final Future<Outcome> second;
-
-    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      first = executor.submit(() -> handle(handler, job(1L, 3, scriptLink(1L))));
-      second = executor.submit(() -> handle(handler, job(2L, 3, scriptLink(1L))));
+    try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
+      first = pool.submit(() -> handle(handler, job(1L, 3, scriptLink(1L))));
+      second = pool.submit(() -> handle(handler, job(2L, 3, scriptLink(1L))));
       Thread.sleep(200);
+      assertThat(provider.requests).isEmpty();
       ready.complete(null);
-      executor.shutdown();
-      assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+      pool.shutdown();
+      assertThat(pool.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
     }
 
-    assertThat(provider.provisionings).hasValue(1);
+    assertThat(provider.ensures).hasValue(1);
     assertThat(first.get()).isInstanceOf(Outcome.Completed.class);
     assertThat(second.get()).isInstanceOf(Outcome.Completed.class);
   }
 
   @Test
-  void provisioningTimeoutFailsWithoutConsumingRetriesAndProvisioningContinues() {
-    final var ready = new CompletableFuture<ProviderDeployment>();
+  void executorsNotReadyInTimeFailWithoutConsumingRetriesAndCreationContinues() {
+    final var ready = new CompletableFuture<Void>();
     provider.readyWhen(ready);
     final var handler = handler(Duration.ofMillis(100));
 
     final var timedOut = failed(handle(handler, job(1L, 3, scriptLink(1L))));
 
+    assertThat(timedOut.code()).isEqualTo("PROVISIONING_PENDING");
     assertThat(timedOut.retries()).isEqualTo(3);
     assertThat(timedOut.backoff()).isEqualTo(BACKOFF);
-    assertThat(timedOut.message()).contains("still being provisioned");
+    assertThat(timedOut.message()).contains("still being created");
 
     ready.complete(null);
-    assertThat(handle(handler, job(1L, 3, scriptLink(1L)))).isInstanceOf(Outcome.Completed.class);
-    assertThat(provider.provisionings).hasValue(1);
+    assertThat(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))))
+        .isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.ensures).hasValue(1);
   }
 
   @Test
-  void permanentProvisioningFailureFailsWithoutRetries() {
-    provider.failProvisioning(new ProvisioningException("BUILD_FAILED", "syntax error", false));
-
-    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))));
-
-    assertThat(failure.retries()).isZero();
-    assertThat(failure.backoff()).isZero();
-    assertThat(failure.code()).isEqualTo("BUILD_FAILED");
-    assertThat(failure.message()).contains("BUILD_FAILED").contains("syntax error");
-  }
-
-  @Test
-  void transientProvisioningFailureConsumesOneRetryAndProvisionsAgainNextTime() {
-    provider.failProvisioning(new ProvisioningException("PLATFORM_THROTTLED", "quota", true));
+  void permanentExecutorFailureFailsWithoutRetriesAndAJobAfterTheBackoffTriesAgain()
+      throws InterruptedException {
+    provider.failEnsure(new ProvisioningException("PROVIDER_REJECTED", "denied", false));
     final var handler = handler(Duration.ofSeconds(5));
 
     final var failure = failed(handle(handler, job(1L, 3, scriptLink(1L))));
 
-    // null lets the runtime consume one retry
-    assertThat(failure.retries()).isNull();
-    assertThat(failure.backoff()).isEqualTo(BACKOFF);
+    assertThat(failure.retries()).isZero();
+    assertThat(failure.backoff()).isZero();
+    assertThat(failure.code()).isEqualTo("PROVIDER_REJECTED");
+    assertThat(failure.message()).contains("PROVIDER_REJECTED").contains("denied");
 
-    provider.failProvisioning(null);
-    assertThat(handle(handler, job(1L, 2, scriptLink(1L)))).isInstanceOf(Outcome.Completed.class);
-    assertThat(provider.provisionings).hasValue(2);
+    provider.failEnsure(null);
+    Thread.sleep(50);
+    assertThat(handle(handler, job(2L, 3, scriptLink(1L)))).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.ensures).hasValue(2);
+  }
+
+  @Test
+  void transientExecutorFailureIsRetriedInTheBackground() throws InterruptedException {
+    provider.failEnsure(new ProvisioningException("PLATFORM_THROTTLED", "quota", true));
+    executors.start();
+    final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    while (provider.ensures.get() < 2 && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+    assertThat(provider.ensures.get()).isGreaterThanOrEqualTo(2);
+
+    provider.failEnsure(null);
+
+    assertThat(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))))
+        .isInstanceOf(Outcome.Completed.class);
   }
 
   @Test
@@ -216,44 +208,29 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
-  void reprovisionsOnceWhenTheDeploymentIsMissing() {
+  void createsTheExecutorsAgainOnceWhenOneIsMissing() {
     provider.respond(
         ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false),
         ExecutionResponse.completed(Map.of("sum", 5)));
 
     final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L)));
 
-    assertThat(provider.provisionings).hasValue(2);
+    assertThat(provider.ensures).hasValue(2);
     assertThat(provider.requests).hasSize(2);
     assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
   }
 
   @Test
-  void reprovisioningThatOutlivesTheJobBudgetFailsWithoutConsumingRetries() {
-    provider.respond(ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false));
-    provider.readyInSequence(
-        CompletableFuture.completedFuture(null), new CompletableFuture<ProviderDeployment>());
-
-    final var failure = failed(handle(handler(Duration.ofMillis(200)), job(1L, 3, scriptLink(1L))));
-
-    assertThat(provider.provisionings).hasValue(2);
-    assertThat(failure.retries()).isEqualTo(3);
-    assertThat(failure.backoff()).isEqualTo(BACKOFF);
-    assertThat(failure.message()).contains("still being provisioned");
-  }
-
-  @Test
-  void failsWithOneRetryLessWhenTheDeploymentIsMissingAgain() {
+  void failsWithOneRetryLessWhenTheExecutorIsMissingAgain() {
     final var missing =
         ExecutionResponse.failed(ExecutionResponse.DEPLOYMENT_MISSING, "gone", false);
     provider.respond(missing, missing);
 
     final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, scriptLink(1L))));
 
-    assertThat(provider.provisionings).hasValue(2);
+    assertThat(provider.ensures).hasValue(2);
     assertThat(failure.retries()).isNull();
     assertThat(failure.message()).startsWith("DEPLOYMENT_MISSING");
-    assertThat(registry.find(provider.provisioned.getFirst().key())).isEmpty();
   }
 
   @Test
@@ -271,7 +248,7 @@ class ManagedScriptJobHandlerTest {
     assertThat(invalid.message()).contains("not a valid JSON array");
     assertThat(noScript.retries()).isZero();
     assertThat(noScript.message()).contains("no 'script' link");
-    assertThat(provider.provisionings).hasValue(0);
+    assertThat(provider.requests).isEmpty();
   }
 
   @Test
@@ -288,17 +265,29 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
-  void passesTheDependencyManifestToTheProvider() {
+  void rejectsARuntimeOtherThanTheExecutorsOne() {
+    final var job = job(1L, 3, scriptLink(1L));
+    when(job.getCustomHeaders())
+        .thenReturn(Map.of("linkedResources", scriptLink(1L), "runtime", "nodejs20"));
+
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job));
+
+    assertThat(failure.retries()).isZero();
+    assertThat(failure.message()).contains("cannot be chosen per script");
+    assertThat(provider.requests).isEmpty();
+  }
+
+  @Test
+  void rejectsLinkedDependenciesWithoutRetries() {
     final var links =
         "[{\"resourceKey\":\"1\",\"resourceType\":\"ManagedScript\",\"linkName\":\"script\"},"
             + "{\"resourceKey\":\"2\",\"resourceType\":\"ManagedScript\",\"linkName\":\"dependencies\"}]";
 
-    final var outcome = handle(handler(Duration.ofSeconds(5)), job(1L, 3, links));
+    final var failure = failed(handle(handler(Duration.ofSeconds(5)), job(1L, 3, links)));
 
-    assertThat(provider.provisioned.getFirst().dependencies())
-        .hasValueSatisfying(
-            manifest -> assertThat(new String(manifest, StandardCharsets.UTF_8)).isEqualTo("{}"));
-    assertThat(outcome).isEqualTo(new Outcome.Completed(Map.of()));
+    assertThat(failure.retries()).isZero();
+    assertThat(failure.message()).contains("UNSUPPORTED_DEPENDENCIES");
+    assertThat(provider.requests).isEmpty();
   }
 
   @Test
@@ -332,12 +321,12 @@ class ManagedScriptJobHandlerTest {
         handle(
             new ManagedScriptJobHandler(
                 provider,
-                registry,
+                executors,
                 scriptResources,
                 objectMapper,
                 Duration.ofSeconds(5),
-                BACKOFF,
-                ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX),
+                EXECUTION_TIMEOUT,
+                BACKOFF),
             job(1L, 3, scriptLink(1L)));
 
     assertThat(fetches).hasValue(3);
@@ -356,12 +345,12 @@ class ManagedScriptJobHandlerTest {
   private ManagedScriptJobHandler handler(Duration provisioningTimeout) {
     return new ManagedScriptJobHandler(
         provider,
-        registry,
+        executors,
         scriptResources(),
         objectMapper,
         provisioningTimeout,
-        BACKOFF,
-        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX);
+        EXECUTION_TIMEOUT,
+        BACKOFF);
   }
 
   private ScriptResources scriptResources() {

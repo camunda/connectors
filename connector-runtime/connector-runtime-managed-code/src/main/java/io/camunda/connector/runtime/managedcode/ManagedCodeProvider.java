@@ -17,49 +17,32 @@
 package io.camunda.connector.runtime.managedcode;
 
 /**
- * Provider SPI for managed-script execution: packages an artifact for the platform, provisions it
- * on first use, invokes it and deletes it.
+ * Provider SPI for managed-script execution through generic executors: one trusted function per
+ * language and cluster, with no user code in it, that runs every script it receives in a new child
+ * process. Scripts are sent as data with their input, so a script costs no control-plane call.
  *
- * <p>Packaging turns a script written for the Camunda contract, {@code execute(variables,
- * context)}, into what the platform invokes, usually a generated entrypoint next to the user
- * script. The built-in providers keep it in a package-private packager class.
- *
- * <p>Implementations must make {@link #ensureProvisioned(ArtifactSpec)} idempotent for {@link
- * ArtifactSpec#deploymentName()}: the name is deterministic, creation is create-if-absent, and an
- * existing deployment with that name is adopted instead of being created again. Several runtime
- * instances may call it concurrently for the same artifact.
+ * <p>Implementations must make {@link #ensureExecutors()} idempotent: executor names are
+ * deterministic, creation is create-if-absent, and an existing executor is adopted. Several runtime
+ * instances may call it concurrently.
  */
 public interface ManagedCodeProvider {
 
-  /** Stable provider name, part of the deployment registry key. */
+  /** Stable provider name, the value of {@code camunda.connector.managed-code.provider}. */
   String name();
 
   /**
-   * Version of the code the provider generates around a script, such as its entrypoint. It is part
-   * of the artifact digest: a change gives every script a new digest, so its next job provisions a
-   * new deployment instead of reusing one built with the old code.
-   */
-  String buildVersion();
-
-  /**
-   * Packages the artifact and creates its provider deployment if absent, or adopts an existing one.
-   * The call returns once the provider accepted the work; {@link ProvisioningHandle#ready()}
-   * completes when the deployment can be invoked.
+   * Creates the executors of the cluster if they are absent and returns once they can be invoked.
+   * Called when the runtime starts, and again when an executor is reported missing. A provider
+   * whose executors are deployed by an operator keeps the default, which does nothing.
    *
-   * @throws ProvisioningException when the artifact cannot be packaged, built or deployed
+   * @throws ProvisioningException when an executor cannot be created
    */
-  ProvisioningHandle ensureProvisioned(ArtifactSpec artifact);
+  default void ensureExecutors() {}
 
   /**
-   * Invokes a ready deployment with an execution contract request. Script and platform failures are
-   * returned as a {@code FAILED} response, not thrown. A deployment that no longer exists is
-   * reported with {@link ExecutionResponse#DEPLOYMENT_MISSING}.
+   * Runs the script of the request on the executor of its language. Script and platform failures
+   * are returned as a {@code FAILED} response, not thrown. A missing executor is reported with
+   * {@link ExecutionResponse#DEPLOYMENT_MISSING}.
    */
-  ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request);
-
-  /**
-   * Deletes a provider deployment. Must be idempotent: a deployment that does not exist counts as
-   * deleted. Intended for the eviction of unused deployments, which the worker does not run yet.
-   */
-  void delete(ProviderDeployment deployment);
+  ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request);
 }

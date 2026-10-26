@@ -3,7 +3,7 @@
     {
       "name": "camunda.connector.managed-code",
       "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
-      "description": "Optional managed-script connector with lazy provisioning."
+      "description": "Optional managed-script connector, running scripts through a generic executor per language."
     },
     {
       "name": "camunda.connector.managed-code.local",
@@ -34,12 +34,12 @@
     {
       "name": "camunda.connector.managed-code.provider",
       "type": "java.lang.String",
-      "description": "Name of the managed-code provider bean to use. Built in: 'local', deployments in a local directory and Node.js or Python execution in local subprocesses, for trusted development only; 'aws', one AWS Lambda function per script; and 'gcp', one Google Cloud Run function per script."
+      "description": "Name of the managed-code provider bean to use. Built in: 'local', the executor wrapper run in local Node.js or Python processes, for trusted development only; 'aws', one AWS Lambda executor per language; 'gcp', one Google Cloud Run function executor per language."
     },
     {
       "name": "camunda.connector.managed-code.deployment-name-prefix",
       "type": "java.lang.String",
-      "description": "Prefix of every provider resource name, one per cluster. The identity of the runtime may only manage resources whose name starts with it. A lowercase letter followed by at most 30 lowercase letters, digits and hyphens. In a shared account, use prefixes of one fixed length, such as 'ce-' followed by 24 hexadecimal characters and '-'.",
+      "description": "Prefix of every provider resource name, one per cluster. The identity of the runtime may only manage resources whose name starts with it. A lowercase letter followed by at most 47 lowercase letters, digits and hyphens. In a shared account, use prefixes of one fixed length, such as 'ce-' followed by 24 hexadecimal characters and '-'.",
       "defaultValue": "camunda-ms-"
     },
     {
@@ -51,96 +51,84 @@
     {
       "name": "camunda.connector.managed-code.provisioning-timeout",
       "type": "java.time.Duration",
-      "description": "How long a job waits for the first provisioning of its artifact. When exceeded, the job fails without consuming a retry and provisioning continues in the background.",
+      "description": "How long a job waits for the executors of the cluster, which the runtime creates when it starts. When exceeded, the job fails without consuming a retry and the executors keep being created in the background.",
       "defaultValue": "2m"
     },
     {
       "name": "camunda.connector.managed-code.provisioning-retry-backoff",
       "type": "java.time.Duration",
-      "description": "Retry backoff of jobs that failed while waiting for provisioning or with a retryable error.",
+      "description": "Retry backoff of jobs that failed while waiting for the executors or with a retryable error, and first backoff between attempts to create the executors.",
       "defaultValue": "10s"
-    },
-    {
-      "name": "camunda.connector.managed-code.provisioning-concurrency",
-      "type": "java.lang.Integer",
-      "description": "Maximum number of artifacts provisioned concurrently by this runtime instance.",
-      "defaultValue": 2
     },
     {
       "name": "camunda.connector.managed-code.local.directory",
       "type": "java.nio.file.Path",
-      "description": "Directory of the local provider's deployments, one subdirectory per artifact. Defaults to 'camunda-managed-code' in the Java temporary directory."
-    },
-    {
-      "name": "camunda.connector.managed-code.local.install-timeout",
-      "type": "java.time.Duration",
-      "description": "Maximum duration of one dependency installation (pip or npm) while provisioning.",
-      "defaultValue": "5m"
+      "description": "Directory of the local provider: the executor wrappers, and a temporary directory per call. Defaults to 'camunda-managed-code' in the Java temporary directory."
     },
     {
       "name": "camunda.connector.managed-code.aws.region",
       "type": "java.lang.String",
-      "description": "AWS region of the Lambda functions. Defaults to the region of the default AWS configuration."
+      "description": "AWS region of the Lambda executors. Defaults to the region of the default AWS configuration."
     },
     {
       "name": "camunda.connector.managed-code.aws.execution-role-arn",
       "type": "java.lang.String",
-      "description": "IAM role attached to every function. It runs customer code and must grant nothing beyond writing its logs."
+      "description": "IAM role attached to every executor. It runs customer code and must grant nothing beyond writing its logs."
     },
     {
       "name": "camunda.connector.managed-code.aws.memory-mb",
       "type": "java.lang.Integer",
-      "description": "Memory of each function, in MB.",
+      "description": "Memory of each executor, in MB.",
       "defaultValue": 256
     },
     {
       "name": "camunda.connector.managed-code.aws.log-retention-days",
       "type": "java.lang.Integer",
-      "description": "Retention of the log group the provider creates for each function, one of the values CloudWatch Logs accepts.",
+      "description": "Retention of the log group the provider creates for each executor, one of the values CloudWatch Logs accepts.",
       "defaultValue": 14
     },
     {
       "name": "camunda.connector.managed-code.aws.poll-interval",
       "type": "java.time.Duration",
-      "description": "Interval between status reads while a function is created.",
+      "description": "Interval between status reads while an executor is created.",
       "defaultValue": "2s"
     },
     {
       "name": "camunda.connector.managed-code.gcp.project",
       "type": "java.lang.String",
-      "description": "Project of the functions. Required for the 'gcp' provider."
+      "description": "Project of the executors. Required for the 'gcp' provider."
     },
     {
       "name": "camunda.connector.managed-code.gcp.region",
       "type": "java.lang.String",
-      "description": "Region of the functions. Required for the 'gcp' provider."
+      "description": "Region of the executors. Required for the 'gcp' provider."
     },
     {
       "name": "camunda.connector.managed-code.gcp.function-service-account",
       "type": "java.lang.String",
-      "description": "Service account the functions run as; it must grant nothing. Required, since the platform would otherwise use the default Compute Engine service account."
+      "description": "Service account the executors run as; it must grant nothing. Required, since the platform would otherwise use the default Compute Engine service account, which often has Editor on the project."
     },
     {
       "name": "camunda.connector.managed-code.gcp.deployer-service-account",
       "type": "java.lang.String",
-      "description": "Service account the runtime impersonates to manage and invoke its functions. When absent, the application default credentials are used as they are and must be able to mint ID tokens."
+      "description": "Service account the runtime impersonates to manage and invoke its executors. When absent, the application default credentials are used as they are and must be able to mint ID tokens."
     },
     {
       "name": "camunda.connector.managed-code.gcp.memory-mb",
       "type": "java.lang.Integer",
-      "description": "Memory of each function, in MiB.",
+      "description": "Memory of each executor, in MiB.",
       "defaultValue": 256
     },
     {
       "name": "camunda.connector.managed-code.gcp.max-instance-count",
       "type": "java.lang.Integer",
-      "description": "Maximum instances of each function; function code cannot change it.",
+      "description": "Maximum instances of each executor, so the maximum parallel scripts of the cluster per language; function code cannot change it.",
       "defaultValue": 10
     },
     {
       "name": "camunda.connector.managed-code.gcp.poll-interval",
       "type": "java.time.Duration",
-      "description": "Interval between status reads while a function is created, with jitter.",
+      "description": "Interval between status reads while an executor is created, with jitter.",
       "defaultValue": "5s"
     }
   ]

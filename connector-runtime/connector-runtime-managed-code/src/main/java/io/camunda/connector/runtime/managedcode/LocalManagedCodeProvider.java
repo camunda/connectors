@@ -19,78 +19,68 @@ package io.camunda.connector.runtime.managedcode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Trusted-development-only provider that deploys artifacts to a local directory and runs them in
- * Node.js or Python subprocesses with the Connector Runtime operating-system identity. It is
+ * Trusted-development-only provider that runs the same executor wrapper as the cloud providers, as
+ * a local Node.js or Python process with the Connector Runtime operating-system identity. It is
  * resource-bounded but is not a sandbox.
  *
- * <p>It follows the provider contract like a cloud provider would, so it doubles as a reference
- * implementation:
- *
  * <ul>
- *   <li>A deployment is the directory {@code <directory>/<deploymentName>}. It is built in a
- *       staging directory and renamed atomically, so a deployment is either complete or absent.
- *   <li>An existing deployment is adopted without rebuilding it, also after a restart.
- *   <li>A dependency manifest is installed once, while provisioning: {@code pip install --target}
- *       for {@code requirements.txt}, {@code npm install --ignore-scripts} for {@code
- *       package.json}. Installation runs with the host environment and network access, so registry
- *       and proxy settings apply. Invocations never install anything.
- *   <li>A deleted directory is reported as {@link ExecutionResponse#DEPLOYMENT_MISSING}.
+ *   <li>An executor is the directory {@code <directory>/<executor name>} holding the wrapper. It is
+ *       written in a staging directory and renamed atomically, so it is either complete or absent.
+ *   <li>Every call starts the wrapper in local mode, with a temporary directory of its own: the
+ *       wrapper only kills the process group of the script and removes its own directory, since it
+ *       shares the host with other processes.
+ *   <li>Dependencies are not supported: a script uses the standard library of the interpreter.
+ *   <li>A deleted executor directory is reported as {@link ExecutionResponse#DEPLOYMENT_MISSING}.
  * </ul>
- *
- * <p>Provisioning completes synchronously, before {@link #ensureProvisioned(ArtifactSpec)} returns.
- * A cloud provider returns once the provider accepted the work and completes the handle later.
  */
 public final class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   public static final String NAME = "local";
 
-  static final String METADATA_FILE = "deployment.json";
+  static final String NAME_PREFIX = "local-";
 
-  private static final int MAX_INSTALL_LOG_CHARS = 2_000;
+  private static final Logger LOG = LoggerFactory.getLogger(LocalManagedCodeProvider.class);
+  private static final int MAX_RESPONSE_BYTES = 2_000_000;
+  private static final int MAX_LOG_CHARS = 4_096;
+  private static final Duration PROCESS_MARGIN = Duration.ofSeconds(10);
 
-  /**
-   * @param entrypoint the wrapper the executor runs
-   * @param files the files of the package, in the deployment directory
-   */
-  private record DeploymentMetadata(
-      String language, String runtime, String digest, String entrypoint, List<String> files) {}
-
-  private final LocalScriptPackager packager = new LocalScriptPackager();
-  private final LocalProcessScriptExecutor executor;
+  private final Map<ScriptLanguage, ExecutorPackage> executors =
+      new EnumMap<>(ScriptLanguage.class);
+  private final Map<ScriptLanguage, Path> interpreterPaths = new ConcurrentHashMap<>();
   private final LocalInterpreterDiscovery.DiscoveryReport interpreters;
   private final ObjectMapper objectMapper;
   private final Path directory;
-  private final Duration installTimeout;
+  private final Duration executionTimeout;
 
   LocalManagedCodeProvider(
-      LocalProcessScriptExecutor executor,
       LocalInterpreterDiscovery.DiscoveryReport interpreters,
       ObjectMapper objectMapper,
       Path directory,
-      Duration installTimeout) {
-    this.executor = executor;
+      Duration executionTimeout) {
     this.interpreters = interpreters;
     this.objectMapper = objectMapper;
     this.directory = directory.toAbsolutePath().normalize();
-    this.installTimeout = installTimeout;
+    this.executionTimeout = executionTimeout;
+    for (var language : ScriptLanguage.values()) {
+      executors.put(language, ExecutorPackage.local(language));
+    }
   }
 
   @Override
@@ -98,251 +88,193 @@ public final class LocalManagedCodeProvider implements ManagedCodeProvider {
     return NAME;
   }
 
+  /** Writes the wrapper of each language if absent. A language without interpreter is skipped. */
   @Override
-  public String buildVersion() {
-    return packager.buildVersion();
-  }
-
-  @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
-    final var deployment = new ProviderDeployment(NAME, artifact.deploymentName());
-    final var target = deploymentDirectory(artifact.deploymentName());
-    if (!Files.isRegularFile(target.resolve(METADATA_FILE))) {
-      build(artifact, packager.packageFor(artifact), target);
-    }
-    return new ProvisioningHandle(
-        artifact.deploymentName(), CompletableFuture.completedFuture(deployment));
-  }
-
-  @Override
-  public ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request) {
-    final var target = deploymentDirectory(deployment.deploymentId());
-    final DeploymentMetadata metadata;
-    final Map<String, byte[]> files = new LinkedHashMap<>();
-    try {
-      metadata =
-          objectMapper.readValue(target.resolve(METADATA_FILE).toFile(), DeploymentMetadata.class);
-      for (var file : metadata.files()) {
-        files.put(file, Files.readAllBytes(target.resolve(file)));
+  public void ensureExecutors() {
+    for (var executor : executors.values()) {
+      final var target = executorDirectory(executor);
+      if (!Files.isDirectory(target)) {
+        write(executor, target);
       }
-    } catch (IOException | RuntimeException e) {
+    }
+  }
+
+  @Override
+  public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+    final var status = interpreters.statuses().get(language);
+    if (status == null || !status.available()) {
       return ExecutionResponse.failed(
-          ExecutionResponse.DEPLOYMENT_MISSING,
-          "Provider deployment '%s' does not exist".formatted(deployment.deploymentId()),
+          "UNSUPPORTED_RUNTIME",
+          status == null ? "No %s interpreter".formatted(language.language()) : status.diagnostic(),
           false);
     }
-    final var language = language(metadata);
-    final var packages = target.resolve(packagesDirectoryName(language));
+    final var executor = executors.get(language);
+    final var executorDirectory = executorDirectory(executor);
+    if (!Files.isRegularFile(executorDirectory.resolve(executor.entrypoint()))) {
+      return ExecutionResponse.failed(
+          ExecutionResponse.DEPLOYMENT_MISSING,
+          "Local executor '%s' does not exist".formatted(executorDirectory.getFileName()),
+          false);
+    }
+    Path call = null;
     try {
-      final var result =
-          executor.execute(
-              language,
-              files,
-              metadata.entrypoint(),
-              request,
-              Files.isDirectory(packages) ? Optional.of(packages) : Optional.empty());
-      return objectMapper.treeToValue(result.response(), ExecutionResponse.class);
-    } catch (IllegalArgumentException e) {
-      return ExecutionResponse.failed("RESOURCE_LIMIT", e.getMessage(), false);
-    } catch (IllegalStateException e) {
-      // No usable local interpreter: the developer can install one without changing the process.
-      return ExecutionResponse.failed("PLATFORM_UNAVAILABLE", e.getMessage(), true);
+      call = Files.createTempDirectory(directory, "call-");
+      return run(language, executor, executorDirectory, call, request);
     } catch (IOException e) {
       return ExecutionResponse.failed(
-          "PLATFORM_UNAVAILABLE", "Local execution failed: " + e.getMessage(), true);
+          "PLATFORM_EXECUTION_FAILED", "Local executor failed: " + e.getMessage(), false);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      return ExecutionResponse.failed("PLATFORM_UNAVAILABLE", "Local execution interrupted", true);
-    }
-  }
-
-  @Override
-  public void delete(ProviderDeployment deployment) {
-    try {
-      LocalProcessScriptExecutor.deleteRecursively(deploymentDirectory(deployment.deploymentId()));
-    } catch (IOException e) {
-      throw new IllegalStateException(
-          "Failed to delete provider deployment '%s'".formatted(deployment.deploymentId()), e);
-    }
-  }
-
-  private void build(ArtifactSpec artifact, ScriptPackage scriptPackage, Path target) {
-    try {
-      interpreters.require(artifact.language());
-    } catch (IllegalStateException e) {
-      throw new ProvisioningException("PLATFORM_UNAVAILABLE", e.getMessage(), true);
-    }
-    Path staging = null;
-    try {
-      Files.createDirectories(directory);
-      staging =
-          Files.createDirectory(
-              directory.resolve(".staging-" + artifact.deploymentName() + "-" + UUID.randomUUID()));
-      for (var file : scriptPackage.files().entrySet()) {
-        Files.write(staging.resolve(file.getKey()), file.getValue());
-      }
-      if (artifact.dependencies().isPresent()) {
-        install(artifact.language(), artifact.dependencies().get(), staging);
-      }
-      // Written last: a deployment directory with metadata is complete.
-      objectMapper.writeValue(
-          staging.resolve(METADATA_FILE).toFile(),
-          new DeploymentMetadata(
-              artifact.language().language(),
-              artifact.runtime(),
-              artifact.digest(),
-              scriptPackage.entrypoint(),
-              List.copyOf(scriptPackage.files().keySet())));
-      try {
-        Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
-      } catch (IOException e) {
-        // The exception type of a lost race differs by platform: adopt whatever is complete.
-        if (!Files.isRegularFile(target.resolve(METADATA_FILE))) {
-          throw e;
-        }
-      }
-    } catch (IOException e) {
-      throw new ProvisioningException(
-          "PLATFORM_UNAVAILABLE",
-          "Failed to create local deployment '%s': %s"
-              .formatted(artifact.deploymentName(), e.getMessage()),
-          true,
-          e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new ProvisioningException(
-          "PLATFORM_UNAVAILABLE", "Dependency installation was interrupted", true);
+      return ExecutionResponse.failed(
+          "PLATFORM_UNAVAILABLE", "Local execution was interrupted", true);
     } finally {
-      if (staging != null) {
-        try {
-          LocalProcessScriptExecutor.deleteRecursively(staging);
-        } catch (IOException ignored) {
-          // A leftover staging directory is harmless; it is never adopted.
-        }
+      if (call != null) {
+        deleteRecursively(call);
       }
+    }
+  }
+
+  private ExecutionResponse run(
+      ScriptLanguage language,
+      ExecutorPackage executor,
+      Path executorDirectory,
+      Path call,
+      ExecutionRequest request)
+      throws IOException, InterruptedException {
+    final var interpreter = interpreterPath(language);
+    final var entrypoint = executorDirectory.resolve(executor.entrypoint()).toString();
+    final List<String> command =
+        switch (language) {
+          case PYTHON -> List.of(interpreter.toString(), "-I", entrypoint);
+          case JAVASCRIPT -> List.of(interpreter.toString(), entrypoint);
+        };
+    final var scratch = Files.createDirectory(call.resolve("tmp"));
+    final var requestFile = call.resolve("request.json");
+    final var responseFile = call.resolve("response.json");
+    final var logFile = call.resolve("wrapper.log");
+    objectMapper.writeValue(requestFile.toFile(), request.payload());
+    final var processBuilder =
+        new ProcessBuilder(command)
+            .directory(call.toFile())
+            .redirectInput(requestFile.toFile())
+            .redirectOutput(responseFile.toFile())
+            .redirectError(logFile.toFile());
+    final var environment = processBuilder.environment();
+    LocalProcessEnvironment.configure(environment, scratch);
+    environment.put("EXECUTOR_LOCAL", "1");
+    environment.put("EXECUTOR_TMP", scratch.toString());
+    environment.put("EXECUTOR_DEADLINE_MS", Long.toString(executionTimeout.toMillis()));
+    // The script process gets this PATH, so that it finds the interpreter it runs on.
+    environment.put(
+        "EXECUTOR_CHILD_PATH",
+        interpreter.getParent() + File.pathSeparator + "/usr/bin" + File.pathSeparator + "/bin");
+    final var process = processBuilder.start();
+    if (!process.waitFor(executionTimeout.plus(PROCESS_MARGIN).toMillis(), TimeUnit.MILLISECONDS)) {
+      process.descendants().forEach(ProcessHandle::destroyForcibly);
+      process.destroyForcibly();
+      process.waitFor();
+      return ExecutionResponse.failed(
+          "PLATFORM_EXECUTION_FAILED", "The local executor did not answer in time", false);
+    }
+    final var logs = readBounded(logFile, MAX_LOG_CHARS);
+    if (!logs.isBlank()) {
+      LOG.debug("Local {} executor: {}", language.language(), logs);
+    }
+    final byte[] body = Files.readAllBytes(responseFile);
+    if (body.length == 0 || body.length > MAX_RESPONSE_BYTES) {
+      return ExecutionResponse.failed(
+          "PLATFORM_EXECUTION_FAILED",
+          "The local executor exited with %d and no valid response: %s"
+              .formatted(process.exitValue(), logs),
+          false);
+    }
+    try {
+      return objectMapper.readValue(body, ExecutionResponse.class);
+    } catch (IOException e) {
+      return ExecutionResponse.failed(
+          "INVALID_RESULT", "The local executor returned no valid contract response", false);
     }
   }
 
   /**
-   * Install failures are retryable: the registry keeps permanent failures until restart, and a
-   * network failure must not block the artifact that long.
+   * The interpreter the wrapper runs on. A version manager such as asdf puts a shim on {@code PATH}
+   * that needs the host environment, which the wrapper does not get, so the real executable is
+   * asked once, with the host environment.
    */
-  private void install(ScriptLanguage language, byte[] manifest, Path staging)
-      throws IOException, InterruptedException {
-    final List<String> command = new ArrayList<>();
-    final var interpreter = interpreters.require(language).executable().orElseThrow();
-    if (language == ScriptLanguage.PYTHON) {
-      Files.write(staging.resolve("requirements.txt"), manifest);
-      command.addAll(
-          List.of(
-              interpreter.toString(),
-              "-m",
-              "pip",
-              "install",
-              "--target",
-              packagesDirectoryName(language),
-              "--requirement",
-              "requirements.txt",
-              "--no-input",
-              "--disable-pip-version-check",
-              "--no-warn-script-location"));
-    } else {
-      Files.write(staging.resolve("package.json"), manifest);
-      command.addAll(
-          List.of(
-              npmExecutable(interpreter).toString(),
-              "install",
-              "--omit=dev",
-              "--ignore-scripts",
-              "--no-audit",
-              "--no-fund"));
+  private Path interpreterPath(ScriptLanguage language) throws IOException, InterruptedException {
+    final var known = interpreterPaths.get(language);
+    if (known != null) {
+      return known;
     }
-
-    final var processBuilder =
-        new ProcessBuilder(command).directory(staging.toFile()).redirectErrorStream(true);
-    // npm starts through "#!/usr/bin/env node": put the discovered interpreter first on PATH.
-    final var environment = processBuilder.environment();
-    environment.put(
-        "PATH",
-        interpreter.getParent() + File.pathSeparator + environment.getOrDefault("PATH", ""));
-
-    final var process = processBuilder.start();
-    try (var reader = Executors.newVirtualThreadPerTaskExecutor()) {
+    final var discovered = interpreters.require(language).executable().orElseThrow();
+    final var probe =
+        switch (language) {
+          case PYTHON -> List.of(discovered.toString(), "-c", "import sys; print(sys.executable)");
+          case JAVASCRIPT -> List.of(discovered.toString(), "-p", "process.execPath");
+        };
+    final var process = new ProcessBuilder(probe).redirectErrorStream(true).start();
+    Path resolved = discovered;
+    if (process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0) {
       final var output =
-          reader.submit(
-              () -> LocalProcessScriptExecutor.readBounded(process.getInputStream(), 64 * 1_024));
-      if (!process.waitFor(installTimeout.toMillis(), TimeUnit.MILLISECONDS)) {
-        LocalProcessScriptExecutor.terminateProcessTree(process);
-        throw new ProvisioningException(
-            "DEPENDENCY_INSTALL_FAILED",
-            "Dependency installation exceeded %d s".formatted(installTimeout.toSeconds()),
-            true);
+          new String(process.getInputStream().readNBytes(4_096), StandardCharsets.UTF_8).strip();
+      if (!output.isEmpty() && Files.isExecutable(Path.of(output))) {
+        resolved = Path.of(output);
       }
-      if (process.exitValue() != 0) {
-        throw new ProvisioningException(
-            "DEPENDENCY_INSTALL_FAILED",
-            "'%s' exited with code %d: %s"
-                .formatted(
-                    String.join(" ", command.subList(1, command.size())),
-                    process.exitValue(),
-                    tail(output.get(5, TimeUnit.SECONDS).value())),
-            true);
-      }
-    } catch (ExecutionException | TimeoutException e) {
-      throw new IOException("Failed to collect dependency installation output", e);
-    } finally {
-      if (process.isAlive()) {
-        LocalProcessScriptExecutor.terminateProcessTree(process);
-      }
+    } else {
+      process.destroyForcibly();
     }
+    interpreterPaths.put(language, resolved);
+    return resolved;
   }
 
-  private Path deploymentDirectory(String deploymentName) {
-    final var target = directory.resolve(deploymentName).normalize();
-    if (!target.getParent().equals(directory)) {
-      throw new IllegalArgumentException("Invalid deployment name: " + deploymentName);
-    }
-    return target;
+  private Path executorDirectory(ExecutorPackage executor) {
+    return directory.resolve(executor.functionName(NAME_PREFIX));
   }
 
-  private static ScriptLanguage language(DeploymentMetadata metadata) {
-    return ScriptLanguage.valueOf(metadata.language().toUpperCase(Locale.ROOT));
-  }
-
-  private static String packagesDirectoryName(ScriptLanguage language) {
-    return language == ScriptLanguage.PYTHON ? "site-packages" : "node_modules";
-  }
-
-  private static Path npmExecutable(Path node) {
-    final var name = isWindows() ? "npm.cmd" : "npm";
-    final var sibling = node.resolveSibling(name);
-    if (Files.isExecutable(sibling)) {
-      return sibling;
-    }
-    final var path = System.getenv("PATH");
-    if (path != null) {
-      for (var entry : path.split(File.pathSeparator)) {
-        final var candidate = Path.of(entry, name);
-        if (!entry.isBlank() && Files.isExecutable(candidate)) {
-          return candidate;
+  private void write(ExecutorPackage executor, Path target) {
+    try {
+      Files.createDirectories(directory);
+      final var staging = directory.resolve(".staging-" + UUID.randomUUID());
+      Files.createDirectory(staging);
+      try {
+        for (var file : executor.files().entrySet()) {
+          Files.write(staging.resolve(file.getKey()), file.getValue());
         }
+        Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
+        LOG.info("Wrote local executor {}", target);
+      } catch (IOException e) {
+        if (!Files.isDirectory(target)) {
+          throw e;
+        }
+        // Another runtime instance wrote it first.
+      } finally {
+        deleteRecursively(staging);
       }
+    } catch (IOException e) {
+      throw new ProvisioningException(
+          "PLATFORM_UNAVAILABLE",
+          "Cannot write the local executor to %s: %s".formatted(target, e.getMessage()),
+          false,
+          e);
     }
-    throw new ProvisioningException(
-        "PLATFORM_UNAVAILABLE",
-        "npm was not found next to %s or on PATH; it is needed to install package.json"
-            .formatted(node),
-        true);
   }
 
-  private static String tail(String output) {
-    final var trimmed = output.strip();
-    return trimmed.length() <= MAX_INSTALL_LOG_CHARS
-        ? trimmed
-        : "..." + trimmed.substring(trimmed.length() - MAX_INSTALL_LOG_CHARS);
+  private static String readBounded(Path file, int maxChars) throws IOException {
+    if (!Files.isRegularFile(file)) {
+      return "";
+    }
+    final var text = Files.readString(file, StandardCharsets.UTF_8).strip();
+    return text.length() <= maxChars ? text : text.substring(0, maxChars);
   }
 
-  private static boolean isWindows() {
-    return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+  private static void deleteRecursively(Path path) {
+    if (!Files.exists(path)) {
+      return;
+    }
+    try (Stream<Path> paths = Files.walk(path)) {
+      paths.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+    } catch (IOException e) {
+      LOG.debug("Could not delete {}", path, e);
+    }
   }
 }

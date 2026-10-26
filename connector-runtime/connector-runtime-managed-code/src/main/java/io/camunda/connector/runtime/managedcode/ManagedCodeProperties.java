@@ -26,6 +26,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @param deploymentNamePrefix prefix of every provider resource name, one per cluster; the identity
  *     of the runtime may only manage resources whose name starts with it
+ * @param provisioningTimeout how long a job waits for the executors of the cluster before it fails
+ *     without consuming a retry
  */
 @ConfigurationProperties(prefix = "camunda.connector.managed-code")
 public record ManagedCodeProperties(
@@ -35,7 +37,6 @@ public record ManagedCodeProperties(
     Duration executionTimeout,
     Duration provisioningTimeout,
     Duration provisioningRetryBackoff,
-    int provisioningConcurrency,
     Local local,
     Aws aws,
     Gcp gcp) {
@@ -45,23 +46,20 @@ public record ManagedCodeProperties(
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
   /**
-   * Cloud Run service names have at most 63 characters, Lambda function names 64; the name hash
-   * takes {@value ArtifactSpec#DEPLOYMENT_NAME_HASH_LENGTH} of them.
+   * Cloud Run function ids have at most 63 characters, Lambda function names 64; the language and
+   * wrapper digest take {@value ExecutorPackage#NAME_SUFFIX_LENGTH} of them.
    */
   private static final int MAX_DEPLOYMENT_NAME_PREFIX_LENGTH =
-      63 - ArtifactSpec.DEPLOYMENT_NAME_HASH_LENGTH;
+      63 - ExecutorPackage.NAME_SUFFIX_LENGTH;
 
   private static final Pattern DEPLOYMENT_NAME_PREFIX =
       Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
-
-  private static final int DEFAULT_PROVISIONING_CONCURRENCY = 2;
-  private static final Duration DEFAULT_LOCAL_INSTALL_TIMEOUT = Duration.ofMinutes(5);
 
   public ManagedCodeProperties {
     provider = provider == null ? "" : provider.strip();
     deploymentNamePrefix =
         deploymentNamePrefix == null || deploymentNamePrefix.isBlank()
-            ? ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX
+            ? ExecutorPackage.DEFAULT_NAME_PREFIX
             : deploymentNamePrefix.strip();
     if (!DEPLOYMENT_NAME_PREFIX.matcher(deploymentNamePrefix).matches()) {
       throw new IllegalArgumentException(
@@ -73,9 +71,7 @@ public record ManagedCodeProperties(
     provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
     provisioningRetryBackoff =
         positive(provisioningRetryBackoff, DEFAULT_PROVISIONING_RETRY_BACKOFF);
-    provisioningConcurrency =
-        provisioningConcurrency > 0 ? provisioningConcurrency : DEFAULT_PROVISIONING_CONCURRENCY;
-    local = local == null ? new Local(null, null) : local;
+    local = local == null ? new Local(null) : local;
     aws = aws == null ? new Aws(null, null, 0, 0, null) : aws;
     gcp = gcp == null ? new Gcp(null, null, null, null, 0, 0, null) : gcp;
   }
@@ -83,16 +79,15 @@ public record ManagedCodeProperties(
   /**
    * Settings of the local provider.
    *
-   * @param directory where deployments are kept; survives restarts so that deployments are adopted
-   * @param installTimeout bound of one dependency installation
+   * @param directory where the executor wrappers are written, and where each call gets a temporary
+   *     directory
    */
-  public record Local(Path directory, Duration installTimeout) {
+  public record Local(Path directory) {
     public Local {
       directory =
           directory == null
               ? Path.of(System.getProperty("java.io.tmpdir"), "camunda-managed-code")
               : directory;
-      installTimeout = positive(installTimeout, DEFAULT_LOCAL_INSTALL_TIMEOUT);
     }
   }
 
@@ -101,10 +96,10 @@ public record ManagedCodeProperties(
    *
    * @param region region of the functions; the default region of the chain when absent
    * @param executionRoleArn role attached to the functions, granting nothing beyond logging
-   * @param memoryMb memory of each function
+   * @param memoryMb memory of each executor
    * @param logRetentionDays retention of the log group created for each function, one of the values
    *     CloudWatch Logs accepts
-   * @param pollInterval interval between status reads while a function is created
+   * @param pollInterval interval between status reads while an executor is created
    */
   public record Aws(
       String region,
@@ -138,9 +133,10 @@ public record ManagedCodeProperties(
    * @param deployerServiceAccount service account the runtime impersonates to manage and invoke its
    *     functions; when absent, the application default credentials are used as they are and must
    *     be able to mint ID tokens
-   * @param memoryMb memory of each function
-   * @param maxInstanceCount maximum instances of each function; function code cannot change it
-   * @param pollInterval interval between status reads while a function is created
+   * @param memoryMb memory of each executor
+   * @param maxInstanceCount maximum instances of each executor, so the parallel scripts of the
+   *     cluster per language; function code cannot change it
+   * @param pollInterval interval between status reads while an executor is created
    */
   public record Gcp(
       String project,

@@ -24,7 +24,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 import software.amazon.awssdk.regions.Region;
@@ -51,17 +53,16 @@ public class ManagedCodeAutoConfiguration {
       havingValue = LocalManagedCodeProvider.NAME)
   public LocalManagedCodeProvider localManagedCodeProvider(ManagedCodeProperties properties) {
     LOG.warn(
-        "Managed-code provider 'local' is enabled: scripts are deployed to {} and run in local"
-            + " Node.js or Python subprocesses with the Connector Runtime operating-system"
-            + " identity. This is for trusted development only and is not a sandbox.",
+        "Managed-code provider 'local' is enabled: scripts run in local Node.js or Python"
+            + " processes, through the executor written to {}, with the Connector Runtime"
+            + " operating-system identity. This is for trusted development only and is not a"
+            + " sandbox.",
         properties.local().directory());
-    final var interpreters = LocalInterpreterDiscovery.discover();
     return new LocalManagedCodeProvider(
-        new LocalProcessScriptExecutor(objectMapper, interpreters, properties.executionTimeout()),
-        interpreters,
+        LocalInterpreterDiscovery.discover(),
         objectMapper,
         properties.local().directory(),
-        properties.local().installTimeout());
+        properties.executionTimeout());
   }
 
   @Bean
@@ -87,13 +88,14 @@ public class ManagedCodeAutoConfiguration {
       logs.region(Region.of(aws.region()));
     }
     LOG.info(
-        "Managed-code provider 'aws' is enabled: scripts are deployed as AWS Lambda functions"
+        "Managed-code provider 'aws' is enabled: scripts run through AWS Lambda executors"
             + " named '{}*'",
         properties.deploymentNamePrefix());
     return new AwsLambdaManagedCodeProvider(
         builder.build(),
         logs.build(),
         objectMapper,
+        properties.deploymentNamePrefix(),
         aws.executionRoleArn(),
         aws.memoryMb(),
         aws.logRetentionDays(),
@@ -117,7 +119,7 @@ public class ManagedCodeAutoConfiguration {
     }
     final var location = "projects/%s/locations/%s".formatted(gcp.project(), gcp.region());
     LOG.info(
-        "Managed-code provider 'gcp' is enabled: scripts are deployed as Cloud Run functions in {}"
+        "Managed-code provider 'gcp' is enabled: scripts run through Cloud Run executors in {}"
             + " named '{}*'",
         location,
         properties.deploymentNamePrefix());
@@ -125,6 +127,7 @@ public class ManagedCodeAutoConfiguration {
         GoogleCloudRunFunctionsApi.create(location, gcp.deployerServiceAccount()),
         objectMapper,
         location,
+        properties.deploymentNamePrefix(),
         gcp.functionServiceAccount(),
         gcp.memoryMb(),
         gcp.maxInstanceCount(),
@@ -134,31 +137,41 @@ public class ManagedCodeAutoConfiguration {
   }
 
   @Bean(destroyMethod = "close")
-  public DeploymentRegistry managedCodeDeploymentRegistry(
+  ExecutorReadiness managedCodeExecutorReadiness(
       ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
-    return new DeploymentRegistry(
-        requireProvider(providers, properties), properties.provisioningConcurrency());
+    return new ExecutorReadiness(
+        requireProvider(providers, properties), properties.provisioningRetryBackoff());
+  }
+
+  /**
+   * Starts creating the executors of the cluster in the background once the runtime is ready, so
+   * that no job provisions anything. The first job starts it too if it comes earlier.
+   */
+  @Bean
+  ApplicationListener<ApplicationReadyEvent> managedCodeExecutorStarter(
+      ExecutorReadiness executors) {
+    return event -> executors.start();
   }
 
   @Bean
   ManagedScriptJobHandler managedScriptJobHandler(
       ObjectProvider<ManagedCodeProvider> providers,
-      DeploymentRegistry registry,
+      ExecutorReadiness executors,
       ManagedCodeProperties properties) {
     return new ManagedScriptJobHandler(
         requireProvider(providers, properties),
-        registry,
+        executors,
         new ScriptResources(RESOURCE_CACHE_SIZE),
         objectMapper,
         properties.provisioningTimeout(),
-        properties.provisioningRetryBackoff(),
-        properties.deploymentNamePrefix());
+        properties.executionTimeout(),
+        properties.provisioningRetryBackoff());
   }
 
   /**
    * Served by the connector runtime like any outbound connector. Prototype-scoped so that the
    * runtime builds its instance per physical tenant through this method; every instance shares the
-   * handler, and with it the deployment registry.
+   * handler, and with it the executors.
    */
   @Bean
   @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)

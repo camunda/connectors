@@ -17,307 +17,196 @@
 package io.camunda.connector.runtime.managedcode;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+/** Runs the executor wrapper with the local interpreters, as the cloud executors run it. */
 class LocalManagedCodeProviderTest {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final LocalInterpreterDiscovery.DiscoveryReport INTERPRETERS =
       LocalInterpreterDiscovery.discover();
-  private static final String SUM_SCRIPT =
-      """
-      export async function execute(variables) {
-        return { sum: variables.a + variables.b };
-      }
-      """;
 
-  @TempDir Path temporaryRoot;
-  @TempDir Path deployments;
-  @TempDir Path packages;
+  @TempDir Path directory;
 
-  @Test
-  void deploysToADirectoryAndInvokesTheDeployment() throws Exception {
-    assumeInterpreter(ScriptLanguage.JAVASCRIPT);
-    final var provider = provider(INTERPRETERS);
-    final var artifact = javascript(SUM_SCRIPT, Optional.empty());
+  static java.util.stream.Stream<Arguments> scenarios() {
+    return java.util.stream.Stream.of(
+        Arguments.of(
+            ScriptLanguage.PYTHON,
+            "def execute(variables, context):\n    print('to the logs')\n    return {'sum': variables['a'] + variables['b']}\n",
+            "COMPLETED",
+            null),
+        Arguments.of(
+            ScriptLanguage.JAVASCRIPT,
+            "export async function execute(variables) {\n  console.log('to the logs');\n  return { sum: variables.a + variables.b };\n}\n",
+            "COMPLETED",
+            null),
+        Arguments.of(
+            ScriptLanguage.PYTHON, "def execute(variables, context)\n", "FAILED", "SCRIPT_ERROR"),
+        Arguments.of(
+            ScriptLanguage.JAVASCRIPT, "export function execute( {", "FAILED", "SCRIPT_ERROR"),
+        Arguments.of(
+            ScriptLanguage.PYTHON,
+            "def execute(variables, context):\n    raise ValueError('boom')\n",
+            "FAILED",
+            "SCRIPT_ERROR"),
+        Arguments.of(
+            ScriptLanguage.JAVASCRIPT,
+            "export function execute() { throw new Error('boom'); }",
+            "FAILED",
+            "SCRIPT_ERROR"),
+        Arguments.of(
+            ScriptLanguage.PYTHON,
+            "def execute(variables, context):\n    return 3\n",
+            "FAILED",
+            "INVALID_RESULT"),
+        Arguments.of(
+            ScriptLanguage.JAVASCRIPT,
+            "export function execute() { return 3; }",
+            "FAILED",
+            "INVALID_RESULT"),
+        Arguments.of(
+            ScriptLanguage.PYTHON,
+            "import time\ndef execute(variables, context):\n    time.sleep(30)\n",
+            "FAILED",
+            "TIMEOUT"),
+        Arguments.of(
+            ScriptLanguage.JAVASCRIPT,
+            "export async function execute() { await new Promise((r) => setTimeout(r, 30000)); }",
+            "FAILED",
+            "TIMEOUT"));
+  }
 
-    final var deployment = provision(provider, artifact);
-    final var response = provider.invoke(deployment, request(Map.of("a", 2, "b", 3)));
+  @ParameterizedTest
+  @MethodSource("scenarios")
+  void runsTheScriptThroughTheExecutor(
+      ScriptLanguage language, String script, String outcome, String code) {
+    assumeInterpreter(language);
+    final var provider = provider(Duration.ofSeconds(2));
+    provider.ensureExecutors();
 
-    assertThat(deployment).isEqualTo(new ProviderDeployment("local", artifact.deploymentName()));
-    assertThat(deployments.resolve(artifact.deploymentName()).resolve("deployment.json"))
-        .isRegularFile();
-    assertThat(response.outcome()).isEqualTo(ExecutionResponse.COMPLETED);
-    assertThat(response.variables()).containsEntry("sum", 5);
+    final var response = provider.execute(language, request(script, Map.of("a", 2, "b", 3)));
+
+    assertThat(response.outcome()).isEqualTo(outcome);
+    if (code == null) {
+      assertThat(response.variables()).containsEntry("sum", 5);
+    } else {
+      assertThat(response.error().code()).isEqualTo(code);
+    }
+    assertThat(callDirectories()).isEmpty();
   }
 
   @Test
-  void adoptsAnExistingDeploymentWithoutRebuildingIt() throws Exception {
-    assumeInterpreter(ScriptLanguage.JAVASCRIPT);
-    final var artifact = javascript(SUM_SCRIPT, Optional.empty());
-    provision(provider(INTERPRETERS), artifact);
+  void writesOneExecutorPerLanguageAndAdoptsIt() throws Exception {
+    final var provider = provider(Duration.ofSeconds(5));
 
-    // A restarted runtime without interpreters cannot build, so success means adoption.
-    final var restarted = provider(new LocalInterpreterDiscovery.DiscoveryReport(Map.of()));
-    final var deployment = provision(restarted, artifact);
+    provider.ensureExecutors();
+    provider.ensureExecutors();
 
-    assertThat(deployment.deploymentId()).isEqualTo(artifact.deploymentName());
+    try (var entries = Files.list(directory)) {
+      assertThat(entries.map(path -> path.getFileName().toString()))
+          .containsExactlyInAnyOrder(
+              ExecutorPackage.local(ScriptLanguage.PYTHON).functionName("local-"),
+              ExecutorPackage.local(ScriptLanguage.JAVASCRIPT).functionName("local-"));
+    }
   }
 
   @Test
-  void concurrentProvisioningsConvergeOnOneDeployment() throws Exception {
-    assumeInterpreter(ScriptLanguage.JAVASCRIPT);
-    final var artifact = javascript(SUM_SCRIPT, Optional.empty());
-    final var first = provider(INTERPRETERS);
-    final var second = provider(INTERPRETERS);
-    final var start = new java.util.concurrent.CountDownLatch(1);
-
-    try (var executor = java.util.concurrent.Executors.newFixedThreadPool(8)) {
+  void concurrentInstancesConvergeOnOneExecutorPerLanguage() throws Exception {
+    final var start = new CountDownLatch(1);
+    try (var pool = Executors.newFixedThreadPool(8)) {
       final var results =
-          java.util.stream.IntStream.range(0, 8)
+          IntStream.range(0, 8)
               .mapToObj(
                   i ->
-                      executor.submit(
+                      pool.submit(
                           () -> {
                             start.await();
-                            return provision(i % 2 == 0 ? first : second, artifact);
+                            provider(Duration.ofSeconds(5)).ensureExecutors();
+                            return null;
                           }))
               .toList();
       start.countDown();
       for (var result : results) {
-        assertThat(result.get(10, TimeUnit.SECONDS).deploymentId())
-            .isEqualTo(artifact.deploymentName());
+        result.get(10, TimeUnit.SECONDS);
       }
     }
-    try (var entries = Files.list(deployments)) {
-      assertThat(entries.map(path -> path.getFileName().toString()))
-          .containsExactly(artifact.deploymentName());
+    try (var entries = Files.list(directory)) {
+      assertThat(entries).hasSize(2);
     }
   }
 
   @Test
-  void reportsADeletedDeploymentAsMissing() throws Exception {
-    assumeInterpreter(ScriptLanguage.JAVASCRIPT);
-    final var provider = provider(INTERPRETERS);
-    final var deployment = provision(provider, javascript(SUM_SCRIPT, Optional.empty()));
+  void reportsADeletedExecutorAsMissing() throws Exception {
+    final var provider = provider(Duration.ofSeconds(5));
+    provider.ensureExecutors();
+    try (var entries = Files.list(directory)) {
+      for (var entry : entries.toList()) {
+        try (var files = Files.walk(entry)) {
+          files.sorted(java.util.Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+        }
+      }
+    }
 
-    provider.delete(deployment);
-    provider.delete(deployment);
-    final var response = provider.invoke(deployment, request(Map.of("a", 2, "b", 3)));
+    final var response =
+        provider.execute(
+            ScriptLanguage.PYTHON, request("def execute(v, c):\n    return {}\n", Map.of()));
 
     assertThat(response.isDeploymentMissing()).isTrue();
-    assertThat(deployments).isEmptyDirectory();
   }
 
   @Test
-  void installsNpmDependenciesOnceAndKeepsThemAcrossInvocations() throws Exception {
-    assumeInterpreter(ScriptLanguage.JAVASCRIPT);
-    final var greet = Files.createDirectory(packages.resolve("greet"));
-    Files.writeString(
-        greet.resolve("package.json"),
-        """
-        {"name": "greet", "version": "1.0.0", "main": "index.js"}
-        """);
-    Files.writeString(greet.resolve("index.js"), "module.exports = (name) => `Hello ${name}`;\n");
-    final var manifest =
-        """
-        {"name": "script", "version": "1.0.0", "dependencies": {"greet": "file:%s"}}
-        """
-            .formatted(greet.toAbsolutePath().toString().replace("\\", "/"));
-    final var script =
-        """
-        import greet from 'greet';
-        export function execute(variables) {
-          return { message: greet(variables.name) };
-        }
-        """;
-    final var provider = provider(INTERPRETERS);
-    final var artifact = javascript(script, Optional.of(manifest));
-
-    final var deployment = provision(provider, artifact);
-    final var first = provider.invoke(deployment, request(Map.of("name", "Ada")));
-    final var second = provider.invoke(deployment, request(Map.of("name", "Grace")));
-
-    assertThat(first.variables()).containsEntry("message", "Hello Ada");
-    assertThat(second.variables()).containsEntry("message", "Hello Grace");
-    // Removing the invocation's node_modules link must not remove the installed packages.
-    assertThat(deployments.resolve(artifact.deploymentName()).resolve("node_modules/greet"))
-        .exists();
-  }
-
-  @Test
-  void installsPipRequirementsIntoTheDeployment() throws Exception {
-    assumeInterpreter(ScriptLanguage.PYTHON);
-    assumePip();
-    final var wheel =
-        writeWheel(packages, "greet", "def greet(name):\n    return f'Hello {name}'\n");
-    final var script =
-        """
-        from greet import greet
-
-        def execute(variables, context):
-            return {"message": greet(variables["name"])}
-        """;
-    final var provider = provider(INTERPRETERS);
-    final var artifact = python(script, Optional.of(wheel.toAbsolutePath() + "\n"));
-
-    final var deployment = provision(provider, artifact);
-    final var response = provider.invoke(deployment, request(Map.of("name", "Ada")));
-
-    assertThat(response.outcome()).isEqualTo(ExecutionResponse.COMPLETED);
-    assertThat(response.variables()).containsEntry("message", "Hello Ada");
-  }
-
-  @Test
-  void failedInstallationIsRetryableAndLeavesNoDeployment() {
-    assumeInterpreter(ScriptLanguage.PYTHON);
-    final var provider = provider(INTERPRETERS);
-    final var missingWheel = packages.resolve("missing-1.0-py3-none-any.whl").toAbsolutePath();
-
-    assertThatThrownBy(
-            () ->
-                provision(
-                    provider,
-                    python(
-                        "def execute(v, c):\n    return {}\n", Optional.of(missingWheel + "\n"))))
-        .isInstanceOfSatisfying(
-            ProvisioningException.class,
-            e -> {
-              assertThat(e.code()).isEqualTo("DEPENDENCY_INSTALL_FAILED");
-              assertThat(e.retryable()).isTrue();
-            });
-    assertThat(deployments).isEmptyDirectory();
-  }
-
-  @Test
-  void failsRetryablyWithoutInterpreter() {
-    final var provider = provider(new LocalInterpreterDiscovery.DiscoveryReport(Map.of()));
-
-    assertThatThrownBy(() -> provision(provider, javascript(SUM_SCRIPT, Optional.empty())))
-        .isInstanceOfSatisfying(
-            ProvisioningException.class,
-            e -> {
-              assertThat(e.code()).isEqualTo("PLATFORM_UNAVAILABLE");
-              assertThat(e.retryable()).isTrue();
-            });
-  }
-
-  private LocalManagedCodeProvider provider(
-      LocalInterpreterDiscovery.DiscoveryReport interpreters) {
-    return new LocalManagedCodeProvider(
-        new LocalProcessScriptExecutor(
+  void reportsAMissingInterpreter() {
+    final var provider =
+        new LocalManagedCodeProvider(
+            new LocalInterpreterDiscovery.DiscoveryReport(Map.of()),
             OBJECT_MAPPER,
-            interpreters,
-            new LocalProcessScriptExecutor.Limits(
-                64 * 1_024, 64 * 1_024, 64 * 1_024, 4 * 1_024, Duration.ofSeconds(10)),
-            temporaryRoot),
-        interpreters,
-        OBJECT_MAPPER,
-        deployments,
-        Duration.ofMinutes(2));
+            directory,
+            Duration.ofSeconds(5));
+    provider.ensureExecutors();
+
+    final var response =
+        provider.execute(
+            ScriptLanguage.PYTHON, request("def execute(v, c):\n    return {}\n", Map.of()));
+
+    assertThat(response.error().code()).isEqualTo("UNSUPPORTED_RUNTIME");
+    assertThat(response.error().retryable()).isFalse();
   }
 
-  private static ProviderDeployment provision(
-      LocalManagedCodeProvider provider, ArtifactSpec artifact) throws Exception {
-    return provider
-        .ensureProvisioned(artifact)
-        .ready()
-        .toCompletableFuture()
-        .get(1, TimeUnit.SECONDS);
+  private LocalManagedCodeProvider provider(Duration executionTimeout) {
+    return new LocalManagedCodeProvider(INTERPRETERS, OBJECT_MAPPER, directory, executionTimeout);
+  }
+
+  private java.util.List<Path> callDirectories() {
+    try (var entries = Files.list(directory)) {
+      return entries.filter(path -> path.getFileName().toString().startsWith("call-")).toList();
+    } catch (java.io.IOException e) {
+      throw new java.io.UncheckedIOException(e);
+    }
+  }
+
+  private static ExecutionRequest request(String script, Map<String, Object> variables) {
+    return new ExecutionRequest(
+        "job-1", script, variables, Map.of("jobKey", "1"), Duration.ofSeconds(2).toMillis());
   }
 
   private static void assumeInterpreter(ScriptLanguage language) {
-    final var status = INTERPRETERS.statuses().get(language);
-    assumeTrue(status.available(), status.diagnostic());
-  }
-
-  private static void assumePip() throws Exception {
-    final var python =
-        INTERPRETERS.statuses().get(ScriptLanguage.PYTHON).executable().orElseThrow();
-    final var process =
-        new ProcessBuilder(python.toString(), "-m", "pip", "--version")
-            .redirectErrorStream(true)
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .start();
-    final var finished = process.waitFor(30, TimeUnit.SECONDS);
-    if (!finished) {
-      process.destroyForcibly();
-    }
-    assumeTrue(finished && process.exitValue() == 0, "pip is not available for " + python);
-  }
-
-  private static ExecutionRequest request(Map<String, Object> variables) {
-    return new ExecutionRequest("1", variables, Map.of("jobKey", "1"));
-  }
-
-  private static ArtifactSpec javascript(String script, Optional<String> packageJson) {
-    return artifact(ScriptLanguage.JAVASCRIPT, "nodejs22", "script.js", script, packageJson);
-  }
-
-  private static ArtifactSpec python(String script, Optional<String> requirements) {
-    return artifact(ScriptLanguage.PYTHON, "python3", "script.py", script, requirements);
-  }
-
-  private static ArtifactSpec artifact(
-      ScriptLanguage language,
-      String runtime,
-      String resourceName,
-      String script,
-      Optional<String> manifest) {
-    return ArtifactSpec.create(
-        "default",
-        "tenant-a",
-        "local",
-        new LocalScriptPackager().buildVersion(),
-        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
-        language,
-        runtime,
-        resourceName,
-        script.getBytes(StandardCharsets.UTF_8),
-        manifest.map(value -> value.getBytes(StandardCharsets.UTF_8)));
-  }
-
-  /** A minimal pure-Python wheel, so that pip installs it without an index or a build backend. */
-  private static Path writeWheel(Path directory, String module, String source) throws IOException {
-    final var wheel = directory.resolve(module + "-1.0-py3-none-any.whl");
-    final var distInfo = module + "-1.0.dist-info/";
-    try (var zip = new ZipOutputStream(Files.newOutputStream(wheel))) {
-      write(zip, module + ".py", source);
-      write(
-          zip,
-          distInfo + "METADATA",
-          "Metadata-Version: 2.1\nName: %s\nVersion: 1.0\n".formatted(module));
-      write(
-          zip,
-          distInfo + "WHEEL",
-          "Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n");
-      write(
-          zip,
-          distInfo + "RECORD",
-          "%s.py,,\n%sMETADATA,,\n%sWHEEL,,\n%sRECORD,,\n"
-              .formatted(module, distInfo, distInfo, distInfo));
-    }
-    return wheel;
-  }
-
-  private static void write(ZipOutputStream zip, String name, String content) throws IOException {
-    zip.putNextEntry(new ZipEntry(name));
-    zip.write(content.getBytes(StandardCharsets.UTF_8));
-    zip.closeEntry();
+    assumeTrue(
+        INTERPRETERS.statuses().get(language).available(),
+        () -> "No usable " + language.language() + " interpreter on PATH");
   }
 }

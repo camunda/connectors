@@ -1,6 +1,0 @@
-{
-  "name": "camunda-managed-script",
-  "private": true,
-  "type": "module",
-  "main": "index.mjs"
-}

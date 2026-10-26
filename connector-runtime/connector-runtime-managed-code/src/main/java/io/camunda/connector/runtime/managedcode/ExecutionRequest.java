@@ -19,9 +19,18 @@ package io.camunda.connector.runtime.managedcode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Execution contract version 1 request. */
+/**
+ * Execution contract version 1 request, with the script it runs.
+ *
+ * @param script the source of the script, sent as data to the executor
+ * @param timeoutMs the deadline of the script, enforced by the executor
+ */
 public record ExecutionRequest(
-    String executionId, Map<String, Object> variables, Map<String, Object> context) {
+    String executionId,
+    String script,
+    Map<String, Object> variables,
+    Map<String, Object> context,
+    long timeoutMs) {
 
   public static final String CONTRACT_VERSION = "1";
 
@@ -29,13 +38,15 @@ public record ExecutionRequest(
     return CONTRACT_VERSION;
   }
 
-  /** The request as the generated entrypoints of the built-in providers read it. */
-  Map<String, Object> contractPayload() {
+  /** The request as the executors of the built-in providers read it. */
+  Map<String, Object> payload() {
     final Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("contractVersion", contractVersion());
     payload.put("executionId", executionId);
+    payload.put("script", script);
     payload.put("variables", variables);
     payload.put("context", context);
+    payload.put("timeoutMs", timeoutMs);
     return payload;
   }
 }

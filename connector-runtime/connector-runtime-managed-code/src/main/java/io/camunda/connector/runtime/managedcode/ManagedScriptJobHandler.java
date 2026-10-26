@@ -19,10 +19,13 @@ package io.camunda.connector.runtime.managedcode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.JobContext;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,14 +33,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs one managed-script job: resolves the linked script, provisions its artifact if needed and
- * invokes it. Returns the job outcome instead of completing or failing the job, which the connector
- * runtime does.
+ * Runs one managed-script job: resolves the linked script and sends it, with its input, to the
+ * executor of its language. Returns the job outcome instead of completing or failing the job, which
+ * the connector runtime does.
+ *
+ * <p>No job provisions anything: the executors are created when the runtime starts. A job that
+ * arrives before they are ready waits for a bounded time, then fails without consuming a retry.
  */
 final class ManagedScriptJobHandler {
 
   static final String LANGUAGE_HEADER = "language";
   static final String RUNTIME_HEADER = "runtime";
+
+  /** The runtime headers a task may set: the runtime of the executor of the language. */
+  private static final Map<ScriptLanguage, Set<String>> EXECUTOR_RUNTIMES =
+      Map.of(
+          ScriptLanguage.PYTHON, Set.of("python3", "python3.13"),
+          ScriptLanguage.JAVASCRIPT, Set.of("nodejs", "nodejs22", "nodejs22.x"));
 
   private static final Logger LOG = LoggerFactory.getLogger(ManagedScriptJobHandler.class);
   private static final int MAX_ERROR_MESSAGE_LENGTH = 1_024;
@@ -55,29 +67,36 @@ final class ManagedScriptJobHandler {
         implements Outcome {}
   }
 
+  /** A resolved script: its language and its source. */
+  private record Script(ScriptLanguage language, String source) {}
+
   private final ManagedCodeProvider provider;
-  private final DeploymentRegistry registry;
+  private final ExecutorReadiness executors;
   private final ScriptResources resources;
   private final ObjectMapper objectMapper;
   private final Duration provisioningTimeout;
+  private final Duration executionTimeout;
   private final Duration retryBackoff;
-  private final String deploymentNamePrefix;
 
+  /**
+   * @param provisioningTimeout how long a job waits for the executors before it fails without
+   *     consuming a retry
+   */
   ManagedScriptJobHandler(
       ManagedCodeProvider provider,
-      DeploymentRegistry registry,
+      ExecutorReadiness executors,
       ScriptResources resources,
       ObjectMapper objectMapper,
       Duration provisioningTimeout,
-      Duration retryBackoff,
-      String deploymentNamePrefix) {
+      Duration executionTimeout,
+      Duration retryBackoff) {
     this.provider = provider;
-    this.registry = registry;
+    this.executors = executors;
     this.resources = resources;
     this.objectMapper = objectMapper;
     this.provisioningTimeout = provisioningTimeout;
+    this.executionTimeout = executionTimeout;
     this.retryBackoff = retryBackoff;
-    this.deploymentNamePrefix = deploymentNamePrefix;
   }
 
   /**
@@ -89,22 +108,24 @@ final class ManagedScriptJobHandler {
       String physicalTenantId,
       JobContext job,
       Map<String, Object> input) {
-    // One budget per job for fetching the resources and provisioning, including re-provisioning,
-    // so that the job timeout (provisioning timeout + execution timeout) covers the whole attempt.
+    // One budget per job for fetching the script and waiting for the executors, including after a
+    // missing executor, so that the job timeout (provisioning timeout + execution timeout) covers
+    // the whole attempt.
     final long provisioningDeadline = System.nanoTime() + provisioningTimeout.toNanos();
     try {
-      final var artifact = resolveArtifact(camundaClient, physicalTenantId, job);
-      return execute(job, input, artifact, provisioningDeadline);
+      final var script = resolveScript(camundaClient, physicalTenantId, job);
+      return execute(job, input, script, provisioningDeadline);
     } catch (InvalidJobException e) {
       return failed("INVALID_JOB", e.getMessage(), 0, Duration.ZERO);
     } catch (ProvisioningTimeoutException e) {
       LOG.info(
-          "Managed-script job {} waited {} for provisioning; failing it without consuming a retry",
+          "Managed-script job {} waited {} for the executors; failing it without consuming a retry",
           job.getJobKey(),
           provisioningTimeout);
       return failed("PROVISIONING_PENDING", e.getMessage(), job.getRetries(), retryBackoff);
     } catch (ProvisioningException e) {
-      final var message = "Provisioning failed (%s): %s".formatted(e.code(), e.getMessage());
+      final var message =
+          "The executors are not available (%s): %s".formatted(e.code(), e.getMessage());
       if (e.retryable()) {
         return failed(e.code(), message, null, retryBackoff);
       }
@@ -121,71 +142,58 @@ final class ManagedScriptJobHandler {
     }
   }
 
-  private ArtifactSpec resolveArtifact(
-      CamundaClient camundaClient, String physicalTenantId, JobContext job)
+  private Script resolveScript(CamundaClient camundaClient, String physicalTenantId, JobContext job)
       throws InterruptedException {
     final var headers = job.getCustomHeaders();
     final var links = LinkedResources.parse(headers, objectMapper);
+    if (links.dependenciesResourceKey().isPresent()) {
+      throw new InvalidJobException(
+          "UNSUPPORTED_DEPENDENCIES: managed scripts do not support dependencies yet");
+    }
     final var script = resources.get(camundaClient, physicalTenantId, links.scriptResourceKey());
-    final ScriptLanguage scriptLanguage;
-    final String runtime;
+    final ScriptLanguage language;
     try {
-      // The element template sets no headers: language and runtime follow the file extension.
-      scriptLanguage =
-          ScriptLanguage.from(
-              optionalHeader(headers, LANGUAGE_HEADER),
-              optionalHeader(headers, RUNTIME_HEADER),
-              script.name());
-      runtime =
-          Optional.ofNullable(optionalHeader(headers, RUNTIME_HEADER))
-              .orElse(scriptLanguage.defaultRuntime());
+      // The element template sets no headers: the language follows the file extension.
+      final var runtime = optionalHeader(headers, RUNTIME_HEADER);
+      language =
+          ScriptLanguage.from(optionalHeader(headers, LANGUAGE_HEADER), runtime, script.name());
+      if (runtime != null
+          && !EXECUTOR_RUNTIMES.get(language).contains(runtime.toLowerCase(Locale.ROOT))) {
+        throw new IllegalArgumentException(
+            "Runtime '%s' cannot be chosen per script: every %s script runs on the executor of"
+                    .formatted(runtime, language.language())
+                + " its language, "
+                + EXECUTOR_RUNTIMES.get(language));
+      }
     } catch (IllegalArgumentException e) {
       throw new InvalidJobException(e.getMessage());
     }
-    final Optional<byte[]> dependencies;
-    if (links.dependenciesResourceKey().isPresent()) {
-      final long key = links.dependenciesResourceKey().get();
-      dependencies = Optional.of(resources.get(camundaClient, physicalTenantId, key).content());
-    } else {
-      dependencies = Optional.empty();
-    }
-    return ArtifactSpec.create(
-        physicalTenantId,
-        job.getTenantId(),
-        provider.name(),
-        registry.buildVersion(),
-        deploymentNamePrefix,
-        scriptLanguage,
-        runtime,
-        script.name(),
-        script.content(),
-        dependencies);
+    return new Script(language, new String(script.content(), StandardCharsets.UTF_8));
   }
 
   private Outcome execute(
-      JobContext job, Map<String, Object> input, ArtifactSpec artifact, long provisioningDeadline)
+      JobContext job, Map<String, Object> input, Script script, long provisioningDeadline)
       throws InterruptedException {
     final var request =
         new ExecutionRequest(
             Long.toString(job.getJobKey()),
+            script.source(),
             input == null ? Map.of() : input,
-            executionContext(job));
-    var deployment = awaitDeployment(artifact, provisioningDeadline);
-    var response = invoke(artifact, deployment, request);
+            executionContext(job),
+            executionTimeout.toMillis());
+    awaitExecutors(executors.start(), provisioningDeadline);
+    var response = invoke(script.language(), request);
     if (response.isDeploymentMissing()) {
-      // The provider lost a deployment this instance considered ready; provision it again once.
+      // The executor this instance considered ready is gone; create it again, once.
       LOG.info(
-          "Provider deployment '{}' of managed-script job {} is missing; provisioning it again",
-          deployment.deploymentId(),
+          "Managed-script executor of job {} is missing; creating the executors again",
           job.getJobKey());
-      registry.evict(artifact.key(), deployment);
-      deployment = awaitDeployment(artifact, provisioningDeadline);
-      response = invoke(artifact, deployment, request);
+      awaitExecutors(executors.restart(), provisioningDeadline);
+      response = invoke(script.language(), request);
       if (response.isDeploymentMissing()) {
-        registry.evict(artifact.key(), deployment);
         return failed(
             ExecutionResponse.DEPLOYMENT_MISSING,
-            "DEPLOYMENT_MISSING: provider deployment disappeared again after re-provisioning",
+            "DEPLOYMENT_MISSING: the executor disappeared again after it was created",
             null,
             retryBackoff);
       }
@@ -193,29 +201,27 @@ final class ManagedScriptJobHandler {
     return outcome(job, response);
   }
 
-  private ProviderDeployment awaitDeployment(ArtifactSpec artifact, long deadlineNanos)
+  private void awaitExecutors(CompletableFuture<Void> ready, long deadlineNanos)
       throws InterruptedException {
-    final var future = registry.ensureDeployment(artifact);
     try {
       // Bounded wait on the shared future: a timeout must not complete or cancel it.
-      return future.get(Math.max(0, deadlineNanos - System.nanoTime()), TimeUnit.NANOSECONDS);
+      ready.get(Math.max(0, deadlineNanos - System.nanoTime()), TimeUnit.NANOSECONDS);
     } catch (TimeoutException e) {
       throw new ProvisioningTimeoutException(
-          "Managed-script artifact is still being provisioned after %s; the job will be retried"
+          "The managed-code executors are still being created after %s; the job will be retried"
               .formatted(provisioningTimeout));
     } catch (ExecutionException e) {
       if (e.getCause() instanceof ProvisioningException provisioningException) {
+        // A permanent failure; a job after the backoff tries again.
         throw provisioningException;
       }
       throw new ProvisioningException(
-          "PLATFORM_UNAVAILABLE", "Provisioning failed unexpectedly", true, e.getCause());
+          "PLATFORM_UNAVAILABLE", "Creating the executors failed unexpectedly", true, e.getCause());
     }
   }
 
-  private ExecutionResponse invoke(
-      ArtifactSpec artifact, ProviderDeployment deployment, ExecutionRequest request) {
-    registry.markUsed(artifact.key());
-    final var response = provider.invoke(deployment, request);
+  private ExecutionResponse invoke(ScriptLanguage language, ExecutionRequest request) {
+    final var response = provider.execute(language, request);
     if (response == null || response.outcome() == null) {
       return ExecutionResponse.failed("INVALID_RESULT", "Provider returned no outcome", false);
     }

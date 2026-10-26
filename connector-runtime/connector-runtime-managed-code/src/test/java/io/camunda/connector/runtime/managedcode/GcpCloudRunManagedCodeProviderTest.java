@@ -44,92 +44,90 @@ class GcpCloudRunManagedCodeProviderTest {
 
   private static final String LOCATION = "projects/p/locations/europe-west1";
   private static final String FUNCTION_SA = "fn@p.iam.gserviceaccount.com";
-  private static final String URI = "https://camunda-ms-abc-xyz-ew.a.run.app";
+  private static final String PREFIX = "camunda-ms-";
+  private static final String PYTHON_URI = "https://camunda-ms-py-ew.a.run.app";
+  private static final String NODE_URI = "https://camunda-ms-js-ew.a.run.app";
+  private static final String PYTHON_EXECUTOR =
+      ExecutorPackage.gcp(ScriptLanguage.PYTHON).functionName(PREFIX);
+  private static final String NODE_EXECUTOR =
+      ExecutorPackage.gcp(ScriptLanguage.JAVASCRIPT).functionName(PREFIX);
 
   private final FakeApi api = new FakeApi();
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final GcpCloudRunManagedCodeProvider provider =
-      new GcpCloudRunManagedCodeProvider(
-          api,
-          objectMapper,
-          LOCATION,
-          FUNCTION_SA,
-          256,
-          5,
-          Duration.ofSeconds(30),
-          Duration.ofSeconds(5),
-          Duration.ofMillis(1));
+  private final GcpCloudRunManagedCodeProvider provider = provider(Duration.ofSeconds(5), 1);
 
   @Test
-  void uploadsAndCreatesAFunctionNamedAfterTheArtifactWithLimits() throws IOException {
-    final var artifact = artifact(ScriptLanguage.PYTHON, "python3", "calc.py");
+  void uploadsAndCreatesOneExecutorPerLanguageWithLimits() throws IOException {
     api.gets.add(Optional.empty());
     api.gets.add(Optional.of(function(Function.State.DEPLOYING, "")));
-    api.gets.add(Optional.of(function(Function.State.ACTIVE, URI)));
+    api.gets.add(Optional.of(function(Function.State.ACTIVE, PYTHON_URI)));
+    api.gets.add(Optional.empty());
+    api.gets.add(Optional.of(function(Function.State.ACTIVE, NODE_URI)));
 
-    final var handle = provider.ensureProvisioned(artifact);
+    provider.ensureExecutors();
 
-    assertThat(handle.ready().toCompletableFuture().join())
-        .isEqualTo(new ProviderDeployment("gcp", artifact.deploymentName() + "@" + URI));
-    assertThat(api.createdIds).containsExactly(artifact.deploymentName());
-    final var created = api.created.getFirst();
-    assertThat(created.getName()).isEqualTo(LOCATION + "/functions/" + artifact.deploymentName());
-    assertThat(created.getBuildConfig().getRuntime()).isEqualTo("python313");
-    assertThat(created.getBuildConfig().getEntryPoint()).isEqualTo("managed_script");
-    assertThat(created.getBuildConfig().getSource().getStorageSource().getObject())
+    assertThat(api.createdIds).containsExactly(PYTHON_EXECUTOR, NODE_EXECUTOR);
+    final var python = api.created.getFirst();
+    assertThat(python.getName()).isEqualTo(LOCATION + "/functions/" + PYTHON_EXECUTOR);
+    assertThat(python.getBuildConfig().getRuntime()).isEqualTo("python313");
+    assertThat(python.getBuildConfig().getEntryPoint()).isEqualTo("executor");
+    assertThat(python.getBuildConfig().getSource().getStorageSource().getObject())
         .isEqualTo("uploaded.zip");
-    assertThat(created.getServiceConfig().getServiceAccountEmail()).isEqualTo(FUNCTION_SA);
-    assertThat(created.getServiceConfig().getMaxInstanceCount()).isEqualTo(5);
-    assertThat(created.getServiceConfig().getAvailableMemory()).isEqualTo("256Mi");
-    assertThat(created.getServiceConfig().getTimeoutSeconds()).isEqualTo(30);
-    assertThat(created.getLabelsMap())
+    assertThat(python.getServiceConfig().getServiceAccountEmail()).isEqualTo(FUNCTION_SA);
+    assertThat(python.getServiceConfig().getMaxInstanceCount()).isEqualTo(5);
+    assertThat(python.getServiceConfig().getMaxInstanceRequestConcurrency()).isEqualTo(1);
+    assertThat(python.getServiceConfig().getAvailableMemory()).isEqualTo("256Mi");
+    assertThat(python.getServiceConfig().getTimeoutSeconds()).isEqualTo(35);
+    assertThat(python.getServiceConfig().getEnvironmentVariablesMap())
+        .containsEntry("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
+    assertThat(python.getLabelsMap())
         .containsEntry(
-            GcpCloudRunManagedCodeProvider.DIGEST_LABEL, artifact.digest().substring(0, 63));
+            GcpCloudRunManagedCodeProvider.EXECUTOR_LABEL,
+            ExecutorPackage.gcp(ScriptLanguage.PYTHON).digest().substring(0, 63));
     assertThat(entries(api.uploads.getFirst()))
-        .containsOnlyKeys("main.py", "requirements.txt", "user_script.py")
-        .containsEntry("user_script.py", "def execute(v, c):\n    return v\n");
+        .containsOnlyKeys("executor_core.py", "child.py", "main.py", "requirements.txt");
+    final var node = api.created.get(1);
+    assertThat(node.getBuildConfig().getRuntime()).isEqualTo("nodejs22");
+    assertThat(entries(api.uploads.get(1)))
+        .containsOnlyKeys("executor_core.mjs", "child.mjs", "index.js", "package.json")
+        .hasEntrySatisfying(
+            "package.json", json -> assertThat(json).contains("@google-cloud/functions-framework"));
   }
 
   @Test
-  void adoptsAnExistingFunctionWithoutUploadingItsSourceAgain() {
-    final var artifact = artifact(ScriptLanguage.JAVASCRIPT, "nodejs", "sum.js");
-    api.gets.add(Optional.of(function(Function.State.ACTIVE, URI)));
+  void adoptsExistingExecutorsWithoutUploadingTheirSourceAgain() {
+    api.repeatLast = Optional.of(function(Function.State.ACTIVE, PYTHON_URI));
 
-    final var handle = provider.ensureProvisioned(artifact);
+    provider.ensureExecutors();
 
-    assertThat(handle.ready().toCompletableFuture().join().deploymentId())
-        .isEqualTo(artifact.deploymentName() + "@" + URI);
     assertThat(api.uploads).isEmpty();
     assertThat(api.createdIds).isEmpty();
   }
 
   @Test
-  void waitsForAFunctionThatAnotherInstanceCreated() {
-    final var artifact = artifact(ScriptLanguage.JAVASCRIPT, "nodejs22", "sum.js");
+  void waitsForAnExecutorThatAnotherInstanceCreated() {
     api.gets.add(Optional.empty());
-    api.gets.add(Optional.of(function(Function.State.ACTIVE, URI)));
+    api.repeatLast = Optional.of(function(Function.State.ACTIVE, PYTHON_URI));
     api.alreadyExists = true;
 
-    final var handle = provider.ensureProvisioned(artifact);
+    provider.ensureExecutors();
 
-    assertThat(handle.ready().toCompletableFuture().join().deploymentId()).endsWith("@" + URI);
-    assertThat(api.created.getFirst().getBuildConfig().getRuntime()).isEqualTo("nodejs22");
+    assertThat(api.createdIds).containsExactly(PYTHON_EXECUTOR);
   }
 
   @Test
   void keepsPollingWhenAReadIsThrottledOrNotYetAllowed() {
-    final var artifact = artifact(ScriptLanguage.PYTHON, "python3", "calc.py");
     api.getFailures.add(new ProvisioningException("PLATFORM_THROTTLED", "slow down", true));
     api.getFailures.add(new ProvisioningException("PERMISSION_DENIED", "not yet", true));
-    api.gets.add(Optional.of(function(Function.State.ACTIVE, URI)));
+    api.repeatLast = Optional.of(function(Function.State.ACTIVE, PYTHON_URI));
 
-    assertThat(provider.ensureProvisioned(artifact).ready().toCompletableFuture().join())
-        .isNotNull();
+    provider.ensureExecutors();
+
+    assertThat(api.createdIds).isEmpty();
   }
 
   @Test
   void failsWithoutRetriesWhenTheBuildFails() {
-    final var artifact = artifact(ScriptLanguage.PYTHON, "python3", "calc.py");
     api.gets.add(
         Optional.of(
             function(Function.State.FAILED, "").toBuilder()
@@ -137,8 +135,7 @@ class GcpCloudRunManagedCodeProviderTest {
                 .build()));
 
     final var failure =
-        catchThrowableOfType(
-            ProvisioningException.class, () -> provider.ensureProvisioned(artifact));
+        catchThrowableOfType(ProvisioningException.class, provider::ensureExecutors);
 
     assertThat(failure.code()).isEqualTo("BUILD_FAILED");
     assertThat(failure.retryable()).isFalse();
@@ -146,53 +143,25 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @Test
-  void timesOutRetryablyWhileTheFunctionIsDeploying() {
-    final var shortTimeout =
-        new GcpCloudRunManagedCodeProvider(
-            api,
-            objectMapper,
-            LOCATION,
-            FUNCTION_SA,
-            256,
-            5,
-            Duration.ofSeconds(30),
-            Duration.ofMillis(20),
-            Duration.ofMillis(5));
+  void timesOutRetryablyWhileAnExecutorIsDeploying() {
     api.repeatLast = Optional.of(function(Function.State.DEPLOYING, ""));
 
     final var failure =
         catchThrowableOfType(
-            ProvisioningException.class,
-            () ->
-                shortTimeout.ensureProvisioned(
-                    artifact(ScriptLanguage.PYTHON, "python3", "calc.py")));
+            ProvisioningException.class, provider(Duration.ofMillis(20), 5)::ensureExecutors);
 
     assertThat(failure.code()).isEqualTo("PROVISIONING_TIMEOUT");
     assertThat(failure.retryable()).isTrue();
   }
 
   @Test
-  void stopsWaitingOnALastingDenialBeforeTheJobDoes() {
-    final var shortTimeout =
-        new GcpCloudRunManagedCodeProvider(
-            api,
-            objectMapper,
-            LOCATION,
-            FUNCTION_SA,
-            256,
-            5,
-            Duration.ofSeconds(30),
-            Duration.ofSeconds(2),
-            Duration.ofMillis(1));
+  void stopsWaitingOnALastingDenial() {
     api.repeatFailure = new ProvisioningException("PERMISSION_DENIED", "denied", true);
 
     final long start = System.nanoTime();
     final var failure =
         catchThrowableOfType(
-            ProvisioningException.class,
-            () ->
-                shortTimeout.ensureProvisioned(
-                    artifact(ScriptLanguage.PYTHON, "python3", "calc.py")));
+            ProvisioningException.class, provider(Duration.ofSeconds(2), 1)::ensureExecutors);
 
     assertThat(failure.code()).isEqualTo("PERMISSION_DENIED");
     assertThat(failure.retryable()).isTrue();
@@ -200,72 +169,77 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @Test
-  void invokesTheFunctionUrlAndReadsTheContractResponse() {
+  void sendsTheScriptToTheUrlOfTheExecutorOfItsLanguage() {
+    readyExecutors();
     api.invokeResult =
         new CloudRunFunctionsApi.HttpResult(
             200, "{\"contractVersion\":\"1\",\"outcome\":\"COMPLETED\",\"variables\":{\"sum\":5}}");
 
     final var response =
-        provider.invoke(
-            new ProviderDeployment("gcp", "camunda-ms-abc@" + URI),
-            new ExecutionRequest("7", Map.of("a", 2), Map.of("jobKey", "7")));
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            new ExecutionRequest(
+                "7",
+                "export function execute() {}",
+                Map.of("a", 2),
+                Map.of("jobKey", "7"),
+                30_000));
 
     assertThat(response.outcome()).isEqualTo(ExecutionResponse.COMPLETED);
     assertThat(response.variables()).containsEntry("sum", 5);
-    assertThat(api.invokedUris).containsExactly(URI);
+    assertThat(api.invokedUris).containsExactly(NODE_URI);
     assertThat(new String(api.invokedBodies.getFirst(), StandardCharsets.UTF_8))
-        .contains("\"contractVersion\":\"1\"")
-        .contains("\"variables\":{\"a\":2}");
+        .contains("\"script\":\"export function execute() {}\"")
+        .contains("\"variables\":{\"a\":2}")
+        .contains("\"timeoutMs\":30000");
+  }
+
+  @Test
+  void reportsAnExecutorWithoutKnownUrlAsMissing() {
+    final var response = provider.execute(ScriptLanguage.PYTHON, request());
+
+    assertThat(response.isDeploymentMissing()).isTrue();
+    assertThat(api.invokedUris).isEmpty();
   }
 
   @Test
   void mapsHttpStatusesToContractFailures() {
-    assertThat(invokeWithStatus(404).isDeploymentMissing()).isTrue();
+    readyExecutors();
     assertFailure(invokeWithStatus(403), "PLATFORM_UNAVAILABLE", true);
     assertFailure(invokeWithStatus(429), "PLATFORM_THROTTLED", true);
     assertFailure(invokeWithStatus(503), "PLATFORM_UNAVAILABLE", true);
     assertFailure(invokeWithStatus(504), "PLATFORM_EXECUTION_FAILED", false);
     assertFailure(invokeWithStatus(500), "PLATFORM_EXECUTION_FAILED", false);
+    assertThat(invokeWithStatus(404).isDeploymentMissing()).isTrue();
+    // The URL is forgotten, so the executors are looked up again.
+    assertThat(provider.execute(ScriptLanguage.PYTHON, request()).isDeploymentMissing()).isTrue();
+    assertThat(api.invokedUris).hasSize(6);
   }
 
   @Test
   void reportsATokenOrNetworkFailureAsRetryable() {
+    readyExecutors();
     api.invokeFailure = new ProvisioningException("PLATFORM_UNAVAILABLE", "no token", true);
 
     assertFailure(invokeWithStatus(200), "PLATFORM_UNAVAILABLE", true);
   }
 
   @Test
-  void deletesTheFunctionByName() {
-    provider.delete(new ProviderDeployment("gcp", "camunda-ms-abc@" + URI));
+  void rejectsARequestLargerThanCloudRunAccepts() {
+    readyExecutors();
 
-    assertThat(api.deleted).containsExactly(LOCATION + "/functions/camunda-ms-abc");
-  }
+    final var response =
+        provider.execute(
+            ScriptLanguage.PYTHON,
+            new ExecutionRequest(
+                "7",
+                "x".repeat(GcpCloudRunManagedCodeProvider.MAX_REQUEST_BYTES),
+                Map.of(),
+                Map.of(),
+                30_000));
 
-  @Test
-  void packagesNodeWithAnEsmEntrypointAndNoDependencies() {
-    final var scriptPackage =
-        new GcpCloudRunScriptPackager()
-            .packageFor(artifact(ScriptLanguage.JAVASCRIPT, "nodejs20", "sum.js"));
-
-    assertThat(scriptPackage.files())
-        .containsOnlyKeys("index.mjs", "package.json", "user_script.mjs");
-    assertThat(new String(scriptPackage.files().get("package.json"), StandardCharsets.UTF_8))
-        .contains("\"type\": \"module\"")
-        .doesNotContain("dependencies");
-    assertThat(scriptPackage.runtime()).isEqualTo("nodejs20");
-  }
-
-  @Test
-  void rejectsAnUnsupportedRuntime() {
-    final var failure =
-        catchThrowableOfType(
-            ProvisioningException.class,
-            () ->
-                new GcpCloudRunScriptPackager()
-                    .packageFor(artifact(ScriptLanguage.PYTHON, "python2", "a.py")));
-
-    assertThat(failure.code()).isEqualTo("UNSUPPORTED_RUNTIME");
+    assertThat(response.error().code()).isEqualTo("RESOURCE_LIMIT");
+    assertThat(api.invokedUris).isEmpty();
   }
 
   @Test
@@ -276,11 +250,34 @@ class GcpCloudRunManagedCodeProviderTest {
     assertTranslation(StatusCode.Code.INVALID_ARGUMENT, "PROVIDER_REJECTED", false);
   }
 
+  private GcpCloudRunManagedCodeProvider provider(Duration provisioningTimeout, int pollMillis) {
+    return new GcpCloudRunManagedCodeProvider(
+        api,
+        objectMapper,
+        LOCATION,
+        PREFIX,
+        FUNCTION_SA,
+        256,
+        5,
+        Duration.ofSeconds(30),
+        provisioningTimeout,
+        Duration.ofMillis(pollMillis));
+  }
+
+  private void readyExecutors() {
+    api.gets.add(Optional.of(function(Function.State.ACTIVE, PYTHON_URI)));
+    api.gets.add(Optional.of(function(Function.State.ACTIVE, NODE_URI)));
+    provider.ensureExecutors();
+  }
+
   private ExecutionResponse invokeWithStatus(int status) {
     api.invokeResult = new CloudRunFunctionsApi.HttpResult(status, "error");
-    return provider.invoke(
-        new ProviderDeployment("gcp", "camunda-ms-abc@" + URI),
-        new ExecutionRequest("7", Map.of(), Map.of()));
+    return provider.execute(ScriptLanguage.PYTHON, request());
+  }
+
+  private static ExecutionRequest request() {
+    return new ExecutionRequest(
+        "7", "def execute(v, c):\n    return v\n", Map.of(), Map.of(), 30_000);
   }
 
   private static void assertFailure(ExecutionResponse response, String code, boolean retryable) {
@@ -302,24 +299,6 @@ class GcpCloudRunManagedCodeProviderTest {
         .setState(state)
         .setServiceConfig(ServiceConfig.newBuilder().setUri(uri))
         .build();
-  }
-
-  private static ArtifactSpec artifact(ScriptLanguage language, String runtime, String name) {
-    final var script =
-        language == ScriptLanguage.PYTHON
-            ? "def execute(v, c):\n    return v\n"
-            : "export function execute(v) { return v; }\n";
-    return ArtifactSpec.create(
-        "default",
-        "tenant-a",
-        "gcp",
-        new GcpCloudRunScriptPackager().buildVersion(),
-        ArtifactSpec.DEFAULT_DEPLOYMENT_NAME_PREFIX,
-        language,
-        runtime,
-        name,
-        script.getBytes(StandardCharsets.UTF_8),
-        Optional.empty());
   }
 
   private static Map<String, String> entries(byte[] zip) throws IOException {

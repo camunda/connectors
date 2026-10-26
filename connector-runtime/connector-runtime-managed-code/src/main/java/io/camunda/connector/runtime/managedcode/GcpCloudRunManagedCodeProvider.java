@@ -24,29 +24,32 @@ import com.google.cloud.functions.v2.ServiceConfig;
 import com.google.cloud.functions.v2.Source;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Deploys each artifact as its own Google Cloud Run function (Cloud Functions v2 API) and invokes
- * it through its {@code run.app} URL.
+ * Runs scripts through one Google Cloud Run function (Cloud Functions v2 API) per language and
+ * cluster, created when the runtime starts, and invokes it through its {@code run.app} URL. A
+ * script is sent as data with its input; it creates no function.
  *
  * <ul>
- *   <li>The function name is the deterministic deployment name of the artifact, so concurrent
- *       runtime instances converge: one create is accepted, the others find the function and wait
- *       for it. An existing function is adopted without uploading its source again, which saves
- *       writes from the 60 per minute that every cluster of the project shares.
+ *   <li>An executor's name is the prefix of the cluster, its language and the digest of its
+ *       wrapper, so concurrent runtime instances converge: one create is accepted, the others find
+ *       the function and wait for it. An existing executor is adopted without uploading its source
+ *       again, which saves writes from the 60 per minute that every cluster of the project shares.
  *   <li>The function runs as a service account that holds no permissions. It is required: without
  *       it the platform would use the default Compute Engine service account, which often has
  *       Editor on the project.
  *   <li>Every create sets memory, timeout and {@code maxInstanceCount}, which function code cannot
- *       change.
- *   <li>The content of a function never changes, since its name is derived from its digest, so the
- *       revision it serves is the one that was built.
+ *       change, and a request concurrency of 1: the wrapper kills every process it did not start
+ *       with after each call, which would kill a concurrent script.
+ *   <li>Old executors are not deleted after an upgrade: older runtime instances may still call
+ *       them.
  * </ul>
  */
 public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider {
@@ -55,16 +58,26 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
 
   static final String OWNER_LABEL = "camunda-io_managed-by";
   static final String OWNER_VALUE = "camunda-managed-script";
-  static final String DIGEST_LABEL = "camunda-io_artifact-digest";
+  static final String EXECUTOR_LABEL = "camunda-io_executor-digest";
+
+  /** The request size limit of Cloud Run. */
+  static final int MAX_REQUEST_BYTES = 32 * 1024 * 1024;
+
+  /**
+   * Beyond the execution timeout, so that the wrapper, not Cloud Run, ends a script that runs late.
+   */
+  static final Duration FUNCTION_TIMEOUT_MARGIN = Duration.ofSeconds(5);
 
   private static final Logger LOG = LoggerFactory.getLogger(GcpCloudRunManagedCodeProvider.class);
   private static final int MAX_LABEL_VALUE_LENGTH = 63;
-  private static final String DEPLOYMENT_ID_SEPARATOR = "@";
 
-  private final GcpCloudRunScriptPackager packager = new GcpCloudRunScriptPackager();
+  private final Map<ScriptLanguage, ExecutorPackage> executors =
+      new EnumMap<>(ScriptLanguage.class);
+  private final Map<ScriptLanguage, String> uris = new ConcurrentHashMap<>();
   private final CloudRunFunctionsApi functions;
   private final ObjectMapper objectMapper;
   private final String location;
+  private final String namePrefix;
   private final String functionServiceAccount;
   private final int memoryMb;
   private final int maxInstanceCount;
@@ -79,6 +92,7 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
       CloudRunFunctionsApi functions,
       ObjectMapper objectMapper,
       String location,
+      String namePrefix,
       String functionServiceAccount,
       int memoryMb,
       int maxInstanceCount,
@@ -88,12 +102,16 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
     this.functions = functions;
     this.objectMapper = objectMapper;
     this.location = location;
+    this.namePrefix = namePrefix;
     this.functionServiceAccount = functionServiceAccount;
     this.memoryMb = memoryMb;
     this.maxInstanceCount = maxInstanceCount;
     this.executionTimeout = executionTimeout;
     this.provisioningTimeout = provisioningTimeout;
     this.pollInterval = pollInterval;
+    for (var language : ScriptLanguage.values()) {
+      executors.put(language, ExecutorPackage.gcp(language));
+    }
   }
 
   @Override
@@ -101,20 +119,20 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
     return NAME;
   }
 
+  /** Creates each executor if absent and waits until it serves a URL. */
   @Override
-  public String buildVersion() {
-    return packager.buildVersion();
+  public void ensureExecutors() {
+    for (var executor : executors.entrySet()) {
+      uris.put(executor.getKey(), ensure(executor.getValue()));
+    }
   }
 
-  /** Runs on the provisioning executor of the registry, so it creates and waits synchronously. */
-  @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
-    final var name = artifact.deploymentName();
+  private String ensure(ExecutorPackage executor) {
+    final var name = executor.functionName(namePrefix);
     final var functionName = functionName(name);
     final long start = System.nanoTime();
     final long deadline = start + provisioningTimeout.toNanos();
-    // Shorter than the wait of the job, so that a lasting denial consumes a retry and ends in an
-    // incident, instead of the job waiting again on every attempt.
+    // Shorter than the whole wait, so that a lasting denial is reported instead of waited on.
     final long denialDeadline = start + provisioningTimeout.toNanos() / 2;
     boolean createRequested = false;
     while (true) {
@@ -123,7 +141,7 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
         final var existing = functions.get(functionName);
         if (existing.isEmpty()) {
           if (!createRequested) {
-            create(artifact, functionName);
+            create(executor, name, functionName);
             createRequested = true;
           }
           function = null;
@@ -139,7 +157,7 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
         }
         // Throttled, unavailable, or a new grant not yet in effect (about 2 minutes): keep
         // waiting. A get of a missing name of the prefix is NOT_FOUND, not a denial (SRE, Q3b).
-        LOG.debug("Provisioning '{}' will be retried: {}", name, e.getMessage());
+        LOG.debug("Creating executor '{}' will be retried: {}", name, e.getMessage());
         sleep(withJitter(pollInterval.multipliedBy(2)));
         continue;
       }
@@ -148,25 +166,23 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
           case ACTIVE -> {
             final var uri = function.getServiceConfig().getUri();
             if (!uri.isBlank()) {
-              final var deployment =
-                  new ProviderDeployment(NAME, name + DEPLOYMENT_ID_SEPARATOR + uri);
-              return new ProvisioningHandle(name, CompletableFuture.completedFuture(deployment));
+              return uri;
             }
           }
           case FAILED ->
               throw new ProvisioningException(
                   "BUILD_FAILED",
-                  "Cloud Run function '%s' failed: %s".formatted(name, stateMessages(function)),
+                  "Cloud Run executor '%s' failed: %s".formatted(name, stateMessages(function)),
                   false);
           default -> {
-            // DEPLOYING, or DELETING after an eviction: wait.
+            // DEPLOYING: wait.
           }
         }
       }
       if (System.nanoTime() > deadline) {
         throw new ProvisioningException(
             "PROVISIONING_TIMEOUT",
-            "Cloud Run function '%s' is still %s"
+            "Cloud Run executor '%s' is still %s"
                 .formatted(name, function == null ? "being created" : function.getState()),
             true);
       }
@@ -175,53 +191,61 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
   }
 
   @Override
-  public ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request) {
-    final var id = DeploymentId.parse(deployment.deploymentId());
-    if (id.uri() == null) {
+  public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+    final var name = executors.get(language).functionName(namePrefix);
+    final var uri = uris.get(language);
+    if (uri == null) {
       return ExecutionResponse.failed(
           ExecutionResponse.DEPLOYMENT_MISSING,
-          "Deployment '%s' has no function URL".formatted(deployment.deploymentId()),
+          "The URL of Cloud Run executor '%s' is not known yet".formatted(name),
           false);
     }
     final byte[] payload;
     try {
-      payload = objectMapper.writeValueAsBytes(request.contractPayload());
+      payload = objectMapper.writeValueAsBytes(request.payload());
     } catch (IOException e) {
       return ExecutionResponse.failed("INVALID_INPUT", "Cannot serialize the script input", false);
+    }
+    if (payload.length > MAX_REQUEST_BYTES) {
+      return ExecutionResponse.failed(
+          "RESOURCE_LIMIT",
+          "The script and its input take %d bytes, more than the %d of a Cloud Run request"
+              .formatted(payload.length, MAX_REQUEST_BYTES),
+          false);
     }
     final CloudRunFunctionsApi.HttpResult result;
     try {
       // The platform's own timeout answers first; this one only guards against a lost response.
-      result = functions.invoke(id.uri(), payload, executionTimeout.plusSeconds(30));
+      result = functions.invoke(uri, payload, executionTimeout.plusSeconds(30));
     } catch (ProvisioningException e) {
       return ExecutionResponse.failed(e.code(), e.getMessage(), e.retryable());
     }
     return switch (result.statusCode()) {
       case 200 -> parse(result.body());
-      case 404 ->
-          ExecutionResponse.failed(
-              ExecutionResponse.DEPLOYMENT_MISSING,
-              "Cloud Run function '%s' does not exist".formatted(id.name()),
-              false);
+      case 404 -> {
+        uris.remove(language, uri);
+        yield ExecutionResponse.failed(
+            ExecutionResponse.DEPLOYMENT_MISSING,
+            "Cloud Run executor '%s' does not exist".formatted(name),
+            false);
+      }
       // A new cluster's invoker grant takes about a minute to apply.
       case 401, 403 ->
           ExecutionResponse.failed(
               "PLATFORM_UNAVAILABLE",
-              "Not allowed to invoke '%s' (HTTP %d)".formatted(id.name(), result.statusCode()),
+              "Not allowed to invoke '%s' (HTTP %d)".formatted(name, result.statusCode()),
               true);
       case 429 ->
           ExecutionResponse.failed(
-              "PLATFORM_THROTTLED",
-              "Cloud Run function '%s' is throttled".formatted(id.name()),
-              true);
+              "PLATFORM_THROTTLED", "Cloud Run function '%s' is throttled".formatted(name), true);
       case 502, 503 ->
           ExecutionResponse.failed(
               "PLATFORM_UNAVAILABLE",
               "Cloud Run function '%s' is unavailable (HTTP %d)"
-                  .formatted(id.name(), result.statusCode()),
+                  .formatted(name, result.statusCode()),
               true);
-      // The entrypoint answers script failures with 200, so anything else is the platform's, such
-      // as a timeout (504) or an exhausted memory limit (500).
+      // The wrapper answers script failures, timeouts and limits with 200, so anything else is the
+      // platform's, such as the function timeout (504) or an exhausted function memory (500).
       default ->
           ExecutionResponse.failed(
               "PLATFORM_EXECUTION_FAILED",
@@ -231,48 +255,51 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
     };
   }
 
-  @Override
-  public void delete(ProviderDeployment deployment) {
-    functions.delete(functionName(DeploymentId.parse(deployment.deploymentId()).name()));
-  }
-
   /** Closes the API client; Spring calls it when the context stops. */
   public void close() {
     functions.close();
   }
 
-  private void create(ArtifactSpec artifact, String functionName) {
-    final var scriptPackage = packager.packageFor(artifact);
-    final var source = functions.upload(scriptPackage.zip());
+  static int functionTimeoutSeconds(Duration executionTimeout) {
+    return Math.toIntExact(
+        Math.min(3_600, Math.max(1, executionTimeout.plus(FUNCTION_TIMEOUT_MARGIN).toSeconds())));
+  }
+
+  private void create(ExecutorPackage executor, String name, String functionName) {
+    final var source = functions.upload(executor.zip());
+    final int timeoutSeconds = functionTimeoutSeconds(executionTimeout);
     final var function =
         Function.newBuilder()
             .setName(functionName)
-            .setDescription("Camunda managed script " + artifact.resourceName())
+            .setDescription("Camunda managed-script executor, " + executor.language().language())
             .setEnvironment(Environment.GEN_2)
             .putAllLabels(
                 Map.of(
                     OWNER_LABEL,
                     OWNER_VALUE,
-                    DIGEST_LABEL,
-                    artifact.digest().substring(0, MAX_LABEL_VALUE_LENGTH)))
+                    EXECUTOR_LABEL,
+                    executor.digest().substring(0, MAX_LABEL_VALUE_LENGTH)))
             .setBuildConfig(
                 BuildConfig.newBuilder()
-                    .setRuntime(scriptPackage.runtime())
-                    .setEntryPoint(scriptPackage.entrypoint())
+                    .setRuntime(executor.runtime())
+                    .setEntryPoint(executor.entrypoint())
                     .setSource(Source.newBuilder().setStorageSource(source)))
             .setServiceConfig(
                 ServiceConfig.newBuilder()
                     .setAvailableMemory(memoryMb + "Mi")
-                    .setTimeoutSeconds(Math.toIntExact(Math.max(1, executionTimeout.toSeconds())))
+                    .setTimeoutSeconds(timeoutSeconds)
+                    // Cloud Run gives the wrapper no remaining-time API.
+                    .putEnvironmentVariables(
+                        "EXECUTOR_FUNCTION_TIMEOUT_MS", Long.toString(timeoutSeconds * 1_000L))
                     .setServiceAccountEmail(functionServiceAccount)
                     .setMaxInstanceCount(maxInstanceCount)
                     .setMaxInstanceRequestConcurrency(1)
                     .setAllTrafficOnLatestRevision(true))
             .build();
-    if (functions.create(artifact.deploymentName(), function)) {
-      LOG.debug("Creating Cloud Run function '{}'", artifact.deploymentName());
+    if (functions.create(name, function)) {
+      LOG.info("Creating Cloud Run executor '{}'", name);
     } else {
-      LOG.debug("Cloud Run function '{}' already exists; adopting it", artifact.deploymentName());
+      LOG.debug("Cloud Run executor '{}' already exists; adopting it", name);
     }
   }
 
@@ -315,18 +342,6 @@ public final class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider
       Thread.currentThread().interrupt();
       throw new ProvisioningException(
           "PLATFORM_UNAVAILABLE", "Provisioning was interrupted", true, e);
-    }
-  }
-
-  /** {@code <name>@<run.app URL>}: the name to manage the function, the URL to invoke it. */
-  record DeploymentId(String name, String uri) {
-    static DeploymentId parse(String deploymentId) {
-      final int separator = deploymentId.indexOf(DEPLOYMENT_ID_SEPARATOR);
-      if (separator < 0) {
-        return new DeploymentId(deploymentId, null);
-      }
-      return new DeploymentId(
-          deploymentId.substring(0, separator), deploymentId.substring(separator + 1));
     }
   }
 }

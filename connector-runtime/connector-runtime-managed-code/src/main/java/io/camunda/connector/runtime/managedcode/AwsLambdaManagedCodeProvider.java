@@ -19,8 +19,8 @@ package io.camunda.connector.runtime.managedcode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,29 +35,30 @@ import software.amazon.awssdk.services.lambda.model.FunctionConfiguration;
 import software.amazon.awssdk.services.lambda.model.InvocationType;
 import software.amazon.awssdk.services.lambda.model.LambdaException;
 import software.amazon.awssdk.services.lambda.model.LastUpdateStatus;
+import software.amazon.awssdk.services.lambda.model.PackageType;
 import software.amazon.awssdk.services.lambda.model.ResourceConflictException;
 import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.lambda.model.State;
 import software.amazon.awssdk.services.lambda.model.TooManyRequestsException;
 
 /**
- * Deploys each artifact as its own AWS Lambda function and invokes a published, immutable version
- * of it.
+ * Runs scripts through one AWS Lambda executor per language and cluster, created when the runtime
+ * starts. A script is sent as data with its input; it creates no function.
  *
  * <ul>
- *   <li>The function name is the deterministic deployment name of the artifact, so concurrent
- *       runtime instances converge: one create is accepted, the others get a conflict and adopt the
- *       function.
- *   <li>The {@link AwsLambdaScriptPackager} provides the generated handler and the user script,
- *       zipped deterministically, so that the code hash is stable and publishing the version
- *       returns the same number to every instance.
- *   <li>The execution role is attached to customer code and must grant nothing beyond writing to
- *       the log group of its function, which this provider creates with a retention period before
- *       the function and deletes with it. Lambda would otherwise create it with no expiry, and
- *       deleting a function leaves its log group behind.
+ *   <li>An executor's name is the prefix of the cluster, its language and the digest of its
+ *       wrapper, so concurrent runtime instances converge: one create is accepted, the others get a
+ *       conflict and adopt the function. A new wrapper is a new function, never an update.
+ *   <li>Functions are zip packages only: Lambda pulls a container image with its own identity, so
+ *       an image would not be checked against the calling cluster.
+ *   <li>The execution role is attached to the executor, which runs customer code, and must grant
+ *       nothing beyond writing to the log group of its function, which this provider creates with a
+ *       retention period before the function. Lambda would otherwise create it with no expiry.
  *   <li>Status is read with {@code GetFunction}, which has its own quota, rather than {@code
  *       GetFunctionConfiguration}, which shares the 15 calls per second of the control plane with
  *       every other runtime of the account.
+ *   <li>Old executors are not deleted after an upgrade: older runtime instances may still call
+ *       them.
  * </ul>
  */
 public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
@@ -66,15 +67,24 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
 
   static final String OWNER_TAG = "camunda.io/managed-by";
   static final String OWNER_VALUE = "camunda-managed-script";
-  static final String DIGEST_TAG = "camunda.io/artifact-digest";
+  static final String EXECUTOR_TAG = "camunda.io/executor-digest";
+
+  /** The payload limit of a synchronous invocation. */
+  static final int MAX_REQUEST_BYTES = 6 * 1024 * 1024;
+
+  /**
+   * Beyond the execution timeout, so that the wrapper, not Lambda, ends a script that runs late.
+   */
+  static final Duration FUNCTION_TIMEOUT_MARGIN = Duration.ofSeconds(5);
 
   private static final Logger LOG = LoggerFactory.getLogger(AwsLambdaManagedCodeProvider.class);
-  private static final int MAX_PUBLISH_ATTEMPTS = 20;
 
-  private final AwsLambdaScriptPackager packager = new AwsLambdaScriptPackager();
+  private final Map<ScriptLanguage, ExecutorPackage> executors =
+      new EnumMap<>(ScriptLanguage.class);
   private final LambdaClient lambda;
   private final CloudWatchLogsClient logs;
   private final ObjectMapper objectMapper;
+  private final String namePrefix;
   private final String executionRoleArn;
   private final int memoryMb;
   private final int logRetentionDays;
@@ -86,6 +96,7 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
       LambdaClient lambda,
       CloudWatchLogsClient logs,
       ObjectMapper objectMapper,
+      String namePrefix,
       String executionRoleArn,
       int memoryMb,
       int logRetentionDays,
@@ -95,12 +106,16 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     this.lambda = lambda;
     this.logs = logs;
     this.objectMapper = objectMapper;
+    this.namePrefix = namePrefix;
     this.executionRoleArn = executionRoleArn;
     this.memoryMb = memoryMb;
     this.logRetentionDays = logRetentionDays;
     this.executionTimeout = executionTimeout;
     this.provisioningTimeout = provisioningTimeout;
     this.pollInterval = pollInterval;
+    for (var language : ScriptLanguage.values()) {
+      executors.put(language, ExecutorPackage.aws(language));
+    }
   }
 
   @Override
@@ -108,67 +123,46 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     return NAME;
   }
 
+  /** Creates each executor if absent and waits until it is active; reads only when they exist. */
   @Override
-  public String buildVersion() {
-    return packager.buildVersion();
-  }
-
-  /** Runs on the provisioning executor of the registry, so it creates and waits synchronously. */
-  @Override
-  public ProvisioningHandle ensureProvisioned(ArtifactSpec artifact) {
-    final var scriptPackage = packager.packageFor(artifact);
-    final var name = artifact.deploymentName();
-    final var code = SdkBytes.fromByteArray(scriptPackage.zip());
-    ensureLogGroup(name);
-    try {
-      final var created =
-          call(
-              () ->
-                  lambda.createFunction(
-                      CreateFunctionRequest.builder()
-                          .functionName(name)
-                          .description("Camunda managed script " + artifact.resourceName())
-                          .role(executionRoleArn)
-                          .runtime(scriptPackage.runtime())
-                          .handler(scriptPackage.entrypoint())
-                          .timeout(Math.toIntExact(Math.max(1, executionTimeout.toSeconds())))
-                          .memorySize(memoryMb)
-                          .publish(true)
-                          .tags(Map.of(OWNER_TAG, OWNER_VALUE, DIGEST_TAG, artifact.digest()))
-                          .code(FunctionCode.builder().zipFile(code).build())
-                          .build()));
-      LOG.debug("Created Lambda function '{}' version {}", name, created.version());
-    } catch (ResourceConflictException e) {
-      LOG.debug("Lambda function '{}' already exists; adopting it", name);
+  public void ensureExecutors() {
+    for (var executor : executors.values()) {
+      final var name = executor.functionName(namePrefix);
+      if (!exists(name)) {
+        create(executor, name);
+      }
+      awaitActive(name);
     }
-    final var configuration = awaitActive(name);
-    final var version = publish(name, configuration.codeSha256());
-    final var deployment = new ProviderDeployment(NAME, name + ":" + version);
-    return new ProvisioningHandle(name, CompletableFuture.completedFuture(deployment));
   }
 
   @Override
-  public ExecutionResponse invoke(ProviderDeployment deployment, ExecutionRequest request) {
-    final var qualified = QualifiedName.parse(deployment.deploymentId());
+  public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+    final var name = executors.get(language).functionName(namePrefix);
     final byte[] payload;
     try {
-      payload = objectMapper.writeValueAsBytes(request.contractPayload());
+      payload = objectMapper.writeValueAsBytes(request.payload());
     } catch (IOException e) {
       return ExecutionResponse.failed("INVALID_INPUT", "Cannot serialize the script input", false);
+    }
+    if (payload.length > MAX_REQUEST_BYTES) {
+      return ExecutionResponse.failed(
+          "RESOURCE_LIMIT",
+          "The script and its input take %d bytes, more than the %d of a Lambda invocation"
+              .formatted(payload.length, MAX_REQUEST_BYTES),
+          false);
     }
     final software.amazon.awssdk.services.lambda.model.InvokeResponse response;
     try {
       response =
           lambda.invoke(
               r ->
-                  r.functionName(qualified.name())
-                      .qualifier(qualified.version())
+                  r.functionName(name)
                       .invocationType(InvocationType.REQUEST_RESPONSE)
                       .payload(SdkBytes.fromByteArray(payload)));
     } catch (ResourceNotFoundException e) {
       return ExecutionResponse.failed(
           ExecutionResponse.DEPLOYMENT_MISSING,
-          "Lambda function '%s' does not exist".formatted(deployment.deploymentId()),
+          "Lambda executor '%s' does not exist".formatted(name),
           false);
     } catch (TooManyRequestsException e) {
       return ExecutionResponse.failed("PLATFORM_THROTTLED", safeMessage(e), true);
@@ -177,8 +171,8 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     }
     final var body = response.payload() == null ? "" : response.payload().asUtf8String();
     if (response.functionError() != null) {
-      // The handler returns script failures as a response; an error here is the platform's, such
-      // as a timeout or an exhausted memory limit.
+      // The wrapper returns script failures, timeouts and limits as a response; an error here is
+      // the platform's, such as the function timeout or an exhausted function memory.
       return ExecutionResponse.failed(
           "PLATFORM_EXECUTION_FAILED",
           "Lambda function error (%s): %s".formatted(response.functionError(), bounded(body)),
@@ -188,23 +182,49 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
       return objectMapper.readValue(body, ExecutionResponse.class);
     } catch (IOException e) {
       return ExecutionResponse.failed(
-          "INVALID_RESULT", "The function returned no valid contract response", false);
+          "INVALID_RESULT", "The executor returned no valid contract response", false);
     }
   }
 
-  @Override
-  public void delete(ProviderDeployment deployment) {
-    final var name = QualifiedName.parse(deployment.deploymentId()).name();
+  static int functionTimeoutSeconds(Duration executionTimeout) {
+    return Math.toIntExact(
+        Math.min(900, Math.max(1, executionTimeout.plus(FUNCTION_TIMEOUT_MARGIN).toSeconds())));
+  }
+
+  private boolean exists(String name) {
     try {
-      call(() -> lambda.deleteFunction(r -> r.functionName(name)));
+      call(() -> lambda.getFunction(r -> r.functionName(name)));
+      return true;
     } catch (ResourceNotFoundException e) {
-      // Already deleted.
+      return false;
     }
-    // After the function, so that it never runs without its log group.
+  }
+
+  private void create(ExecutorPackage executor, String name) {
+    ensureLogGroup(name);
     try {
-      call(() -> logs.deleteLogGroup(r -> r.logGroupName(logGroupName(name))));
-    } catch (software.amazon.awssdk.services.cloudwatchlogs.model.ResourceNotFoundException e) {
-      // Already deleted, or the function never logged.
+      call(
+          () ->
+              lambda.createFunction(
+                  CreateFunctionRequest.builder()
+                      .functionName(name)
+                      .description(
+                          "Camunda managed-script executor, " + executor.language().language())
+                      .role(executionRoleArn)
+                      .packageType(PackageType.ZIP)
+                      .runtime(executor.runtime())
+                      .handler(executor.entrypoint())
+                      .timeout(functionTimeoutSeconds(executionTimeout))
+                      .memorySize(memoryMb)
+                      .tags(Map.of(OWNER_TAG, OWNER_VALUE, EXECUTOR_TAG, executor.digest()))
+                      .code(
+                          FunctionCode.builder()
+                              .zipFile(SdkBytes.fromByteArray(executor.zip()))
+                              .build())
+                      .build()));
+      LOG.info("Created Lambda executor '{}'", name);
+    } catch (ResourceConflictException e) {
+      LOG.debug("Lambda executor '{}' already exists; adopting it", name);
     }
   }
 
@@ -287,29 +307,6 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
     return Duration.ofMillis(millis + ThreadLocalRandom.current().nextLong(millis / 2 + 1));
   }
 
-  /**
-   * Publishes a version guarded by the code hash. Lambda returns the existing version when nothing
-   * changed, so every runtime instance gets the same number; a publication in progress elsewhere is
-   * retried.
-   */
-  private String publish(String name, String codeSha256) {
-    for (int attempt = 1; ; attempt++) {
-      try {
-        return call(() -> lambda.publishVersion(r -> r.functionName(name).codeSha256(codeSha256)))
-            .version();
-      } catch (ResourceConflictException e) {
-        if (attempt >= MAX_PUBLISH_ATTEMPTS) {
-          throw new ProvisioningException(
-              "PLATFORM_CONFLICT",
-              "Could not publish a version of Lambda function '%s'".formatted(name),
-              true,
-              e);
-        }
-        sleep(Duration.ofMillis(200 + (long) (Math.random() * 300)));
-      }
-    }
-  }
-
   private static <T> T call(java.util.function.Supplier<T> operation) {
     try {
       return operation.get();
@@ -348,17 +345,6 @@ public final class AwsLambdaManagedCodeProvider implements ManagedCodeProvider {
       Thread.currentThread().interrupt();
       throw new ProvisioningException(
           "PLATFORM_UNAVAILABLE", "Provisioning was interrupted", true, e);
-    }
-  }
-
-  record QualifiedName(String name, String version) {
-    static QualifiedName parse(String deploymentId) {
-      final int separator = deploymentId.lastIndexOf(':');
-      if (separator < 0) {
-        return new QualifiedName(deploymentId, null);
-      }
-      return new QualifiedName(
-          deploymentId.substring(0, separator), deploymentId.substring(separator + 1));
     }
   }
 }

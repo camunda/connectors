@@ -41,7 +41,7 @@ class ManagedCodeAutoConfigurationTest {
             context -> {
               assertThat(context).hasNotFailed();
               assertThat(context).doesNotHaveBean(ManagedCodeProvider.class);
-              assertThat(context).doesNotHaveBean(DeploymentRegistry.class);
+              assertThat(context).doesNotHaveBean(ExecutorReadiness.class);
               assertThat(context).doesNotHaveBean(ManagedScriptJobHandler.class);
             });
   }
@@ -54,19 +54,18 @@ class ManagedCodeAutoConfigurationTest {
             "camunda.connector.managed-code.provider=local",
             "camunda.connector.managed-code.provisioning-timeout=1m",
             "camunda.connector.managed-code.execution-timeout=20s",
-            "camunda.connector.managed-code.local.directory=/tmp/managed-code-test",
-            "camunda.connector.managed-code.local.install-timeout=3m")
+            "camunda.connector.managed-code.local.directory=/tmp/managed-code-test")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
               assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
-              assertThat(context).hasSingleBean(DeploymentRegistry.class);
+              assertThat(context).hasSingleBean(ExecutorReadiness.class);
               assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
               final var properties = context.getBean(ManagedCodeProperties.class);
               assertThat(properties.local().directory())
                   .isEqualTo(Path.of("/tmp/managed-code-test"));
-              assertThat(properties.local().installTimeout()).isEqualTo(Duration.ofMinutes(3));
-              assertThat(properties.provisioningConcurrency()).isEqualTo(2);
+              assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofMinutes(1));
+              assertThat(properties.executionTimeout()).isEqualTo(Duration.ofSeconds(20));
               assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
             });
   }
@@ -117,6 +116,18 @@ class ManagedCodeAutoConfigurationTest {
             context ->
                 assertThat(context.getBean(ManagedCodeProperties.class).deploymentNamePrefix())
                     .isEqualTo(prefix));
+  }
+
+  @Test
+  void rejectsAPrefixThatLeavesNoRoomForTheExecutorName() {
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=local",
+            "camunda.connector.managed-code.deployment-name-prefix=" + "a".repeat(49))
+        .run(
+            context ->
+                assertThat(context).getFailure().rootCause().hasMessageContaining("at most 48"));
   }
 
   @Test
