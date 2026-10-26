@@ -81,7 +81,10 @@ public sealed interface CorrelationResult {
         implements Success {
 
       public MessageCorrelated(
-          ProcessElement activatedElement, Long processInstanceKey, Long messageKey, String tenantId) {
+          ProcessElement activatedElement,
+          Long processInstanceKey,
+          Long messageKey,
+          String tenantId) {
         this(activatedElement, processInstanceKey, messageKey, tenantId, "");
       }
     }

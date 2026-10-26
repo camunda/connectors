@@ -391,7 +391,8 @@ public class InboundCorrelationHandler {
             Optional.ofNullable(
                 feelExpressionEvaluator.evaluate(correlationKeyExpression, String.class, context));
       } catch (Exception e) {
-        LOG.warn("Failed to evaluate correlation key (error type: {})", e.getClass().getSimpleName());
+        LOG.warn(
+            "Failed to evaluate correlation key (error type: {})", e.getClass().getSimpleName());
         correlationKey = Optional.empty();
       }
     } else {
