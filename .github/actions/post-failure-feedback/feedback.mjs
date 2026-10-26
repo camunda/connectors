@@ -23,23 +23,6 @@ const ASK = 'https://camunda.slack.com/archives/C0AQ378VBEV'; // #ask-alwaysgree
 const RELIABILITY =
   'https://camunda.slack.com/archives/C0AK0AVKRL0'; // #alwaysgreen-reliability
 
-<<<<<<< HEAD
-=======
-// Owner→medic Slack subteam map. Each AlwaysGreen repo's streak detector
-// carries these same subteam IDs in its own MEDIC_* env vars, so a changed
-// subteam has to be updated in both places.
-const MEDIC = {
-  '@camunda/test-automation-team': '<!subteam^S09UF0EV0HG|test-automation-medic>',
-  '@camunda/distribution': '<!subteam^S0CBB7Y72SV|smx-medic>',
-  '@camunda/engineering-operations': '<!subteam^S07D6C6B18T|monorepo-ci-medic>',
-  '@camunda/core-features': '<!subteam^S08P2CU9V8W|core-features-medic>',
-};
-// No fallback: an unmapped/missing owner (e.g. the "unknown" default) must not
-// silently page monorepo-ci-medic. Returns '' (nothing to concatenate) when
-// there's no mapping, so callers don't need to worry about spacing either.
-const medicMention = (owner) => (MEDIC[owner] ? ` ${MEDIC[owner]}` : '');
-
->>>>>>> 2fe1133 (ci: page @smx-medic instead of the retired @distro-medic group (#9827))
 const CATALOG = {
   product: {
     title: 'Real failure — likely your change',
