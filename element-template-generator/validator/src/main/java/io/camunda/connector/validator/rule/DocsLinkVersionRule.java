@@ -55,7 +55,7 @@ public class DocsLinkVersionRule implements Rule {
                 id(),
                 "Pin the current released minor in \""
                     + matcher.group()
-                    + "\", for example https://docs.camunda.io/docs/<major>.<minor>/..."));
+                    + "\", for example https://docs.camunda.io/docs/8.8/..."));
       }
     } else if (node.isArray()) {
       for (int i = 0; i < node.size(); i++) {
