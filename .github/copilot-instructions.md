@@ -289,6 +289,9 @@ When creating pull requests:
     - SDK uses Java 17 (`version.java.connector-sdk`)
     - Rest of project uses Java 21 (`version.java`)
 - **Profiles**: `e2eExcluded` profile skips E2E tests
+- **API compatibility**: API-gated modules (e.g. `connector-sdk/core`) fail `verify` on an incompatible
+  API change; accept an intended break in the module's `api-changes.json` — see
+  [docs/api-compatibility.md](../docs/api-compatibility.md)
 
 ### Essential Commands
 
