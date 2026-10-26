@@ -116,6 +116,20 @@ class SuppressionFileTest {
         .containsExactly("/suppressions/1");
   }
 
+  @Test
+  void omittedProperty_notDuplicateOfLiteralNullProperty() throws Exception {
+    var result =
+        parse(
+            """
+        { "suppressions": [
+          { "rule": "r", "template": "a.json", "reason": "Whole template." },
+          { "rule": "r", "template": "a.json", "property": "null", "reason": "Property null." }
+        ] }
+        """);
+    assertThat(result.findings()).isEmpty();
+    assertThat(result.suppressions()).hasSize(2);
+  }
+
   private static SuppressionFile.Result parse(String json) throws Exception {
     return SuppressionFile.parse(FILE, MAPPER.readTree(json));
   }

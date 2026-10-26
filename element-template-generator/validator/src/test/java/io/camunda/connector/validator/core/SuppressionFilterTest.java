@@ -162,6 +162,36 @@ class SuppressionFilterTest {
             List.of(onHybrid),
             templates,
             TemplateFinder.findSuppressionFiles(scanRoot, Set.of(), Set.of()),
+            Set.of(),
+            RULES);
+
+    assertThat(result.suppressed()).isEqualTo(1);
+    assertThat(result.findings())
+        .extracting(Finding::jsonPointer)
+        .containsExactly("/suppressions/2/rule");
+  }
+
+  @Test
+  void skippedDirectoryInsideModule_appliesModuleSuppressionsWithoutScopeChecks() throws Exception {
+    templates.remove(hybrid);
+    Files.createDirectories(module.resolve("element-templates/hybrid"));
+    write(
+        """
+        { "suppressions": [
+          { "rule": "text-rule", "template": "a.json", "property": "second", "reason": "R." },
+          { "rule": "text-rule", "template": "hybrid/*.json", "reason": "Skipped." },
+          { "rule": "unknown-rule", "template": "a.json", "reason": "Still invalid." }
+        ] }
+        """);
+    Finding onTemplate = finding(template, "/properties/1/tooltip", "text-rule");
+    Set<String> skippedDirs = Set.of("hybrid");
+
+    var result =
+        SuppressionFilter.apply(
+            List.of(onTemplate),
+            templates,
+            TemplateFinder.findSuppressionFiles(module, skippedDirs, Set.of()),
+            skippedDirs,
             RULES);
 
     assertThat(result.suppressed()).isEqualTo(1);
@@ -175,6 +205,7 @@ class SuppressionFilterTest {
         findings,
         templates,
         TemplateFinder.findSuppressionFiles(module, Set.of(), Set.of()),
+        Set.of(),
         RULES);
   }
 

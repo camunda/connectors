@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public final class TemplateFinder {
 
@@ -75,6 +76,20 @@ public final class TemplateFinder {
         skippedDirs,
         skippedConnectors,
         file -> SuppressionFile.FILE_NAME.equals(file.getFileName().toString()));
+  }
+
+  /** Whether {@code dir} contains a subdirectory that discovery prunes via {@code skippedDirs}. */
+  public static boolean containsSkippedDirectory(Path dir, Set<String> skippedDirs) {
+    if (skippedDirs.isEmpty() || !Files.isDirectory(dir)) {
+      return false;
+    }
+    try (Stream<Path> paths = Files.walk(dir)) {
+      return paths
+          .skip(1)
+          .anyMatch(p -> Files.isDirectory(p) && skippedDirs.contains(p.getFileName().toString()));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to walk " + dir, e);
+    }
   }
 
   public static boolean isVersioned(Path path) {

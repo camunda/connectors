@@ -133,7 +133,8 @@ public class ValidatorCommand implements Callable<Integer> {
     findings.addAll(runMultiFileRules(templates));
 
     SuppressionFilter.Result filtered =
-        SuppressionFilter.apply(findings, templates, suppressionFiles, suppressibleRuleIds());
+        SuppressionFilter.apply(
+            findings, templates, suppressionFiles, skippedDirectories, suppressibleRuleIds());
 
     boolean colorEnabled = !noColor && System.console() != null;
     ReportPrinter.print(

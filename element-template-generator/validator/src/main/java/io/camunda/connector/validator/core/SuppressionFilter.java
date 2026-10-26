@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Removes findings covered by a module's {@value SuppressionFile#FILE_NAME} and reports problems
@@ -51,12 +50,15 @@ public final class SuppressionFilter {
   /**
    * @param suppressionFiles every suppression file in the scan scope, including those of modules
    *     without templates, so their entries are still validated
+   * @param skippedDirs directory names pruned during discovery; a module with such a directory
+   *     under its element-templates/ is only partially scanned
    * @param suppressibleRules rule ids that may be suppressed; anything else is rejected
    */
   public static Result apply(
       List<Finding> findings,
       Map<Path, JsonNode> templates,
       List<Path> suppressionFiles,
+      Set<String> skippedDirs,
       Set<String> suppressibleRules) {
     Map<Path, List<Path>> templatesByDir = new LinkedHashMap<>();
     for (Path template : templates.keySet()) {
@@ -65,19 +67,28 @@ public final class SuppressionFilter {
               dir -> templatesByDir.computeIfAbsent(dir, k -> new ArrayList<>()).add(template));
     }
 
-    // A scan root inside a module (its element-templates/ or hybrid/) still applies the module's
-    // suppressions, but sees only part of its templates, so scope-dependent checks are skipped.
+    // A scan root inside a module (its element-templates/ or hybrid/) or a skipped directory under
+    // element-templates/ hides part of the module's templates, so its suppressions still apply but
+    // scope-dependent checks are skipped.
+    Set<Path> files = new LinkedHashSet<>(suppressionFiles);
     Set<Path> partialScope = new LinkedHashSet<>();
+    for (Path file : suppressionFiles) {
+      if (TemplateFinder.containsSkippedDirectory(
+          file.resolveSibling(ELEMENT_TEMPLATES), skippedDirs)) {
+        partialScope.add(file);
+      }
+    }
     for (Path dir : templatesByDir.keySet()) {
       Path file = dir.resolveSibling(SuppressionFile.FILE_NAME);
-      if (!suppressionFiles.contains(file) && Files.isRegularFile(file)) {
+      if (!files.contains(file) && Files.isRegularFile(file)) {
+        files.add(file);
         partialScope.add(file);
       }
     }
 
     List<Finding> problems = new ArrayList<>();
     Map<Path, List<Suppression>> suppressionsByDir = new LinkedHashMap<>();
-    for (Path file : Stream.concat(suppressionFiles.stream(), partialScope.stream()).toList()) {
+    for (Path file : files) {
       Path dir = file.resolveSibling(ELEMENT_TEMPLATES);
       List<Path> dirTemplates = templatesByDir.getOrDefault(dir, List.of());
       boolean fullScope = !partialScope.contains(file);

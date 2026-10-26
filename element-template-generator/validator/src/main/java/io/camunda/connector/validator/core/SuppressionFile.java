@@ -21,6 +21,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -66,7 +67,7 @@ public final class SuppressionFile {
       return new Result(suppressions, findings);
     }
 
-    Set<String> seen = new HashSet<>();
+    Set<List<String>> seen = new HashSet<>();
     JsonNode entries = root.get(SUPPRESSIONS);
     for (int i = 0; i < entries.size(); i++) {
       String pointer = "/" + SUPPRESSIONS + "/" + i;
@@ -113,7 +114,7 @@ public final class SuppressionFile {
       if (findings.size() > before) {
         continue;
       }
-      if (!seen.add(rule + "\0" + template + "\0" + property)) {
+      if (!seen.add(Arrays.asList(rule, template, property))) {
         findings.add(
             error(
                 file, pointer, "Duplicate suppression for the same rule, template, and property."));
