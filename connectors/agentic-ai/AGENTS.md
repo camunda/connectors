@@ -411,8 +411,9 @@ templates (for example, the model parameters of every provider). Write the help 
 
 The [element template validator](../../element-template-generator/validator/README.md#help-text-rules)
 enforces the last four rules in CI, and also flags repeated words such as "to to". Existing
-findings are suppressed in each module's `element-template-suppressions.json`. When you fix one,
-delete its entry, because the validator fails on unused suppressions.
+findings are suppressed in each module's `element-template-suppressions.json`. Delete an entry only
+when all findings it covers are fixed; template-wide entries may cover several properties or groups.
+The validator fails on entries that no longer suppress any finding.
 
 Changing only help text does not need a template version bump.
 
