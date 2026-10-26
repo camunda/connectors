@@ -22,6 +22,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -37,7 +38,9 @@ import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -94,6 +97,21 @@ public class ConnectorResultHandler {
       final @Nullable String resultVariableName,
       final @Nullable String resultExpression,
       final @Nullable String physicalTenantId) {
+    return createOutputVariables(
+        responseContent, resultVariableName, resultExpression, physicalTenantId, new ArrayList<>());
+  }
+
+  /**
+   * Same as {@link #createOutputVariables(Object, String, String, String)}, additionally adding
+   * every document created by a {@code createDocument()} call in the result expression to {@code
+   * createdDocuments}, so the caller can delete them if the result is discarded.
+   */
+  public Map<String, Object> createOutputVariables(
+      final Object responseContent,
+      final @Nullable String resultVariableName,
+      final @Nullable String resultExpression,
+      final @Nullable String physicalTenantId,
+      final List<Document> createdDocuments) {
     final Map<String, Object> outputVariables = new HashMap<>();
 
     if (isNotBlank(resultVariableName)) {
@@ -114,7 +132,11 @@ public class ConnectorResultHandler {
           verifyNoForbiddenLiterals(mappedResponseJson);
           var resolvedResponseJson =
               resolveDocumentsAsJson(
-                  mappedResponseJson, resultExpression, "Result expression", physicalTenantId);
+                  mappedResponseJson,
+                  resultExpression,
+                  "Result expression",
+                  physicalTenantId,
+                  createdDocuments);
           var mappedResponse =
               parseJsonVarsAsTypeOrThrow(
                   resolvedResponseJson,
@@ -170,7 +192,11 @@ public class ConnectorResultHandler {
           .map(
               json ->
                   resolveDocumentsAsJson(
-                      json, errorExpression, "Error expression", physicalTenantId))
+                      json,
+                      errorExpression,
+                      "Error expression",
+                      physicalTenantId,
+                      new ArrayList<>()))
           .map(
               json ->
                   parseJsonVarsAsTypeOrThrow(
@@ -259,7 +285,8 @@ public class ConnectorResultHandler {
       final String json,
       final String expression,
       final String expressionNameForError,
-      final @Nullable String physicalTenantId) {
+      final @Nullable String physicalTenantId,
+      final List<Document> createdDocuments) {
     // Fast path: skip the parse/walk/reserialize round-trip entirely when the createDocument
     // sentinel isn't present anywhere in the JSON. This is the common case (createDocument not
     // used) and avoids both a performance cost and unconditional numeric precision loss (see
@@ -312,6 +339,7 @@ public class ConnectorResultHandler {
               json));
     }
     final Object resolved = documentResolver.resolve(node, physicalTenantId, expectedNonce);
+    collectDocuments(resolved, createdDocuments);
     try {
       return documentSerializingObjectMapper.writeValueAsString(resolved);
     } catch (JsonProcessingException e) {
@@ -402,5 +430,14 @@ public class ConnectorResultHandler {
       }
     }
     return false;
+  }
+
+  private static void collectDocuments(Object value, List<Document> documents) {
+    switch (value) {
+      case Document document -> documents.add(document);
+      case Map<?, ?> map -> map.values().forEach(child -> collectDocuments(child, documents));
+      case List<?> list -> list.forEach(child -> collectDocuments(child, documents));
+      case null, default -> {}
+    }
   }
 }

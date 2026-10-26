@@ -49,6 +49,9 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `GenerateElementTemplate` test class.
 - Docker-based tests use `io.camunda.connector.test.utils.DockerImages` — add the image to
   `docker-images.properties` in `src/test/resources`, then a constant in `DockerImages`.
+- API-gated modules (e.g. `connector-sdk/core`) fail `verify` on an incompatible API change; accept
+  an intended break in the module's `api-changes.json` — see
+  [docs/api-compatibility.md](../docs/api-compatibility.md).
 
 ## Connector implementation patterns
 
@@ -164,7 +167,8 @@ in the third-party `domain-modeling` skill (`.agents/skills/domain-modeling`).
   `SnsMessageManager` (verifies SNS webhook signatures — no v2 equivalent, see
   [aws-sdk-java-v2#1302](https://github.com/aws/aws-sdk-java-v2/issues/1302)) and for
   `SnsSubscriptionConfirmation#confirmSubscription`. This is the one accepted v1 exception in the
-  v1→v2 migration; any other new v1 usage is a regression, not precedent.
+  v1→v2 migration; any other new v1 usage is a regression, not precedent. Its version is pinned
+  locally in `connectors/aws/aws-sns/pom.xml` (`version.aws-java-sdk-sns`), not in the parent POM.
 
 ## Documentation
 

@@ -37,11 +37,12 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -89,7 +90,7 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Harbor
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_HARBOR_USR }}
@@ -117,7 +118,7 @@ jobs:
           echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: reg.mini.dev
           username: minimus
@@ -260,7 +261,7 @@ jobs:
           node-version: "24"
       - name: Generate GitHub App Token
         id: app-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -303,7 +304,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
-        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           github-app-id-vault-key: GITHUB_APP_ID
           github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
@@ -452,7 +453,7 @@ jobs:
 
       - name: Login to Harbor
         if: steps.changes.outputs.ai == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
@@ -471,12 +472,13 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
           restore-keys: |
             ${{ runner.os }}-maven-
 

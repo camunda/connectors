@@ -43,6 +43,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,7 +200,7 @@ public abstract class BaseAgentRequestHandler<
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now());
+        OffsetDateTime.now(ZoneId.systemDefault()));
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -260,7 +261,7 @@ public abstract class BaseAgentRequestHandler<
           executionContext,
           agentInstanceKey,
           workingConversation.currentTurn(),
-          OffsetDateTime.now(),
+          OffsetDateTime.now(ZoneId.systemDefault()),
           status);
 
       if (continued) {

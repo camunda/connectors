@@ -9,7 +9,7 @@ package io.camunda.connector.aws.model.impl;
 import io.camunda.connector.api.validation.ConfigurationValidationResult;
 import io.camunda.connector.api.validation.ConfigurationValidationResult.ErrorCode;
 import io.camunda.connector.api.validation.ConfigurationValidator;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.CredentialsProviderSupport;
 import java.util.function.BooleanSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +104,7 @@ public class AwsCredentialValidator implements ConfigurationValidator<AwsCredent
     try (StsClient sts =
         StsClient.builder()
             .credentialsProvider(
-                CredentialsProviderSupportV2.credentialsProvider(configuration.authentication()))
+                CredentialsProviderSupport.credentialsProvider(configuration.authentication()))
             .region(resolveValidationRegion(configuration.region()))
             .build()) {
       sts.getCallerIdentity();

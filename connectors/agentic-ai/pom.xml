@@ -38,6 +38,11 @@
     <version.groovy>6.0.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
     <version.archunit>1.5.1</version.archunit>
+
+    <!-- No release before 8.11.0 contains aiagent-api and aiagent-model, so the API compatibility check
+         has no baseline yet. The enforcer rule below fails once the baseline is bumped to 8.11, as a
+         reminder to remove this property and the rule. -->
+    <revapi.skip>true</revapi.skip>
   </properties>
 
   <modules>
@@ -94,7 +99,10 @@
                   <arg>-XDcompilePolicy=simple</arg>
                   <arg>-XDshould-stop.ifError=FLOW</arg>
                   <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
-                  <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true</arg>
+                  <!-- Fail on ErrorProne warnings; -Xlint:-options drops the JDK-dependent "system modules path" warning -->
+                  <arg>-Werror</arg>
+                  <arg>-Xlint:-options</arg>
+                  <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true -XepExcludedPaths:.*/target/generated-sources/.*</arg>
                 </compilerArgs>
               </configuration>
             </execution>
@@ -108,6 +116,34 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>extension-api-check-skipped-guard</id>
+            <inherited>false</inherited>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireProperty>
+                  <property>api.baseline.version</property>
+                  <regex>^8\.10\.\d+$</regex>
+                  <regexMessage>
+api.baseline.version was bumped past 8.10! The baseline now contains aiagent-api and aiagent-model,
+so enable their API compatibility check: remove the revapi.skip property and this enforcer rule from
+connectors/agentic-ai/pom.xml. See docs/api-compatibility.md.
+                  </regexMessage>
+                </requireProperty>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
 </project>

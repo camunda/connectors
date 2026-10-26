@@ -73,4 +73,8 @@ public class CamundaDocument implements Document {
   public String generateLink(DocumentLinkParameters parameters) {
     return documentStore.generateLink(reference, parameters);
   }
+
+  public void delete() {
+    documentStore.deleteDocument(reference);
+  }
 }

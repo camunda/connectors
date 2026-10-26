@@ -71,6 +71,8 @@ public class AgentInstanceHistoryMapper {
       String historyItemId) {}
 
   /**
+   * Maps a conversation message to the agent instance input history items it produces.
+   *
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
    *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
    *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).

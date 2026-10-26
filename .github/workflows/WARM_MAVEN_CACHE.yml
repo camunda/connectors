@@ -1,9 +1,13 @@
 name: Warm Maven cache
 
 # Writes the ~/.m2 dependency and Maven wrapper caches that "Test branch"
-# (TEST_FEATURE_BRANCH.yml) restores. Caches saved on main are readable from every
+# (TEST_FEATURE_BRANCH.yml) and "Deploy snapshots" (DEPLOY_SNAPSHOTS.yaml) restore. Caches saved on main are readable from every
 # PR and merge-queue run, and "Test branch" is restore-only so per-PR saves don't
 # evict these entries.
+#
+# Scheduled workflows only run on main, so this workflow also warms the cache for
+# each maintained stable/* branch: it checks the branch out and runs that branch's
+# own build. A pom change on a stable branch is picked up by the next scheduled run.
 #
 # Runs on the same runner type as the internal "Test branch" jobs: caches are
 # only restorable on runners with a matching cache version.
@@ -28,14 +32,69 @@ concurrency:
 
 jobs:
   warm-cache:
+    name: warm-cache (${{ matrix.ref }})
     if: github.repository == 'camunda/connectors'
     runs-on: gcp-core-8-default
+    strategy:
+      fail-fast: false
+      # Mirror each branch's "Test branch" toolchain and Maven invocations, so the
+      # cache holds every dependency and plugin they resolve. Add new stable
+      # branches here and drop them when they reach end of maintenance.
+      matrix:
+        include:
+          - ref: main
+            java: '25.0.5+8.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.10
+            java: '21.0.12+101.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.9
+            java: '21.0.12+101.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.8
+            java: '21.0.12+101.0.LTS'
+            node: '22'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.7
+            java: '21.0.12+101.0.LTS'
+            node: '16'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          # Predates the Maven wrapper; uses the Maven version its "Test branch" installs.
+          - ref: stable/8.6
+            java: '21.0.12+101.0.LTS'
+            node: '16'
+            wrapper: false
+            build: |
+              mvn --batch-mode clean test -PcheckFormat -T 1C
+              mvn --batch-mode compile generate-sources package -DskipTests --projects bundle/default-bundle --also-make -T 1C '-P!autoFormat'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ matrix.ref }}
           persist-credentials: false
 
-      # Must match the key used by the internal jobs in TEST_FEATURE_BRANCH.yml.
+      # Must match the key used by the internal jobs in the checked-out branch's
+      # TEST_FEATURE_BRANCH.yml and DEPLOY_SNAPSHOTS.yaml; the pom hash comes from that branch.
       - name: Compute cache key
         id: key
         run: echo "value=${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal" >> "$GITHUB_OUTPUT"
@@ -50,6 +109,7 @@ jobs:
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Restore Maven wrapper cache
+        if: matrix.wrapper
         id: mvnw-cache
         uses: ./.github/actions/cache-maven-wrapper
         with:
@@ -65,19 +125,25 @@ jobs:
             ${{ runner.os }}-maven-
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-        if: steps.lookup.outputs.cache-hit != 'true' || steps.mvnw-cache.outputs.cache-hit != 'true'
+        if: steps.lookup.outputs.cache-hit != 'true' || (matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true')
         with:
           distribution: 'temurin'
-          java-version: '25.0.5+8.0.LTS'
+          java-version: ${{ matrix.java }}
+
+      - name: Install Maven (wrapper-less branches)
+        if: steps.lookup.outputs.cache-hit != 'true' && !matrix.wrapper
+        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+        with:
+          maven-version: 3.10.0
 
       - name: Download Maven wrapper distribution
-        if: steps.mvnw-cache.outputs.cache-hit != 'true'
+        if: matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true'
         env:
           MVNW_VERBOSE: true
         run: ./mvnw --version
 
       - name: Save Maven wrapper cache
-        if: steps.mvnw-cache.outputs.cache-hit != 'true'
+        if: matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/wrapper
@@ -86,7 +152,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.lookup.outputs.cache-hit != 'true'
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node }}
 
       - name: Install element templates CLI
         if: steps.lookup.outputs.cache-hit != 'true'
@@ -119,14 +185,9 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      # Same Maven invocations as the "Test branch" jobs, so the cache holds
-      # every dependency and plugin they resolve.
       - name: Resolve dependencies
         if: steps.lookup.outputs.cache-hit != 'true'
-        run: |
-          ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
-          ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
-          ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+        run: ${{ matrix.build }}
 
       # Drop locally installed reactor SNAPSHOTs; jobs rebuild them anyway.
       - name: Remove project artifacts

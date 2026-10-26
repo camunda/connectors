@@ -139,6 +139,16 @@ jobs:
       - name: Build Connectors
         run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
 
+      # The build above stops at `test`; the revapi check is bound to `verify`.
+      # Keep the module list in sync with the API-gated modules in docs/api-compatibility.md.
+      - name: Check API compatibility
+        run: ./mvnw --batch-mode -pl connector-sdk/core,connectors/agentic-ai/aiagent-model,connectors/agentic-ai/aiagent-api -am verify -DskipTests -Dquickly '-P!autoFormat'
+
+      - name: Check accepted API breaks are justified
+        run: |
+          python3 ./.github/workflows/scripts/test_check_api_changes.py
+          python3 ./.github/workflows/scripts/check_api_changes.py
+
       # Fail if the regenerated templates differ from what's committed. This is a
       # diff check only — CI never commits or modifies files. Versioned snapshots
       # (element-templates/versioned/) are intentionally excluded, as they are

@@ -22,6 +22,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class AgentV2ElementTemplateTest {
 
+  private static final String ELEMENT_KIND_TAG = "^AI Agent (Task|Sub-process): ";
+
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -31,8 +33,8 @@ class AgentV2ElementTemplateTest {
         "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
       })
   void providerStepsAndPresets(String file) throws IOException {
-    final var template = template(file);
-    final var task = template("agenticai-ai-agent-task.v2.json");
+    final var template = withoutElementKindTags(template(file));
+    final var task = withoutElementKindTags(template("agenticai-ai-agent-task.v2.json"));
     assertThat(template.get("steps")).isEqualTo(task.get("steps"));
     assertThat(template.get("presets")).isEqualTo(task.get("presets"));
     final var providerNames =
@@ -152,6 +154,21 @@ class AgentV2ElementTemplateTest {
 
   @ParameterizedTest
   @CsvSource({
+    "agenticai-ai-agent-task.v2.json,'AI Agent Task: '",
+    "hybrid/agenticai-ai-agent-task.v2-hybrid.json,'AI Agent Task: '",
+    "agenticai-ai-agent-subprocess.v2.json,'AI Agent Sub-process: '",
+    "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json,'AI Agent Sub-process: '"
+  })
+  void providerStepNamesStartWithElementKind(String file, String kindTag) throws IOException {
+    final var leafNames =
+        template(file).get("steps").findParents("presetId").stream()
+            .map(leaf -> leaf.get("name").asText())
+            .toList();
+    assertThat(leafNames).isNotEmpty().allSatisfy(name -> assertThat(name).startsWith(kindTag));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
     "agenticai-ai-agent-task.v2.json,ai-agent-task.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1",
     "hybrid/agenticai-ai-agent-task.v2-hybrid.json,ai-agent-task.v2-hybrid.migrates-from.json,io.camunda.connectors.agenticai.aiagent.v1-hybrid",
     "agenticai-ai-agent-subprocess.v2.json,ai-agent-subprocess.v2.migrates-from.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1",
@@ -171,6 +188,15 @@ class AgentV2ElementTemplateTest {
     assertThat(migratesFrom.get("sources")).hasSize(1);
     assertThat(migratesFrom.get("sources").get(0).get("sourceTemplateId").asText())
         .isEqualTo(sourceTemplateId);
+  }
+
+  private static JsonNode withoutElementKindTags(JsonNode template) {
+    final var copy = template.deepCopy();
+    for (JsonNode leaf : copy.get("steps").findParents("presetId")) {
+      final var name = leaf.get("name").asText();
+      ((ObjectNode) leaf).put("name", name.replaceFirst(ELEMENT_KIND_TAG, ""));
+    }
+    return copy;
   }
 
   private static JsonNode preset(JsonNode template, String id) {

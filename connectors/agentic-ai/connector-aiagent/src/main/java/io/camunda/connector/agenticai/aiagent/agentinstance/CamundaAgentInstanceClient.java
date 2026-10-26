@@ -38,6 +38,7 @@ import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +127,9 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
             .history(
                 List.of(
                     configurationHistoryItem(
-                        configuration, FIRST_ITERATION, OffsetDateTime.now())));
+                        configuration,
+                        FIRST_ITERATION,
+                        OffsetDateTime.now(ZoneId.systemDefault()))));
 
     try {
       final var key = AgentInstanceKey.of(command.execute().getAgentInstanceKey());
@@ -347,7 +350,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // turnIngestionTimestamp is unused for TOOL_RESULT items -- each uses its own resolved
     // completedAt
     for (final var item :
-        historyMapper.inputHistoryItems(syntheticMessage, toolCallsById, OffsetDateTime.now())) {
+        historyMapper.inputHistoryItems(
+            syntheticMessage, toolCallsById, OffsetDateTime.now(ZoneId.systemDefault()))) {
       items.add(toHistoryItem(item, iteration));
     }
 
@@ -449,6 +453,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     return buildUpdateException(cause, attempt, reason);
   }
 
+  // Identity check guards against getCause() overrides that return the throwable itself
+  @SuppressWarnings("ReferenceEquality")
   private boolean isNotFound(Throwable t) {
     Throwable current = t;
     while (current != null) {
