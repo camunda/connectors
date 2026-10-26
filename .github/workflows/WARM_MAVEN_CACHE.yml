@@ -242,7 +242,8 @@ jobs:
   cleanup:
     name: delete superseded caches
     needs: warm-cache
-    if: github.repository == 'camunda/connectors'
+    # A run on another ref saves its entries under that ref, so it must not delete main's.
+    if: github.repository == 'camunda/connectors' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       actions: write
