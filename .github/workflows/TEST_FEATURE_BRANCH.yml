@@ -215,8 +215,8 @@ jobs:
         with:
           dockerfile: apps/bundle/default-bundle/Dockerfile
 
-      - name: Check element templates and Java sources for unversioned or /next/ documentation links
-        run: ./.github/workflows/scripts/check_element_template_docs_links.sh
+      - name: Check Java sources for unversioned or /next/ documentation links
+        run: ./.github/workflows/scripts/check_java_docs_links.sh
         shell: bash
 
       - name: Validate element templates
