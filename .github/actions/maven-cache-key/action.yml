@@ -1,0 +1,44 @@
+name: Maven cache key
+description: >
+  Computes the ~/.m2/repository cache key written by WARM_MAVEN_CACHE.yml, scoped to the
+  branch line: <os>-maven-<line>-<pom hash>-<suffix>, where <line> is "main" or the X.Y
+  minor of a stable/X.Y branch, release-X.Y.Z branch or X.Y.Z tag. Keep the line
+  derivation in sync with WARM_MAVEN_CACHE.yml. Requires the repository to be checked out first.
+
+inputs:
+  ref:
+    description: Branch or tag whose line to use; defaults to the PR base, merge queue base or current ref
+    required: false
+    default: ''
+  suffix:
+    description: Key suffix, 'internal' or 'external'
+    required: false
+    default: 'internal'
+
+outputs:
+  key:
+    description: The exact cache key
+    value: ${{ steps.key.outputs.key }}
+  restore-prefix:
+    description: The branch line prefix, for restore-keys
+    value: ${{ steps.key.outputs.prefix }}
+
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      env:
+        REF: ${{ inputs.ref || github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+        SUFFIX: ${{ inputs.suffix }}
+        HASH: ${{ hashFiles('**/pom.xml') }}
+      run: |
+        ref="${REF#refs/heads/}"
+        if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+          line="${BASH_REMATCH[2]}"
+        else
+          line=main
+        fi
+        prefix="${RUNNER_OS}-maven-${line}-"
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+        echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"

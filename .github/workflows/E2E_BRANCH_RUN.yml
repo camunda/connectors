@@ -102,12 +102,23 @@ jobs:
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
+      # Inlined rather than using .github/actions/maven-cache-key: the checked-out branch
+      # may predate that action. Keep the line derivation in sync with it.
       - name: Resolve Maven cache key
         id: maven-cache-key
         env:
+          BRANCH: ${{ inputs.branch }}
           PROVIDED_KEY: ${{ inputs.maven-cache-key }}
-          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
-        run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ "$BRANCH" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "value=${PROVIDED_KEY:-${prefix}${HASH}-internal}" >> "$GITHUB_OUTPUT"
 
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
@@ -116,7 +127,7 @@ jobs:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution

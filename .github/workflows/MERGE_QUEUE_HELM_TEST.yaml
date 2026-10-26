@@ -43,14 +43,18 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -504,15 +508,20 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
+      - name: Compute Maven cache key
+        if: steps.changes.outputs.ai == 'true'
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution

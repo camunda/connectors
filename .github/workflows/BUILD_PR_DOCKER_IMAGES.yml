@@ -45,15 +45,19 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         continue-on-error: true # cache failures should not fail the build
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
