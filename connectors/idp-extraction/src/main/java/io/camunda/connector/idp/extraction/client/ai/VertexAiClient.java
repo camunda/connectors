@@ -13,6 +13,8 @@ import io.camunda.connector.idp.extraction.model.ConverseData;
 
 public class VertexAiClient extends AiClient {
 
+  private static final String GLOBAL_ENDPOINT = "aiplatform.googleapis.com";
+
   public VertexAiClient(
       GoogleCredentials credentials, String projectId, String location, ConverseData converseData) {
 
@@ -21,6 +23,7 @@ public class VertexAiClient extends AiClient {
             .credentials(credentials)
             .project(projectId)
             .location(location)
+            .apiEndpoint(GLOBAL_ENDPOINT)
             .modelName(converseData.modelId())
             .responseMimeType("application/json");
 
