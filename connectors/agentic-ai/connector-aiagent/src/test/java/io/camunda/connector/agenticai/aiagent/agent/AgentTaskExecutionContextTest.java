@@ -13,8 +13,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
@@ -37,7 +37,7 @@ class AgentTaskExecutionContextTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private JobContext jobContext;
 
-  @Mock private AgentTaskV1Request agentRequest;
+  @Mock private ChatModelConfiguration chatModel;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private AgentTaskRequestData agentRequestData;
@@ -48,9 +48,9 @@ class AgentTaskExecutionContextTest {
 
   @BeforeEach
   void setUp() {
-    when(agentRequest.data()).thenReturn(agentRequestData);
     executionContext =
-        new AgentTaskExecutionContext(jobContext, agentRequest, toolElementsResolver);
+        new AgentTaskExecutionContext(
+            jobContext, agentRequestData, chatModel, toolElementsResolver);
   }
 
   @ParameterizedTest

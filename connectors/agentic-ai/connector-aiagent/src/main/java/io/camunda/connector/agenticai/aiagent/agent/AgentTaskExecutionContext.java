@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskRequestData;
-import io.camunda.connector.agenticai.aiagent.request.AgentTaskV1Request;
 import io.camunda.connector.agenticai.aiagent.request.ToolsConfiguration;
 import io.camunda.connector.agenticai.tools.schema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.api.outbound.JobContext;
@@ -31,13 +30,6 @@ public class AgentTaskExecutionContext implements AgentExecutionContext {
   private final AgentConfiguration configuration;
 
   @Nullable private List<AdHocToolElement> toolElements;
-
-  public AgentTaskExecutionContext(
-      JobContext jobContext,
-      AgentTaskV1Request request,
-      ProcessDefinitionAdHocToolElementsResolver toolElementsResolver) {
-    this(jobContext, request.data(), request.provider(), toolElementsResolver);
-  }
 
   public AgentTaskExecutionContext(
       JobContext jobContext,

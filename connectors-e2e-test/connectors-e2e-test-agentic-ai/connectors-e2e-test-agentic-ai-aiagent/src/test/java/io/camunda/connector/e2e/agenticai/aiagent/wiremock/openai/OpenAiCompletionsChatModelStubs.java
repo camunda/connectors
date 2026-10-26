@@ -52,8 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * client.chat().completions().createStreaming(params)} and feeds the chunks to the vendor SDK's
  * {@code ChatCompletionAccumulator}, so a plain buffered JSON body would not parse. Since the v1
  * {@code openaiCompatible} provider config is rewritten to the native provider at the connector
- * boundary (see {@code camunda.connector.agenticai.aiagent.rewrite-v1-provider-config-to-v2},
- * default on), the explicit v1 compatibility/regression fixtures that still exercise the v1 element
+ * boundary, the explicit v1 compatibility/regression fixtures that still exercise the v1 element
  * templates also reach this native streaming path.
  *
  * <p>A conversation is expressed as an ordered list of {@link Turn turns}. Each model call advances

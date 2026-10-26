@@ -18,6 +18,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.langchain4j.tool.ToolCallConverter;
+import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessageBuilder;
 import io.camunda.connector.agenticai.aiagent.model.message.StopReason;
@@ -27,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
-import io.camunda.connector.agenticai.aiagent.request.v1.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.util.AssistantMessageMetadata;
 import io.camunda.connector.agenticai.common.json.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
@@ -47,14 +47,17 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
   private final ObjectMapper objectMapper;
+  private final ToolCallMetadataDecorator toolCallMetadataDecorator;
 
   public ChatMessageConverterImpl(
       ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      ToolCallMetadataDecorator toolCallMetadataDecorator) {
     this.contentConverter = contentConverter;
     this.toolCallConverter = toolCallConverter;
     this.objectMapper = objectMapper;
+    this.toolCallMetadataDecorator = toolCallMetadataDecorator;
   }
 
   @Override
@@ -97,12 +100,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public dev.langchain4j.data.message.AiMessage fromAssistantMessage(
-      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
-    return fromAssistantMessageBuilder(assistantMessage, providerConfiguration).build();
+      AssistantMessage assistantMessage, ChatModelConfiguration configuration) {
+    return fromAssistantMessageBuilder(assistantMessage, configuration).build();
   }
 
   protected dev.langchain4j.data.message.AiMessage.Builder fromAssistantMessageBuilder(
-      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+      AssistantMessage assistantMessage, ChatModelConfiguration configuration) {
     final var builder = AiMessage.builder();
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
@@ -125,7 +128,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       builder.toolExecutionRequests(toolExecutionRequests);
     }
 
-    final var attributes = toolCallAttributes(assistantMessage, providerConfiguration);
+    final var attributes = toolCallAttributes(assistantMessage, configuration);
     if (!attributes.isEmpty()) {
       builder.attributes(attributes);
     }
@@ -140,7 +143,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
    * see {@link ToolCallMetadataDecorator}.
    */
   protected Map<String, Object> toolCallAttributes(
-      AssistantMessage assistantMessage, ProviderConfiguration providerConfiguration) {
+      AssistantMessage assistantMessage, ChatModelConfiguration configuration) {
     if (CollectionUtils.isEmpty(assistantMessage.toolCalls())) {
       return Map.of();
     }
@@ -152,8 +155,8 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
       }
 
       attributes.putAll(
-          ToolCallMetadataDecorator.decorateOnRead(
-              providerConfiguration, toolCall.id(), toolCall.metadata()));
+          toolCallMetadataDecorator.decorateOnRead(
+              configuration, toolCall.id(), toolCall.metadata()));
     }
 
     return attributes;
@@ -161,12 +164,12 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
   @Override
   public AssistantMessage toAssistantMessage(
-      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
-    return toAssistantMessageBuilder(chatResponse, providerConfiguration).build();
+      ChatResponse chatResponse, ChatModelConfiguration configuration) {
+    return toAssistantMessageBuilder(chatResponse, configuration).build();
   }
 
   protected AssistantMessageBuilder toAssistantMessageBuilder(
-      ChatResponse chatResponse, ProviderConfiguration providerConfiguration) {
+      ChatResponse chatResponse, ChatModelConfiguration configuration) {
     final var builder = AssistantMessage.builder();
 
     if (chatResponse.metadata() != null) {
@@ -194,7 +197,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     final var toolCalls =
         aiMessage.toolExecutionRequests().stream()
             .map(toolCallConverter::asToolCall)
-            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, providerConfiguration))
+            .map(toolCall -> decorateToolCallMetadata(toolCall, aiMessage, configuration))
             .toList();
 
     builder.toolCalls(toolCalls);
@@ -203,14 +206,14 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   }
 
   private ToolCall decorateToolCallMetadata(
-      ToolCall toolCall, AiMessage aiMessage, ProviderConfiguration providerConfiguration) {
+      ToolCall toolCall, AiMessage aiMessage, ChatModelConfiguration configuration) {
     if (CollectionUtils.isEmpty(aiMessage.attributes())) {
       return toolCall;
     }
 
     final var metadata =
-        ToolCallMetadataDecorator.decorateOnWrite(
-            providerConfiguration, toolCall.id(), aiMessage.attributes());
+        toolCallMetadataDecorator.decorateOnWrite(
+            configuration, toolCall.id(), aiMessage.attributes());
     return metadata.isEmpty() ? toolCall : toolCall.withMetadata(metadata);
   }
 

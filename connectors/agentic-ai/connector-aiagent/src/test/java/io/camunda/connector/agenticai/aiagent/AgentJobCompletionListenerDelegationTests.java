@@ -124,7 +124,7 @@ class AgentJobCompletionListenerDelegationTests {
     @Test
     void onJobCompleted_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AgentTaskV1Function(null, null, null, false);
+      var function = new AgentTaskV1Function(null, null, null);
       var response = new AgentTaskConnectorResponse(null, listener);
 
       function.onJobCompleted(mock(OutboundConnectorContext.class), response);
@@ -135,7 +135,7 @@ class AgentJobCompletionListenerDelegationTests {
     @Test
     void onJobCompletionFailed_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AgentTaskV1Function(null, null, null, false);
+      var function = new AgentTaskV1Function(null, null, null);
       var response = new AgentTaskConnectorResponse(null, listener);
       var failure =
           new JobCompletionFailure.CommandFailure.CommandFailed(new RuntimeException("test"));
@@ -147,7 +147,7 @@ class AgentJobCompletionListenerDelegationTests {
 
     @Test
     void onJobCompletionFailed_noOpWhenResponseIsNull() {
-      var function = new AgentTaskV1Function(null, null, null, false);
+      var function = new AgentTaskV1Function(null, null, null);
 
       // pre-response failure (e.g. execute() threw): no response to delegate to
       function.onJobCompletionFailed(
@@ -158,7 +158,7 @@ class AgentJobCompletionListenerDelegationTests {
 
     @Test
     void onJobCompletionFailed_noOpWhenResponseIsNotAgentResponse() {
-      var function = new AgentTaskV1Function(null, null, null, false);
+      var function = new AgentTaskV1Function(null, null, null);
       var foreignResponse = StandardConnectorResponse.of(Map.of("foo", "bar"));
 
       // should not throw
@@ -175,7 +175,7 @@ class AgentJobCompletionListenerDelegationTests {
     @Test
     void onJobCompleted_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AgentSubProcessV1Function(null, null, false);
+      var function = new AgentSubProcessV1Function(null, null);
       var response =
           AgentSubProcessConnectorResponse.builder()
               .variables(Map.of())
@@ -193,7 +193,7 @@ class AgentJobCompletionListenerDelegationTests {
     @Test
     void onJobCompletionFailed_invokesAgentListenerCarriedByResponse() {
       var listener = mock(AgentJobCompletionListener.class);
-      var function = new AgentSubProcessV1Function(null, null, false);
+      var function = new AgentSubProcessV1Function(null, null);
       var response =
           AgentSubProcessConnectorResponse.builder()
               .variables(Map.of())
@@ -212,7 +212,7 @@ class AgentJobCompletionListenerDelegationTests {
 
     @Test
     void onJobCompletionFailed_noOpWhenResponseIsNull() {
-      var function = new AgentSubProcessV1Function(null, null, false);
+      var function = new AgentSubProcessV1Function(null, null);
       var listener = mock(AgentJobCompletionListener.class);
 
       function.onJobCompletionFailed(
