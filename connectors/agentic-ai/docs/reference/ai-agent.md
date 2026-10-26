@@ -1815,7 +1815,9 @@ retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` item
 early report and the later batch write for the same result dedup for free), falling back to a
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
-too.
+too. The fingerprint is a SHA-256 over a JSON serialization of the model, provider, system prompt, model-call limit and
+tool definitions. The top-level keys of each tool's input schema are sorted, because their order is unspecified after a
+persistence round trip; the order of the parameters, of the tools and of list values is significant.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

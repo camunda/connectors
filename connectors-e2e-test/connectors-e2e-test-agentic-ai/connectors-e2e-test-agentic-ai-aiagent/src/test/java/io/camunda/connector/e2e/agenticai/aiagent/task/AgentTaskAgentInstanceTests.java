@@ -77,7 +77,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(25, 45), 1));
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceClientVerifier.verify(agentInstanceClient)
@@ -149,7 +149,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(35, 65), 2));
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     // turn 1 input is the user prompt; turns 2 and 3 inputs are tool results; assistant items:
@@ -224,7 +224,7 @@ class AgentTaskAgentInstanceTests extends BaseAgentTaskTest {
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(expectedMetrics);
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())

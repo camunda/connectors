@@ -10,10 +10,10 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
@@ -82,7 +82,7 @@ public class AgentInitializerImpl implements AgentInitializer {
     if (hasAgentDefinitionKeyHeader(jobContext)) {
       final var agentInstanceKey = provisionAgentInstance(executionContext);
       LOGGER.debug("Created agent instance {}", agentInstanceKey.value());
-      metadata = metadata.withAgentInstanceKey(agentInstanceKey.value());
+      metadata = metadata.withAgentInstanceKey(agentInstanceKey);
     } else {
       LOGGER.warn(
           "Skipping agent instance creation: element was not marked with an agent definition");

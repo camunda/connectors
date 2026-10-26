@@ -50,8 +50,6 @@ class PackageCyclesArchTest {
    */
   private static final List<AllowedDependency> KNOWN_CYCLES =
       List.of(
-          // aiagent.conversation and aiagent.agentinstance
-          allow("aiagent.conversation..", "aiagent.agentinstance.."),
           // aiagent.chatmodel and aiagent.configuration
           allow("aiagent.chatmodel..", "aiagent.configuration.."),
           // aiagent.request and aiagent.chatmodel
