@@ -331,7 +331,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                             "messageKey",
                             messagePublished.messageKey(),
                             "correlationKey",
-                            messagePublished.correlationKey())));
+                            redactMessage(messagePublished.correlationKey()))));
         break;
       case MessageAlreadyCorrelated ignored:
         logRuntime(
@@ -355,7 +355,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                             "messageKey",
                             messageCorrelated.messageKey(),
                             "correlationKey",
-                            messageCorrelated.correlationKey())));
+                            redactMessage(messageCorrelated.correlationKey()))));
 
         break;
       case Success.ProcessInstanceCreatedWithResult processInstanceCreatedWithResult:

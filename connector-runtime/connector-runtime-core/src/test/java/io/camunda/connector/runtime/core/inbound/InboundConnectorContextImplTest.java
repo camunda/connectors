@@ -246,15 +246,16 @@ class InboundConnectorContextImplTest {
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
   void correlate_messageSuccess_preservesCorrelationKeyAndLogsData(boolean synchronous) {
-    var definition = getInboundConnectorDefinition(Map.of());
+    var definition = getInboundConnectorDefinition(Map.of("secret", "secrets.FOO"));
     var element = definition.connectorElements().getFirst().element();
+    var correlationKey = FooBarSecretProvider.SECRET_VALUE;
     var correlationHandler = mock(InboundCorrelationHandler.class);
     var success =
         synchronous
             ? new CorrelationResult.Success.MessageCorrelated(
-                element, 42L, 123L, "<default>", "order-123")
+                element, 42L, 123L, "<default>", correlationKey)
             : new CorrelationResult.Success.MessagePublished(
-                element, 123L, "<default>", "order-123");
+                element, 123L, "<default>", correlationKey);
     when(correlationHandler.correlate(any(), any())).thenReturn(success);
     var context =
         new InboundConnectorContextImpl(
@@ -271,10 +272,10 @@ class InboundConnectorContextImplTest {
 
     if (synchronous) {
       assertThat(((CorrelationResult.Success.MessageCorrelated) result).correlationKey())
-          .isEqualTo("order-123");
+          .isEqualTo(correlationKey);
     } else {
       assertThat(((CorrelationResult.Success.MessagePublished) result).correlationKey())
-          .isEqualTo("order-123");
+          .isEqualTo(correlationKey);
     }
     var logs =
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
@@ -286,7 +287,7 @@ class InboundConnectorContextImplTest {
               assertThat(log.severity()).isEqualTo(Severity.INFO);
               assertThat(log.data())
                   .containsEntry("messageKey", 123L)
-                  .containsEntry("correlationKey", "order-123");
+                  .containsEntry("correlationKey", "***");
               if (synchronous) {
                 assertThat(log.data()).containsEntry("processInstanceKey", 42L);
               }
