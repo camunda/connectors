@@ -40,6 +40,7 @@ public class AgentSubProcessRequestHandler
       AgentInstanceClient agentInstanceClient,
       RuntimeToolRegistry runtimeToolRegistry,
       RuntimeToolExecutor runtimeToolExecutor,
+      ToolCallResultsInputBuilder resultsInputBuilder,
       DocumentExpander documentExpander) {
     super(
         agentInitializer,
@@ -51,6 +52,7 @@ public class AgentSubProcessRequestHandler
         agentInstanceClient,
         runtimeToolRegistry,
         runtimeToolExecutor,
+        resultsInputBuilder,
         documentExpander);
   }
 

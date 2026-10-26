@@ -21,11 +21,14 @@ import org.jspecify.annotations.Nullable;
 final class AgentDocumentImpl implements AgentDocument {
 
   private final DocumentRegistryEntry entry;
+  private final boolean contentInConversation;
   private final ObjectMapper objectMapper;
   private volatile @Nullable Document document;
 
-  AgentDocumentImpl(DocumentRegistryEntry entry, ObjectMapper objectMapper) {
+  AgentDocumentImpl(
+      DocumentRegistryEntry entry, boolean contentInConversation, ObjectMapper objectMapper) {
     this.entry = entry;
+    this.contentInConversation = contentInConversation;
     this.objectMapper = objectMapper;
   }
 
@@ -37,6 +40,11 @@ final class AgentDocumentImpl implements AgentDocument {
   @Override
   public DocumentSource source() {
     return entry.source();
+  }
+
+  @Override
+  public boolean contentInConversation() {
+    return contentInConversation;
   }
 
   @Override

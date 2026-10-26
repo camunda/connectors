@@ -13,9 +13,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentParameterSchema;
@@ -24,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -360,6 +363,15 @@ public final class AgentConversation {
     return new ConversationSnapshot(
         decorator.apply(windowed),
         DocumentParameterSchema.toProviderToolDefinitions(configuration.toolDefinitions()));
+  }
+
+  /**
+   * Returns the ids of the documents whose content the model reads as of now: {@link
+   * #allMessages()} within the context window of the {@link #configuration()}.
+   */
+  public Set<DocumentId> documentIdsWithContent() {
+    return MessageUtil.documentIdsWithContent(
+        MessageWindowFilter.apply(allMessages(), configuration.contextWindowSize()));
   }
 
   /**

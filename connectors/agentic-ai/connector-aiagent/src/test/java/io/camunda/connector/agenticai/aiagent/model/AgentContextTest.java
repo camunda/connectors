@@ -224,12 +224,12 @@ class AgentContextTest {
   }
 
   @Test
-  void newInstanceFeaturesContainTheRuntimeToolsFeature() {
+  void newInstanceFeaturesContainTheRuntimeToolsAndTheDocumentsFeature() {
     final var context = AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
 
-    assertThat(context.features()).containsExactly("runtimeTools");
+    assertThat(context.features()).containsExactly("runtimeTools", "documents");
     assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
-    assertThat(context.supports(AgentFeatures.RUNTIME_TOOLS)).isTrue();
+    assertThat(context.supports(AgentFeatures.DOCUMENTS)).isTrue();
     assertThat(context.supports("other")).isFalse();
   }
 

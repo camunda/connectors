@@ -27,6 +27,15 @@ public interface AgentDocument {
   DocumentSource source();
 
   /**
+   * Whether the model reads the content of the document in its conversation as of the start of the
+   * batch of calls this document was read in: a message within the context window holds it. The
+   * agent does not add the content of such a document a second time (see {@link
+   * RuntimeToolResult.Success#withDocumentContent}). It does not change while the batch runs. The
+   * context passed to {@link RuntimeTool#isEnabled} has no batch, so it is {@code false} there.
+   */
+  boolean contentInConversation();
+
+  /**
    * The document itself, to read its metadata and content. Reading the content of an external
    * document downloads it.
    *

@@ -86,6 +86,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   Every `@ConfigurationProperties` prefix is `camunda.connector.agenticai` or below it.
 - `NoFieldInjectionArchTest`: no field injection (`@Autowired`, `@Value`, `@Resource`, `@Inject` on fields).
 - `SpringFreeModelAndApiArchTest`: `aiagent.model` and `aiagent.api` do not depend on `org.springframework`.
+- `BuiltInRuntimeToolsArchTest`: the built-in runtime tools (`aiagent.tool.runtime.builtin`) depend only on the API, the
+  model, the common library, the connector SDK, Jackson, jspecify, the JDK and their own package.
 - `PolymorphicJsonArchTest`: no `@JsonTypeInfo(use = Id.CLASS | Id.MINIMAL_CLASS)`, and every concrete
   `ConversationContext` implementation is annotated with `@JsonTypeName`.
 - `OutboundConnectorBeanScopeArchTest`: `@Bean` methods returning an outbound connector function (annotated with
@@ -216,9 +218,9 @@ High-frequency traps (detail behind each link):
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `documents` feature keeps the previous document handling: bare content and the older tag
-  format, no registry, no document parameters. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
-  against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
+  instance without the `documents` feature (created before it) keeps the previous document handling: bare content and
+  the older tag format, no registry, no document parameters, and no `c8__get_document`. Without the `runtimeTools`
+  feature it has no runtime tools and no tool element is checked against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Runtime tool calls are tagged once and run in the job that composes the next turn**: the agent tags every tool call of
@@ -235,9 +237,16 @@ High-frequency traps (detail behind each link):
   result, and the registry in `AgentContext.documents` holds what the references stand for. The window decorator
   (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
   in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
-  document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
-  of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
-  starts. A tool parameter of the type `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver`
+  document is a reference with the delivery `content` (an unset delivery, the delivery of every user prompt since no
+  template sets one, adds the content of every document without the guard; an explicit `reference` gives tags, an explicit
+  `content` runs the guard and leaves a rejected document a reference with a note, and the documents of an external URL
+  always go out as content). The documents a runtime tool returns are registered, and the effects of its result applied,
+  after the calls of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known
+  when the batch starts. The model sees a `<doc/>` tag for the documents of a tool result and gets content only through
+  `c8__get_document`: the agent runs the content guard (`DocumentContentGuard`, limits in
+  `camunda.connector.agenticai.aiagent.document.content-limits.*`) on every document whose content a tool asks for, and
+  turns a result with a document that fails it (an external document, a type no provider renders, a size above the limit)
+  into an error result, no incident. Passing a tag to a tool never adds content. A tool parameter of the type `document` of `fromAi` holds a tag the model passed; `DocumentParameterResolver`
   turns it into the Camunda document reference for a process tool (`AgentResponseHandlerImpl`) and into a `DocumentId` for
   a runtime tool (`RuntimeToolExecutorImpl`), and the stored messages and the history keep the tag. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
@@ -364,9 +373,10 @@ Before claiming a change is complete:
 ## Extension points
 
 Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
-tool (a tool the connector runtime runs itself, without activating a BPMN element; a process tool must not have its name)
-by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
-(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
+tool (a tool the connector runtime runs itself, without activating a BPMN element; a built-in tool is a runtime tool the
+connector ships, such as `c8__get_document`; a process tool must not have its name) by implementing the SPI and registering
+a Spring bean. A runtime tool is the three-method interface `RuntimeTool` (`definition`, `isEnabled`, `call`), an
+experimental SPI in 8.11; the built-in tools in `aiagent/tool/runtime/builtin` use only that SPI. Where to start (SPI + reference implementation per
 type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
