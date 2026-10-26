@@ -79,8 +79,10 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
                   new LinkedHashMap<>(
                       DocumentParameterSchema.normalizeAuthoredSchema(authoredSchema));
 
-              // default to string if no type is set (not on parameter, not in schema directly)
-              if (!propertySchema.containsKey(PROPERTY_TYPE)) {
+              // default to string if no type is set (not on parameter, not in schema directly); a
+              // parameter that takes text or a document keeps the type of its alternatives
+              if (!propertySchema.containsKey(PROPERTY_TYPE)
+                  && !DocumentParameterSchema.isUnionParameter(propertySchema)) {
                 propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
               }
 

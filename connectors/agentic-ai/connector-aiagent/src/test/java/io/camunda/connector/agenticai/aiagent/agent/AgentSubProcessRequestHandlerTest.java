@@ -158,6 +158,25 @@ class AgentSubProcessRequestHandlerTest {
                               Map.of(
                                   "doc",
                                   Map.of("type", "string", "format", "camunda-document-id"))))
+                      .build(),
+                  ToolDefinition.builder()
+                      .name("send")
+                      .inputSchema(
+                          Map.of(
+                              "type",
+                              "object",
+                              "properties",
+                              Map.of(
+                                  "body",
+                                  Map.of(
+                                      "anyOf",
+                                      List.of(
+                                          Map.of("type", "string"),
+                                          Map.of(
+                                              "type",
+                                              "string",
+                                              "format",
+                                              "camunda-document-id"))))))
                       .build()))
           .toList();
 
@@ -2395,6 +2414,37 @@ class AgentSubProcessRequestHandlerTest {
     inOrder.verifyNoMoreInteractions();
     assertThat(turnCaptor.getValue().toolCalls())
         .containsExactly(badCall.withKind(ToolKind.RUNTIME), otherCall);
+  }
+
+  @Test
+  void tagsTheCallWithATagOfAnUnknownDocumentInAUnionParameterAsAnsweredByTheAgent() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(CONTEXT_WITH_UPLOAD_TOOL, List.of()));
+
+    final var badCall = new ToolCall("call-1", "send", Map.of("body", "<doc id=\"nope\" />"));
+    final var textCall = new ToolCall("call-2", "send", Map.of("body", "plain text"));
+    final var message = AssistantMessage.builder().toolCalls(List.of(badCall, textCall)).build();
+    mockChatModelExecution(message);
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    // a call with text in the union parameter goes to the process, the rejected one does not
+    verify(chatModel, times(1)).execute(any());
+    verify(runtimeToolExecutor, never()).execute(any(), any(), anyList(), anySet());
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.toolCalls()).containsExactly(ToolCallProcessVariable.from(textCall));
+    assertThat(agentResponse.context().conversation())
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c ->
+                assertThat(c.messages().get(2))
+                    .isEqualTo(
+                        message.withToolCalls(
+                            List.of(badCall.withKind(ToolKind.RUNTIME), textCall))));
   }
 
   @Test
