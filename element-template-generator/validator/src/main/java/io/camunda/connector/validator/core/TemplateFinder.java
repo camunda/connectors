@@ -25,6 +25,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public final class TemplateFinder {
 
@@ -65,6 +66,17 @@ public final class TemplateFinder {
     return walk(root, true, skippedDirs, skippedConnectors);
   }
 
+  /** All {@value SuppressionFile#FILE_NAME} files, honoring the same skip options. */
+  public static List<Path> findSuppressionFiles(
+      Path root, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(
+        root,
+        false,
+        skippedDirs,
+        skippedConnectors,
+        file -> SuppressionFile.FILE_NAME.equals(file.getFileName().toString()));
+  }
+
   public static boolean isVersioned(Path path) {
     for (Path segment : path) {
       if (VERSIONED_SEGMENT.equals(segment.toString())) {
@@ -76,6 +88,20 @@ public final class TemplateFinder {
 
   private static List<Path> walk(
       Path root, boolean includeVersioned, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(
+        root,
+        includeVersioned,
+        skippedDirs,
+        skippedConnectors,
+        TemplateFinder::isElementTemplateJson);
+  }
+
+  private static List<Path> walk(
+      Path root,
+      boolean includeVersioned,
+      Set<String> skippedDirs,
+      Set<String> skippedConnectors,
+      Predicate<Path> include) {
     List<Path> results = new ArrayList<>();
     try {
       Files.walkFileTree(
@@ -98,7 +124,7 @@ public final class TemplateFinder {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-              if (isElementTemplateJson(file)) {
+              if (include.test(file)) {
                 results.add(file);
               }
               return FileVisitResult.CONTINUE;

@@ -17,7 +17,6 @@
 package io.camunda.connector.validator.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,10 +46,15 @@ public final class SuppressionFilter {
   public record Result(List<Finding> findings, int suppressed) {}
 
   /**
+   * @param suppressionFiles every suppression file in the scan scope, including those of modules
+   *     without templates, so their entries are still validated
    * @param suppressibleRules rule ids that may be suppressed; anything else is rejected
    */
   public static Result apply(
-      List<Finding> findings, Map<Path, JsonNode> templates, Set<String> suppressibleRules) {
+      List<Finding> findings,
+      Map<Path, JsonNode> templates,
+      List<Path> suppressionFiles,
+      Set<String> suppressibleRules) {
     Map<Path, List<Path>> templatesByDir = new LinkedHashMap<>();
     for (Path template : templates.keySet()) {
       elementTemplatesDir(template)
@@ -60,17 +64,14 @@ public final class SuppressionFilter {
 
     List<Finding> problems = new ArrayList<>();
     Map<Path, List<Suppression>> suppressionsByDir = new LinkedHashMap<>();
-    for (Map.Entry<Path, List<Path>> e : templatesByDir.entrySet()) {
-      Path dir = e.getKey();
-      Path file = dir.resolveSibling(SuppressionFile.FILE_NAME);
-      if (!Files.isRegularFile(file)) {
-        continue;
-      }
+    for (Path file : suppressionFiles) {
+      Path dir = file.resolveSibling(ELEMENT_TEMPLATES);
+      List<Path> dirTemplates = templatesByDir.getOrDefault(dir, List.of());
       SuppressionFile.Result loaded = SuppressionFile.load(file);
       problems.addAll(loaded.findings());
       List<Suppression> valid = new ArrayList<>();
       for (Suppression s : loaded.suppressions()) {
-        Optional<Finding> problem = check(s, dir, e.getValue(), templates, suppressibleRules);
+        Optional<Finding> problem = check(s, dir, dirTemplates, templates, suppressibleRules);
         problem.ifPresentOrElse(problems::add, () -> valid.add(s));
       }
       suppressionsByDir.put(dir, valid);
@@ -80,9 +81,9 @@ public final class SuppressionFilter {
     Set<Suppression> used = new HashSet<>();
     int suppressed = 0;
     for (Finding finding : findings) {
-      Optional<Suppression> match = match(finding, templates, suppressionsByDir);
-      if (match.isPresent()) {
-        used.add(match.get());
+      List<Suppression> matches = matches(finding, templates, suppressionsByDir);
+      if (!matches.isEmpty()) {
+        used.addAll(matches);
         suppressed++;
       } else {
         remaining.add(finding);
@@ -139,11 +140,12 @@ public final class SuppressionFilter {
     return Optional.empty();
   }
 
-  private static Optional<Suppression> match(
+  /** All entries covering the finding, so overlapping entries are all marked as used. */
+  private static List<Suppression> matches(
       Finding finding, Map<Path, JsonNode> templates, Map<Path, List<Suppression>> byDir) {
     Optional<Path> dir = elementTemplatesDir(finding.file());
     if (dir.isEmpty()) {
-      return Optional.empty();
+      return List.of();
     }
     Path relative = dir.get().relativize(finding.file());
     String propertyId = propertyId(templates.get(finding.file()), finding.jsonPointer());
@@ -151,7 +153,7 @@ public final class SuppressionFilter {
         .filter(s -> s.rule().equals(finding.ruleId()))
         .filter(s -> s.templateMatcher().matches(relative))
         .filter(s -> s.property() == null || s.property().equals(propertyId))
-        .findFirst();
+        .toList();
   }
 
   private static Optional<Path> elementTemplatesDir(Path file) {
@@ -173,11 +175,13 @@ public final class SuppressionFilter {
     if (!m.matches()) {
       return null;
     }
-    JsonNode id =
-        template
-            .path(ElementTemplate.PROPERTIES)
-            .path(Integer.parseInt(m.group(1)))
-            .path(ElementTemplate.ID);
+    int index;
+    try {
+      index = Integer.parseInt(m.group(1));
+    } catch (NumberFormatException e) {
+      return null;
+    }
+    JsonNode id = template.path(ElementTemplate.PROPERTIES).path(index).path(ElementTemplate.ID);
     return id.isTextual() ? id.asText() : null;
   }
 

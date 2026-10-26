@@ -53,7 +53,7 @@ class SuppressionFilterTest {
   @Test
   void noSuppressionFile_findingsUnchanged() {
     List<Finding> findings = List.of(finding(template, "/properties/0/description", "text-rule"));
-    var result = SuppressionFilter.apply(findings, templates, RULES);
+    var result = apply(findings);
     assertThat(result.findings()).isEqualTo(findings);
     assertThat(result.suppressed()).isZero();
   }
@@ -71,8 +71,7 @@ class SuppressionFilterTest {
     Finding otherRule = finding(template, "/properties/1/tooltip", "other-rule");
     Finding otherFile = finding(hybrid, "/properties/1/tooltip", "text-rule");
 
-    var result =
-        SuppressionFilter.apply(List.of(onSecond, onFirst, otherRule, otherFile), templates, RULES);
+    var result = apply(List.of(onSecond, onFirst, otherRule, otherFile));
 
     assertThat(result.suppressed()).isEqualTo(1);
     assertThat(result.findings()).containsExactly(onFirst, otherRule, otherFile);
@@ -85,10 +84,8 @@ class SuppressionFilterTest {
         { "suppressions": [ { "rule": "text-rule", "template": "**.json", "reason": "R." } ] }
         """);
     var result =
-        SuppressionFilter.apply(
-            List.of(finding(template, "/groups/0", "text-rule"), finding(hybrid, "", "text-rule")),
-            templates,
-            RULES);
+        apply(
+            List.of(finding(template, "/groups/0", "text-rule"), finding(hybrid, "", "text-rule")));
     assertThat(result.findings()).isEmpty();
     assertThat(result.suppressed()).isEqualTo(2);
   }
@@ -104,7 +101,7 @@ class SuppressionFilterTest {
           { "rule": "other-rule", "template": "a.json", "reason": "Stale." }
         ] }
         """);
-    var result = SuppressionFilter.apply(List.of(), templates, RULES);
+    var result = apply(List.of());
     assertThat(result.findings())
         .allMatch(f -> f.ruleId().equals(SuppressionFile.RULE_ID))
         .extracting(Finding::jsonPointer)
@@ -113,6 +110,45 @@ class SuppressionFilterTest {
             "/suppressions/1/template",
             "/suppressions/2/property",
             "/suppressions/3");
+  }
+
+  @Test
+  void overlappingSuppressions_allMarkedUsedInEitherOrder() throws Exception {
+    String wide = "{ \"rule\": \"text-rule\", \"template\": \"a.json\", \"reason\": \"R.\" }";
+    String narrow =
+        "{ \"rule\": \"text-rule\", \"template\": \"a.json\", \"property\": \"second\","
+            + " \"reason\": \"R.\" }";
+    List<Finding> findings =
+        List.of(
+            finding(template, "/properties/0/tooltip", "text-rule"),
+            finding(template, "/properties/1/tooltip", "text-rule"));
+
+    for (String entries : List.of(wide + ", " + narrow, narrow + ", " + wide)) {
+      write("{ \"suppressions\": [ " + entries + " ] }");
+      var result = apply(findings);
+      assertThat(result.findings()).isEmpty();
+      assertThat(result.suppressed()).isEqualTo(2);
+    }
+  }
+
+  @Test
+  void suppressionFileInModuleWithoutTemplates_entriesReported() throws Exception {
+    templates.clear();
+    write(
+        """
+        { "suppressions": [ { "rule": "text-rule", "template": "a.json", "reason": "R." } ] }
+        """);
+    assertThat(apply(List.of()).findings())
+        .extracting(Finding::jsonPointer)
+        .containsExactly("/suppressions/0/template");
+  }
+
+  private SuppressionFilter.Result apply(List<Finding> findings) {
+    return SuppressionFilter.apply(
+        findings,
+        templates,
+        TemplateFinder.findSuppressionFiles(module, Set.of(), Set.of()),
+        RULES);
   }
 
   private void write(String json) throws Exception {
