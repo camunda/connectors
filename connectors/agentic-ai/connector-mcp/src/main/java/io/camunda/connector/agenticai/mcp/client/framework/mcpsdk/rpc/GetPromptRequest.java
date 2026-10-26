@@ -81,7 +81,7 @@ final class GetPromptRequest {
 
   private McpClientGetPromptResult.PromptMessage map(McpSchema.PromptMessage promptMessage) {
     final var content = promptMessage.content();
-    final var role = promptMessage.role().name().toLowerCase();
+    final var role = promptMessage.role().name().toLowerCase(Locale.ROOT);
 
     var resultingContent =
         switch (content) {

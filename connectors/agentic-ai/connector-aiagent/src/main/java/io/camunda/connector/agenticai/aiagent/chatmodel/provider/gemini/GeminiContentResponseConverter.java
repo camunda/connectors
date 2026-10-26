@@ -82,6 +82,8 @@ public class GeminiContentResponseConverter {
   private static final String BLOCK_REASON_METADATA_KEY = "blockReason";
 
   /**
+   * Converts a Gemini response into a chat result.
+   *
    * @throws ContentFilteredException if the prompt was blocked, or the candidate's finish reason is
    *     {@code SAFETY}, {@code RECITATION}, {@code BLOCKLIST}, {@code PROHIBITED_CONTENT}, {@code
    *     SPII}, or an {@code IMAGE_*} variant. Carries the {@link

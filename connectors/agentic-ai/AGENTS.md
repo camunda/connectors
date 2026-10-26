@@ -311,6 +311,12 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
   Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
   commit the generated file(s).
 
+### ErrorProne
+
+ErrorProne warnings fail the `main` compilation (`-Werror`); generated sources under
+`target/generated-sources` are excluded. Fix a finding, or suppress it with `@SuppressWarnings("<CheckName>")`
+on the narrowest scope plus a comment stating why. Test code is not checked.
+
 ### Definition of Done
 
 Before claiming a change is complete:

@@ -36,6 +36,7 @@ import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -171,7 +172,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       throw new ConnectorInputException(
           "HMAC property 'hmacTolerance' must be a positive duration, but was " + tolerance);
     }
-    if (parsed.getNano() != 0) {
+    if (!parsed.truncatedTo(ChronoUnit.SECONDS).equals(parsed)) {
       throw new ConnectorInputException(
           "HMAC property 'hmacTolerance' must be a whole-second duration, but was " + tolerance);
     }

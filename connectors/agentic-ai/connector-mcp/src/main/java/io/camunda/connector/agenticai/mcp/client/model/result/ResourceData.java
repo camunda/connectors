@@ -19,6 +19,8 @@ import io.camunda.connector.api.document.Document;
 })
 public sealed interface ResourceData {
 
+  // byte[] is serialized by Jackson as Base64; value equality on these DTOs is not relied upon
+  @SuppressWarnings("ArrayRecordComponent")
   record BlobResourceData(String uri, String mimeType, byte[] blob) implements ResourceData {}
 
   record TextResourceData(String uri, String mimeType, String text) implements ResourceData {}

@@ -99,7 +99,10 @@
                   <arg>-XDcompilePolicy=simple</arg>
                   <arg>-XDshould-stop.ifError=FLOW</arg>
                   <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
-                  <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true</arg>
+                  <!-- Fail on ErrorProne warnings; -Xlint:-options drops the JDK-dependent "system modules path" warning -->
+                  <arg>-Werror</arg>
+                  <arg>-Xlint:-options</arg>
+                  <arg>-Xplugin:ErrorProne -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:TreatGeneratedAsUnannotated=true -XepExcludedPaths:.*/target/generated-sources/.*</arg>
                 </compilerArgs>
               </configuration>
             </execution>
