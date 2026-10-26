@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
@@ -31,18 +33,47 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
   private final AdHocToolsSchemaResolver toolsSchemaResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final RuntimeToolRegistry runtimeToolRegistry;
 
   public AgentToolsResolverImpl(
       AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      RuntimeToolRegistry runtimeToolRegistry) {
     this.toolsSchemaResolver = toolsSchemaResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.runtimeToolRegistry = runtimeToolRegistry;
   }
 
   @Override
   public AdHocToolsSchemaResponse loadAdHocToolsSchema(
       AgentExecutionContext executionContext, AgentContext agentContext) {
-    return toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    final var adHocToolsSchema =
+        toolsSchemaResolver.resolveAdHocToolsSchema(executionContext.toolElements());
+    if (agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
+      rejectRuntimeToolNames(adHocToolsSchema);
+    }
+    return adHocToolsSchema;
+  }
+
+  /**
+   * Rejects an ad-hoc tool element whose name equals the name of a registered runtime tool, whether
+   * the agent offers that tool or not: the tool of the process and the runtime tool would be
+   * indistinguishable to the model. An agent instance created without the runtime tools feature
+   * offers no runtime tool and must keep running its process.
+   */
+  private void rejectRuntimeToolNames(AdHocToolsSchemaResponse adHocToolsSchema) {
+    final var runtimeToolNames = runtimeToolRegistry.toolNames();
+    adHocToolsSchema.toolDefinitions().stream()
+        .map(ToolDefinition::name)
+        .filter(runtimeToolNames::contains)
+        .findFirst()
+        .ifPresent(
+            name -> {
+              throw new ConnectorException(
+                  AgentErrorCodes.ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT,
+                  "The tool name '%s' is also the name of a runtime tool of the AI Agent. Rename the ad-hoc sub-process element with this ID or the runtime tool."
+                      .formatted(name));
+            });
   }
 
   @Override

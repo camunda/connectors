@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -316,7 +317,7 @@ class AgentConversationTest {
   @Test
   void lastTurn_whileCurrentPending_isTurnPrecedingCurrent() {
     // while the current turn is still pending, lastTurn() resolves to the turn preceding it — the
-    // one whose assistant message requested the tools answered by the current turn's results
+    // one whose assistant message requested the tools whose results the current turn carries
     var conv =
         rehydrate(
             List.of(userMessage("hi"), assistantMessage("thinking", TOOL_CALLS)),
@@ -324,5 +325,130 @@ class AgentConversationTest {
 
     assertThat(conv.lastTurn()).isPresent();
     assertThat(conv.lastTurn().get().toolCalls()).isEqualTo(TOOL_CALLS);
+  }
+
+  @Test
+  void nextRuntimeToolRound_closesTheTurnAndOpensAPendingTurnCarryingTheToolResults() {
+    var results = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var firstRound = new AgentMetrics(1, new TokenUsage(10, 20), 2);
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), firstRound)
+            .nextRuntimeToolRound(List.of(results));
+
+    assertThat(conv.currentTurn().iterationKey()).isEqualTo(2);
+    assertThat(conv.currentTurn().inputMessages()).containsExactly(results);
+    assertThat(conv.currentTurn().assistantMessage()).isNull();
+    assertThat(conv.lastTurn()).get().extracting(AgentConversationTurn::iterationKey).isEqualTo(1);
+    assertThat(conv.jobMetrics()).isEqualTo(firstRound);
+  }
+
+  @Test
+  void nextRuntimeToolRound_carriesTheFollowUpMessagesAfterTheToolResults() {
+    var results = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var followUp = userMessage("loaded");
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty())
+            .nextRuntimeToolRound(List.of(results, followUp));
+
+    assertThat(conv.currentTurn().inputMessages()).containsExactly(results, followUp);
+  }
+
+  @Test
+  void nextRuntimeToolRound_throwsBeforeTheCurrentTurnIsIngested() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+
+    assertThatThrownBy(
+            () -> conv.nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS))))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void nextRuntimeToolRound_throwsWhenTheInputDoesNotStartWithTheToolCallResults() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
+
+    assertThatThrownBy(() -> conv.nextRuntimeToolRound(List.of(userMessage("loaded"))))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> conv.nextRuntimeToolRound(List.of()))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void nextRuntimeToolRound_throwsWhenTheResultsDoNotMatchTheToolCalls() {
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(assistantMessage("calling", TOOL_CALLS), AgentMetrics.empty());
+
+    assertThatThrownBy(
+            () ->
+                conv.nextRuntimeToolRound(
+                    List.of(toolCallResultMessage(List.of(TOOL_CALL_RESULTS.getFirst())))))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void nextRuntimeToolRound_keepsTheAssistantAndItsResultsPairableInTheWindow() {
+    var results = toolCallResultMessage(TOOL_CALL_RESULTS);
+    var calling = assistantMessage("calling", TOOL_CALLS);
+    var conv =
+        rehydrate(List.of(), List.of(userMessage("hi")))
+            .ingest(calling, AgentMetrics.empty())
+            .nextRuntimeToolRound(List.of(results));
+
+    assertThat(conv.allMessages()).containsSubsequence(calling, results);
+    // system message + user + assistant + results; evicting the assistant evicts its results
+    assertThat(conv.window(3).messages()).containsExactly(SYSTEM_MESSAGE, calling, results);
+    assertThat(conv.window(2).messages()).containsExactly(SYSTEM_MESSAGE);
+  }
+
+  @Test
+  void hasInterruptedToolCallResultsInInvocation_coversTheRoundsBeforeARuntimeToolRound() {
+    var interrupted =
+        toolCallResultMessage(
+            List.of(
+                ToolCallResult.forCancelledToolCall(
+                    "abcdef", "getWeather", java.time.OffsetDateTime.now()),
+                ToolCallResult.forCancelledToolCall(
+                    "fedcba", "getDateTime", java.time.OffsetDateTime.now())));
+    var conv =
+        rehydrate(
+                List.of(userMessage("hi"), assistantMessage("calling", TOOL_CALLS)),
+                List.of(interrupted))
+            .ingest(assistantMessage("calling again", TOOL_CALLS), AgentMetrics.empty())
+            .nextRuntimeToolRound(List.of(toolCallResultMessage(TOOL_CALL_RESULTS)));
+
+    assertThat(conv.currentTurn().hasInterruptedToolCallResults()).isFalse();
+    assertThat(conv.hasInterruptedToolCallResultsInInvocation()).isTrue();
+  }
+
+  @Test
+  void hasInterruptedToolCallResultsInInvocation_ignoresTurnsOfEarlierInvocations() {
+    var interrupted =
+        toolCallResultMessage(
+            List.of(
+                ToolCallResult.forCancelledToolCall(
+                    "abcdef", "getWeather", java.time.OffsetDateTime.now()),
+                ToolCallResult.forCancelledToolCall(
+                    "fedcba", "getDateTime", java.time.OffsetDateTime.now())));
+    var conv =
+        rehydrate(
+            List.of(
+                userMessage("hi"),
+                assistantMessage("calling", TOOL_CALLS),
+                interrupted,
+                assistantMessage("done")),
+            List.of(userMessage("again")));
+
+    assertThat(conv.hasInterruptedToolCallResultsInInvocation()).isFalse();
+  }
+
+  @Test
+  void persistedContext_isTheContextTheConversationIsBuiltOn() {
+    var conv = rehydrate(List.of(), List.of(userMessage("hi")));
+
+    assertThat(conv.persistedContext()).isSameAs(BASE_CONTEXT);
   }
 }

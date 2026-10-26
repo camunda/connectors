@@ -16,11 +16,14 @@ import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationCon
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,12 +163,53 @@ public final class AgentConversation {
       throw new IllegalStateException(
           "nextContinuationRound() called before the current turn was ingested");
     }
+    return nextRound(List.of());
+  }
+
+  /**
+   * Closes the current (already-ingested) turn into {@link #previousTurns} and opens a new pending
+   * turn for the next round within this same invocation, whose input is the given messages: the
+   * tool call results of the runtime tools the agent executed, and the messages that follow them,
+   * such as the message that carries the documents a tool returned. The results must cover exactly
+   * the tool calls of the closed turn's assistant message, so the turn stays pairable with it when
+   * the conversation is persisted, reloaded and windowed. The new turn's iterationKey continues
+   * from the closed turn's.
+   *
+   * @param inputMessages the input of the new turn, the {@link ToolCallResultMessage} first
+   * @throws IllegalStateException if the current turn has not been ingested yet
+   * @throws IllegalArgumentException if the first message is not a tool call result message or its
+   *     results do not match the assistant message's tool calls
+   */
+  public AgentConversation nextRuntimeToolRound(List<Message> inputMessages) {
+    if (currentTurn.assistantMessage() == null) {
+      throw new IllegalStateException(
+          "nextRuntimeToolRound() called before the current turn was ingested");
+    }
+    var expectedIds = currentTurn.toolCallsById().keySet();
+    if (inputMessages.isEmpty()
+        || !(inputMessages.getFirst() instanceof ToolCallResultMessage toolCallResults)) {
+      throw new IllegalArgumentException(
+          "The input of the next round must start with the tool call results of %s"
+              .formatted(expectedIds));
+    }
+    var resultIds = toolCallResults.results().stream().map(r -> r.id()).collect(Collectors.toSet());
+    if (expectedIds.isEmpty()
+        || toolCallResults.results().size() != expectedIds.size()
+        || !expectedIds.equals(resultIds)) {
+      throw new IllegalArgumentException(
+          "Tool call results %s do not match the tool calls %s of the current turn"
+              .formatted(resultIds, expectedIds));
+    }
+    return nextRound(inputMessages);
+  }
+
+  private AgentConversation nextRound(List<Message> inputMessages) {
     var updatedPreviousTurns = new ArrayList<>(previousTurns);
     updatedPreviousTurns.add(currentTurn);
     var nextTurn =
         new AgentConversationTurn(
             currentTurn.iterationKey() + 1,
-            List.of(),
+            inputMessages,
             null,
             AgentMetrics.empty(),
             currentTurn.configurationFingerprint());
@@ -195,6 +239,14 @@ public final class AgentConversation {
         precedingConfigurationFingerprint);
   }
 
+  /**
+   * The agent context this conversation is built on. Unlike {@link #toAgentContext()} it does not
+   * hold the metrics and the iteration bookkeeping of this invocation.
+   */
+  public AgentContext persistedContext() {
+    return currentContext;
+  }
+
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
   public @Nullable SystemMessage systemMessage() {
     return systemMessage;
@@ -213,6 +265,16 @@ public final class AgentConversation {
   /** Returns the agent instance key of that conversation, or null if it is not existing (yet). */
   public @Nullable AgentInstanceKey agentInstanceKey() {
     return agentInstanceKey;
+  }
+
+  /**
+   * Returns {@code true} if the input of any turn of this invocation (the first round and every
+   * round that followed it) carries an interrupted tool call result.
+   */
+  public boolean hasInterruptedToolCallResultsInInvocation() {
+    return Stream.concat(previousTurns.stream(), Stream.of(currentTurn))
+        .filter(turn -> turn.iterationKey() >= invocationStartIterationKey)
+        .anyMatch(AgentConversationTurn::hasInterruptedToolCallResults);
   }
 
   /** Returns the static per-invocation configuration. */
@@ -253,7 +315,8 @@ public final class AgentConversation {
    * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
    * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
    * list for this invocation once the handler has populated it via {@link
-   * AgentConfiguration#withToolDefinitions}.
+   * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
+   * tools.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
@@ -300,11 +363,11 @@ public final class AgentConversation {
 
   /**
    * Returns the metrics accrued during THIS invocation: the current turn's delta plus any
-   * continuation-round turns rolled into {@link #previousTurns} by {@link #nextContinuationRound}
-   * within this invocation. Durable turns reconstructed by {@link TurnReconstructor} carry empty
-   * metrics, so turns from prior invocations contribute zero here. This is the per-job delta pushed
-   * to the agent instance (the engine applies it additively): it must cover the whole invocation —
-   * not just the final continuation round — and must exclude the cumulative base-context counter.
+   * continuation-round and runtime tool round turns rolled into {@link #previousTurns} within this
+   * invocation. Durable turns reconstructed by {@link TurnReconstructor} carry empty metrics, so
+   * turns from prior invocations contribute zero here. This is the per-job delta pushed to the
+   * agent instance (the engine applies it additively): it must cover the whole invocation — not
+   * just the final continuation round — and must exclude the cumulative base-context counter.
    */
   public AgentMetrics jobMetrics() {
     var sum = AgentMetrics.empty();
@@ -319,7 +382,8 @@ public final class AgentConversation {
    * turn's metrics plus the current turn's delta). Durable turns reconstructed by {@link
    * TurnReconstructor} always carry empty metrics (the cumulative counter lives on the base context
    * instead), so they contribute zero here; the only {@link #previousTurns} entries with non-empty
-   * metrics are those rolled in by {@link #nextContinuationRound} within this invocation.
+   * metrics are those rolled in by {@link #nextContinuationRound} or {@link #nextRuntimeToolRound}
+   * within this invocation.
    */
   public AgentMetrics totalMetrics() {
     return currentContext.metrics().add(jobMetrics());

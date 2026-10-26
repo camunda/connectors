@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import java.util.List;
 
@@ -19,8 +20,9 @@ public sealed interface CompositionResult {
   /**
    * No messages ready yet — wait for more tool results before proceeding.
    *
-   * @param arrivedResults the tool call results that have arrived so far for the pending turn,
-   *     already correlated to a tool call this turn is waiting on and gateway (MCP/A2A) transformed
+   * @param arrivedResults the tool call results that have arrived from the process so far for the
+   *     pending turn, already correlated to a tool call this turn is waiting on and gateway
+   *     (MCP/A2A) transformed
    */
   record Deferred(List<ToolCallResult> arrivedResults) implements CompositionResult {
     public Deferred {
@@ -33,6 +35,18 @@ public sealed interface CompositionResult {
    * no error semantics — each handler decides whether this is a hard error or a benign wait.
    */
   record NoInput() implements CompositionResult {}
+
+  /**
+   * The results of the process are complete or interrupted, and the turn also has runtime tool
+   * calls to execute. The caller executes them and composes again with their results.
+   *
+   * @param runtimeToolCalls the runtime tool calls of the turn, in call order
+   */
+  record RuntimeToolResultsRequired(List<ToolCall> runtimeToolCalls) implements CompositionResult {
+    public RuntimeToolResultsRequired {
+      runtimeToolCalls = List.copyOf(runtimeToolCalls);
+    }
+  }
 
   /** Messages assembled and ready to be applied to the conversation. */
   record NextTurn(List<Message> messages) implements CompositionResult {

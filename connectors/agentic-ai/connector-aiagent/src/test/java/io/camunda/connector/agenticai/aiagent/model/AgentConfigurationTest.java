@@ -330,6 +330,20 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void runtimeToolDefinitionsAreUnaffected() {
+      final var tool =
+          ToolDefinition.builder()
+              .name("runtime")
+              .description("d")
+              .inputSchema(ordered("type", "object"))
+              .build();
+
+      assertThat(configuration("gpt-4o", "p", null, List.of(tool)).fingerprint())
+          .isEqualTo(configuration("gpt-4o", "p", null, List.of(tool)).fingerprint())
+          .matches("[0-9a-f]{64}");
+    }
+
+    @Test
     void fingerprintIsNeverBlank() {
       assertThat(configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint()).isNotBlank();
     }

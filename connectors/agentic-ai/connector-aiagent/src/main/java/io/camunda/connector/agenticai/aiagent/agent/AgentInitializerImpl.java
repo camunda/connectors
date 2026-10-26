@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
@@ -72,8 +73,9 @@ public class AgentInitializerImpl implements AgentInitializer {
   }
 
   /**
-   * Builds the initial agent context for a new agent, provisioning an agent instance on the engine
-   * when the job carries a non-blank {@code agentDefinitionKey} custom header.
+   * Builds the initial agent context for a new agent, which is created with the current features
+   * (see {@link AgentContext#features()}), provisioning an agent instance on the engine when the
+   * job carries a non-blank {@code agentDefinitionKey} custom header.
    */
   private AgentContext createAgentContext(AgentExecutionContext executionContext) {
     final var jobContext = executionContext.jobContext();
@@ -88,7 +90,7 @@ public class AgentInitializerImpl implements AgentInitializer {
           "Skipping agent instance creation: element was not marked with an agent definition");
     }
 
-    return AgentContext.empty().withMetadata(metadata);
+    return AgentContext.empty().withMetadata(metadata).withFeatures(AgentFeatures.ofNewInstance());
   }
 
   private boolean hasAgentDefinitionKeyHeader(JobContext jobContext) {

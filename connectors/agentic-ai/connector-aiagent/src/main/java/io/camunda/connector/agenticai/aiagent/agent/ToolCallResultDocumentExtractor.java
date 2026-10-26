@@ -7,6 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.api.document.ContentTreeDocumentWalker;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
@@ -70,6 +73,28 @@ public class ToolCallResultDocumentExtractor {
     return result;
   }
 
+  /**
+   * Extracts the {@link Document} instances of the content of the result of a runtime tool: the
+   * documents of its {@link DocumentContent} blocks and the ones nested in its {@link
+   * ObjectContent} blocks, without duplicates and in order of appearance. No gateway tool handler
+   * manages such a result.
+   */
+  public static List<Document> documentsOf(List<Content> content) {
+    final var documents = new ArrayList<Document>();
+    for (final var block : content) {
+      switch (block) {
+        case DocumentContent documentContent -> documents.add(documentContent.document());
+        case ObjectContent objectContent ->
+            documents.addAll(
+                ContentTreeDocumentWalker.extractDocumentsFromContent(objectContent.content()));
+        default -> {
+          // only these blocks hold live documents
+        }
+      }
+    }
+    return distinct(documents);
+  }
+
   private List<Document> extractFromToolCallResult(ToolCallResult toolCallResult) {
     final var documents =
         Optional.ofNullable(toolCallResult.name())
@@ -79,10 +104,16 @@ public class ToolCallResultDocumentExtractor {
                 () ->
                     ContentTreeDocumentWalker.extractDocumentsFromContent(
                         toolCallResult.content()));
-    // defensive: a third-party handler might return null entries; also dedupe documents
-    // that appear multiple times in a single result (e.g. the same attachment referenced
-    // from different paths in the content tree) — keyed by DocumentReference, which is a
-    // record / has structural equality for the standard reference types
+    return distinct(documents);
+  }
+
+  /**
+   * Defensive: a third-party handler might return null entries; also dedupes documents that appear
+   * multiple times in a single result (e.g. the same attachment referenced from different paths in
+   * the content tree), keyed by DocumentReference, which is a record / has structural equality for
+   * the standard reference types.
+   */
+  private static List<Document> distinct(List<Document> documents) {
     final var seen = new HashSet<DocumentReference>();
     return documents.stream()
         .filter(Objects::nonNull)
