@@ -83,8 +83,6 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
 
     try (Connection connection = openConnection(request)) {
       final var channel = connection.createChannel();
-      // The broker rejects a publish (e.g. missing exchange, no write permission) asynchronously by
-      // closing the channel, so only a publisher confirm tells us the message was accepted
       channel.confirmSelect();
       try {
         channel.basicPublish(
