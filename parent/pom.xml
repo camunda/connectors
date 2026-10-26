@@ -237,7 +237,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Released version that API-gated modules are compared against, see docs/api-compatibility.md.
          Bumped by the release workflow: main tracks the last released minor, stable branches the last patch. -->
-    <api.baseline.version>8.10.0</api.baseline.version>
+    <api.baseline.version>8.10.2</api.baseline.version>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.51.0</version.error-prone>
