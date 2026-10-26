@@ -88,6 +88,13 @@ defaults:
 jobs:
   handover:
     name: Hand the failure to the central triage
+    # This job mints a cross-repository App token from Vault, so it must not be
+    # reachable from a ref whose contents anyone can change. Every legitimate caller
+    # is a protected branch -- main and the stable/8.x callers -- while a
+    # workflow_dispatch on a throwaway branch would otherwise reach the credential.
+    # Same guard the other two dispatchers here already carry
+    # (connectors-streak-detector.yml, SAAS_E2E_RESULT.yaml).
+    if: github.ref_protected
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -137,8 +144,17 @@ jobs:
           BASE_REF: ${{ inputs.base_ref }}
           SLACK_TS: ${{ inputs.parent_slack_ts }}
           SLACK_CHANNEL: ${{ inputs.parent_slack_channel }}
-          DRY_RUN: ${{ inputs.dry_run || false }}
-          MAX_DISPATCHES: ${{ inputs.max_dispatches || 2 }}
+          # workflow_dispatch declares no dry_run, so `inputs.dry_run` is empty on a
+          # replay and `|| false` turned that into "go ahead and dispatch". Replaying
+          # a historical failure would then start agents against it. A manual run is
+          # classification-only, as it is in connectors-streak-detector.yml.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || inputs.dry_run }}
+          # Passed through unchanged: `|| 2` reads a deliberate `max_dispatches: 0`
+          # as unset, because Actions treats zero as falsy, and silently restores the
+          # default cap the caller was trying to remove. The workflow_call default
+          # supplies 2 when it is omitted, and the shell fallback below covers the
+          # manual case where the input does not exist at all.
+          MAX_DISPATCHES: ${{ inputs.max_dispatches }}
         run: |
           set -euo pipefail
           payload=$(jq -nc \
