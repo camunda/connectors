@@ -180,9 +180,22 @@ schema without the marker and with a hint appended to the description, derived w
 built. The stored definition and the configuration fingerprint therefore hold no hint wording.
 
 A value resolves only when it is exactly one tag. A bare id is invalid for a plain document parameter, and the agent
-answers the call with an error the model can act on, without the tool running. Alternatives: *accept an id or a tag* is
-friendlier to a model that copies only the id; *accept an id found anywhere in the text* would replace a tool argument
-that happens to contain an id. The model reads tags, so asking for what it reads is the least surprising contract.
+answers the call with an error the model can act on, without the tool running and without activating a process
+element. Alternatives: *accept an id or a tag* is friendlier to a model that copies only the id; *accept an id found
+anywhere in the text* would replace a tool argument that happens to contain an id. The model reads tags, so asking for
+what it reads is the least surprising contract.
+
+Who answers a call is decided once, when the agent receives the message of the model (ADR 016). A call of a tool of the
+process with an invalid document parameter is tagged as a call the connector runtime answers, as the call of a runtime
+tool is: the tag `RUNTIME` stands for "answered by the connector runtime", either because a runtime tool owns the name or
+because the call was rejected for its document parameters. The rejection text is not stored: the agent computes it again
+from the call and the agent context wherever it answers the call, which gives the same text in a retried job and in the
+job that composes a mixed batch. Alternatives: *a third kind of call for rejected calls* adds a state to every consumer of
+the tag for a call that is answered like a runtime tool call; *answering when the message is received* needs a place for
+the answer between jobs, which the conversation does not have; *activating the call and letting the element fail* runs a
+process element with an argument it cannot read. Consequence accepted: a process migration between the two jobs of a mixed
+batch that changes the definition of the tool can make the agent compute no rejection for a call tagged as rejected, and
+the model then reads that the tool is not enabled instead of the reason.
 
 Parameters that take text or a document are unions, declared in full: `anyOf`, `oneOf` and the type array shorthand.
 Only a value that is exactly one tag is a document. A plain string stays text even when it equals a known id, so a word
@@ -190,9 +203,11 @@ that equals an id never turns into a document by accident. Documents are not sea
 that are objects or arrays, because a value cannot be assigned to one alternative reliably.
 
 A process tool receives the Camunda document reference of the registry entry, a runtime tool the `DocumentId`. Passing a
-tag to a tool never adds content. The agent resolves the parameters once, when it receives the message of the model, on
-the call the model made, before a gateway handler transforms it. A gateway handler that defines its tools itself can declare document
-parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
+tag to a tool never adds content. The agent resolves the parameters on the call the model made, before a gateway handler
+transforms it, as a function of the call, the tool definition and the registry only, so a job that runs again from the
+same context computes the same result. The stored assistant message and the history keep the tag the model wrote; the
+reference exists only in the call that goes to the process. A gateway handler that defines its tools itself can declare
+document parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
 remote server and has no document type, so passing documents needs a mapping into the format the remote side expects.
 
 Alternatives for the schema: *a custom `type: document`* would force every consumer of persisted definitions to know a

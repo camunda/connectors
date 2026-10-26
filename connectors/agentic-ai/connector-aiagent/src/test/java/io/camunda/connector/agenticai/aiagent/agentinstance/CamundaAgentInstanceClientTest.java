@@ -43,6 +43,9 @@ import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -51,6 +54,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -79,11 +84,15 @@ import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryIm
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import io.camunda.connector.runtime.test.outbound.TestJobContext;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1463,6 +1472,104 @@ class CamundaAgentInstanceClientTest {
       assertThat(alone.getLoopIteration()).isEqualTo(2);
       assertThat(alone.getProducedAt()).isEqualTo(completedAt);
       assertThat(merged).usingRecursiveComparison().isEqualTo(alone);
+    }
+
+    @Test
+    void shouldReportTheArgumentsOfACallAsTheModelSentThemInEveryWriteOfTheCall() {
+      givenUpdateCommand();
+      final var configuration = configuration();
+      final var document =
+          new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+              .create(
+                  DocumentCreationRequest.from("content".getBytes(StandardCharsets.UTF_8))
+                      .contentType("text/plain")
+                      .fileName("report.txt")
+                      .build());
+      final var documentTag = "<doc id=\"" + DocumentHandle.idFor(document) + "\" />";
+      final var firstRegistry =
+          DocumentRegistries.withDocuments(
+              DocumentRegistry.empty(),
+              List.of(
+                  new IngestedDocument(document, DocumentSource.toolCall("Download", "download"))));
+      final var laterRegistry =
+          DocumentRegistries.withDocuments(
+              firstRegistry,
+              List.of(
+                  new IngestedDocument(
+                      new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+                          .create(
+                              DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
+                                  .fileName("other.txt")
+                                  .build()),
+                      DocumentSource.userMessage())));
+      final var withDocuments =
+          NEW_INSTANCE.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS));
+      final var first = withDocuments.withDocumentRegistry(firstRegistry);
+      final var later = withDocuments.withDocumentRegistry(laterRegistry);
+
+      final var runtimeResult =
+          ToolCallResultContent.builder()
+              .id("runtime")
+              .name("acme_lookup")
+              .content(List.of(TextContent.textContent("Found the customer.")))
+              .completedAt(OffsetDateTime.parse("2026-07-02T09:59:40Z"))
+              .build();
+      final var assistantTurn =
+          new AgentConversationTurn(
+              1,
+              List.of(),
+              AssistantMessage.builder()
+                  .toolCalls(
+                      List.of(
+                          ToolCall.builder()
+                              .id("runtime")
+                              .name("acme_lookup")
+                              .arguments(Map.of("customerId", "42", "document", documentTag))
+                              .kind(ToolKind.RUNTIME)
+                              .build()))
+                  .build(),
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var nextTurn =
+          new AgentConversationTurn(
+              2,
+              List.of(ToolCallResultMessage.builder().results(List.of(runtimeResult)).build()),
+              null,
+              AgentMetrics.empty(),
+              configuration.fingerprint());
+      final var key = AgentInstanceKey.of(AGENT_INSTANCE_KEY);
+
+      client.applyTurnCompletion(
+          TestAgentExecutionContext.withLimits(),
+          key,
+          assistantTurn,
+          OffsetDateTime.parse("2026-07-02T09:59:30Z"),
+          AgentInstanceUpdateStatus.TOOL_CALLING);
+      client.applyToolCallResults(
+          TestAgentExecutionContext.withLimits(),
+          key,
+          List.of(runtimeResult),
+          assistantTurn,
+          first);
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          key,
+          nextTurn,
+          Optional.of(assistantTurn),
+          OffsetDateTime.parse("2026-07-02T10:00:00Z"),
+          later);
+
+      verify(updateCommandStep4, times(3)).history(historyCaptor.capture());
+      final var assistantItem = historyCaptor.getAllValues().get(0).getFirst();
+      final var firstResult = historyCaptor.getAllValues().get(1).getFirst();
+      final var mergedResult = historyCaptor.getAllValues().get(2).getLast();
+      final var expectedArguments = Map.of("customerId", "42", "document", documentTag);
+      assertThat(assistantItem.getToolCalls().getFirst().getArguments())
+          .isEqualTo(expectedArguments);
+      assertThat(firstResult.getToolCalls().getFirst().getArguments()).isEqualTo(expectedArguments);
+      // the engine keeps the first write of a history item id, the later write is identical
+      assertThat(mergedResult).usingRecursiveComparison().isEqualTo(firstResult);
     }
 
     @Test

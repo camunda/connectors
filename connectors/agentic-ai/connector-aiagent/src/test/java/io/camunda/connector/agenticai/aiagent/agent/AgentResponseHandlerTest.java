@@ -11,20 +11,30 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SY
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -32,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguratio
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.TextResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -52,6 +63,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -90,7 +102,8 @@ class AgentResponseHandlerTest {
   void setUp() {
     responseHandler = new AgentResponseHandlerImpl(objectMapper, gatewayToolHandlers);
     // by default, registry passes tool calls through unchanged
-    when(gatewayToolHandlers.transformToolCalls(any(), any()))
+    lenient()
+        .when(gatewayToolHandlers.transformToolCalls(any(), any()))
         .thenAnswer(inv -> inv.getArgument(1));
   }
 
@@ -399,6 +412,152 @@ class AgentResponseHandlerTest {
     assertThat(response.toolCalls())
         .extracting(call -> call.metadata().id())
         .containsExactly("call-2");
+  }
+
+  @Nested
+  class DocumentParameters {
+
+    private static final ToolDefinition UPLOAD =
+        ToolDefinition.builder()
+            .name("upload")
+            .inputSchema(
+                Map.of(
+                    "type",
+                    "object",
+                    "properties",
+                    Map.of("doc", Map.of("type", "string", "format", "camunda-document-id"))))
+            .build();
+    private static final ToolDefinition WEATHER =
+        ToolDefinition.builder().name("getWeather").inputSchema(Map.of("type", "object")).build();
+
+    private final Document report = createDocument("report", "report.txt");
+    private final DocumentId reportId = DocumentHandle.idFor(report);
+    private final DocumentRegistry registry =
+        DocumentRegistries.withDocuments(
+            DocumentRegistry.empty(),
+            List.of(new IngestedDocument(report, DocumentSource.userMessage())));
+
+    private AgentConversation conversation(List<String> features, ToolCall... calls) {
+      final var context =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withFeatures(features)
+              .withDocumentRegistry(registry)
+              .withToolDefinitions(List.of(UPLOAD, WEATHER));
+      return AgentConversation.rehydrate(
+              new AgentConfiguration(
+                  TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
+              context,
+              TurnReconstructor.reconstruct(List.of()),
+              systemMessage("system"),
+              List.of())
+          .ingest(
+              assistantMessage("calling", List.of(calls)),
+              new AgentMetrics(1, AgentMetrics.TokenUsage.empty(), calls.length));
+    }
+
+    private AgentConversation conversation(ToolCall... calls) {
+      return conversation(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS), calls);
+    }
+
+    @Test
+    void handsTheCamundaDocumentReferenceOfAKnownTagToTheProcess() {
+      final var call =
+          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+
+      final var response = responseHandler.createResponse(conversation(call));
+
+      assertThat(response.toolCalls())
+          .singleElement()
+          .satisfies(
+              toolCall -> {
+                assertThat(toolCall.metadata().id()).isEqualTo("u1");
+                assertThat(toolCall.arguments())
+                    .containsEntry("doc", registry.findById(reportId).orElseThrow().reference());
+              });
+    }
+
+    @Test
+    void keepsTheToolCallsOfTheStoredAssistantMessageAsTheModelSentThem() {
+      final var call =
+          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+      final var conversation = conversation(call);
+
+      responseHandler.createResponse(conversation);
+
+      assertThat(conversation.lastTurn().orElseThrow().assistantMessage().toolCalls())
+          .containsExactly(call);
+    }
+
+    @Test
+    void resolvesTheDocumentsOfEveryCallOfTheProcessAndLeavesCallsWithoutDocumentParameters() {
+      final var upload =
+          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+      final var weather = new ToolCall("w1", "getWeather", Map.of("doc", "nope"));
+
+      final var response = responseHandler.createResponse(conversation(upload, weather));
+
+      assertThat(response.toolCalls())
+          .extracting(call -> call.metadata().id(), call -> call.arguments().get("doc"))
+          .containsExactly(
+              tuple("u1", registry.findById(reportId).orElseThrow().reference()),
+              tuple("w1", "nope"));
+    }
+
+    @Test
+    void passesTheCallsWithResolvedArgumentsToTheGatewayToolHandlers() {
+      final var call =
+          new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"" + reportId + "\" />"));
+
+      responseHandler.createResponse(conversation(call));
+
+      @SuppressWarnings("unchecked")
+      final ArgumentCaptor<List<ToolCall>> transformed = ArgumentCaptor.forClass(List.class);
+      verify(gatewayToolHandlers).transformToolCalls(any(), transformed.capture());
+      assertThat(transformed.getValue())
+          .singleElement()
+          .satisfies(
+              toolCall ->
+                  assertThat(toolCall.arguments())
+                      .containsEntry("doc", registry.findById(reportId).orElseThrow().reference()));
+    }
+
+    @Test
+    void anAgentInstanceWithoutTheDocumentsFeatureHandsTheArgumentsAsTheModelSentThem() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", "<doc id=\"x\" />"));
+
+      final var response =
+          responseHandler.createResponse(conversation(List.of(AgentFeatures.RUNTIME_TOOLS), call));
+
+      assertThat(response.toolCalls())
+          .singleElement()
+          .satisfies(
+              toolCall ->
+                  assertThat(toolCall.arguments()).containsEntry("doc", "<doc id=\"x\" />"));
+    }
+
+    @Test
+    void failsForACallWithInvalidDocumentParametersThatIsHandedToTheProcess() {
+      final var call = new ToolCall("u1", "upload", Map.of("doc", "bogus"));
+
+      assertThatThrownBy(() -> responseHandler.createResponse(conversation(call)))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("'u1'")
+          .hasMessageContaining("'upload'");
+    }
+
+    @Test
+    void doesNotHandOutTheCallOfAToolOfTheProcessThatWasRejectedForItsDocumentParameters() {
+      final var rejected =
+          new ToolCall("u1", "upload", Map.of("doc", "bogus")).withKind(ToolKind.RUNTIME);
+      final var weather = new ToolCall("w1", "getWeather", Map.of());
+
+      final var response = responseHandler.createResponse(conversation(rejected, weather));
+
+      assertThat(response.toolCalls())
+          .extracting(call -> call.metadata().id())
+          .containsExactly("w1");
+    }
   }
 
   private AgentResponse createResponse(

@@ -8,14 +8,21 @@ package io.camunda.connector.agenticai.aiagent.model.tool;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** The class of tool a tool call targets. It is serialized in lower case. */
+/**
+ * Who answers a tool call. It is serialized in lower case, and set once when the assistant message
+ * with the call enters the conversation.
+ */
 public enum ToolKind {
   /**
    * A tool that is a BPMN element, activated in the process; its result arrives with a later job.
    */
   @JsonProperty("process")
   PROCESS,
-  /** A tool the agent runs itself, without activating a BPMN element. */
+  /**
+   * A call the connector runtime answers itself, without activating a BPMN element: the call of a
+   * tool a runtime tool owns the name of, or the call of a tool of the process that was rejected
+   * for its document parameters and is answered with an error result.
+   */
   @JsonProperty("runtime")
   RUNTIME
 }

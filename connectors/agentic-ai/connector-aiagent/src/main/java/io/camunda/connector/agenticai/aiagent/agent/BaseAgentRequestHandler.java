@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
+import io.camunda.connector.agenticai.aiagent.document.DocumentParameterResolver;
 import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -35,6 +36,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -50,6 +52,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -313,10 +316,9 @@ public abstract class BaseAgentRequestHandler<
               documentExpander.windowDecorator(workingConversation));
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
-      // the one place the tool calls are tagged with the kind of their tool
+      // the one place the tool calls are tagged with who answers them
       final var assistantMessage =
-          runtimeToolRegistry.tagToolCalls(
-              workingConversation.persistedContext(), chatResult.assistantMessage());
+          tagToolCalls(workingConversation.persistedContext(), chatResult.assistantMessage());
       workingConversation = workingConversation.ingest(assistantMessage, chatResult.metrics());
 
       final var currentTurn = workingConversation.currentTurn();
@@ -384,6 +386,30 @@ public abstract class BaseAgentRequestHandler<
       }
     } while (anotherRound);
     return workingConversation;
+  }
+
+  /**
+   * Tags every tool call of the message with {@link ToolKind#PROCESS} or {@link ToolKind#RUNTIME}.
+   * A call is answered by the agent when a runtime tool owns the name of its tool or when its
+   * document parameters are invalid, a call of a tool of the process that is not activated. The tag
+   * depends on the agent context and the call only, so it is the same wherever it is computed.
+   */
+  private AssistantMessage tagToolCalls(AgentContext agentContext, AssistantMessage message) {
+    final var tagged = runtimeToolRegistry.tagToolCalls(agentContext, message);
+    if (!tagged.hasToolCalls()) {
+      return tagged;
+    }
+    boolean changed = false;
+    final var toolCalls = new ArrayList<ToolCall>();
+    for (final var toolCall : tagged.toolCalls()) {
+      final boolean rejected =
+          toolCall.kind() == ToolKind.PROCESS
+              && DocumentParameterResolver.resolveProcessCall(agentContext, toolCall)
+                  instanceof DocumentParameterResolver.Resolution.Invalid;
+      changed |= rejected;
+      toolCalls.add(rejected ? toolCall.withKind(ToolKind.RUNTIME) : toolCall);
+    }
+    return changed ? tagged.withToolCalls(List.copyOf(toolCalls)) : tagged;
   }
 
   /**
