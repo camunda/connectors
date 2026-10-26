@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatResult;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -100,11 +101,16 @@ class AgentTaskRequestHandlerTest {
   @Spy
   private RuntimeToolRegistry runtimeToolRegistry =
       new RuntimeToolRegistryImpl(
-          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)));
+          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)),
+          TestObjectMapperSupplier.INSTANCE);
 
   @Spy
   private RuntimeToolExecutor runtimeToolExecutor =
       new RuntimeToolExecutorImpl(runtimeToolRegistry, TestObjectMapperSupplier.INSTANCE);
+
+  @Spy
+  private DocumentExpander documentExpander =
+      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 

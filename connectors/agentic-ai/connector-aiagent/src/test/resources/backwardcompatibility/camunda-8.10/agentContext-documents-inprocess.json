@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "state": "READY",
+  "metadata": {
+    "processDefinitionKey": 2251799813691441,
+    "processInstanceKey": 2251799813691485,
+    "lastIterationKey": 4
+  },
+  "metrics": {
+    "modelCalls": 4,
+    "tokenUsage": {
+      "inputTokenCount": 1200,
+      "outputTokenCount": 150
+    }
+  },
+  "toolDefinitions": [
+    {
+      "name": "Download_A_File",
+      "description": "Downloads a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  ],
+  "conversation": {
+    "type": "in-process",
+    "conversationId": "legacy-documents",
+    "messages": [
+      {
+        "role": "system",
+        "id": "0197a000-0000-7000-8000-000000000001",
+        "content": [
+          {
+            "type": "text",
+            "text": "You are a helpful assistant."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "id": "0197a000-0000-7000-8000-000000000002",
+        "content": [
+          {
+            "type": "text",
+            "text": "Summarize the attached report and download the invoice."
+          },
+          {
+            "type": "document",
+            "document": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "11111111-1111-4111-8111-111111111111",
+              "contentHash": "hash-prompt",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "report.pdf"
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-09-01T10:00:00Z"
+        }
+      },
+      {
+        "role": "assistant",
+        "id": "0197a000-0000-7000-8000-000000000003",
+        "content": [
+          {
+            "type": "text",
+            "text": "I will download the invoice."
+          }
+        ],
+        "toolCalls": [
+          {
+            "id": "call-1",
+            "name": "Download_A_File",
+            "arguments": {
+              "url": "https://example.com/invoice.pdf"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool_call_result",
+        "id": "0197a000-0000-7000-8000-000000000004",
+        "results": [
+          {
+            "id": "call-1",
+            "name": "Download_A_File",
+            "elementId": "Download_A_File",
+            "content": [
+              {
+                "type": "object",
+                "content": {
+                  "status": 200,
+                  "file": {
+                    "camunda.document.type": "camunda",
+                    "storeId": "in-memory",
+                    "documentId": "22222222-2222-4222-8222-222222222222",
+                    "contentHash": "hash-invoice",
+                    "metadata": {
+                      "contentType": "application/pdf",
+                      "fileName": "invoice.pdf"
+                    }
+                  },
+                  "inline": {
+                    "camunda.document.type": "inline",
+                    "content": "{\"total\": 42}",
+                    "name": "totals.json",
+                    "contentType": "application/json"
+                  }
+                }
+              }
+            ],
+            "completedAt": "2026-09-01T10:00:05Z"
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-09-01T10:00:06Z"
+        }
+      },
+      {
+        "role": "user",
+        "id": "0197a000-0000-7000-8000-000000000005",
+        "content": [
+          {
+            "type": "text",
+            "text": "Documents extracted from tool calls (<doc /> tag + content pair):"
+          },
+          {
+            "type": "text",
+            "text": "<doc toolName=\"Download_A_File\" toolCallId=\"call-1\" documentId=\"22222222-2222-4222-8222-222222222222\" storeId=\"in-memory\" contentType=\"application/pdf\" fileName=\"invoice.pdf\" />"
+          },
+          {
+            "type": "document",
+            "document": {
+              "camunda.document.type": "camunda",
+              "storeId": "in-memory",
+              "documentId": "22222222-2222-4222-8222-222222222222",
+              "contentHash": "hash-invoice",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "invoice.pdf"
+              }
+            }
+          },
+          {
+            "type": "text",
+            "text": "<doc toolName=\"Download_A_File\" toolCallId=\"call-1\" />"
+          },
+          {
+            "type": "document",
+            "document": {
+              "camunda.document.type": "inline",
+              "content": "{\"total\": 42}",
+              "name": "totals.json",
+              "contentType": "application/json"
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-09-01T10:00:06Z",
+          "toolCallDocuments": true
+        }
+      },
+      {
+        "role": "assistant",
+        "id": "0197a000-0000-7000-8000-000000000006",
+        "content": [
+          {
+            "type": "text",
+            "text": "The report and the invoice are summarized below."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "A new attachment arrived."
+          },
+          {
+            "type": "text",
+            "text": "Documents extracted from event data (<doc /> tag + content pair):"
+          },
+          {
+            "type": "text",
+            "text": "<doc url=\"https://example.com/files/notes.txt\" name=\"notes.txt\" />"
+          },
+          {
+            "type": "document",
+            "document": {
+              "camunda.document.type": "external",
+              "url": "https://example.com/files/notes.txt",
+              "name": "notes.txt"
+            }
+          }
+        ],
+        "metadata": {
+          "timestamp": "2026-09-01T10:05:00Z"
+        }
+      },
+      {
+        "role": "assistant",
+        "id": "0197a000-0000-7000-8000-000000000008",
+        "content": [
+          {
+            "type": "text",
+            "text": "Noted."
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {}
+}

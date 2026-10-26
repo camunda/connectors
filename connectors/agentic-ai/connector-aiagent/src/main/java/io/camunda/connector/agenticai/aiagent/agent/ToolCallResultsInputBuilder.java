@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -24,8 +27,13 @@ import java.util.Map;
 
 /**
  * Builds the input of the turn that follows a turn with tool calls from the tool call results of
- * all of its calls: the tool call result message and, when a result holds documents, the message
- * that carries them.
+ * all of its calls, in the order of the calls. The composer uses it for the results of a turn with
+ * process tool calls, the request handler for a turn with runtime tool calls only, so the input and
+ * the documents that enter the conversation with it are the same for both.
+ *
+ * <p>An agent instance with the documents feature shows a document as its tag inside the tool
+ * result and reports it for the document registry. An agent instance without it keeps the document
+ * in a message of its own, next to its tag.
  */
 final class ToolCallResultsInputBuilder {
 
@@ -46,7 +54,10 @@ final class ToolCallResultsInputBuilder {
       documents = List.copyOf(documents);
     }
 
-    /** The entry for the result of a runtime tool; its documents are the ones of its content. */
+    /**
+     * The entry for the result of a runtime tool; its documents are the ones of its content, so the
+     * result of a failed call, whose content is text, has none.
+     */
     static Entry of(RuntimeToolExecution execution) {
       return new Entry(
           execution.result(),
@@ -55,13 +66,58 @@ final class ToolCallResultsInputBuilder {
   }
 
   /**
-   * The messages for the results of all tool calls of a turn.
+   * The input of the turn that follows the results.
+   *
+   * @param messages the messages of the input, in order
+   * @param documents the documents of the results to register in the document registry, in the
+   *     order of the tool calls; empty for an agent instance without the documents feature
+   */
+  record Input(List<Message> messages, List<IngestedDocument> documents) {
+
+    Input {
+      messages = List.copyOf(messages);
+      documents = List.copyOf(documents);
+    }
+  }
+
+  /**
+   * The input for the results of all tool calls of a turn.
    *
    * @param entries the results in the order of the tool calls
-   * @return the tool call result message, followed by the message with the documents of the results
-   *     if there are any
+   * @param documentFlow whether the agent instance has the documents feature
+   * @return the tool call result message and, with the documents feature, the documents of the
+   *     results to register; without it, the message with the documents of the results if there are
+   *     any
    */
-  static List<Message> build(List<Entry> entries) {
+  static Input build(List<Entry> entries, boolean documentFlow) {
+    return documentFlow ? buildWithDocumentTags(entries) : buildWithDocumentMessage(entries);
+  }
+
+  /**
+   * A document that is a whole result is persisted as its tag, like the documents that are not a
+   * whole result. The documents of every result are registered with the tool call as their source.
+   */
+  private static Input buildWithDocumentTags(List<Entry> entries) {
+    final var results =
+        entries.stream()
+            .map(Entry::result)
+            .map(DocumentReferences::withDocumentReferences)
+            .toList();
+    final var documents = new ArrayList<IngestedDocument>();
+    for (final var entry : entries) {
+      final var source = DocumentSource.toolCall(entry.result().name(), entry.result().id());
+      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, source)));
+    }
+    return new Input(
+        List.of(
+            ToolCallResultMessage.builder()
+                .results(results)
+                .metadata(defaultMessageMetadata())
+                .build()),
+        documents);
+  }
+
+  private static Input buildWithDocumentMessage(List<Entry> entries) {
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
@@ -86,7 +142,7 @@ final class ToolCallResultsInputBuilder {
       metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
       messages.add(UserMessage.builder().content(content).metadata(metadata).build());
     }
-    return List.copyOf(messages);
+    return new Input(messages, List.of());
   }
 
   /** A document tag followed by the document, for every document of every group. */
@@ -97,7 +153,7 @@ final class ToolCallResultsInputBuilder {
       for (var doc : group.documents()) {
         content.add(
             textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                LegacyDocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
                     .toXml()));
         content.add(DocumentContent.documentContent(doc));
       }

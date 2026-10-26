@@ -31,14 +31,17 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeToolExecutorImpl.class);
 
   private final RuntimeToolRegistry runtimeToolRegistry;
+  private final ObjectMapper objectMapper;
   private final ObjectMapper argumentsMapper;
 
   /**
-   * @param objectMapper the mapper that, in a copy, binds the arguments of a call
+   * @param objectMapper the mapper that reads a document from its reference and, in a copy, binds
+   *     the arguments of a call
    */
   public RuntimeToolExecutorImpl(
       RuntimeToolRegistry runtimeToolRegistry, ObjectMapper objectMapper) {
     this.runtimeToolRegistry = runtimeToolRegistry;
+    this.objectMapper = objectMapper;
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
   }
 
@@ -78,7 +81,8 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
             toolCall.name(),
             toolCall.arguments() == null ? Map.of() : toolCall.arguments(),
             argumentsMapper);
-    final var runtimeToolContext = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var runtimeToolContext =
+        RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
 
     RuntimeToolResult result;
     try {
