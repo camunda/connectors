@@ -16,7 +16,11 @@ Ported from POC 0.11 of camunda/code-execution-poc.
 import ctypes
 import json
 import os
-import resource
+
+try:
+    import resource
+except ImportError:  # Windows: no rlimits; the local mode is not verified there
+    resource = None
 import shutil
 import signal
 import subprocess
@@ -137,6 +141,8 @@ def _harden():
 
 
 def _limit_memory():
+    if resource is None:
+        return
     try:
         resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
     except (ValueError, OSError):  # macOS does not support RLIMIT_AS
@@ -194,8 +200,11 @@ def _clean_tmp():
 
 def _kill_group(proc):
     try:
-        os.killpg(proc.pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
+        if hasattr(os, "killpg"):
+            os.killpg(proc.pid, signal.SIGKILL)
+        else:  # Windows: no process groups
+            proc.kill()
+    except (ProcessLookupError, PermissionError, OSError):
         pass
 
 
@@ -244,8 +253,8 @@ def _execute(event, workdir, deadline_ms):
             stdin=subprocess.PIPE,
             stdout=stdout,
             stderr=stderr,
-            start_new_session=True,
-            preexec_fn=_limit_memory,
+            start_new_session=os.name == "posix",
+            preexec_fn=_limit_memory if os.name == "posix" else None,
         )
         try:
             proc.stdin.write(json.dumps(request).encode("utf-8"))

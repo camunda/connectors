@@ -24,8 +24,12 @@ import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.support.GenericApplicationContext;
 
 class ManagedCodeAutoConfigurationTest {
 
@@ -67,6 +71,44 @@ class ManagedCodeAutoConfigurationTest {
               assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofMinutes(1));
               assertThat(properties.executionTimeout()).isEqualTo(Duration.ofSeconds(20));
               assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
+            });
+  }
+
+  @Test
+  void startsCreatingTheExecutorsOnceTheApplicationIsReady() throws InterruptedException {
+    final var provider = new ControlledProvider();
+    try (var context =
+        new SpringApplicationBuilder(ManagedCodeAutoConfiguration.class)
+            .web(WebApplicationType.NONE)
+            .initializers(
+                (ApplicationContextInitializer<GenericApplicationContext>)
+                    applicationContext ->
+                        applicationContext.registerBean(ManagedCodeProvider.class, () -> provider))
+            .properties(
+                "camunda.connector.managed-code.enabled=true",
+                "camunda.connector.managed-code.provider=controlled")
+            .run()) {
+      final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+      while (provider.ensures.get() == 0 && System.nanoTime() < deadline) {
+        Thread.sleep(10);
+      }
+      assertThat(provider.ensures).hasValue(1);
+      assertThat(context.getBean(ExecutorReadiness.class).start()).isCompleted();
+    }
+  }
+
+  @Test
+  void doesNotCreateTheExecutorsBeforeTheApplicationIsReady() {
+    final var provider = new ControlledProvider();
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=controlled")
+        .withBean(ManagedCodeProvider.class, () -> provider)
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(provider.ensures).hasValue(0);
             });
   }
 

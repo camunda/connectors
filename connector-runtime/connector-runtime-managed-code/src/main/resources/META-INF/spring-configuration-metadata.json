@@ -78,8 +78,8 @@
     {
       "name": "camunda.connector.managed-code.aws.memory-mb",
       "type": "java.lang.Integer",
-      "description": "Memory of each executor, in MB.",
-      "defaultValue": 256
+      "description": "Memory of each executor, in MB. Leaves room for the wrapper next to the script, whose child process is limited to 256 MB.",
+      "defaultValue": 512
     },
     {
       "name": "camunda.connector.managed-code.aws.log-retention-days",
@@ -116,8 +116,8 @@
     {
       "name": "camunda.connector.managed-code.gcp.memory-mb",
       "type": "java.lang.Integer",
-      "description": "Memory of each executor, in MiB.",
-      "defaultValue": 256
+      "description": "Memory of each executor, in MiB. Leaves room for the wrapper next to the script, whose child process is limited to 256 MB.",
+      "defaultValue": 512
     },
     {
       "name": "camunda.connector.managed-code.gcp.max-instance-count",

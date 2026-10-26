@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.managedcode;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,6 +49,8 @@ final class ExecutorReadiness implements AutoCloseable {
           });
   private CompletableFuture<Void> ready;
   private long failedAtNanos;
+  private volatile long failingSinceNanos;
+  private volatile ProvisioningException lastFailure;
   private volatile boolean closed;
 
   ExecutorReadiness(ManagedCodeProvider provider, Duration retryBackoff) {
@@ -84,6 +87,20 @@ final class ExecutorReadiness implements AutoCloseable {
     return start();
   }
 
+  /**
+   * The last failure, when creating the executors has failed without interruption for longer than
+   * the given duration; empty otherwise. Lets waiting jobs consume their retries when a retryable
+   * failure lasts, instead of waiting again on every attempt without ever raising an incident.
+   */
+  Optional<ProvisioningException> lastingFailure(Duration longerThan) {
+    final var failure = lastFailure;
+    final long since = failingSinceNanos;
+    if (failure == null || since == 0 || System.nanoTime() - since <= longerThan.toNanos()) {
+      return Optional.empty();
+    }
+    return Optional.of(failure);
+  }
+
   @Override
   public void close() {
     closed = true;
@@ -96,9 +113,12 @@ final class ExecutorReadiness implements AutoCloseable {
       try {
         provider.ensureExecutors();
         LOG.info("Managed-code executors of provider '{}' are ready", provider.name());
+        failingSinceNanos = 0;
+        lastFailure = null;
         future.complete(null);
         return;
       } catch (ProvisioningException e) {
+        recordFailure(e);
         if (!e.retryable()) {
           LOG.warn(
               "Managed-code executors of provider '{}' cannot be created ({}): {}",
@@ -114,6 +134,9 @@ final class ExecutorReadiness implements AutoCloseable {
             e.code(),
             backoff);
       } catch (RuntimeException e) {
+        recordFailure(
+            new ProvisioningException(
+                "PLATFORM_UNAVAILABLE", "Creating the executors failed: " + e, true, e));
         LOG.warn("Creating the managed-code executors failed; retrying in {}", backoff, e);
       }
       try {
@@ -131,6 +154,13 @@ final class ExecutorReadiness implements AutoCloseable {
         future,
         new ProvisioningException(
             "PLATFORM_UNAVAILABLE", "The managed-code executors were not created", true));
+  }
+
+  private void recordFailure(ProvisioningException failure) {
+    if (failingSinceNanos == 0) {
+      failingSinceNanos = System.nanoTime();
+    }
+    lastFailure = failure;
   }
 
   private synchronized void failed(CompletableFuture<Void> future, ProvisioningException failure) {

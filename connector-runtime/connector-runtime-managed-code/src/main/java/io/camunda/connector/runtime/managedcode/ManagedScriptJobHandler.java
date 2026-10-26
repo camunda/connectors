@@ -207,6 +207,11 @@ final class ManagedScriptJobHandler {
       // Bounded wait on the shared future: a timeout must not complete or cancel it.
       ready.get(Math.max(0, deadlineNanos - System.nanoTime()), TimeUnit.NANOSECONDS);
     } catch (TimeoutException e) {
+      // A failure that stays retryable, such as a lasting denial, must end in an incident.
+      final var lasting = executors.lastingFailure(provisioningTimeout.multipliedBy(2));
+      if (lasting.isPresent()) {
+        throw lasting.get();
+      }
       throw new ProvisioningTimeoutException(
           "The managed-code executors are still being created after %s; the job will be retried"
               .formatted(provisioningTimeout));

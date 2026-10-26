@@ -66,7 +66,8 @@ The `local` provider writes the executor wrapper of each language to a subdirect
 for every call with local Node.js 20+ or Python 3.10+, discovered from `PATH`. The wrapper runs in a
 local mode: it kills only the process group of the script and uses a temporary directory of its
 own, removed after the call. Scripts run with the Connector Runtime operating-system identity: this
-mode limits time and output but is **not a sandbox** and is for trusted development only.
+mode limits time and output but is **not a sandbox** and is for trusted development only. It is
+tested on macOS and Linux, not on Windows.
 
 The `aws` provider creates one AWS Lambda function per language, named
 `<deployment-name-prefix><py|js>-<digest>`, and invokes it synchronously:
@@ -75,7 +76,7 @@ The `aws` provider creates one AWS Lambda function per language, named
 camunda.connector.managed-code.provider=aws
 camunda.connector.managed-code.aws.region=eu-central-1
 camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::<account>:role/<execution-role>
-camunda.connector.managed-code.aws.memory-mb=256
+camunda.connector.managed-code.aws.memory-mb=512
 camunda.connector.managed-code.aws.log-retention-days=14
 camunda.connector.managed-code.aws.poll-interval=2s
 ```
@@ -110,7 +111,7 @@ camunda.connector.managed-code.gcp.project=<project>
 camunda.connector.managed-code.gcp.region=europe-west1
 camunda.connector.managed-code.gcp.function-service-account=<function-identity>@<project>.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.deployer-service-account=<deployer>@<project>.iam.gserviceaccount.com
-camunda.connector.managed-code.gcp.memory-mb=256
+camunda.connector.managed-code.gcp.memory-mb=512
 camunda.connector.managed-code.gcp.max-instance-count=10
 camunda.connector.managed-code.gcp.poll-interval=5s
 ```

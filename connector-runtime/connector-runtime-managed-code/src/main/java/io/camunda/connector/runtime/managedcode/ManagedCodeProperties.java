@@ -108,7 +108,7 @@ public record ManagedCodeProperties(
       int logRetentionDays,
       Duration pollInterval) {
 
-    private static final int DEFAULT_MEMORY_MB = 256;
+    private static final int DEFAULT_MEMORY_MB = 512;
     private static final int DEFAULT_LOG_RETENTION_DAYS = 14;
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(2);
 
@@ -147,7 +147,7 @@ public record ManagedCodeProperties(
       int maxInstanceCount,
       Duration pollInterval) {
 
-    private static final int DEFAULT_MEMORY_MB = 256;
+    private static final int DEFAULT_MEMORY_MB = 512;
     private static final int DEFAULT_MAX_INSTANCE_COUNT = 10;
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(5);
 

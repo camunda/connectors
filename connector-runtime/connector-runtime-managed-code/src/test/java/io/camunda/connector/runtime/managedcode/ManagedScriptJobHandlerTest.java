@@ -190,6 +190,23 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void aRetryableFailureThatLastsConsumesRetriesSoThatTheJobEndsInAnIncident()
+      throws InterruptedException {
+    provider.failEnsure(new ProvisioningException("PERMISSION_DENIED", "denied", true));
+    final var handler = handler(Duration.ofMillis(50));
+
+    final var early = failed(handle(handler, job(1L, 3, scriptLink(1L))));
+    Thread.sleep(150);
+    final var lasting = failed(handle(handler, job(2L, 3, scriptLink(1L))));
+
+    assertThat(early.code()).isEqualTo("PROVISIONING_PENDING");
+    assertThat(early.retries()).isEqualTo(3);
+    assertThat(lasting.code()).isEqualTo("PERMISSION_DENIED");
+    assertThat(lasting.retries()).isNull();
+    assertThat(lasting.backoff()).isEqualTo(BACKOFF);
+  }
+
+  @Test
   void mapsRetryableAndNonRetryableExecutionFailures() {
     provider.respond(
         ExecutionResponse.failed("PLATFORM_UNAVAILABLE", "busy", true),
