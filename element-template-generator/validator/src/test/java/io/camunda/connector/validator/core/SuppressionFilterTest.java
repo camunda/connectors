@@ -1,0 +1,125 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.validator.core;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class SuppressionFilterTest {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Set<String> RULES = Set.of("text-rule", "other-rule");
+
+  @TempDir Path module;
+  private Path template;
+  private Path hybrid;
+  private final Map<Path, JsonNode> templates = new LinkedHashMap<>();
+
+  @BeforeEach
+  void setUp() throws Exception {
+    template = module.resolve("element-templates/a.json");
+    hybrid = module.resolve("element-templates/hybrid/a-hybrid.json");
+    JsonNode tree =
+        MAPPER.readTree("{ \"properties\": [ { \"id\": \"first\" }, { \"id\": \"second\" } ] }");
+    templates.put(template, tree);
+    templates.put(hybrid, tree);
+  }
+
+  @Test
+  void noSuppressionFile_findingsUnchanged() {
+    List<Finding> findings = List.of(finding(template, "/properties/0/description", "text-rule"));
+    var result = SuppressionFilter.apply(findings, templates, RULES);
+    assertThat(result.findings()).isEqualTo(findings);
+    assertThat(result.suppressed()).isZero();
+  }
+
+  @Test
+  void propertySuppression_matchesByIdNotIndex() throws Exception {
+    write(
+        """
+        { "suppressions": [
+          { "rule": "text-rule", "template": "a.json", "property": "second", "reason": "R." }
+        ] }
+        """);
+    Finding onSecond = finding(template, "/properties/1/tooltip", "text-rule");
+    Finding onFirst = finding(template, "/properties/0/tooltip", "text-rule");
+    Finding otherRule = finding(template, "/properties/1/tooltip", "other-rule");
+    Finding otherFile = finding(hybrid, "/properties/1/tooltip", "text-rule");
+
+    var result =
+        SuppressionFilter.apply(List.of(onSecond, onFirst, otherRule, otherFile), templates, RULES);
+
+    assertThat(result.suppressed()).isEqualTo(1);
+    assertThat(result.findings()).containsExactly(onFirst, otherRule, otherFile);
+  }
+
+  @Test
+  void templateWideGlobSuppression_matchesSubdirectories() throws Exception {
+    write(
+        """
+        { "suppressions": [ { "rule": "text-rule", "template": "**.json", "reason": "R." } ] }
+        """);
+    var result =
+        SuppressionFilter.apply(
+            List.of(finding(template, "/groups/0", "text-rule"), finding(hybrid, "", "text-rule")),
+            templates,
+            RULES);
+    assertThat(result.findings()).isEmpty();
+    assertThat(result.suppressed()).isEqualTo(2);
+  }
+
+  @Test
+  void invalidOrUnusedSuppressions_reported() throws Exception {
+    write(
+        """
+        { "suppressions": [
+          { "rule": "schema", "template": "a.json", "reason": "Not suppressible." },
+          { "rule": "text-rule", "template": "missing.json", "reason": "No template." },
+          { "rule": "text-rule", "template": "a.json", "property": "nope", "reason": "No prop." },
+          { "rule": "other-rule", "template": "a.json", "reason": "Stale." }
+        ] }
+        """);
+    var result = SuppressionFilter.apply(List.of(), templates, RULES);
+    assertThat(result.findings())
+        .allMatch(f -> f.ruleId().equals(SuppressionFile.RULE_ID))
+        .extracting(Finding::jsonPointer)
+        .containsExactly(
+            "/suppressions/0/rule",
+            "/suppressions/1/template",
+            "/suppressions/2/property",
+            "/suppressions/3");
+  }
+
+  private void write(String json) throws Exception {
+    Files.writeString(module.resolve(SuppressionFile.FILE_NAME), json);
+  }
+
+  private static Finding finding(Path file, String pointer, String rule) {
+    return Finding.error(file, pointer, rule, "message");
+  }
+}

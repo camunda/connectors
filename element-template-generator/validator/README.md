@@ -120,9 +120,41 @@ place.
 The schema rule runs first as a gate. If it produces findings for a file, semantic
 rules are skipped for that file to avoid noisy cascades.
 
+## Suppressions
+
+Accept a specific finding by adding it to `element-template-suppressions.json` in the connector
+module root, next to its `element-templates/` directory:
+
+```json
+{
+  "suppressions": [
+    {
+      "rule": "condition-property-order",
+      "template": "**my-connector*.json",
+      "property": "authentication.type",
+      "reason": "Why this finding is accepted, with a link to the follow-up issue if any."
+    }
+  ]
+}
+```
+
+| Field      | Required | Description                                                                                                                                          |
+|------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `rule`     | yes      | Rule id from the tables above. `schema`, `json-parse`, and `duplicate-keys` cannot be suppressed.                                                    |
+| `template` | yes      | Glob relative to `element-templates/`. `*` stays within a directory; `**` also matches `hybrid/` and `versioned/`.                                   |
+| `property` | no       | Property `id`. Limits the suppression to findings under that property, independent of its position in `properties[]`. Omit to cover the whole template, for example for properties without an `id`. |
+| `reason`   | yes      | Why the finding is accepted.                                                                                                                         |
+
+The file is validated on every run and reported under the rule id `suppression`. The run fails
+when the file has unknown fields, a missing or blank required field, an invalid glob, or a
+duplicate entry, or when an entry uses an unknown or non-suppressible rule, matches no template,
+names a property that none of the matched templates has, or no longer suppresses any finding.
+Stale entries therefore have to be removed together with the fix.
+
 ## Adding a rule
 
 1. Implement `io.camunda.connector.validator.core.Rule` (single-file) or
    `io.camunda.connector.validator.core.MultiFileRule` (cross-file).
-2. Add it to the corresponding list in `ValidatorCommand`.
+2. Add it to the corresponding list in `ValidatorCommand`. Rules in these lists are suppressible
+   automatically.
 3. Write a fixture-driven unit test in `src/test/java/.../rule/`.
