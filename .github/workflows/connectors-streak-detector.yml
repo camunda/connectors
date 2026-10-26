@@ -46,7 +46,7 @@ env:
   # Subteam IDs are workspace identifiers, not secrets (same convention as
   # camunda/camunda). The connectors medic is referenced via the existing repo
   # secret, consistent with the other connectors Slack notifications.
-  MEDIC_DISTRO: '<!subteam^S053K7C7QKU>'
+  MEDIC_DISTRO: '<!subteam^S0CBB7Y72SV>'
   MEDIC_TEST_AUTOMATION: '<!subteam^S09UF0EV0HG>'
 
 defaults:
