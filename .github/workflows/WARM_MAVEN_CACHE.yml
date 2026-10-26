@@ -8,6 +8,8 @@ name: Warm Maven cache
 # Scheduled workflows only run on main, so this workflow also warms the cache for
 # each maintained stable/* branch: it checks the branch out and runs that branch's
 # own build. A pom change on a stable branch is picked up by the next scheduled run.
+# On a key miss, dependencies are resolved from scratch rather than seeded from an
+# older entry: other branches' entries would leak their dependencies into this one.
 #
 # Runs on the same runner type as the internal "Test branch" jobs: caches are
 # only restorable on runners with a matching cache version.
@@ -120,15 +122,6 @@ jobs:
         uses: ./.github/actions/cache-maven-wrapper
         with:
           restore-only: 'true'
-
-      - name: Restore previous cache
-        if: steps.lookup.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ~/.m2/repository
-          key: ${{ steps.key.outputs.value }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         if: steps.lookup.outputs.cache-hit != 'true' || (matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true')
