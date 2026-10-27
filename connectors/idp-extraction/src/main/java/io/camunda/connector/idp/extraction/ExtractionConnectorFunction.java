@@ -11,8 +11,6 @@ import static io.camunda.connector.idp.extraction.utils.ProviderUtil.*;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.model.impl.AwsCredentialConfiguration;
-import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
@@ -25,28 +23,15 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
  *     UnstructuredExtractionConnectorFunction}, {@link StructuredExtractionConnectorFunction}, or
  *     {@link ClassificationConnectorFunction} instead, which expose the full feature set. Retained
  *     for backwards compatibility; no removal currently planned.
+ *     <p>Its element template is frozen and no longer generated from this class. The only valid
+ *     versions are the snapshots in {@code element-templates/versioned/}: v1 for 8.7 and v2 for 8.8
+ *     clusters. From 8.9 on, the specialized templates replace it.
  */
 @Deprecated(since = "8.9")
 @OutboundConnector(
     name = "IDP extraction outbound Connector",
     inputVariables = {"baseRequest", "input"},
     type = "io.camunda:idp-extraction-connector-template:1")
-@ElementTemplate(
-    engineVersion = "^8.10",
-    id = "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
-    name = "IDP extraction outbound Connector",
-    version = 5,
-    description = "Execute IDP extraction requests",
-    icon = "icon.svg",
-    documentationRef = "https://docs.camunda.io/docs/8.10/guides/",
-    configurations = {AwsCredentialConfiguration.class},
-    propertyGroups = {
-      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
-      @ElementTemplate.PropertyGroup(id = "provider", label = "Provider selection"),
-      @ElementTemplate.PropertyGroup(id = "authentication", label = "Provider authentication"),
-      @ElementTemplate.PropertyGroup(id = "configuration", label = "Provider configuration"),
-    },
-    inputDataClass = ExtractionRequest.class)
 public class ExtractionConnectorFunction implements OutboundConnectorFunction {
 
   private final UnstructuredService unstructuredService;
