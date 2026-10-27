@@ -41,7 +41,7 @@ class AgentConfigurationTest {
 
   private static AgentConfiguration configuration(
       String model,
-      String systemPrompt,
+      @Nullable String systemPrompt,
       @Nullable Integer maxModelCalls,
       List<ToolDefinition> tools) {
     return new AgentConfiguration(
@@ -121,6 +121,16 @@ class AgentConfigurationTest {
       final var second = configuration("gpt-4o", "Be mean.", null, List.of()).fingerprint();
 
       assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void nullSystemPromptHasAStableAndDistinctFingerprint() {
+      final var fingerprint = configuration("gpt-4o", null, null, List.of()).fingerprint();
+
+      assertThat(fingerprint)
+          .isEqualTo(configuration("gpt-4o", null, null, List.of()).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "", null, List.of()).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "null", null, List.of()).fingerprint());
     }
 
     @Test

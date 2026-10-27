@@ -1851,6 +1851,7 @@ too. The fingerprint is a SHA-256 over a JSON serialization of the model, provid
 tool definitions. Schema map keys are sorted recursively, except for `properties` maps, whose parameter
 order is significant. Tool and list order is also significant. Parameter order must be preserved by
 the schema producer; normalization cannot recover an order already lost upstream.
+A null system prompt hashes distinctly from an empty string or the literal `"null"`.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

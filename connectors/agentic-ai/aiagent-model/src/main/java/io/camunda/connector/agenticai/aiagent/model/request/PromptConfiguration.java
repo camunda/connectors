@@ -15,7 +15,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 public interface PromptConfiguration {
-  String prompt();
+  @Nullable String prompt();
 
   record SystemPromptConfiguration(
       @FEEL
@@ -26,7 +26,7 @@ public interface PromptConfiguration {
               feel = FeelMode.required,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               defaultValue = DEFAULT_SYSTEM_PROMPT)
-          String prompt)
+          @Nullable String prompt)
       implements PromptConfiguration {
 
     @TemplateProperty(ignore = true)

@@ -97,7 +97,7 @@ public record AgentConfiguration(
     try {
       var json =
           FINGERPRINT_MAPPER.writeValueAsBytes(
-              List.of(
+              Arrays.asList(
                   chatModel.model(),
                   chatModel.descriptiveProvider(),
                   systemPrompt.prompt(),
