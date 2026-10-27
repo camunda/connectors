@@ -113,21 +113,40 @@ public record AgentConfiguration(
 
   private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
     return Arrays.asList(
-        tool.name(), tool.description(), normalizeSchema(tool.inputSchema(), false));
+        tool.name(), tool.description(), normalizeSchema(tool.inputSchema(), SchemaContext.SCHEMA));
   }
 
-  private static @Nullable Object normalizeSchema(@Nullable Object value, boolean properties) {
+  private enum SchemaContext {
+    SCHEMA,
+    NAMED_SCHEMAS,
+    PROPERTIES
+  }
+
+  private static @Nullable Object normalizeSchema(@Nullable Object value, SchemaContext context) {
     if (value instanceof Map<?, ?> map) {
       final Map<String, @Nullable Object> normalized =
-          properties ? new LinkedHashMap<>() : new TreeMap<>();
+          context == SchemaContext.PROPERTIES ? new LinkedHashMap<>() : new TreeMap<>();
       map.forEach(
-          (key, child) ->
-              normalized.put(
-                  (String) key, normalizeSchema(child, !properties && "properties".equals(key))));
+          (key, child) -> {
+            final var childContext =
+                context == SchemaContext.SCHEMA
+                    ? switch ((String) key) {
+                      case "properties" -> SchemaContext.PROPERTIES;
+                      case "$defs",
+                          "definitions",
+                          "patternProperties",
+                          "dependentSchemas",
+                          "dependencies" ->
+                          SchemaContext.NAMED_SCHEMAS;
+                      default -> SchemaContext.SCHEMA;
+                    }
+                    : SchemaContext.SCHEMA;
+            normalized.put((String) key, normalizeSchema(child, childContext));
+          });
       return normalized;
     }
     if (value instanceof List<?> list) {
-      return list.stream().map(child -> normalizeSchema(child, false)).toList();
+      return list.stream().map(child -> normalizeSchema(child, SchemaContext.SCHEMA)).toList();
     }
     return value;
   }

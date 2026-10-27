@@ -1852,6 +1852,9 @@ tool definitions. Schema map keys are sorted recursively, except for `properties
 order is significant. Tool and list order is also significant. Parameter order must be preserved by
 the schema producer; normalization cannot recover an order already lost upstream.
 A null system prompt hashes distinctly from an empty string or the literal `"null"`.
+Named-schema containers (`$defs`, `definitions`, `patternProperties`, `dependentSchemas`,
+`dependencies`) sort their names and normalize each value as a schema, even when its name is
+`properties`.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither

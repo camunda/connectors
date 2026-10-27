@@ -30,6 +30,8 @@ import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * {@link AgentConfiguration#fingerprint()} is the change-detection and dedup key for the {@code
@@ -222,6 +224,42 @@ class AgentConfigurationTest {
           ordered("properties", ordered("city", ordered("minLength", 1, "type", "string")));
 
       assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {"$defs", "definitions", "patternProperties", "dependentSchemas", "dependencies"})
+    void namedSchemaCalledPropertiesIgnoresKeywordOrder(String keyword) {
+      final var first =
+          ordered(keyword, ordered("properties", ordered("type", "string", "description", "d")));
+      final var second =
+          ordered(keyword, ordered("properties", ordered("description", "d", "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {"$defs", "definitions", "patternProperties", "dependentSchemas", "dependencies"})
+    void namedSchemaCalledPropertiesRetainsParameterOrder(String keyword) {
+      final var first =
+          ordered(
+              keyword,
+              ordered(
+                  "properties",
+                  ordered(
+                      "properties",
+                      ordered("a", ordered("type", "string"), "b", ordered("type", "string")))));
+      final var second =
+          ordered(
+              keyword,
+              ordered(
+                  "properties",
+                  ordered(
+                      "properties",
+                      ordered("b", ordered("type", "string"), "a", ordered("type", "string")))));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
     }
 
     @Test
