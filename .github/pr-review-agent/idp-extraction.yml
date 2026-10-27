@@ -1,0 +1,56 @@
+# Team config of the IDP team for camunda/pr-review-agent
+# (see its docs/configuration.md). Read from main: changes take effect once merged.
+# Caller: .github/workflows/AI_PR_REVIEW_IDP_EXTRACTION.yml
+schema_version: 1
+
+# Comment only, never approve.
+shadow_mode: true
+
+vault:
+  anthropic_api_key:
+    # TODO: the IDP team's Anthropic key is not in Vault yet. The other
+    # workflows of this repo read secret/data/products/connectors/ci/*.
+    path: secret/data/products/connectors/ci/ai-pr-review
+    field: IDP_ANTHROPIC_API_KEY
+
+triggers:
+  opt_in_label: ai-review
+  skip_authors:
+    - renovate[bot]
+    - dependabot[bot]
+
+policy:
+  # Read from the PR base commit, never the PR head.
+  skills:
+    - path: AGENTS.md
+  instructions: |
+    - This review covers the IDP extraction connector in
+      connectors/idp-extraction/. Other teams own the rest of the repository;
+      focus findings on this scope.
+    - element-templates/*.json, including hybrid/, are generated from the
+      @ElementTemplate annotations by element-template-generator-maven-plugin.
+      Edit the Java source, never the JSON.
+    - element-templates/versioned/ holds snapshots of released templates.
+      Never change an existing snapshot; a version bump archives a new one.
+    - Each connector function must stay registered in
+      src/main/resources/META-INF/services/.
+    - User-supplied document content reaches LLM prompts. Changes to prompts,
+      guardrails or provider clients must keep the prompt-injection guardrail
+      (PromptInjectionInputGuardrail) in place.
+
+escalation:
+  # Changed paths that always need a human, whatever the agent says.
+  # `*` also matches `/`.
+  rules:
+    - reason: released element templates
+      paths: ["connectors/idp-extraction/element-templates/versioned/*"]
+    - reason: guardrails
+      paths: ["connectors/idp-extraction/src/main/java/*/utils/*Guardrail*"]
+    - reason: provider authentication
+      paths: ["connectors/idp-extraction/src/main/java/*/*Authentication*"]
+    - reason: build config and dependencies
+      paths: ["connectors/idp-extraction/pom.xml", "connectors/idp-extraction/*/pom.xml"]
+
+notifications:
+  # Tagged when the agent's session transcript could not be captured.
+  capture_alert_mentions: ["@camunda/ple"]
