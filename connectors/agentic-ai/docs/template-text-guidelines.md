@@ -12,8 +12,11 @@ templates (for example, the model parameters of every provider). Write the help 
   - `description`: value constraints, `Note:`/`Warning:` markers, and critical guidance only.
   - `label`: a short noun phrase, without a trailing period.
 - **Reuse existing wording.** Before writing help text for a field, search the module for the same
-  label and copy its `tooltip` and `description`, adapting only the provider name. The same fact
-  goes in the same field everywhere, not a `tooltip` in one template and a `description` in another.
+  label and reuse the wording of its shared explanation. The same fact goes in the same field
+  everywhere, not a `tooltip` in one template and a `description` in another. Keep provider- and
+  model-specific facts specific: value ranges and documentation links often differ for the same label
+  (for example, Temperature is 0 to 2 for OpenAI but 0 to 1 for Anthropic), so take them from the
+  provider's API, not from another provider's field.
 - **Voice**: address the user directly in active voice and present tense ("Specify the model ID.",
   not "The model ID should be specified.").
 - **No Latin abbreviations**: write "for example", "that is", and "and so on" instead of `e.g.`,
