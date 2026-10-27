@@ -34,6 +34,7 @@ import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.FailureReason
 import io.camunda.connector.agenticai.common.retry.CamundaApiRetry.Sleeper;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
@@ -95,6 +96,7 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
 
   @Override
   public AgentInstanceKey create(AgentExecutionContext agentExecutionContext) {
+    requireSystemPrompt(agentExecutionContext.configuration());
     // resolved before the retry so an unroutable physical tenant surfaces as the configuration
     // error it is, rather than as a failure to create the agent instance
     final var camundaClient = clientSelector.forJob(agentExecutionContext.jobContext());
@@ -257,10 +259,18 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
         .producedAt(producedAt)
         .provider(configuration.chatModel().descriptiveProvider())
         .model(configuration.chatModel().model())
-        .systemPrompt(
-            List.of(AgentInstanceHistoryContent.text(configuration.systemPrompt().prompt())))
+        .systemPrompt(List.of(AgentInstanceHistoryContent.text(requireSystemPrompt(configuration))))
         .tools(toolMapper.mapTools(configuration.toolDefinitions()))
         .limits(AgentInstanceLimits.of(-1, configuration.maxModelCalls(), -1));
+  }
+
+  private static String requireSystemPrompt(AgentConfiguration configuration) {
+    final var systemPrompt = configuration.systemPrompt().prompt();
+    if (systemPrompt == null || systemPrompt.isBlank()) {
+      throw new ConnectorInputException(
+          "The system prompt must not be blank: the agent instance requires one");
+    }
+    return systemPrompt;
   }
 
   private List<AgentInstanceHistoryItem> inputHistoryItems(

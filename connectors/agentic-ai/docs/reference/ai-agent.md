@@ -1856,6 +1856,10 @@ Named-schema containers (`$defs`, `definitions`, `patternProperties`, `dependent
 `dependencies`) sort their names and normalize each value as a schema, even when its name is
 `properties`.
 
+**System prompt on `CONFIGURATION` items.** The engine requires a non-blank system prompt on the
+agent instance. A null or blank system prompt fails `create` and `applyTurnStart` with a
+`ConnectorInputException` before any engine call.
+
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
 computes a timestamp itself. A `TOOL_RESULT` item uses `ToolCallResult.completedAt()`: the AHSP

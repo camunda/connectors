@@ -72,6 +72,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
@@ -333,6 +334,18 @@ class CamundaAgentInstanceClientTest {
       assertThat(recordedSleeps).isEmpty();
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"  "})
+    void shouldRejectBlankSystemPromptWithoutCallingTheEngine(@Nullable String systemPrompt) {
+      assertThatThrownBy(
+              () -> client.create(TestAgentExecutionContext.withSystemPrompt(systemPrompt)))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("system prompt");
+
+      verifyNoInteractions(camundaClient);
+    }
+
     @Test
     void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
       givenCreateCommand();
@@ -583,17 +596,20 @@ class CamundaAgentInstanceClientTest {
 
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
 
-    private AgentConfiguration configuration(String systemPrompt, List<ToolDefinition> tools) {
+    private AgentConfiguration configuration(
+        @Nullable String systemPrompt, List<ToolDefinition> tools) {
       return configuration(systemPrompt, tools, null);
     }
 
     private AgentConfiguration configuration(
-        String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
+        @Nullable String systemPrompt,
+        List<ToolDefinition> tools,
+        @Nullable Integer maxModelCalls) {
       return configuration(systemPrompt, tools, maxModelCalls, "gpt-4o");
     }
 
     private AgentConfiguration configuration(
-        String systemPrompt,
+        @Nullable String systemPrompt,
         List<ToolDefinition> tools,
         @Nullable Integer maxModelCalls,
         String model) {
@@ -847,6 +863,29 @@ class CamundaAgentInstanceClientTest {
       assertThat(historyCaptor.getValue()).hasSize(2);
       assertThat(historyCaptor.getValue().get(0).getRole())
           .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"  "})
+    void shouldRejectSystemPromptChangedToBlankWithoutCallingTheEngine(
+        @Nullable String systemPrompt) {
+      final var previousConfiguration = configuration("Be nice.", List.of());
+      final var configuration = configuration(systemPrompt, List.of());
+
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration,
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      userTurn("hi", configuration.fingerprint()),
+                      Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("system prompt");
+
+      verifyNoInteractions(camundaClient);
     }
 
     @Test
@@ -1435,6 +1474,12 @@ class CamundaAgentInstanceClientTest {
       return context;
     }
 
+    public static TestAgentExecutionContext withSystemPrompt(@Nullable String systemPrompt) {
+      var context = new TestAgentExecutionContext(new LimitsConfiguration(10));
+      context.systemPrompt = systemPrompt;
+      return context;
+    }
+
     public static TestAgentExecutionContext withChatModel(ChatModelConfiguration chatModel) {
       return new TestAgentExecutionContext(
           new LimitsConfiguration(10), DEFAULT_LEASE_TOKEN, chatModel);
@@ -1450,6 +1495,8 @@ class CamundaAgentInstanceClientTest {
     private final LimitsConfiguration limitsConfiguration;
 
     private final ChatModelConfiguration chatModel;
+
+    private @Nullable String systemPrompt = "system prompt";
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
       this(limitsConfiguration, DEFAULT_LEASE_TOKEN);
@@ -1504,7 +1551,7 @@ class CamundaAgentInstanceClientTest {
     public AgentConfiguration configuration() {
       return new AgentConfiguration(
           chatModel,
-          new PromptConfiguration.SystemPromptConfiguration("system prompt"),
+          new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
           null,
           null,
           limitsConfiguration,
