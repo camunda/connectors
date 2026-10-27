@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.model.SchemaSource;
 import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
 import io.confluent.kafka.schemaregistry.SchemaProvider;
@@ -22,6 +23,7 @@ import java.util.function.BiFunction;
 public class RegistrySchemaResolver {
 
   private static final int CLIENT_CACHE_CAPACITY = 100;
+  private static final String SCHEMA_REGISTRY_URL = "schema.registry.url";
 
   private final BiFunction<String, Map<String, Object>, SchemaRegistryClient> clientFactory;
 
@@ -46,9 +48,14 @@ public class RegistrySchemaResolver {
       return Optional.empty();
     }
     var subject = subject(strategy, request.topic().topicName());
+    // same effective settings as the producer, so the lookup and the serializer use the same
+    // registry and credentials
+    var props = KafkaPropertiesUtil.assembleKafkaClientProperties(request);
     var configs = new HashMap<String, Object>();
-    Optional.ofNullable(request.additionalProperties()).ifPresent(configs::putAll);
-    var client = clientFactory.apply(strategy.getSchemaRegistryUrl(), configs);
+    props.forEach((key, value) -> configs.put(String.valueOf(key), value));
+    var url =
+        String.valueOf(props.getOrDefault(SCHEMA_REGISTRY_URL, strategy.getSchemaRegistryUrl()));
+    var client = clientFactory.apply(url, configs);
     int id = schemaId(client, strategy, subject);
     return Optional.of(
         new ResolvedSchema(subject, id, client.getSchemaBySubjectAndId(subject, id)));

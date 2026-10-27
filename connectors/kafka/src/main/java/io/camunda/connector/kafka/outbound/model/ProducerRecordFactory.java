@@ -18,6 +18,7 @@ import io.camunda.connector.kafka.converter.GenericRecordConverter;
 import io.camunda.connector.kafka.converter.ObjectNodeConverter;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -93,6 +94,7 @@ public class ProducerRecordFactory {
           "FAIL", "Message value must be a map for a schema based message");
     }
 
+    final Map<String, Object> payload = (Map<String, Object>) messageValue;
     var schemaString =
         resolvedSchema.map(r -> r.schema().canonicalString()).orElseGet(strategy::getSchema);
     return switch (strategy.getSchemaType()) {
@@ -104,8 +106,11 @@ public class ProducerRecordFactory {
                           ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema())
                               .rawSchema())
                   .orElseGet(() -> new Schema.Parser().parse(schemaString)),
-              (Map) messageValue);
-      case JSON -> OBJECT_NODE_CONVERTER.toObjectNode(schemaString, (Map) messageValue);
+              payload);
+      case JSON ->
+          resolvedSchema
+              .map(r -> OBJECT_NODE_CONVERTER.toObjectNode((JsonSchema) r.schema(), payload))
+              .orElseGet(() -> OBJECT_NODE_CONVERTER.toObjectNode(schemaString, payload));
     };
   }
 
