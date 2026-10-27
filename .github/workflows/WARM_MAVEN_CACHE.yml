@@ -257,6 +257,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+        shell: bash
         run: |
           active=$(cat active-cache-keys/*/active-cache-keys.txt | sort -u)
           if [ -z "$active" ]; then echo "::error::No active cache keys recorded"; exit 1; fi
