@@ -14,11 +14,14 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class RegistrySchemaResolver {
 
@@ -53,12 +56,21 @@ public class RegistrySchemaResolver {
     var props = KafkaPropertiesUtil.assembleKafkaClientProperties(request);
     var configs = new HashMap<String, Object>();
     props.forEach((key, value) -> configs.put(String.valueOf(key), value));
-    var url =
-        String.valueOf(props.getOrDefault(SCHEMA_REGISTRY_URL, strategy.getSchemaRegistryUrl()));
-    var client = clientFactory.apply(url, configs);
-    int id = schemaId(client, strategy, subject);
-    return Optional.of(
-        new ResolvedSchema(subject, id, client.getSchemaBySubjectAndId(subject, id)));
+    var url = registryUrl(props, strategy);
+    try (var client = clientFactory.apply(url, configs)) {
+      int id = schemaId(client, strategy, subject);
+      return Optional.of(
+          new ResolvedSchema(subject, id, client.getSchemaBySubjectAndId(subject, id)));
+    }
+  }
+
+  // the serializer accepts a single URL, a comma separated string or a list
+  private static String registryUrl(Properties props, OutboundSchemaRegistryStrategy strategy) {
+    var configured = props.getOrDefault(SCHEMA_REGISTRY_URL, strategy.getSchemaRegistryUrl());
+    if (configured instanceof Collection<?> urls) {
+      return urls.stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+    return String.valueOf(configured);
   }
 
   public static String subject(OutboundSchemaRegistryStrategy strategy, String topic) {

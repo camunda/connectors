@@ -280,6 +280,63 @@ class RegistrySchemaResolverTest {
         .containsEntry("basic.auth.credentials.source", "SASL_INHERIT");
   }
 
+  @Test
+  void lookupClientAcceptsAListOfRegistryUrlsInAdditionalProperties() throws Exception {
+    var urls = new ArrayList<String>();
+    var capturing =
+        new RegistrySchemaResolver(
+            (url, configs) -> {
+              urls.add(url);
+              return client;
+            });
+    var request =
+        new KafkaConnectorRequest(
+            null,
+            new KafkaTopic("localhost:9092", "orders"),
+            new KafkaMessage("key", Map.of("id", "42")),
+            strategy(SchemaSource.REGISTRY, null, null, null),
+            null,
+            Map.of("schema.registry.url", List.of("http://r1:8081", "http://r2:8081")));
+
+    capturing.resolve(request);
+
+    assertThat(urls).containsExactly("http://r1:8081,http://r2:8081");
+  }
+
+  @Test
+  void lookupClientIsClosedAfterResolving() throws Exception {
+    var closing = new ClosingClient();
+    closing.register("orders-value", new AvroSchema(V1));
+    var request = request(strategy(SchemaSource.REGISTRY, null, null, null));
+
+    new RegistrySchemaResolver((url, configs) -> closing).resolve(request);
+
+    assertThat(closing.closed).isTrue();
+  }
+
+  @Test
+  void lookupClientIsClosedWhenResolvingFails() {
+    var closing = new ClosingClient();
+    var request = request(strategy(SchemaSource.REGISTRY, "missing", null, null));
+
+    assertThatThrownBy(() -> new RegistrySchemaResolver((url, configs) -> closing).resolve(request))
+        .isInstanceOf(Exception.class);
+    assertThat(closing.closed).isTrue();
+  }
+
+  private static class ClosingClient extends MockSchemaRegistryClient {
+    boolean closed;
+
+    ClosingClient() {
+      super(List.of(new AvroSchemaProvider(), new JsonSchemaProvider()));
+    }
+
+    @Override
+    public void close() {
+      closed = true;
+    }
+  }
+
   private int registerJson(String subject, String schema, SchemaReference... references)
       throws Exception {
     var parsed = client.parseSchema("JSON", schema, List.of(references)).orElseThrow();
