@@ -78,15 +78,17 @@ public final class TemplateFinder {
         file -> SuppressionFile.FILE_NAME.equals(file.getFileName().toString()));
   }
 
-  /** Whether {@code dir} contains a subdirectory that discovery prunes via {@code skippedDirs}. */
+  /**
+   * Whether discovery prunes {@code dir} itself or any of its subdirectories via {@code
+   * skippedDirs}.
+   */
   public static boolean containsSkippedDirectory(Path dir, Set<String> skippedDirs) {
     if (skippedDirs.isEmpty() || !Files.isDirectory(dir)) {
       return false;
     }
     try (Stream<Path> paths = Files.walk(dir)) {
-      return paths
-          .skip(1)
-          .anyMatch(p -> Files.isDirectory(p) && skippedDirs.contains(p.getFileName().toString()));
+      return paths.anyMatch(
+          p -> Files.isDirectory(p) && skippedDirs.contains(p.getFileName().toString()));
     } catch (IOException e) {
       throw new RuntimeException("Failed to walk " + dir, e);
     }

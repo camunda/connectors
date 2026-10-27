@@ -226,6 +226,33 @@ class SuppressionFilterTest {
         .containsExactly("/suppressions/2/rule");
   }
 
+  @Test
+  void skippedElementTemplatesDirectory_appliesModuleSuppressionsWithoutScopeChecks()
+      throws Exception {
+    templates.clear();
+    Files.createDirectories(module.resolve("element-templates"));
+    write(
+        """
+        { "suppressions": [
+          { "rule": "text-rule", "template": "a.json", "property": "second", "reason": "R." },
+          { "rule": "unknown-rule", "template": "a.json", "reason": "Still invalid." }
+        ] }
+        """);
+    Set<String> skippedDirs = Set.of("element-templates");
+
+    var result =
+        SuppressionFilter.apply(
+            List.of(),
+            templates,
+            TemplateFinder.findSuppressionFiles(module, skippedDirs, Set.of()),
+            skippedDirs,
+            RULES);
+
+    assertThat(result.findings())
+        .extracting(Finding::jsonPointer)
+        .containsExactly("/suppressions/1/rule");
+  }
+
   private SuppressionFilter.Result apply(List<Finding> findings) {
     return SuppressionFilter.apply(
         findings,

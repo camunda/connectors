@@ -51,8 +51,8 @@ public final class SuppressionFilter {
   /**
    * @param suppressionFiles every suppression file in the scan scope, including those of modules
    *     without templates, so their entries are still validated
-   * @param skippedDirs directory names pruned during discovery; a module with such a directory
-   *     under its element-templates/ is only partially scanned
+   * @param skippedDirs directory names pruned during discovery; a module whose element-templates/
+   *     is, or contains, such a directory is only partially scanned
    * @param suppressibleRules rule ids that may be suppressed; anything else is rejected
    */
   public static Result apply(
@@ -68,8 +68,10 @@ public final class SuppressionFilter {
               dir -> templatesByDir.computeIfAbsent(dir, k -> new ArrayList<>()).add(template));
     }
 
-    // A scan root inside a module (its element-templates/ or hybrid/) or a skipped directory under
-    // element-templates/ hides part of the module's templates, so its suppressions still apply but
+    // A scan root inside a module (its element-templates/ or hybrid/) or a skipped
+    // element-templates/
+    // directory (or one under it) hides part of the module's templates, so its suppressions still
+    // apply but
     // scope-dependent checks are skipped.
     Set<Path> files = new LinkedHashSet<>(suppressionFiles);
     Set<Path> partialScope = new LinkedHashSet<>();
