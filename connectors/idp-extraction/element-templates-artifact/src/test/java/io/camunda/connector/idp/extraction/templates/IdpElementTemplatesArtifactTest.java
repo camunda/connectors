@@ -98,7 +98,7 @@ class IdpElementTemplatesArtifactTest {
    */
   @ParameterizedTest(name = "{0}: base {1}, unstructured {2}, structured {3}, classification {4}")
   @CsvSource({
-    "8.7.0,  0, 0, 0, 0",
+    "8.7.0,  1, 0, 0, 0",
     "8.8.0,  2, 0, 0, 0",
     "8.9.0,  0, 2, 2, 2",
     "8.10.0, 0, 3, 3, 3",
