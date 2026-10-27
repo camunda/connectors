@@ -34,7 +34,13 @@ public class ProducerRecordFactory {
 
   public ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
       throws Exception {
-    Object transformedValue = createMessage(request);
+    return createProducerRecord(request, Optional.empty());
+  }
+
+  public ProducerRecord<String, Object> createProducerRecord(
+      final KafkaConnectorRequest request, final Optional<ResolvedSchema> resolvedSchema)
+      throws Exception {
+    Object transformedValue = createMessage(request, resolvedSchema);
     String transformedKey = transformData(request.message().key());
     Map<String, String> headers = Optional.ofNullable(request.headers()).orElse(new HashMap<>());
     var record =
@@ -45,12 +51,15 @@ public class ProducerRecordFactory {
     return record;
   }
 
-  private Object createMessage(final KafkaConnectorRequest request) throws Exception {
+  private Object createMessage(
+      final KafkaConnectorRequest request, final Optional<ResolvedSchema> resolvedSchema)
+      throws Exception {
     var value = request.message().value();
     var strategy = request.schemaStrategy();
     return switch (strategy) {
       case AvroInlineSchemaStrategy s -> produceAvroMessage(s, value);
-      case OutboundSchemaRegistryStrategy s -> produceSchemaRegistryMessage(s, value);
+      case OutboundSchemaRegistryStrategy s ->
+          produceSchemaRegistryMessage(s, value, resolvedSchema);
       default -> transformData(request.message().value());
     };
   }
@@ -72,7 +81,10 @@ public class ProducerRecordFactory {
   }
 
   private Object produceSchemaRegistryMessage(
-      OutboundSchemaRegistryStrategy strategy, Object messageValue) throws JsonProcessingException {
+      OutboundSchemaRegistryStrategy strategy,
+      Object messageValue,
+      Optional<ResolvedSchema> resolvedSchema)
+      throws JsonProcessingException {
     if (messageValue instanceof String messageValueAsString) {
       messageValue = OBJECT_MAPPER.readValue(messageValueAsString, Map.class);
     }
@@ -81,11 +93,18 @@ public class ProducerRecordFactory {
           "FAIL", "Message value must be a map for a schema based message");
     }
 
-    var schemaString = strategy.getSchema();
+    var schemaString =
+        resolvedSchema.map(r -> r.schema().canonicalString()).orElseGet(strategy::getSchema);
     return switch (strategy.getSchemaType()) {
       case AVRO ->
           GENERIC_RECORD_CONVERTER.toGenericRecord(
-              new Schema.Parser().parse(schemaString), (Map) messageValue);
+              resolvedSchema
+                  .map(
+                      r ->
+                          ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema())
+                              .rawSchema())
+                  .orElseGet(() -> new Schema.Parser().parse(schemaString)),
+              (Map) messageValue);
       case JSON -> OBJECT_NODE_CONVERTER.toObjectNode(schemaString, (Map) messageValue);
     };
   }
