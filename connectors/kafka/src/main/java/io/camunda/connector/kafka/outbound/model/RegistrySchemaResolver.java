@@ -82,7 +82,12 @@ public class RegistrySchemaResolver {
       SchemaRegistryClient client, OutboundSchemaRegistryStrategy strategy, String subject)
       throws Exception {
     if (strategy.getSchemaId() != null) {
-      return strategy.getSchemaId();
+      int id = strategy.getSchemaId();
+      if (!client.getAllSubjectsById(id).contains(subject)) {
+        throw new IllegalArgumentException(
+            "Schema ID " + id + " is not registered under subject " + subject);
+      }
+      return id;
     }
     if (strategy.getSchemaVersion() != null) {
       return client.getSchemaMetadata(subject, strategy.getSchemaVersion()).getId();

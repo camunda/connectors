@@ -9,6 +9,7 @@ package io.camunda.connector.kafka.outbound.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.camunda.connector.kafka.model.FixedSubjectNameStrategy;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -131,14 +132,68 @@ class RegistrySchemaResolverTest {
   }
 
   @Test
-  void schemaIdOfAnotherSubjectIsRejectedWhenSerializing() throws Exception {
-    int foreignId = client.register("addresses-value", new AvroSchema(ADDRESS));
-    var request = request(strategy(SchemaSource.REGISTRY, null, null, foreignId));
+  void additionalPropertiesCannotOverrideTheRegistryModeSettings() throws Exception {
+    var request =
+        new KafkaConnectorRequest(
+            null,
+            new KafkaTopic("localhost:9092", "orders"),
+            new KafkaMessage("key", Map.of("id", "42")),
+            strategy(SchemaSource.REGISTRY, "orders-value", 1, null),
+            null,
+            Map.of(
+                "use.schema.id",
+                999,
+                "auto.register.schemas",
+                true,
+                "use.latest.version",
+                true,
+                "value.subject.name.strategy",
+                "io.confluent.kafka.serializers.subject.TopicNameStrategy",
+                "camunda.connector.fixed.subject",
+                "other-value"));
     var resolved = resolver.resolve(request);
 
-    assertThatThrownBy(() -> serialize(request, resolved))
-        .isInstanceOf(SerializationException.class)
-        .hasMessageContaining("Error serializing Avro message");
+    var props = KafkaPropertiesUtil.assembleKafkaClientProperties(request, resolved);
+
+    assertThat(props)
+        .containsEntry("use.schema.id", idV1)
+        .containsEntry("auto.register.schemas", false)
+        .containsEntry("use.latest.version", false)
+        .containsEntry("value.subject.name.strategy", FixedSubjectNameStrategy.class.getName())
+        .containsEntry("camunda.connector.fixed.subject", "orders-value");
+  }
+
+  @Test
+  void additionalPropertiesStillApplyWhenTheSchemaIsInline() {
+    var request =
+        new KafkaConnectorRequest(
+            null,
+            new KafkaTopic("localhost:9092", "orders"),
+            new KafkaMessage("key", Map.of("id", "42")),
+            strategy(SchemaSource.INLINE, null, null, null),
+            null,
+            Map.of("auto.register.schemas", false));
+
+    var props = KafkaPropertiesUtil.assembleKafkaClientProperties(request, Optional.empty());
+
+    assertThat(props).containsEntry("auto.register.schemas", false);
+  }
+
+  @Test
+  void schemaIdOfAnotherSubjectIsRejected() throws Exception {
+    int foreignId = client.register("addresses-value", new AvroSchema(ADDRESS));
+    var address = Map.<String, Object>of("street", "Main St", "city", "Berlin");
+
+    // control: the same id and payload are fine under the subject the schema belongs to
+    var ownSubject =
+        request(strategy(SchemaSource.REGISTRY, "addresses-value", null, foreignId), address);
+    assertThat(serialize(ownSubject, resolver.resolve(ownSubject))).isNotEmpty();
+
+    var request = request(strategy(SchemaSource.REGISTRY, null, null, foreignId), address);
+
+    assertThatThrownBy(() -> resolver.resolve(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("is not registered under subject orders-value");
     assertThat(client.getAllVersions("orders-value")).containsExactly(1, 2);
   }
 

@@ -81,15 +81,6 @@ public final class KafkaPropertiesUtil {
                 case JSON -> KafkaJsonSchemaSerializer.class;
               };
           messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, serializer);
-          resolvedSchema.ifPresent(
-              resolved -> {
-                messageProps.put("auto.register.schemas", false);
-                messageProps.put("use.latest.version", false);
-                messageProps.put("use.schema.id", resolved.id());
-                messageProps.put(
-                    "value.subject.name.strategy", FixedSubjectNameStrategy.class.getName());
-                messageProps.put(FixedSubjectNameStrategy.SUBJECT_CONFIG, resolved.subject());
-              });
           break;
         default:
           messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
@@ -113,6 +104,17 @@ public final class KafkaPropertiesUtil {
     if (request.additionalProperties() != null && !request.additionalProperties().isEmpty()) {
       props.putAll(request.additionalProperties());
     }
+
+    // Step 4: "From registry" must use exactly the resolved schema and never register, so these
+    // win over additional properties
+    resolvedSchema.ifPresent(
+        resolved -> {
+          props.put("auto.register.schemas", false);
+          props.put("use.latest.version", false);
+          props.put("use.schema.id", resolved.id());
+          props.put("value.subject.name.strategy", FixedSubjectNameStrategy.class.getName());
+          props.put(FixedSubjectNameStrategy.SUBJECT_CONFIG, resolved.subject());
+        });
 
     return props;
   }

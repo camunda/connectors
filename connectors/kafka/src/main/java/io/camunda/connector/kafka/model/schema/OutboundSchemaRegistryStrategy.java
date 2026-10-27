@@ -66,7 +66,8 @@ public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistry
       label = "Schema ID",
       optional = true,
       condition = @PropertyCondition(property = "schemaStrategy.schemaSource", equals = "registry"),
-      tooltip = "Global registry ID of the schema. Takes precedence over the schema version.")
+      tooltip =
+          "Global registry ID of the schema. It must be registered under the subject. Takes precedence over the schema version.")
   Integer schemaId;
 
   @FEEL
