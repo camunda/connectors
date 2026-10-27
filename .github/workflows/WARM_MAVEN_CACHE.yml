@@ -224,7 +224,7 @@ jobs:
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: active-cache-keys-${{ strategy.job-index }}
+          name: active-cache-keys-${{ strategy.job-index }}-of-${{ strategy.job-total }}
           path: ${{ runner.temp }}/active-cache-keys.txt
           retention-days: 1
 
@@ -259,7 +259,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
-          active=$(cat active-cache-keys/*/active-cache-keys.txt | sort -u)
+          # Each artifact name carries the matrix size; a partial rerun after expiry leaves gaps.
+          files=(active-cache-keys/*/active-cache-keys.txt)
+          total=$(ls active-cache-keys | sed -n 's/.*-of-//p' | sort -u)
+          if [ "$(wc -w <<< "$total")" -ne 1 ] || [ "${#files[@]}" -ne "$total" ]; then
+            echo "::error::Expected $total manifests, found ${#files[@]}; refusing to delete caches"
+            exit 1
+          fi
+          active=$(cat "${files[@]}" | sort -u)
           if [ -z "$active" ]; then echo "::error::No active cache keys recorded"; exit 1; fi
           echo "Active keys:"
           echo "$active"
