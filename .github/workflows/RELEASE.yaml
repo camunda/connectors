@@ -84,6 +84,11 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
           persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
+<<<<<<< HEAD
+=======
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v4
+>>>>>>> cf828aa4 (fix: use GitHub App token for release tag push to trigger downstream workflows (#6922))
       - name: Install bc calculator
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
@@ -210,6 +215,25 @@ jobs:
       - name: Generate sbom reports
         run: |
           ./mvnw cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
 
       - name: Generate a GitHub App token
         id: app-token
