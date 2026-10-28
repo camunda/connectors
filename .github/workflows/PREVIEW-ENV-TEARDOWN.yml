@@ -10,8 +10,11 @@ jobs:
     if: github.event.label.name == 'deploy-preview' || (github.event.action == 'closed' && contains( github.event.pull_request.labels.*.name, 'deploy-preview') )
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # permission needed for the camunda/infra-global-github-actions/preview-env/destroy
+    # action to deactivate the GitHub deployment
     permissions:
       contents: read
+      deployments: write
       id-token: write
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
