@@ -41,12 +41,10 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>textract</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>aws-core</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -55,7 +53,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-client-spi</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
 
     <dependency>
