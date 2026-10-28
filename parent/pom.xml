@@ -117,16 +117,10 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261011-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-<<<<<<< HEAD
-    <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-=======
     <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
->>>>>>> d5029e4a (deps: update Google libraries BOM and auth library, drop Renovate pins for Gemini (#9894))
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
-    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
     <version.gson-extras>1.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
