@@ -91,9 +91,9 @@ public record AgentConfiguration(
    * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
    * immutable map whose iteration order is unspecified and differs between JVMs. Schema map keys
    * are sorted recursively, except for {@code properties} maps, which retain parameter order. Tool
-   * and list order (including {@code required}) is also retained. Decimal numbers are reduced to
-   * the value they keep after a JSON round trip. Normalization only affects the hash input; the
-   * tool definitions are unchanged.
+   * and list order (including {@code required}) is also retained. Scale-zero decimals hash as exact
+   * integers; other decimals and floats hash at double precision. Normalization only affects the
+   * hash input; the tool definitions are unchanged.
    */
   public String fingerprint() {
     try {
