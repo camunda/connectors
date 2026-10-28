@@ -86,6 +86,7 @@ class AgentTaskRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+  @Mock private ResponseSchemaValidator responseSchemaValidator;
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 
   @Captor private ArgumentCaptor<ChatRequest> chatModelRequestCaptor;

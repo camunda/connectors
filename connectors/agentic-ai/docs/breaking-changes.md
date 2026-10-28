@@ -191,7 +191,7 @@ client in its properties does not start.
 ### Response schema limits
 
 - JSON response schemas are now limited to 262144 UTF-8 JSON bytes and 64 levels of object/array
-  nesting by default. Larger schemas fail with `INVALID_RESPONSE_SCHEMA` before agent initialization.
+  nesting by default. Larger schemas fail with `INVALID_RESPONSE_SCHEMA` before the job's first model call.
   Deployments requiring larger schemas can raise
   `camunda.connector.agenticai.aiagent.response-schema.max-size-bytes` and
   `camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth` in Spring application

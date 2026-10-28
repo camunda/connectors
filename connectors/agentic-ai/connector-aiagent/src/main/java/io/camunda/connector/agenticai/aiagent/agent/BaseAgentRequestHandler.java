@@ -65,6 +65,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final ResponseSchemaValidator responseSchemaValidator;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -73,7 +74,8 @@ public abstract class BaseAgentRequestHandler<
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -81,6 +83,7 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.responseSchemaValidator = responseSchemaValidator;
   }
 
   @Override
@@ -177,6 +180,9 @@ public abstract class BaseAgentRequestHandler<
       final List<Message> inputMessages,
       final ConversationSession session,
       final ConversationStore store) {
+    final var response = agentConfiguration.response();
+    responseSchemaValidator.validate(response != null ? response.format() : null);
+
     var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(

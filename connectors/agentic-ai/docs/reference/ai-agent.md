@@ -1252,8 +1252,10 @@ API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 
 ### Response Schema Safety Limits
 
-Both AI Agent flavors validate the configured JSON response schema before agent initialization
-and provider-specific conversion. These runtime limits are independent of the provider's schema
+Both AI Agent flavors validate the configured JSON response schema when a job is about to call the
+model, before the turn is reported to the agent instance and before provider-specific conversion.
+Jobs that do not call the model (tool discovery, waiting for further tool call results) skip the
+validation. These runtime limits are independent of the provider's schema
 compatibility and compilation limits.
 
 | Property | Default | Meaning |

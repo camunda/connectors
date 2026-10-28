@@ -131,14 +131,12 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AgentInitializer aiAgentInitializer(
       AgentToolsResolver toolsResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers,
-      AgentInstanceClient agentInstanceClient,
-      ResponseSchemaValidator responseSchemaValidator) {
+      AgentInstanceClient agentInstanceClient) {
     return new AgentInitializerImpl(
         toolsResolver,
         gatewayToolHandlers,
         agentInstanceClient,
-        new ToolCallResultCompletedAtResolver(),
-        responseSchemaValidator);
+        new ToolCallResultCompletedAtResolver());
   }
 
   @Bean
@@ -259,7 +257,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -267,7 +266,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        responseSchemaValidator);
   }
 
   @Bean
@@ -301,7 +301,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -309,7 +310,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        responseSchemaValidator);
   }
 
   @Bean

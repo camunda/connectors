@@ -13,9 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,14 +26,11 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Re
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.api.tool.GatewayToolDiscoveryResult;
-import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
@@ -83,7 +78,6 @@ class AgentInitializerTest {
   @Mock private AgentInstanceClient agentInstanceClient;
   @Mock private JobContext jobContext;
   @Mock private ToolCallResultCompletedAtResolver completedAtResolver;
-  @Mock private ResponseSchemaValidator responseSchemaValidator;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
@@ -96,29 +90,9 @@ class AgentInitializerTest {
    */
   @BeforeEach
   void stubCompletedAtResolverAsIdentity() {
-    lenient().when(executionContext.configuration()).thenReturn(mock(AgentConfiguration.class));
     lenient()
         .when(completedAtResolver.resolve(any()))
         .thenAnswer(invocation -> invocation.getArgument(0));
-  }
-
-  @Test
-  void rejectsInvalidResponseSchemaBeforeInitializingTheAgent() {
-    final var configuration = mock(AgentConfiguration.class);
-    final var response = mock(ResponseConfiguration.class);
-    final var format = new JsonResponseFormatConfiguration(Map.of("type", "object"), "Response");
-    when(executionContext.configuration()).thenReturn(configuration);
-    when(configuration.response()).thenReturn(response);
-    when(response.format()).thenReturn(format);
-    doThrow(new ConnectorException("INVALID_RESPONSE_SCHEMA", "Schema exceeds configured limits"))
-        .when(responseSchemaValidator)
-        .validate(format);
-
-    assertThatThrownBy(() -> agentInitializer.initializeAgent(executionContext))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("configured limits");
-    verifyNoInteractions(
-        agentInstanceClient, toolsResolver, gatewayToolHandlers, completedAtResolver);
   }
 
   @Nested

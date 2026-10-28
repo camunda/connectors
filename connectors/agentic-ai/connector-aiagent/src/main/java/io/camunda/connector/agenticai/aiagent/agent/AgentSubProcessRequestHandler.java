@@ -35,7 +35,8 @@ public class AgentSubProcessRequestHandler
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -43,7 +44,8 @@ public class AgentSubProcessRequestHandler
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        responseSchemaValidator);
   }
 
   @Override
