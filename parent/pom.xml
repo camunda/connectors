@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-kiota-abstraction>1.10.4</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
-    <version.azure-core>1.60.0</version.azure-core>
+    <version.azure-core>1.61.0</version.azure-core>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -211,7 +211,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.6.2</version.auth0.jwt>
     <version.auth0.jwks>0.24.1</version.auth0.jwks>
 
-    <version.langchain4j>1.22.0</version.langchain4j>
+    <version.langchain4j>1.23.0</version.langchain4j>
     <version.mcp-sdk>2.1.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
