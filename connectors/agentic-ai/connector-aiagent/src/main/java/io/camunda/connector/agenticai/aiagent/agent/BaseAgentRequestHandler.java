@@ -150,11 +150,6 @@ public abstract class BaseAgentRequestHandler<
     }
   }
 
-  private static @Nullable AgentInstanceKey agentInstanceKeyOf(AgentContext agentContext) {
-    final var metadata = agentContext.metadata();
-    return metadata != null ? metadata.agentInstanceKey() : null;
-  }
-
   /**
    * Reports {@code arrivedResults} to agent instance history. No-ops when empty or when there is no
    * previous turn to correlate against.
@@ -169,7 +164,7 @@ public abstract class BaseAgentRequestHandler<
     }
     agentInstanceClient.applyToolCallResults(
         executionContext,
-        agentInstanceKeyOf(agentContext),
+        agentContext.agentInstanceKey(),
         arrivedResults,
         previousConversation.turns().getLast());
   }
@@ -374,7 +369,7 @@ public abstract class BaseAgentRequestHandler<
             .context(agentContext)
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    agentInstanceClient.applyToolDiscoveryStart(executionContext, agentInstanceKeyOf(agentContext));
+    agentInstanceClient.applyToolDiscoveryStart(executionContext, agentContext.agentInstanceKey());
     return buildConnectorResponse(executionContext, null, response, null);
   }
 

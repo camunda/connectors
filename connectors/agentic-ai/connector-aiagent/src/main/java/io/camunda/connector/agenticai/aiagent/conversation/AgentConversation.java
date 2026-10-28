@@ -60,8 +60,7 @@ public final class AgentConversation {
     this.systemMessage = systemMessage;
     this.previousTurns = List.copyOf(previousTurns);
     this.currentTurn = currentTurn;
-    this.agentInstanceKey =
-        currentContext.metadata() != null ? currentContext.metadata().agentInstanceKey() : null;
+    this.agentInstanceKey = currentContext.agentInstanceKey();
     this.invocationStartIterationKey = invocationStartIterationKey;
     this.precedingConfigurationFingerprint = precedingConfigurationFingerprint;
   }
