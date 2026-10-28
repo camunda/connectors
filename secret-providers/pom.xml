@@ -11,10 +11,6 @@
   <artifactId>secret-providers</artifactId>
   <packaging>pom</packaging>
 
-  <properties>
-    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
-  </properties>
-
   <name>Connector Secret Provider</name>
   <modules>
     <module>secret-providers-base</module>
