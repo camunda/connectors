@@ -177,7 +177,8 @@ public record AgentConfiguration(
       final var decimal =
           (value instanceof BigDecimal exact ? exact : new BigDecimal(value.toString()))
               .stripTrailingZeros();
-      if (decimal.scale() <= 0 && decimal.precision() - decimal.scale() <= MAX_INTEGER_DIGITS) {
+      if (decimal.scale() <= 0
+          && (long) decimal.precision() - decimal.scale() <= MAX_INTEGER_DIGITS) {
         return decimal.toBigIntegerExact();
       }
       final double rounded = decimal.doubleValue();

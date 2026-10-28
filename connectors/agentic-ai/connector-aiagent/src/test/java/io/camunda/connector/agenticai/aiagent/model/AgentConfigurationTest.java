@@ -468,6 +468,14 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void extremeExponentsHashAtDoublePrecision() {
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1E+2147483647"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1E+1001"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)));
+    }
+
+    @Test
     void nonFiniteNumbersAreHashed() {
       assertThat(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)))
           .isNotEqualTo(fingerprintOfSchema(ordered("maximum", Double.NaN)));
