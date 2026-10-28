@@ -28,7 +28,10 @@ templates (for example, the model parameters of every provider). Write the help 
 - **End every `tooltip` and `description` with a period.**
 - **Line breaks**: use `<br>`, not `<br/>`.
 - **Documentation links** pin the current released minor, never an unversioned or `/next/` URL. See
-  the repo-root [`AGENTS.md`](../../../AGENTS.md#element-templates) for the rationale.
+  the repo-root [`AGENTS.md`](../../../AGENTS.md#element-templates) for the rationale. Name the target
+  in the link text so the user knows before clicking whether it leaves Camunda: use `documentation`
+  for a Camunda page and name the provider for a third-party page (for example `Anthropic
+  documentation`, `OpenAI documentation`).
 
 The [element template validator](../../../element-template-generator/validator/README.md#help-text-rules)
 enforces the last four rules and the 100-character `description` cap in CI, and also flags repeated
