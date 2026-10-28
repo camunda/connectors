@@ -1,0 +1,135 @@
+{
+  "groups": [
+    {
+      "name": "camunda.connector.managed-code",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Optional managed-script connector, running scripts through a generic executor per language."
+    },
+    {
+      "name": "camunda.connector.managed-code.local",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Local",
+      "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Settings of the trusted-development-only local provider."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Aws",
+      "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Settings of the AWS Lambda provider."
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp",
+      "type": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties$Gcp",
+      "sourceType": "io.camunda.connector.runtime.managedcode.ManagedCodeProperties",
+      "description": "Settings of the Google Cloud Run functions provider."
+    }
+  ],
+  "properties": [
+    {
+      "name": "camunda.connector.managed-code.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to serve the 'io.camunda:managed-script:1' job type with the managed-script connector.",
+      "defaultValue": false
+    },
+    {
+      "name": "camunda.connector.managed-code.provider",
+      "type": "java.lang.String",
+      "description": "Name of the managed-code provider bean to use. Built in: 'local', the executor wrapper run in local Node.js or Python processes, for trusted development only; 'aws', one AWS Lambda executor per language; 'gcp', one Google Cloud Run function executor per language."
+    },
+    {
+      "name": "camunda.connector.managed-code.deployment-name-prefix",
+      "type": "java.lang.String",
+      "description": "Prefix of every provider resource name, one per cluster. The identity of the runtime may only manage resources whose name starts with it. A lowercase letter followed by at most 47 lowercase letters, digits and hyphens. In a shared account, use prefixes of one fixed length, such as 'ce-' followed by 24 hexadecimal characters and '-'.",
+      "defaultValue": "camunda-ms-"
+    },
+    {
+      "name": "camunda.connector.managed-code.execution-timeout",
+      "type": "java.time.Duration",
+      "description": "Maximum duration of one script invocation.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "camunda.connector.managed-code.provisioning-timeout",
+      "type": "java.time.Duration",
+      "description": "How long a job waits for the executors of the cluster, which the runtime creates when it starts. When exceeded, the job fails without consuming a retry and the executors keep being created in the background.",
+      "defaultValue": "2m"
+    },
+    {
+      "name": "camunda.connector.managed-code.provisioning-retry-backoff",
+      "type": "java.time.Duration",
+      "description": "Retry backoff of jobs that failed while waiting for the executors or with a retryable error, and first backoff between attempts to create the executors.",
+      "defaultValue": "10s"
+    },
+    {
+      "name": "camunda.connector.managed-code.local.directory",
+      "type": "java.nio.file.Path",
+      "description": "Directory of the local provider: the executor wrappers, and a temporary directory per call. Defaults to 'camunda-managed-code' in the Java temporary directory."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.region",
+      "type": "java.lang.String",
+      "description": "AWS region of the Lambda executors. Defaults to the region of the default AWS configuration."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.execution-role-arn",
+      "type": "java.lang.String",
+      "description": "IAM role attached to every executor. It runs customer code and must grant nothing beyond writing its logs."
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.memory-mb",
+      "type": "java.lang.Integer",
+      "description": "Memory of each executor, in MB. Leaves room for the wrapper next to the script, whose child process is limited to 256 MB.",
+      "defaultValue": 512
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.log-retention-days",
+      "type": "java.lang.Integer",
+      "description": "Retention of the log group the provider creates for each executor, one of the values CloudWatch Logs accepts.",
+      "defaultValue": 14
+    },
+    {
+      "name": "camunda.connector.managed-code.aws.poll-interval",
+      "type": "java.time.Duration",
+      "description": "Interval between status reads while an executor is created.",
+      "defaultValue": "2s"
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.project",
+      "type": "java.lang.String",
+      "description": "Project of the executors. Required for the 'gcp' provider."
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.region",
+      "type": "java.lang.String",
+      "description": "Region of the executors. Required for the 'gcp' provider."
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.function-service-account",
+      "type": "java.lang.String",
+      "description": "Service account the executors run as; it must grant nothing. Required, since the platform would otherwise use the default Compute Engine service account, which often has Editor on the project."
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.deployer-service-account",
+      "type": "java.lang.String",
+      "description": "Service account the runtime impersonates to manage and invoke its executors. When absent, the application default credentials are used as they are and must be able to mint ID tokens."
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.memory-mb",
+      "type": "java.lang.Integer",
+      "description": "Memory of each executor, in MiB. Leaves room for the wrapper next to the script, whose child process is limited to 256 MB.",
+      "defaultValue": 512
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.max-instance-count",
+      "type": "java.lang.Integer",
+      "description": "Maximum instances of each executor, so the maximum parallel scripts of the cluster per language; function code cannot change it.",
+      "defaultValue": 10
+    },
+    {
+      "name": "camunda.connector.managed-code.gcp.poll-interval",
+      "type": "java.time.Duration",
+      "description": "Interval between status reads while an executor is created, with jitter.",
+      "defaultValue": "5s"
+    }
+  ]
+}

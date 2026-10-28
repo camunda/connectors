@@ -1,0 +1,9 @@
+{
+  "name": "camunda-generic-executor",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "5.0.5"
+  }
+}

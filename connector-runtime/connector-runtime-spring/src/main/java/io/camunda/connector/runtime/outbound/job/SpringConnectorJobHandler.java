@@ -70,6 +70,7 @@ import io.camunda.connector.runtime.core.intrinsic.IntrinsicFunctionAllowListFac
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
+import io.camunda.connector.runtime.core.secret.LegacySecretsNotResolved;
 import io.camunda.connector.runtime.core.secret.SecretFilter;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory.SecretFilterContext;
@@ -239,9 +240,13 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
 
     var secretFilter =
-        secretFilterFactory.create(
-            new SecretFilterContext(
-                job.getProcessDefinitionKey(), job.getElementId(), Instant.ofEpochMilli(deadline)));
+        call instanceof LegacySecretsNotResolved
+            ? SecretFilter.denyAll()
+            : secretFilterFactory.create(
+                new SecretFilterContext(
+                    job.getProcessDefinitionKey(),
+                    job.getElementId(),
+                    Instant.ofEpochMilli(deadline)));
     var intrinsicFunctionAllowList =
         intrinsicFunctionAllowListFactory.create(
             new IntrinsicFunctionAllowListContext(
