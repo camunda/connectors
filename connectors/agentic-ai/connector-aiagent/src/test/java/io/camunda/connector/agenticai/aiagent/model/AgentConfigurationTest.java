@@ -302,6 +302,14 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void primitiveArrayHashesLikeAList() {
+      assertThat(fingerprintOfSchema(ordered("enum", new double[] {1.0, 2.5})))
+          .isEqualTo(fingerprintOfSchema(ordered("enum", List.of(1, 2.5))));
+      assertThat(fingerprintOfSchema(ordered("enum", new int[] {1, 2})))
+          .isEqualTo(fingerprintOfSchema(ordered("enum", List.of(1L, 2L))));
+    }
+
+    @Test
     void nestedParameterOrderRemainsSignificant() {
       final var first =
           ordered(

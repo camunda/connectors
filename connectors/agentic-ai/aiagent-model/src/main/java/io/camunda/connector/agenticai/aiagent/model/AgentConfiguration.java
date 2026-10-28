@@ -17,9 +17,11 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -149,8 +151,15 @@ public record AgentConfiguration(
           });
       return normalized;
     }
-    if (value instanceof Object[] array) {
-      return normalizeSchema(Arrays.asList(array), context);
+    if (value != null
+        && value.getClass().isArray()
+        && !(value instanceof byte[])
+        && !(value instanceof char[])) {
+      final var elements = new ArrayList<@Nullable Object>(Array.getLength(value));
+      for (int i = 0; i < Array.getLength(value); i++) {
+        elements.add(Array.get(value, i));
+      }
+      return normalizeSchema(elements, context);
     }
     if (value instanceof List<?> list) {
       final var childContext =
