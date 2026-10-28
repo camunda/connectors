@@ -118,7 +118,9 @@ public class ValidatorCommand implements Callable<Integer> {
     List<Path> all = TemplateFinder.findAll(root, skippedDirectories, skippedConnectors);
     List<Path> suppressionFiles =
         TemplateFinder.findSuppressionFiles(root, skippedDirectories, skippedConnectors);
-    if (all.isEmpty() && suppressionFiles.isEmpty()) {
+    if (all.isEmpty()
+        && suppressionFiles.isEmpty()
+        && SuppressionFilter.owningSuppressionFile(root).isEmpty()) {
       System.out.printf("No element-templates/*.json files found under %s%n", root);
       return 0;
     }
@@ -134,7 +136,7 @@ public class ValidatorCommand implements Callable<Integer> {
 
     SuppressionFilter.Result filtered =
         SuppressionFilter.apply(
-            findings, templates, suppressionFiles, skippedDirectories, suppressibleRuleIds());
+            findings, templates, suppressionFiles, root, skippedDirectories, suppressibleRuleIds());
 
     boolean colorEnabled = !noColor && System.console() != null;
     ReportPrinter.print(

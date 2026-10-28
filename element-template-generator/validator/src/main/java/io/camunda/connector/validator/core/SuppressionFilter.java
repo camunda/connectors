@@ -51,6 +51,8 @@ public final class SuppressionFilter {
   /**
    * @param suppressionFiles every suppression file in the scan scope, including those of modules
    *     without templates, so their entries are still validated
+   * @param scanRoot the directory that was scanned; when it lies inside a module's
+   *     element-templates/, that module's suppression file is only partially scanned
    * @param skippedDirs directory names pruned during discovery; a module whose element-templates/
    *     is, or contains, such a directory is only partially scanned
    * @param suppressibleRules rule ids that may be suppressed; anything else is rejected
@@ -59,6 +61,7 @@ public final class SuppressionFilter {
       List<Finding> findings,
       Map<Path, JsonNode> templates,
       List<Path> suppressionFiles,
+      Path scanRoot,
       Set<String> skippedDirs,
       Set<String> suppressibleRules) {
     Map<Path, List<Path>> templatesByDir = new LinkedHashMap<>();
@@ -69,10 +72,8 @@ public final class SuppressionFilter {
     }
 
     // A scan root inside a module (its element-templates/ or hybrid/) or a skipped
-    // element-templates/
-    // directory (or one under it) hides part of the module's templates, so its suppressions still
-    // apply but
-    // scope-dependent checks are skipped.
+    // element-templates/ directory (or one under it) hides part of the module's templates, so its
+    // suppressions still apply but scope-dependent checks are skipped.
     Set<Path> files = new LinkedHashSet<>(suppressionFiles);
     Set<Path> partialScope = new LinkedHashSet<>();
     for (Path file : suppressionFiles) {
@@ -81,13 +82,13 @@ public final class SuppressionFilter {
         partialScope.add(file);
       }
     }
-    for (Path dir : templatesByDir.keySet()) {
-      Path file = dir.resolveSibling(SuppressionFile.FILE_NAME);
-      if (!files.contains(file) && Files.isRegularFile(file)) {
-        files.add(file);
-        partialScope.add(file);
-      }
-    }
+    owningSuppressionFile(scanRoot)
+        .filter(file -> !files.contains(file))
+        .ifPresent(
+            file -> {
+              files.add(file);
+              partialScope.add(file);
+            });
 
     List<Finding> problems = new ArrayList<>();
     Map<Path, List<Suppression>> suppressionsByDir = new LinkedHashMap<>();
@@ -189,8 +190,22 @@ public final class SuppressionFilter {
         .toList();
   }
 
+  /**
+   * The suppression file of the module whose element-templates/ contains (or is) {@code scanRoot}.
+   * Discovery under such a root cannot reach it, as it sits next to element-templates/.
+   */
+  public static Optional<Path> owningSuppressionFile(Path scanRoot) {
+    return enclosingElementTemplatesDir(scanRoot)
+        .map(dir -> dir.resolveSibling(SuppressionFile.FILE_NAME))
+        .filter(Files::isRegularFile);
+  }
+
   private static Optional<Path> elementTemplatesDir(Path file) {
-    for (Path p = file.getParent(); p != null; p = p.getParent()) {
+    return enclosingElementTemplatesDir(file.getParent());
+  }
+
+  private static Optional<Path> enclosingElementTemplatesDir(Path start) {
+    for (Path p = start; p != null; p = p.getParent()) {
       Path name = p.getFileName();
       if (name != null && ELEMENT_TEMPLATES.equals(name.toString())) {
         return Optional.of(p);
