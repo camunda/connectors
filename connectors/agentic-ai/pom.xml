@@ -32,7 +32,6 @@
 
   <properties>
     <version.record-builder>53</version.record-builder>
-    <version.errorprone>2.51.0</version.errorprone>
     <version.java-uuid-generator>5.2.0</version.java-uuid-generator>
     <version.groovy>6.0.0</version.groovy>
     <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
@@ -85,7 +84,7 @@
               <path>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_core</artifactId>
-                <version>${version.errorprone}</version>
+                <version>${version.error-prone}</version>
                 <classifier>with-dependencies</classifier>
               </path>
             </annotationProcessorPaths>
