@@ -47,7 +47,12 @@ escalation:
     - reason: guardrails
       paths: ["connectors/idp-extraction/src/main/java/*/utils/*Guardrail*"]
     - reason: provider authentication
-      paths: ["connectors/idp-extraction/src/main/java/*/*Authentication*"]
+      paths:
+        - "connectors/idp-extraction/src/main/java/*/*Authentication*"
+        - "connectors/idp-extraction/src/main/java/*/model/providers/*"
+        - "connectors/idp-extraction/src/main/java/*/utils/ProviderUtil.java"
+        - "connectors/idp-extraction/src/main/java/*/utils/AwsUtil.java"
+        - "connectors/idp-extraction/src/main/java/*/utils/GcsUtil.java"
     - reason: build config and dependencies
       paths: ["connectors/idp-extraction/pom.xml", "connectors/idp-extraction/*/pom.xml"]
 
