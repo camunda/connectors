@@ -66,7 +66,7 @@ class CamundaDocumentTest {
     }
 
     @Override
-    public byte[] readAllBytes() {
+    public synchronized byte[] readAllBytes() {
       if (failOnRead) {
         throw new IllegalStateException("connection reset");
       }
