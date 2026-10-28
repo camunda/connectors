@@ -232,6 +232,12 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-compiler-plugin>3.16.0</plugin.version.maven-compiler-plugin>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
+    <plugin.version.revapi-maven-plugin>0.15.1</plugin.version.revapi-maven-plugin>
+    <version.revapi-java>0.28.4</version.revapi-java>
+
+    <!-- Released version that API-gated modules are compared against, see docs/api-compatibility.md.
+         Bumped by the release workflow: main tracks the last released minor, stable branches the last patch. -->
+    <api.baseline.version>8.10.2</api.baseline.version>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.51.0</version.error-prone>
@@ -1096,6 +1102,48 @@ limitations under the License.</license.inlineheader>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>${plugin.version.maven-exec-plugin}</version>
+        </plugin>
+        <!-- API compatibility check, declare it in a module's <build><plugins> to gate that module's API.
+             See docs/api-compatibility.md. -->
+        <plugin>
+          <groupId>org.revapi</groupId>
+          <artifactId>revapi-maven-plugin</artifactId>
+          <version>${plugin.version.revapi-maven-plugin}</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.revapi</groupId>
+              <artifactId>revapi-java</artifactId>
+              <version>${version.revapi-java}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <oldVersion>${api.baseline.version}</oldVersion>
+            <failOnUnresolvedArtifacts>true</failOnUnresolvedArtifacts>
+            <failOnMissingConfigurationFiles>false</failOnMissingConfigurationFiles>
+            <analysisConfiguration>
+              <revapi.filter>
+                <archives>
+                  <!-- only the module's own classes are API, not the dependencies its signatures use -->
+                  <include>
+                    <item>${project.groupId}:${project.artifactId}:.*</item>
+                  </include>
+                </archives>
+              </revapi.filter>
+            </analysisConfiguration>
+            <analysisConfigurationFiles>
+              <configurationFile>
+                <path>${project.basedir}/api-changes.json</path>
+              </configurationFile>
+            </analysisConfigurationFiles>
+          </configuration>
+          <executions>
+            <execution>
+              <id>check-api-compatibility</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

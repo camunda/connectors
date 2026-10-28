@@ -49,6 +49,9 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   `GenerateElementTemplate` test class.
 - Docker-based tests use `io.camunda.connector.test.utils.DockerImages` — add the image to
   `docker-images.properties` in `src/test/resources`, then a constant in `DockerImages`.
+- API-gated modules (e.g. `connector-sdk/core`) fail `verify` on an incompatible API change; accept
+  an intended break in the module's `api-changes.json` — see
+  [docs/api-compatibility.md](../docs/api-compatibility.md).
 
 ## Connector implementation patterns
 
