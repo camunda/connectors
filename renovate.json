@@ -165,6 +165,19 @@
       "enabled": false
     },
     {
+      "description": "Disable major version updates for minimatch in the codeowners-slack-mentions action — 11.0.0 removed the static minimatch.makeRe helper that index.mjs uses to compile CODEOWNERS patterns, so every pattern stops matching and E2E failure alerts silently mention no one. CI does not run the action's own tests (npm test), so a green Renovate PR does not prove compatibility. Re-enable after migrating index.mjs to the v11 API.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "minimatch"
+      ],
+      "matchFileNames": [
+        ".github/actions/codeowners-slack-mentions/package.json"
+      ],
+      "enabled": false
+    },
+    {
         "description": "kafka-clients: stay on the Apache versioning track. The Confluent Platform builds (-ce/-ccs/-cp suffixes, e.g. 8.2.1-ce) are republished under the same org.apache.kafka coordinates via artifacts.camunda.com and must not be treated as upgrades to the Apache releases (x.y.z).",
         "matchPackageNames": [
           "org.apache.kafka:kafka-clients"
