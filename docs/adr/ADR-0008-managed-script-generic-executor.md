@@ -116,19 +116,27 @@ with no user code in it.
 - **Dependencies.** Dependencies are not supported yet (GAP-004). A job that links a `dependencies`
   resource fails with `UNSUPPORTED_DEPENDENCIES`.
 
-Executors are deleted in two cases only:
+The runtime never deletes executors and holds no delete rights. **Controller** deletes them: it
+generates the cluster's prefix, so it can list the functions under it.
 
-- **Cluster deletion.** Controller calls the runtime's teardown endpoint
-  ([#9919](https://github.com/camunda/connectors/issues/9919)) before it deletes the cluster. The
-  runtime deletes the executors of its wrapper and of the earlier wrappers whose digests it ships.
-  It computes their names, so it needs no list rights. Controller retries a teardown that fails.
-- **Wrapper upgrade.** The executors of the previous wrapper stay while runtime instances of the
-  previous release may call them. Deleting them later is
-  [#9912](https://github.com/camunda/connectors/issues/9912).
+- **Cluster deletion.** Controller deletes every function and log group under the cluster's prefix.
+- **Wrapper upgrade.** Once every runtime instance of the cluster runs the new release, Controller
+  deletes the functions under the prefix that the runtime does not report as its current
+  executors. The runtime reports their names through an endpoint
+  ([#9919](https://github.com/camunda/connectors/issues/9919)).
+- Controller retries a deletion that fails.
 
-The runtime does not delete executors when it shuts down. Executors are shared by every runtime
-instance of a cluster and keep their names across a restart, so a shutdown hook would delete the
-executors that the instances still running, or just started, are using.
+Listing by prefix also catches the executors of wrappers several releases old, and the functions
+of a runtime that no longer answers. A runtime instance does not delete executors when it shuts
+down: executors are shared by every instance of a cluster and keep their names across a restart,
+so an instance cannot know whether it is the last one using them.
+
+In Self-Managed, where there is no Controller, the operator deletes the functions under the prefix,
+as the documentation describes.
+
+This needs Controller's agreement: so far Controller manages no functions and holds no permissions
+on the functions projects and accounts
+([task breakdown](https://github.com/camunda/code-execution-poc/blob/main/TASK_BREAKDOWN.md#controller)).
 
 ### Execution contract v1
 
@@ -367,8 +375,10 @@ It logs a warning at startup. Windows is not supported.
 - On GCP, one request per instance means the maximum instance count caps the parallel scripts of a
   cluster per language.
 - A script and its input travel in every request: at most 6 MB on AWS and 32 MB on GCP.
-- A wrapper upgrade creates new executors in every cluster. The old ones stay until
-  [#9912](https://github.com/camunda/connectors/issues/9912) deletes them.
+- A wrapper upgrade creates new executors in every cluster. The old ones stay until Controller
+  deletes them at the end of the rollout.
+- Cleanup depends on Controller, which needs list and delete rights on the functions projects and
+  accounts. In Self-Managed, the operator cleans up by hand.
 - A configuration change updates the executors in place. During a rolling update, instances that
   still have the previous configuration call executors that already have the new one. If the
   function timeout was lowered, the platform can kill a long script of such an instance, which
