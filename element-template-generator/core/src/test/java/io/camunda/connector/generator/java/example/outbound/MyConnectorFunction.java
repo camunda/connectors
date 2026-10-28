@@ -126,6 +126,15 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
+      defaultJobTimeout = "PT3M")
+  public static class MinimallyAnnotatedWithJobTimeout extends MyConnectorFunction {}
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
       extensionProperties = {
         @ElementTemplate.ExtensionProperty(name = "myExtensionProperty1", value = "value1"),
         @ElementTemplate.ExtensionProperty(

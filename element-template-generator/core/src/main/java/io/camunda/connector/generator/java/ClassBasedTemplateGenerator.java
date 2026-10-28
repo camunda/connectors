@@ -310,7 +310,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultExpression(),
               resultExpressionExampleTooltip));
       newGroups.add(PropertyGroup.ERROR_GROUP);
-      newGroups.add(PropertyGroup.RETRIES_GROUP);
+      newGroups.add(PropertyGroup.retriesGroup(template.defaultJobTimeout()));
     } else {
 
       if (configuration.features().get(GenerationFeature.ACKNOWLEDGEMENT_STRATEGY_SELECTION)

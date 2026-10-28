@@ -278,6 +278,15 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void jobTimeoutProperty_withDefault() {
+      var template =
+          generator.generate(MyConnectorFunction.MinimallyAnnotatedWithJobTimeout.class).getFirst();
+      var property = getPropertyByLabel("Job timeout", template);
+      assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("jobTimeout");
+      assertThat(property.getValue()).isEqualTo("PT3M");
+    }
+
+    @Test
     void retryCountProperty() {
       var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property = getPropertyByLabel("Retries", templates.getFirst());

@@ -99,15 +99,25 @@ public record PropertyGroup(
                   .build())
           .build();
 
-  public static PropertyGroup RETRIES_GROUP =
-      PropertyGroup.builder()
-          .id("retries")
-          .label("Retries")
-          .properties(
-              CommonProperties.retryCount().binding(ZeebeTaskDefinition.RETRIES).build(),
-              CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build(),
-              CommonProperties.jobTimeout().binding(new ZeebeTaskHeader("jobTimeout")).build())
-          .build();
+  public static PropertyGroup RETRIES_GROUP = retriesGroup(null);
+
+  /**
+   * @param defaultJobTimeout default value of the job timeout; none when {@code null} or blank
+   */
+  public static PropertyGroup retriesGroup(String defaultJobTimeout) {
+    var jobTimeout = CommonProperties.jobTimeout().binding(new ZeebeTaskHeader("jobTimeout"));
+    if (defaultJobTimeout != null && !defaultJobTimeout.isBlank()) {
+      jobTimeout.value(defaultJobTimeout);
+    }
+    return PropertyGroup.builder()
+        .id("retries")
+        .label("Retries")
+        .properties(
+            CommonProperties.retryCount().binding(ZeebeTaskDefinition.RETRIES).build(),
+            CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build(),
+            jobTimeout.build())
+        .build();
+  }
 
   public static PropertyGroup ACTIVATION_GROUP =
       PropertyGroup.builder()

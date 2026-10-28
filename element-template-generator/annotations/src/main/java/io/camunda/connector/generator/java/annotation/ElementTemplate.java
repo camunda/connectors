@@ -142,6 +142,15 @@ public @interface ElementTemplate {
    */
   String defaultResultExpression() default "";
 
+  /**
+   * Default value of the job timeout of an outbound connector, as an ISO-8601 duration such as
+   * {@code PT3M}. Set it when the connector can legitimately run longer than the default job
+   * timeout of the job worker.
+   *
+   * <p>If not specified, no default job timeout will be set.
+   */
+  String defaultJobTimeout() default "";
+
   @interface Category {
 
     /** Element template category ID, e.g. {@code connectors}. */
