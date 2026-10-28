@@ -25,6 +25,9 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAut
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -475,6 +478,47 @@ class AgentConfigurationTest {
                 configuration("gpt-4o", "Be nice.", null, context.toolDefinitions()).fingerprint())
             .isEqualTo(original);
       }
+    }
+
+    @Test
+    void fingerprintIsTheDigestOfTheCompactJsonInput() throws Exception {
+      final var schema =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "days",
+                  ordered(
+                      "type", "integer", "minimum", new BigDecimal("1"), "default", BigDecimal.TEN),
+                  "city",
+                  ordered(
+                      "type",
+                      "number",
+                      "multipleOf",
+                      new BigDecimal("0.250"),
+                      "examples",
+                      List.of(ordered("b", 1, "a", 2.0)))),
+              "required",
+              List.of("days", "city"));
+      final var expectedInput =
+          """
+          ["gpt-4o","openai","Be nice.",10,[["getWeather",null,{"properties":{\
+          "days":{"default":10,"minimum":1,"type":"integer"},\
+          "city":{"examples":[{"a":2,"b":1}],"multipleOf":0.25,"type":"number"}},\
+          "required":["days","city"],"type":"object"}]]]""";
+
+      final var fingerprint =
+          configuration(
+                  "gpt-4o", "Be nice.", 10, List.of(new ToolDefinition("getWeather", null, schema)))
+              .fingerprint();
+
+      assertThat(fingerprint)
+          .isEqualTo(
+              HexFormat.of()
+                  .formatHex(
+                      MessageDigest.getInstance("SHA-256")
+                          .digest(expectedInput.getBytes(StandardCharsets.UTF_8))));
     }
 
     @Test
