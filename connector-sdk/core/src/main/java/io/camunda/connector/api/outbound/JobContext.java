@@ -80,4 +80,13 @@ public interface JobContext {
   default String getLeaseToken() {
     return null;
   }
+
+  /**
+   * The retries the job has left in this activation, or {@code null} when unknown. A connector that
+   * must fail the job without consuming a retry passes it to {@link
+   * io.camunda.connector.api.error.ConnectorRetryException}.
+   */
+  default Integer getRetries() {
+    return null;
+  }
 }

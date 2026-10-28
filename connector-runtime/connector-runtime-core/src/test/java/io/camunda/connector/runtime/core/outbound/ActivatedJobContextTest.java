@@ -48,4 +48,11 @@ class ActivatedJobContextTest {
 
     assertThat(context().getPhysicalTenantId()).isNull();
   }
+
+  @Test
+  void retries_areTakenFromTheJob() {
+    when(activatedJob.getRetries()).thenReturn(3);
+
+    assertThat(context().getRetries()).isEqualTo(3);
+  }
 }
