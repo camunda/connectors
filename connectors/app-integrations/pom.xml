@@ -42,7 +42,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${version.jackson-bom}</version>
     </dependency>
     <dependency>
       <groupId>org.hibernate.validator</groupId>

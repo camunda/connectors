@@ -27,7 +27,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${version.jackson-bom}</version>
     </dependency>
     <dependency>
       <groupId>com.slack.api</groupId>
@@ -44,7 +43,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>${version.guava}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>

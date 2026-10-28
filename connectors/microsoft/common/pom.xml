@@ -29,7 +29,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.graph</groupId>

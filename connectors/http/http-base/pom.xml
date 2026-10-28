@@ -35,7 +35,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>http-client</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
