@@ -8,8 +8,11 @@ package io.camunda.connector.rabbitmq.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -51,12 +54,17 @@ import org.testcontainers.junit.jupiter.Container;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RabbitMqIntegrationTest extends BaseTest {
 
+  private static final String READ_ONLY_USERNAME = "readonly";
+  private static final String READ_ONLY_PASSWORD = "readonly";
+
   @Container
   private static final RabbitMQContainer rabbitMq =
       new RabbitMQContainer(BaseTest.RABBITMQ_TEST_IMAGE)
           .withUser(Authentication.USERNAME, Authentication.PASSWORD, Set.of("administrator"))
           .withVhost(Routing.VIRTUAL_HOST)
           .withPermission(Routing.VIRTUAL_HOST, Authentication.USERNAME, ".*", ".*", ".*")
+          .withUser(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)
+          .withPermission(Routing.VIRTUAL_HOST, READ_ONLY_USERNAME, "", "", ".*")
           .withQueue(Routing.VIRTUAL_HOST, ActualValue.QUEUE_NAME)
           .withExchange(Routing.VIRTUAL_HOST, Routing.EXCHANGE, "direct")
           .withBinding(
@@ -211,6 +219,143 @@ public class RabbitMqIntegrationTest extends BaseTest {
     assertEquals("Hello “ ” \"World\"", body.get("value"));
   }
 
+<<<<<<< HEAD
+=======
+  @Test
+  @Order(4)
+  void publishAndConsumeMessageWithReusableCredential() throws Exception {
+    // Given a credential carrying the whole connection, and a task with only exchange/routing key
+    var credential =
+        new RabbitMqConnectionConfiguration(
+            getAuth(),
+            new FactoryRoutingData(
+                Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString()));
+    var variables =
+        Map.of(
+            RabbitMqConnectionConfiguration.CHOOSER_ID,
+            credential,
+            "routing",
+            Map.of("exchange", Routing.EXCHANGE, "routingKey", Routing.ROUTING_KEY),
+            "message",
+            Map.of("body", Map.of("value", "Hello credential")));
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(ObjectMapperSupplier.instance().writeValueAsString(variables))
+            .build();
+
+    // When
+    var result = new RabbitMqFunction().execute(context);
+
+    // Then
+    assertEquals("success", ((RabbitMqResult) result).getStatusResult());
+
+    // Given
+    RabbitMqExecutable executable = new RabbitMqExecutable();
+    TestInboundConnectorContext contextInbound =
+        InboundConnectorContextBuilder.create()
+            .definition(new InboundConnectorDefinition(null, null, null, List.of(), null))
+            .properties(
+                Map.of(
+                    RabbitMqConnectionConfiguration.CHOOSER_ID,
+                    credential,
+                    "queueName",
+                    ActualValue.QUEUE_NAME))
+            .validation(new DefaultValidationProvider())
+            .build();
+
+    // When
+    executable.activate(contextInbound);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !contextInbound.getCorrelations().isEmpty());
+    executable.deactivate();
+
+    // Then
+    RabbitMqInboundResult castedResultInbound =
+        (RabbitMqInboundResult) contextInbound.getCorrelations().get(0);
+    Map<String, Object> body = (Map<String, Object>) castedResultInbound.message().body();
+    assertEquals("Hello credential", body.get("value"));
+  }
+
+  @Test
+  @Order(5)
+  void validatesReusableCredentialAgainstBroker() {
+    var validator = new RabbitMqConnectionValidator();
+    var routing =
+        new FactoryRoutingData(
+            Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
+
+    assertEquals(
+        ConfigurationValidationResult.success(),
+        validator.validate(new RabbitMqConnectionConfiguration(getAuth(), routing)));
+    assertEquals(
+        ConfigurationValidationResult.success(),
+        validator.validate(
+            new RabbitMqConnectionConfiguration(
+                new UriAuthentication(
+                    "amqp://%s:%s@%s:%d/%s"
+                        .formatted(
+                            Authentication.USERNAME,
+                            Authentication.PASSWORD,
+                            rabbitMq.getHost(),
+                            rabbitMq.getAmqpPort(),
+                            Routing.VIRTUAL_HOST)),
+                null)));
+    assertEquals(
+        ErrorCode.UNAUTHORIZED.name(),
+        validator
+            .validate(
+                new RabbitMqConnectionConfiguration(
+                    new CredentialsAuthentication(Authentication.USERNAME, "wrong-password"),
+                    routing))
+            .code());
+  }
+
+  @Test
+  @Order(6)
+  void failsWhenPublishingToMissingExchange() throws Exception {
+    var context = publishContext(getAuth(), "missing-exchange");
+
+    var thrown =
+        assertThrows(ConnectorException.class, () -> new RabbitMqFunction().execute(context));
+
+    assertEquals("RABBITMQ_PUBLISH_FAILED", thrown.getErrorCode());
+    assertTrue(thrown.getMessage().contains("NOT_FOUND"), thrown.getMessage());
+  }
+
+  @Test
+  @Order(7)
+  void failsWhenUserHasNoWritePermission() throws Exception {
+    var context =
+        publishContext(
+            new CredentialsAuthentication(READ_ONLY_USERNAME, READ_ONLY_PASSWORD),
+            Routing.EXCHANGE);
+
+    var thrown =
+        assertThrows(ConnectorException.class, () -> new RabbitMqFunction().execute(context));
+
+    assertEquals("RABBITMQ_PUBLISH_FAILED", thrown.getErrorCode());
+    assertTrue(thrown.getMessage().contains("ACCESS_REFUSED"), thrown.getMessage());
+  }
+
+  private OutboundConnectorContext publishContext(
+      RabbitMqAuthentication authentication, String exchange) throws Exception {
+    RabbitMqOutboundRouting routing =
+        new RabbitMqOutboundRouting(
+            exchange,
+            Routing.ROUTING_KEY,
+            Routing.VIRTUAL_HOST,
+            rabbitMq.getHost(),
+            rabbitMq.getAmqpPort().toString());
+    RabbitMqRequest request =
+        new RabbitMqRequest(
+            authentication, routing, new RabbitMqMessage(null, "{\"value\": \"rejected\"}"));
+    return OutboundConnectorContextBuilder.create()
+        .validation(new DefaultValidationProvider())
+        .variables(ObjectMapperSupplier.instance().writeValueAsString(request))
+        .build();
+  }
+
+>>>>>>> fb911d6 (fix(rabbitmq): fail the job when the broker rejects a publish (#9788))
   private RabbitMqAuthentication getAuth() {
     return new CredentialsAuthentication(Authentication.USERNAME, Authentication.PASSWORD);
   }
