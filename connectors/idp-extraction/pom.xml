@@ -182,7 +182,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <!-- ExtractionConnectorFunction is deprecated and its template is frozen: it only exists
                as element-templates/versioned/idp-extraction-outbound-connector-{1,2}.json. -->
