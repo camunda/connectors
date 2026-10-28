@@ -164,7 +164,6 @@ limitations under the License.</license.inlineheader>
 
     <version.commons-fileupload>2.0.0-M5</version.commons-fileupload>
     <version.commons-io>2.22.0</version.commons-io>
-    <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
