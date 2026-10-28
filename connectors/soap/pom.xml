@@ -23,10 +23,6 @@
     </license>
   </licenses>
 
-  <properties>
-    <version.commons-text>1.11.0</version.commons-text>
-  </properties>
-
   <dependencyManagement>
     <dependencies>
       <dependency>
