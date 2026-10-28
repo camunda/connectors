@@ -332,8 +332,10 @@ name.
   a missing executor as `DEPLOYMENT_MISSING`.
 
 Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
-calls the script's `execute`, and enforces the child process, the limits and the cleanup. The core
-module exposes the wrapper files of each language and their digest, so that a provider written
+calls the script's `execute`, and enforces the child process, the limits and the cleanup. The
+wrapper files of each language and their digest are published to providers, in the Apache 2.0 API
+module or a module of their own (decided in
+[#9907](https://github.com/camunda/connectors/issues/9907)), so that a provider written
 outside this repository, for example in Self-Managed for another platform, can package the wrapper
 and name its executors from the digest. Such a provider either creates the executors in
 `ensureExecutors`, like the built-in ones, or, when they are deployed separately (for example with
@@ -348,15 +350,20 @@ SPI is **not a stable API** and has no compatibility guarantee yet. In particula
 
 ### Module layout
 
-| Module | Contents | In the starter |
-|---|---|---|
-| `connector-runtime-managed-code` | Connector, element template, SPI, contract, job handler, readiness, executor wrappers, `local` provider | Yes, disabled by default (`camunda.connector.managed-code.enabled=false`) |
-| `connector-runtime-managed-code-aws` | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | No |
-| `connector-runtime-managed-code-gcp` | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | No |
+| Module | License | Contents | Where it ships |
+|---|---|---|---|
+| `connector-runtime/connector-managed-script-api` | Apache 2.0 | Provider SPI and execution contract; depends on nothing but Jackson annotations | Wherever a provider is built |
+| `connectors/managed-script` | Camunda proprietary, like the other connectors | Connector, element template, job handler, readiness, `local` provider | Default bundle, disabled by default (`camunda.connector.managed-code.enabled=false`) |
+| `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Not in the default bundle |
+| `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Not in the default bundle |
 
-The AWS and GCP modules bring the cloud SDKs, so the starter does not pull them in. A distribution
-that offers managed scripts, such as the SaaS image, adds the module of its provider to the
-classpath.
+The connector lives with the other connectors, so its element template is published with theirs.
+The SPI stays in an Apache 2.0 module of its own, without Spring or the runtime, so that a provider,
+including one a Self-Managed customer writes, depends on that module only. The dependencies go one
+way: the connector and the providers depend on the API, and the runtime depends on none of them.
+The AWS and GCP modules bring the cloud SDKs, so the default bundle does not include them; a
+distribution that offers managed scripts, such as the SaaS image, adds the module of its provider
+to the classpath.
 
 The `local` provider is for **trusted development only and is not a sandbox**. It runs the same
 wrapper as a local Node.js or Python process, in a local mode that only kills the script's process
@@ -375,8 +382,8 @@ It logs a warning at startup. Windows is not supported.
 - The runtime's connector machinery handles activation, variable fetching, result and error
   expressions, retries and secrets, as for every connector.
 - Deployment stays fast and does not depend on the provider being available.
-- With managed code disabled, the ordinary connector workers are unchanged, and the starter carries
-  no cloud SDK.
+- With managed code disabled, the ordinary connector workers are unchanged, and the default bundle
+  carries no cloud SDK.
 - A fixed contract, a closed set of error codes and a documented retry behaviour per code let the
   wrappers, the providers and the job handler be built and reviewed in separate PRs.
 
