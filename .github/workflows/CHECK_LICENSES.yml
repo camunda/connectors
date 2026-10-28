@@ -29,12 +29,20 @@ jobs:
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push' }}
     timeout-minutes: 30
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
       # Import FOSSA_API_KEY and other secrets from Vault
       - name: Import secrets
         id: secrets
@@ -110,3 +118,26 @@ jobs:
               steps.info.outputs.base-revision
             }}
           revision: ${{ steps.info.outputs.head-revision }}
+
+      - name: Validate telemetry refs
+        id: telemetry-ref-safety
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          case "$HEAD_REF$BASE_REF" in
+            *['$`"']*)
+              echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+              exit 1
+              ;;
+          esac
+
+      - name: Submit build status
+        if: always() && steps.telemetry-ref-safety.outcome == 'success'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
