@@ -10,8 +10,11 @@ jobs:
     if: github.event.label.name == 'deploy-preview' || (github.event.action == 'closed' && contains( github.event.pull_request.labels.*.name, 'deploy-preview') )
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    # deployments: write is needed by the preview-env/destroy composite, which
+    # deactivates the GitHub Deployment with github.token before deleting the environment
     permissions:
       contents: read
+      deployments: write
       id-token: write
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
