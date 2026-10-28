@@ -9,7 +9,9 @@ package io.camunda.connector.rabbitmq.outbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +20,9 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ShutdownSignalException;
+import com.rabbitmq.client.impl.AMQImpl;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
@@ -29,9 +34,11 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -79,7 +86,9 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
         .createFactory(any(RabbitMqAuthentication.class), any(FactoryRoutingData.class));
     verify(connectionFactoryMock, times(1)).newConnection();
     verify(connectionMock, times(1)).createChannel();
+    verify(channel).confirmSelect();
     verify(channel).basicPublish(anyString(), anyString(), any(AMQP.BasicProperties.class), any());
+    verify(channel).waitForConfirmsOrDie(anyLong());
 
     assertThat(connectorResultObject).isInstanceOf(RabbitMqResult.class);
     RabbitMqResult connectorResult = (RabbitMqResult) connectorResultObject;
@@ -142,5 +151,44 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
             () -> function.execute(context),
             "IllegalArgumentException was expected");
     assertThat(thrown).hasMessageContainingAll("Unsupported field", "for properties");
+  }
+
+  @ParameterizedTest
+  @MethodSource("rejectedPublishCases")
+  void execute_shouldFailWhenBrokerDoesNotConfirmPublish(
+      final Exception brokerError, final String expectedMessage) throws Exception {
+    // given
+    String input =
+        """
+        {
+          "authentication": {"authType": "credentials", "userName": "user", "password": "pass"},
+          "routing": {
+            "virtualHost": "/",
+            "hostName": "localhost",
+            "port": "5672",
+            "exchange": "exchangeName",
+            "routingKey": "routingKey"
+          },
+          "message": {"body": {"key": "value"}}
+        }
+        """;
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
+    doThrow(brokerError).when(channel).waitForConfirmsOrDie(anyLong());
+    // when and then
+    ConnectorException thrown =
+        assertThrows(ConnectorException.class, () -> function.execute(context));
+    assertThat(thrown.getErrorCode()).isEqualTo(RabbitMqFunction.PUBLISH_FAILED_ERROR_CODE);
+    assertThat(thrown).hasMessageContaining(expectedMessage).hasCause(brokerError);
+  }
+
+  private static Stream<Arguments> rejectedPublishCases() {
+    var channelClose =
+        new AMQImpl.Channel.Close(404, "NOT_FOUND - no exchange 'missing' in vhost '/'", 60, 40);
+    return Stream.of(
+        Arguments.of(
+            new ShutdownSignalException(false, false, channelClose, null),
+            "NOT_FOUND - no exchange 'missing' in vhost '/'"),
+        Arguments.of(new IOException("nacks received"), "nacks received"),
+        Arguments.of(new TimeoutException(), "did not confirm the message within"));
   }
 }
