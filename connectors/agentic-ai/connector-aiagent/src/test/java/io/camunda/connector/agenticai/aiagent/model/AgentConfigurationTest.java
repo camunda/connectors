@@ -291,6 +291,14 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void objectArrayHashesLikeAList() {
+      final var array = ordered("anyOf", new Object[] {ordered("type", "string", "minLength", 1)});
+      final var list = ordered("anyOf", List.of(ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(array)).isEqualTo(fingerprintOfSchema(list));
+    }
+
+    @Test
     void nestedParameterOrderRemainsSignificant() {
       final var first =
           ordered(

@@ -149,6 +149,9 @@ public record AgentConfiguration(
           });
       return normalized;
     }
+    if (value instanceof Object[] array) {
+      return normalizeSchema(Arrays.asList(array), context);
+    }
     if (value instanceof List<?> list) {
       final var childContext =
           context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
