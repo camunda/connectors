@@ -58,6 +58,16 @@
     <module>agentic-ai-archunit-tests</module>
   </modules>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.soabase.record-builder</groupId>
+        <artifactId>record-builder-core</artifactId>
+        <version>${version.record-builder}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
     <pluginManagement>
       <plugins>

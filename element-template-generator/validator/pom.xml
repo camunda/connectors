@@ -17,7 +17,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.picocli>4.7.7</version.picocli>
     <version.json-schema-validator>1.5.9</version.json-schema-validator>
   </properties>
 
@@ -35,7 +34,6 @@
     <dependency>
       <groupId>info.picocli</groupId>
       <artifactId>picocli</artifactId>
-      <version>${version.picocli}</version>
     </dependency>
 
     <dependency>
@@ -72,7 +70,7 @@
             <path>
               <groupId>info.picocli</groupId>
               <artifactId>picocli-codegen</artifactId>
-              <version>4.7.7</version>
+              <version>${version.picocli}</version>
             </path>
           </annotationProcessorPaths>
           <compilerArgs>
@@ -83,7 +81,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
-        <version>2.1.0</version>
         <executions>
           <execution>
             <phase>package</phase>

@@ -39,7 +39,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup.okio</groupId>

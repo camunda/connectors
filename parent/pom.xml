@@ -279,6 +279,11 @@ limitations under the License.</license.inlineheader>
         <artifactId>okhttp</artifactId>
         <version>${version.okhttp}</version>
       </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp-jvm</artifactId>
+        <version>${version.okhttp}</version>
+      </dependency>
 
       <!-- CVE-2026-9563 (https://nvd.nist.gov/vuln/detail/CVE-2026-9563): override parsson transitive
            version brought in by opensearch-java. Remove once opensearch-java ships parsson >= 1.1.8. -->
