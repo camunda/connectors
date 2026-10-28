@@ -121,7 +121,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-kafka</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
 

@@ -120,8 +120,6 @@ limitations under the License.</license.inlineheader>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
-    <version.localstack>2.0.5</version.localstack>
-
     <version.okhttp>5.5.1</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
@@ -322,6 +320,16 @@ limitations under the License.</license.inlineheader>
         <version>${version.netty}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <!-- Testcontainers BOM imported before Spring Boot so version.testcontainers governs every
+           testcontainers-* module, not only the ones we declare -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${version.testcontainers}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Spring Boot BOM -->
@@ -931,16 +939,6 @@ limitations under the License.</license.inlineheader>
         <scope>test</scope>
       </dependency>
 
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>${version.testcontainers}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers-junit-jupiter</artifactId>
-        <version>${version.testcontainers}</version>
-      </dependency>
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
