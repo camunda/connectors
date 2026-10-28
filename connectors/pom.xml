@@ -29,6 +29,7 @@
     <module>http</module>
     <module>jdbc</module>
     <module>kafka</module>
+    <module>managed-script</module>
     <module>microsoft/azure-blobstorage</module>
     <module>microsoft/common</module>
     <module>microsoft/email-inbound</module>

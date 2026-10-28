@@ -1,0 +1,76 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.managedscript;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/** The script and optional dependency manifest resolved by the engine for one job. */
+record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResourceKey) {
+
+  static final String HEADER = "linkedResources";
+  static final String SCRIPT_LINK = "script";
+  static final String DEPENDENCIES_LINK = "dependencies";
+
+  /**
+   * Parses the {@code linkedResources} job header, a JSON array of {@code {"resourceKey",
+   * "resourceType", "linkName"}} objects.
+   *
+   * @throws InvalidJobException when the header is missing, malformed or has no script link
+   */
+  static LinkedResources parse(Map<String, String> headers, ObjectMapper objectMapper) {
+    final var header = headers.get(HEADER);
+    if (header == null || header.isBlank()) {
+      throw new InvalidJobException(
+          "Missing '%s' header: the managed script is not linked to the task".formatted(HEADER));
+    }
+    final List<Link> links;
+    try {
+      links = objectMapper.readValue(header, new TypeReference<>() {});
+    } catch (JsonProcessingException e) {
+      throw new InvalidJobException("The '%s' header is not a valid JSON array".formatted(HEADER));
+    }
+    final var script =
+        resourceKey(links, SCRIPT_LINK)
+            .orElseThrow(
+                () ->
+                    new InvalidJobException(
+                        "The '%s' header has no '%s' link".formatted(HEADER, SCRIPT_LINK)));
+    return new LinkedResources(script, resourceKey(links, DEPENDENCIES_LINK));
+  }
+
+  private static Optional<Long> resourceKey(List<Link> links, String linkName) {
+    final var matches =
+        links == null
+            ? List.<Link>of()
+            : links.stream()
+                .filter(link -> link != null && linkName.equals(link.linkName()))
+                .toList();
+    if (matches.isEmpty()) {
+      return Optional.empty();
+    }
+    if (matches.size() > 1) {
+      throw new InvalidJobException(
+          "The '%s' header has more than one '%s' link".formatted(HEADER, linkName));
+    }
+    final var resourceKey = matches.getFirst().resourceKey();
+    try {
+      return Optional.of(Long.parseLong(resourceKey));
+    } catch (NumberFormatException e) {
+      throw new InvalidJobException(
+          "The '%s' link has an invalid resourceKey '%s'".formatted(linkName, resourceKey));
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record Link(String resourceKey, String resourceType, String linkName) {}
+}
