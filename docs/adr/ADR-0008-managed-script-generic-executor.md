@@ -309,13 +309,13 @@ When a job fails, its error message (and so the incident message) is:
 
 ### Secrets
 
-The connector implements `LegacySecretsNotResolved`
-([#9904](https://github.com/camunda/connectors/issues/9904)), for which the runtime uses a deny-all
-secret filter. `{{secrets.X}}` placeholders in the script input therefore reach the script as
-literal text. A script gets a secret only through `camunda.secrets.X` in its input mapping, which
-the engine resolves when it activates the job
-([ADR-0007](ADR-0007-centralized-secret-resolution-in-the-connector-runtime.md)). So the secrets a
-script receives are the ones the modeler mapped on purpose, not every secret of the runtime.
+A script receives secrets only through its input. The script itself is a Zeebe resource that the
+runtime never scans for placeholders, so a placeholder written in the script stays literal text.
+In the script input, secrets are resolved as for any connector: `camunda.secrets.X` by the engine
+when it activates the job
+([ADR-0007](ADR-0007-centralized-secret-resolution-in-the-connector-runtime.md)), and
+`{{secrets.X}}` by the runtime, within its secret filter. Passing secrets to scripts through their
+input is still to be validated with Product (GAP-005).
 
 ### Provider SPI
 
@@ -341,7 +341,7 @@ Terraform, so that the runtime holds no deployment rights), checks there that th
 the expected wrapper.
 
 The connector keeps everything else: fetching the script, waiting for readiness without consuming
-a retry, recovering from `DEPLOYMENT_MISSING`, the limits, the incident text and the secrets. The
+a retry, recovering from `DEPLOYMENT_MISSING`, the limits and the incident text. The
 SPI is **not a stable API** and has no compatibility guarantee yet. In particular,
 [#9909](https://github.com/camunda/connectors/issues/9909) may change the signature of
 `ensureExecutors` so that readiness can be tracked per language.
@@ -400,7 +400,8 @@ It logs a warning at startup. Windows is not supported.
   function timeout was lowered, the platform can kill a long script of such an instance, which
   fails as `PLATFORM_EXECUTION_FAILED`.
 - Syntax errors surface at the first execution, as `SCRIPT_ERROR`, not at deployment.
-- Legacy `{{secrets.X}}` placeholders in the script input are not replaced, unlike in other
-  connectors. This has to be documented for users.
+- The runtime resolves `{{secrets.X}}` anywhere in the script input, including in text that came
+  from data, such as a webhook payload mapped into it. Only the runtime's secret filter bounds
+  which secrets can reach user code this way.
 - The provider SPI may still change. A provider written outside this repository may break with any
   release until the SPI is declared stable.
