@@ -23,6 +23,8 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -396,6 +398,17 @@ class AgentConfigurationTest {
           .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.5)));
       assertThat(fingerprintOfSchema(ordered("minimum", 0.5)))
           .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.6)));
+    }
+
+    @Test
+    void decimalNumbersHashAsTheirRoundTrippedValue() {
+      final var third = BigDecimal.ONE.divide(BigDecimal.valueOf(3), MathContext.DECIMAL128);
+
+      assertThat(fingerprintOfSchema(ordered("minimum", new BigDecimal("1E+1"))))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 10.0)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 10)));
+      assertThat(fingerprintOfSchema(ordered("minimum", third)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", third.doubleValue())));
     }
 
     @Test

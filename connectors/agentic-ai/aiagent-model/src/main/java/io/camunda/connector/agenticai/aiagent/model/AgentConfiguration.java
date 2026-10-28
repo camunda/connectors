@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -90,8 +91,9 @@ public record AgentConfiguration(
    * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
    * immutable map whose iteration order is unspecified and differs between JVMs. Schema map keys
    * are sorted recursively, except for {@code properties} maps, which retain parameter order. Tool
-   * and list order (including {@code required}) is also retained. Normalization only affects the
-   * hash input; the tool definitions are unchanged.
+   * and list order (including {@code required}) is also retained. Decimal numbers are reduced to
+   * the value they keep after a JSON round trip. Normalization only affects the hash input; the
+   * tool definitions are unchanged.
    */
   public String fingerprint() {
     try {
@@ -151,6 +153,12 @@ public record AgentConfiguration(
       final var childContext =
           context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
       return list.stream().map(child -> normalizeSchema(child, childContext)).toList();
+    }
+    if (value instanceof BigDecimal || value instanceof Double || value instanceof Float) {
+      final double number = ((Number) value).doubleValue();
+      return number == Math.rint(number) && Math.abs(number) < 0x1p53
+          ? (Object) (long) number
+          : number;
     }
     return value;
   }
