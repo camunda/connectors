@@ -412,6 +412,17 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void integralDecimalsKeepFullPrecision() {
+      final long aboveDoublePrecision = (1L << 53) + 1;
+
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal(aboveDoublePrecision))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", aboveDoublePrecision)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maximum", aboveDoublePrecision - 1)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal(1L << 53))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1L << 53)));
+    }
+
+    @Test
     void nullAndAbsentAreDistinct() {
       // the constructor accepts a null value, the builder's immutable copy does not
       final Function<Map<String, Object>, String> fingerprint =

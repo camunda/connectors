@@ -154,6 +154,9 @@ public record AgentConfiguration(
           context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
       return list.stream().map(child -> normalizeSchema(child, childContext)).toList();
     }
+    if (value instanceof BigDecimal decimal && decimal.scale() == 0) {
+      return decimal.toBigIntegerExact();
+    }
     if (value instanceof BigDecimal || value instanceof Double || value instanceof Float) {
       final double number = ((Number) value).doubleValue();
       return number == Math.rint(number) && Math.abs(number) < 0x1p53
