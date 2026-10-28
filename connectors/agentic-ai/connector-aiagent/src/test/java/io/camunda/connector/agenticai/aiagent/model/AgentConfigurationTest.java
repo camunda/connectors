@@ -444,6 +444,27 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void integralNumbersKeepTheirFingerprintAcrossRepresentations() {
+      final double twoPow53 = 0x1p53;
+
+      assertThat(fingerprintOfSchema(ordered("maximum", twoPow53)))
+          .isEqualTo(
+              fingerprintOfSchema(ordered("maximum", new BigDecimal("9.007199254740992E15"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1L << 53)));
+      assertThat(fingerprintOfSchema(ordered("maximum", 1e16)))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", new BigDecimal("1.0E16"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 10_000_000_000_000_000L)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993.0"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993"))));
+    }
+
+    @Test
+    void nonFiniteNumbersAreHashed() {
+      assertThat(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maximum", Double.NaN)));
+    }
+
+    @Test
     void nullAndAbsentAreDistinct() {
       // the constructor accepts a null value, the builder's immutable copy does not
       final Function<Map<String, Object>, String> fingerprint =
