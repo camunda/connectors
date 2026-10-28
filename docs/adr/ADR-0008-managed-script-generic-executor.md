@@ -69,8 +69,13 @@ with `INVALID_JOB`.
 A script defines a function `execute(variables, context)` that returns a JSON object: at module
 level in Python, and as a named export in JavaScript, where it may be `async`. The returned object
 becomes the connector's result, which the task's result variable or result expression maps as for
-any connector. Output that the script writes to stdout or stderr goes to the executor's logs, not
-to the response.
+any connector.
+
+`print()` in Python and `console.log`, `info`, `warn` and `error` in JavaScript are redirected to
+stderr, which ends in the executor's logs, not in the response. Stdout is reserved for the contract
+response: a script that writes to file descriptor 1 directly, such as `os.write(1, ...)` in Python
+or `process.stdout.write` in JavaScript, corrupts the response, and the job fails with
+`INVALID_RESULT`.
 
 ### Generic executors
 
@@ -121,9 +126,12 @@ generates the cluster's prefix, so it can list the functions under it.
 
 - **Cluster deletion.** Controller deletes every function and log group under the cluster's prefix.
 - **Wrapper upgrade.** Once every runtime instance of the cluster runs the new release, Controller
-  deletes the functions under the prefix that the runtime does not report as its current
-  executors. The runtime reports their names through an endpoint
-  ([#9919](https://github.com/camunda/connectors/issues/9919)).
+  deletes the functions under the prefix that the runtime does not report as in use. The runtime
+  reports through an endpoint ([#9919](https://github.com/camunda/connectors/issues/9919)) the
+  executors it may still call: those of its own wrapper and, while one of them is not ready yet,
+  the previous executor it falls back to
+  ([#9912](https://github.com/camunda/connectors/issues/9912)). Controller checks again later while
+  the runtime still reports a previous executor.
 - Controller retries a deletion that fails.
 
 Listing by prefix also catches the executors of wrappers several releases old, and the functions
@@ -196,8 +204,11 @@ On failure:
 
 - `outcome` is `COMPLETED` or `FAILED`. Any other value, or a response that cannot be parsed, is
   `INVALID_RESULT`.
-- The wrapper keeps only the contract fields from what the child returns, so a script cannot forge
-  platform fields.
+- The child is not trusted: it runs the script, which can write any JSON to stdout and exit. The
+  wrapper therefore accepts from the child only `COMPLETED`, or `FAILED` with `SCRIPT_ERROR`,
+  `INVALID_RESULT` or `RESOURCE_LIMIT`. It keeps only the contract fields and sets `retryable` to
+  `false`. Any other child response becomes `INVALID_RESULT`, so a script cannot forge a platform
+  failure or ask to be retried.
 - `stackTrace` is present only for failures raised in the script (`SCRIPT_ERROR`, and
   `INVALID_RESULT` or `RESOURCE_LIMIT` when the script's own code caused them). `truncated` tells
   whether it was cut.
@@ -215,7 +226,9 @@ Limits enforced by the wrapper:
 
 Limits enforced by the provider before the call: a request (script plus input) larger than 6 MB on
 AWS, a synchronous Lambda invocation, or 32 MB on GCP, a Cloud Run request, fails with
-`RESOURCE_LIMIT`. A Zeebe resource is at most 4 MB, so the script alone always fits.
+`RESOURCE_LIMIT`. The provider checks the size of the serialized request, not of the script: a
+Zeebe resource is at most 4 MB, but JSON escaping can make it up to twice as large in the request
+(a newline becomes `\n`), so a large script can exceed the 6 MB of AWS even with an empty input.
 
 ### Contract version
 
@@ -243,7 +256,7 @@ which raises an incident. "Unchanged" keeps the job's current retries, with a ba
 |---|---|---|---|
 | `SCRIPT_ERROR` | child | The script raised an error, or did not load (syntax error, missing `execute`) | None left |
 | `TIMEOUT` | wrapper | The script ran longer than `timeoutMs` | None left |
-| `RESOURCE_LIMIT` | wrapper, provider | Out of memory, response above 1 MB, or request above the provider's limit | None left |
+| `RESOURCE_LIMIT` | child, wrapper, provider | Out of memory, response above 1 MB, or request above the provider's limit | None left |
 | `INVALID_RESULT` | child, wrapper, runtime | `execute` did not return a JSON object, the script wrote to stdout outside the contract, or the response is not a contract response | None left |
 | `INVALID_INPUT` | wrapper, provider | The request cannot be serialized, or `script` or `variables` has the wrong type | None left |
 | `INVALID_JOB` | runtime | The `linkedResources` header is missing, malformed or duplicated, the resource key is not a number, or the extension is not `.py` or `.js` | None left |
@@ -261,14 +274,15 @@ which raises an incident. "Unchanged" keeps the job's current retries, with a ba
 The table is authoritative. A response's `retryable` flag must agree with it: `true` for the codes
 that consume one retry, `false` for the others. `DEPLOYMENT_MISSING` is the exception: it is
 `false` because the job recovers within the attempt, and it consumes one retry only when that
-recovery fails. The child always sets `retryable` to `false`: a script cannot ask to be retried.
+recovery fails. The wrapper sets `retryable` to `false` on every child response: a script cannot
+ask to be retried.
 
 The codes that #9341 emits outside this set are folded into it:
 
 - `BUILD_FAILED`, `PROVIDER_REJECTED` and `UNSUPPORTED_RUNTIME` become `PLATFORM_REJECTED`.
 - `PROVISIONING_TIMEOUT` becomes `PLATFORM_UNAVAILABLE`.
 - `PERMISSION_DENIED` becomes `PROVISIONING_PENDING` within the grant-propagation window, and
-  `PLATFORM_UNAVAILABLE` after it.
+  `PLATFORM_REJECTED` after it.
 - `INTERRUPTED` becomes `PLATFORM_INTERRUPTED`.
 - A resource that is not found after polling, which #9341 reports as `PLATFORM_ERROR`, becomes
   `PLATFORM_UNAVAILABLE`.
