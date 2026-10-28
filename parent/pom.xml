@@ -153,7 +153,7 @@ limitations under the License.</license.inlineheader>
          this branch has no box-java-sdk, so kafka-clients is the only path bringing zstd-jni into
          the bundles. Remove once kafka-clients ships zstd-jni >= 1.5.7-14.
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-24</version.zstd-jni>
+    <version.zstd-jni>1.5.7-25</version.zstd-jni>
 
     <!-- CVE-2026-55856 / CVE-2026-55857: override mariadb-java-client transitive version brought
          in by spring-boot-dependencies. connectors/jdbc/pom.xml already declares this dependency
