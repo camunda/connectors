@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Response schema limits](#response-schema-limits)                            | JSON response schemas larger than 256 KiB or nested deeper than 64 levels |
 | [Model classes](#model-classes)                                              | Code that imports `AgentInstanceKey` or reads `AgentMetadata.agentInstanceKey` |
 | [Persisted data](#persisted-data-8-11)                                       | Code reading the `CONFIGURATION` items of the agent instance history |
 
