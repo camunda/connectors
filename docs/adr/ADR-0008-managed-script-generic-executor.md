@@ -1,0 +1,380 @@
+# ADR-0008: Managed Script Connector with a Generic Executor per Language
+
+## Status
+Proposed
+
+## Context
+
+Managed scripts let a Service Task run a customer's Python or JavaScript without the customer
+operating a job worker. The script is an independent, versioned Camunda resource, linked to the
+task with `zeebe:linkedResource` like a form or an RPA script. Nothing happens when the resource or
+the BPMN is deployed: the engine resolves the link to a `resourceKey` when it creates the job and
+passes it in the `linkedResources` job header. Someone has to fetch the script and run it in
+isolation, without running customer code in the orchestration cluster or in the Connectors
+Runtime, and without adding deployment-time state to the engine.
+
+The clusters of an environment share one AWS account or GCP project for their functions, separated
+by IAM on a per-cluster name prefix. A first version
+([decision 0006](https://github.com/camunda/code-execution-poc/blob/main/design/decisions/0006-provision-functions-lazily.md))
+created one function per script version, on the first job that needed it. In a shared account,
+every version then costs a control-plane write and one more function, against limits that cannot
+be raised: 60 writes per minute and 1,000 functions per GCP project, 15 control-plane calls per
+second per AWS account. It also made the first job after every edit wait for provisioning: 3 to
+6 seconds on AWS and 37 to 51 seconds on GCP.
+
+[Decision 0006b](https://github.com/camunda/code-execution-poc/blob/main/design/decisions/0006b-run-scripts-through-generic-executors.md)
+([solution 2b](https://github.com/camunda/code-execution-poc/blob/main/analysis/SOLUTION_2B_GENERIC_EXECUTOR.md))
+replaces this with a fixed set of generic executors per cluster. POC 0.11 validated the executor
+wrapper on real Lambda and Cloud Run. The draft PR
+[#9341](https://github.com/camunda/connectors/pull/9341) is the reference implementation in this
+repository. This ADR records what the PRs of
+[#9902](https://github.com/camunda/connectors/issues/9902) are checked against. Where it differs
+from #9341, this ADR applies.
+
+## Decision
+
+### Connector and element template
+
+Managed scripts are an outbound connector, `ManagedScriptFunction`, served by the runtime like any
+other. The runtime handles activation, variable fetching, result and error expressions, retries
+and secrets.
+
+| | |
+|---|---|
+| Job type | `io.camunda:managed-script:1` (reserved), with a job lease |
+| Element template id | `io.camunda.connectors.ManagedScript.v1`, applies to a Service Task |
+| Script link | `zeebe:linkedResource`, link name `script`, resource type `ManagedScript`, `latest` binding by default |
+| Input variable | `scriptInput`, the only variable the connector fetches |
+
+The template builds `scriptInput` with one FEEL expression, so a script receives exactly what the
+modeler maps and no other process variable. Its default job timeout covers the provisioning
+timeout plus the execution timeout.
+
+### Language
+
+The language comes from the extension of the linked resource's file name, and from nothing else:
+
+| Extension | Language | Executor runtime on AWS and GCP |
+|---|---|---|
+| `.py` | Python | Python 3.13 |
+| `.js` | JavaScript, run as an ES module | Node.js 22 |
+
+The `local` provider uses the interpreter installed on the host (Python 3.10 or later, Node.js 20
+or later).
+
+There are no `language` or `runtime` task headers, because each extra runtime is one more executor
+per cluster. The connector ignores such headers. A resource with any other extension fails the job
+with `INVALID_JOB`.
+
+A script defines a function `execute(variables, context)` that returns a JSON object: at module
+level in Python, and as a named export in JavaScript, where it may be `async`. The returned object
+becomes the connector's result, which the task's result variable or result expression maps as for
+any connector. Output that the script writes to stdout or stderr goes to the executor's logs, not
+to the response.
+
+### Generic executors
+
+Scripts run as data through a **generic executor**: one trusted function per language and cluster,
+with no user code in it.
+
+- **Creation.** When the runtime is ready, it creates the executors of its cluster in the
+  background if they are absent (`ensureExecutors`). A job that arrives earlier starts this
+  creation. Executors are created with create-if-absent and adopted when they already exist, so
+  concurrent runtime instances converge.
+- **Naming.** An executor is named `<prefix><py|js>-<12 hex of the wrapper digest>`. The digest
+  covers the wrapper code only. A new wrapper is a new function, never a code update in place,
+  because runtime instances of the previous release may still call the previous one. Names are
+  validated against the provider's 63-character limit at startup.
+- **Settings.** Memory, function timeout, execution role and, on GCP, the maximum instance count
+  are runtime configuration. When the runtime creates or adopts an executor, it compares the
+  function's settings with its configuration and updates them in place if they differ. Lambda and
+  Cloud Run finish calls in flight with the previous settings. A configuration change therefore
+  creates no function and leaves none behind.
+- **Each job.** A job fetches the linked script by `resourceKey`. Because the content of a resource
+  key is immutable, the script is cached by physical tenant and resource key. While secondary
+  storage catches up, the fetch polls for up to 10 seconds. The job then sends the script with its
+  input to the executor of its language. No job creates a function, except to recover a missing
+  executor (below).
+- **Each call.** The executor writes the script to a fresh directory and runs it in a new child
+  process, with no cloud credentials in its environment (only `PATH`, `HOME`, `TMPDIR` and `LANG`)
+  and bounded memory, time and output. After the call it kills every process that was not running
+  when the instance started and removes every new temporary file, so nothing survives into the next
+  call.
+- **At most once per attempt.** The runtime turns off SDK and HTTP-client retries of an invocation,
+  so a script runs at most once per job attempt. Job retries handle the rest.
+- **Not ready yet.** A job that arrives before the executors of its language are ready waits up to
+  the provisioning timeout. It then fails with `PROVISIONING_PENDING`, its retries unchanged
+  (`JobContext.getRetries()`), and a backoff. A retryable creation failure is retried in the
+  background with a jittered exponential backoff of at most 1 minute. If that failure lasts longer
+  than twice the provisioning timeout, it is reported to waiting jobs, which then consume their
+  retries, so a lasting denial ends in an incident. A permanent failure fails waiting jobs with no
+  retries, and a job after the backoff tries the creation again.
+- **Readiness per language.** Each language becomes ready on its own, so a failing Python executor
+  does not block JavaScript jobs.
+- **Missing executor.** When the provider reports `DEPLOYMENT_MISSING`, the job runs
+  `ensureExecutors` once more, within its own provisioning budget, and calls the executor again.
+- **Dependencies.** Dependencies are not supported yet (GAP-004). A job that links a `dependencies`
+  resource fails with `UNSUPPORTED_DEPENDENCIES`.
+
+Executors are deleted in two cases only:
+
+- **Cluster deletion.** Controller calls the runtime's teardown endpoint
+  ([#9919](https://github.com/camunda/connectors/issues/9919)) before it deletes the cluster. The
+  runtime deletes the executors of its wrapper and of the earlier wrappers whose digests it ships.
+  It computes their names, so it needs no list rights. Controller retries a teardown that fails.
+- **Wrapper upgrade.** The executors of the previous wrapper stay while runtime instances of the
+  previous release may call them. Deleting them later is
+  [#9912](https://github.com/camunda/connectors/issues/9912).
+
+The runtime does not delete executors when it shuts down. Executors are shared by every runtime
+instance of a cluster and keep their names across a restart, so a shutdown hook would delete the
+executors that the instances still running, or just started, are using.
+
+### Execution contract v1
+
+The runtime sends one JSON request per call. The executor answers with one JSON response. The AWS
+provider sends it as the Lambda invocation payload, the GCP provider as the body of an HTTP `POST`.
+
+Request:
+
+```json
+{
+  "contractVersion": "1",
+  "executionId": "2251799813685251",
+  "script": "def execute(variables, context):\n    return {\"sum\": variables[\"a\"] + variables[\"b\"]}\n",
+  "variables": { "a": 2, "b": 3 },
+  "context": {
+    "tenantId": "<default>",
+    "processDefinitionId": "order-process",
+    "processDefinitionVersion": 3,
+    "processInstanceKey": "2251799813685249",
+    "elementId": "compute-sum",
+    "elementInstanceKey": "2251799813685250",
+    "jobKey": "2251799813685251"
+  },
+  "timeoutMs": 30000
+}
+```
+
+- `executionId` is the job key.
+- `variables` is the value of `scriptInput`, or `{}` when it is absent. It must be a JSON object.
+- In `context`, keys of the engine (`processInstanceKey`, `elementInstanceKey`, `jobKey`) are sent
+  as strings, so JavaScript does not lose precision.
+- `timeoutMs` is the execution timeout. The executor enforces it on the child process. The cloud
+  function's own timeout is 5 seconds longer, so the wrapper reports `TIMEOUT` before the platform
+  kills it.
+
+Response, on success:
+
+```json
+{ "contractVersion": "1", "outcome": "COMPLETED", "variables": { "sum": 5 } }
+```
+
+On failure:
+
+```json
+{
+  "contractVersion": "1",
+  "outcome": "FAILED",
+  "error": {
+    "code": "SCRIPT_ERROR",
+    "message": "ZeroDivisionError: division by zero",
+    "stackTrace": "Traceback (most recent call last):\n  ...",
+    "retryable": false,
+    "truncated": false
+  }
+}
+```
+
+- `outcome` is `COMPLETED` or `FAILED`. Any other value, or a response that cannot be parsed, is
+  `INVALID_RESULT`.
+- The wrapper keeps only the contract fields from what the child returns, so a script cannot forge
+  platform fields.
+- `stackTrace` is present only for failures raised in the script (`SCRIPT_ERROR`, and
+  `INVALID_RESULT` or `RESOURCE_LIMIT` when the script's own code caused them). `truncated` tells
+  whether it was cut.
+
+Limits enforced by the wrapper:
+
+| Limit | Value |
+|---|---|
+| Response size (the child's stdout) | 1 MB, above it `RESOURCE_LIMIT` |
+| Script logs kept per call (stderr) | 4 KB |
+| Child memory, Python | 256 MB of address space through `RLIMIT_AS`, where the OS supports it (not macOS) |
+| Child memory, JavaScript | 256 MB of V8 heap through `--max-old-space-size` |
+| `error.message` | 1,024 characters |
+| `error.stackTrace` | 8,192 characters, keeping the frames nearest the error |
+
+Limits enforced by the provider before the call: a request (script plus input) larger than 6 MB on
+AWS, a synchronous Lambda invocation, or 32 MB on GCP, a Cloud Run request, fails with
+`RESOURCE_LIMIT`. A Zeebe resource is at most 4 MB, so the script alone always fits.
+
+### Contract version
+
+`contractVersion` is a string that increases by one whenever the meaning of a request or response
+field changes. Adding an optional field that older parties ignore does not change it.
+
+- The **trusted wrapper** checks the version before it starts the child, and accepts only its
+  own. Any other version fails with `UNSUPPORTED_CONTRACT_VERSION` and no retries. The check moves
+  out of the child, where #9341 made a version mismatch look like a `SCRIPT_ERROR`.
+- An executor's name carries the digest of its wrapper, for every provider, including one written
+  outside this repository. A runtime therefore only calls executors whose wrapper it knows, and a
+  mismatch means a bug or a tampered executor, not a normal state.
+- The **runtime** sends each executor the version of that executor's wrapper. While it still
+  invokes the previous executor during an upgrade
+  ([#9912](https://github.com/camunda/connectors/issues/9912)), it sends that executor the previous
+  version.
+
+### Error codes and retries
+
+The set below is closed: providers and wrappers map every failure to one of these codes. "Consume
+one" lets the job lose one retry, with the configured backoff. "None left" sets the retries to 0,
+which raises an incident. "Unchanged" keeps the job's current retries, with a backoff.
+
+| Code | Raised by | Meaning | Retries |
+|---|---|---|---|
+| `SCRIPT_ERROR` | child | The script raised an error, or did not load (syntax error, missing `execute`) | None left |
+| `TIMEOUT` | wrapper | The script ran longer than `timeoutMs` | None left |
+| `RESOURCE_LIMIT` | wrapper, provider | Out of memory, response above 1 MB, or request above the provider's limit | None left |
+| `INVALID_RESULT` | child, wrapper, runtime | `execute` did not return a JSON object, the script wrote to stdout outside the contract, or the response is not a contract response | None left |
+| `INVALID_INPUT` | wrapper, provider | The request cannot be serialized, or `script` or `variables` has the wrong type | None left |
+| `INVALID_JOB` | runtime | The `linkedResources` header is missing, malformed or duplicated, the resource key is not a number, or the extension is not `.py` or `.js` | None left |
+| `UNSUPPORTED_DEPENDENCIES` | runtime | The job links a `dependencies` resource | None left |
+| `UNSUPPORTED_CONTRACT_VERSION` | wrapper | The request's `contractVersion` is not the wrapper's own | None left |
+| `DEPLOYMENT_MISSING` | provider | The executor does not exist. The job creates it once and calls again. If it is still missing: | Consume one |
+| `PROVISIONING_PENDING` | runtime | The executors were not ready within the provisioning timeout, including while a new cluster's grants propagate (a permission denial on creation or invocation within the configured window) | Unchanged |
+| `PLATFORM_THROTTLED` | provider | The provider throttled the call (Lambda `TooManyRequests`, HTTP 429) | Consume one |
+| `PLATFORM_UNAVAILABLE` | provider, runtime | A transient failure: service error, HTTP 502 or 503, a retryable creation failure that lasted longer than twice the provisioning timeout, or a linked resource still not found after polling | Consume one |
+| `PLATFORM_REJECTED` | provider, runtime | A permanent provider failure: a creation call rejected with a client error, an executor that failed to build or become active, a denial after the grant-propagation window, or no suitable local interpreter | None left |
+| `PLATFORM_EXECUTION_FAILED` | wrapper, provider | The executor failed outside the script: the child crashed with no response, a wrapper error, a Lambda function error, HTTP 500 or 504 | None left |
+| `PLATFORM_INTERRUPTED` | runtime | The worker thread was interrupted, for example at shutdown | Unchanged |
+| `PLATFORM_ERROR` | runtime | Any other unexpected exception in the connector | Consume one |
+
+The table is authoritative. A response's `retryable` flag must agree with it: `true` for the codes
+that consume one retry, `false` for the others. `DEPLOYMENT_MISSING` is the exception: it is
+`false` because the job recovers within the attempt, and it consumes one retry only when that
+recovery fails. The child always sets `retryable` to `false`: a script cannot ask to be retried.
+
+The codes that #9341 emits outside this set are folded into it:
+
+- `BUILD_FAILED`, `PROVIDER_REJECTED` and `UNSUPPORTED_RUNTIME` become `PLATFORM_REJECTED`.
+- `PROVISIONING_TIMEOUT` becomes `PLATFORM_UNAVAILABLE`.
+- `PERMISSION_DENIED` becomes `PROVISIONING_PENDING` within the grant-propagation window, and
+  `PLATFORM_UNAVAILABLE` after it.
+- `INTERRUPTED` becomes `PLATFORM_INTERRUPTED`.
+- A resource that is not found after polling, which #9341 reports as `PLATFORM_ERROR`, becomes
+  `PLATFORM_UNAVAILABLE`.
+
+### Incidents
+
+When a job fails, its error message (and so the incident message) is:
+
+```
+<code>: <message>
+<stackTrace>
+```
+
+- The code and the message are always kept whole: the message is at most 1,024 characters.
+- The stack trace is cut so that the whole text stays within the runtime's limit for an error
+  message, 6,000 characters (`SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH`). The part kept
+  is the one nearest the error: the end of a Python traceback, the start of a JavaScript stack. A
+  cut is marked with `... (truncated)`.
+- Only failures raised in the script carry a stack trace. Script logs are not part of the incident;
+  they stay in the executor's logs.
+- The error code is the connector's error code, so an error expression can match on it.
+
+### Secrets
+
+The connector implements `LegacySecretsNotResolved`
+([#9904](https://github.com/camunda/connectors/issues/9904)), for which the runtime uses a deny-all
+secret filter. `{{secrets.X}}` placeholders in the script input therefore reach the script as
+literal text. A script gets a secret only through `camunda.secrets.X` in its input mapping, which
+the engine resolves when it activates the job
+([ADR-0007](ADR-0007-centralized-secret-resolution-in-the-connector-runtime.md)). So the secrets a
+script receives are the ones the modeler mapped on purpose, not every secret of the runtime.
+
+### Provider SPI
+
+A provider implements one interface, `ManagedCodeProvider`, and is chosen by its name in
+`camunda.connector.managed-code.provider`. Startup fails if no provider or more than one has that
+name.
+
+- `name()`: the value of the property.
+- `ensureExecutors()`: makes sure the executors exist, run the wrapper of this runtime and have
+  the configured settings, and returns once they can be invoked. Idempotent, and safe to call from
+  several runtime instances at once. It has no default: every provider implements it.
+- `execute(language, request)`: sends the request to the executor of the language and returns the
+  contract response. It returns a failure as a `FAILED` response instead of throwing it, and reports
+  a missing executor as `DEPLOYMENT_MISSING`.
+
+Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
+calls the script's `execute`, and enforces the child process, the limits and the cleanup. The core
+module exposes the wrapper files of each language and their digest, so that a provider written
+outside this repository, for example in Self-Managed for another platform, can package the wrapper
+and name its executors from the digest. Such a provider either creates the executors in
+`ensureExecutors`, like the built-in ones, or, when they are deployed separately (for example with
+Terraform, so that the runtime holds no deployment rights), checks there that they exist and run
+the expected wrapper.
+
+The connector keeps everything else: fetching the script, waiting for readiness without consuming
+a retry, recovering from `DEPLOYMENT_MISSING`, the limits, the incident text and the secrets. The
+SPI is **not a stable API** and has no compatibility guarantee yet. In particular,
+[#9909](https://github.com/camunda/connectors/issues/9909) may change the signature of
+`ensureExecutors` so that readiness can be tracked per language.
+
+### Module layout
+
+| Module | Contents | In the starter |
+|---|---|---|
+| `connector-runtime-managed-code` | Connector, element template, SPI, contract, job handler, readiness, executor wrappers, `local` provider | Yes, disabled by default (`camunda.connector.managed-code.enabled=false`) |
+| `connector-runtime-managed-code-aws` | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | No |
+| `connector-runtime-managed-code-gcp` | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | No |
+
+The AWS and GCP modules bring the cloud SDKs, so the starter does not pull them in. A distribution
+that offers managed scripts, such as the SaaS image, adds the module of its provider to the
+classpath.
+
+The `local` provider is for **trusted development only and is not a sandbox**. It runs the same
+wrapper as a local Node.js or Python process, in a local mode that only kills the script's process
+group and uses a temporary directory of its own, because it shares the host with other processes.
+It logs a warning at startup. Windows is not supported.
+
+## Consequences
+
+### Positive
+
+- No engine changes: linked resources already work on Service Tasks, and there are no deployment
+  records, leases or reconciler.
+- Editing or adding a script makes no control-plane call. A cluster has 2 functions, whatever the
+  number of scripts and versions, and an edit runs at once.
+- No function belongs to a script, so nothing has to be evicted.
+- The runtime's connector machinery handles activation, variable fetching, result and error
+  expressions, retries and secrets, as for every connector.
+- Deployment stays fast and does not depend on the provider being available.
+- With managed code disabled, the ordinary connector workers are unchanged, and the starter carries
+  no cloud SDK.
+- A fixed contract, a closed set of error codes and a documented retry behaviour per code let the
+  wrappers, the providers and the job handler be built and reviewed in separate PRs.
+
+### Negative
+
+- Every call starts a child process: tens to a couple of hundred milliseconds in smoke runs.
+- Memory, timeout and network profile are per executor, so every script of a cluster gets the same
+  ones. Another profile needs an executor variant, which costs more functions per cluster.
+- Within its own call, a script can read the wrapper's memory on Lambda, where the child cannot run
+  as another user. The execution role must therefore grant nothing but logging. Infosec has to
+  review it (GAP-007).
+- On GCP, one request per instance means the maximum instance count caps the parallel scripts of a
+  cluster per language.
+- A script and its input travel in every request: at most 6 MB on AWS and 32 MB on GCP.
+- A wrapper upgrade creates new executors in every cluster. The old ones stay until
+  [#9912](https://github.com/camunda/connectors/issues/9912) deletes them.
+- A configuration change updates the executors in place. During a rolling update, instances that
+  still have the previous configuration call executors that already have the new one. If the
+  function timeout was lowered, the platform can kill a long script of such an instance, which
+  fails as `PLATFORM_EXECUTION_FAILED`.
+- Syntax errors surface at the first execution, as `SCRIPT_ERROR`, not at deployment.
+- Legacy `{{secrets.X}}` placeholders in the script input are not replaced, unlike in other
+  connectors. This has to be documented for users.
+- The provider SPI may still change. A provider written outside this repository may break with any
+  release until the SPI is declared stable.
