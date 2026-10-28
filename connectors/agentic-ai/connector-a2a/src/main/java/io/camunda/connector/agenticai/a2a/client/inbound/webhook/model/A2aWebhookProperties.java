@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
+// hmacScopes stays an array to match the HMACVerifier API shared with the HTTP webhook
+@SuppressWarnings("ArrayRecordComponent")
 public record A2aWebhookProperties(
     @TemplateProperty(
             id = "context",

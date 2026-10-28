@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.a2a.client.outbound;
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
 import io.a2a.client.TaskEvent;
-import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
@@ -27,18 +26,12 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
 
   @Override
   public A2aSendMessageResult handleClientEvent(ClientEvent clientEvent) {
-    switch (clientEvent) {
-      case MessageEvent messageEvent -> {
-        Message message = messageEvent.getMessage();
-        return sdkObjectConverter.convert(message);
-      }
-      case TaskEvent taskEvent -> {
-        Task task = taskEvent.getTask();
-        return handleTask(task);
-      }
+    return switch (clientEvent) {
+      case MessageEvent messageEvent -> sdkObjectConverter.convert(messageEvent.getMessage());
+      case TaskEvent taskEvent -> handleTask(taskEvent.getTask());
       default ->
           throw new RuntimeException("Only message and task events are supported in the response.");
-    }
+    };
   }
 
   @Override

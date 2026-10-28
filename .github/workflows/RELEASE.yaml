@@ -88,7 +88,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
         id: prev_version
-        uses: camunda/infra-global-github-actions/previous-version@d4e0239331f434375aaa358d9003e48a19688d83 # main
+        uses: camunda/infra-global-github-actions/previous-version@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
@@ -460,6 +460,92 @@ jobs:
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
+  # See docs/api-compatibility.md: stable/x.y compares against its last patch, main against the last
+  # released minor. The PRs target stable/x.y rather than the release-x.y.z branch, which is merged
+  # back into stable/x.y shortly after the release and would leave a later-merged bump behind.
+  bump-api-baseline:
+    needs: [maven-release]
+    name: Bump the API compatibility baseline on ${{ matrix.target }}
+    if: |
+      always() &&
+      needs.maven-release.result == 'success' &&
+      !contains(inputs.version, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        target: [stable, main]
+    steps:
+      - name: Determine target branch
+        id: target
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$TARGET" = "stable" ]; then
+            echo "branch=stable/${VERSION%.*}" >> "$GITHUB_OUTPUT"
+          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.0$ ]]; then
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          else
+            echo "main only moves its baseline on the first release of a minor"
+          fi
+
+      - name: Checkout repository
+        if: steps.target.outputs.branch != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ steps.target.outputs.branch }}
+          persist-credentials: false
+
+      - name: Fetch the release tag
+        if: steps.target.outputs.branch != ''
+        run: git fetch --no-tags origin "refs/tags/${RELEASE_VERSION}:refs/tags/${RELEASE_VERSION}"
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+
+      - name: Bump API baseline
+        if: steps.target.outputs.branch != ''
+        run: ./.github/workflows/scripts/bump_api_baseline.sh "${{ inputs.version }}"
+        shell: bash
+
+      - name: Import Secrets
+        if: steps.target.outputs.branch != ''
+        id: vault-secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      # A GitHub App token instead of GITHUB_TOKEN, so that the pull request triggers the PR checks.
+      - name: Generate a GitHub App token
+        if: steps.target.outputs.branch != ''
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Create pull request
+        if: steps.target.outputs.branch != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: chore/bump-api-baseline-${{ inputs.version }}-${{ steps.target.outputs.branch }}
+          commit-message: "ci: bump API compatibility baseline to ${{ inputs.version }}"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          base: ${{ steps.target.outputs.branch }}
+          title: "chore(api): bump API compatibility baseline to ${{ inputs.version }} on ${{ steps.target.outputs.branch }}"
+          body: |
+            Compares the API-gated modules against the just released ${{ inputs.version }} and removes the
+            accepted breaks that this version contains. See `docs/api-compatibility.md`.
+
   docker-release:
     needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
@@ -523,13 +609,13 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       - name: Login to Minimus
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: reg.mini.dev
           username: minimus

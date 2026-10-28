@@ -311,6 +311,12 @@ All production code is `@NullMarked` via per-package `package-info.java`: every 
   Run `mvn license:format` on the module afterwards — the script doesn't stamp the license header — then
   commit the generated file(s).
 
+### ErrorProne
+
+ErrorProne warnings fail the `main` compilation (`-Werror`); generated sources under
+`target/generated-sources` are excluded. Fix a finding, or suppress it with `@SuppressWarnings("<CheckName>")`
+on the narrowest scope plus a comment stating why. Test code is not checked.
+
 ### Definition of Done
 
 Before claiming a change is complete:
@@ -327,6 +333,9 @@ Before claiming a change is complete:
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
+  A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
+  `api-changes.json` with a link to its `breaking-changes.md` anchor
+  ([API compatibility check](../../docs/api-compatibility.md)).
 
 ## Extension points
 

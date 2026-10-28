@@ -93,7 +93,7 @@ public class BoxOperations {
     };
   }
 
-  private static final NetworkSession SESSION = BoxNetworkSession.create();
+  static final NetworkSession SESSION = BoxNetworkSession.create();
 
   private static BoxClient client(Authentication auth, NetworkSession networkSession) {
     return new BoxClient.Builder(auth).networkSession(networkSession).build();

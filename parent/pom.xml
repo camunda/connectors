@@ -113,10 +113,10 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
     <version.netty>4.2.19.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.2.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.6.5</version.logback>
+    <version.spring-cloud-gcp-starter-logging>8.3.0</version.spring-cloud-gcp-starter-logging>
+    <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.3</version.aws-sdk2>
+    <version.aws-sdk2>2.57.5</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -144,10 +144,10 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20261011-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.49.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.85.1</version.google-libraries-bom>
-    <version.google-api-services-sheets>v4-rev20260930-2.0.0</version.google-api-services-sheets>
+    <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
+    <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.79.0</version.google-genai>
@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
     <version.lz4-java>1.12.1</version.lz4-java>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.10.3</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.10.4</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
     <version.azure-identity>1.18.7</version.azure-identity>
     <version.azure-core>1.60.0</version.azure-core>
@@ -189,7 +189,7 @@ limitations under the License.</license.inlineheader>
     <!-- CVE-2026-87823, CVE-2026-87824, CVE-2026-87825, CVE-2026-87877: zstd-jni transitive
          override (kafka-clients) — remove once kafka-clients ships zstd-jni >= 1.5.7-14
          Ref: https://github.com/luben/zstd-jni/security/advisories -->
-    <version.zstd-jni>1.5.7-24</version.zstd-jni>
+    <version.zstd-jni>1.5.7-25</version.zstd-jni>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
@@ -236,6 +236,12 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-compiler-plugin>3.16.0</plugin.version.maven-compiler-plugin>
 
     <plugin.version.maven-dependency-plugin>3.11.0</plugin.version.maven-dependency-plugin>
+    <plugin.version.revapi-maven-plugin>0.15.1</plugin.version.revapi-maven-plugin>
+    <version.revapi-java>0.28.4</version.revapi-java>
+
+    <!-- Released version that API-gated modules are compared against, see docs/api-compatibility.md.
+         Bumped by the release workflow: main tracks the last released minor, stable branches the last patch. -->
+    <api.baseline.version>8.10.0</api.baseline.version>
 
     <!-- Null safety tooling -->
     <version.error-prone>2.51.0</version.error-prone>
@@ -1115,6 +1121,48 @@ limitations under the License.</license.inlineheader>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>${plugin.version.maven-exec-plugin}</version>
+        </plugin>
+        <!-- API compatibility check, declare it in a module's <build><plugins> to gate that module's API.
+             See docs/api-compatibility.md. -->
+        <plugin>
+          <groupId>org.revapi</groupId>
+          <artifactId>revapi-maven-plugin</artifactId>
+          <version>${plugin.version.revapi-maven-plugin}</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.revapi</groupId>
+              <artifactId>revapi-java</artifactId>
+              <version>${version.revapi-java}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <oldVersion>${api.baseline.version}</oldVersion>
+            <failOnUnresolvedArtifacts>true</failOnUnresolvedArtifacts>
+            <failOnMissingConfigurationFiles>false</failOnMissingConfigurationFiles>
+            <analysisConfiguration>
+              <revapi.filter>
+                <archives>
+                  <!-- only the module's own classes are API, not the dependencies its signatures use -->
+                  <include>
+                    <item>${project.groupId}:${project.artifactId}:.*</item>
+                  </include>
+                </archives>
+              </revapi.filter>
+            </analysisConfiguration>
+            <analysisConfigurationFiles>
+              <configurationFile>
+                <path>${project.basedir}/api-changes.json</path>
+              </configurationFile>
+            </analysisConfigurationFiles>
+          </configuration>
+          <executions>
+            <execution>
+              <id>check-api-compatibility</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

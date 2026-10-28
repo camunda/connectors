@@ -129,7 +129,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   }
 
   private record ScheduledPoll(A2aPollingTask task, ScheduledFuture<?> future) {
-    public void cancel() {
+    void cancel() {
       future.cancel(true);
       task.close();
     }

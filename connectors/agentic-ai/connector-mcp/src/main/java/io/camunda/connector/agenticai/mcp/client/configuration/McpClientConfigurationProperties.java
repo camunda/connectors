@@ -45,6 +45,8 @@ public record McpClientConfigurationProperties(
       @Nullable Duration reconnectInterval)
       implements McpClientConfigurationPropertiesMcpClientConfigurationBuilder.With {
 
+    // Fields hold stateless method references/lambdas, so the enum is effectively immutable
+    @SuppressWarnings("ImmutableEnumChecker")
     public enum McpClientType {
       STDIO(McpClientConfiguration::stdio),
       HTTP(McpClientConfiguration::http),
@@ -79,6 +81,8 @@ public record McpClientConfigurationProperties(
       @Valid @Nullable BearerAuthentication bearer,
       @Valid @Nullable OAuthAuthentication oauth) {
 
+    // Fields hold stateless method references/lambdas, so the enum is effectively immutable
+    @SuppressWarnings("ImmutableEnumChecker")
     public enum AuthenticationType {
       NONE(config -> new NoAuthentication()),
       BASIC(AuthenticationConfiguration::basic),

@@ -19,6 +19,6 @@ import jakarta.validation.constraints.NotNull;
   @JsonSubTypes.Type(value = OpenAiRequest.class, name = "openAi"),
   @JsonSubTypes.Type(value = VertexAiRequest.class, name = "vertexAi")
 })
-@TemplateDiscriminatorProperty(label = "Text extraction providers", group = "ai", name = "type")
+@TemplateDiscriminatorProperty(label = "AI providers", group = "ai", name = "type")
 public sealed interface AiProvider
     permits AzureAiRequest, BedrockAiRequest, OpenAiRequest, VertexAiRequest {}
