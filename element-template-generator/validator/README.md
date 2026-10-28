@@ -98,7 +98,7 @@ add it to that list and fix or [suppress](#suppressions) its existing findings.
 | `latin-abbreviation` | No `e.g.`, `i.e.`, or `etc.`; write "for example", "that is", or "and so on".                          |
 | `double-word`        | No word is immediately repeated ("to to"), ignoring case.                                              |
 | `br-tag`             | Line breaks use `<br>`, not `<br/>`.                                                                   |
-| `max-description-length` | A property's or group's `description` (always shown beneath the field) is at most 100 visible characters. HTML tags and entities are stripped before counting, so `<a>` links and `<br>` do not count. `tooltip` is exempt — it appears only on hover. |
+| `max-description-length` | A property's or group's `description` (always shown beneath the field) is at most 100 visible characters. HTML tags are removed without a space and each entity counts as one character, so `<a>` links and `<br>` do not count. `tooltip` is exempt — it appears only on hover. |
 
 ### Operations-metadata rules
 

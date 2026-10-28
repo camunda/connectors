@@ -28,9 +28,10 @@ import java.util.regex.Pattern;
 /**
  * Caps the visible length of a property's or group's {@code description}, which is always shown
  * beneath the field in the Modeler. {@code tooltip} is exempt: it appears only on hover, so its
- * length is a prose guideline rather than an enforced limit. HTML tags and entities are stripped
- * before counting, so markup such as {@code <a>} links and {@code <br>} does not count against the
- * limit. Runs only on the connectors in {@link HelpTextRule#CONNECTORS}.
+ * length is a prose guideline rather than an enforced limit. HTML tags are removed without leaving
+ * a space, so markup such as {@code <a>} links and {@code <br>} does not count against the limit,
+ * and each entity such as {@code &amp;} counts as the one character the Modeler shows. Runs only on
+ * the connectors in {@link HelpTextRule#CONNECTORS}.
  */
 public class MaxDescriptionLengthRule implements Rule {
 
@@ -75,8 +76,8 @@ public class MaxDescriptionLengthRule implements Rule {
   }
 
   private static int visibleLength(String text) {
-    String stripped = TAG.matcher(text).replaceAll(" ");
-    stripped = ENTITY.matcher(stripped).replaceAll(" ");
+    String stripped = TAG.matcher(text).replaceAll("");
+    stripped = ENTITY.matcher(stripped).replaceAll("_");
     return WHITESPACE.matcher(stripped).replaceAll(" ").strip().length();
   }
 }

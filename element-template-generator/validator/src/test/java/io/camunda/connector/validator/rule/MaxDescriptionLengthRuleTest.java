@@ -18,6 +18,7 @@ package io.camunda.connector.validator.rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.validator.core.Finding;
 import java.nio.file.Path;
@@ -33,6 +34,12 @@ class MaxDescriptionLengthRuleTest {
 
   private static String repeat(int length) {
     return "a".repeat(length);
+  }
+
+  private static JsonNode descriptionTemplate(String description) {
+    var template = MAPPER.createObjectNode();
+    template.putArray("properties").addObject().put("id", "a").put("description", description);
+    return template;
   }
 
   @Test
@@ -69,6 +76,21 @@ class MaxDescriptionLengthRuleTest {
     template.putArray("properties").addObject().put("id", "a").put("description", description);
 
     assertThat(rule.apply(OPTED_IN, template)).isEmpty();
+  }
+
+  @Test
+  void acceptsExactLimitWhenLinkFormattingFollowsText() throws Exception {
+    // Renders as exactly 100 characters: 96 + space + "AB" + ".".
+    String description = repeat(96) + " <a href=\"https://example.com\">AB</a>.";
+
+    assertThat(rule.apply(OPTED_IN, descriptionTemplate(description))).isEmpty();
+  }
+
+  @Test
+  void countsEachEntityAsOneCharacter() throws Exception {
+    // Renders as 100 characters, then 101 characters.
+    assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(98) + "&amp;&lt;"))).isEmpty();
+    assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(99) + "&amp;&lt;"))).hasSize(1);
   }
 
   @Test
