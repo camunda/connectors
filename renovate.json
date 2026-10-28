@@ -156,6 +156,7 @@
       "allowedVersions": "!/-(ce|ccs|cp\\d*)$/"
     },
     {
+<<<<<<< HEAD
       "description": "Disable minor/major updates for google-auth-library-oauth2-http — 1.50.0+ removes the setSecurityProvider method used by connector-google-gemini's vertexai client, breaking its tests. Requires code migration.",
       "matchUpdateTypes": [
         "major",
@@ -183,6 +184,16 @@
     },
     {
       "description": "Disable minor/major updates for maven-surefire-plugin — 3.6.0 breaks the build in two ways. First, it removed the `hourly` RunOrder configured in parent/pom.xml, so every module fails at surefire:test before a single test runs. Second, once a supported runOrder is set, Byte Buddy can no longer self-attach its agent inside the forked JVM (\"Could not self-attach to current VM using external process\"), so System Stubs' EnvironmentVariableMocker and Mockito's inline MockMaker both fail to initialise — 390 errors in connector-runtime-core alone. Upgrading needs a real migration: a supported runOrder plus an explicit -javaagent (or surefire classloader settings) so the agent no longer relies on self-attach. Patch updates on the 3.5.x line are unaffected.",
+=======
+      "description": "Disable major version updates for Apache Tika in connector-embeddings-vector-database — 4.0.0 (GA, released 2026-08-21) is a hard blocker there, not a mirror/staleness issue. (1) tika-parsers-standard-package was restructured from a shaded jar into a POM-only aggregator, so a plain jar dependency on it no longer resolves. (2) Tika 4's Parser interface dropped parse(InputStream,...) in favor of parse(TikaInputStream,...); langchain4j-document-parser-apache-tika 1.19.0, which this connector uses, still calls the old signature and would fail with NoSuchMethodError at runtime even if (1) were fixed — confirmed via bytecode inspection of both jars. Needs LangChain4j to ship Tika 4 support, plus a dependency-shape migration on our side. Scoped to this file only — connector-aws-bedrock's independent tika-core dependency only uses the MimeTypes API, confirmed compatible with 4.0.0, so it can keep receiving major-version proposals. Tracked in camunda/connectors#8502. Re-enable once that lands.",
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["org.apache.tika:tika-core", "org.apache.tika:tika-parsers-standard-package"],
+      "matchFileNames": ["connectors/embeddings-vector-database/pom.xml"],
+      "enabled": false
+    },
+    {
+      "description": "Disable minor/major updates for maven-surefire-plugin and maven-failsafe-plugin — 3.6.0 breaks the build in two ways. First, it removed the `hourly` RunOrder configured in parent/pom.xml, so every module fails at surefire:test before a single test runs. Second, once a supported runOrder is set, Byte Buddy can no longer self-attach its agent inside the forked JVM (\"Could not self-attach to current VM using external process\"), so System Stubs' EnvironmentVariableMocker and Mockito's inline MockMaker both fail to initialise — 390 errors in connector-runtime-core alone. Upgrading needs a real migration: a supported runOrder plus an explicit -javaagent (or surefire classloader settings) so the agent no longer relies on self-attach. Patch updates on the 3.5.x line are unaffected. maven-failsafe-plugin is listed because connectors-e2e-test-agentic-ai pins it to the same plugin.version.maven-surefire-plugin property, so leaving it unblocked would let Renovate bump the shared property through that dependency instead.",
+>>>>>>> d5029e4 (deps: update Google libraries BOM and auth library, drop Renovate pins for Gemini (#9894))
       "matchUpdateTypes": [
         "major",
         "minor"
