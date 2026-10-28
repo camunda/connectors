@@ -119,7 +119,8 @@ public record AgentConfiguration(
   private enum SchemaContext {
     SCHEMA,
     NAMED_SCHEMAS,
-    PROPERTIES
+    PROPERTIES,
+    DATA
   }
 
   private static @Nullable Object normalizeSchema(@Nullable Object value, SchemaContext context) {
@@ -138,15 +139,18 @@ public record AgentConfiguration(
                           "dependentSchemas",
                           "dependencies" ->
                           SchemaContext.NAMED_SCHEMAS;
+                      case "default", "const", "enum", "examples" -> SchemaContext.DATA;
                       default -> SchemaContext.SCHEMA;
                     }
-                    : SchemaContext.SCHEMA;
+                    : context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
             normalized.put((String) key, normalizeSchema(child, childContext));
           });
       return normalized;
     }
     if (value instanceof List<?> list) {
-      return list.stream().map(child -> normalizeSchema(child, SchemaContext.SCHEMA)).toList();
+      final var childContext =
+          context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
+      return list.stream().map(child -> normalizeSchema(child, childContext)).toList();
     }
     return value;
   }

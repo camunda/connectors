@@ -262,6 +262,24 @@ class AgentConfigurationTest {
       assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"default", "const"})
+    void dataValueWithPropertiesKeyIgnoresKeyOrder(String keyword) {
+      final var first = ordered(keyword, ordered("properties", ordered("a", 1, "b", 2)));
+      final var second = ordered(keyword, ordered("properties", ordered("b", 2, "a", 1)));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"enum", "examples"})
+    void dataListWithPropertiesKeyIgnoresKeyOrder(String keyword) {
+      final var first = ordered(keyword, List.of(ordered("properties", ordered("a", 1, "b", 2))));
+      final var second = ordered(keyword, List.of(ordered("properties", ordered("b", 2, "a", 1))));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
     @Test
     void schemaKeywordOrderInsideArraysIsIrrelevant() {
       final var first = ordered("anyOf", List.of(ordered("type", "string", "minLength", 1)));

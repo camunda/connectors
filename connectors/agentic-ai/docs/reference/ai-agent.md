@@ -1854,7 +1854,8 @@ the schema producer; normalization cannot recover an order already lost upstream
 A null system prompt hashes distinctly from an empty string or the literal `"null"`.
 Named-schema containers (`$defs`, `definitions`, `patternProperties`, `dependentSchemas`,
 `dependencies`) sort their names and normalize each value as a schema, even when its name is
-`properties`.
+`properties`. Values under `default`, `const`, `enum` and `examples` are data: their map keys are
+sorted recursively, and a `properties` key there has no keyword meaning.
 
 **System prompt on `CONFIGURATION` items.** The engine requires a non-blank system prompt on the
 agent instance. A null or blank system prompt fails `create` and `applyTurnStart` with a
