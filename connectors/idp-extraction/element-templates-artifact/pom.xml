@@ -19,9 +19,6 @@
   <packaging>jar</packaging>
 
   <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file

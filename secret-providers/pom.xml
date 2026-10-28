@@ -13,9 +13,6 @@
 
   <properties>
     <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <name>Connector Secret Provider</name>
