@@ -121,6 +121,11 @@ jobs:
       - name: Build Connectors
         run: ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
 
+      # The build above stops at `test`; the revapi check is bound to `verify`.
+      # Keep the module list in sync with the API-gated modules in docs/api-compatibility.md.
+      - name: Check API compatibility
+        run: ./mvnw --batch-mode -pl connector-sdk/core -am verify -DskipTests -Dquickly '-P!autoFormat'
+
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
         uses: scacap/action-surefire-report@v1
