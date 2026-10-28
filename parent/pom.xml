@@ -596,95 +596,15 @@ limitations under the License.</license.inlineheader>
           <version>${version.auth0.jwt}</version>
       </dependency>
 
+      <!-- AWS SDK v2 BOM: manages every software.amazon.awssdk artifact, including the ones only
+           reached transitively (e.g. opensearch via langchain4j-opensearch), so the whole SDK
+           moves in lockstep with version.aws-sdk2 -->
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
-        <artifactId>lambda</artifactId>
+        <artifactId>bom</artifactId>
         <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sagemakerruntime</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sqs</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sns</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>eventbridge</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>comprehend</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>dynamodb</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>textract</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bedrockruntime</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bedrockagentcore</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sdk-core</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>aws-core</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>auth</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>regions</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>http-auth-spi</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>http-auth</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sts</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>netty-nio-client</artifactId>
-        <version>${version.aws-sdk2}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
