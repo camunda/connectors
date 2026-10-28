@@ -1857,9 +1857,10 @@ A null system prompt hashes distinctly from an empty string or the literal `"nul
 Named-schema containers (`$defs`, `definitions`, `patternProperties`, `dependentSchemas`,
 `dependencies`) sort their names and normalize each value as a schema, even when its name is
 `properties`. Values under `default`, `const`, `enum` and `examples` are data: their map keys are
-sorted recursively, and a `properties` key there has no keyword meaning. Integral numbers hash as exact
-integers whatever their type or scale (`1.0E16`, `1e16` and `10000000000000000` hash alike), up to
-1000 digits. Other decimals and floats hash at double precision.
+sorted recursively, and a `properties` key there has no keyword meaning. Numbers hash by their decimal
+value as JSON writes it, so a `double` hashes like the decimal it reloads as. Integral values of up
+to 1000 digits hash as exact integers whatever their scale (`1.0E16`, `1e16` and `10000000000000000`
+hash alike). Other decimals hash at double precision, as an integer when they round to one.
 
 **System prompt on `CONFIGURATION` items.** The engine requires a non-blank system prompt on the
 agent instance. A null or blank system prompt fails `create` and `applyTurnStart` with a

@@ -94,10 +94,11 @@ public record AgentConfiguration(
    * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
    * immutable map whose iteration order is unspecified and differs between JVMs. Schema map keys
    * are sorted recursively, except for {@code properties} maps, which retain parameter order. Tool
-   * and list order (including {@code required}) is also retained. Integral numbers of up to 1000
-   * digits hash as exact integers, whatever their type or scale; other decimals and floats hash at
-   * double precision. Normalization only affects the hash input; the tool definitions are
-   * unchanged.
+   * and list order (including {@code required}) is also retained. Numbers hash by their decimal
+   * value as JSON writes it, so a {@code double} hashes like the decimal it reloads as. Integral
+   * values of up to 1000 digits hash as exact integers, whatever their scale; other decimals hash
+   * at double precision, as an integer when they round to one. Normalization only affects the hash
+   * input; the tool definitions are unchanged.
    */
   public String fingerprint() {
     try {
@@ -176,9 +177,11 @@ public record AgentConfiguration(
       final var decimal =
           (value instanceof BigDecimal exact ? exact : new BigDecimal(value.toString()))
               .stripTrailingZeros();
-      return decimal.scale() <= 0 && decimal.precision() - decimal.scale() <= MAX_INTEGER_DIGITS
-          ? decimal.toBigIntegerExact()
-          : decimal.doubleValue();
+      if (decimal.scale() <= 0 && decimal.precision() - decimal.scale() <= MAX_INTEGER_DIGITS) {
+        return decimal.toBigIntegerExact();
+      }
+      final double rounded = decimal.doubleValue();
+      return value instanceof Double ? rounded : normalizeSchema(rounded, context);
     }
     return value;
   }

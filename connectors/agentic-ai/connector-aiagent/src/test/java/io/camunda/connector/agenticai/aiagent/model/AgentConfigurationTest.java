@@ -456,6 +456,15 @@ class AgentConfigurationTest {
           .isEqualTo(fingerprintOfSchema(ordered("maximum", 10_000_000_000_000_000L)));
       assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993.0"))))
           .isEqualTo(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993"))));
+      assertThat(fingerprintOfSchema(ordered("maximum", (double) (1L << 60))))
+          .isEqualTo(
+              fingerprintOfSchema(ordered("maximum", new BigDecimal("1.152921504606847E18"))));
+    }
+
+    @Test
+    void decimalRoundedToAnIntegralDoubleHashesLikeThatDouble() {
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1.00000000000000000001"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1.0)));
     }
 
     @Test
