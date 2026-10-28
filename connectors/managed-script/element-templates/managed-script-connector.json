@@ -1,0 +1,203 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Managed script",
+  "id" : "io.camunda.connectors.ManagedScript.v1",
+  "description" : "Run a Python or JavaScript script without operating a job worker",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.10"
+  },
+  "groups" : [ {
+    "id" : "script",
+    "label" : "Script"
+  }, {
+    "id" : "input",
+    "label" : "Input"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:managed-script:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "value" : "ManagedScript",
+    "group" : "script",
+    "binding" : {
+      "linkName" : "script",
+      "property" : "resourceType",
+      "type" : "zeebe:linkedResource"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "script.bindingType",
+    "label" : "Script binding",
+    "value" : "latest",
+    "group" : "script",
+    "binding" : {
+      "linkName" : "script",
+      "property" : "bindingType",
+      "type" : "zeebe:linkedResource"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Latest",
+      "value" : "latest"
+    }, {
+      "name" : "Deployment",
+      "value" : "deployment"
+    }, {
+      "name" : "Version tag",
+      "value" : "versionTag"
+    } ]
+  }, {
+    "id" : "script.resourceId",
+    "label" : "Script file",
+    "description" : "File name of the .py or .js script, deployed as a resource",
+    "feel" : "optional",
+    "group" : "script",
+    "binding" : {
+      "linkName" : "script",
+      "property" : "resourceId",
+      "type" : "zeebe:linkedResource"
+    },
+    "type" : "String"
+  }, {
+    "id" : "script.versionTag",
+    "label" : "Version tag",
+    "group" : "script",
+    "binding" : {
+      "linkName" : "script",
+      "property" : "versionTag",
+      "type" : "zeebe:linkedResource"
+    },
+    "condition" : {
+      "property" : "script.bindingType",
+      "equals" : "versionTag",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "scriptInput",
+    "label" : "Script input",
+    "description" : "Object passed to the script, for example ={a: order.amount, b: tax}",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "scriptInput",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.ManagedScript.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>.",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/8.10/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT30S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "jobTimeout",
+    "label" : "Job timeout",
+    "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
+    "optional" : true,
+    "value" : "PT3M",
+    "group" : "retries",
+    "binding" : {
+      "key" : "jobTimeout",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ]
+}
