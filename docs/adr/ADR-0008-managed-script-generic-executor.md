@@ -69,7 +69,9 @@ with `INVALID_JOB`.
 A script defines a function `execute(variables, context)` that returns a JSON object: at module
 level in Python, and as a named export in JavaScript, where it may be `async`. The returned object
 becomes the connector's result, which the task's result variable or result expression maps as for
-any connector.
+any connector. The script builds no envelope: the executor turns the returned object into a
+`COMPLETED` response and a raised exception into a `FAILED` one. A business error is returned as
+data, and the task's error expression turns it into a BPMN error, as for other connectors.
 
 `print()` in Python and `console.log`, `info`, `warn` and `error` in JavaScript are redirected to
 stderr, which ends in the executor's logs, not in the response. Stdout is reserved for the contract
