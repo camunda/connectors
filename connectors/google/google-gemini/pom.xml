@@ -43,6 +43,12 @@ except in compliance with the proprietary license.</license.inlineheader>
             <artifactId>google-cloud-vertexai</artifactId>
             <version>1.52.0</version>
         </dependency>
+        <!-- google-auth-library-oauth2-http 1.55+ requires google-http-client 2.x (NetHttpTransport.Builder#setSecurityProvider) -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            <version>2.2.0</version>
+        </dependency>
     </dependencies>
 
     <build>
