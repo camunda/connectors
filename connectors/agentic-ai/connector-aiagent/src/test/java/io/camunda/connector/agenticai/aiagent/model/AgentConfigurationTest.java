@@ -409,6 +409,8 @@ class AgentConfigurationTest {
           .isEqualTo(fingerprintOfSchema(ordered("minimum", 10)));
       assertThat(fingerprintOfSchema(ordered("minimum", third)))
           .isEqualTo(fingerprintOfSchema(ordered("minimum", third.doubleValue())));
+      assertThat(fingerprintOfSchema(ordered("minimum", 0.1f)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 0.1d)));
     }
 
     @Test

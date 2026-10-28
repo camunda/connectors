@@ -158,7 +158,7 @@ public record AgentConfiguration(
       return decimal.toBigIntegerExact();
     }
     if (value instanceof BigDecimal || value instanceof Double || value instanceof Float) {
-      final double number = ((Number) value).doubleValue();
+      final double number = Double.parseDouble(value.toString());
       return number == Math.rint(number) && Math.abs(number) < 0x1p53
           ? (Object) (long) number
           : number;
