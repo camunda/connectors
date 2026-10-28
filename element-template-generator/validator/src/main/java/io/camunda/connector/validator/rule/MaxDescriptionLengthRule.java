@@ -40,7 +40,8 @@ public class MaxDescriptionLengthRule implements Rule {
   private static final List<String> SECTIONS =
       List.of(ElementTemplate.PROPERTIES, ElementTemplate.GROUPS);
   private static final Pattern TAG = Pattern.compile("<[^>]+>");
-  private static final Pattern ENTITY = Pattern.compile("&[a-zA-Z]+;|&#\\d+;");
+  private static final Pattern ENTITY =
+      Pattern.compile("&(?:[a-zA-Z][a-zA-Z0-9]*|#\\d+|#[xX]\\p{XDigit}+);");
   private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
   @Override

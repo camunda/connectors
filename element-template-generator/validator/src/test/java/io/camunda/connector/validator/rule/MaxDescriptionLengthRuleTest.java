@@ -24,6 +24,8 @@ import io.camunda.connector.validator.core.Finding;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MaxDescriptionLengthRuleTest {
 
@@ -91,6 +93,14 @@ class MaxDescriptionLengthRuleTest {
     // Renders as 100 characters, then 101 characters.
     assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(98) + "&amp;&lt;"))).isEmpty();
     assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(99) + "&amp;&lt;"))).hasSize(1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"&#60;", "&#x3C;", "&#X3c;", "&frac12;"})
+  void countsEachEntityFormAsOneCharacter(String entity) throws Exception {
+    // Renders as 100 characters, then 101 characters.
+    assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(98) + entity + "."))).isEmpty();
+    assertThat(rule.apply(OPTED_IN, descriptionTemplate(repeat(99) + entity + "."))).hasSize(1);
   }
 
   @Test
