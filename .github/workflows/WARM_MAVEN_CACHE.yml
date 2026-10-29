@@ -59,6 +59,8 @@ jobs:
       - name: Restore Maven wrapper cache
         id: mvnw-cache
         uses: ./.github/actions/cache-maven-wrapper
+        # Explicit: this resolves the action from the checked-out ref, and older stable
+        # branches default to saving.
         with:
           restore-only: 'true'
 
