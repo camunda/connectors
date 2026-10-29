@@ -102,6 +102,7 @@ limitations under the License.</license.inlineheader>
     <version.jackson3-bom>3.2.4</version.jackson3-bom>
     <version.hibernate-validator>9.1.5.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
+    <version.xmlunit>2.14.0</version.xmlunit>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
@@ -730,6 +731,13 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.httpcomponents.client5</groupId>
         <artifactId>httpclient5</artifactId>
         <version>${version.httpclient5}</version>
+      </dependency>
+
+      <!-- overrides Spring Boot's xmlunit; first pinned in connectors-e2e-test-base for CVE-2024-31573 -->
+      <dependency>
+        <groupId>org.xmlunit</groupId>
+        <artifactId>xmlunit-core</artifactId>
+        <version>${version.xmlunit}</version>
       </dependency>
 
       <dependency>
