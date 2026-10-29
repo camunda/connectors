@@ -12,7 +12,14 @@ on:
 jobs:
   run-tests:
     runs-on: ${{ github.repository_owner == 'camunda' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) && 'gcp-core-8-default' || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      checks: write
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@v4
 
       - name: Resolve Maven command
@@ -142,3 +149,26 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
+
+      - name: Validate telemetry refs
+        id: telemetry-ref-safety
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          case "$HEAD_REF$BASE_REF" in
+            *['$`"']*)
+              echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+              exit 1
+              ;;
+          esac
+
+      - name: Submit build status
+        if: always() && steps.telemetry-ref-safety.outcome == 'success'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
