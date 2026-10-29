@@ -89,8 +89,11 @@ with no user code in it.
   creation. Executors are created with create-if-absent and adopted when they already exist, so
   concurrent runtime instances converge.
 - **Naming.** An executor is named `<prefix><py|js>-<12 hex of the wrapper digest>`. The digest
-  covers the wrapper code only. A new wrapper is a new function, never a code update in place,
-  because runtime instances of the previous release may still call the previous one. Names are
+  covers everything packaged into the function: the wrapper code, the manifests of its pinned
+  dependencies (such as the Functions Framework on GCP) and the provider runtime identifier (such as
+  `python3.13`). A dependency upgrade, a security fix included, therefore gives a new function like
+  a new wrapper does, never a code update in place, because runtime instances of the previous
+  release may still call the previous one. The digest leaves out the settings below. Names are
   validated against the provider's 63-character limit at startup.
 - **Settings.** Memory, function timeout, execution role and, on GCP, the maximum instance count
   are runtime configuration. When the runtime creates or adopts an executor, it compares the
@@ -114,7 +117,9 @@ with no user code in it.
   (`JobContext.getRetries()`), and a backoff. A retryable creation failure is retried in the
   background with a jittered exponential backoff of at most 1 minute. If that failure lasts longer
   than twice the provisioning timeout, it is reported to waiting jobs, which then consume their
-  retries, so a lasting denial ends in an incident. A permanent failure fails waiting jobs with no
+  retries, so a lasting denial ends in an incident. A permission denial within the
+  grant-propagation window is exempt: until the window ends, waiting jobs keep failing with
+  `PROVISIONING_PENDING`, retries unchanged, however long the provisioning timeout. A permanent failure fails waiting jobs with no
   retries, and a job after the backoff tries the creation again.
 - **Readiness per language.** Each language becomes ready on its own, so a failing Python executor
   does not block JavaScript jobs.
@@ -339,7 +344,7 @@ which raises an incident. "Unchanged" keeps the job's current retries, with a ba
 | `DEPLOYMENT_MISSING` | provider | The executor does not exist. The job creates it once and calls again. If it is still missing: | Consume one |
 | `PROVISIONING_PENDING` | runtime | The executors were not ready within the provisioning timeout, including while a new cluster's grants propagate (a permission denial on creation or invocation within the configured window) | Unchanged |
 | `PLATFORM_THROTTLED` | provider | The provider throttled the call (Lambda `TooManyRequests`, HTTP 429) | Consume one |
-| `PLATFORM_UNAVAILABLE` | provider, runtime | A transient failure: service error, HTTP 502 or 503, a retryable creation failure that lasted longer than twice the provisioning timeout, or a linked resource still not found after polling | Consume one |
+| `PLATFORM_UNAVAILABLE` | provider, runtime | A transient failure: service error, HTTP 502 or 503, a retryable creation failure that lasted longer than twice the provisioning timeout (except a permission denial within the grant-propagation window), or a linked resource still not found after polling | Consume one |
 | `PLATFORM_REJECTED` | provider, runtime | A permanent provider failure: a creation call rejected with a client error, an executor that failed to build or become active, a denial after the grant-propagation window, or no suitable local interpreter | None left |
 | `PLATFORM_EXECUTION_FAILED` | wrapper, provider | The executor failed outside the script: the child crashed with no response, a wrapper error, a Lambda function error, HTTP 500 or 504 | None left |
 | `PLATFORM_INTERRUPTED` | runtime | The worker thread was interrupted, for example at shutdown | Unchanged |
