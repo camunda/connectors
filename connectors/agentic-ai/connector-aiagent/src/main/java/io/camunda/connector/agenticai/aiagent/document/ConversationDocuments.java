@@ -6,11 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
@@ -26,11 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,12 +36,6 @@ import java.util.Optional;
 public final class ConversationDocuments implements RuntimeToolDocuments {
 
   private static final ConversationDocuments EMPTY = new ConversationDocuments(Map.of());
-
-  private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
-
-  private static final ObjectMapper COLLECTING_MAPPER =
-      ConnectorsObjectMapperSupplier.getCopy()
-          .registerModule(new SimpleModule().addSerializer(new DocumentCollector()));
 
   private final Map<DocumentId, AgentDocument> documentsById;
 
@@ -140,13 +124,13 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
     switch (content) {
       case DocumentReferenceContent reference -> add(byId, reference, source);
       case ObjectContent objectContent ->
-          nestedDocuments(objectContent.content())
+          DocumentExpander.renderWithTags(objectContent.content())
+              .documents()
               .forEach(
-                  document ->
-                      byId.putIfAbsent(
-                          DocumentHandle.idFor(document),
-                          new ConversationDocument(
-                              DocumentHandle.idFor(document), source, document)));
+                  document -> {
+                    final var id = DocumentHandle.idFor(document);
+                    byId.putIfAbsent(id, new ConversationDocument(id, source, document));
+                  });
       default -> {
         // other blocks hold no document
       }
@@ -162,39 +146,6 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
         reference.id(), new ConversationDocument(reference.id(), source, reference.document()));
   }
 
-  /** The documents at any depth of an object, typed or plain JSON values. */
-  private static List<Document> nestedDocuments(Object value) {
-    final var documents = new ArrayList<Document>();
-    try {
-      COLLECTING_MAPPER
-          .writer()
-          .withAttribute(COLLECTED_DOCUMENTS, documents)
-          .writeValue(OutputStream.nullOutputStream(), value);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    return documents;
-  }
-
   private record ConversationDocument(DocumentId id, DocumentSource source, Document document)
       implements AgentDocument {}
-
-  private static final class DocumentCollector extends JsonSerializer<Document> {
-
-    @Override
-    public Class<Document> handledType() {
-      return Document.class;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void serialize(Document document, JsonGenerator gen, SerializerProvider provider)
-        throws IOException {
-      final var collected = (List<Document>) provider.getAttribute(COLLECTED_DOCUMENTS);
-      if (collected != null) {
-        collected.add(document);
-      }
-      gen.writeNull();
-    }
-  }
 }
