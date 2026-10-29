@@ -62,15 +62,34 @@ jobs:
             echo "internal=false" >> $GITHUB_OUTPUT
           fi
 
+      # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
+      # PR head, which may predate that action. Keep the line derivation in sync with it.
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        env:
+          REF: ${{ github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+          SUFFIX: ${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          ref="${REF#refs/heads/}"
+          if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
+
       # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
       # per-PR saves don't evict it. Keep the key in sync with that workflow.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Restore Maven wrapper cache
@@ -269,15 +288,37 @@ jobs:
             echo "internal=false" >> $GITHUB_OUTPUT
           fi
 
+<<<<<<< HEAD
       # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
       # per-PR saves don't evict it. Keep the key in sync with that workflow.
+=======
+      # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
+      # PR head, which may predate that action. Keep the line derivation in sync with it.
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        env:
+          REF: ${{ github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+          SUFFIX: ${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          ref="${REF#refs/heads/}"
+          if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
+
+>>>>>>> 6c9ee954 (ci: include the branch line in the Maven cache key (#9828))
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
