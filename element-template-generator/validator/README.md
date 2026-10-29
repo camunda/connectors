@@ -31,7 +31,7 @@ Exit code is `0` if no findings, `1` otherwise.
 | `-d`, `--directory` | `./connectors` | Root directory to scan for `element-templates/*.json` files. |
 | `--schema-url` | pinned unpkg.com URL | HTTP/HTTPS URL of the JSON schema. Falls back to `CAMUNDA_TEMPLATE_SCHEMA_URL` env var, then the pinned default. Only `http`/`https` URLs are supported. |
 | `--skip-directory` | `target, node_modules, .git, .idea, .m2` | Directory names pruned during traversal (by exact name, not path). Repeatable or comma-separated. When specified, replaces the default set entirely. |
-| `--skip-connector` | `agentic-ai` | Connector directory names skipped entirely. Repeatable or comma-separated. When specified, replaces the default set entirely. |
+| `--skip-connector` | none | Connector directory names skipped entirely. Repeatable or comma-separated. |
 | `--no-color` | off | Disable ANSI color in the output. Color is also auto-disabled when no console is attached (e.g. when output is piped or captured by CI). |
 
 ```bash
@@ -58,9 +58,7 @@ in lockstep with the connectors-team upgrade.
 Files inside any `versioned/` directory are skipped by the single-file rules — they represent
 frozen historical releases and are not modifiable retroactively. Multi-file rules still see them.
 
-Connector directories listed in `--skip-connector` are skipped entirely. The default (`agentic-ai`)
-covers templates generated/maintained outside the standard connector workflow that intentionally
-diverge from the conventions enforced here.
+Connector directories listed in `--skip-connector` are skipped entirely.
 
 ## Rules
 
