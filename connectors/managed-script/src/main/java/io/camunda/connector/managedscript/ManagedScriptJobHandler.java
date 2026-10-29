@@ -150,8 +150,20 @@ final class ManagedScriptJobHandler {
       return failed(
           job, ErrorCode.INVALID_RESULT, "The provider returned no outcome", null, language);
     }
+    if (!ExecutionRequest.CONTRACT_VERSION.equals(response.contractVersion())) {
+      return failed(
+          job,
+          ErrorCode.INVALID_RESULT,
+          "Unsupported contract version '%s'".formatted(response.contractVersion()),
+          null,
+          language);
+    }
     if (ExecutionResponse.COMPLETED.equals(response.outcome())) {
-      return new Outcome.Completed(response.variables() == null ? Map.of() : response.variables());
+      if (response.variables() == null) {
+        return failed(
+            job, ErrorCode.INVALID_RESULT, "The script returned no variables", null, language);
+      }
+      return new Outcome.Completed(response.variables());
     }
     final var error = response.error();
     if (!ExecutionResponse.FAILED.equals(response.outcome()) || error == null) {

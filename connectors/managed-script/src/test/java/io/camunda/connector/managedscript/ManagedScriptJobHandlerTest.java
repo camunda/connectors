@@ -316,6 +316,30 @@ class ManagedScriptJobHandlerTest {
     assertThat(provider.ensureCalls).isEqualTo(2);
   }
 
+  @Test
+  void treatsAnUnsupportedContractVersionAsAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(new ExecutionResponse("2", "COMPLETED", Map.of("sum", 5), null));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(outcome, ErrorCode.INVALID_RESULT, 0);
+  }
+
+  @Test
+  void requiresTheVariablesOfACompletedScript() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse("1", "COMPLETED", null, null),
+        new ExecutionResponse("1", "COMPLETED", Map.of(), null));
+
+    final var missing = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var empty = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(missing, ErrorCode.INVALID_RESULT, 0);
+    assertThat(empty).isEqualTo(new Outcome.Completed(Map.of()));
+  }
+
   private ManagedScriptJobHandler handler(Duration visibilityTimeout) {
     return new ManagedScriptJobHandler(
         provider,
@@ -328,7 +352,7 @@ class ManagedScriptJobHandlerTest {
   private ScriptResources resources(Duration visibilityTimeout) {
     return new ScriptResources(
         16,
-        (camundaClient, resourceKey) -> {
+        (camundaClient, resourceKey, timeout) -> {
           fetches.incrementAndGet();
           synchronized (stored) {
             final var resource = stored.get(resourceKey);

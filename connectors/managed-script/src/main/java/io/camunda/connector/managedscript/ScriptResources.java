@@ -12,6 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Fetches script and manifest resources by key. Resource content is immutable for a resource key,
@@ -29,15 +33,21 @@ final class ScriptResources {
   @FunctionalInterface
   interface Fetcher {
     /**
-     * @throws ResourceNotVisibleException if Camunda does not know the resource (yet)
+     * @param timeout what is left of the visibility timeout, for every request together
+     * @throws ResourceNotVisibleException if Camunda does not return the resource (yet) in time
      */
-    ScriptResource fetch(CamundaClient client, long resourceKey);
+    ScriptResource fetch(CamundaClient client, long resourceKey, Duration timeout)
+        throws InterruptedException;
   }
 
   /** The resource key was resolved by the engine but the resource API does not return it. */
   static final class ResourceNotVisibleException extends RuntimeException {
     ResourceNotVisibleException(long resourceKey, Throwable cause) {
       super("Resource with key %d not found".formatted(resourceKey), cause);
+    }
+
+    ResourceNotVisibleException(String message) {
+      super(message);
     }
   }
 
@@ -100,8 +110,12 @@ final class ScriptResources {
       throws InterruptedException {
     final long deadline = System.nanoTime() + visibilityTimeout.toNanos();
     while (true) {
+      final var remaining = Duration.ofNanos(deadline - System.nanoTime());
+      if (remaining.isNegative() || remaining.isZero()) {
+        throw notReturnedInTime(resourceKey);
+      }
       try {
-        return fetcher.fetch(client, resourceKey);
+        return fetcher.fetch(client, resourceKey, remaining);
       } catch (ResourceNotVisibleException e) {
         if (System.nanoTime() + visibilityPollInterval.toNanos() > deadline) {
           throw e;
@@ -111,18 +125,42 @@ final class ScriptResources {
     }
   }
 
-  private static ScriptResource fetchFromCamunda(CamundaClient client, long resourceKey) {
+  private ResourceNotVisibleException notReturnedInTime(long resourceKey) {
+    return new ResourceNotVisibleException(
+        "Resource with key %d was not returned within %s"
+            .formatted(resourceKey, visibilityTimeout));
+  }
+
+  static ScriptResource fetchFromCamunda(CamundaClient client, long resourceKey, Duration timeout)
+      throws InterruptedException {
+    final long deadline = System.nanoTime() + timeout.toNanos();
+    final var metadata =
+        await(client.newResourceGetRequest(resourceKey).send(), resourceKey, deadline);
+    // The client returns the content as a String.
+    final var content =
+        await(client.newResourceContentBinaryGetRequest(resourceKey).send(), resourceKey, deadline);
+    return new ScriptResource(metadata.getResourceName(), content.getBytes(StandardCharsets.UTF_8));
+  }
+
+  /**
+   * Waits for a request until the deadline at most; a 404 means the resource is not visible yet.
+   */
+  private static <T> T await(Future<T> request, long resourceKey, long deadline)
+      throws InterruptedException {
     try {
-      final var metadata = client.newResourceGetRequest(resourceKey).send().join();
-      // The client returns the content as a String.
-      final var content = client.newResourceContentBinaryGetRequest(resourceKey).send().join();
-      return new ScriptResource(
-          metadata.getResourceName(), content.getBytes(StandardCharsets.UTF_8));
-    } catch (ClientHttpException e) {
-      if (e.code() == 404) {
-        throw new ResourceNotVisibleException(resourceKey, e);
+      return request.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+    } catch (TimeoutException e) {
+      request.cancel(true);
+      throw new ResourceNotVisibleException(
+          "Resource with key %d was not returned in time".formatted(resourceKey));
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof ClientHttpException http && http.code() == 404) {
+        throw new ResourceNotVisibleException(resourceKey, http);
       }
-      throw e;
+      if (e.getCause() instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      throw new IllegalStateException(e.getCause());
     }
   }
 }
