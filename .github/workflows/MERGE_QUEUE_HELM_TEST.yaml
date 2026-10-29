@@ -41,14 +41,18 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -632,7 +636,89 @@ jobs:
       slack_ts: ${{ steps.feedback.outputs.slack_ts }}
       slack_channel: ${{ steps.feedback.outputs.slack_channel }}
     steps:
+<<<<<<< HEAD
       - uses: actions/checkout@v7
+=======
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check for agentic-ai changes
+        id: changes
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        with:
+          filters: |
+            ai:
+              - 'connectors/agentic-ai/**'
+              - 'connectors-e2e-test/connectors-e2e-test-agentic-ai/**'
+
+      - name: Import Secrets
+        if: steps.changes.outputs.ai == 'true'
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite OPENAI_API_KEY;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_SERVICE_ACCOUNT;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_PROJECT_ID;
+            secret/data/products/qa/ci/cross-component-e2e-test-suite IDP_GCP_VERTEX_REGION;
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        if: steps.changes.outputs.ai == 'true'
+        with:
+          distribution: temurin
+          java-version: "25.0.5+8.0.LTS"
+
+      - name: Login to Harbor
+        if: steps.changes.outputs.ai == 'true'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          registry: registry.camunda.cloud
+          username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
+          password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+
+      - name: Create settings.xml
+        if: steps.changes.outputs.ai == 'true'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
+
+      - name: Compute Maven cache key
+        if: steps.changes.outputs.ai == 'true'
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
+      - name: Restore Maven cache
+        if: steps.changes.outputs.ai == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Cache Maven wrapper distribution
+        if: steps.changes.outputs.ai == 'true'
+        uses: ./.github/actions/cache-maven-wrapper
+
+>>>>>>> 6c9ee95 (ci: include the branch line in the Maven cache key (#9828))
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
