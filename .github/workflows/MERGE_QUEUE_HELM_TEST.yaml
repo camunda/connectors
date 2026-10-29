@@ -16,9 +16,15 @@ jobs:
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@v6
 
       - name: Import Secrets
@@ -143,6 +149,13 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
 
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+
   trigger-sm-e2e:
     name: Trigger SM E2E tests
     needs: [ build-image ]
@@ -215,7 +228,9 @@ jobs:
     # the backstop for what a deadline cannot bound: a single `gh api` call
     # that hangs indefinitely rather than returning an error to retry.
     timeout-minutes: 60
-    permissions: { }
+    permissions:
+      contents: read
+      id-token: write
     steps:
       # The waiter's deadline has to be measured on the same clock as this
       # job's `timeout-minutes`, which starts here -- not when the waiter
@@ -225,6 +240,9 @@ jobs:
       # about how long they take rather than a guarantee.
       - name: Record job start
         run: echo "JOB_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -577,6 +595,13 @@ jobs:
             fi
             echo "**Full guide:** [CI Debugging Cookbook — SaaS E2E section](${COOKBOOK_URL}#failure-type-5--saas-e2e-tests)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   # Mirror of sm-e2e-debug-summary. Until this existed a SaaS failure produced no
   # Slack message and no PR comment at all — only the streak detector's aggregate,
