@@ -732,6 +732,12 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpclient5}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>${version.json}</version>
+      </dependency>
+
       <!-- one version for the whole Kiota family -->
       <dependency>
         <groupId>com.microsoft.kiota</groupId>

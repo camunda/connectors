@@ -113,7 +113,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
-      <version>${version.json}</version>
       <scope>test</scope>
     </dependency>
 
