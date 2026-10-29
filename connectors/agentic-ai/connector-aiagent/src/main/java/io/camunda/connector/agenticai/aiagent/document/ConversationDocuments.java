@@ -66,7 +66,8 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
   /**
    * The documents the model saw when it was called last: the documents of the context window of the
    * messages before the last assistant message. Empty for an agent instance without the documents
-   * feature.
+   * feature. A job that runs calls the model asked for in an earlier job rebuilds the documents of
+   * that window with it.
    *
    * @param messages the messages of the conversation, ending with the assistant message of the last
    *     model call if there is one
@@ -74,14 +75,19 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
    */
   public static ConversationDocuments seenByModel(
       AgentContext agentContext, List<Message> messages, int contextWindowSize) {
-    if (!agentContext.supports(AgentFeatures.DOCUMENTS)) {
-      return EMPTY;
-    }
     final var beforeAnswer =
         !messages.isEmpty() && messages.getLast() instanceof AssistantMessage
             ? messages.subList(0, messages.size() - 1)
             : messages;
-    return of(MessageWindowFilter.apply(beforeAnswer, contextWindowSize));
+    return inWindow(agentContext, MessageWindowFilter.apply(beforeAnswer, contextWindowSize));
+  }
+
+  /**
+   * The documents of the windowed messages of a model call. Empty for an agent instance without the
+   * documents feature.
+   */
+  public static ConversationDocuments inWindow(AgentContext agentContext, List<Message> windowed) {
+    return agentContext.supports(AgentFeatures.DOCUMENTS) ? of(windowed) : EMPTY;
   }
 
   /** The documents of the given messages. */

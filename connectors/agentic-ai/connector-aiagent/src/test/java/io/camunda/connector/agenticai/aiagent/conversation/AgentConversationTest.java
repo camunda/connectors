@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
@@ -26,7 +27,9 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
@@ -38,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -643,54 +647,75 @@ class AgentConversationTest {
   private static AgentConversation conversationWithDocuments(
       AgentContext context, Document early, Document late) {
     return AgentConversation.rehydrate(
-            CONFIG,
-            context,
-            TurnReconstructor.reconstruct(
-                List.of(
-                    UserMessage.builder()
-                        .content(
-                            List.of(
-                                textContent("early"),
-                                DocumentReferences.from(early, DocumentSource.userMessage())))
-                        .build(),
-                    assistantMessage("one"),
-                    UserMessage.builder()
-                        .content(
-                            List.of(
-                                textContent("late"),
-                                DocumentReferences.from(late, DocumentSource.userMessage())))
-                        .build(),
-                    assistantMessage("two"))),
-            SYSTEM_MESSAGE,
-            List.of(userMessage("next")))
-        .ingest(assistantMessage("answer"), AgentMetrics.empty());
+        CONFIG,
+        context,
+        TurnReconstructor.reconstruct(
+            List.of(
+                UserMessage.builder()
+                    .content(
+                        List.of(
+                            textContent("early"),
+                            DocumentReferences.from(early, DocumentSource.userMessage())))
+                    .build(),
+                assistantMessage("one"),
+                UserMessage.builder()
+                    .content(
+                        List.of(
+                            textContent("late"),
+                            DocumentReferences.from(late, DocumentSource.userMessage())))
+                    .build(),
+                assistantMessage("two"))),
+        SYSTEM_MESSAGE,
+        List.of(userMessage("next")));
   }
 
   @Test
-  void documents_areTheDocumentsOfTheWindowTheModelWasCalledWith() {
+  void window_holdsTheDocumentsOfTheWindowedMessagesOnly() {
     var early = createDocument("early", "early.txt");
     var late = createDocument("late", "late.txt");
     var conv = conversationWithDocuments(BASE_CONTEXT, early, late);
 
-    // the model was called with the messages before its answer: system, early, one, late, two,
-    // next; a window of 4 keeps the system message and late, two, next
-    assertThat(conv.documents(4).all())
+    // the messages are system, early, one, late, two, next; a window of 4 keeps the system
+    // message and late, two, next
+    var window = conv.window(4, UnaryOperator.identity());
+    assertThat(window.documents().all())
         .extracting(AgentDocument::id)
         .containsExactly(DocumentHandle.idFor(late));
-    assertThat(conv.documents(20).all())
+    assertThat(window.documents().find(DocumentHandle.idFor(early))).isEmpty();
+    assertThat(conv.window(20, UnaryOperator.identity()).documents().all())
         .extracting(AgentDocument::id)
         .containsExactly(DocumentHandle.idFor(early), DocumentHandle.idFor(late));
-    assertThat(conv.documents(4).find(DocumentHandle.idFor(early))).isEmpty();
   }
 
   @Test
-  void documents_areEmptyWithoutTheDocumentsFeature() {
+  void window_readsTheDocumentsBeforeTheDecoratorAndItsSnapshotLeavesThemOut() {
+    var early = createDocument("early", "early.txt");
+    var late = createDocument("late", "late.txt");
+    var conv = conversationWithDocuments(BASE_CONTEXT, early, late);
+
+    var window = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext()));
+    var snapshot = ConversationSnapshot.of(window);
+
+    // the decorated messages hold the tags as text, the documents are still those of the window
+    assertThat(window.messages())
+        .flatExtracting(
+            message -> message instanceof UserMessage user ? user.content() : List.<Content>of())
+        .noneMatch(DocumentReferenceContent.class::isInstance);
+    assertThat(window.documents().all())
+        .extracting(AgentDocument::id)
+        .containsExactly(DocumentHandle.idFor(early), DocumentHandle.idFor(late));
+    assertThat(snapshot.messages()).isEqualTo(window.messages());
+    assertThat(snapshot.toolDefinitions()).isEqualTo(window.toolDefinitions());
+  }
+
+  @Test
+  void window_hasNoDocumentsWithoutTheDocumentsFeature() {
     var conv =
         conversationWithDocuments(
             BASE_CONTEXT.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
             createDocument("early", "early.txt"),
             createDocument("late", "late.txt"));
 
-    assertThat(conv.documents(20).all()).isEmpty();
+    assertThat(conv.window(20, UnaryOperator.identity()).documents().all()).isEmpty();
   }
 }

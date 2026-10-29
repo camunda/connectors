@@ -23,4 +23,9 @@ public record ConversationSnapshot(List<Message> messages, List<ToolDefinition> 
     messages = List.copyOf(messages);
     toolDefinitions = List.copyOf(toolDefinitions);
   }
+
+  /** The snapshot of a context window: its messages and tool definitions, not its documents. */
+  public static ConversationSnapshot of(ConversationWindow window) {
+    return new ConversationSnapshot(window.messages(), window.toolDefinitions());
+  }
 }

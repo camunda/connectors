@@ -314,11 +314,13 @@ public abstract class BaseAgentRequestHandler<
           "Sending turn (iterationKey={}) to the model",
           workingConversation.currentTurn().iterationKey());
 
-      final var windowedSnapshot =
+      // the model gets the snapshot of the window, the runtime calls it asks for its documents
+      final var window =
           workingConversation.window(
               agentConfiguration.contextWindowSize(),
               documentExpander.windowDecorator(workingConversation.persistedContext()));
-      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
+      final var chatResult =
+          executeChatModel(chatModel, executionContext, ConversationSnapshot.of(window));
 
       // the one place the tool calls are tagged with the kind of their tool
       final var assistantMessage =
@@ -364,7 +366,7 @@ public abstract class BaseAgentRequestHandler<
             runtimeToolExecutor.execute(
                 executionContext,
                 workingConversation.persistedContext(),
-                workingConversation.documents(agentConfiguration.contextWindowSize()),
+                window.documents(),
                 currentTurn.runtimeToolCalls());
         workingConversation =
             workingConversation.nextRuntimeToolRound(

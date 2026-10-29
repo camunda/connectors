@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationWindow;
 import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -269,16 +270,6 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns the documents the model saw when it was called last: the documents of the messages in
-   * its context window. Empty for an agent instance without the documents feature.
-   *
-   * @param contextWindowSize the size of the context window the model was called with
-   */
-  public ConversationDocuments documents(int contextWindowSize) {
-    return ConversationDocuments.seenByModel(currentContext, allMessages(), contextWindowSize);
-  }
-
-  /**
    * Returns {@code true} if the input of any turn of this invocation (the first round and every
    * round that followed it) carries an interrupted tool call result.
    */
@@ -322,22 +313,26 @@ public final class AgentConversation {
   }
 
   /**
-   * Applies the context window filter and returns a {@link ConversationSnapshot} ready to send to
-   * the LLM. Tool definitions come from {@link #configuration}, not the durable {@link
-   * AgentContext} — {@link AgentConfiguration#toolDefinitions()} is the authoritative current tool
-   * list for this invocation once the handler has populated it via {@link
-   * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
-   * tools.
+   * Applies the context window filter and returns the {@link ConversationWindow} of the next model
+   * call, which the LLM gets as its {@link ConversationSnapshot#of snapshot}. Tool definitions come
+   * from {@link #configuration}, not the durable {@link AgentContext} — {@link
+   * AgentConfiguration#toolDefinitions()} is the authoritative current tool list for this
+   * invocation once the handler has populated it via {@link AgentConfiguration#withToolDefinitions}
+   * with the tools of the process and the enabled runtime tools.
    *
    * <p>The decorator is applied to the windowed messages, and what it returns is sent to the LLM;
-   * {@link #allMessages()} and the stored conversation are not affected.
+   * {@link #allMessages()} and the stored conversation are not affected. The documents of the
+   * window are read from the windowed messages before they are decorated.
    *
-   * @param decorator turns the windowed messages into the messages of the snapshot; the identity
+   * @param decorator turns the windowed messages into the messages the LLM reads; the identity
    *     leaves them as they are
    */
-  public ConversationSnapshot window(int size, UnaryOperator<List<Message>> decorator) {
+  public ConversationWindow window(int size, UnaryOperator<List<Message>> decorator) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
-    return new ConversationSnapshot(decorator.apply(windowed), configuration.toolDefinitions());
+    return new ConversationWindow(
+        decorator.apply(windowed),
+        configuration.toolDefinitions(),
+        ConversationDocuments.inWindow(currentContext, windowed));
   }
 
   /**
