@@ -344,6 +344,17 @@ limitations under the License.</license.inlineheader>
         <scope>import</scope>
       </dependency>
 
+      <!-- Google Cloud libraries BOM, imported once here so connectors, secret providers and the bundles
+           resolve one Google Cloud stack (a split gax/gax-grpc crashed the SaaS runtime). Imported after
+           grpc-bom so version.grpc wins, and before Spring Boot, where they overlap only on gson -->
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${version.google-libraries-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Spring Boot BOM -->
       <dependency>
         <groupId>org.springframework.boot</groupId>
