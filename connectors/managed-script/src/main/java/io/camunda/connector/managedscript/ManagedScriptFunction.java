@@ -44,8 +44,11 @@ public class ManagedScriptFunction implements OutboundConnectorFunction {
   static final String INPUT_VARIABLE = "scriptInput";
   static final String RESOURCE_TYPE = "ManagedScript";
 
-  /** Physical tenant of a client configured without one, as for the worker it replaces. */
-  private static final String DEFAULT_PHYSICAL_TENANT = "default";
+  /**
+   * Physical tenant of a job that carries none, as {@code PhysicalTenantClientSelector} keys it. A
+   * tenant ID is never blank, so this cannot alias a configured tenant such as {@code default}.
+   */
+  static final String NO_PHYSICAL_TENANT = "";
 
   private final ManagedScriptJobHandler handler;
   private final PhysicalTenantClientSelector clients;
@@ -60,7 +63,7 @@ public class ManagedScriptFunction implements OutboundConnectorFunction {
     final var job = context.getJobContext();
     final var request = context.bindVariables(ManagedScriptRequest.class);
     final var physicalTenantId =
-        job.getPhysicalTenantId() == null ? DEFAULT_PHYSICAL_TENANT : job.getPhysicalTenantId();
+        job.getPhysicalTenantId() == null ? NO_PHYSICAL_TENANT : job.getPhysicalTenantId();
     final var outcome =
         handler.handle(clients.forJob(job), physicalTenantId, job, request.scriptInput());
     return switch (outcome) {

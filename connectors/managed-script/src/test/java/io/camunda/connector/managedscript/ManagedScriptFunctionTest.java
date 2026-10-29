@@ -50,11 +50,18 @@ class ManagedScriptFunctionTest {
   }
 
   @Test
-  void usesTheDefaultPhysicalTenantWhenTheJobHasNone() throws Exception {
+  void keysAJobWithoutPhysicalTenantApartFromATenantNamedDefault() throws Exception {
+    when(handler.handle(eq(client), eq(""), eq(job), anyMap()))
+        .thenReturn(new Outcome.Completed(Map.of("cluster", "unnamed")));
     when(handler.handle(eq(client), eq("default"), eq(job), anyMap()))
-        .thenReturn(new Outcome.Completed(Map.of()));
+        .thenReturn(new Outcome.Completed(Map.of("cluster", "default")));
 
-    assertThat(function.execute(context)).isEqualTo(Map.of());
+    final var withoutTenant = function.execute(context);
+    when(job.getPhysicalTenantId()).thenReturn("default");
+    final var namedDefault = function.execute(context);
+
+    assertThat(withoutTenant).isEqualTo(Map.of("cluster", "unnamed"));
+    assertThat(namedDefault).isEqualTo(Map.of("cluster", "default"));
   }
 
   @Test
