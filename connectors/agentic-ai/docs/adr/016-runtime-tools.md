@@ -14,8 +14,8 @@ Every tool of an agent is a BPMN element: an ad-hoc element of the sub-process, 
 that the agent maps to elements. The model calls the tool, the agent activates the element, and the result comes back
 with a later job.
 
-Some capabilities do not fit that shape. Loading a skill, saving a memory or listing the entries of a registry work on
-state that lives in the agent context. They are cheap functions of the conversation.
+Some capabilities do not fit that shape. Loading a document, selecting a document for the response or listing the entries of a
+registry work on state that lives in the agent context. They are cheap functions of the conversation.
 A BPMN element for each of them costs a job round trip per call, cannot reach the agent context, and has to be modeled
 in every process that uses an agent.
 
@@ -28,7 +28,7 @@ itself, inside the job, without a BPMN element.
 * **Pro-code extensibility**: an operator or vendor adds a tool through a small API in `aiagent-api`, without touching
   the core.
 * **One public path**: the tools the connector ships use the same API as any other tool, with no name checks and no
-  helpers that only the core can call. A custom tool can replace a built-in one.
+  helpers that only the core can call.
 * **Distributed execution**: an agent runs one job after another, possibly on different workers, and a failed job is
   retried. Nothing may live outside the agent context between jobs.
 * **Mixed batches**: one assistant message can call runtime tools and process tools. The process calls are valid work
@@ -53,8 +53,9 @@ works on the agent context without exposing it, and gives built-in and custom to
 
 A runtime tool is a Spring bean of one interface with three members: the definition the model sees, a check whether the
 tool is enabled, and the call. The call receives the tool call, with its arguments bound to a type the author chooses, and a
-read-only context: the execution context and the agent context. It is not the conversation, so a tool cannot read or
-change messages. The types a tool receives are interfaces that the framework implements, so members can be added
+read-only context: the execution context and the agent context. It is not the conversation, so a tool cannot change
+messages. Both contexts still hold the conversation context, so with the in-process store a tool can read the messages
+stored before the job. The types a tool receives are interfaces that the framework implements, so members can be added
 without breaking tools. The result is the content the model reads, or an error.
 
 A tool does not change the agent context. The alternatives were:
@@ -72,12 +73,11 @@ exception must not turn into text the model acts on. The job is retried like any
 ### Names
 
 Tool names are unique. A custom tool uses a name with a prefix of its own. The prefix `c8__` is for the tools that the
-connector ships, such as the one that loads a skill.
+connector ships, such as the tools of the document flow.
 
 A tool element of a process must not have the name of a registered runtime tool, whether the tool is enabled or not.
 Such an element would be indistinguishable to the model and lose against the runtime tool without notice, and what a
-tool enables can change. Tool discovery and process migration fail with an error code that names the conflict, and so
-does an agent job whose tools contain such a name.
+tool enables can change. An agent job whose tools contain such a name fails with an error code that names the conflict.
 
 ### Agent instance features
 
@@ -92,7 +92,7 @@ its process, which may already contain an element with such a name, must keep ru
 
 The agent tags every tool call of an assistant message with the kind of its tool, process or runtime, exactly once: when
 it receives the message from the model, before the conversation takes the message in. A call is a runtime call if the
-agent instance has the `runtimeTools` feature and a registered runtime tool owns the name, enabled or not. The tag is
+agent instance has the `runtimeTools` feature and a registered runtime tool has the name, enabled or not. The tag is
 persisted with the message and never computed again. Only process calls are activated. The definition of a runtime tool
 declares the kind runtime and the registry rejects other tools at start-up; the tag of a call, not the definition,
 decides how a call is answered.
@@ -160,6 +160,9 @@ has no element. In a mixed batch the results carry the turn start of the job tha
 
 ## Follow-up
 
+* **Durable execution of tool calls.** A failure after a tool call runs the tool again, so a tool must accept at-least-once
+  execution and idempotent side effects. A durable execution makes the call run once and replaces this requirement
+  in the `RuntimeTool` contract.
 * **Tools executed as jobs.** A tool that runs long, or that must run on its own worker, is executed as a job instead of
   in the thread of the agent job. The job timeout of the agent is then extended while such tools run.
 * **A per-agent allow and deny list of runtime tools.** Every enabled tool is offered to every agent instance. The
@@ -169,5 +172,8 @@ has no element. In a mixed batch the results carry the turn start of the job tha
   would remove the need to know the schema format from every tool.
 * **A test fixture for tool authors.** A fixture that runs a tool the way the agent does, so authors need not copy the
   tests of the framework.
+* **No access to stored messages.** The agent and execution contexts a tool receives hold the conversation context, so a
+  tool can read the stored messages when the store keeps them in the agent context (the in-process store). A view of
+  both contexts without the conversation context closes this access.
 * **An engine and Operate marker for runtime tools in the history.** The history API has no tool kind and no result
   status, so a runtime tool is recognizable only by its missing element id and an error result is plain text.

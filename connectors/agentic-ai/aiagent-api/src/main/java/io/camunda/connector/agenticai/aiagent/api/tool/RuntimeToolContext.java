@@ -11,28 +11,28 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.common.annotation.Experimental;
 
 /**
- * What a runtime tool can read about the agent while it runs a call. The framework implements this
- * interface: a method may be added in a later release.
+ * A read-only view of the agent as of a call, safe to read from several threads. The framework
+ * implements this interface and may add methods in a later release. {@link Experimental}, see
+ * {@link RuntimeTool}.
  *
- * <p>{@link Experimental}, see {@link RuntimeTool}.
- *
- * <p>The view is read-only and as of the call. It is not the conversation: a tool cannot read or
- * change messages. It is safe to read from several threads.
+ * <p>The view is not the conversation: the messages of the running job are not part of it. Both
+ * contexts still hold the conversation context of the agent, so a tool can read stored messages
+ * with a store that keeps them in the agent context, such as the in-process store. Do not rely on
+ * it: a later release may remove this access.
  */
 @Experimental
 public interface RuntimeToolContext {
 
   /**
-   * The invocation of the agent: its configuration, prompts and limits. The features of the agent
-   * instance are not part of it; read them from {@link #agentContext()}.
+   * The configuration, prompts and limits of the invocation. The features of the agent instance are
+   * in {@link #agentContext()}.
    */
   AgentExecutionContext executionContext();
 
   /**
-   * The persisted state of the agent as of this call, including the {@link AgentContext#features()
-   * features} of the agent instance and its {@link AgentContext#properties() properties}. Do not
-   * rely on the metrics, which cover the finished turns only. The returned value does not change
-   * while the call runs.
+   * The persisted state of the agent, including its {@link AgentContext#features() features} and
+   * {@link AgentContext#properties() properties}, but not the metrics and iteration bookkeeping of
+   * the running job. It does not change while the call runs.
    */
   AgentContext agentContext();
 }
