@@ -36,11 +36,14 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
     }
     final List<Link> links;
     try {
-      // Strict: the shared mapper would accept a single object as an array, and trailing tokens.
+      // Strict: the shared mapper would accept a single object as an array, a one-element array as
+      // a single value, and trailing tokens.
       links =
           objectMapper
               .readerFor(new TypeReference<List<Link>>() {})
-              .without(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+              .without(
+                  DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
+                  DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS)
               .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
               .readValue(header);
     } catch (JsonProcessingException e) {
