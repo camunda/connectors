@@ -17,7 +17,9 @@ import io.camunda.connector.managedscript.ManagedScriptJobHandler.Outcome;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
 import io.camunda.connector.managedscript.ScriptResources.ScriptResource;
 import io.camunda.connector.managedscript.api.ErrorCode;
+import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
+import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -98,13 +100,17 @@ class ManagedScriptJobHandlerTest {
 
   @Test
   void rejectsMissingOrInvalidLinkedResourcesWithoutRetries() {
+    // Stored, so that a header read too leniently would reach the provider.
+    store("sum.py", "x");
     for (var header :
         new String[] {
           "",
           "not json",
           "[]",
           "[{\"resourceKey\":\"abc\",\"linkName\":\"script\"}]",
-          "[{\"resourceKey\":\"1\",\"linkName\":\"script\"},{\"resourceKey\":\"2\",\"linkName\":\"script\"}]"
+          "[{\"resourceKey\":\"1\",\"linkName\":\"script\"},{\"resourceKey\":\"2\",\"linkName\":\"script\"}]",
+          "{\"resourceKey\":\"%d\",\"linkName\":\"script\"}".formatted(SCRIPT_KEY),
+          SCRIPT_HEADER + " []"
         }) {
       final var outcome =
           handler.handle(client, "default", job(Map.of("linkedResources", header)), Map.of());
@@ -113,6 +119,7 @@ class ManagedScriptJobHandlerTest {
     }
     assertFailed(
         handler.handle(client, "default", job(Map.of()), Map.of()), ErrorCode.INVALID_JOB, 0);
+    assertThat(provider.calls).isEmpty();
   }
 
   @Test
@@ -239,6 +246,74 @@ class ManagedScriptJobHandlerTest {
     } finally {
       assertThat(Thread.interrupted()).isTrue();
     }
+  }
+
+  @Test
+  void mapsAProvisioningFailureByItsCodeAndTriesAgainWithTheNextJob() {
+    store("sum.py", "x");
+    provider
+        .failEnsure(new ProvisioningException(ErrorCode.PLATFORM_REJECTED, "role missing"))
+        .failEnsure(new ProvisioningException(ErrorCode.PLATFORM_UNAVAILABLE, "service error"));
+
+    final var rejected = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var unavailable = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var completed = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(rejected, ErrorCode.PLATFORM_REJECTED, 0);
+    assertFailed(unavailable, ErrorCode.PLATFORM_UNAVAILABLE, null);
+    assertThat(completed).isInstanceOf(Outcome.Completed.class);
+    assertThat(provider.ensureCalls).isEqualTo(3);
+  }
+
+  @Test
+  void failsAScriptErrorWithoutRetriesWithItsStackTraceInTheIncident() {
+    store("sum.py", "x");
+    provider.respond(
+        scriptFailure("SCRIPT_ERROR", "ZeroDivisionError: division by zero", "Traceback ..."));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.SCRIPT_ERROR, 0);
+    assertThat(failed.message())
+        .isEqualTo("SCRIPT_ERROR: ZeroDivisionError: division by zero\nTraceback ...");
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
+  }
+
+  @Test
+  void consumesARetryOnAnUnexpectedException() {
+    store("sum.py", "x");
+    final var handler =
+        new ManagedScriptJobHandler(
+            new FakeProvider() {
+              @Override
+              public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+                throw new IllegalStateException("unexpected");
+              }
+            },
+            resources(Duration.ofMillis(200)),
+            ConnectorsObjectMapperSupplier.getCopy(),
+            Duration.ofSeconds(30),
+            BACKOFF);
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertFailed(outcome, ErrorCode.PLATFORM_ERROR, null);
+  }
+
+  @Test
+  void consumesARetryWhenTheExecutorIsMissingAndLetsTheNextJobMakeItReady() {
+    store("sum.py", "x");
+    provider.respond(
+        ExecutionResponse.failed(ErrorCode.DEPLOYMENT_MISSING, "gone"),
+        ExecutionResponse.completed(Map.of("sum", 5)));
+
+    final var missing = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var completed = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(missing, ErrorCode.DEPLOYMENT_MISSING, null);
+    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    assertThat(completed).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
+    assertThat(provider.ensureCalls).isEqualTo(2);
   }
 
   private ManagedScriptJobHandler handler(Duration visibilityTimeout) {

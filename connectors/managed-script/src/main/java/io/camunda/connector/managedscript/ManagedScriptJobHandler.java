@@ -14,20 +14,26 @@ import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runs one managed-script job: resolves the linked script and sends it, with its input, to the
  * executor of its language. Returns the job outcome instead of completing or failing the job, which
  * the connector runtime does.
  *
- * <p>The executors are made ready by the first job that needs them.
+ * <p>The executors are made ready by the first job that needs them, and by the next job after one
+ * is reported missing.
  */
 final class ManagedScriptJobHandler {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ManagedScriptJobHandler.class);
 
   /** Outcome of a managed-script job. */
   sealed interface Outcome {
@@ -72,6 +78,7 @@ final class ManagedScriptJobHandler {
       String physicalTenantId,
       JobContext job,
       Map<String, Object> input) {
+    ScriptLanguage language = null;
     try {
       final var links = LinkedResources.parse(job.getCustomHeaders(), objectMapper);
       if (links.dependenciesResourceKey().isPresent()) {
@@ -79,16 +86,33 @@ final class ManagedScriptJobHandler {
             ErrorCode.UNSUPPORTED_DEPENDENCIES, "Managed scripts do not support dependencies yet");
       }
       final var script = resources.get(camundaClient, physicalTenantId, links.scriptResourceKey());
-      final var language = languageOf(script.name());
+      language = languageOf(script.name());
       return execute(job, input, language, new String(script.content(), StandardCharsets.UTF_8));
     } catch (InvalidJobException e) {
-      return failed(job, e.code(), e.getMessage());
+      return failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
-      return failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage());
+      return failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage(), null, language);
+    } catch (ProvisioningException e) {
+      return failed(
+          job, e.code(), "The executors are not available: " + e.getMessage(), null, language);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return failed(
-          job, ErrorCode.PLATFORM_INTERRUPTED, "The managed-script worker was interrupted");
+          job,
+          ErrorCode.PLATFORM_INTERRUPTED,
+          "The managed-script worker was interrupted",
+          null,
+          language);
+    } catch (RuntimeException e) {
+      // The exception message can quote the input, so only its type is logged.
+      LOG.warn(
+          "Managed-script job {} failed unexpectedly: {}", job.getJobKey(), e.getClass().getName());
+      return failed(
+          job,
+          ErrorCode.PLATFORM_ERROR,
+          "The managed-script worker failed: " + e.getClass().getSimpleName(),
+          null,
+          language);
     }
   }
 
@@ -102,7 +126,14 @@ final class ManagedScriptJobHandler {
             executionContext(job),
             executionTimeout.toMillis());
     ensureExecutors();
-    return outcome(job, provider.execute(language, request));
+    final var response = provider.execute(language, request);
+    if (response != null && response.isDeploymentMissing()) {
+      // The job consumes a retry, and the next job makes the executors ready again.
+      synchronized (executorsLock) {
+        executorsReady = false;
+      }
+    }
+    return outcome(job, language, response);
   }
 
   private void ensureExecutors() {
@@ -114,9 +145,10 @@ final class ManagedScriptJobHandler {
     }
   }
 
-  private Outcome outcome(JobContext job, ExecutionResponse response) {
+  private Outcome outcome(JobContext job, ScriptLanguage language, ExecutionResponse response) {
     if (response == null || response.outcome() == null) {
-      return failed(job, ErrorCode.INVALID_RESULT, "The provider returned no outcome");
+      return failed(
+          job, ErrorCode.INVALID_RESULT, "The provider returned no outcome", null, language);
     }
     if (ExecutionResponse.COMPLETED.equals(response.outcome())) {
       return new Outcome.Completed(response.variables() == null ? Map.of() : response.variables());
@@ -124,21 +156,28 @@ final class ManagedScriptJobHandler {
     final var error = response.error();
     if (!ExecutionResponse.FAILED.equals(response.outcome()) || error == null) {
       return failed(
-          job, ErrorCode.INVALID_RESULT, "Unsupported outcome '%s'".formatted(response.outcome()));
+          job,
+          ErrorCode.INVALID_RESULT,
+          "Unsupported outcome '%s'".formatted(response.outcome()),
+          null,
+          language);
     }
     final var code = ErrorCode.of(error.code());
     if (code.isEmpty()) {
       return failed(
           job,
           ErrorCode.INVALID_RESULT,
-          "Unknown error code '%s': %s".formatted(error.code(), error.message()));
+          "Unknown error code '%s': %s".formatted(error.code(), error.message()),
+          null,
+          language);
     }
-    return failed(job, code.get(), error.message());
+    return failed(job, code.get(), error.message(), error.stackTrace(), language);
   }
 
   /** Fails the job with the retries that the error code calls for. */
-  private Outcome.Failed failed(JobContext job, ErrorCode code, String message) {
-    final var text = code.name() + ": " + message;
+  private Outcome.Failed failed(
+      JobContext job, ErrorCode code, String message, String stackTrace, ScriptLanguage language) {
+    final var text = IncidentMessage.format(code, message, stackTrace, language);
     return switch (code.retries()) {
       case NONE_LEFT -> new Outcome.Failed(code.name(), text, 0, Duration.ZERO);
       case CONSUME_ONE -> new Outcome.Failed(code.name(), text, null, retryBackoff);

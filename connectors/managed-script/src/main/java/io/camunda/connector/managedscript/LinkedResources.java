@@ -9,6 +9,7 @@ package io.camunda.connector.managedscript;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,13 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
     }
     final List<Link> links;
     try {
-      links = objectMapper.readValue(header, new TypeReference<>() {});
+      // Strict: the shared mapper would accept a single object as an array, and trailing tokens.
+      links =
+          objectMapper
+              .readerFor(new TypeReference<List<Link>>() {})
+              .without(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+              .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+              .readValue(header);
     } catch (JsonProcessingException e) {
       throw new InvalidJobException("The '%s' header is not a valid JSON array".formatted(HEADER));
     }
