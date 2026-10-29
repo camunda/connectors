@@ -453,8 +453,37 @@ jobs:
 
       # Run only this module's tests. No -am: base/connector SNAPSHOTs come from the downloaded
       # artifact, so nothing upstream is rebuilt.
+      #
+      # This step has intermittently failed within ~1s with no surefire report, and the job log
+      # could not be retrieved (the REST log download redirects to a blocked Azure host). Tee the
+      # Maven output to a file and, on failure, emit its last 30 lines as an `::error::` annotation.
+      # Annotations come back via the check-runs API, which does not use the blocked host, so the
+      # captured output is retrievable even when the normal log is not. `pipefail` preserves Maven's
+      # exit code through the `tee` so a failing build still fails the step. See issue #9419.
       - name: Test e2e module
-        run: $MVN_CMD --batch-mode verify -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml
+        id: test-e2e-module
+        run: |
+          set -o pipefail
+          $MVN_CMD --batch-mode verify -pl "${{ matrix.entry.module }}" -f connectors-e2e-test/pom.xml \
+            2>&1 | tee "$RUNNER_TEMP/e2e-test-output.log"
+        shell: bash
+
+      # Only runs when the test step failed. Surface the tail of the captured Maven output as an
+      # annotation so it is available via the check-runs API even when the raw job log cannot be
+      # downloaded. GitHub renders a multi-line annotation when newlines are URL-encoded as %0A.
+      - name: Report test output on failure
+        if: failure() && steps.test-e2e-module.outcome == 'failure'
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/e2e-test-output.log"
+          if [ ! -s "$log" ]; then
+            echo "::error::Test e2e module failed but produced no captured output."
+            exit 0
+          fi
+          encoded=$(tail -n 30 "$log" \
+            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk 'BEGIN{ORS="%0A"} {print}')
+          echo "::error title=Test e2e module failed::$encoded"
 
       - name: Publish Test Report
         if: always()
