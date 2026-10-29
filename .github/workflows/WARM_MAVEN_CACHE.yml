@@ -1,0 +1,294 @@
+name: Warm Maven cache
+
+# Writes the ~/.m2 dependency and Maven wrapper caches that "Test branch"
+# (TEST_FEATURE_BRANCH.yml) and "Deploy snapshots" (DEPLOY_SNAPSHOTS.yaml) restore. Caches saved on main are readable from every
+# PR and merge-queue run, and "Test branch" is restore-only so per-PR saves don't
+# evict these entries.
+#
+# Scheduled workflows only run on main, so this workflow also warms the cache for
+# each maintained stable/* branch: it checks the branch out and runs that branch's
+# own build. A pom change on a stable branch is picked up by the next scheduled run.
+# On a key miss, dependencies are resolved from scratch rather than seeded from an
+# older entry: other branches' entries would leak their dependencies into this one.
+#
+# Runs on the same runner type as the internal "Test branch" jobs: caches are
+# only restorable on runners with a matching cache version.
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/pom.xml'
+      - '.mvn/wrapper/maven-wrapper.properties'
+      - '.github/workflows/WARM_MAVEN_CACHE.yml'
+  # Re-creates the entry if it was evicted; a no-op when it still exists.
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  warm-cache:
+    name: warm-cache (${{ matrix.ref }})
+    if: github.repository == 'camunda/connectors'
+    runs-on: gcp-core-8-default
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      # Mirror each branch's "Test branch" toolchain and Maven invocations, so the
+      # cache holds every dependency and plugin they resolve. Add new stable
+      # branches here and drop them when they reach end of maintenance.
+      matrix:
+        include:
+          - ref: main
+            java: '25.0.5+8.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.10
+            java: '21.0.12+101.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -pl element-template-generator/validator -am package -DskipTests
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.9
+            java: '21.0.12+101.0.LTS'
+            node: '24'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode -U clean test javadoc:javadoc-no-fork -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.8
+            java: '21.0.12+101.0.LTS'
+            node: '22'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          - ref: stable/8.7
+            java: '21.0.12+101.0.LTS'
+            node: '16'
+            wrapper: true
+            build: |
+              ./mvnw --batch-mode clean test -Dquickly -T 1C '-P!autoFormat'
+              ./mvnw --batch-mode -T 1C spotless:check com.mycila:license-maven-plugin:check
+          # Predates the Maven wrapper; uses the Maven version its "Test branch" installs.
+          - ref: stable/8.6
+            java: '21.0.12+101.0.LTS'
+            node: '16'
+            wrapper: false
+            build: |
+              mvn --batch-mode clean test -PcheckFormat -T 1C
+              mvn --batch-mode compile generate-sources package -DskipTests --projects bundle/default-bundle --also-make -T 1C '-P!autoFormat'
+    steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+
+      # Must match .github/actions/maven-cache-key in the checked-out branch, which the
+      # jobs restoring this cache use; the pom hash comes from that branch. Inlined because
+      # that action is not available on every warmed branch.
+      - name: Compute cache key
+        id: key
+        env:
+          REF: ${{ matrix.ref }}
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ "$REF" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          echo "value=${RUNNER_OS}-maven-${line}-${HASH}-internal" >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing cache
+        id: lookup
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.key.outputs.value }}
+          lookup-only: true
+
+      # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
+      - name: Restore Maven wrapper cache
+        if: matrix.wrapper
+        id: mvnw-cache
+        uses: ./.github/actions/cache-maven-wrapper
+        # Explicit: this resolves the action from the checked-out ref, and older stable
+        # branches default to saving.
+        with:
+          restore-only: 'true'
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        if: steps.lookup.outputs.cache-hit != 'true' || (matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true')
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Install Maven (wrapper-less branches)
+        if: steps.lookup.outputs.cache-hit != 'true' && !matrix.wrapper
+        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+        with:
+          maven-version: 3.10.0
+
+      - name: Download Maven wrapper distribution
+        if: matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true'
+        env:
+          MVNW_VERBOSE: true
+        run: ./mvnw --version
+
+      - name: Save Maven wrapper cache
+        if: matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ steps.mvnw-cache.outputs.cache-primary-key }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.lookup.outputs.cache-hit != 'true'
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install element templates CLI
+        if: steps.lookup.outputs.cache-hit != 'true'
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+      - name: Import Nexus Secrets
+        if: steps.lookup.outputs.cache-hit != 'true'
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
+            secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
+
+      - name: Create internal Maven settings.xml (Nexus mirror)
+        if: steps.lookup.outputs.cache-hit != 'true'
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_NEXUS_USR }}",
+               "password": "${{ steps.secrets.outputs.CI_NEXUS_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Resolve dependencies
+        if: steps.lookup.outputs.cache-hit != 'true'
+        run: ${{ matrix.build }}
+
+      # Drop locally installed reactor SNAPSHOTs; jobs rebuild them anyway.
+      - name: Remove project artifacts
+        if: steps.lookup.outputs.cache-hit != 'true'
+        run: rm -rf ~/.m2/repository/io/camunda/connector
+
+      # Resolver records the source repository ID per artifact and re-verifies
+      # artifacts whose ID is absent from the consumer's settings (e.g. external PRs
+      # without the Nexus mirror). Without these files, cached artifacts are used as-is.
+      - name: Strip repository tracking files
+        if: steps.lookup.outputs.cache-hit != 'true'
+        run: find ~/.m2/repository -name '_remote.repositories' -delete
+
+      - name: Save cache
+        if: steps.lookup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.key.outputs.value }}
+
+      - name: Record active cache keys
+        env:
+          MAVEN_KEY: ${{ steps.key.outputs.value }}
+          MVNW_KEY: ${{ steps.mvnw-cache.outputs.cache-primary-key }}
+        run: |
+          echo "$MAVEN_KEY" > "$RUNNER_TEMP/active-cache-keys.txt"
+          if [ -n "$MVNW_KEY" ]; then echo "$MVNW_KEY" >> "$RUNNER_TEMP/active-cache-keys.txt"; fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: active-cache-keys-${{ strategy.job-index }}-of-${{ strategy.job-total }}
+          path: ${{ runner.temp }}/active-cache-keys.txt
+          retention-days: 1
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: warm-cache/${{ matrix.ref }}
+
+  # Each pom change on a warmed branch saves a new ~1.4 GB entry, and the previous one
+  # would otherwise linger until unused for 7 days, pushing the repository over its
+  # cache limit. Runs only when every branch was warmed, so the active key set is complete.
+  cleanup:
+    name: delete superseded caches
+    needs: warm-cache
+    # A run on another ref saves its entries under that ref, so it must not delete main's.
+    if: github.repository == 'camunda/connectors' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: active-cache-keys-*
+          path: active-cache-keys
+
+      - name: Delete superseded main cache entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW_FILE: WARM_MAVEN_CACHE.yml
+        shell: bash
+        run: |
+          # A rerun of an older run would treat a newer run's keys as superseded.
+          latest=$(gh run list --workflow "$WORKFLOW_FILE" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$latest" ]; then echo "::error::Could not determine the latest run"; exit 1; fi
+          if [ "$latest" -gt "$GITHUB_RUN_ID" ]; then
+            echo "::notice::Run $latest supersedes this run; skipping cleanup"
+            exit 0
+          fi
+          # Each artifact name carries the matrix size; a partial rerun after expiry leaves gaps.
+          files=(active-cache-keys/*/active-cache-keys.txt)
+          total=$(ls active-cache-keys | sed -n 's/.*-of-//p' | sort -u)
+          if [ "$(wc -w <<< "$total")" -ne 1 ] || [ "${#files[@]}" -ne "$total" ]; then
+            echo "::error::Expected $total manifests, found ${#files[@]}; refusing to delete caches"
+            exit 1
+          fi
+          active=$(cat "${files[@]}" | sort -u)
+          if [ -z "$active" ]; then echo "::error::No active cache keys recorded"; exit 1; fi
+          echo "Active keys:"
+          echo "$active"
+          # Delete by ID: deleting by key would also hit entries on other refs.
+          gh cache list --ref refs/heads/main --key Linux-m --limit 1000 --json id,key \
+            --jq '.[] | select(.key | test("^Linux-maven-.*-internal$|^Linux-mvnw-")) | "\(.id) \(.key)"' |
+          while read -r id key; do
+            if ! grep -qxF "$key" <<< "$active"; then
+              echo "Deleting $key ($id)"
+              gh cache delete "$id"
+            fi
+          done
