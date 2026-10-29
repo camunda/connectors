@@ -17,10 +17,38 @@
 package io.camunda.connector.managedscript.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
+import io.camunda.connector.managedscript.api.ErrorCode.Retries;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class ErrorCodeTest {
+
+  @Test
+  void hasTheRetriesOfTheTableOfAdr0008() {
+    assertThat(
+            Arrays.stream(ErrorCode.values())
+                .collect(Collectors.toMap(code -> code, ErrorCode::retries)))
+        .containsOnly(
+            entry(ErrorCode.SCRIPT_ERROR, Retries.NONE_LEFT),
+            entry(ErrorCode.TIMEOUT, Retries.NONE_LEFT),
+            entry(ErrorCode.RESOURCE_LIMIT, Retries.NONE_LEFT),
+            entry(ErrorCode.INVALID_RESULT, Retries.NONE_LEFT),
+            entry(ErrorCode.INVALID_INPUT, Retries.NONE_LEFT),
+            entry(ErrorCode.INVALID_JOB, Retries.NONE_LEFT),
+            entry(ErrorCode.UNSUPPORTED_DEPENDENCIES, Retries.NONE_LEFT),
+            entry(ErrorCode.UNSUPPORTED_CONTRACT_VERSION, Retries.NONE_LEFT),
+            entry(ErrorCode.DEPLOYMENT_MISSING, Retries.CONSUME_ONE),
+            entry(ErrorCode.PROVISIONING_PENDING, Retries.UNCHANGED),
+            entry(ErrorCode.PLATFORM_THROTTLED, Retries.CONSUME_ONE),
+            entry(ErrorCode.PLATFORM_UNAVAILABLE, Retries.CONSUME_ONE),
+            entry(ErrorCode.PLATFORM_REJECTED, Retries.NONE_LEFT),
+            entry(ErrorCode.PLATFORM_EXECUTION_FAILED, Retries.NONE_LEFT),
+            entry(ErrorCode.PLATFORM_INTERRUPTED, Retries.UNCHANGED),
+            entry(ErrorCode.PLATFORM_ERROR, Retries.CONSUME_ONE));
+  }
 
   @Test
   void flagsAsRetryableTheCodesThatConsumeOneRetryExceptAMissingExecutor() {
