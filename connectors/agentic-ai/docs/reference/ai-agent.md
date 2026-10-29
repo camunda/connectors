@@ -2196,8 +2196,10 @@ public interface RuntimeTool {
   throws a `RuntimeToolException` (`Invalid arguments for tool '<name>'.`, the cause is logged) when the arguments do not
   fit.
 - `RuntimeToolContext` (implemented by the framework): `executionContext()` and the read-only `agentContext()` as of the
-  call. It is not the `AgentConversation`: a tool cannot reach the copy-on-write methods, and has no access to the
-  messages.
+  call. It is not the `AgentConversation`: a tool cannot reach the copy-on-write methods or change messages, and the
+  messages of the running job are not part of it. Both contexts hold the conversation context, so with the in-process
+  store `agentContext().conversation()` and `executionContext().initialAgentContext()` give access to the messages
+  stored before the job. Tools must not rely on this access.
 - `RuntimeToolResult` (a sealed interface with the records `Success` and `Error`, built with `success(String)`,
   `success(List<Content>)` or `error(String)`): the content is a list of `Content` blocks. An error is plain text content
   for the model; there is no error flag. A `DocumentContent` block, also one nested in an `ObjectContent`, is handled like

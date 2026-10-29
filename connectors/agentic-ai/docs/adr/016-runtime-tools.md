@@ -53,8 +53,9 @@ works on the agent context without exposing it, and gives built-in and custom to
 
 A runtime tool is a Spring bean of one interface with three members: the definition the model sees, a check whether the
 tool is enabled, and the call. The call receives the tool call, with its arguments bound to a type the author chooses, and a
-read-only context: the execution context and the agent context. It is not the conversation, so a tool cannot read or
-change messages. The types a tool receives are interfaces that the framework implements, so members can be added
+read-only context: the execution context and the agent context. It is not the conversation, so a tool cannot change
+messages. Both contexts still hold the conversation context, so with the in-process store a tool can read the messages
+stored before the job. The types a tool receives are interfaces that the framework implements, so members can be added
 without breaking tools. The result is the content the model reads, or an error.
 
 A tool does not change the agent context. The alternatives were:
@@ -167,5 +168,8 @@ has no element. In a mixed batch the results carry the turn start of the job tha
   would remove the need to know the schema format from every tool.
 * **A test fixture for tool authors.** A fixture that runs a tool the way the agent does, so authors need not copy the
   tests of the framework.
+* **No access to stored messages.** The agent and execution contexts a tool receives hold the conversation context, so a
+  tool can read the stored messages when the store keeps them in the agent context (the in-process store). A view of
+  both contexts without the conversation context closes this access.
 * **An engine and Operate marker for runtime tools in the history.** The history API has no tool kind and no result
   status, so a runtime tool is recognizable only by its missing element id and an error result is plain text.

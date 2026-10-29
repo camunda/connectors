@@ -16,8 +16,11 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  *
  * <p>{@link Experimental}, see {@link RuntimeTool}.
  *
- * <p>The view is read-only and as of the call. It is not the conversation: a tool cannot read or
- * change messages. It is safe to read from several threads.
+ * <p>The view is read-only and as of the call. It is not the conversation: a tool cannot change
+ * messages, and the messages of the running job are not part of it. Both contexts still hold the
+ * conversation context of the agent, so a tool can read stored messages with a store that keeps
+ * them in the agent context, such as the in-process store. Do not rely on it: a later release may
+ * remove this access. It is safe to read from several threads.
  */
 @Experimental
 public interface RuntimeToolContext {
