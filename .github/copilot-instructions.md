@@ -102,7 +102,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   Versioned URLs are kept resolving by the docs team, and the release bumper
   (`version-bump-docs-links` in `RELEASE.yaml`) rewrites every older versioned link to the new
   minor but cannot touch an unversioned one, so it would be stranded permanently. CI rejects
-  unversioned and `/next/` links (`check_element_template_docs_links.sh`). For a page that exists only in unreleased docs, use its
+  unversioned and `/next/` links (the validator's `docs-link-version` rule for templates,
+  `check_java_docs_links.sh` for Java sources). For a page that exists only in unreleased docs, use its
   numbered form (e.g. `/docs/8.10/...`).
 - **A `version` bump is not needed for content that doesn't change how a template applies** (e.g.
   correcting a URL). `CurrentVersionBumpRule` requires the current template's `version` to equal the
@@ -116,8 +117,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   ./element-template-generator/validator/target/appassembler/bin/element-template-validator
   ./mvnw -pl <module> spotless:check
 
-  # docs-link check: rejects unversioned and /next/ links
-  ./.github/workflows/scripts/check_element_template_docs_links.sh
+  # docs-link check for Java sources: rejects unversioned and /next/ links
+  ./.github/workflows/scripts/check_java_docs_links.sh
   ```
 
 ## Testing conventions

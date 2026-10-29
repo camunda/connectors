@@ -25,15 +25,19 @@ import io.camunda.connector.validator.core.Severity;
 import io.camunda.connector.validator.core.SuppressionFilter;
 import io.camunda.connector.validator.core.TemplateFinder;
 import io.camunda.connector.validator.core.TemplateLoader;
+import io.camunda.connector.validator.rule.BrTagRule;
 import io.camunda.connector.validator.rule.ConditionPropertyOrderRule;
 import io.camunda.connector.validator.rule.ConditionTargetExistsRule;
 import io.camunda.connector.validator.rule.ConditionValueInChoicesRule;
 import io.camunda.connector.validator.rule.CurrentVersionBumpRule;
 import io.camunda.connector.validator.rule.DefaultValueInChoicesRule;
+import io.camunda.connector.validator.rule.DocsLinkVersionRule;
+import io.camunda.connector.validator.rule.DoubleWordRule;
 import io.camunda.connector.validator.rule.ElementTemplateVersionConsistencyRule;
 import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
+import io.camunda.connector.validator.rule.LatinAbbreviationRule;
 import io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule;
 import io.camunda.connector.validator.rule.PresetConditionsSatisfiedRule;
 import io.camunda.connector.validator.rule.PresetCoverageRule;
@@ -46,6 +50,7 @@ import io.camunda.connector.validator.rule.StepGroupShapeRule;
 import io.camunda.connector.validator.rule.StepLeafShapeRule;
 import io.camunda.connector.validator.rule.StepsPresetsPresentRule;
 import io.camunda.connector.validator.rule.TaskDefinitionBindingFormRule;
+import io.camunda.connector.validator.rule.TrailingPeriodRule;
 import io.camunda.connector.validator.rule.UniqueGroupIdRule;
 import io.camunda.connector.validator.rule.UniqueIdVersionRule;
 import io.camunda.connector.validator.rule.UniquePropertyIdRule;
@@ -197,7 +202,12 @@ public class ValidatorCommand implements Callable<Integer> {
         new PresetIdResolvesRule(),
         new PresetOperationGroupConsistencyRule(),
         new PresetConditionsSatisfiedRule(),
-        new PresetCoverageRule());
+        new PresetCoverageRule(),
+        new DocsLinkVersionRule(),
+        new LatinAbbreviationRule(),
+        new DoubleWordRule(),
+        new BrTagRule(),
+        new TrailingPeriodRule());
   }
 
   private static List<Finding> runSingleFileRules(Map<Path, JsonNode> templates, Rule schema) {

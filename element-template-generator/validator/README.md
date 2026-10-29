@@ -86,6 +86,20 @@ diverge from the conventions enforced here.
 | `unique-property-id`          | No two `properties[]` entries may share an `id` within the same template. Exception: duplicate-id properties whose visibility `condition`s are pairwise mutually exclusive (same gating `property`, disjoint `equals`/`oneOf` value sets) are tolerated — that's the established "switching" pattern (e.g. one Dropdown variant per parent operationGroup). Properties without a condition are always live, so any duplicate involving an unconditional property is still flagged. |
 | `task-definition-binding-form`| The legacy binding type `zeebe:taskDefinition:type` is not allowed; use the canonical form `{ "type": "zeebe:taskDefinition", "property": "type" }`. The schema accepts both spellings, but generator output and all current templates use the canonical form. |
 | `empty-group`                 | Every declared `groups[].id` must be referenced by at least one property.                                                                                                                                     |
+| `docs-link-version`           | Every link to `docs.camunda.io` anywhere in the template pins a released `<major>.<minor>` (no unversioned or `/next/` links). The release bumper only rewrites links that already carry a version. |
+
+### Help-text rules
+
+These rules check the `description` and `tooltip` of `properties[]` and `groups[]`. They run only on
+the connectors listed in `HelpTextRule.CONNECTORS` (currently `agentic-ai`). To opt a connector in,
+add it to that list and fix or [suppress](#suppressions) its existing findings.
+
+| Rule id              | What it checks                                                                                         |
+|----------------------|--------------------------------------------------------------------------------------------------------|
+| `trailing-period`    | The text ends with `.`, `?`, or `!`. Trailing closing tags such as `</p>` are ignored.                 |
+| `latin-abbreviation` | No `e.g.`, `i.e.`, or `etc.`; write "for example", "that is", or "and so on".                          |
+| `double-word`        | No word is immediately repeated ("to to"), ignoring case.                                              |
+| `br-tag`             | Line breaks use `<br>`, not `<br/>`.                                                                   |
 
 ### Operations-metadata rules
 
