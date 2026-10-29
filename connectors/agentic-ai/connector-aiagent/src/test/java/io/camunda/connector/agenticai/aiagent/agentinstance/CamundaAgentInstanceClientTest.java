@@ -42,7 +42,6 @@ import io.camunda.client.api.command.UpdateAgentInstanceCommandStep1.UpdateAgent
 import io.camunda.client.api.response.CreateAgentInstanceResponse;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -156,9 +155,7 @@ class CamundaAgentInstanceClientTest {
   @BeforeEach
   void setUp() {
     recordedSleeps = new ArrayList<>();
-    var historyMapper =
-        new AgentInstanceHistoryMapper(
-            gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
+    var historyMapper = new AgentInstanceHistoryMapper(gatewayToolHandlers);
     var toolMapper = new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry);
     client =
         new CamundaAgentInstanceClient(
@@ -189,8 +186,7 @@ class CamundaAgentInstanceClientTest {
                 selector,
                 RETRIES_CONFIGURATION,
                 recordedSleeps::add,
-                new AgentInstanceHistoryMapper(
-                    gatewayToolHandlers, new DocumentExpander(TestObjectMapperSupplier.INSTANCE)),
+                new AgentInstanceHistoryMapper(gatewayToolHandlers),
                 new AgentInstanceToolMapper(gatewayToolHandlers, runtimeToolRegistry))
             .create(executionContext);
 

@@ -46,9 +46,6 @@ import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
 
-  private static final DocumentExpander DOCUMENT_EXPANDER =
-      new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
-
   private static final AgentContext BASE_CONTEXT =
       AgentContext.builder()
           .state(AgentState.READY)
@@ -185,7 +182,7 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext()));
+    var snapshot = conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext()));
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
   }
@@ -218,7 +215,7 @@ class AgentConversationTest {
             List.of(userMessage("next")));
 
     var windowed =
-        conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages();
+        conv.window(2, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window and nothing takes its place
@@ -255,7 +252,7 @@ class AgentConversationTest {
             List.of(storedMessage));
 
     var windowed =
-        conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages();
+        conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -303,7 +300,7 @@ class AgentConversationTest {
             List.of(storedMessage));
 
     var windowed =
-        conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages();
+        conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -347,7 +344,7 @@ class AgentConversationTest {
             List.of(userMessage("next")));
 
     var windowed =
-        conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages();
+        conv.window(3, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
 
     assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
     assertThat(windowed)
@@ -595,11 +592,9 @@ class AgentConversationTest {
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(
-            conv.window(3, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages())
+    assertThat(conv.window(3, DocumentExpander.windowDecorator(conv.persistedContext())).messages())
         .containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(
-            conv.window(2, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext())).messages())
+    assertThat(conv.window(2, DocumentExpander.windowDecorator(conv.persistedContext())).messages())
         .containsExactly(SYSTEM_MESSAGE);
   }
 
@@ -693,7 +688,7 @@ class AgentConversationTest {
     var late = createDocument("late", "late.txt");
     var conv = conversationWithDocuments(BASE_CONTEXT, early, late);
 
-    var window = conv.window(20, DOCUMENT_EXPANDER.windowDecorator(conv.persistedContext()));
+    var window = conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext()));
     var snapshot = ConversationSnapshot.of(window);
 
     // the decorated messages hold the tags as text, the documents are still those of the window

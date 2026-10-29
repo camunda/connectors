@@ -237,8 +237,7 @@ tool calls to the process.
   `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper`: the constructor takes a `RuntimeToolRegistry` and `mapTools` takes the `AgentContext`. A
   runtime tool is reported without an element id.
-- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentExpander`, and `inputHistoryItems` takes the
-  `AgentContext`. It reports a runtime tool call and its result without an element id, decided by `ToolCall.kind()`.
+- `AgentInstanceHistoryMapper`: `inputHistoryItems` takes the `AgentContext`. It reports a runtime tool call and its result without an element id, decided by `ToolCall.kind()`.
 
 Migration: add the parameter and pass it on. Most extensions should keep `CamundaAgentInstanceClient` and the mappers and
 decorate them instead.
@@ -246,10 +245,10 @@ decorate them instead.
 ### Replaceable bean constructors
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
-`RuntimeToolRegistry`, a `RuntimeToolExecutor` and a `DocumentExpander` after the `ResponseSchemaValidator`. The
+`RuntimeToolRegistry` and a `RuntimeToolExecutor` after the `ResponseSchemaValidator`. The
 constructor of `AgentToolsResolverImpl` takes a `RuntimeToolRegistry`, and the constructor of `RuntimeToolRegistryImpl`
 takes the `ObjectMapper` that reads a document from its reference. The auto-configuration provides the beans
-`RuntimeToolRegistry`, `RuntimeToolExecutor` and `DocumentExpander`, all `@ConditionalOnMissingBean`. A custom bean built
+`RuntimeToolRegistry` and `RuntimeToolExecutor`, both `@ConditionalOnMissingBean`. A custom bean built
 with `new` needs the extra arguments; inject them as beans.
 
 ### Conversation window

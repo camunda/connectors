@@ -64,12 +64,9 @@ import org.jspecify.annotations.Nullable;
 public class AgentInstanceHistoryMapper {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
-  private final DocumentExpander documentExpander;
 
-  public AgentInstanceHistoryMapper(
-      GatewayToolHandlerRegistry gatewayToolHandlers, DocumentExpander documentExpander) {
+  public AgentInstanceHistoryMapper(GatewayToolHandlerRegistry gatewayToolHandlers) {
     this.gatewayToolHandlers = gatewayToolHandlers;
-    this.documentExpander = documentExpander;
   }
 
   /**
@@ -247,7 +244,7 @@ public class AgentInstanceHistoryMapper {
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
-        final var expanded = documentExpander.expandContent(List.of(reference));
+        final var expanded = DocumentExpander.expandContent(List.of(reference));
         blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
         expanded.stream().skip(1).forEach(document -> blocks.add(toHistoryContent(document)));
       } else {
@@ -291,7 +288,7 @@ public class AgentInstanceHistoryMapper {
   }
 
   private void addObject(List<AgentInstanceHistoryContent> blocks, ObjectContent objectContent) {
-    final var tagged = documentExpander.renderWithTags(objectContent.content());
+    final var tagged = DocumentExpander.renderWithTags(objectContent.content());
     if (tagged.documents().isEmpty()) {
       blocks.add(objectHistoryContent(objectContent.content()));
       return;

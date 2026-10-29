@@ -111,9 +111,7 @@ class DocumentBlocksModelFacingTest {
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
     return conversation
-        .window(
-            100,
-            new DocumentExpander(OBJECT_MAPPER).windowDecorator(conversation.persistedContext()))
+        .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
         .messages();
   }
 

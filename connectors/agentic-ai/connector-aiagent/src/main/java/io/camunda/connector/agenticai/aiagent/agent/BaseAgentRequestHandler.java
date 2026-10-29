@@ -76,7 +76,6 @@ public abstract class BaseAgentRequestHandler<
   private final ResponseSchemaValidator responseSchemaValidator;
   private final RuntimeToolRegistry runtimeToolRegistry;
   private final RuntimeToolExecutor runtimeToolExecutor;
-  private final DocumentExpander documentExpander;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -88,8 +87,7 @@ public abstract class BaseAgentRequestHandler<
       AgentInstanceClient agentInstanceClient,
       ResponseSchemaValidator responseSchemaValidator,
       RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor,
-      DocumentExpander documentExpander) {
+      RuntimeToolExecutor runtimeToolExecutor) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -100,7 +98,6 @@ public abstract class BaseAgentRequestHandler<
     this.responseSchemaValidator = responseSchemaValidator;
     this.runtimeToolRegistry = runtimeToolRegistry;
     this.runtimeToolExecutor = runtimeToolExecutor;
-    this.documentExpander = documentExpander;
   }
 
   @Override
@@ -318,7 +315,7 @@ public abstract class BaseAgentRequestHandler<
       final var window =
           workingConversation.window(
               agentConfiguration.contextWindowSize(),
-              documentExpander.windowDecorator(workingConversation.persistedContext()));
+              DocumentExpander.windowDecorator(workingConversation.persistedContext()));
       final var chatResult =
           executeChatModel(chatModel, executionContext, ConversationSnapshot.of(window));
 

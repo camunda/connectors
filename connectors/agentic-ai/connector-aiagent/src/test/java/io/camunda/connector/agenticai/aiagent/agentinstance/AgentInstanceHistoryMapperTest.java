@@ -67,9 +67,7 @@ class AgentInstanceHistoryMapperTest {
       OffsetDateTime.parse("2026-07-02T09:59:55Z");
 
   private final AgentInstanceHistoryMapper mapper =
-      new AgentInstanceHistoryMapper(
-          Mockito.mock(GatewayToolHandlerRegistry.class),
-          new DocumentExpander(TestObjectMapperSupplier.INSTANCE));
+      new AgentInstanceHistoryMapper(Mockito.mock(GatewayToolHandlerRegistry.class));
 
   @Test
   void userMessageUsesThePassedInTurnIngestionTimestamp() {
@@ -755,8 +753,7 @@ class AgentInstanceHistoryMapperTest {
           ((AgentInstanceHistoryContent.ObjectContent) item.content().getFirst()).getObject();
       assertThat(reported).isEqualTo(Map.of("file", tag));
       final var modelFacing =
-          (ToolCallResultMessage)
-              new DocumentExpander(objectMapper).expandMessages(List.of(message)).getFirst();
+          (ToolCallResultMessage) DocumentExpander.expandMessages(List.of(message)).getFirst();
       assertThat(modelFacing.results().getFirst().content())
           .containsExactly(ObjectContent.objectContent(reported));
     }

@@ -1550,7 +1550,6 @@ classDiagram
     class RuntimeTool {
         <<interface>>
     }
-    class DocumentExpander
 
     BaseAgentRequestHandler --> AgentInitializer
     BaseAgentRequestHandler --> AgentConversationTurnInputComposer
@@ -1558,7 +1557,6 @@ classDiagram
     BaseAgentRequestHandler --> AgentResponseHandler
     BaseAgentRequestHandler --> RuntimeToolRegistry
     BaseAgentRequestHandler --> RuntimeToolExecutor
-    BaseAgentRequestHandler --> DocumentExpander
     RuntimeToolExecutor --> RuntimeToolRegistry
     RuntimeToolRegistry o-- RuntimeTool : collects *
     BaseAgentRequestHandler --> ConversationStoreRegistry

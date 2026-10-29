@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -57,15 +58,11 @@ public final class DocumentExpander {
 
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
 
-  private final ObjectMapper taggingMapper;
+  private static final ObjectMapper TAGGING_MAPPER =
+      ConnectorsObjectMapperSupplier.getCopy()
+          .registerModule(new SimpleModule().addSerializer(new TagCollector()));
 
-  /**
-   * @param objectMapper the mapper the objects of messages are rendered with, in a copy
-   */
-  public DocumentExpander(ObjectMapper objectMapper) {
-    this.taggingMapper =
-        objectMapper.copy().registerModule(new SimpleModule().addSerializer(new TagCollector()));
-  }
+  private DocumentExpander() {}
 
   /**
    * An object with every document at any depth replaced by its tag, as the model reads it, and the
@@ -81,14 +78,14 @@ public final class DocumentExpander {
    * {@link DocumentReferenceContent#toTag()}), and returns the rendered tree with the documents it
    * replaced.
    */
-  public TaggedObject renderWithTags(Object value) {
+  public static TaggedObject renderWithTags(Object value) {
     final var documents = new ArrayList<Document>();
-    try (var buffer = new TokenBuffer(taggingMapper, false)) {
-      taggingMapper
+    try (var buffer = new TokenBuffer(TAGGING_MAPPER, false)) {
+      TAGGING_MAPPER
           .writer()
           .withAttribute(COLLECTED_DOCUMENTS, documents)
           .writeValue(buffer, value);
-      final Object tree = taggingMapper.readValue(buffer.asParser(), Object.class);
+      final Object tree = TAGGING_MAPPER.readValue(buffer.asParser(), Object.class);
       return new TaggedObject(tree, List.copyOf(documents));
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Failed to render the object with document tags", e);
@@ -102,11 +99,11 @@ public final class DocumentExpander {
    * documents feature it expands the messages as {@link #expandMessages} does; for one without, the
    * messages are left as they are.
    */
-  public UnaryOperator<List<Message>> windowDecorator(AgentContext agentContext) {
+  public static UnaryOperator<List<Message>> windowDecorator(AgentContext agentContext) {
     if (!agentContext.supports(AgentFeatures.DOCUMENTS)) {
       return UnaryOperator.identity();
     }
-    return this::expandMessages;
+    return DocumentExpander::expandMessages;
   }
 
   /**
@@ -117,7 +114,7 @@ public final class DocumentExpander {
    */
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  public List<Message> expandMessages(List<Message> messages) {
+  public static List<Message> expandMessages(List<Message> messages) {
     final var expanded = new ArrayList<Message>(messages.size());
     boolean changed = false;
     for (final var message : messages) {
@@ -145,13 +142,13 @@ public final class DocumentExpander {
    * Returns the content expanded to the tag text and the document of every document reference, or
    * the same list when nothing needs to change.
    */
-  public List<Content> expandContent(List<Content> content) {
+  public static List<Content> expandContent(List<Content> content) {
     return expand(content, false);
   }
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<Content> expand(List<Content> content, boolean forModel) {
+  private static List<Content> expand(List<Content> content, boolean forModel) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
@@ -182,7 +179,7 @@ public final class DocumentExpander {
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<ToolCallResultContent> expandResults(List<ToolCallResultContent> results) {
+  private static List<ToolCallResultContent> expandResults(List<ToolCallResultContent> results) {
     final var expanded = new ArrayList<ToolCallResultContent>(results.size());
     boolean changed = false;
     for (final var result : results) {
@@ -199,7 +196,7 @@ public final class DocumentExpander {
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<Content> expandResultContent(List<Content> content) {
+  private static List<Content> expandResultContent(List<Content> content) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (final var current : content) {
@@ -222,7 +219,7 @@ public final class DocumentExpander {
   }
 
   /** The object with its documents replaced by their tags, or the same object when it has none. */
-  private ObjectContent renderObject(ObjectContent objectContent) {
+  private static ObjectContent renderObject(ObjectContent objectContent) {
     final var tagged = renderWithTags(objectContent.content());
     return tagged.documents().isEmpty()
         ? objectContent

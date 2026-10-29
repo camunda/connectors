@@ -72,8 +72,6 @@ class ToolResultDocumentRenderingTest {
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private final DocumentExpander expander = new DocumentExpander(TestObjectMapperSupplier.INSTANCE);
-
   private AgentConversationTurnInputComposerImpl composer;
 
   @BeforeEach
@@ -126,7 +124,7 @@ class ToolResultDocumentRenderingTest {
         AgentConversation.rehydrate(CONFIGURATION, CONTEXT, previous, null, nextTurn.messages());
     final var windowed =
         conversation
-            .window(100, expander.windowDecorator(conversation.persistedContext()))
+            .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
             .messages()
             .stream()
             .filter(ToolCallResultMessage.class::isInstance)
