@@ -18,7 +18,6 @@ import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -275,7 +274,8 @@ public class AgentInstanceHistoryMapper {
   private void addDocument(List<AgentInstanceHistoryContent> blocks, Document document) {
     // the tag the model reads for the document of a tool result, the short one
     blocks.add(
-        AgentInstanceHistoryContent.text(inlineCode(DocumentReferences.from(document).toTag())));
+        AgentInstanceHistoryContent.text(
+            inlineCode(DocumentHandle.referenceFor(document).toTag())));
     if (hasHistoryDocument(document)) {
       blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
     }

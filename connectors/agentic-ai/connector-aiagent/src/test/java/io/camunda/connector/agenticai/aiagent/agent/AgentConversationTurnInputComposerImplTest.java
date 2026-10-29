@@ -26,7 +26,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -514,7 +513,7 @@ class AgentConversationTurnInputComposerImplTest {
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
         .satisfies(
-            r -> assertThat(r.content()).containsExactly(DocumentReferences.from(weatherDoc)));
+            r -> assertThat(r.content()).containsExactly(DocumentHandle.referenceFor(weatherDoc)));
     assertThat(documentsOf(nextTurn.messages()))
         .containsExactly(known(weatherDoc, DocumentSource.toolCall("getWeather", "abcdef")));
   }
@@ -779,7 +778,7 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composeWithRuntimeResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
     assertThat(resultsOf(result).getFirst().content())
-        .containsExactly(DocumentReferences.from(document));
+        .containsExactly(DocumentHandle.referenceFor(document));
     // the document of the result of a runtime tool is registered with the call that returned it
     assertThat(documentsOf(((CompositionResult.NextTurn) result).messages()))
         .containsExactly(known(document, DocumentSource.toolCall("getWeather", "abcdef")));

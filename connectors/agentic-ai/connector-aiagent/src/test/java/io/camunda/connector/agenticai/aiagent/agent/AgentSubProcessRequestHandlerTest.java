@@ -60,7 +60,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -1527,7 +1526,8 @@ class AgentSubProcessRequestHandlerTest {
                     userMessage(
                         List.of(
                             TextContent.textContent("see"),
-                            DocumentReferences.from(document, DocumentSource.userMessage()))))));
+                            DocumentHandle.referenceFor(
+                                document, DocumentSource.userMessage()))))));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(CONTEXT_WITH_DOCUMENTS, List.of()));
     mockChatModelExecution(assistantMessage("done"));
@@ -1587,7 +1587,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
+                        TextContent.textContent(DocumentHandle.referenceFor(NEW_REPORT).toTag())));
   }
 
   @Test
@@ -1727,7 +1727,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.results().getFirst().content())
                     .containsExactly(
                         TextContent.textContent("Created the report."),
-                        TextContent.textContent(DocumentReferences.from(NEW_REPORT).toTag())));
+                        TextContent.textContent(DocumentHandle.referenceFor(NEW_REPORT).toTag())));
   }
 
   /**
@@ -1797,7 +1797,7 @@ class AgentSubProcessRequestHandlerTest {
                 assertThat(message.content())
                     .contains(
                         TextContent.textContent(
-                            DocumentReferences.from(report, DocumentSource.userMessage())
+                            DocumentHandle.referenceFor(report, DocumentSource.userMessage())
                                 .toTag())));
     // the first job hands out the call of the process only
     assertThat(firstJob.responseValue().toolCalls())
@@ -1843,7 +1843,8 @@ class AgentSubProcessRequestHandlerTest {
   void aRuntimeCallOfAMixedBatchDoesNotSeeADocumentThatLeftTheWindowButTheConversationKeepsIt() {
     final var contract = createDocument("old contract", "contract.txt");
     final var report = createDocument("quarterly report", "report.txt");
-    final var contractTag = DocumentReferences.from(contract, DocumentSource.userMessage()).toTag();
+    final var contractTag =
+        DocumentHandle.referenceFor(contract, DocumentSource.userMessage()).toTag();
     // a window of three keeps the system message and the two newest messages
     doReturn(
             new AgentConfiguration(
@@ -1866,7 +1867,7 @@ class AgentSubProcessRequestHandlerTest {
                 .content(
                     List.of(
                         TextContent.textContent("Keep this contract"),
-                        DocumentReferences.from(contract, DocumentSource.userMessage())))
+                        DocumentHandle.referenceFor(contract, DocumentSource.userMessage())))
                 .build(),
             assistantMessage("noted"));
     final var initialContext =

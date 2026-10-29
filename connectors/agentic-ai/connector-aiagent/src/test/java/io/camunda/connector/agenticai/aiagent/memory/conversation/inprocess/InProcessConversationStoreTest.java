@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -154,7 +154,7 @@ class InProcessConversationStoreTest {
     final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var document = createDocument("report", "report.txt");
     final var reference =
-        DocumentReferences.from(document, DocumentSource.toolCall("fetch", "call-1"))
+        DocumentHandle.referenceFor(document, DocumentSource.toolCall("fetch", "call-1"))
             .withDelivery(DocumentDelivery.CONTENT);
     final var message =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();

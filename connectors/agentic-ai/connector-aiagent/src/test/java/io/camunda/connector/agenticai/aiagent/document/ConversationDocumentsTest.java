@@ -76,15 +76,15 @@ class ConversationDocumentsTest {
             List.of(
                 userMessageWith(
                     textContent("see"),
-                    DocumentReferences.from(prompt, DocumentSource.userMessage())),
+                    DocumentHandle.referenceFor(prompt, DocumentSource.userMessage())),
                 assistantMessage("calling"),
                 toolResult(
                     "call-1",
                     "fetch",
-                    DocumentReferences.from(whole),
+                    DocumentHandle.referenceFor(whole),
                     ObjectContent.objectContent(
                         Map.of("attachments", List.of(new Attachment("n", nested))))),
-                userMessageWith(DocumentReferences.from(event, DocumentSource.event()))));
+                userMessageWith(DocumentHandle.referenceFor(event, DocumentSource.event()))));
 
     assertThat(idsAndSources(documents))
         .containsExactly(
@@ -116,8 +116,8 @@ class ConversationDocumentsTest {
     final var documents =
         ConversationDocuments.of(
             List.of(
-                userMessageWith(DocumentReferences.from(prompt, DocumentSource.userMessage())),
-                toolResult("call-1", "fetch", DocumentReferences.from(prompt))));
+                userMessageWith(DocumentHandle.referenceFor(prompt, DocumentSource.userMessage())),
+                toolResult("call-1", "fetch", DocumentHandle.referenceFor(prompt))));
 
     assertThat(idsAndSources(documents))
         .containsExactly(tuple(DocumentHandle.idFor(prompt), DocumentSource.userMessage()));
@@ -130,9 +130,9 @@ class ConversationDocumentsTest {
     final List<Message> messages =
         List.of(
             systemMessage("system"),
-            userMessageWith(DocumentReferences.from(early, DocumentSource.userMessage())),
+            userMessageWith(DocumentHandle.referenceFor(early, DocumentSource.userMessage())),
             assistantMessage("one"),
-            userMessageWith(DocumentReferences.from(late, DocumentSource.userMessage())),
+            userMessageWith(DocumentHandle.referenceFor(late, DocumentSource.userMessage())),
             assistantMessage("two"));
 
     // without the answer the model was called with system, early, one, late
@@ -148,7 +148,7 @@ class ConversationDocumentsTest {
   void seenByModelIsEmptyWithoutTheDocumentsFeature() {
     final var messages =
         List.<Message>of(
-            userMessageWith(DocumentReferences.from(prompt, DocumentSource.userMessage())),
+            userMessageWith(DocumentHandle.referenceFor(prompt, DocumentSource.userMessage())),
             userMessage("next"));
 
     assertThat(ConversationDocuments.seenByModel(AgentContext.empty(), messages, 20).all())
@@ -159,10 +159,10 @@ class ConversationDocumentsTest {
   void theReferenceOfAKnownDocumentCarriesItsSource() {
     final var documents =
         ConversationDocuments.of(
-            List.of(toolResult("call-1", "fetch", DocumentReferences.from(whole))));
+            List.of(toolResult("call-1", "fetch", DocumentHandle.referenceFor(whole))));
 
     assertThat(documents.reference(DocumentHandle.idFor(whole)))
-        .isEqualTo(DocumentReferences.from(whole, DocumentSource.toolCall("fetch", "call-1")));
+        .isEqualTo(DocumentHandle.referenceFor(whole, DocumentSource.toolCall("fetch", "call-1")));
     assertThatThrownBy(() -> documents.reference(DocumentId.of("unknown")))
         .isInstanceOf(IllegalArgumentException.class);
   }

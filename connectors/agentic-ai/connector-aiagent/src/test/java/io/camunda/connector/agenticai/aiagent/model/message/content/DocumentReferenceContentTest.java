@@ -15,7 +15,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
@@ -50,7 +49,7 @@ class DocumentReferenceContentTest {
                 .build());
 
     final var tag =
-        DocumentReferences.from(doc, DocumentSource.toolCall("search", "call_abc")).toTag();
+        DocumentHandle.referenceFor(doc, DocumentSource.toolCall("search", "call_abc")).toTag();
 
     assertThat(tag)
         .isEqualTo(
@@ -68,7 +67,7 @@ class DocumentReferenceContentTest {
                 .fileName("a.txt")
                 .build());
 
-    assertThat(DocumentReferences.from(doc).toTag())
+    assertThat(DocumentHandle.referenceFor(doc).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -80,7 +79,7 @@ class DocumentReferenceContentTest {
         documentFactory.create(
             DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build());
 
-    assertThat(DocumentReferences.from(doc).toTag())
+    assertThat(DocumentHandle.referenceFor(doc).toTag())
         .startsWith("<doc id=\"%s\"".formatted(DocumentHandle.idFor(doc)))
         .doesNotContain("fileName", "contentType", "toolName", "toolCallId");
   }
@@ -93,7 +92,7 @@ class DocumentReferenceContentTest {
             "https://example.com/files/report.pdf?X-Token=secret", "Quarterly Report", u -> null);
 
     final var xml =
-        DocumentReferences.from(doc, DocumentSource.toolCall("search", "call_abc")).toTag();
+        DocumentHandle.referenceFor(doc, DocumentSource.toolCall("search", "call_abc")).toTag();
 
     assertThat(xml)
         .isEqualTo(
@@ -108,10 +107,11 @@ class DocumentReferenceContentTest {
         new ExternalDocument(
             "https://example.com/a/b/my%20file.pdf?X-Token=secret#frag", null, u -> null);
 
-    assertThat(DocumentReferences.from(doc).toTag())
+    assertThat(DocumentHandle.referenceFor(doc).toTag())
         .isEqualTo("<doc id=\"%s\" />".formatted(DocumentHandle.idFor(doc)));
     assertThat(
-            DocumentReferences.from(new ExternalDocument("https://example.com/x", "", u -> null))
+            DocumentHandle.referenceFor(
+                    new ExternalDocument("https://example.com/x", "", u -> null))
                 .fileName())
         .isNull();
   }
@@ -120,7 +120,7 @@ class DocumentReferenceContentTest {
   void inlineDocumentWithoutContentTypeOmitsItInsteadOfResolvingItFromTheName() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", null);
 
-    assertThat(DocumentReferences.from(doc).toTag())
+    assertThat(DocumentHandle.referenceFor(doc).toTag())
         .isEqualTo("<doc id=\"%s\" fileName=\"data.json\" />".formatted(DocumentHandle.idFor(doc)));
   }
 
@@ -128,7 +128,7 @@ class DocumentReferenceContentTest {
   void inlineDocumentRendersNameAndContentType() {
     final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
 
-    assertThat(DocumentReferences.from(doc, DocumentSource.toolCall("gen", "call_1")).toTag())
+    assertThat(DocumentHandle.referenceFor(doc, DocumentSource.toolCall("gen", "call_1")).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"data.json\" contentType=\"application/json\" toolName=\"gen\" toolCallId=\"call_1\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -147,7 +147,7 @@ class DocumentReferenceContentTest {
         "<doc id=\"0f6b0a1e-aaaa-bbbb-cccc-0123456789ab\" contentType=\"text/plain\""
             + " toolName=\"tool\" toolCallId=\"call_1\" />";
 
-    assertThat(DocumentReferences.from(doc, DocumentSource.toolCall("tool", "call_1")).toTag())
+    assertThat(DocumentHandle.referenceFor(doc, DocumentSource.toolCall("tool", "call_1")).toTag())
         .isEqualTo(expected);
   }
 
@@ -162,7 +162,8 @@ class DocumentReferenceContentTest {
     final var doc = new ExternalDocument("https://example.com/x", "a<b>\"c\"&.pdf", u -> null);
 
     assertThat(
-            DocumentReferences.from(doc, DocumentSource.toolCall("tool<with\"quotes>", "call_1"))
+            DocumentHandle.referenceFor(
+                    doc, DocumentSource.toolCall("tool<with\"quotes>", "call_1"))
                 .toTag())
         .contains("fileName=\"a&lt;b&gt;&quot;c&quot;&amp;.pdf\"")
         .contains("toolName=\"tool&lt;with&quot;quotes&gt;\"");
@@ -177,11 +178,11 @@ class DocumentReferenceContentTest {
                 .fileName("a.txt")
                 .build());
 
-    assertThat(DocumentReferences.from(doc, DocumentSource.userMessage()).toTag())
+    assertThat(DocumentHandle.referenceFor(doc, DocumentSource.userMessage()).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"user_message\" />"
                 .formatted(DocumentHandle.idFor(doc)));
-    assertThat(DocumentReferences.from(doc, DocumentSource.event()).toTag())
+    assertThat(DocumentHandle.referenceFor(doc, DocumentSource.event()).toTag())
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
                 .formatted(DocumentHandle.idFor(doc)));
@@ -204,7 +205,7 @@ class DocumentReferenceContentTest {
   void camundaDocumentWithASizeInItsMetadataRendersTheSizeAfterTheContentType() {
     final var document = camundaDocumentWithSize(48213L);
 
-    assertThat(DocumentReferences.from(document).toTag())
+    assertThat(DocumentHandle.referenceFor(document).toTag())
         .isEqualTo(
             "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" />");
   }
@@ -213,7 +214,7 @@ class DocumentReferenceContentTest {
   void theSizeIsReadFromTheMetadataWithoutReadingTheDocument() {
     final var document = camundaDocumentWithSize(10L);
 
-    DocumentReferences.from(document, DocumentSource.toolCall("search", "call_1"));
+    DocumentHandle.referenceFor(document, DocumentSource.toolCall("search", "call_1"));
 
     verify(document, atLeastOnce()).reference();
     verify(document, atLeastOnce()).metadata();
@@ -222,15 +223,16 @@ class DocumentReferenceContentTest {
 
   @Test
   void aDocumentWithoutAKnownSizeRendersNone() {
-    assertThat(DocumentReferences.from(camundaDocumentWithSize(null)).toTag())
+    assertThat(DocumentHandle.referenceFor(camundaDocumentWithSize(null)).toTag())
         .doesNotContain("size=");
     assertThat(
-            DocumentReferences.from(
+            DocumentHandle.referenceFor(
                     new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null))
                 .toTag())
         .doesNotContain("size=");
     assertThat(
-            DocumentReferences.from(new InlineDocument("{\"a\":1}", "d.json", "application/json"))
+            DocumentHandle.referenceFor(
+                    new InlineDocument("{\"a\":1}", "d.json", "application/json"))
                 .toTag())
         .doesNotContain("size=");
   }
@@ -377,7 +379,7 @@ class DocumentReferenceContentTest {
     final var external =
         new ExternalDocument(
             "https://example.com/report.pdf?token=secret", "report.pdf", u -> null);
-    final var reference = DocumentReferences.from(external, DocumentSource.userMessage());
+    final var reference = DocumentHandle.referenceFor(external, DocumentSource.userMessage());
 
     assertThat(TestObjectMapperSupplier.INSTANCE.writeValueAsString(reference))
         .contains("token=secret");

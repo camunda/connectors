@@ -15,7 +15,6 @@ import io.camunda.client.api.command.AgentInstanceHistoryContent;
 import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
@@ -96,7 +95,7 @@ class AgentInstanceHistoryMapperTest {
                     .contentType("text/plain")
                     .fileName("report.txt")
                     .build());
-    final var tag = DocumentReferences.from(document, DocumentSource.userMessage());
+    final var tag = DocumentHandle.referenceFor(document, DocumentSource.userMessage());
     final var userMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -121,7 +120,7 @@ class AgentInstanceHistoryMapperTest {
             "https://example.com/report.pdf?token=secret", "report.pdf", u -> null);
     final var userMessage =
         UserMessage.builder()
-            .content(List.of(DocumentReferences.from(external, DocumentSource.userMessage())))
+            .content(List.of(DocumentHandle.referenceFor(external, DocumentSource.userMessage())))
             .build();
     final var toolResult =
         ToolCallResultMessage.builder()
@@ -130,7 +129,7 @@ class AgentInstanceHistoryMapperTest {
                     ToolCallResultContent.builder()
                         .id("call-1")
                         .name("fetch")
-                        .content(List.of(DocumentReferences.from(external)))
+                        .content(List.of(DocumentHandle.referenceFor(external)))
                         .completedAt(TURN_INGESTION_TIMESTAMP)
                         .build()))
             .build();
@@ -145,7 +144,7 @@ class AgentInstanceHistoryMapperTest {
       assertThat(items).isNotEmpty();
       assertThat(items.toString()).doesNotContain("token=secret");
     }
-    assertThat(DocumentReferences.from(external).toString()).doesNotContain("token=secret");
+    assertThat(DocumentHandle.referenceFor(external).toString()).doesNotContain("token=secret");
   }
 
   @ParameterizedTest
@@ -585,8 +584,8 @@ class AgentInstanceHistoryMapperTest {
                 .contentType("text/plain")
                 .fileName("other.txt")
                 .build());
-    private final String tag = DocumentReferences.from(document).toTag();
-    private final String otherTag = DocumentReferences.from(otherDocument).toTag();
+    private final String tag = DocumentHandle.referenceFor(document).toTag();
+    private final String otherTag = DocumentHandle.referenceFor(otherDocument).toTag();
 
     private final AgentContext agentContext = WITH_DOCUMENTS;
 
@@ -675,11 +674,12 @@ class AgentInstanceHistoryMapperTest {
         throws Exception {
       final var liveMessage = message(DocumentContent.documentContent(document));
       final var live = item(liveMessage, agentContext);
-      final var stored = item(message(DocumentReferences.from(document)), agentContext);
+      final var stored = item(message(DocumentHandle.referenceFor(document)), agentContext);
 
       // the early write knows no document of this turn yet
       final var early = item(liveMessage, WITH_DOCUMENTS);
-      final var later = item(persisted(message(DocumentReferences.from(document))), agentContext);
+      final var later =
+          item(persisted(message(DocumentHandle.referenceFor(document))), agentContext);
 
       assertThat(described(stored)).isEqualTo(described(live));
       assertThat(described(later)).isEqualTo(described(early)).hasSize(2);
@@ -690,7 +690,7 @@ class AgentInstanceHistoryMapperTest {
       // a block with a source carries the tool call that returned the document, the model reads
       // the short tag of a document in a tool result
       final var block =
-          DocumentReferences.from(document, DocumentSource.toolCall("fetch", "call-1"));
+          DocumentHandle.referenceFor(document, DocumentSource.toolCall("fetch", "call-1"));
 
       final var item =
           item(
@@ -716,7 +716,7 @@ class AgentInstanceHistoryMapperTest {
           item(
               message(
                   TextContent.textContent("The tool wrote " + tag),
-                  DocumentReferences.from(otherDocument)),
+                  DocumentHandle.referenceFor(otherDocument)),
               agentContext);
 
       assertThat(texts(item.content()).getFirst()).isEqualTo("The tool wrote " + tag);
@@ -822,7 +822,7 @@ class AgentInstanceHistoryMapperTest {
           item(
               message(
                   TextContent.textContent("done"),
-                  DocumentReferences.from(otherDocument),
+                  DocumentHandle.referenceFor(otherDocument),
                   ObjectContent.objectContent(Map.of("file", document))),
               agentContext);
 
@@ -852,7 +852,7 @@ class AgentInstanceHistoryMapperTest {
     @Test
     void anExternalDocumentIsItsTagAndTheExternalReference() {
       final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
-      final var externalTag = DocumentReferences.from(external).toTag();
+      final var externalTag = DocumentHandle.referenceFor(external).toTag();
 
       final var item = item(message(DocumentContent.documentContent(external)), agentContext);
 
@@ -866,7 +866,7 @@ class AgentInstanceHistoryMapperTest {
     @Test
     void anInlineDocumentHasItsTagOnly() {
       final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-      final var inlineTag = DocumentReferences.from(inline).toTag();
+      final var inlineTag = DocumentHandle.referenceFor(inline).toTag();
 
       final var bare = item(message(DocumentContent.documentContent(inline)), agentContext);
       final var nested =

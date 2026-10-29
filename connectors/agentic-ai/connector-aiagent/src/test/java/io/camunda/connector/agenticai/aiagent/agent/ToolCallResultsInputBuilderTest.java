@@ -12,7 +12,7 @@ import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocume
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder.Entry;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -63,7 +63,7 @@ class ToolCallResultsInputBuilderTest {
 
     final var results = ((ToolCallResultMessage) messages.getFirst()).results();
     assertThat(results.get(0).content())
-        .containsExactly(textContent("one"), DocumentReferences.from(first));
+        .containsExactly(textContent("one"), DocumentHandle.referenceFor(first));
     assertThat(results.get(1).content()).containsExactly(textContent("two"));
     assertThat(results.get(2).content())
         .containsExactly(objectContent(Map.of("file", nested, "again", third)));

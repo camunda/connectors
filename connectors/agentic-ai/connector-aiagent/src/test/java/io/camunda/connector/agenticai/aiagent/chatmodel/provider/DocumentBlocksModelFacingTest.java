@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.c
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -88,7 +87,7 @@ class DocumentBlocksModelFacingTest {
                         .content(
                             List.<Content>of(
                                 textContent("Loaded the document."),
-                                DocumentReferences.from(report, DocumentSource.userMessage()),
+                                DocumentHandle.referenceFor(report, DocumentSource.userMessage()),
                                 textContent("Its content follows in the next message.")))
                         .build()))
             .build();

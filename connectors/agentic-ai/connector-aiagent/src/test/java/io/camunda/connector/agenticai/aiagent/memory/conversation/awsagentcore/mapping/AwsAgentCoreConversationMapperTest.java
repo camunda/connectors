@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
@@ -208,7 +208,7 @@ class AwsAgentCoreConversationMapperTest {
   @Test
   void shouldSummarizeADocumentReferenceInAToolResultAsItsTag() {
     // given
-    var reference = DocumentReferences.from(new InlineDocument("{}", "d.json", null));
+    var reference = DocumentHandle.referenceFor(new InlineDocument("{}", "d.json", null));
     ToolCallResultMessage original =
         ToolCallResultMessage.builder()
             .results(

@@ -51,7 +51,7 @@ class DocumentExpanderTest {
 
   private static DocumentReferenceContent reference(
       Document document, DocumentSource source, DocumentDelivery delivery) {
-    return DocumentReferences.from(document, source).withDelivery(delivery);
+    return DocumentHandle.referenceFor(document, source).withDelivery(delivery);
   }
 
   private static TextContent tagOf(DocumentReferenceContent reference) {
@@ -130,7 +130,7 @@ class DocumentExpanderTest {
     final var messages =
         List.<Message>of(
             userMessage(reference(document, DocumentSource.event(), DocumentDelivery.CONTENT)),
-            toolResultMessage(DocumentReferences.from(document)));
+            toolResultMessage(DocumentHandle.referenceFor(document)));
 
     final var once = DocumentExpander.expandMessages(messages);
 
@@ -177,7 +177,7 @@ class DocumentExpanderTest {
   @Test
   void expandsAReferenceInAToolResultToItsTagText() {
     final var document = camundaDocument("hello");
-    final var reference = DocumentReferences.from(document);
+    final var reference = DocumentHandle.referenceFor(document);
     final var message = toolResultMessage(textContent("before"), reference);
 
     final var expanded = DocumentExpander.expandMessages(List.of(message));
@@ -194,7 +194,7 @@ class DocumentExpanderTest {
   @Test
   void aReferenceInAToolResultBecomesTheShortTagOfItsDocument() {
     final var document = camundaDocument("hello");
-    final var reference = DocumentReferences.from(document);
+    final var reference = DocumentHandle.referenceFor(document);
     final var withSource =
         reference(document, DocumentSource.toolCall("fetch", "call-1"), DocumentDelivery.REFERENCE);
 
@@ -214,10 +214,10 @@ class DocumentExpanderTest {
         DocumentExpander.expandMessages(
             List.of(
                 toolResultMessage(
-                    DocumentReferences.from(document).withDelivery(DocumentDelivery.CONTENT))));
+                    DocumentHandle.referenceFor(document).withDelivery(DocumentDelivery.CONTENT))));
 
     assertThat(resultContent(expanded.getFirst()))
-        .containsExactly(tagOf(DocumentReferences.from(document)));
+        .containsExactly(tagOf(DocumentHandle.referenceFor(document)));
   }
 
   @Test
@@ -251,7 +251,7 @@ class DocumentExpanderTest {
                     "status",
                     200,
                     "files",
-                    List.of(Map.of("file", DocumentReferences.from(document).toTag()))),
+                    List.of(Map.of("file", DocumentHandle.referenceFor(document).toTag()))),
                 metadata));
     assertThat(resultContent(message).getFirst())
         .isInstanceOfSatisfying(
@@ -271,7 +271,8 @@ class DocumentExpanderTest {
 
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
-            ObjectContent.objectContent(Map.of("file", DocumentReferences.from(document).toTag())));
+            ObjectContent.objectContent(
+                Map.of("file", DocumentHandle.referenceFor(document).toTag())));
   }
 
   @Test
@@ -290,8 +291,8 @@ class DocumentExpanderTest {
                 200,
                 "files",
                 List.of(
-                    Map.of("file", DocumentReferences.from(first).toTag()),
-                    Map.of("file", DocumentReferences.from(second).toTag()))));
+                    Map.of("file", DocumentHandle.referenceFor(first).toTag()),
+                    Map.of("file", DocumentHandle.referenceFor(second).toTag()))));
     assertThat(tagged.documents()).containsExactly(first, second);
   }
 }

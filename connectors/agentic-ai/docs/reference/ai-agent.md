@@ -384,7 +384,7 @@ instance with the `documents` feature: the `DocumentId`, the attributes of its `
 `contentType`, `size`), its `source` (the `DocumentSource` of its registry entry, the same value; the tag shows its type,
 or its tool name and tool call id) and a `delivery`, `reference` or `content`. Its `toTag()`
 renders the tag the model sees. A document that is a whole tool result is persisted as such a block without a source
-(`DocumentReferences.withDocumentReferences`). The conversation window expands it before a request is built
+(`ToolCallResultsInputBuilder`). The conversation window expands it before a request is built
 (`DocumentExpander`, see §6): in a user message to the tag text and, with the delivery `content`, the document
 content; in a tool result to the tag text of the document. The provider content converters are not meant to be handed
 one: they fail with an `IllegalStateException`. The delivery is stored on each block, so earlier messages keep their bytes when the same

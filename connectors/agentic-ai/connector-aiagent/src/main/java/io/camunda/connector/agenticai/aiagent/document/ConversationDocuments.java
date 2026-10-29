@@ -110,7 +110,7 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
         find(id)
             .orElseThrow(
                 () -> new IllegalArgumentException("The agent does not know the document " + id));
-    return DocumentReferences.from(document.document(), document.source());
+    return DocumentHandle.referenceFor(document.document(), document.source());
   }
 
   private static void addOfResult(

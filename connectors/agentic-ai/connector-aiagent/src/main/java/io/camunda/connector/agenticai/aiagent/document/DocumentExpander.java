@@ -133,7 +133,7 @@ public final class DocumentExpander {
                   // the short tag of the document, without source, tool name and tool call id
                   case DocumentReferenceContent reference ->
                       new TextContent(
-                          DocumentReferences.from(reference.document()).toTag(),
+                          DocumentHandle.referenceFor(reference.document()).toTag(),
                           reference.metadata());
                   case ObjectContent objectContent -> renderObject(objectContent);
                   default -> current;
@@ -164,7 +164,7 @@ public final class DocumentExpander {
       if (collected != null) {
         collected.add(document);
       }
-      gen.writeString(DocumentReferences.from(document).toTag());
+      gen.writeString(DocumentHandle.referenceFor(document).toTag());
     }
   }
 }

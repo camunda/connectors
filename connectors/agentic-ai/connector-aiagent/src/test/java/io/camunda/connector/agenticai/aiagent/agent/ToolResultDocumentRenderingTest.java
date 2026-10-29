@@ -22,7 +22,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiCo
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -116,7 +116,8 @@ class ToolResultDocumentRenderingTest {
 
     // the stored message holds the bare document as a reference and the nested one as it is
     final var stored = (ToolCallResultMessage) nextTurn.messages().getFirst();
-    assertThat(stored.results().get(0).content()).containsExactly(DocumentReferences.from(bare));
+    assertThat(stored.results().get(0).content())
+        .containsExactly(DocumentHandle.referenceFor(bare));
     assertThat(stored.results().get(1).content()).singleElement().isInstanceOf(ObjectContent.class);
 
     final var conversation =
@@ -130,11 +131,11 @@ class ToolResultDocumentRenderingTest {
 
     // the providers never see a reference: the windowed result holds the tag of the document
     assertThat(windowed.results().get(0).content())
-        .containsExactly(TextContent.textContent(DocumentReferences.from(bare).toTag()));
+        .containsExactly(TextContent.textContent(DocumentHandle.referenceFor(bare).toTag()));
     assertThat(windowed.results().get(1).content())
         .containsExactly(
             ObjectContent.objectContent(
-                Map.of("status", 200, "file", DocumentReferences.from(nested).toTag())));
+                Map.of("status", 200, "file", DocumentHandle.referenceFor(nested).toTag())));
 
     for (int i = 0; i < results.size(); i++) {
       final var fileName = i == 0 ? "bare.pdf" : "nested.txt";

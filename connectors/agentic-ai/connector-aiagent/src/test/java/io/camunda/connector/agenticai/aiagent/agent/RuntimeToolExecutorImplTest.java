@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -362,7 +361,7 @@ class RuntimeToolExecutorImplTest {
                     Arrays.stream(documents)
                         .<Content>map(
                             document ->
-                                DocumentReferences.from(document, DocumentSource.userMessage()))
+                                DocumentHandle.referenceFor(document, DocumentSource.userMessage()))
                         .toList())
                 .build()));
   }

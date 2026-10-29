@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -889,7 +889,7 @@ class AwsAgentCoreConversationStoreTest {
                     .fileName("report.pdf")
                     .build());
     final var tag =
-        DocumentReferences.from(document, DocumentSource.userMessage())
+        DocumentHandle.referenceFor(document, DocumentSource.userMessage())
             .withDelivery(DocumentDelivery.CONTENT);
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();

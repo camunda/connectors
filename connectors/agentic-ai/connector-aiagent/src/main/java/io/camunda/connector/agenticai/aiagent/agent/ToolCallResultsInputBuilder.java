@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -81,13 +81,25 @@ final class ToolCallResultsInputBuilder {
     final var results =
         entries.stream()
             .map(Entry::result)
-            .map(DocumentReferences::withDocumentReferences)
+            .map(ToolCallResultsInputBuilder::withDocumentReferences)
             .toList();
     return List.of(
         ToolCallResultMessage.builder()
             .results(results)
             .metadata(defaultMessageMetadata())
             .build());
+  }
+
+  /** The result with every document that is the whole content of the result as its reference. */
+  private static ToolCallResultContent withDocumentReferences(ToolCallResultContent result) {
+    return result.withContent(
+        result.content().stream()
+            .<Content>map(
+                block ->
+                    block instanceof DocumentContent documentContent
+                        ? DocumentHandle.referenceFor(documentContent.document())
+                        : block)
+            .toList());
   }
 
   private static List<Message> buildWithDocumentMessage(List<Entry> entries) {

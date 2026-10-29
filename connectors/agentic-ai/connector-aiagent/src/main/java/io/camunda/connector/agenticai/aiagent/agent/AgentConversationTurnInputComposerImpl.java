@@ -12,7 +12,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -205,7 +205,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       // add documents as references with the delivery content: the content is added when the model
       // is called
       for (var doc : userPrompt.documents()) {
-        content.add(DocumentReferences.from(doc, source).withDelivery(DocumentDelivery.CONTENT));
+        content.add(
+            DocumentHandle.referenceFor(doc, source).withDelivery(DocumentDelivery.CONTENT));
       }
     } else {
       // an agent instance without the documents feature keeps the documents as content
@@ -354,7 +355,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         final var source = DocumentSource.event();
         for (var group : eventDocuments) {
           for (var doc : group.documents()) {
-            userMessageContent.add(DocumentReferences.from(doc, source));
+            userMessageContent.add(DocumentHandle.referenceFor(doc, source));
           }
         }
       } else {

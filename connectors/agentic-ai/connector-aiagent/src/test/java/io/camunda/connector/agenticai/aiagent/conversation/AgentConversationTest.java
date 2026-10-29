@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -235,7 +234,7 @@ class AgentConversationTest {
                     .fileName("report.pdf")
                     .build());
     var reference =
-        DocumentReferences.from(document, DocumentSource.userMessage())
+        DocumentHandle.referenceFor(document, DocumentSource.userMessage())
             .withDelivery(DocumentDelivery.CONTENT);
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
@@ -283,7 +282,7 @@ class AgentConversationTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    var reference = DocumentReferences.from(document, DocumentSource.userMessage());
+    var reference = DocumentHandle.referenceFor(document, DocumentSource.userMessage());
     var storedMessage =
         UserMessage.builder().content(List.of(textContent("see"), reference)).build();
     var conv =
@@ -322,7 +321,7 @@ class AgentConversationTest {
         withContent.withContent(
             List.of(
                 textContent("see"),
-                DocumentReferences.from(document, DocumentSource.userMessage())
+                DocumentHandle.referenceFor(document, DocumentSource.userMessage())
                     .withDelivery(DocumentDelivery.CONTENT)));
     var conv =
         AgentConversation.rehydrate(
@@ -641,14 +640,14 @@ class AgentConversationTest {
                     .content(
                         List.of(
                             textContent("early"),
-                            DocumentReferences.from(early, DocumentSource.userMessage())))
+                            DocumentHandle.referenceFor(early, DocumentSource.userMessage())))
                     .build(),
                 assistantMessage("one"),
                 UserMessage.builder()
                     .content(
                         List.of(
                             textContent("late"),
-                            DocumentReferences.from(late, DocumentSource.userMessage())))
+                            DocumentHandle.referenceFor(late, DocumentSource.userMessage())))
                     .build(),
                 assistantMessage("two"))),
         SYSTEM_MESSAGE,
