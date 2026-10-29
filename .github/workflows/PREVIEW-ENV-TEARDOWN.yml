@@ -10,6 +10,12 @@ jobs:
     if: github.event.label.name == 'deploy-preview' || (github.event.action == 'closed' && contains( github.event.pull_request.labels.*.name, 'deploy-preview') )
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # deployments: write is needed by the preview-env/destroy composite, which
+    # deactivates the GitHub Deployment with github.token before deleting the environment
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
     strategy:
@@ -18,6 +24,9 @@ jobs:
         product_context: [c8sm]
 
     steps:
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+      continue-on-error: true
+
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
     - id: sanitize
@@ -56,6 +65,7 @@ jobs:
     # composite actions and deployment manifests.
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
     #########################################################################
     # Tear down preview environment
     - name: Tear down Preview Environment for ${{ matrix.product_context }}
@@ -65,6 +75,31 @@ jobs:
         argocd_token: ${{ steps.secrets.outputs.ARGOCD_TOKEN }}
         app_name: connectors-${{ steps.sanitize.outputs.branch_name }}-${{ matrix.product_context }}
         github_token: ${{ steps.github-token.outputs.token }}
+
+    - name: Validate telemetry refs
+      id: telemetry-ref-safety
+      if: always()
+      continue-on-error: true
+      shell: bash
+      env:
+        HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+        BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+      run: |
+        case "$HEAD_REF$BASE_REF" in
+          *['$`"']*)
+            echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+            exit 1
+            ;;
+        esac
+
+    - name: Submit build status
+      if: always() && steps.telemetry-ref-safety.outcome == 'success'
+      continue-on-error: true
+      uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+      with:
+        build_status: ${{ job.status }}
+        job_name_override: teardown-preview/${{ matrix.product_context }}
+
   clean:
     if: always() && needs.teardown-preview.result != 'skipped'
     uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
