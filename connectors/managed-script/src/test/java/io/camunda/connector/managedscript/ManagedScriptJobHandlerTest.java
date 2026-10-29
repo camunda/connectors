@@ -108,6 +108,8 @@ class ManagedScriptJobHandlerTest {
           "not json",
           "[]",
           "[{\"resourceKey\":\"abc\",\"linkName\":\"script\"}]",
+          "[{\"resourceKey\":\"0\",\"linkName\":\"script\"}]",
+          "[{\"resourceKey\":\"-1\",\"linkName\":\"script\"}]",
           "[{\"resourceKey\":\"1\",\"linkName\":\"script\"},{\"resourceKey\":\"2\",\"linkName\":\"script\"}]",
           "{\"resourceKey\":\"%d\",\"linkName\":\"script\"}".formatted(SCRIPT_KEY),
           SCRIPT_HEADER + " []"

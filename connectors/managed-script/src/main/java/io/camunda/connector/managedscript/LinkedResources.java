@@ -70,12 +70,22 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
           "The '%s' header has more than one '%s' link".formatted(HEADER, linkName));
     }
     final var resourceKey = matches.getFirst().resourceKey();
+    final long key;
     try {
-      return Optional.of(Long.parseLong(resourceKey));
+      key = Long.parseLong(resourceKey);
     } catch (NumberFormatException e) {
-      throw new InvalidJobException(
-          "The '%s' link has an invalid resourceKey '%s'".formatted(linkName, resourceKey));
+      throw invalidKey(linkName, resourceKey);
     }
+    // Engine keys are positive: 0 or a negative value identifies no deployed resource.
+    if (key <= 0) {
+      throw invalidKey(linkName, resourceKey);
+    }
+    return Optional.of(key);
+  }
+
+  private static InvalidJobException invalidKey(String linkName, String resourceKey) {
+    return new InvalidJobException(
+        "The '%s' link has an invalid resourceKey '%s'".formatted(linkName, resourceKey));
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
