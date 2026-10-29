@@ -18,8 +18,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param deploymentNamePrefix prefix of every executor name, one per cluster; the identity of the
  *     runtime may only manage executors whose name starts with it (default {@code camunda-ms-})
  * @param executionTimeout how long a script may run before the executor stops it (default 30s)
- * @param provisioningTimeout how long a job may wait for the executors of the cluster; the job
- *     timeout of a managed-script task must cover it plus the execution timeout (default 2m)
  * @param provisioningRetryBackoff backoff of a job that failed because of the platform (default
  *     10s)
  */
@@ -29,7 +27,6 @@ public record ManagedCodeProperties(
     String provider,
     String deploymentNamePrefix,
     Duration executionTimeout,
-    Duration provisioningTimeout,
     Duration provisioningRetryBackoff) {
 
   static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
@@ -44,7 +41,6 @@ public record ManagedCodeProperties(
       Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
 
   private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
-  private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
   public ManagedCodeProperties {
@@ -60,7 +56,6 @@ public record ManagedCodeProperties(
               .formatted(deploymentNamePrefix, MAX_DEPLOYMENT_NAME_PREFIX_LENGTH));
     }
     executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
-    provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
     provisioningRetryBackoff =
         positive(provisioningRetryBackoff, DEFAULT_PROVISIONING_RETRY_BACKOFF);
   }

@@ -66,7 +66,6 @@ class ManagedCodeAutoConfigurationTest {
           final var properties = context.getBean(ManagedCodeProperties.class);
           assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
           assertThat(properties.executionTimeout()).isEqualTo(Duration.ofSeconds(30));
-          assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofMinutes(2));
           assertThat(properties.provisioningRetryBackoff()).isEqualTo(Duration.ofSeconds(10));
         });
   }

@@ -29,7 +29,6 @@ camunda.connector.managed-code.enabled=true
 camunda.connector.managed-code.provider=<provider name>
 camunda.connector.managed-code.deployment-name-prefix=camunda-ms-
 camunda.connector.managed-code.execution-timeout=30s
-camunda.connector.managed-code.provisioning-timeout=2m
 camunda.connector.managed-code.provisioning-retry-backoff=10s
 ```
 
@@ -44,12 +43,12 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   such as `ce-` followed by 24 hexadecimal characters and `-`.
 - `execution-timeout` is the deadline of a script, enforced by the executor, which reports
   `TIMEOUT`.
-- `provisioning-timeout` is how long a job may wait for the executors.
 - `provisioning-retry-backoff` is the backoff of a job that failed because of the platform.
 
-The job timeout of a managed-script task must cover `provisioning-timeout + execution-timeout`, so
-that a script still running does not get its job activated again. The element template sets a job
-timeout of `PT3M`, which covers the defaults; raise it in the task when you raise either timeout.
+The job timeout of a managed-script task must cover `execution-timeout` and the time the first job
+takes to make the executors ready, so that a script still running does not get its job activated
+again. The element template sets a job timeout of `PT3M`, which covers the defaults; raise it in the
+task when you raise `execution-timeout`.
 
 Secrets in the script input are resolved as for any connector.
 
