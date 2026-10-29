@@ -28,6 +28,9 @@ jobs:
         product_context: [c8sm]
 
     steps:
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+      continue-on-error: true
+
     #########################################################################
     # Sanitize the branch name to remove dependabot/,renovate/ and transform the name
     - id: sanitize
@@ -52,6 +55,7 @@ jobs:
     # composite actions and deployment manifests.
     - name: Checkout
       uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
     #########################################################################
     # Determine the argocd arguments that need to be passed to the create app command
     - name: Determine Argocd Arguments for ${{ matrix.product_context }}
@@ -85,6 +89,31 @@ jobs:
         argocd_server: argocd.int.camunda.com
         argocd_wait_for_sync_timeout: "7200" # waits up to 120 minutes
         github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Validate telemetry refs
+      id: telemetry-ref-safety
+      if: always()
+      continue-on-error: true
+      shell: bash
+      env:
+        HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+        BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+      run: |
+        case "$HEAD_REF$BASE_REF" in
+          *['$`"']*)
+            echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+            exit 1
+            ;;
+        esac
+
+    - name: Submit build status
+      if: always() && steps.telemetry-ref-safety.outcome == 'success'
+      continue-on-error: true
+      uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+      with:
+        build_status: ${{ job.status }}
+        job_name_override: deploy-preview/${{ matrix.product_context }}
+
   conflicts:
     if: always() && github.event_name == 'pull_request' && (contains( github.event.label.name, 'deploy-preview') || contains( github.event.pull_request.labels.*.name, 'deploy-preview'))
     runs-on: ubuntu-24.04
