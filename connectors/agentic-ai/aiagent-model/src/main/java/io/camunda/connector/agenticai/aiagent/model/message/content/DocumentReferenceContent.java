@@ -109,6 +109,13 @@ public record DocumentReferenceContent(
     return Objects.hash(id, fileName, contentType, size, source, delivery, metadata);
   }
 
+  /** Leaves the document out: its reference may hold a presigned URL or inline content. */
+  @Override
+  public String toString() {
+    return "DocumentReferenceContent[id=%s, fileName=%s, contentType=%s, size=%s, source=%s, delivery=%s, metadata=%s]"
+        .formatted(id, fileName, contentType, size, source, delivery, metadata);
+  }
+
   /** Returns the block with the given delivery. */
   public DocumentReferenceContent withDelivery(DocumentDelivery delivery) {
     return new DocumentReferenceContent(

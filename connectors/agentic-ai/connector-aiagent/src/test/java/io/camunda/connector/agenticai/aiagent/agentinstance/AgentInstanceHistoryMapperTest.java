@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -113,6 +114,40 @@ class AgentInstanceHistoryMapperTest {
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
             });
+  }
+
+  @Test
+  void theUrlOfAnExternalDocumentNeverReachesTheHistoryNorTheTextOfTheBlock() {
+    final var external =
+        new ExternalDocument(
+            "https://example.com/report.pdf?token=secret", "report.pdf", u -> null);
+    final var userMessage =
+        UserMessage.builder()
+            .content(List.of(DocumentReferences.from(external, DocumentSource.userMessage())))
+            .build();
+    final var toolResult =
+        ToolCallResultMessage.builder()
+            .results(
+                List.of(
+                    ToolCallResultContent.builder()
+                        .id("call-1")
+                        .name("fetch")
+                        .content(List.of(DocumentReferences.from(external)))
+                        .completedAt(TURN_INGESTION_TIMESTAMP)
+                        .build()))
+            .build();
+
+    for (final var message : List.<Message>of(userMessage, toolResult)) {
+      final var items =
+          mapper.inputHistoryItems(
+              message,
+              Map.of("call-1", ToolCall.builder().id("call-1").name("fetch").build()),
+              TURN_INGESTION_TIMESTAMP,
+              WITH_DOCUMENTS);
+      assertThat(items).isNotEmpty();
+      assertThat(items.toString()).doesNotContain("token=secret");
+    }
+    assertThat(DocumentReferences.from(external).toString()).doesNotContain("token=secret");
   }
 
   @ParameterizedTest
