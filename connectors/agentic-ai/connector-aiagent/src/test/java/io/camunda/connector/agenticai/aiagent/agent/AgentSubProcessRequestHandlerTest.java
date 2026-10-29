@@ -1835,6 +1835,73 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   /**
+   * A runtime round in the same job, while the message that brought the report in is the oldest one
+   * in the context window and the message of the contract left it. The runtime tool must see the
+   * documents of exactly the window the model was called with.
+   */
+  @Test
+  void aRuntimeRoundInTheSameJobSeesTheDocumentsOfTheWindowOfItsModelCall() {
+    final var contract = createDocument("old contract", "contract.txt");
+    final var report = createDocument("quarterly report", "report.txt");
+    // a window of two keeps the system message and the newest message only
+    doReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new UserPromptConfiguration("Summarize the report", List.of(report)),
+                new MemoryTemplateConfiguration(null, 2),
+                null,
+                null,
+                null))
+        .when(agentExecutionContext)
+        .configuration();
+    final var history =
+        List.<Message>of(
+            SYSTEM_MESSAGE,
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        TextContent.textContent("Keep this contract"),
+                        DocumentHandle.referenceFor(contract, DocumentSource.userMessage())))
+                .build(),
+            assistantMessage("noted"));
+    final var initialContext =
+        CONTEXT_WITH_DOCUMENTS.withConversation(
+            InProcessConversationContext.builder("conv").messages(history).build());
+
+    mockSystemPrompt();
+    composeWithTheRealComposer();
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .toolCalls(List.of(new ToolCall("call-1", "acme_list_documents", Map.of())))
+                    .build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(initialContext, List.of()));
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(chatModelRequestCaptor.getAllValues().getFirst().snapshot().messages()).hasSize(2);
+    assertThat(storedMessagesOf(response.responseValue().context()))
+        .filteredOn(ToolCallResultMessage.class::isInstance)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent(
+                            "documents: [" + DocumentHandle.idFor(report).value() + "]")));
+  }
+
+  /**
    * The same mixed batch with a second document one message before the edge of the window: the
    * model never saw it, so the runtime call in the next job does not know it either, while the
    * stored conversation keeps it with its document.
