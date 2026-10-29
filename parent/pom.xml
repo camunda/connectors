@@ -732,6 +732,13 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpclient5}</version>
       </dependency>
 
+      <!-- overrides Spring Boot's commons-codec -->
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${version.commons-codec}</version>
+      </dependency>
+
       <dependency>
         <groupId>io.github.hakky54</groupId>
         <artifactId>ayza</artifactId>
