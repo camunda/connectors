@@ -102,7 +102,7 @@ public class AgentInstanceHistoryMapper {
           List.of(
               new InputHistoryItem(
                   AgentInstanceHistoryRole.USER,
-                  userContentBlocks(userMessage.content(), agentContext),
+                  userContentBlocks(userMessage.content()),
                   null,
                   turnIngestionTimestamp,
                   AgentInstanceHistoryItemIds.forMessage(userMessage)));
@@ -235,12 +235,7 @@ public class AgentInstanceHistoryMapper {
    * The content of a user message. A document reference is its tag in inline code followed by its
    * document; text is reported as it is, also when it holds a tag.
    */
-  private List<AgentInstanceHistoryContent> userContentBlocks(
-      List<Content> contents, AgentContext agentContext) {
-    if (!agentContext.supports(AgentFeatures.DOCUMENTS)) {
-      return contentBlocks(contents);
-    }
-
+  private List<AgentInstanceHistoryContent> userContentBlocks(List<Content> contents) {
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
