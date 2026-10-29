@@ -378,6 +378,9 @@ When a job fails, its error message (and so the incident message) is:
 - Only failures raised in the script carry a stack trace. Script logs are not part of the incident;
   they stay in the executor's logs.
 - The error code is the connector's error code, so an error expression can match on it.
+- The runtime logs this text in its error log, as for any connector's failure. The connector's own
+  logs never contain the script, its input or its output. Users are told not to let a sensitive
+  value reach an exception message, since the languages' own errors quote values too.
 
 ### Secrets
 
@@ -480,6 +483,8 @@ It logs a warning at startup. Windows is not supported.
   function timeout was lowered, the platform can kill a long script of such an instance, which
   fails as `PLATFORM_EXECUTION_FAILED`.
 - Syntax errors surface at the first execution, as `SCRIPT_ERROR`, not at deployment.
+- A value that reaches the message or the stack trace of a failed script ends up in the incident
+  and in the runtime's error log. Only the documentation guards against it.
 - The runtime resolves `{{secrets.X}}` anywhere in the script input, including in text that came
   from data, such as a webhook payload mapped into it. Only the runtime's secret filter bounds
   which secrets can reach user code this way.
