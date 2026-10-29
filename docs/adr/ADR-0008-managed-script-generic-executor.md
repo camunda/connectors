@@ -123,6 +123,36 @@ with no user code in it.
 - **Dependencies.** Dependencies are not supported yet (GAP-004). A job that links a `dependencies`
   resource fails with `UNSUPPORTED_DEPENDENCIES`.
 
+Every job takes this path, the first one of a new script included:
+
+```mermaid
+sequenceDiagram
+  box rgb(30, 64, 175) Orchestration Cluster
+    participant Cluster as Orchestration Cluster
+  end
+  box rgb(21, 128, 61) Connectors Runtime
+    participant Connector as Managed-script connector
+  end
+  box rgb(180, 83, 9) Cloud Provider
+    participant Executor as Executor of the language
+    participant Child as Child process
+  end
+
+  Cluster-->>Connector: Job: scriptInput, linkedResources header
+  Connector->>Cluster: Fetch the script by resourceKey (unless cached)
+  Connector->>Connector: Language from the file extension
+  Connector->>Executor: Request: contractVersion, script, variables, context, timeoutMs
+  Executor->>Child: Write the script to a fresh directory, start it without credentials
+  Child-->>Executor: Contract response, or a limit reached
+  Executor->>Executor: Kill leftover processes, remove new files
+  Executor-->>Connector: COMPLETED, or FAILED with an error code
+  alt COMPLETED
+    Connector->>Cluster: Complete the job (result and error expressions apply)
+  else FAILED
+    Connector->>Cluster: Fail the job: retries from the error code, incident with the stack trace
+  end
+```
+
 The runtime never deletes executors and holds no delete rights. **Controller** deletes them: it
 generates the cluster's prefix, so it can list the functions under it.
 
@@ -147,6 +177,39 @@ as the documentation describes.
 This needs Controller's agreement: so far Controller manages no functions and holds no permissions
 on the functions projects and accounts
 ([task breakdown](https://github.com/camunda/code-execution-poc/blob/main/TASK_BREAKDOWN.md#controller)).
+
+The life of the executors of a cluster, from the first start of its runtime to their deletion:
+
+```mermaid
+sequenceDiagram
+  box rgb(30, 64, 175) Camunda SaaS
+    participant Controller
+  end
+  box rgb(21, 128, 61) Connectors Runtime
+    participant A as Runtime instance A
+    participant B as Runtime instance B
+  end
+  box rgb(180, 83, 9) Cloud Provider
+    participant Provider as AWS or GCP
+  end
+
+  par Once the runtime is ready, in the background
+    A->>Provider: Create {prefix}py-{digest} if absent
+  and
+    B->>Provider: Create {prefix}py-{digest} if absent
+  end
+  Provider-->>B: Already exists: adopted
+  Note over A,B: A job that arrives earlier waits up to the provisioning timeout,<br/>then fails with PROVISIONING_PENDING, retries unchanged
+  Provider-->>A: Ready
+  Provider-->>B: Ready
+  A->>Provider: Execute a script
+  Provider-->>A: DEPLOYMENT_MISSING
+  A->>Provider: Make the executors ready again, once, then execute again
+  Note over Controller,Provider: After a rollout, and when the cluster is deleted
+  Controller->>A: Which executors are in use?
+  A-->>Controller: Its own, and the previous one while it falls back to it
+  Controller->>Provider: List the functions under the prefix, delete the others
+```
 
 ### Execution contract v1
 
