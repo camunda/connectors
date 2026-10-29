@@ -95,7 +95,8 @@ mvn verify -pl connectors/kafka      # integration tests (requires Docker)
   manually, with a test guarding against drift — so check for a generator before editing JSON.
   `connectors/operate/` and `connectors/power-automate/` are genuinely hand-maintained.
 - **Field hints: `tooltip` > `placeholder` > `description`.** Help text belongs in `tooltip` (shown on
-  hover); example values belong in `placeholder`; keep the always-visible `description` only for
+  hover); the default value belongs in `placeholder`, or an example value if the field has no default;
+  keep the always-visible `description` only for
   value constraints, `Note:`/`Warning:` markers, and genuinely critical guidance.
 - **Documentation links must pin the current released minor**, e.g.
   `https://docs.camunda.io/docs/8.10/components/connectors/...` — never unversioned, never `/next/`.

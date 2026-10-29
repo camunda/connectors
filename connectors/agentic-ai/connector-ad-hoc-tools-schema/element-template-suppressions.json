@@ -71,6 +71,18 @@
       "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
       "property": "version",
       "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
     }
   ]
 }

@@ -38,6 +38,7 @@ import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
 import io.camunda.connector.validator.rule.LatinAbbreviationRule;
+import io.camunda.connector.validator.rule.MaxDescriptionLengthRule;
 import io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule;
 import io.camunda.connector.validator.rule.PresetConditionsSatisfiedRule;
 import io.camunda.connector.validator.rule.PresetCoverageRule;
@@ -206,7 +207,8 @@ public class ValidatorCommand implements Callable<Integer> {
         new LatinAbbreviationRule(),
         new DoubleWordRule(),
         new BrTagRule(),
-        new TrailingPeriodRule());
+        new TrailingPeriodRule(),
+        new MaxDescriptionLengthRule());
   }
 
   private static List<Finding> runSingleFileRules(Map<Path, JsonNode> templates, Rule schema) {
