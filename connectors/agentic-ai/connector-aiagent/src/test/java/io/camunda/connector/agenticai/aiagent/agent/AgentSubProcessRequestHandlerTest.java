@@ -79,6 +79,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration.EventHandlingBehavior;
@@ -101,6 +102,7 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1835,6 +1837,120 @@ class AgentSubProcessRequestHandlerTest {
               assertThat(message.results().getFirst().content())
                   .containsExactly(TextContent.textContent("documents: [" + reportId + "]"));
             });
+  }
+
+  /**
+   * The same mixed batch with a second document one message before the edge of the window: the
+   * model never saw it, so the runtime call in the next job does not know it either, while the
+   * stored conversation keeps it with its document.
+   */
+  @Test
+  void aRuntimeCallOfAMixedBatchDoesNotSeeADocumentThatLeftTheWindowButTheConversationKeepsIt() {
+    final var contract = createDocument("old contract", "contract.txt");
+    final var report = createDocument("quarterly report", "report.txt");
+    final var contractTag = DocumentReferences.from(contract, DocumentSource.userMessage()).toTag();
+    // a window of three keeps the system message and the two newest messages
+    doReturn(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL,
+                TEST_SYSTEM_PROMPT,
+                new UserPromptConfiguration("Summarize the report", List.of(report)),
+                new MemoryTemplateConfiguration(null, 3),
+                null,
+                null,
+                null))
+        .when(agentExecutionContext)
+        .configuration();
+    // the message of the contract is the one right before the edge of the window
+    final var history =
+        List.<Message>of(
+            SYSTEM_MESSAGE,
+            userMessage("first question"),
+            assistantMessage("first answer"),
+            UserMessage.builder()
+                .content(
+                    List.of(
+                        TextContent.textContent("Keep this contract"),
+                        DocumentReferences.from(contract, DocumentSource.userMessage())))
+                .build(),
+            assistantMessage("noted"));
+    final var initialContext =
+        CONTEXT_WITH_DOCUMENTS.withConversation(
+            InProcessConversationContext.builder("conv").messages(history).build());
+
+    mockSystemPrompt();
+    composeWithTheRealComposer();
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 2);
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder()
+                    .toolCalls(
+                        List.of(
+                            new ToolCall("call-1", "acme_list_documents", Map.of()),
+                            new ToolCall("call-2", "getWeather", Map.of("location", "MUC"))))
+                    .build(),
+                metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(initialContext, List.of()));
+    final var firstJob = requestHandler.handleRequest(agentExecutionContext);
+
+    // the model saw "noted" and the message of the report, not the message of the contract
+    final var firstRequest = chatModelRequestCaptor.getAllValues().getFirst().snapshot();
+    assertThat(firstRequest.messages()).hasSize(3);
+    assertThat(firstRequest.messages().get(1).id()).isEqualTo(history.getLast().id());
+    assertThat(firstRequest.messages().toString())
+        .contains(DocumentHandle.idFor(report).value())
+        .doesNotContain(DocumentHandle.idFor(contract).value());
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(
+            new ReadyToConverse(
+                firstJob.responseValue().context(),
+                List.of(
+                    ToolCallResult.builder()
+                        .id("call-2")
+                        .name("getWeather")
+                        .content("Sunny")
+                        .build())));
+    final var secondJob = requestHandler.handleRequest(agentExecutionContext);
+
+    final var stored = storedMessagesOf(secondJob.responseValue().context());
+    assertThat(stored)
+        .filteredOn(ToolCallResultMessage.class::isInstance)
+        .singleElement()
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results().getFirst().content())
+                    .containsExactly(
+                        TextContent.textContent(
+                            "documents: [" + DocumentHandle.idFor(report).value() + "]")));
+    // the contract left the window, not the conversation: its block still holds its document
+    assertThat(documentsOf(secondJob.responseValue().context()))
+        .extracting(AgentDocument::id)
+        .containsExactly(DocumentHandle.idFor(contract), DocumentHandle.idFor(report));
+    assertThat(stored)
+        .filteredOn(UserMessage.class::isInstance)
+        .anySatisfy(
+            message ->
+                assertThat(((UserMessage) message).content())
+                    .anySatisfy(
+                        content ->
+                            assertThat(content)
+                                .isInstanceOfSatisfying(
+                                    DocumentReferenceContent.class,
+                                    reference -> {
+                                      assertThat(reference.toTag()).isEqualTo(contractTag);
+                                      assertThat(reference.document().asByteArray())
+                                          .isEqualTo(
+                                              "old contract".getBytes(StandardCharsets.UTF_8));
+                                    })));
   }
 
   /**
