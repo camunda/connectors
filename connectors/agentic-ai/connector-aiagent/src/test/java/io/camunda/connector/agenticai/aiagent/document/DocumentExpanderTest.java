@@ -25,8 +25,6 @@ import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
-import io.camunda.connector.runtime.core.document.ExternalDocument;
-import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -60,10 +58,6 @@ class DocumentExpanderTest {
     return textContent(reference.toTag());
   }
 
-  private List<Content> expand(List<Content> content) {
-    return DocumentExpander.expandContent(content);
-  }
-
   private static Map<?, ?> referenceOf(Document document) {
     return TestObjectMapperSupplier.INSTANCE.convertValue(document, Map.class);
   }
@@ -77,20 +71,6 @@ class DocumentExpanderTest {
                   .isEqualTo(DocumentHandle.idFor(expected));
               assertThat(referenceOf(documentContent.document())).isEqualTo(referenceOf(expected));
             });
-  }
-
-  @Test
-  void expandsAReferenceToItsTagAndItsDocumentForTheHistory() {
-    final var document = camundaDocument("hello");
-    final var reference =
-        reference(
-            document, DocumentSource.toolCall("search", "call-1"), DocumentDelivery.REFERENCE);
-
-    final var expanded = expand(List.of(textContent("preamble"), reference));
-
-    assertThat(expanded).hasSize(3);
-    assertThat(expanded.subList(0, 2)).containsExactly(textContent("preamble"), tagOf(reference));
-    assertRebuiltDocumentIs(expanded.get(2), document);
   }
 
   @Test
@@ -130,48 +110,7 @@ class DocumentExpanderTest {
     final var messages =
         List.<Message>of(userMessage(textContent("hello")), assistantMessage("hi"));
 
-    assertThat(DocumentExpander.expandMessages(messages)).isSameAs(messages);
-  }
-
-  @Test
-  void expandingForTheHistoryAddsTheDocumentAfterEveryReference() {
-    final var document = camundaDocument("hello");
-    final var reference =
-        reference(document, DocumentSource.userMessage(), DocumentDelivery.REFERENCE);
-
-    final var expanded = DocumentExpander.expandContent(List.of(reference));
-
-    assertThat(expanded).hasSize(2);
-    assertThat(expanded.get(0)).isEqualTo(tagOf(reference));
-    assertRebuiltDocumentIs(expanded.get(1), document);
-  }
-
-  @Test
-  void expandsTheReferencesOfAnExternalAndAnInlineDocumentToTheirDocument() {
-    final var external = new ExternalDocument("https://example.com/a.pdf", "a.pdf", u -> null);
-    final var inline = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var references =
-        List.<Content>of(
-            DocumentReferences.from(external, DocumentSource.userMessage()),
-            DocumentReferences.from(inline, DocumentSource.userMessage()));
-
-    final var expanded = expand(references);
-
-    assertThat(expanded).hasSize(4);
-    assertRebuiltDocumentIs(expanded.get(1), external);
-    assertRebuiltDocumentIs(expanded.get(3), inline);
-  }
-
-  @Test
-  void doesNotAddTheDocumentAgainWhenItAlreadyFollowsTheReference() {
-    final var document = camundaDocument("hello");
-    final var reference =
-        reference(document, DocumentSource.userMessage(), DocumentDelivery.REFERENCE);
-    final var content = List.<Content>of(reference, DocumentContent.documentContent(document));
-
-    assertThat(expand(content))
-        .hasSize(2)
-        .containsExactly(tagOf(reference), DocumentContent.documentContent(document));
+    assertThat(DocumentExpander.expandMessages(messages)).isEqualTo(messages);
   }
 
   @Test
@@ -179,23 +118,23 @@ class DocumentExpanderTest {
     final var document = camundaDocument("hello");
     final var literal =
         "<doc id=\"%s\" fileName=\"report.pdf\" />".formatted(DocumentHandle.idFor(document));
-    final var content = List.<Content>of(textContent("See " + literal), textContent(literal));
+    final var messages =
+        List.<Message>of(userMessage(textContent("See " + literal), textContent(literal)));
 
-    assertThat(expand(content)).isSameAs(content);
+    assertThat(DocumentExpander.expandMessages(messages)).isEqualTo(messages);
   }
 
   @Test
   void expandingTheResultOfAnExpansionChangesNothing() {
     final var document = camundaDocument("hello");
-    final var content =
-        List.<Content>of(reference(document, DocumentSource.event(), DocumentDelivery.REFERENCE));
-    final var messages = List.<Message>of(toolResultMessage(DocumentReferences.from(document)));
+    final var messages =
+        List.<Message>of(
+            userMessage(reference(document, DocumentSource.event(), DocumentDelivery.CONTENT)),
+            toolResultMessage(DocumentReferences.from(document)));
 
-    final var once = expand(content);
-    final var onceForTheModel = DocumentExpander.expandMessages(messages);
+    final var once = DocumentExpander.expandMessages(messages);
 
-    assertThat(expand(once)).isSameAs(once);
-    assertThat(DocumentExpander.expandMessages(onceForTheModel)).isSameAs(onceForTheModel);
+    assertThat(DocumentExpander.expandMessages(once)).isEqualTo(once);
   }
 
   @Test
@@ -210,8 +149,8 @@ class DocumentExpanderTest {
     final var expanded = DocumentExpander.expandMessages(messages);
 
     assertThat(expanded).hasSize(3);
-    assertThat(expanded.get(0)).isSameAs(assistant);
-    assertThat(expanded.get(1)).isSameAs(plainUser);
+    assertThat(expanded.get(0)).isEqualTo(assistant);
+    assertThat(expanded.get(1)).isEqualTo(plainUser);
     assertThat(expanded.get(2).id()).isEqualTo(documentUser.id());
     assertThat(((UserMessage) expanded.get(2)).content()).hasSize(2);
     assertThat(DocumentExpander.expandMessages(List.of(assistant, plainUser)))
@@ -291,7 +230,7 @@ class DocumentExpanderTest {
                 DocumentContent.documentContent(document),
                 ObjectContent.objectContent(Map.of("status", 200))));
 
-    assertThat(DocumentExpander.expandMessages(messages)).isSameAs(messages);
+    assertThat(DocumentExpander.expandMessages(messages)).isEqualTo(messages);
   }
 
   @Test
@@ -333,14 +272,6 @@ class DocumentExpanderTest {
     assertThat(((UserMessage) expanded.getFirst()).content())
         .containsExactly(
             ObjectContent.objectContent(Map.of("file", DocumentReferences.from(document).toTag())));
-  }
-
-  @Test
-  void leavesTheObjectsOfTheHistoryContentAlone() {
-    final var content =
-        List.<Content>of(ObjectContent.objectContent(Map.of("file", camundaDocument("hello"))));
-
-    assertThat(expand(content)).isSameAs(content);
   }
 
   @Test

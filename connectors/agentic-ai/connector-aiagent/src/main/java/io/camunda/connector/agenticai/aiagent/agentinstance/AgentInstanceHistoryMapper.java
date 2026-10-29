@@ -244,9 +244,8 @@ public class AgentInstanceHistoryMapper {
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
-        final var expanded = DocumentExpander.expandContent(List.of(reference));
         blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
-        expanded.stream().skip(1).forEach(document -> blocks.add(toHistoryContent(document)));
+        blocks.add(toHistoryContent(DocumentContent.documentContent(reference.document())));
       } else {
         blocks.add(toHistoryContent(content));
       }
