@@ -502,7 +502,7 @@ top-level reference becomes the short tag as a `TextContent`, and a document nes
 inside the object, so the model providers have no document specific code for tool results. A reference whose document
 the registry does not know stays its tag text, and the expansion never fails the request. The result depends only on the
 messages and the registry, so the request bytes are stable across requests (prompt caching). For an agent instance
-without the `documents` feature the decorator is the identity: the messages are left as they are and a `Document` in a
+without the `documents` feature the window is not expanded: the messages are left as they are and a `Document` in a
 tool result is serialized as its Camunda reference JSON. No provider receives a document inside a tool result, so the
 content of a document reaches the model only in a user message. The content of a document stays in every request until
 the message that holds it leaves the window; there is no removal.
@@ -1669,7 +1669,7 @@ The e2e modules, their test base classes and how to run them are described in th
 
 The document registry is covered by unit tests, each rule where it lives: the registry and its entries, the document
 reference block, the composer and `ToolCallResultsInputBuilder` (document references, sources, the merge of runtime and
-process results in call order), the expander and the window decorator, the runtime tool executor and the request handler
+process results in call order), the expander and the window of the conversation, the runtime tool executor and the request handler
 with a test-only stateful tool, the history mapper, and the persistence round trips. A conversation persisted by Camunda
 8.10 pins the behavior of instances without the `documents` feature.
 

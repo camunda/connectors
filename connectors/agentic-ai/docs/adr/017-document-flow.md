@@ -215,8 +215,8 @@ tool SPI of ADR 016.
 
 The content of a document is never persisted in the conversation. One component expands the persisted blocks into what
 the providers see, when the conversation is windowed: in a user message the tag and, for the delivery `content`, the
-content after it; in a tool result the tag as text. Providers have no code for documents in tool results. The component
-is a decorator of the window, and for an instance without the `documents` feature it is the identity.
+content after it; in a tool result the tag as text. Providers have no code for documents in tool results. The conversation
+applies it to its window, and skips it for an instance without the `documents` feature.
 
 Alternatives: *render the tag in every provider converter* means six converters with the same rule to keep in sync; *a
 marker interface and a global serialization mode* is hidden state that is easy to get wrong for instances that must not
