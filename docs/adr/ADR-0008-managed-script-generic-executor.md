@@ -486,7 +486,10 @@ It logs a warning at startup. Windows is not supported.
 - A configuration change updates the executors in place. During a rolling update, instances that
   still have the previous configuration call executors that already have the new one. If the
   function timeout was lowered, the platform can kill a long script of such an instance, which
-  fails as `PLATFORM_EXECUTION_FAILED`.
+  fails as `PLATFORM_EXECUTION_FAILED`. If an instance with the previous configuration restarts
+  during the rolling update, after the new instances, it puts the previous settings back, and they
+  stay until an instance restarts. This case is rare and accepted: restarting the runtime after the
+  rolling update restores the settings.
 - Syntax errors surface at the first execution, as `SCRIPT_ERROR`, not at deployment.
 - A value that reaches the message or the stack trace of a failed script ends up in the incident
   and in the runtime's error log. Only the documentation guards against it.
