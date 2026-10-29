@@ -214,6 +214,20 @@ jobs:
           path: ~/.m2/repository
           key: ${{ steps.key.outputs.value }}
 
+      - name: Record active cache keys
+        env:
+          MAVEN_KEY: ${{ steps.key.outputs.value }}
+          MVNW_KEY: ${{ steps.mvnw-cache.outputs.cache-primary-key }}
+        run: |
+          echo "$MAVEN_KEY" > "$RUNNER_TEMP/active-cache-keys.txt"
+          if [ -n "$MVNW_KEY" ]; then echo "$MVNW_KEY" >> "$RUNNER_TEMP/active-cache-keys.txt"; fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: active-cache-keys-${{ strategy.job-index }}-of-${{ strategy.job-total }}
+          path: ${{ runner.temp }}/active-cache-keys.txt
+          retention-days: 1
+
       - name: Submit build status
         if: always()
         continue-on-error: true
@@ -221,3 +235,55 @@ jobs:
         with:
           build_status: ${{ job.status }}
           job_name_override: warm-cache/${{ matrix.ref }}
+
+  # Each pom change on a warmed branch saves a new ~1.4 GB entry, and the previous one
+  # would otherwise linger until unused for 7 days, pushing the repository over its
+  # cache limit. Runs only when every branch was warmed, so the active key set is complete.
+  cleanup:
+    name: delete superseded caches
+    needs: warm-cache
+    # A run on another ref saves its entries under that ref, so it must not delete main's.
+    if: github.repository == 'camunda/connectors' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: active-cache-keys-*
+          path: active-cache-keys
+
+      - name: Delete superseded main cache entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW_FILE: WARM_MAVEN_CACHE.yml
+        shell: bash
+        run: |
+          # A rerun of an older run would treat a newer run's keys as superseded.
+          latest=$(gh run list --workflow "$WORKFLOW_FILE" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$latest" ]; then echo "::error::Could not determine the latest run"; exit 1; fi
+          if [ "$latest" -gt "$GITHUB_RUN_ID" ]; then
+            echo "::notice::Run $latest supersedes this run; skipping cleanup"
+            exit 0
+          fi
+          # Each artifact name carries the matrix size; a partial rerun after expiry leaves gaps.
+          files=(active-cache-keys/*/active-cache-keys.txt)
+          total=$(ls active-cache-keys | sed -n 's/.*-of-//p' | sort -u)
+          if [ "$(wc -w <<< "$total")" -ne 1 ] || [ "${#files[@]}" -ne "$total" ]; then
+            echo "::error::Expected $total manifests, found ${#files[@]}; refusing to delete caches"
+            exit 1
+          fi
+          active=$(cat "${files[@]}" | sort -u)
+          if [ -z "$active" ]; then echo "::error::No active cache keys recorded"; exit 1; fi
+          echo "Active keys:"
+          echo "$active"
+          # Delete by ID: deleting by key would also hit entries on other refs.
+          gh cache list --ref refs/heads/main --key Linux-m --limit 1000 --json id,key \
+            --jq '.[] | select(.key | test("^Linux-maven-.*-internal$|^Linux-mvnw-")) | "\(.id) \(.key)"' |
+          while read -r id key; do
+            if ! grep -qxF "$key" <<< "$active"; then
+              echo "Deleting $key ($id)"
+              gh cache delete "$id"
+            fi
+          done
