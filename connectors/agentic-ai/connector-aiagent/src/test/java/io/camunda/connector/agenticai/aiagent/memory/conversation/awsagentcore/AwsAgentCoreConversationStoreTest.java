@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
@@ -961,10 +960,7 @@ class AwsAgentCoreConversationStoreTest {
             TurnReconstructor.reconstruct(loaded),
             null,
             List.of(userMessage("next")));
-    final var windowed =
-        conversation
-            .window(20, DocumentExpander.windowDecorator(conversation.persistedContext()))
-            .messages();
+    final var windowed = conversation.window(20).messages();
 
     assertThat(windowed.get(0))
         .isInstanceOfSatisfying(

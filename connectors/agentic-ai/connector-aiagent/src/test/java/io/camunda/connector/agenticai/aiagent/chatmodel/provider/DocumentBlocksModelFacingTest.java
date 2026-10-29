@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.c
 import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.family.completions.OpenAiCompletionsRequestConverter;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -110,9 +109,7 @@ class DocumentBlocksModelFacingTest {
             .build();
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
-    return conversation
-        .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
-        .messages();
+    return conversation.window(100).messages();
   }
 
   private List<Content> toolResultContent(List<Message> messages) {

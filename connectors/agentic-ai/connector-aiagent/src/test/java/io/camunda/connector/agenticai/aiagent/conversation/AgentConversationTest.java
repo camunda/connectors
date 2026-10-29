@@ -11,9 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.*;
 
-import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -41,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 
 class AgentConversationTest {
@@ -182,7 +179,7 @@ class AgentConversationTest {
   void window_returnsConversationSnapshot_withToolDefinitions() {
     var storedMessages = List.<Message>of(userMessage("hi"), assistantMessage("hello"));
     var conv = rehydrate(storedMessages, List.of(userMessage("next")));
-    var snapshot = conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext()));
+    var snapshot = conv.window(20);
     assertThat(snapshot.toolDefinitions()).isEqualTo(TOOL_DEFINITIONS);
     assertThat(snapshot.messages()).isNotEmpty();
   }
@@ -214,8 +211,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed =
-        conv.window(2, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
+    var windowed = conv.window(2).messages();
     var allBefore = conv.allMessages();
 
     // the document message is outside of the window and nothing takes its place
@@ -251,8 +247,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed =
-        conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
+    var windowed = conv.window(20).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -299,8 +294,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(storedMessage));
 
-    var windowed =
-        conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
+    var windowed = conv.window(20).messages();
 
     assertThat(windowed).hasSize(2);
     assertThat(windowed.getLast())
@@ -343,8 +337,7 @@ class AgentConversationTest {
             SYSTEM_MESSAGE,
             List.of(userMessage("next")));
 
-    var windowed =
-        conv.window(3, DocumentExpander.windowDecorator(conv.persistedContext())).messages();
+    var windowed = conv.window(3).messages();
 
     assertThat(windowed).noneMatch(message -> message.id().equals(evictedMessage.id()));
     assertThat(windowed)
@@ -592,10 +585,8 @@ class AgentConversationTest {
 
     assertThat(conv.allMessages()).containsSubsequence(calling, results);
     // system message + user + assistant + results; evicting the assistant evicts its results
-    assertThat(conv.window(3, DocumentExpander.windowDecorator(conv.persistedContext())).messages())
-        .containsExactly(SYSTEM_MESSAGE, calling, results);
-    assertThat(conv.window(2, DocumentExpander.windowDecorator(conv.persistedContext())).messages())
-        .containsExactly(SYSTEM_MESSAGE);
+    assertThat(conv.window(3).messages()).containsExactly(SYSTEM_MESSAGE, calling, results);
+    assertThat(conv.window(2).messages()).containsExactly(SYSTEM_MESSAGE);
   }
 
   @Test
@@ -665,52 +656,47 @@ class AgentConversationTest {
   }
 
   @Test
-  void window_holdsTheDocumentsOfTheWindowedMessagesOnly() {
+  void documentsSeenByModel_areTheDocumentsOfTheWindowedMessagesOnly() {
     var early = createDocument("early", "early.txt");
     var late = createDocument("late", "late.txt");
     var conv = conversationWithDocuments(BASE_CONTEXT, early, late);
 
     // the messages are system, early, one, late, two, next; a window of 4 keeps the system
     // message and late, two, next
-    var window = conv.window(4, UnaryOperator.identity());
-    assertThat(window.documents().all())
+    var documents = conv.documentsSeenByModel(4);
+    assertThat(documents.all())
         .extracting(AgentDocument::id)
         .containsExactly(DocumentHandle.idFor(late));
-    assertThat(window.documents().find(DocumentHandle.idFor(early))).isEmpty();
-    assertThat(conv.window(20, UnaryOperator.identity()).documents().all())
+    assertThat(documents.find(DocumentHandle.idFor(early))).isEmpty();
+    assertThat(conv.documentsSeenByModel(20).all())
         .extracting(AgentDocument::id)
         .containsExactly(DocumentHandle.idFor(early), DocumentHandle.idFor(late));
   }
 
   @Test
-  void window_readsTheDocumentsBeforeTheDecoratorAndItsSnapshotLeavesThemOut() {
+  void window_expandsTheDocumentReferencesAndTheDocumentsSeenByModelKeepThem() {
     var early = createDocument("early", "early.txt");
     var late = createDocument("late", "late.txt");
     var conv = conversationWithDocuments(BASE_CONTEXT, early, late);
 
-    var window = conv.window(20, DocumentExpander.windowDecorator(conv.persistedContext()));
-    var snapshot = ConversationSnapshot.of(window);
-
-    // the decorated messages hold the tags as text, the documents are still those of the window
-    assertThat(window.messages())
+    // the windowed messages hold the tags as text, the documents are still those of the window
+    assertThat(conv.window(20).messages())
         .flatExtracting(
             message -> message instanceof UserMessage user ? user.content() : List.<Content>of())
         .noneMatch(DocumentReferenceContent.class::isInstance);
-    assertThat(window.documents().all())
+    assertThat(conv.documentsSeenByModel(20).all())
         .extracting(AgentDocument::id)
         .containsExactly(DocumentHandle.idFor(early), DocumentHandle.idFor(late));
-    assertThat(snapshot.messages()).isEqualTo(window.messages());
-    assertThat(snapshot.toolDefinitions()).isEqualTo(window.toolDefinitions());
   }
 
   @Test
-  void window_hasNoDocumentsWithoutTheDocumentsFeature() {
+  void documentsSeenByModel_areEmptyWithoutTheDocumentsFeature() {
     var conv =
         conversationWithDocuments(
             BASE_CONTEXT.withFeatures(List.of(AgentFeatures.RUNTIME_TOOLS)),
             createDocument("early", "early.txt"),
             createDocument("late", "late.txt"));
 
-    assertThat(conv.window(20, UnaryOperator.identity()).documents().all()).isEmpty();
+    assertThat(conv.documentsSeenByModel(20).all()).isEmpty();
   }
 }

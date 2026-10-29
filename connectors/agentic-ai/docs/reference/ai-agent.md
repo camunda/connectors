@@ -449,9 +449,11 @@ invocation and transformed through copy-on-write methods.
 - `ingest(assistantMessage, tokenUsage)`: completes the pending turn, recording per-turn metrics
   (1 model call, the token usage, and the tool-call count).
 - `withStoredConversation(ref)`: updates the base context's persistence cursor after storing.
-- `window(int size, UnaryOperator<List<Message>> decorator)`: applies `MessageWindowFilter.apply(allMessages(), size)`,
-  passes the windowed messages through `decorator` and returns a read-only `ConversationSnapshot`.
-  `DocumentExpander.windowDecorator(conversation)` is the decorator of the request handler.
+- `window(int size)`: applies `MessageWindowFilter.apply(allMessages(), size)`, expands the document references of the
+  windowed messages (`DocumentExpander.expandMessages`) for an agent instance with the `documents` feature and returns a
+  read-only `ConversationSnapshot`.
+- `documentsSeenByModel(int size)`: the documents of the window of the last model call, the ones the runtime tool calls
+  of that call can read.
 - `persistedContext()` / `withPersistedContext(context)`: the base `AgentContext` without the metrics and iteration
   bookkeeping that `toAgentContext()` adds, and a copy built on a changed one (the documents registered after a runtime
   tool round). `nextRuntimeToolRound(inputMessages)` opens the next round of the job with the tool call results of the
@@ -491,7 +493,7 @@ detection described above.
 
 `ConversationSnapshot` (record, `...aiagent.api.conversation`) is the transient, windowed, read-only view sent
 to the LLM: `(List<Message> messages, List<ToolDefinition> toolDefinitions)`. For an agent instance with the
-`documents` feature the window decorator (`DocumentExpander.windowDecorator`) expands the document references
+`documents` feature `AgentConversation.window` expands the document references
 (`DocumentReferenceContent`, a typed content block with the delivery `reference` or `content`) with the document registry
 (see "Document Extraction from Tool Call Results" in §19).
 The stored messages hold the document reference only. In a user message a reference becomes its tag text as a
@@ -1084,7 +1086,7 @@ Events create their payload in `toolCallResult`:
 `ChatModel` (`aiagent/api/chatmodel/ChatModel.java`) is the provider SPI: an `AutoCloseable` exposing a
 single `ChatResult execute(ChatRequest request)`. `ChatRequest` bundles the `AgentExecutionContext` and
 the windowed `ConversationSnapshot` (`BaseAgentRequestHandler` builds the snapshot via
-`conversation.window(configuration.contextWindowSize(), documentExpander.windowDecorator(conversation))`). `ChatResult` is a sealed `Completed |
+`conversation.window(configuration.contextWindowSize())`). `ChatResult` is a sealed `Completed |
 Continuation`, each carrying the produced `AssistantMessage` and `AgentMetrics` for that one round-trip:
 - **`Completed`** — the round-trip finished the agent's turn; no further model call is needed for it.
 - **`Continuation`** — the provider paused mid-turn (e.g. Anthropic's `pause_turn` stop reason) and
@@ -1466,7 +1468,7 @@ instance itself, so its key is invariant.
 - `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
 - `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
 - `MessageWindowFilter.apply()` → Context window sliding (called by `AgentConversation.window()`)
-- `DocumentExpander.windowDecorator()` → expansion of document references (the decorator `AgentConversation.window()` is given)
+- `DocumentExpander.expandMessages()` → expansion of document references (called by `AgentConversation.window()`)
 
 ### Tool Resolution
 - `AgentToolsResolverImpl.loadAdHocToolsSchema()` → Tool schema loading

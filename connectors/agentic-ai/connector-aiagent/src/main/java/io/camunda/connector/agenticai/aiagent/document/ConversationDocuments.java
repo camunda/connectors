@@ -63,15 +63,9 @@ public final class ConversationDocuments implements RuntimeToolDocuments {
         !messages.isEmpty() && messages.getLast() instanceof AssistantMessage
             ? messages.subList(0, messages.size() - 1)
             : messages;
-    return inWindow(agentContext, MessageWindowFilter.apply(beforeAnswer, contextWindowSize));
-  }
-
-  /**
-   * The documents of the windowed messages of a model call. Empty for an agent instance without the
-   * documents feature.
-   */
-  public static ConversationDocuments inWindow(AgentContext agentContext, List<Message> windowed) {
-    return agentContext.supports(AgentFeatures.DOCUMENTS) ? of(windowed) : EMPTY;
+    return agentContext.supports(AgentFeatures.DOCUMENTS)
+        ? of(MessageWindowFilter.apply(beforeAnswer, contextWindowSize))
+        : EMPTY;
   }
 
   /** The documents of the given messages. */

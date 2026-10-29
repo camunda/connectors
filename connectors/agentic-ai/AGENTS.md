@@ -230,8 +230,8 @@ High-frequency traps (detail behind each link):
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
   conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
-  result, and the registry in `AgentContext.documents` holds what the references stand for. The window decorator
-  (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
+  result, and the registry in `AgentContext.documents` holds what the references stand for. `AgentConversation.window`
+  (with `DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
   in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
   document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
   of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch

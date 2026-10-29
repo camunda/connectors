@@ -13,8 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -34,7 +32,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.UnaryOperator;
 
 /**
  * Turns the persisted {@link DocumentReferenceContent document references} in user messages and
@@ -92,18 +89,6 @@ public final class DocumentExpander {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-  }
-
-  /**
-   * The decorator for the windowed messages of the conversation. For an agent instance with the
-   * documents feature it expands the messages as {@link #expandMessages} does; for one without, the
-   * messages are left as they are.
-   */
-  public static UnaryOperator<List<Message>> windowDecorator(AgentContext agentContext) {
-    if (!agentContext.supports(AgentFeatures.DOCUMENTS)) {
-      return UnaryOperator.identity();
-    }
-    return DocumentExpander::expandMessages;
   }
 
   /**

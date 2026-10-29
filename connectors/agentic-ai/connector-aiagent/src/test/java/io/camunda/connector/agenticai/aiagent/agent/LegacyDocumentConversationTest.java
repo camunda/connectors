@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.versioning.AgentContextSchemaMigration;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -223,10 +222,7 @@ class LegacyDocumentConversationTest {
 
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
-    final var snapshot =
-        conversation
-            .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
-            .messages();
+    final var snapshot = conversation.window(100).messages();
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
     // they are
@@ -262,10 +258,7 @@ class LegacyDocumentConversationTest {
             null,
             List.of(TestMessagesFixture.userMessage("Next")));
 
-    final var snapshot =
-        conversation
-            .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
-            .messages();
+    final var snapshot = conversation.window(100).messages();
 
     final var toolResult =
         snapshot.stream()

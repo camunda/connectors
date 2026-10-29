@@ -251,12 +251,6 @@ takes the `ObjectMapper` that reads a document from its reference. The auto-conf
 `RuntimeToolRegistry` and `RuntimeToolExecutor`, both `@ConditionalOnMissingBean`. A custom bean built
 with `new` needs the extra arguments; inject them as beans.
 
-### Conversation window
-
-`AgentConversation.window(int size)` is replaced by `window(int size, UnaryOperator<List<Message>> decorator)`. The
-decorator turns the windowed messages into the messages of the snapshot; `UnaryOperator.identity()` leaves them as they
-are. The request handler passes `DocumentExpander.windowDecorator(conversation)`.
-
 ### Runtime tools and tool names
 
 - Agent instances created from 8.11 on have the `runtimeTools` feature. An ad-hoc tool element of the process

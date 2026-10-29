@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.provider.openai.OpenAiCo
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -123,10 +122,7 @@ class ToolResultDocumentRenderingTest {
     final var conversation =
         AgentConversation.rehydrate(CONFIGURATION, CONTEXT, previous, null, nextTurn.messages());
     final var windowed =
-        conversation
-            .window(100, DocumentExpander.windowDecorator(conversation.persistedContext()))
-            .messages()
-            .stream()
+        conversation.window(100).messages().stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .findFirst()

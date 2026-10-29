@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
-import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -311,13 +310,9 @@ public abstract class BaseAgentRequestHandler<
           "Sending turn (iterationKey={}) to the model",
           workingConversation.currentTurn().iterationKey());
 
-      // the model gets the snapshot of the window, the runtime calls it asks for its documents
-      final var window =
-          workingConversation.window(
-              agentConfiguration.contextWindowSize(),
-              DocumentExpander.windowDecorator(workingConversation.persistedContext()));
-      final var chatResult =
-          executeChatModel(chatModel, executionContext, ConversationSnapshot.of(window));
+      final var windowedSnapshot =
+          workingConversation.window(agentConfiguration.contextWindowSize());
+      final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       // the one place the tool calls are tagged with the kind of their tool
       final var assistantMessage =
@@ -363,7 +358,7 @@ public abstract class BaseAgentRequestHandler<
             runtimeToolExecutor.execute(
                 executionContext,
                 workingConversation.persistedContext(),
-                window.documents(),
+                workingConversation.documentsSeenByModel(agentConfiguration.contextWindowSize()),
                 currentTurn.runtimeToolCalls());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
