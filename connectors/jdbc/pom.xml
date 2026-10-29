@@ -109,7 +109,7 @@
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ucp</artifactId>
-      <version>23.26.3.0.0</version>
+      <version>23.26.4.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
