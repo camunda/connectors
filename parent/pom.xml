@@ -148,6 +148,8 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.79.0</version.google-genai>
+    <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
+    <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -684,6 +686,21 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.genai</groupId>
         <artifactId>google-genai</artifactId>
         <version>${version.google-genai}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-vertexai</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-vertexai-v1</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-vertexai-v1</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
       </dependency>
 
       <dependency>

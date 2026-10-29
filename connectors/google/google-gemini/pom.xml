@@ -63,7 +63,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-vertexai</artifactId>
-      <version>1.52.0</version>
     </dependency>
   </dependencies>
 
