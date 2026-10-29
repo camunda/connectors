@@ -158,12 +158,13 @@ generates the cluster's prefix, so it can list the functions under it.
 
 - **Cluster deletion.** Controller deletes every function and log group under the cluster's prefix.
 - **Wrapper upgrade.** Once every runtime instance of the cluster runs the new release, Controller
-  deletes the functions under the prefix that the runtime does not report as in use. The runtime
-  reports through an endpoint ([#9919](https://github.com/camunda/connectors/issues/9919)) the
-  executors it may still call: those of its own wrapper and, while one of them is not ready yet,
-  the previous executor it falls back to
-  ([#9912](https://github.com/camunda/connectors/issues/9912)). Controller checks again later while
-  the runtime still reports a previous executor.
+  asks every live instance which executors it may still call, through an endpoint
+  ([#9919](https://github.com/camunda/connectors/issues/9919)): those of its own wrapper and, while
+  one of them is not ready yet on that instance, the previous executor it falls back to
+  ([#9912](https://github.com/camunda/connectors/issues/9912)). Instances of one release can be in
+  different states, so Controller deletes only the functions under the prefix that no instance
+  reports. If an instance does not answer, Controller deletes nothing and tries again later, as it
+  does while an instance still reports a previous executor.
 - Controller retries a deletion that fails.
 
 Listing by prefix also catches the executors of wrappers several releases old, and the functions
@@ -205,10 +206,18 @@ sequenceDiagram
   A->>Provider: Execute a script
   Provider-->>A: DEPLOYMENT_MISSING
   A->>Provider: Make the executors ready again, once, then execute again
-  Note over Controller,Provider: After a rollout, and when the cluster is deleted
-  Controller->>A: Which executors are in use?
-  A-->>Controller: Its own, and the previous one while it falls back to it
-  Controller->>Provider: List the functions under the prefix, delete the others
+  Note over Controller,Provider: After a rollout
+  par Every live instance
+    Controller->>A: Which executors are in use?
+    A-->>Controller: Its own, and the previous one while it falls back to it
+  and
+    Controller->>B: Which executors are in use?
+    B-->>Controller: Its own, and the previous one while it falls back to it
+  end
+  Controller->>Provider: Delete the functions under the prefix that no instance reported
+  Note over Controller: An instance that does not answer: no deletion, try again later
+  Note over Controller,Provider: When the cluster is deleted
+  Controller->>Provider: Delete every function under the prefix
 ```
 
 ### Execution contract v1
