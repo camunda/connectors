@@ -25,6 +25,7 @@ jobs:
 
     - uses: actions/checkout@v4
 
+<<<<<<< HEAD
     # Import FOSSA_API_KEY and other secrets from Vault
     - name: Import secrets
       id: secrets
@@ -80,6 +81,102 @@ jobs:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
         branch: ${{ github.ref_name }}
         revision-id: ${{ github.sha }}
+=======
+      # Import FOSSA_API_KEY and other secrets from Vault
+      - name: Import secrets
+        id: secrets
+        uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/nexus PASSWORD | NEXUS_PASSWORD;
+            secret/data/products/connectors/ci/nexus USER | NEXUS_USER;
+            secret/data/products/connectors/ci/common FOSSA_API_KEY;
+      # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
+      # PR head, which may predate that action. Keep the line derivation in sync with it.
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        env:
+          REF: ${{ github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+          SUFFIX: internal
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          ref="${REF#refs/heads/}"
+          if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
+
+      # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
+      - name: Restore Maven cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.m2/repository
+          key: ${{ steps.maven-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: 'temurin'
+          java-version: '25.0.5+8.0.LTS'
+      - name: Update Maven settings.xml
+        uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+                "id": "camunda-nexus",
+                "username": "${{ steps.secrets.outputs.NEXUS_USER }}",
+                "password": "${{ steps.secrets.outputs.NEXUS_PASSWORD }}"
+            }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+      - name: Setup fossa-cli
+        uses: camunda/infra-global-github-actions/fossa/setup@b20a0e8f64ea6554900bab2d3fb3906be613aa19
+      - name: Get context info
+        id: info
+        uses: camunda/infra-global-github-actions/fossa/info@b20a0e8f64ea6554900bab2d3fb3906be613aa19
+      - name: Adjust pom.xml files for FOSSA
+        run: |
+          # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
+          yq -i \
+            '.project.modules.module += "./.."' \
+            parent/pom.xml
+          # Remove parent from the list of modules of ./pom.xml
+          yq -i \
+            'del(.project.modules.module[] | select(. == "parent"))' \
+            pom.xml
+      - name: Analyze project
+        uses: camunda/infra-global-github-actions/fossa/analyze@b20a0e8f64ea6554900bab2d3fb3906be613aa19
+        with:
+          api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          branch: ${{  steps.info.outputs.head-ref }}
+          revision-id: ${{ steps.info.outputs.head-revision }}
+      # PR-only: Check for newly introduced license issues
+      # This step only fails if the PR introduces new license violations.
+      # It does not fail for pre-existing issues already present in the base branch.
+      - name: Check Pull Request for new License Issues
+        if: steps.info.outputs.is-pull-request == 'true'
+        uses: camunda/infra-global-github-actions/fossa/pr-check@b20a0e8f64ea6554900bab2d3fb3906be613aa19
+        with:
+          api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          base-ref: ${{ steps.info.outputs.base-ref }}
+          # Use the most recent base commit with a FOSSA scan for comparison.
+          # If none is found, fall back to the original base commit — this will cause the check to fail.
+          base-revision: >-
+            ${{
+              steps.info.outputs.base-revision-most-recent-with-scanning-results || 
+              steps.info.outputs.base-revision
+            }}
+          revision: ${{ steps.info.outputs.head-revision }}
+>>>>>>> 6c9ee95 (ci: include the branch line in the Maven cache key (#9828))
 
     - name: Validate telemetry refs
       id: telemetry-ref-safety
