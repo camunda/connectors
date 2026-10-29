@@ -20,7 +20,6 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.tools.schema.model.AdHocToolsSchemaResponse;
 import io.camunda.connector.api.error.ConnectorException;
@@ -53,8 +52,7 @@ class AgentToolsResolverTest {
                 List.of(
                     StubRuntimeTool.of("acme_lookup", (call, context) -> null),
                     StubRuntimeTool.of("acme_notes", (call, context) -> null)
-                        .enabledWhen(context -> false)),
-                TestObjectMapperSupplier.INSTANCE));
+                        .enabledWhen(context -> false))));
   }
 
   @Nested

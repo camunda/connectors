@@ -42,7 +42,7 @@ public interface RuntimeToolContext {
   /**
    * The documents the agent knows as of the start of the batch of calls this call belongs to. The
    * documents the other calls of the batch return are not part of it, they are known to the next
-   * turn.
+   * turn. Empty when a tool is asked whether it is {@link RuntimeTool#isEnabled enabled}.
    */
   RuntimeToolDocuments documents();
 }

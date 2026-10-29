@@ -30,14 +30,11 @@ import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -74,10 +71,6 @@ class DocumentBlocksModelFacingTest {
   }
 
   private List<Message> windowed() {
-    final var registry =
-        DocumentRegistries.withDocuments(
-            DocumentRegistry.empty(),
-            List.of(new IngestedDocument(report, DocumentSource.userMessage())));
     final var call =
         new ToolCall(
             "call-1",
@@ -96,7 +89,7 @@ class DocumentBlocksModelFacingTest {
                         .content(
                             List.<Content>of(
                                 textContent("Loaded the document."),
-                                DocumentReferences.from(registry.entries().getFirst()),
+                                DocumentReferences.from(report, DocumentSource.userMessage()),
                                 textContent("Its content follows in the next message.")))
                         .build()))
             .build();
@@ -114,12 +107,13 @@ class DocumentBlocksModelFacingTest {
             .state(AgentState.READY)
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
             .conversation(InProcessConversationContext.builder("conv").build())
-            .build()
-            .withDocuments(registry.entries());
+            .build();
     final var conversation =
         AgentConversation.rehydrate(configuration, context, previous, null, List.of(answer));
     return conversation
-        .window(100, new DocumentExpander(OBJECT_MAPPER).windowDecorator(conversation))
+        .window(
+            100,
+            new DocumentExpander(OBJECT_MAPPER).windowDecorator(conversation.persistedContext()))
         .messages();
   }
 

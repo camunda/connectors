@@ -40,11 +40,6 @@ public interface AgentConversationTurnInputComposer {
    * turn. The tool call results of the turn are the results of the process and of the runtime
    * tools, in call order. The result is never {@link CompositionResult.RuntimeToolResultsRequired}.
    *
-   * <p>The documents the executions returned are not in {@code agentContext}: they are part of the
-   * {@link CompositionResult.NextTurn#documents() documents of the turn}, and the caller registers
-   * them in the agent context it persists.
-   *
-   * @param agentContext the agent context the executions ran with
    * @param executions the executions of the runtime tool calls of the last assistant message of
    *     {@code previousConversation}, none for a turn without such calls
    */

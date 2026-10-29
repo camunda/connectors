@@ -11,13 +11,12 @@ import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.nio.charset.StandardCharsets;
@@ -27,11 +26,11 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A runtime tool used to prove the API: it returns each note as a new document, which the agent
- * registers after the calls of the message ran, so the notes of the earlier turns are the documents
- * the agent knows. It is enabled while the agent has a memory configuration, binds its arguments to
- * a record, answers an invalid call with an error result and changes the agent state through the
- * documents of its result.
+ * A runtime tool used to prove the API: it returns each note as a new document, which stays in its
+ * tool result, so the notes of the earlier turns in the context window are the documents the agent
+ * knows. It is enabled while the agent has a memory configuration, binds its arguments to a record,
+ * answers an invalid call with an error result and changes the agent state through the documents of
+ * its result.
  */
 public final class SaveNoteTool implements RuntimeTool {
 
@@ -88,11 +87,9 @@ public final class SaveNoteTool implements RuntimeTool {
             DocumentContent.documentContent(document)));
   }
 
-  /** The texts of the notes among the documents the agent knows, in registration order. */
-  public static List<String> notesOf(DocumentRegistry registry) {
-    return notesOf(
-        registry.entries().stream()
-            .map(entry -> entry.toDocument(TestObjectMapperSupplier.INSTANCE)));
+  /** The texts of the notes among the given documents, in the order of the conversation. */
+  public static List<String> notesOf(RuntimeToolDocuments documents) {
+    return notesOf(documents.all().stream().map(AgentDocument::document));
   }
 
   private static List<String> notesOf(java.util.stream.Stream<Document> documents) {

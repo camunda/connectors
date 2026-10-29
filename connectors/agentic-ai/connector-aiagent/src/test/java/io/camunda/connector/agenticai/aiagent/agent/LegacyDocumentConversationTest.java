@@ -117,12 +117,11 @@ class LegacyDocumentConversationTest {
   }
 
   @Test
-  void loadsWithoutFeaturesAndWithoutARegistry() throws IOException {
+  void loadsWithoutFeatures() throws IOException {
     final var context = loadContext();
 
     assertThat(context.features()).isEmpty();
     assertThat(context.supports(AgentFeatures.DOCUMENTS)).isFalse();
-    assertThat(context.documents()).isEmpty();
   }
 
   @Test
@@ -143,7 +142,6 @@ class LegacyDocumentConversationTest {
                 List.of(eventResult)));
 
     final var nextTurn = (CompositionResult.NextTurn) composition;
-    assertThat(nextTurn.documents()).isEmpty();
     assertThat(nextTurn.messages()).hasSize(2);
 
     // the prompt document is bare content, without a tag
@@ -193,7 +191,6 @@ class LegacyDocumentConversationTest {
             AgentInput.from(new UserPromptConfiguration("", List.of()), List.of(toolResult)));
 
     final var nextTurn = (CompositionResult.NextTurn) composition;
-    assertThat(nextTurn.documents()).isEmpty();
     assertThat(nextTurn.messages()).hasSize(2);
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
 
@@ -228,7 +225,9 @@ class LegacyDocumentConversationTest {
         AgentConversation.rehydrate(configuration, context, previous, null, nextTurn.messages());
     final var snapshot =
         conversation
-            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+            .window(
+                100,
+                new DocumentExpander(objectMapper).windowDecorator(conversation.persistedContext()))
             .messages();
 
     // no tag is inserted or rewritten: the window holds the stored messages and the new input as
@@ -241,13 +240,12 @@ class LegacyDocumentConversationTest {
             text -> assertThat(text).isEqualTo(textContent("Next")),
             content -> assertThat(content).isInstanceOf(DocumentContent.class));
 
-    // the persisted shape holds the document content, and no registry or features
+    // the persisted shape holds the document content, and no features
     final var stored = conversation.allMessages().getLast();
     assertThat(objectMapper.valueToTree(stored).at("/content/1/type").asText())
         .isEqualTo("document");
     final var storedContext = conversation.toAgentContext();
     assertThat(storedContext.features()).isEmpty();
-    assertThat(storedContext.documents()).isEmpty();
     final var serialized = objectMapper.valueToTree(storedContext);
     assertThat(serialized.has("features")).isFalse();
     assertThat(serialized.has("documents")).isFalse();
@@ -268,7 +266,9 @@ class LegacyDocumentConversationTest {
 
     final var snapshot =
         conversation
-            .window(100, new DocumentExpander(objectMapper).windowDecorator(conversation))
+            .window(
+                100,
+                new DocumentExpander(objectMapper).windowDecorator(conversation.persistedContext()))
             .messages();
 
     final var toolResult =
@@ -299,8 +299,7 @@ class LegacyDocumentConversationTest {
     final var configuration = configuration();
     final var registry =
         new RuntimeToolRegistryImpl(
-            List.of(StubRuntimeTool.of("acme_lookup", (call, toolContext) -> null)),
-            TestObjectMapperSupplier.INSTANCE);
+            List.of(StubRuntimeTool.of("acme_lookup", (call, toolContext) -> null)));
 
     final var executionContext = TestAgentExecutionContext.withConfiguration(configuration);
     assertThat(registry.enabledToolDefinitions(executionContext, context)).isEmpty();

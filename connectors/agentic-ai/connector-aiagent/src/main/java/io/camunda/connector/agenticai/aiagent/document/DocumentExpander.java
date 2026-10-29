@@ -13,10 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
-import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -34,47 +33,36 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Turns the persisted {@link DocumentReferenceContent document references} in user messages and
  * tool results into the form the model providers and the agent instance history see.
  *
- * <p>The persisted form of a document is its reference only; the document is read from the {@link
- * DocumentRegistry}. In a user message the model gets the tag text of every reference and the
- * document content of the references with {@link DocumentDelivery#CONTENT} ({@link
- * #expandMessages}); the history shows the document of every reference ({@link #expandContent}). A
- * document the registry does not know, or whose reference cannot be read, leaves the tag text
- * alone. A tag a user typed into a prompt is text and stays text.
+ * <p>The persisted form of a document is its reference, which holds the document. In a user message
+ * the model gets the tag text of every reference and the document content of the references with
+ * {@link DocumentDelivery#CONTENT} ({@link #expandMessages}); the history shows the document of
+ * every reference ({@link #expandContent}). A tag a user typed into a prompt is text and stays
+ * text.
  *
- * <p>In a tool result a reference becomes the tag text of the document read from the registry, or
- * the tag text of the reference when the registry cannot supply the document. The delivery of such
+ * <p>In a tool result a reference becomes the short tag text of its document. The delivery of such
  * a reference is not read: the model gets a document of a tool result as its tag only. A document
  * nested in an object is replaced by its tag in the object, in a tool result as well as in a user
  * message.
  *
- * <p>The result depends only on the messages and the registry, never on time or call order, so it
- * is stable across requests (prompt caching). Nothing that is stored is changed.
+ * <p>The result depends only on the messages, never on time or call order, so it is stable across
+ * requests (prompt caching). Nothing that is stored is changed.
  */
 public final class DocumentExpander {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DocumentExpander.class);
-
   private static final String COLLECTED_DOCUMENTS = "collectedDocuments";
 
-  private final ObjectMapper objectMapper;
   private final ObjectMapper taggingMapper;
 
   /**
-   * @param objectMapper the mapper that binds a document reference to a {@link Document}, the one
-   *     that reads the documents of persisted messages
+   * @param objectMapper the mapper the objects of messages are rendered with, in a copy
    */
   public DocumentExpander(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
     this.taggingMapper =
         objectMapper.copy().registerModule(new SimpleModule().addSerializer(new TagCollector()));
   }
@@ -109,46 +97,39 @@ public final class DocumentExpander {
     }
   }
 
-  /** The document of the registry entry with the given id; empty when unknown or unreadable. */
-  public Optional<Document> findDocument(DocumentRegistry registry, DocumentId id) {
-    return Optional.ofNullable(rehydrate(registry, id));
-  }
-
   /**
    * The decorator for the windowed messages of the conversation. For an agent instance with the
    * documents feature it expands the messages as {@link #expandMessages} does; for one without, the
    * messages are left as they are.
    */
-  public UnaryOperator<List<Message>> windowDecorator(AgentConversation conversation) {
-    if (!conversation.persistedContext().supports(AgentFeatures.DOCUMENTS)) {
+  public UnaryOperator<List<Message>> windowDecorator(AgentContext agentContext) {
+    if (!agentContext.supports(AgentFeatures.DOCUMENTS)) {
       return UnaryOperator.identity();
     }
-    final var registry = conversation.documentRegistry();
-    return windowed -> expandMessages(windowed, registry);
+    return this::expandMessages;
   }
 
   /**
    * Returns the messages expanded for the model: in a user message the tag text of every document
    * reference, followed by the document for the references with the delivery {@code content}; in a
-   * tool result the tag text of every reference, the tag of the document of the registry or the one
-   * of the reference when the registry has no readable document. In both, a document nested in an
-   * object is replaced by its tag.
+   * tool result the short tag text of every reference. In both, a document nested in an object is
+   * replaced by its tag.
    */
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  public List<Message> expandMessages(List<Message> messages, DocumentRegistry registry) {
+  public List<Message> expandMessages(List<Message> messages) {
     final var expanded = new ArrayList<Message>(messages.size());
     boolean changed = false;
     for (final var message : messages) {
       if (message instanceof UserMessage userMessage) {
-        final var content = expand(userMessage.content(), registry, true);
+        final var content = expand(userMessage.content(), true);
         if (content != userMessage.content()) {
           expanded.add(userMessage.withContent(content));
           changed = true;
           continue;
         }
       } else if (message instanceof ToolCallResultMessage toolCallResultMessage) {
-        final var results = expandResults(toolCallResultMessage.results(), registry);
+        final var results = expandResults(toolCallResultMessage.results());
         if (results != toolCallResultMessage.results()) {
           expanded.add(toolCallResultMessage.withResults(results));
           changed = true;
@@ -164,13 +145,13 @@ public final class DocumentExpander {
    * Returns the content expanded to the tag text and the document of every document reference, or
    * the same list when nothing needs to change.
    */
-  public List<Content> expandContent(List<Content> content, DocumentRegistry registry) {
-    return expand(content, registry, false);
+  public List<Content> expandContent(List<Content> content) {
+    return expand(content, false);
   }
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<Content> expand(List<Content> content, DocumentRegistry registry, boolean forModel) {
+  private List<Content> expand(List<Content> content, boolean forModel) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {
@@ -193,10 +174,7 @@ public final class DocumentExpander {
       if (withContent
           && !(next instanceof DocumentContent following
               && isDocumentWithId(following.document(), reference.id()))) {
-        final var document = rehydrate(registry, reference.id());
-        if (document != null) {
-          expanded.add(DocumentContent.documentContent(document));
-        }
+        expanded.add(DocumentContent.documentContent(reference.document()));
       }
     }
     return changed ? List.copyOf(expanded) : content;
@@ -204,12 +182,11 @@ public final class DocumentExpander {
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<ToolCallResultContent> expandResults(
-      List<ToolCallResultContent> results, DocumentRegistry registry) {
+  private List<ToolCallResultContent> expandResults(List<ToolCallResultContent> results) {
     final var expanded = new ArrayList<ToolCallResultContent>(results.size());
     boolean changed = false;
     for (final var result : results) {
-      final var content = expandResultContent(result.content(), registry);
+      final var content = expandResultContent(result.content());
       if (content != result.content()) {
         expanded.add(result.withContent(content));
         changed = true;
@@ -222,15 +199,14 @@ public final class DocumentExpander {
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<Content> expandResultContent(List<Content> content, DocumentRegistry registry) {
+  private List<Content> expandResultContent(List<Content> content) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (final var current : content) {
       switch (current) {
         case DocumentReferenceContent reference -> {
-          final var document = rehydrate(registry, reference.id());
           // the short tag of the document, without source, tool name and tool call id
-          final var tag = document != null ? DocumentReferences.from(document) : reference;
+          final var tag = DocumentReferences.from(reference.document());
           expanded.add(new TextContent(tag.toTag(), reference.metadata()));
           changed = true;
         }
@@ -261,23 +237,6 @@ public final class DocumentExpander {
   private static boolean isTaggable(Document document) {
     return document.reference() instanceof CamundaDocumentReference
         || document.reference() instanceof ExternalDocumentReference;
-  }
-
-  private @Nullable Document rehydrate(DocumentRegistry registry, DocumentId id) {
-    final var entry = registry.findById(id);
-    if (entry.isEmpty()) {
-      LOGGER.debug("Document {} is not in the registry, leaving its tag without content", id);
-      return null;
-    }
-    try {
-      return entry.get().toDocument(objectMapper);
-    } catch (RuntimeException e) {
-      LOGGER.warn(
-          "Document {} could not be read from its registry reference, leaving its tag without content",
-          id,
-          e);
-      return null;
-    }
   }
 
   private static final class TagCollector extends JsonSerializer<Document> {

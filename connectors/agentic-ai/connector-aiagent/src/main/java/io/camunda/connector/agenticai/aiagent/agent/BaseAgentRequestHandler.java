@@ -27,8 +27,8 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -152,8 +152,13 @@ public abstract class BaseAgentRequestHandler<
       if (compositionResult
           instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
         // the results of the process arrived: the agent executes its own calls now
+        // the calls see the documents the model saw when it asked for them
+        final var documents =
+            ConversationDocuments.seenByModel(
+                agentContext, loadedMessages, configuration.contextWindowSize());
         final var executions =
-            runtimeToolExecutor.execute(executionContext, agentContext, runtimeToolCalls);
+            runtimeToolExecutor.execute(
+                executionContext, agentContext, documents, runtimeToolCalls);
         compositionResult =
             agentInputComposer.composeWithRuntimeToolResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -172,10 +177,10 @@ public abstract class BaseAgentRequestHandler<
         case CompositionResult.RuntimeToolResultsRequired ignored ->
             throw new IllegalStateException(
                 "The turn input was composed without the runtime tool results after they were computed");
-        case CompositionResult.NextTurn(var newMessages, var newDocuments) ->
+        case CompositionResult.NextTurn(var newMessages) ->
             proceed(
                 executionContext,
-                DocumentRegistries.register(agentContext, newDocuments),
+                agentContext,
                 configuration,
                 previousConversation,
                 newMessages,
@@ -312,7 +317,7 @@ public abstract class BaseAgentRequestHandler<
       final var windowedSnapshot =
           workingConversation.window(
               agentConfiguration.contextWindowSize(),
-              documentExpander.windowDecorator(workingConversation));
+              documentExpander.windowDecorator(workingConversation.persistedContext()));
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
       // the one place the tool calls are tagged with the kind of their tool
@@ -359,19 +364,13 @@ public abstract class BaseAgentRequestHandler<
             runtimeToolExecutor.execute(
                 executionContext,
                 workingConversation.persistedContext(),
+                workingConversation.documents(agentConfiguration.contextWindowSize()),
                 currentTurn.runtimeToolCalls());
-        // the documents of the results are registered after all calls ran, in call order, so a call
-        // never sees what another call of the same message returned
-        final var input =
-            ToolCallResultsInputBuilder.build(
-                executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
-                workingConversation.persistedContext().supports(AgentFeatures.DOCUMENTS));
         workingConversation =
-            workingConversation
-                .withPersistedContext(
-                    DocumentRegistries.register(
-                        workingConversation.persistedContext(), input.documents()))
-                .nextRuntimeToolRound(input.messages());
+            workingConversation.nextRuntimeToolRound(
+                ToolCallResultsInputBuilder.build(
+                    executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
+                    workingConversation.persistedContext().supports(AgentFeatures.DOCUMENTS)));
         // the previous turn is the one whose tool calls these results belong to
         agentInstanceClient.applyTurnStart(
             executionContext,

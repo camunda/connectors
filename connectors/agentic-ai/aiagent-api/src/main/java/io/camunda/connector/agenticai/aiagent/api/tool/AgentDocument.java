@@ -29,8 +29,6 @@ public interface AgentDocument {
   /**
    * The document itself, to read its metadata and content. Reading the content of an external
    * document downloads it.
-   *
-   * @throws IllegalStateException if the document cannot be restored from the state of the agent
    */
   Document document();
 }

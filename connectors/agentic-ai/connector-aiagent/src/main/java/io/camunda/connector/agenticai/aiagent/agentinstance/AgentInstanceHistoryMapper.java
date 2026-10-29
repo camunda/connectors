@@ -93,7 +93,7 @@ public class AgentInstanceHistoryMapper {
    * @param toolCallsById the tool calls of the previous turn by id; a result of a call of a runtime
    *     tool is reported without a BPMN element
    * @param agentContext the persisted state of the agent: its features decide how the documents of
-   *     the messages are shown, its document registry is what document tags are expanded with
+   *     the messages are shown
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message,
@@ -235,8 +235,8 @@ public class AgentInstanceHistoryMapper {
   }
 
   /**
-   * The content of a user message. A document reference is its tag in inline code followed by the
-   * document, as the registry knows it; text is reported as it is, also when it holds a tag.
+   * The content of a user message. A document reference is its tag in inline code followed by its
+   * document; text is reported as it is, also when it holds a tag.
    */
   private List<AgentInstanceHistoryContent> userContentBlocks(
       List<Content> contents, AgentContext agentContext) {
@@ -244,11 +244,10 @@ public class AgentInstanceHistoryMapper {
       return contentBlocks(contents);
     }
 
-    final var registry = agentContext.documentRegistry();
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       if (content instanceof DocumentReferenceContent reference) {
-        final var expanded = documentExpander.expandContent(List.of(reference), registry);
+        final var expanded = documentExpander.expandContent(List.of(reference));
         blocks.add(AgentInstanceHistoryContent.text(inlineCode(reference.toTag())));
         expanded.stream().skip(1).forEach(document -> blocks.add(toHistoryContent(document)));
       } else {
@@ -270,20 +269,11 @@ public class AgentInstanceHistoryMapper {
       return contentBlocks(contents);
     }
 
-    final var registry = agentContext.documentRegistry();
     final var blocks = new ArrayList<AgentInstanceHistoryContent>();
     for (final var content : contents) {
       switch (content) {
-        case DocumentContent documentContent ->
-            addDocument(
-                blocks,
-                DocumentReferences.from(documentContent.document()),
-                documentContent.document());
-        case DocumentReferenceContent reference ->
-            addDocument(
-                blocks,
-                reference,
-                documentExpander.findDocument(registry, reference.id()).orElse(null));
+        case DocumentContent documentContent -> addDocument(blocks, documentContent.document());
+        case DocumentReferenceContent reference -> addDocument(blocks, reference.document());
         case ObjectContent objectContent -> addObject(blocks, objectContent);
         default -> blocks.add(toHistoryContent(content));
       }
@@ -291,14 +281,11 @@ public class AgentInstanceHistoryMapper {
     return List.copyOf(blocks);
   }
 
-  private void addDocument(
-      List<AgentInstanceHistoryContent> blocks,
-      DocumentReferenceContent reference,
-      @Nullable Document document) {
+  private void addDocument(List<AgentInstanceHistoryContent> blocks, Document document) {
     // the tag the model reads for the document of a tool result, the short one
-    final var tag = document != null ? DocumentReferences.from(document) : reference;
-    blocks.add(AgentInstanceHistoryContent.text(inlineCode(tag.toTag())));
-    if (document != null && hasHistoryDocument(document)) {
+    blocks.add(
+        AgentInstanceHistoryContent.text(inlineCode(DocumentReferences.from(document).toTag())));
+    if (hasHistoryDocument(document)) {
       blocks.add(documentHistoryContent(DocumentContent.documentContent(document)));
     }
   }

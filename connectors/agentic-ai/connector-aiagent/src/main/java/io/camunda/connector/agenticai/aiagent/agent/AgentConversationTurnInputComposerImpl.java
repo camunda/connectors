@@ -13,7 +13,6 @@ import static io.camunda.connector.agenticai.aiagent.model.message.content.TextC
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -135,20 +134,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(configuration);
     final boolean documentFlow = agentContext.supports(AgentFeatures.DOCUMENTS);
 
-    // the documents that enter the conversation with this turn: those of the prompt or of the
-    // tool call results first, those of the events after them
-    final var ingestedDocuments = new ArrayList<IngestedDocument>();
-    final var eventDocuments = new ArrayList<IngestedDocument>();
-
     final List<Message> eventMessages =
         agentInput.eventMessages().stream()
             .map(
                 eventResult ->
-                    createEventMessage(
-                        eventResult,
-                        interruptToolCallsOnEventResults,
-                        documentFlow,
-                        eventDocuments))
+                    createEventMessage(eventResult, interruptToolCallsOnEventResults, documentFlow))
             .toList();
 
     List<Message> messages = new ArrayList<>();
@@ -179,16 +169,13 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         return new CompositionResult.RuntimeToolResultsRequired(previousTurn.runtimeToolCalls());
       }
 
-      final var toolCallResultsInput =
+      messages.addAll(
           ToolCallResultsInputBuilder.build(
               orderedEntries(previousTurn.toolCalls(), processResults.resultsById(), executions),
-              documentFlow);
-      messages.addAll(toolCallResultsInput.messages());
-      ingestedDocuments.addAll(toolCallResultsInput.documents());
+              documentFlow));
       messages.addAll(eventMessages);
     } else {
-      messages.add(
-          createUserPromptMessage(agentInput.userPrompt(), documentFlow, ingestedDocuments));
+      messages.add(createUserPromptMessage(agentInput.userPrompt(), documentFlow));
       messages.addAll(eventMessages);
     }
 
@@ -199,14 +186,11 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
       return new CompositionResult.NoInput();
     }
 
-    ingestedDocuments.addAll(eventDocuments);
-    return new CompositionResult.NextTurn(messages, ingestedDocuments);
+    return new CompositionResult.NextTurn(messages);
   }
 
   private @Nullable UserMessage createUserPromptMessage(
-      AgentInput.UserPrompt userPrompt,
-      boolean documentFlow,
-      List<IngestedDocument> ingestedDocuments) {
+      AgentInput.UserPrompt userPrompt, boolean documentFlow) {
 
     final var content = new ArrayList<Content>();
 
@@ -218,8 +202,8 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var source = DocumentSource.userMessage();
     if (documentFlow) {
-      // add documents as references with the delivery content: the content is added, from the
-      // registry, when the model is called
+      // add documents as references with the delivery content: the content is added when the model
+      // is called
       for (var doc : userPrompt.documents()) {
         content.add(DocumentReferences.from(doc, source).withDelivery(DocumentDelivery.CONTENT));
       }
@@ -231,12 +215,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     if (content.isEmpty()) {
       LOGGER.debug("Not adding user message as no user content was found to add.");
       return null;
-    }
-
-    if (documentFlow) {
-      userPrompt
-          .documents()
-          .forEach(doc -> ingestedDocuments.add(new IngestedDocument(doc, source)));
     }
 
     return UserMessage.builder()
@@ -349,10 +327,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
   }
 
   private Message createEventMessage(
-      ToolCallResult eventResult,
-      boolean interruptToolCallsOnEventResults,
-      boolean documentFlow,
-      List<IngestedDocument> ingestedDocuments) {
+      ToolCallResult eventResult, boolean interruptToolCallsOnEventResults, boolean documentFlow) {
     Object eventContent = eventResult.content();
 
     List<Content> userMessageContent = new ArrayList<>();
@@ -379,7 +354,6 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
         final var source = DocumentSource.event();
         for (var group : eventDocuments) {
           for (var doc : group.documents()) {
-            ingestedDocuments.add(new IngestedDocument(doc, source));
             userMessageContent.add(DocumentReferences.from(doc, source));
           }
         }

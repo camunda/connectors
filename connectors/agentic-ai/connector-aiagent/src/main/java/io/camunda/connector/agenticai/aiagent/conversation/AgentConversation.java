@@ -7,13 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -241,33 +241,11 @@ public final class AgentConversation {
   }
 
   /**
-   * The agent context this conversation is built on, with the changes made since: the registered
-   * documents and the properties. Unlike {@link #toAgentContext()} it does not hold the metrics and
-   * the iteration bookkeeping of this invocation, so a changed copy can be handed back to {@link
-   * #withPersistedContext}.
+   * The agent context this conversation is built on. Unlike {@link #toAgentContext()} it does not
+   * hold the metrics and the iteration bookkeeping of this invocation.
    */
   public AgentContext persistedContext() {
     return currentContext;
-  }
-
-  /**
-   * Returns a new instance built on the given agent context, which is a changed copy of {@link
-   * #persistedContext()}.
-   */
-  // Identity check detects an unchanged context, so this instance is returned as is
-  @SuppressWarnings("ReferenceEquality")
-  public AgentConversation withPersistedContext(AgentContext context) {
-    if (context == currentContext) {
-      return this;
-    }
-    return new AgentConversation(
-        configuration,
-        context,
-        systemMessage,
-        previousTurns,
-        currentTurn,
-        invocationStartIterationKey,
-        precedingConfigurationFingerprint);
   }
 
   /** Returns the composed system message for this invocation, or {@code null} when it was blank. */
@@ -291,11 +269,13 @@ public final class AgentConversation {
   }
 
   /**
-   * Returns the document registry of the current agent context, which includes the documents that
-   * entered the conversation with this invocation's input.
+   * Returns the documents the model saw when it was called last: the documents of the messages in
+   * its context window. Empty for an agent instance without the documents feature.
+   *
+   * @param contextWindowSize the size of the context window the model was called with
    */
-  public DocumentRegistry documentRegistry() {
-    return currentContext.documentRegistry();
+  public ConversationDocuments documents(int contextWindowSize) {
+    return ConversationDocuments.seenByModel(currentContext, allMessages(), contextWindowSize);
   }
 
   /**

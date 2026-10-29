@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Where a document entered the conversation, as persisted in the document registry.
+ * Where a document entered the conversation.
  *
  * @param type the kind of input the document came with
  * @param toolName the name of the tool that returned the document, only for {@link Type#TOOL_CALL}

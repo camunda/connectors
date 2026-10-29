@@ -14,15 +14,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -32,12 +29,13 @@ import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 class DocumentReferenceContentTest {
+
+  private static final Document DOCUMENT = new InlineDocument("data", "a.txt", "text/plain");
 
   private final DocumentFactoryImpl documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -145,16 +143,12 @@ class DocumentReferenceContentTest {
                 .fileName("0f6b0a1e-aaaa-bbbb-cccc-0123456789ab")
                 .contentType("text/plain")
                 .build());
-    final var entry =
-        DocumentRegistries.entryFor(
-            new IngestedDocument(doc, DocumentSource.toolCall("tool", "call_1")));
     final var expected =
         "<doc id=\"0f6b0a1e-aaaa-bbbb-cccc-0123456789ab\" contentType=\"text/plain\""
             + " toolName=\"tool\" toolCallId=\"call_1\" />";
 
     assertThat(DocumentReferences.from(doc, DocumentSource.toolCall("tool", "call_1")).toTag())
         .isEqualTo(expected);
-    assertThat(DocumentReferences.from(entry).toTag()).isEqualTo(expected);
   }
 
   @Test
@@ -175,42 +169,6 @@ class DocumentReferenceContentTest {
   }
 
   @Test
-  void registryEntryRendersTheSameTagAsTheDocument() {
-    final var documents =
-        List.<Document>of(
-            documentFactory.create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
-                    .contentType("text/plain")
-                    .fileName("a.txt")
-                    .build()),
-            documentFactory.create(
-                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8)).build()),
-            new ExternalDocument(
-                "https://example.com/files/report.pdf?t=secret", "Report", u -> null),
-            new ExternalDocument("https://example.com/files/report.pdf?t=secret", null, u -> null),
-            new InlineDocument("{\"a\":1}", "data.json", "application/json"),
-            new InlineDocument("{\"a\":1}", "data.json", null));
-
-    for (final var doc : documents) {
-      for (final var origin : List.of(List.<String>of(), List.of("call_1", "tool"))) {
-        final var toolCallId = origin.isEmpty() ? null : origin.get(0);
-        final var toolName = origin.isEmpty() ? null : origin.get(1);
-        final var entry =
-            DocumentRegistries.entryFor(
-                new IngestedDocument(doc, DocumentSource.toolCall(toolName, toolCallId)));
-
-        assertThat(DocumentReferences.from(entry))
-            .as("%s from %s", doc.reference(), origin)
-            .isEqualTo(DocumentReferences.from(doc, DocumentSource.toolCall(toolName, toolCallId)));
-        assertThat(DocumentReferences.from(entry).toTag())
-            .isEqualTo(
-                DocumentReferences.from(doc, DocumentSource.toolCall(toolName, toolCallId))
-                    .toTag());
-      }
-    }
-  }
-
-  @Test
   void userMessageAndEventDocumentsCarryTheSourceInsteadOfToolAttributes() {
     final var doc =
         documentFactory.create(
@@ -227,17 +185,6 @@ class DocumentReferenceContentTest {
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"a.txt\" contentType=\"text/plain\" source=\"event\" />"
                 .formatted(DocumentHandle.idFor(doc)));
-  }
-
-  @Test
-  void registryEntryOfAUserMessageDocumentRendersTheSource() {
-    final var doc = new InlineDocument("{\"a\":1}", "data.json", "application/json");
-    final var entry =
-        DocumentRegistries.entryFor(new IngestedDocument(doc, DocumentSource.event()));
-
-    assertThat(DocumentReferences.from(entry))
-        .isEqualTo(DocumentReferences.from(doc, DocumentSource.event()));
-    assertThat(DocumentReferences.from(entry).source()).isEqualTo(DocumentSource.event());
   }
 
   private static Document camundaDocumentWithSize(@Nullable Long size) {
@@ -274,33 +221,6 @@ class DocumentReferenceContentTest {
   }
 
   @Test
-  void registryEntryRendersTheSizeOfItsCamundaReference() {
-    final var entry =
-        new DocumentRegistryEntry(
-            DocumentId.of("doc-1"),
-            DocumentSource.userMessage(),
-            Map.of(
-                "camunda.document.type",
-                "camunda",
-                "documentId",
-                "doc-1",
-                "metadata",
-                Map.of("fileName", "report.pdf", "contentType", "application/pdf", "size", 48213)));
-
-    assertThat(DocumentReferences.from(entry).toTag())
-        .isEqualTo(
-            "<doc id=\"doc-1\" fileName=\"report.pdf\" contentType=\"application/pdf\" size=\"48213\" source=\"user_message\" />");
-    assertThat(
-            DocumentReferences.from(
-                    new DocumentRegistryEntry(
-                        DocumentId.of("ext"),
-                        DocumentSource.userMessage(),
-                        Map.of("camunda.document.type", "external", "size", 5)))
-                .toTag())
-        .doesNotContain("size=");
-  }
-
-  @Test
   void aDocumentWithoutAKnownSizeRendersNone() {
     assertThat(DocumentReferences.from(camundaDocumentWithSize(null)).toTag())
         .doesNotContain("size=");
@@ -333,6 +253,7 @@ class DocumentReferenceContentTest {
             : new DocumentSource(type, toolName, toolCallId);
     return new DocumentReferenceContent(
         id == null ? null : DocumentId.of(id),
+        DOCUMENT,
         fileName,
         contentType,
         size,
@@ -376,6 +297,7 @@ class DocumentReferenceContentTest {
     final var reference =
         new DocumentReferenceContent(
             DocumentId.of("doc-1"),
+            DOCUMENT,
             "a.txt",
             "text/plain",
             3L,
@@ -389,6 +311,7 @@ class DocumentReferenceContentTest {
         .isEqualTo(
             new DocumentReferenceContent(
                 DocumentId.of("doc-1"),
+                DOCUMENT,
                 "a.txt",
                 "text/plain",
                 3L,
@@ -407,10 +330,11 @@ class DocumentReferenceContentTest {
 
   @Test
   void roundTripsThroughContentInterfaceTypeWithTypeDiscriminator() throws Exception {
-    final var objectMapper = new ObjectMapper();
+    final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final Content reference =
         new DocumentReferenceContent(
             DocumentId.of("doc-1"),
+            DOCUMENT,
             "a.txt",
             "text/plain",
             3L,
@@ -422,24 +346,58 @@ class DocumentReferenceContentTest {
 
     assertThat(serialized).contains("\"type\":\"documentReference\"");
     assertThat(serialized).contains("\"delivery\":\"content\"");
-    assertThat(objectMapper.readValue(serialized, Content.class)).isEqualTo(reference);
+    final var read = objectMapper.readValue(serialized, Content.class);
+    assertThat(read).isEqualTo(reference);
+    assertThat(((DocumentReferenceContent) read).document().asByteArray())
+        .isEqualTo("data".getBytes(StandardCharsets.UTF_8));
   }
 
   @Test
   void serializesWithoutAbsentAttributesAndReadsAMissingDeliveryAsReference() throws Exception {
-    final var objectMapper = new ObjectMapper();
+    final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var reference = reference("doc-1", null, null, null, "event", null, null);
+    final var document = objectMapper.writeValueAsString(DOCUMENT);
 
     final var serialized = objectMapper.writeValueAsString(reference);
 
     assertThat(serialized)
         .isEqualTo(
-            "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":{\"type\":\"EVENT\"},\"delivery\":\"reference\"}");
+            "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"document\":%s,\"source\":{\"type\":\"EVENT\"},\"delivery\":\"reference\"}"
+                .formatted(document));
     assertThat(
             objectMapper.readValue(
-                "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"source\":{\"type\":\"EVENT\"}}",
+                "{\"type\":\"documentReference\",\"id\":\"doc-1\",\"document\":%s,\"source\":{\"type\":\"EVENT\"}}"
+                    .formatted(document),
                 Content.class))
         .isEqualTo(reference);
+  }
+
+  @Test
+  void theDocumentIsPersistedWithTheBlockButIsNotPartOfTheTag() throws Exception {
+    final var external =
+        new ExternalDocument(
+            "https://example.com/report.pdf?token=secret", "report.pdf", u -> null);
+    final var reference = DocumentReferences.from(external, DocumentSource.userMessage());
+
+    assertThat(TestObjectMapperSupplier.INSTANCE.writeValueAsString(reference))
+        .contains("token=secret");
+    assertThat(reference.toTag()).doesNotContain("example.com").doesNotContain("secret");
+  }
+
+  @Test
+  void rejectsAMissingDocument() {
+    assertThatThrownBy(
+            () ->
+                new DocumentReferenceContent(
+                    DocumentId.of("doc-1"),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    DocumentDelivery.REFERENCE,
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test

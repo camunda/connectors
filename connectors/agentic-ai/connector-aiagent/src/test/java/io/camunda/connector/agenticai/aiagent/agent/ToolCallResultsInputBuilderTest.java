@@ -13,8 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultsInputBuilder.Entry;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
@@ -53,22 +51,17 @@ class ToolCallResultsInputBuilderTest {
   }
 
   @Test
-  void withTheDocumentsFeatureTheResultsAreOneMessageAndTheDocumentsAreReportedInCallOrder() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), true);
+  void withTheDocumentsFeatureTheResultsAreOneMessage() {
+    final var messages = ToolCallResultsInputBuilder.build(entries(), true);
 
-    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    assertThat(input.documents())
-        .containsExactly(
-            new IngestedDocument(first, DocumentSource.toolCall("alpha", "c1")),
-            new IngestedDocument(nested, DocumentSource.toolCall("gamma", "c3")),
-            new IngestedDocument(third, DocumentSource.toolCall("gamma", "c3")));
+    assertThat(messages).singleElement().isInstanceOf(ToolCallResultMessage.class);
   }
 
   @Test
   void withTheDocumentsFeatureADocumentThatIsAWholeResultIsItsTagAndANestedOneStaysADocument() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), true);
+    final var messages = ToolCallResultsInputBuilder.build(entries(), true);
 
-    final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
+    final var results = ((ToolCallResultMessage) messages.getFirst()).results();
     assertThat(results.get(0).content())
         .containsExactly(textContent("one"), DocumentReferences.from(first));
     assertThat(results.get(1).content()).containsExactly(textContent("two"));
@@ -77,23 +70,12 @@ class ToolCallResultsInputBuilderTest {
   }
 
   @Test
-  void withTheDocumentsFeatureAResultWithoutDocumentsReportsNone() {
-    final var input =
-        ToolCallResultsInputBuilder.build(
-            List.of(new Entry(result("c2", "beta", textContent("two")), List.of())), true);
+  void withoutTheDocumentsFeatureTheDocumentsFollowTheResultsInAMessage() {
+    final var messages = ToolCallResultsInputBuilder.build(entries(), false);
 
-    assertThat(input.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    assertThat(input.documents()).isEmpty();
-  }
-
-  @Test
-  void withoutTheDocumentsFeatureTheDocumentsFollowTheResultsInAMessageAndNoneIsReported() {
-    final var input = ToolCallResultsInputBuilder.build(entries(), false);
-
-    assertThat(input.documents()).isEmpty();
-    assertThat(input.messages()).hasSize(2);
-    assertThat(input.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(input.messages().get(1))
+    assertThat(messages).hasSize(2);
+    assertThat(messages.get(0)).isInstanceOf(ToolCallResultMessage.class);
+    assertThat(messages.get(1))
         .isInstanceOfSatisfying(
             UserMessage.class,
             message -> {
@@ -108,7 +90,7 @@ class ToolCallResultsInputBuilderTest {
                       DocumentContent.documentContent(nested),
                       DocumentContent.documentContent(third));
             });
-    final var results = ((ToolCallResultMessage) input.messages().getFirst()).results();
+    final var results = ((ToolCallResultMessage) messages.getFirst()).results();
     assertThat(results.get(0).content())
         .containsExactly(textContent("one"), DocumentContent.documentContent(first));
   }

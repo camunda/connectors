@@ -25,8 +25,6 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -883,7 +881,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void aDocumentReferenceWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedFromTheRegistry() {
+  void aDocumentReferenceWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedWithItsDocument() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -891,9 +889,9 @@ class AwsAgentCoreConversationStoreTest {
                     .contentType("application/pdf")
                     .fileName("report.pdf")
                     .build());
-    final var entry =
-        DocumentRegistries.entryFor(new IngestedDocument(document, DocumentSource.userMessage()));
-    final var tag = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var tag =
+        DocumentReferences.from(document, DocumentSource.userMessage())
+            .withDelivery(DocumentDelivery.CONTENT);
     final var tagOnlyMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
@@ -905,8 +903,7 @@ class AwsAgentCoreConversationStoreTest {
                     .actorId(ACTOR_ID)
                     .build())
             .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
-            .build()
-            .withDocuments(List.of(entry));
+            .build();
 
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
@@ -951,7 +948,7 @@ class AwsAgentCoreConversationStoreTest {
                   .isInstanceOfSatisfying(
                       DocumentReferenceContent.class,
                       reference -> {
-                        assertThat(reference.id()).isEqualTo(entry.id());
+                        assertThat(reference.id()).isEqualTo(tag.id());
                         assertThat(reference.delivery()).isEqualTo(DocumentDelivery.CONTENT);
                       });
             });
@@ -969,7 +966,7 @@ class AwsAgentCoreConversationStoreTest {
             .window(
                 20,
                 new DocumentExpander(TestObjectMapperSupplier.INSTANCE)
-                    .windowDecorator(conversation))
+                    .windowDecorator(conversation.persistedContext()))
             .messages();
 
     assertThat(windowed.get(0))

@@ -11,16 +11,18 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
+import io.camunda.connector.api.document.Document;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
  * A document that is part of the conversation, as persisted: the document is identified by its
- * stable id and its content is read from the document registry when the model is called. The block
- * carries what the model is told about the document, never a store id, content hash, other metadata
- * or URL (an external URL may be a presigned one).
+ * stable id and the block holds the document itself, which is read when the model is called. The
+ * model is told the attributes of the tag only, never the store id, content hash, other metadata or
+ * URL of the document (an external URL may be a presigned one).
  *
  * <p>The model sees the block as a self-closing XML tag (see {@link #toTag()}), e.g.:
  *
@@ -47,11 +49,12 @@ import org.jspecify.annotations.Nullable;
  * content}, the document content before the request is built.
  *
  * @param id the stable id of the document
+ * @param document the document; it is persisted with the block and never shown to the model
  * @param fileName the file name the model is shown, if known
  * @param contentType the content type the model is shown, if known
  * @param size the size in bytes the model is shown, if known
- * @param source where the document entered the conversation, the same value as the source of its
- *     registry entry; {@code null} for the block of a document that is a whole tool result. The tag
+ * @param source where the document entered the conversation; {@code null} for the block of a
+ *     document that is a whole tool result, whose source is the tool call of the result. The tag
  *     shows the type of a user message or event source and the tool name and tool call id of a tool
  *     call source; the message id is not part of it
  * @param delivery how the document reaches the model, {@link DocumentDelivery#REFERENCE} if not
@@ -61,6 +64,7 @@ import org.jspecify.annotations.Nullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentReferenceContent(
     DocumentId id,
+    Document document,
     @Nullable String fileName,
     @Nullable String contentType,
     @Nullable Long size,
@@ -73,6 +77,9 @@ public record DocumentReferenceContent(
     if (id == null) {
       throw new IllegalArgumentException("Document id cannot be null or empty");
     }
+    if (document == null) {
+      throw new IllegalArgumentException("Document cannot be null");
+    }
     if (fileName != null && fileName.equals(id.value())) {
       fileName = null;
     }
@@ -81,10 +88,31 @@ public record DocumentReferenceContent(
     }
   }
 
+  /**
+   * Blocks are equal when everything but the document is equal: the id stands for the document,
+   * which has no equality of its own, so a block read back from a store equals the stored one.
+   */
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof DocumentReferenceContent that
+        && id.equals(that.id)
+        && Objects.equals(fileName, that.fileName)
+        && Objects.equals(contentType, that.contentType)
+        && Objects.equals(size, that.size)
+        && Objects.equals(source, that.source)
+        && delivery == that.delivery
+        && Objects.equals(metadata, that.metadata);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, fileName, contentType, size, source, delivery, metadata);
+  }
+
   /** Returns the block with the given delivery. */
   public DocumentReferenceContent withDelivery(DocumentDelivery delivery) {
     return new DocumentReferenceContent(
-        id, fileName, contentType, size, source, delivery, metadata);
+        id, document, fileName, contentType, size, source, delivery, metadata);
   }
 
   /** The tag the model sees for the document. */

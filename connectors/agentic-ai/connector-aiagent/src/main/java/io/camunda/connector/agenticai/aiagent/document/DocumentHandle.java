@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -74,8 +73,6 @@ public final class DocumentHandle {
    *   <li>{@link ExternalDocumentReference}, {@link InlineDocumentReference} → the reference {@code
    *       name}
    * </ul>
-   *
-   * Same result as {@link #fileNameFor(Map)} for the serialized reference of the document.
    */
   public static @Nullable String fileNameFor(Document document) {
     return switch (document.reference()) {
@@ -93,8 +90,6 @@ public final class DocumentHandle {
    * not known without fetching the content: the content type of the Camunda document metadata or
    * the {@code contentType} of an inline reference. Metadata of external documents is only
    * available by downloading the document, so they have none.
-   *
-   * <p>Same result as {@link #contentTypeFor(Map)} for the serialized reference of the document.
    */
   public static @Nullable String contentTypeFor(Document document) {
     return switch (document.reference()) {
@@ -111,8 +106,6 @@ public final class DocumentHandle {
    * Returns the size in bytes the model is shown for the given document, or {@code null} when it is
    * not known without reading the content: the size of the Camunda document metadata. Other
    * references have none.
-   *
-   * <p>Same result as {@link #sizeFor(Map)} for the serialized reference of the document.
    */
   public static @Nullable Long sizeFor(Document document) {
     return switch (document.reference()) {
@@ -122,55 +115,6 @@ public final class DocumentHandle {
       }
       case null, default -> null;
     };
-  }
-
-  /**
-   * The file name of a serialized document reference (see {@link #fileNameFor(Document)}): {@code
-   * metadata.fileName} of a Camunda reference, {@code name} of an external or inline one.
-   */
-  public static @Nullable String fileNameFor(Map<String, Object> reference) {
-    return switch (referenceType(reference)) {
-      case "camunda" -> metadataValue(reference, "fileName");
-      case "external", "inline" -> text(reference.get("name"));
-      default -> null;
-    };
-  }
-
-  /**
-   * The content type of a serialized document reference (see {@link #contentTypeFor(Document)}):
-   * {@code metadata.contentType} of a Camunda reference, {@code contentType} of an inline one, none
-   * for an external one.
-   */
-  public static @Nullable String contentTypeFor(Map<String, Object> reference) {
-    return switch (referenceType(reference)) {
-      case "camunda" -> metadataValue(reference, "contentType");
-      case "inline" -> text(reference.get("contentType"));
-      default -> null;
-    };
-  }
-
-  /**
-   * The size in bytes of a serialized document reference (see {@link #sizeFor(Document)}): {@code
-   * metadata.size} of a Camunda reference, none for any other.
-   */
-  public static @Nullable Long sizeFor(Map<String, Object> reference) {
-    if (!"camunda".equals(referenceType(reference))
-        || !(reference.get("metadata") instanceof Map<?, ?> metadata)) {
-      return null;
-    }
-    return metadata.get("size") instanceof Number size ? size.longValue() : null;
-  }
-
-  private static String referenceType(Map<String, Object> reference) {
-    return reference.get("camunda.document.type") instanceof String type ? type : "";
-  }
-
-  private static @Nullable String metadataValue(Map<String, Object> reference, String key) {
-    return reference.get("metadata") instanceof Map<?, ?> metadata ? text(metadata.get(key)) : null;
-  }
-
-  private static @Nullable String text(@Nullable Object value) {
-    return value instanceof String string ? StringUtils.trimToNull(string) : null;
   }
 
   private static DocumentId idForReference(DocumentReference reference, Document document) {

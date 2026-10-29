@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -25,16 +25,11 @@ import java.util.Set;
 public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
 
   private final Map<String, RuntimeTool> toolsByName = new LinkedHashMap<>();
-  private final ObjectMapper objectMapper;
 
   /**
-   * @param objectMapper the mapper that reads a document from its reference, for the {@link
-   *     io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext} a tool is asked about
-   *     its availability with
    * @throws IllegalStateException if two tools have the same name or a name is blank
    */
-  public RuntimeToolRegistryImpl(List<RuntimeTool> tools, ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  public RuntimeToolRegistryImpl(List<RuntimeTool> tools) {
     for (final var tool : tools) {
       final var name = tool.definition().name();
       if (name.isBlank()) {
@@ -59,7 +54,8 @@ public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context =
+        new RuntimeToolContextImpl(executionContext, agentContext, ConversationDocuments.empty());
     return toolsByName.values().stream().filter(tool -> tool.isEnabled(context)).toList();
   }
 
@@ -69,7 +65,8 @@ public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return Optional.empty();
     }
-    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
+    final var context =
+        new RuntimeToolContextImpl(executionContext, agentContext, ConversationDocuments.empty());
     return Optional.ofNullable(toolsByName.get(name)).filter(tool -> tool.isEnabled(context));
   }
 

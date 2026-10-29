@@ -17,15 +17,15 @@ import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
+import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
@@ -91,8 +91,7 @@ class RuntimeToolExecutorImplTest {
 
   private static RuntimeToolExecutor executorOf(RuntimeTool... tools) {
     return new RuntimeToolExecutorImpl(
-        new RuntimeToolRegistryImpl(List.of(tools), TestObjectMapperSupplier.INSTANCE),
-        TestObjectMapperSupplier.INSTANCE);
+        new RuntimeToolRegistryImpl(List.of(tools)), TestObjectMapperSupplier.INSTANCE);
   }
 
   private static ToolCall note(String id, String text) {
@@ -111,7 +110,8 @@ class RuntimeToolExecutorImplTest {
 
   private List<RuntimeToolExecution> execute(
       RuntimeToolExecutor executor, AgentExecutionContext executionContext, ToolCall... calls) {
-    return executor.execute(executionContext, NEW_INSTANCE, List.of(calls));
+    return executor.execute(
+        executionContext, NEW_INSTANCE, ConversationDocuments.empty(), List.of(calls));
   }
 
   @Test
@@ -192,7 +192,8 @@ class RuntimeToolExecutorImplTest {
             runtimeCall("c2", "acme_order", Map.of()),
             runtimeCall("c3", "acme_order", Map.of()));
 
-    final var executions = executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, calls);
+    final var executions =
+        executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, ConversationDocuments.empty(), calls);
 
     assertThat(order).containsExactly("c1", "c2", "c3");
     assertThat(executions)
@@ -231,7 +232,11 @@ class RuntimeToolExecutorImplTest {
   @Test
   void givesACallOfAnAgentWithoutTheRuntimeToolsFeatureAnErrorResult() {
     final var executions =
-        executor.execute(WITH_MEMORY, AgentContext.empty(), List.of(note("n1", "a")));
+        executor.execute(
+            WITH_MEMORY,
+            AgentContext.empty(),
+            ConversationDocuments.empty(),
+            List.of(note("n1", "a")));
 
     assertThat(executions)
         .singleElement()
@@ -246,8 +251,12 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("f1", "acme_featured", Map.of());
     final var withFeature = AgentContext.empty().withFeatures(List.of("runtimeTools", "acme"));
 
-    final var without = executorOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
-    final var with = executorOf(tool).execute(WITH_MEMORY, withFeature, List.of(call));
+    final var without =
+        executorOf(tool)
+            .execute(WITH_MEMORY, NEW_INSTANCE, ConversationDocuments.empty(), List.of(call));
+    final var with =
+        executorOf(tool)
+            .execute(WITH_MEMORY, withFeature, ConversationDocuments.empty(), List.of(call));
 
     assertThat(without)
         .singleElement()
@@ -335,19 +344,27 @@ class RuntimeToolExecutorImplTest {
     final var agentContext = NEW_INSTANCE.withProperty("hello", "world");
 
     executorOf(reading)
-        .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
+        .execute(
+            WITH_MEMORY,
+            agentContext,
+            ConversationDocuments.empty(),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
   }
 
-  private static AgentContext knowing(Document... documents) {
-    return NEW_INSTANCE.withDocumentRegistry(
-        DocumentRegistries.withDocuments(
-            DocumentRegistry.empty(),
-            Arrays.stream(documents)
-                .map(document -> new IngestedDocument(document, DocumentSource.userMessage()))
-                .toList()));
+  private static ConversationDocuments knowing(Document... documents) {
+    return ConversationDocuments.of(
+        List.of(
+            UserMessage.builder()
+                .content(
+                    Arrays.stream(documents)
+                        .<Content>map(
+                            document ->
+                                DocumentReferences.from(document, DocumentSource.userMessage()))
+                        .toList())
+                .build()));
   }
 
   @Test
@@ -368,7 +385,10 @@ class RuntimeToolExecutorImplTest {
 
     executorOf(reading)
         .execute(
-            WITH_MEMORY, knowing(report), List.of(runtimeCall("r1", "acme_reading", Map.of())));
+            WITH_MEMORY,
+            NEW_INSTANCE,
+            knowing(report),
+            List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(
@@ -388,6 +408,7 @@ class RuntimeToolExecutorImplTest {
     final var executions =
         executor.execute(
             WITH_MEMORY,
+            NEW_INSTANCE,
             knowing(report),
             List.of(
                 runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a")),
@@ -404,26 +425,25 @@ class RuntimeToolExecutorImplTest {
   }
 
   @Test
-  void returnsTheDocumentsOfAResultAsTheyAreAndRegistersNone() {
-    final var agentContext = knowing();
-
+  void returnsTheDocumentsOfAResultAsTheyAre() {
     final var executions =
         executorOf(new SaveNoteTool())
             .execute(
                 WITH_MEMORY,
-                agentContext,
+                NEW_INSTANCE,
+                knowing(),
                 List.of(runtimeCall("n1", SaveNoteTool.NAME, Map.of("text", "a"))));
 
     assertThat(executions.getFirst().result().content())
         .hasSize(2)
         .last()
         .isInstanceOf(DocumentContent.class);
-    // the agent context is the one the executor was given
-    assertThat(agentContext.documents()).isEmpty();
   }
 
   @Test
   void anEmptyBatchHasNoExecutions() {
-    assertThat(executor.execute(WITH_MEMORY, NEW_INSTANCE, List.of())).isEmpty();
+    assertThat(
+            executor.execute(WITH_MEMORY, NEW_INSTANCE, ConversationDocuments.empty(), List.of()))
+        .isEmpty();
   }
 }

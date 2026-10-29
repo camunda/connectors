@@ -16,13 +16,9 @@ import io.camunda.client.api.search.enums.AgentInstanceHistoryRole;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -30,12 +26,10 @@ import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessag
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ProviderContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ReasoningContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
@@ -95,7 +89,7 @@ class AgentInstanceHistoryMapperTest {
   }
 
   @Test
-  void aUserMessageWithADocumentTagIsReportedWithTheTagAndTheDocumentFromTheRegistry() {
+  void aUserMessageWithADocumentTagIsReportedWithTheTagAndItsDocument() {
     final var document =
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
             .create(
@@ -103,20 +97,12 @@ class AgentInstanceHistoryMapperTest {
                     .contentType("text/plain")
                     .fileName("report.txt")
                     .build());
-    final var registry =
-        DocumentRegistries.withDocuments(
-            DocumentRegistry.empty(),
-            List.of(new IngestedDocument(document, DocumentSource.userMessage())));
-    final var tag = DocumentReferences.from(registry.entries().getFirst());
+    final var tag = DocumentReferences.from(document, DocumentSource.userMessage());
     final var userMessage =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
 
     final var items =
-        mapper.inputHistoryItems(
-            userMessage,
-            Map.of(),
-            TURN_INGESTION_TIMESTAMP,
-            WITH_DOCUMENTS.withDocumentRegistry(registry));
+        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS);
 
     assertThat(items)
         .singleElement()
@@ -127,22 +113,6 @@ class AgentInstanceHistoryMapperTest {
               assertThat(item.content().get(2))
                   .isInstanceOf(AgentInstanceHistoryContent.DocumentContent.class);
             });
-  }
-
-  @Test
-  void aDocumentTagOfAnUnknownDocumentIsReportedAsTextOnly() {
-    final var tag =
-        new DocumentReferenceContent(
-            DocumentId.of("unknown"), null, null, null, null, DocumentDelivery.REFERENCE, null);
-    final var userMessage = UserMessage.builder().content(List.of(tag)).build();
-
-    final var items =
-        mapper.inputHistoryItems(userMessage, Map.of(), TURN_INGESTION_TIMESTAMP, WITH_DOCUMENTS);
-
-    assertThat(items)
-        .singleElement()
-        .satisfies(
-            item -> assertThat(texts(item.content())).containsExactly("`" + tag.toTag() + "`"));
   }
 
   @ParameterizedTest
@@ -585,13 +555,7 @@ class AgentInstanceHistoryMapperTest {
     private final String tag = DocumentReferences.from(document).toTag();
     private final String otherTag = DocumentReferences.from(otherDocument).toTag();
 
-    private final DocumentRegistry registry =
-        DocumentRegistries.withDocuments(
-            DocumentRegistry.empty(),
-            List.of(
-                new IngestedDocument(document, DocumentSource.toolCall("fetch", "call-1")),
-                new IngestedDocument(otherDocument, DocumentSource.toolCall("fetch", "call-1"))));
-    private final AgentContext agentContext = WITH_DOCUMENTS.withDocumentRegistry(registry);
+    private final AgentContext agentContext = WITH_DOCUMENTS;
 
     private final ToolCall call =
         ToolCall.builder()
@@ -690,9 +654,10 @@ class AgentInstanceHistoryMapperTest {
 
     @Test
     void aReferenceBlockBetweenTextsIsTheShortTagInInlineCodeAndTheDocumentInTheOrderOfTheBlocks() {
-      // the block of a registry entry carries the tool call that returned the document, the model
-      // reads the short tag of a document in a tool result
-      final var block = DocumentReferences.from(registry.entries().getFirst());
+      // a block with a source carries the tool call that returned the document, the model reads
+      // the short tag of a document in a tool result
+      final var block =
+          DocumentReferences.from(document, DocumentSource.toolCall("fetch", "call-1"));
 
       final var item =
           item(
@@ -726,24 +691,6 @@ class AgentInstanceHistoryMapperTest {
     }
 
     @Test
-    void aTypedReferenceOfAnUnknownDocumentIsItsTagOnly() {
-      final var unknown =
-          new DocumentReferenceContent(
-              DocumentId.of("unknown"),
-              "u.txt",
-              null,
-              null,
-              null,
-              DocumentDelivery.REFERENCE,
-              null);
-
-      final var item = item(message(unknown), WITH_DOCUMENTS);
-
-      assertThat(item.content()).hasSize(1);
-      assertThat(texts(item.content())).containsExactly("`" + unknown.toTag() + "`");
-    }
-
-    @Test
     void aNestedDocumentIsTheTagStringInTheObjectAndTheDocumentFollowsTheObject() {
       final var item =
           item(
@@ -774,9 +721,7 @@ class AgentInstanceHistoryMapperTest {
       assertThat(reported).isEqualTo(Map.of("file", tag));
       final var modelFacing =
           (ToolCallResultMessage)
-              new DocumentExpander(objectMapper)
-                  .expandMessages(List.of(message), DocumentRegistry.empty())
-                  .getFirst();
+              new DocumentExpander(objectMapper).expandMessages(List.of(message)).getFirst();
       assertThat(modelFacing.results().getFirst().content())
           .containsExactly(ObjectContent.objectContent(reported));
     }

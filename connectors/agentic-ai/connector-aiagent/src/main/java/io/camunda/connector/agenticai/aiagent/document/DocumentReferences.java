@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
@@ -40,22 +39,11 @@ public final class DocumentReferences {
   public static DocumentReferenceContent from(Document document, @Nullable DocumentSource source) {
     return new DocumentReferenceContent(
         DocumentHandle.idFor(document),
+        document,
         DocumentHandle.fileNameFor(document),
         DocumentHandle.contentTypeFor(document),
         DocumentHandle.sizeFor(document),
         source,
-        DocumentDelivery.REFERENCE,
-        null);
-  }
-
-  /** Creates the block of a registry entry with the delivery {@code reference}. */
-  public static DocumentReferenceContent from(DocumentRegistryEntry entry) {
-    return new DocumentReferenceContent(
-        entry.id(),
-        DocumentHandle.fileNameFor(entry.reference()),
-        DocumentHandle.contentTypeFor(entry.reference()),
-        DocumentHandle.sizeFor(entry.reference()),
-        entry.source(),
         DocumentDelivery.REFERENCE,
         null);
   }

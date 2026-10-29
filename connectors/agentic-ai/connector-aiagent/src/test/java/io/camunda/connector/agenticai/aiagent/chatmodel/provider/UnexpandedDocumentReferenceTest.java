@@ -24,6 +24,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentRefe
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -43,6 +44,7 @@ class UnexpandedDocumentReferenceTest {
       List.of(
           new DocumentReferenceContent(
               DocumentId.of("doc-1"),
+              new InlineDocument("data", "a.txt", "text/plain"),
               "a.txt",
               "text/plain",
               3L,

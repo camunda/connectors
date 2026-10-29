@@ -11,9 +11,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * The stable id of a document the agent knows. The id is the handle a document is addressed by in
- * the {@code <doc id="..." />} tag the model reads, in the document registry and in the arguments
- * of a tool call. It is the id of the document in its store for a Camunda document and derived from
- * the document for any other.
+ * the {@code <doc id="..." />} tag the model reads, in the messages of the conversation and in the
+ * arguments of a tool call. It is the id of the document in its store for a Camunda document and
+ * derived from the document for any other.
  *
  * <p>Serializes as a bare JSON string.
  *

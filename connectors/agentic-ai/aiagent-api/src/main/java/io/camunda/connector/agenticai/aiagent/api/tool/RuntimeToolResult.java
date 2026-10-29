@@ -23,8 +23,8 @@ import java.util.Objects;
  * shown as it is. An {@link
  * io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent object} is shown as
  * JSON. A {@link io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent
- * document} of the content, also one nested in an object, is new to the agent: the agent registers
- * it, so it becomes a known document, and the model reads its tag in the place of the document,
+ * document} of the content, also one nested in an object, is new to the agent: it stays in the tool
+ * result, so it becomes a known document, and the model reads its tag in the place of the document,
  * never its content, store id, content hash or URL. A {@link RuntimeToolDocuments#reference
  * reference} to a document the agent knows already is shown as its tag, too.
  */

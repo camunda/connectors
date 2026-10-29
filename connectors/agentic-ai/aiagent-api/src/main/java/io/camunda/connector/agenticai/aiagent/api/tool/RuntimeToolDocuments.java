@@ -14,9 +14,10 @@ import java.util.Optional;
 
 /**
  * The documents the agent knows at the start of a batch of runtime tool calls: the documents of the
- * user prompt, of events and of tool results of this agent instance. The documents the calls of the
- * batch return are not part of it. The framework implements this interface: a method may be added
- * in a later release.
+ * user prompts, events and tool results in the context window the model was called with when it
+ * asked for the calls. A document that left the window is not part of it, nor are the documents the
+ * calls of the batch return. The framework implements this interface: a method may be added in a
+ * later release.
  *
  * <p>{@link Experimental}, see {@link RuntimeTool}.
  */

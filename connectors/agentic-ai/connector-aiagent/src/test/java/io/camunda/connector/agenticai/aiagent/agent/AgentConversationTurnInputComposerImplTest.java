@@ -24,14 +24,15 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
@@ -84,6 +85,19 @@ class AgentConversationTurnInputComposerImplTest {
           .build();
   private static final AgentConfiguration CONFIG =
       new AgentConfiguration(null, null, null, null, null, null, null);
+
+  private record KnownDocument(DocumentId id, DocumentSource source) {}
+
+  private static KnownDocument known(Document document, DocumentSource source) {
+    return new KnownDocument(DocumentHandle.idFor(document), source);
+  }
+
+  /** The documents the composed messages bring into the conversation, as the agent derives them. */
+  private static List<KnownDocument> documentsOf(List<Message> messages) {
+    return ConversationDocuments.of(messages).all().stream()
+        .map(document -> new KnownDocument(document.id(), document.source()))
+        .toList();
+  }
 
   @BeforeEach
   void setUp() {
@@ -156,7 +170,7 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(result).isInstanceOf(CompositionResult.NextTurn.class);
     var nextTurn = (CompositionResult.NextTurn) result;
     assertThat(nextTurn.messages()).singleElement().isInstanceOf(ToolCallResultMessage.class);
-    assertThat(nextTurn.documents()).isEmpty();
+    assertThat(documentsOf(nextTurn.messages())).isEmpty();
   }
 
   @Test
@@ -251,8 +265,8 @@ class AgentConversationTurnInputComposerImplTest {
         .isEqualTo(
             "<doc id=\"%s\" fileName=\"notes.txt\" contentType=\"text/plain\" source=\"user_message\" />"
                 .formatted(DocumentHandle.idFor(document)));
-    assertThat(((CompositionResult.NextTurn) result).documents())
-        .containsExactly(new IngestedDocument(document, DocumentSource.userMessage()));
+    assertThat(documentsOf(((CompositionResult.NextTurn) result).messages()))
+        .containsExactly(known(document, DocumentSource.userMessage()));
   }
 
   private static DocumentReferenceContent documentReference(
@@ -262,7 +276,14 @@ class AgentConversationTurnInputComposerImplTest {
       DocumentSource source,
       DocumentDelivery delivery) {
     return new DocumentReferenceContent(
-        DocumentHandle.idFor(document), fileName, contentType, null, source, delivery, null);
+        DocumentHandle.idFor(document),
+        document,
+        fileName,
+        contentType,
+        null,
+        source,
+        delivery,
+        null);
   }
 
   @Test
@@ -457,9 +478,8 @@ class AgentConversationTurnInputComposerImplTest {
                     .containsExactly(
                         ObjectContent.objectContent(
                             Map.of("result", "Sunny", "attachment", weatherDoc))));
-    assertThat(nextTurn.documents())
-        .containsExactly(
-            new IngestedDocument(weatherDoc, DocumentSource.toolCall("getWeather", "abcdef")));
+    assertThat(documentsOf(nextTurn.messages()))
+        .containsExactly(known(weatherDoc, DocumentSource.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -495,9 +515,8 @@ class AgentConversationTurnInputComposerImplTest {
         .first()
         .satisfies(
             r -> assertThat(r.content()).containsExactly(DocumentReferences.from(weatherDoc)));
-    assertThat(nextTurn.documents())
-        .containsExactly(
-            new IngestedDocument(weatherDoc, DocumentSource.toolCall("getWeather", "abcdef")));
+    assertThat(documentsOf(nextTurn.messages()))
+        .containsExactly(known(weatherDoc, DocumentSource.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -537,7 +556,7 @@ class AgentConversationTurnInputComposerImplTest {
             r ->
                 assertThat(r.content())
                     .containsExactly(DocumentContent.documentContent(weatherDoc)));
-    assertThat(nextTurn.documents()).isEmpty();
+    assertThat(documentsOf(nextTurn.messages())).isEmpty();
   }
 
   @Test
@@ -630,13 +649,13 @@ class AgentConversationTurnInputComposerImplTest {
 
     final var nextTurn = (CompositionResult.NextTurn) result;
     assertThat(nextTurn.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
-    assertThat(nextTurn.documents())
+    assertThat(documentsOf(nextTurn.messages()))
         .containsExactlyInAnyOrder(
-            new IngestedDocument(toolDoc, DocumentSource.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(nestedToolDoc, DocumentSource.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(eventDoc, DocumentSource.event()))
+            known(toolDoc, DocumentSource.toolCall("getWeather", "abcdef")),
+            known(nestedToolDoc, DocumentSource.toolCall("getWeather", "abcdef")),
+            known(eventDoc, DocumentSource.event()))
         .last()
-        .isEqualTo(new IngestedDocument(eventDoc, DocumentSource.event()));
+        .isEqualTo(known(eventDoc, DocumentSource.event()));
   }
 
   private static final ToolCallResultContent RUNTIME_RESULT =
@@ -762,9 +781,8 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(resultsOf(result).getFirst().content())
         .containsExactly(DocumentReferences.from(document));
     // the document of the result of a runtime tool is registered with the call that returned it
-    assertThat(((CompositionResult.NextTurn) result).documents())
-        .containsExactly(
-            new IngestedDocument(document, DocumentSource.toolCall("getWeather", "abcdef")));
+    assertThat(documentsOf(((CompositionResult.NextTurn) result).messages()))
+        .containsExactly(known(document, DocumentSource.toolCall("getWeather", "abcdef")));
   }
 
   @Test
@@ -789,13 +807,11 @@ class AgentConversationTurnInputComposerImplTest {
     var result = composeWithRuntimeResults(CONFIG, historyWith(MIXED_CALLS), input, runtimeResult);
 
     // the first call is the runtime tool call, the second one belongs to the process
-    assertThat(((CompositionResult.NextTurn) result).documents())
+    assertThat(documentsOf(((CompositionResult.NextTurn) result).messages()))
         .containsExactly(
-            new IngestedDocument(runtimeDocument, DocumentSource.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(
-                nestedRuntimeDocument, DocumentSource.toolCall("getWeather", "abcdef")),
-            new IngestedDocument(
-                processDocument, DocumentSource.toolCall("getDateTime", "fedcba")));
+            known(runtimeDocument, DocumentSource.toolCall("getWeather", "abcdef")),
+            known(nestedRuntimeDocument, DocumentSource.toolCall("getWeather", "abcdef")),
+            known(processDocument, DocumentSource.toolCall("getDateTime", "fedcba")));
   }
 
   @Test
@@ -805,7 +821,7 @@ class AgentConversationTurnInputComposerImplTest {
 
     var result = composeWithRuntimeResults(CONFIG, historyWith(MIXED_CALLS), input, errorResult);
 
-    assertThat(((CompositionResult.NextTurn) result).documents()).isEmpty();
+    assertThat(documentsOf(((CompositionResult.NextTurn) result).messages())).isEmpty();
   }
 
   @Test

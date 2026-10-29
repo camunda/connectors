@@ -148,8 +148,7 @@ class CamundaAgentInstanceClientTest {
 
   private final RuntimeToolRegistry runtimeToolRegistry =
       new RuntimeToolRegistryImpl(
-          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)),
-          TestObjectMapperSupplier.INSTANCE);
+          List.of(StubRuntimeTool.of("acme_lookup", (call, context) -> null)));
 
   private List<Duration> recordedSleeps;
   private CamundaAgentInstanceClient client;

@@ -15,21 +15,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
-import io.camunda.connector.agenticai.aiagent.document.IngestedDocument;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -150,19 +149,17 @@ class InProcessConversationStoreTest {
   }
 
   @Test
-  void keepsDocumentReferencesAndTheRegistryWhenTheAgentContextIsSerializedAndLoadedAgain()
+  void keepsDocumentReferencesWithTheirDocumentWhenTheAgentContextIsSerializedAndLoadedAgain()
       throws Exception {
     final var objectMapper = TestObjectMapperSupplier.INSTANCE;
     final var document = createDocument("report", "report.txt");
-    final var entry =
-        DocumentRegistries.entryFor(
-            new IngestedDocument(document, DocumentSource.toolCall("fetch", "call-1")));
-    final var reference = DocumentReferences.from(entry).withDelivery(DocumentDelivery.CONTENT);
+    final var reference =
+        DocumentReferences.from(document, DocumentSource.toolCall("fetch", "call-1"))
+            .withDelivery(DocumentDelivery.CONTENT);
     final var message =
         UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
 
-    final var agentContext =
-        AgentContext.empty().withDocumentRegistry(DocumentRegistry.of(List.of(entry)));
+    final var agentContext = AgentContext.empty();
     AgentContext storedAgentContext;
     try (var session = store.createSession(executionContext, agentContext)) {
       session.loadMessages(agentContext);
@@ -176,11 +173,15 @@ class InProcessConversationStoreTest {
         objectMapper.readValue(
             objectMapper.writeValueAsString(storedAgentContext), AgentContext.class);
 
-    assertThat(reloadedAgentContext.documents()).containsExactly(entry);
     try (var session = store.createSession(executionContext, reloadedAgentContext)) {
-      assertThat(session.loadMessages(reloadedAgentContext).messages())
-          .singleElement()
-          .isEqualTo(message);
+      final var loaded = session.loadMessages(reloadedAgentContext).messages();
+      assertThat(loaded).singleElement().isEqualTo(message);
+      assertThat(((UserMessage) loaded.getFirst()).content().get(1))
+          .isInstanceOfSatisfying(
+              DocumentReferenceContent.class,
+              loadedReference ->
+                  assertThat(loadedReference.document().asByteArray())
+                      .isEqualTo("report".getBytes(StandardCharsets.UTF_8)));
     }
   }
 

@@ -180,6 +180,7 @@ class AwsAgentCoreConversationMapperTest {
     var reference =
         new DocumentReferenceContent(
             DocumentId.of("d1"),
+            new InlineDocument("data", "a.txt", "text/plain"),
             "a.txt",
             "text/plain",
             3L,

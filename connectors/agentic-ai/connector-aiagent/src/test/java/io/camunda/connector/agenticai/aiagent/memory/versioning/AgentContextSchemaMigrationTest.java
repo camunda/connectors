@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -532,6 +533,7 @@ class AgentContextSchemaMigrationTest {
               TextContent.textContent("Loaded the document."),
               new DocumentReferenceContent(
                   DocumentId.of("doc-1"),
+                  new InlineDocument("data", "a.txt", "text/plain"),
                   "report.txt",
                   "text/plain",
                   10L,

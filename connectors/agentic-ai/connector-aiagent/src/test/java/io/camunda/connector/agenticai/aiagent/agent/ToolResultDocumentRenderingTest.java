@@ -24,13 +24,11 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.document.DocumentReferences;
-import io.camunda.connector.agenticai.aiagent.document.DocumentRegistries;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
@@ -50,8 +48,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The model gets the tag of a document in a tool result: the composed messages are windowed through
- * the registry and every provider converter renders the result of the window with the tags.
+ * The model gets the tag of a document in a tool result: the composed messages are windowed with
+ * the document expander and every provider converter renders the result of the window with the
+ * tags.
  */
 class ToolResultDocumentRenderingTest {
 
@@ -123,17 +122,13 @@ class ToolResultDocumentRenderingTest {
     assertThat(stored.results().get(0).content()).containsExactly(DocumentReferences.from(bare));
     assertThat(stored.results().get(1).content()).singleElement().isInstanceOf(ObjectContent.class);
 
-    final var registry =
-        DocumentRegistries.withDocuments(DocumentRegistry.empty(), nextTurn.documents());
     final var conversation =
-        AgentConversation.rehydrate(
-            CONFIGURATION,
-            CONTEXT.withDocuments(registry.entries()),
-            previous,
-            null,
-            nextTurn.messages());
+        AgentConversation.rehydrate(CONFIGURATION, CONTEXT, previous, null, nextTurn.messages());
     final var windowed =
-        conversation.window(100, expander.windowDecorator(conversation)).messages().stream()
+        conversation
+            .window(100, expander.windowDecorator(conversation.persistedContext()))
+            .messages()
+            .stream()
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .findFirst()
