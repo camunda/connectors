@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      deployments: write
       id-token: write
     env:
       BRANCH_NAME: ${{ github.head_ref }} # head_ref = branch on PR
