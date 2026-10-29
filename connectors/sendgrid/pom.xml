@@ -47,7 +47,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>${version.httpclient}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
