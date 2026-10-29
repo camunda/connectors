@@ -52,7 +52,11 @@ takes to make the executors ready, so that a script still running does not get i
 again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)
 covers the defaults; set the job timeout of the task when you raise `execution-timeout`.
 
-Secrets in the script input are resolved as for any connector.
+Each failure has an error code, and the code decides what happens to the job's retries
+(ADR-0008): a script error, a timeout or an invalid job fails without retries and raises an
+incident that shows the error message and the script's stack trace; a platform failure consumes
+one retry, with `provisioning-retry-backoff`. Secrets in the script input are resolved as for any
+connector.
 
 ## Connect to INT SaaS from a local connector runtime
 

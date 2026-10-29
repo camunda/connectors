@@ -29,7 +29,8 @@ import org.slf4j.LoggerFactory;
  * the connector runtime does.
  *
  * <p>The executors are made ready by the first job that needs them, and by the next job after one
- * is reported missing.
+ * is reported missing. Logs never contain the script, its input or its output, nor failure
+ * messages, which can quote them.
  */
 final class ManagedScriptJobHandler {
 
@@ -78,42 +79,57 @@ final class ManagedScriptJobHandler {
       String physicalTenantId,
       JobContext job,
       Map<String, Object> input) {
+    final long start = System.nanoTime();
+    Long resourceKey = null;
     ScriptLanguage language = null;
+    Outcome outcome;
     try {
       final var links = LinkedResources.parse(job.getCustomHeaders(), linksReader);
       if (links.dependenciesResourceKey().isPresent()) {
         throw new InvalidJobException(
             ErrorCode.UNSUPPORTED_DEPENDENCIES, "Managed scripts do not support dependencies yet");
       }
-      final var script = resources.get(camundaClient, physicalTenantId, links.scriptResourceKey());
+      resourceKey = links.scriptResourceKey();
+      final var script = resources.get(camundaClient, physicalTenantId, resourceKey);
       language = languageOf(script.name());
-      return execute(job, input, language, script.content());
+      outcome = execute(job, input, language, script.content());
     } catch (InvalidJobException e) {
-      return failed(job, e.code(), e.getMessage(), null, language);
+      outcome = failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
-      return failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage(), null, language);
+      outcome = failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage(), null, language);
     } catch (ProvisioningException e) {
-      return failed(
-          job, e.code(), "The executors are not available: " + e.getMessage(), null, language);
+      outcome =
+          failed(
+              job, e.code(), "The executors are not available: " + e.getMessage(), null, language);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      return failed(
-          job,
-          ErrorCode.PLATFORM_INTERRUPTED,
-          "The managed-script worker was interrupted",
-          null,
-          language);
+      outcome =
+          failed(
+              job,
+              ErrorCode.PLATFORM_INTERRUPTED,
+              "The managed-script worker was interrupted",
+              null,
+              language);
     } catch (RuntimeException e) {
       // The exception message can quote the input, so only its type is logged.
       LOG.warn(
           "Managed-script job {} failed unexpectedly: {}", job.getJobKey(), e.getClass().getName());
-      return failed(
-          job,
-          ErrorCode.PLATFORM_ERROR,
-          "The managed-script worker failed: " + e.getClass().getSimpleName(),
-          null,
-          language);
+      outcome =
+          failed(
+              job,
+              ErrorCode.PLATFORM_ERROR,
+              "The managed-script worker failed: " + e.getClass().getSimpleName(),
+              null,
+              language);
     }
+    LOG.info(
+        "Managed-script job {}: script resource {}, language {}, outcome {}, {} ms",
+        job.getJobKey(),
+        resourceKey,
+        language == null ? null : language.language(),
+        outcome instanceof Outcome.Failed failed ? failed.code() : ExecutionResponse.COMPLETED,
+        Duration.ofNanos(System.nanoTime() - start).toMillis());
+    return outcome;
   }
 
   private Outcome execute(
