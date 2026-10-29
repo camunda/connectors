@@ -41,7 +41,6 @@
     <dependency>
       <groupId>com.microsoft.kiota</groupId>
       <artifactId>microsoft-kiota-abstractions</artifactId>
-      <version>${version.microsoft-kiota-abstraction}</version>
     </dependency>
 
     <dependency>

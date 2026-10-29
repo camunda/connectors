@@ -732,6 +732,43 @@ limitations under the License.</license.inlineheader>
         <version>${version.httpclient5}</version>
       </dependency>
 
+      <!-- one version for the whole Kiota family -->
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-abstractions</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-authentication-azure</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-http-okHttp</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-form</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-json</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-text</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
