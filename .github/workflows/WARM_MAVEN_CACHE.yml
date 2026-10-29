@@ -257,8 +257,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          WORKFLOW_FILE: WARM_MAVEN_CACHE.yml
         shell: bash
         run: |
+          # A rerun of an older run would treat a newer run's keys as superseded.
+          latest=$(gh run list --workflow "$WORKFLOW_FILE" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$latest" ]; then echo "::error::Could not determine the latest run"; exit 1; fi
+          if [ "$latest" -gt "$GITHUB_RUN_ID" ]; then
+            echo "::notice::Run $latest supersedes this run; skipping cleanup"
+            exit 0
+          fi
           # Each artifact name carries the matrix size; a partial rerun after expiry leaves gaps.
           files=(active-cache-keys/*/active-cache-keys.txt)
           total=$(ls active-cache-keys | sed -n 's/.*-of-//p' | sort -u)
