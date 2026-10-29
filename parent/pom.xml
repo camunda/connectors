@@ -367,6 +367,23 @@ limitations under the License.</license.inlineheader>
         <version>42.7.14</version>
       </dependency>
 
+      <!-- JDBC drivers newer than Spring Boot's, managed here so the bundles ship what connector-jdbc tests -->
+      <dependency>
+        <groupId>com.microsoft.sqlserver</groupId>
+        <artifactId>mssql-jdbc</artifactId>
+        <version>13.6.1.jre11</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>3.5.11</version>
+      </dependency>
+      <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>26.10.0</version>
+      </dependency>
+
       <!-- Protobuf - the version has to be equal or greater than the one from the Camunda client -->
       <dependency>
         <groupId>com.google.protobuf</groupId>
