@@ -12,11 +12,6 @@ import java.util.List;
 /**
  * What the local provider needs to know about the interpreter of a language: how to find it, how to
  * ask it for its real path and version, and how to start the wrapper with it.
- *
- * @param probeArguments make the interpreter print its real path, then its version
- * @param runArguments precede the path of the entry point of the wrapper
- * @param entryPoint file of the wrapper, added by this provider, that runs one call from stdin
- * @param resourceDirectory directory, next to this class, of the entry point
  */
 enum LocalRuntime {
   NODE(
@@ -44,10 +39,19 @@ enum LocalRuntime {
   private final ScriptLanguage language;
   private final String displayName;
   private final String executable;
+
+  /** Arguments that make the interpreter print its real path, then its version. */
   private final List<String> probeArguments;
+
+  /** Arguments that precede the path of the entry point of the wrapper. */
   private final List<String> runArguments;
+
+  /** File of the wrapper, added by this provider, that runs one call read from stdin. */
   private final String entryPoint;
+
+  /** Directory, next to this class, of the resource of the entry point. */
   private final String resourceDirectory;
+
   private final int minimumMajor;
   private final int minimumMinor;
 
