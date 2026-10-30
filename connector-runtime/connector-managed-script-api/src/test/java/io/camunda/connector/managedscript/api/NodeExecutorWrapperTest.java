@@ -21,11 +21,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,11 +47,11 @@ class NodeExecutorWrapperTest {
   @TempDir static Path wrapper;
   @TempDir Path callTmp;
 
-  private static boolean nodeAvailable;
+  private static Optional<Path> node;
 
   @BeforeAll
   static void installWrapper() throws IOException {
-    nodeAvailable = nodeAvailable();
+    node = findNode().filter(NodeExecutorWrapperTest::works);
     for (var file : ExecutorWrapper.of(ScriptLanguage.JAVASCRIPT).files().entrySet()) {
       Files.write(wrapper.resolve(file.getKey()), file.getValue());
     }
@@ -56,7 +59,8 @@ class NodeExecutorWrapperTest {
 
   @BeforeEach
   void requireNode() {
-    assumeTrue(nodeAvailable, "no node on the PATH: the JavaScript wrapper tests need Node.js 20+");
+    assumeTrue(
+        node.isPresent(), "no node on the PATH: the JavaScript wrapper tests need Node.js 20+");
   }
 
   @Test
@@ -129,6 +133,19 @@ class NodeExecutorWrapperTest {
 
     assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
     assertThat(error.get("retryable").asBoolean()).isFalse();
+  }
+
+  @Test
+  void rejectsAForgedResponseWithANumberOutOfRange() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                "export function execute() {"
+                    + " process.stdout.write('{\"contractVersion\":\"1\",\"outcome\":\"COMPLETED\","
+                    + "\"variables\":{\"a\":1e999}}');"
+                    + " process.exit(0); }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
   }
 
   @Test
@@ -332,7 +349,8 @@ class NodeExecutorWrapperTest {
   private JsonNode call(Map<String, Object> request) throws Exception {
     final var stdout = Files.createTempFile(callTmp, "response", ".json");
     final var builder =
-        new ProcessBuilder("node", wrapper.resolve("local_call.mjs").toString())
+        new ProcessBuilder(
+                node.orElseThrow().toString(), wrapper.resolve("local_call.mjs").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .redirectOutput(stdout.toFile());
     builder.environment().put("EXECUTOR_TMP", callTmp.toString());
@@ -355,10 +373,18 @@ class NodeExecutorWrapperTest {
     return response.get("error");
   }
 
-  private static boolean nodeAvailable() {
+  private static Optional<Path> findNode() {
+    return Arrays.stream(System.getenv().getOrDefault("PATH", "").split(File.pathSeparator))
+        .filter(directory -> !directory.isEmpty())
+        .map(directory -> Path.of(directory, "node").toAbsolutePath())
+        .filter(Files::isExecutable)
+        .findFirst();
+  }
+
+  private static boolean works(Path node) {
     try {
       final var process =
-          new ProcessBuilder("node", "--version")
+          new ProcessBuilder(node.toString(), "--version")
               .redirectErrorStream(true)
               .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();

@@ -159,6 +159,13 @@ function failure(code, message) {
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
+// JSON.parse turns 1e999 into Infinity, which JSON.stringify writes as null: a number that is not
+// finite in a response the script wrote itself is not a contract response.
+function finite(key, value) {
+  if (typeof value === 'number' && !Number.isFinite(value)) throw new RangeError(`${key} is out of range`);
+  return value;
+}
+
 // The child is not trusted: keep only contract fields, so a script cannot forge a platform failure
 // or ask to be retried.
 function sanitize(response) {
@@ -269,7 +276,7 @@ function finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, chi
     return { response, logs, childPid };
   }
   try {
-    return { response: sanitize(JSON.parse(out.toString('utf8'))), logs, childPid };
+    return { response: sanitize(JSON.parse(out.toString('utf8'), finite)), logs, childPid };
   } catch {
     return { response: failure('INVALID_RESULT', 'the script wrote to standard output outside the contract'), logs, childPid };
   }
