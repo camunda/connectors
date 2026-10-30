@@ -43,6 +43,7 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
@@ -69,7 +70,9 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.retry.RetriesProperties;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
@@ -331,6 +334,18 @@ class CamundaAgentInstanceClientTest {
       assertThat(recordedSleeps).isEmpty();
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"  "})
+    void shouldRejectBlankSystemPromptWithoutCallingTheEngine(@Nullable String systemPrompt) {
+      assertThatThrownBy(
+              () -> client.create(TestAgentExecutionContext.withSystemPrompt(systemPrompt)))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("system prompt");
+
+      verifyNoInteractions(camundaClient);
+    }
+
     @Test
     void shouldThrowConnectorExceptionImmediatelyForHttp400PermanentError() {
       givenCreateCommand();
@@ -581,17 +596,20 @@ class CamundaAgentInstanceClientTest {
 
     @Captor private ArgumentCaptor<List<AgentInstanceHistoryItem>> historyCaptor;
 
-    private AgentConfiguration configuration(String systemPrompt, List<ToolDefinition> tools) {
+    private AgentConfiguration configuration(
+        @Nullable String systemPrompt, List<ToolDefinition> tools) {
       return configuration(systemPrompt, tools, null);
     }
 
     private AgentConfiguration configuration(
-        String systemPrompt, List<ToolDefinition> tools, @Nullable Integer maxModelCalls) {
+        @Nullable String systemPrompt,
+        List<ToolDefinition> tools,
+        @Nullable Integer maxModelCalls) {
       return configuration(systemPrompt, tools, maxModelCalls, "gpt-4o");
     }
 
     private AgentConfiguration configuration(
-        String systemPrompt,
+        @Nullable String systemPrompt,
         List<ToolDefinition> tools,
         @Nullable Integer maxModelCalls,
         String model) {
@@ -737,6 +755,47 @@ class CamundaAgentInstanceClientTest {
     }
 
     @Test
+    void shouldNotPrependConfigurationItemWhenToolDefinitionsWereRoundTripped() throws Exception {
+      givenUpdateCommand();
+      final var schema = new java.util.LinkedHashMap<String, Object>();
+      schema.put("$schema", "https://json-schema.org/draft/2020-12/schema");
+      schema.put("description", "d");
+      schema.put("additionalProperties", false);
+      schema.put("type", "object");
+      schema.put("properties", Map.of("city", Map.of("type", "string")));
+      schema.put("required", List.of("city"));
+      final var tools =
+          List.of(
+              ToolDefinition.builder()
+                  .name("getWeather")
+                  .description("Get the weather forecast")
+                  .inputSchema(schema)
+                  .build());
+      final var previousConfiguration = configuration("Be nice.", tools);
+
+      var context = AgentContext.builder().toolDefinitions(tools).build();
+      for (int i = 0; i < 3; i++) {
+        context =
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class);
+      }
+      final var configuration = configuration("Be nice.", context.toolDefinitions());
+
+      client.applyTurnStart(
+          TestAgentExecutionContext.withLimits(),
+          configuration,
+          AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+          userTurn("hi", configuration.fingerprint()),
+          Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+          TURN_INGESTION_TIMESTAMP);
+
+      verify(updateCommandStep4).history(historyCaptor.capture());
+      assertThat(historyCaptor.getValue())
+          .singleElement()
+          .satisfies(item -> assertThat(item.getRole()).isEqualTo(AgentInstanceHistoryRole.USER));
+    }
+
+    @Test
     void shouldPrependConfigurationItemWhenNoPreviousTurnExists() {
       // the very first turn: no completed turn precedes it, so the configuration is always new
       givenUpdateCommand();
@@ -804,6 +863,29 @@ class CamundaAgentInstanceClientTest {
       assertThat(historyCaptor.getValue()).hasSize(2);
       assertThat(historyCaptor.getValue().get(0).getRole())
           .isEqualTo(AgentInstanceHistoryRole.CONFIGURATION);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"  "})
+    void shouldRejectSystemPromptChangedToBlankWithoutCallingTheEngine(
+        @Nullable String systemPrompt) {
+      final var previousConfiguration = configuration("Be nice.", List.of());
+      final var configuration = configuration(systemPrompt, List.of());
+
+      assertThatThrownBy(
+              () ->
+                  client.applyTurnStart(
+                      TestAgentExecutionContext.withLimits(),
+                      configuration,
+                      AgentInstanceKey.of(AGENT_INSTANCE_KEY),
+                      userTurn("hi", configuration.fingerprint()),
+                      Optional.of(precedingTurn(previousConfiguration.fingerprint())),
+                      TURN_INGESTION_TIMESTAMP))
+          .isInstanceOf(ConnectorInputException.class)
+          .hasMessageContaining("system prompt");
+
+      verifyNoInteractions(camundaClient);
     }
 
     @Test
@@ -1392,6 +1474,12 @@ class CamundaAgentInstanceClientTest {
       return context;
     }
 
+    public static TestAgentExecutionContext withSystemPrompt(@Nullable String systemPrompt) {
+      var context = new TestAgentExecutionContext(new LimitsConfiguration(10));
+      context.systemPrompt = systemPrompt;
+      return context;
+    }
+
     public static TestAgentExecutionContext withChatModel(ChatModelConfiguration chatModel) {
       return new TestAgentExecutionContext(
           new LimitsConfiguration(10), DEFAULT_LEASE_TOKEN, chatModel);
@@ -1407,6 +1495,8 @@ class CamundaAgentInstanceClientTest {
     private final LimitsConfiguration limitsConfiguration;
 
     private final ChatModelConfiguration chatModel;
+
+    private @Nullable String systemPrompt = "system prompt";
 
     private TestAgentExecutionContext(LimitsConfiguration limitsConfiguration) {
       this(limitsConfiguration, DEFAULT_LEASE_TOKEN);
@@ -1461,7 +1551,7 @@ class CamundaAgentInstanceClientTest {
     public AgentConfiguration configuration() {
       return new AgentConfiguration(
           chatModel,
-          new PromptConfiguration.SystemPromptConfiguration("system prompt"),
+          new PromptConfiguration.SystemPromptConfiguration(systemPrompt),
           null,
           null,
           limitsConfiguration,

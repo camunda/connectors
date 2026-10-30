@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.chatmodel.ChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
@@ -14,12 +16,19 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
-import java.nio.charset.StandardCharsets;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,6 +50,9 @@ public record AgentConfiguration(
 
   public static final int DEFAULT_CONTEXT_WINDOW_SIZE = 20;
   public static final int DEFAULT_MAX_MODEL_CALLS = 10;
+
+  private static final ObjectMapper FINGERPRINT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+  private static final int MAX_INTEGER_DIGITS = 1000;
 
   public AgentConfiguration(
       ChatModelConfiguration chatModel,
@@ -76,23 +88,102 @@ public record AgentConfiguration(
    * CONFIGURATION} agent-instance history item (model, provider, system prompt, model-call limit,
    * tools): equal attributes always yield an equal fingerprint. Used both to detect whether the
    * agent instance's recorded configuration is stale, and as that history item's id, so a repeat
-   * send with unchanged content dedups for free.
+   * send with unchanged content dedups for free. The result is the SHA-256 digest as lower-case
+   * hex.
+   *
+   * <p>The attributes enter the hash as JSON. A tool definition holds its input schema in an
+   * immutable map whose iteration order is unspecified and differs between JVMs. Schema map keys
+   * are sorted recursively, except for {@code properties} maps, which retain parameter order. Tool
+   * and list order (including {@code required}) is also retained. Numbers hash by their decimal
+   * value as JSON writes it, so a {@code double} hashes like the decimal it reloads as. Integral
+   * values of up to 1000 digits hash as exact integers, whatever their scale; other decimals hash
+   * at double precision, as an integer when they round to one. Normalization only affects the hash
+   * input; the tool definitions are unchanged.
    */
   public String fingerprint() {
-    var input =
-        String.join(
-            " ",
-            chatModel.model(),
-            chatModel.descriptiveProvider(),
-            systemPrompt.prompt(),
-            String.valueOf(maxModelCalls()),
-            String.valueOf(toolDefinitions));
     try {
-      var digest =
-          MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest);
+      var json =
+          FINGERPRINT_MAPPER.writeValueAsBytes(
+              Arrays.asList(
+                  chatModel.model(),
+                  chatModel.descriptiveProvider(),
+                  systemPrompt.prompt(),
+                  maxModelCalls(),
+                  toolDefinitions.stream().map(AgentConfiguration::fingerprintInput).toList()));
+      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json));
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException("The configuration cannot be serialized", e);
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 is not available", e);
     }
+  }
+
+  private static List<@Nullable Object> fingerprintInput(ToolDefinition tool) {
+    return Arrays.asList(
+        tool.name(), tool.description(), normalizeSchema(tool.inputSchema(), SchemaContext.SCHEMA));
+  }
+
+  private enum SchemaContext {
+    SCHEMA,
+    NAMED_SCHEMAS,
+    PROPERTIES,
+    DATA
+  }
+
+  private static @Nullable Object normalizeSchema(@Nullable Object value, SchemaContext context) {
+    if (value instanceof Map<?, ?> map) {
+      final Map<String, @Nullable Object> normalized =
+          context == SchemaContext.PROPERTIES ? new LinkedHashMap<>() : new TreeMap<>();
+      map.forEach(
+          (key, child) -> {
+            final var childContext =
+                context == SchemaContext.SCHEMA
+                    ? switch ((String) key) {
+                      case "properties" -> SchemaContext.PROPERTIES;
+                      case "$defs",
+                          "definitions",
+                          "patternProperties",
+                          "dependentSchemas",
+                          "dependencies" ->
+                          SchemaContext.NAMED_SCHEMAS;
+                      case "default", "const", "enum", "examples" -> SchemaContext.DATA;
+                      default -> SchemaContext.SCHEMA;
+                    }
+                    : context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
+            normalized.put((String) key, normalizeSchema(child, childContext));
+          });
+      return normalized;
+    }
+    if (value != null
+        && value.getClass().isArray()
+        && !(value instanceof byte[])
+        && !(value instanceof char[])) {
+      final var elements = new ArrayList<@Nullable Object>(Array.getLength(value));
+      for (int i = 0; i < Array.getLength(value); i++) {
+        elements.add(Array.get(value, i));
+      }
+      return normalizeSchema(elements, context);
+    }
+    if (value instanceof List<?> list) {
+      final var childContext =
+          context == SchemaContext.DATA ? SchemaContext.DATA : SchemaContext.SCHEMA;
+      return list.stream().map(child -> normalizeSchema(child, childContext)).toList();
+    }
+    if ((value instanceof Double number && !Double.isFinite(number))
+        || (value instanceof Float floatNumber && !Float.isFinite(floatNumber))) {
+      return value;
+    }
+    if (value instanceof BigDecimal || value instanceof Double || value instanceof Float) {
+      final var decimal =
+          (value instanceof BigDecimal exact ? exact : new BigDecimal(value.toString()))
+              .stripTrailingZeros();
+      if (decimal.scale() <= 0
+          && (long) decimal.precision() - decimal.scale() <= MAX_INTEGER_DIGITS) {
+        return decimal.toBigIntegerExact();
+      }
+      final double rounded = decimal.doubleValue();
+      return value instanceof Double ? rounded : normalizeSchema(rounded, context);
+    }
+    return value;
   }
 }

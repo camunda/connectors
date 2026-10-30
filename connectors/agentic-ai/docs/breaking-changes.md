@@ -21,6 +21,9 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Response schema limits](#response-schema-limits)                            | JSON response schemas larger than 256 KiB or nested deeper than 64 levels |
+| [Model classes](#model-classes)                                              | Code that imports `AgentInstanceKey` or reads `AgentMetadata.agentInstanceKey` |
+| [Persisted data](#persisted-data-8-11)                                       | Code reading the `CONFIGURATION` items of the agent instance history |
 
 ### Module split
 
@@ -184,6 +187,29 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
+
+### Response schema limits
+
+- JSON response schemas are now limited to 262144 UTF-8 JSON bytes and 64 levels of object/array
+  nesting by default. Larger schemas fail with `INVALID_RESPONSE_SCHEMA` before the job's first model call.
+  Deployments requiring larger schemas can raise
+  `camunda.connector.agenticai.aiagent.response-schema.max-size-bytes` and
+  `camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth` in Spring application
+  properties. Both settings must be positive; provider API limits still apply.
+
+### Model classes
+
+- `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
+  `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
+  `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
+
+<a id="persisted-data-8-11"></a>
+
+### Persisted data
+
+- The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
+  SHA-256 over a JSON serialization of the configuration with normalized schema-key ordering. An existing tracked agent
+  instance writes one additional `CONFIGURATION` history item when it next reports a turn after the upgrade.
 
 ## Camunda 8.9 to 8.10
 

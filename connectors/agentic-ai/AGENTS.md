@@ -221,6 +221,12 @@ High-frequency traps (detail behind each link):
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
   construct an "expected" message and compare it for equality against one built by the code under
   test will fail on `id` alone. `ai-agent.md` §6, [ADR 012](docs/adr/012-stable-self-generated-message-ids.md).
+- **Map iteration order differs between JVMs after a record builder copied the map**: the `@AgenticAiRecord`
+  builders copy maps and sets with `Map.copyOf` and `Set.copyOf`, whose iteration order changes with every JVM start.
+  Never let a hash, an id or any value compared across runs depend on that order. Canonicalize where the value is
+  computed, including nested maps: copying into a `LinkedHashMap` preserves the order received,
+  even if it was already randomized. Preserve order only where the contract requires it.
+  `ai-agent.md` §23.
 
 ## Architectural invariants
 

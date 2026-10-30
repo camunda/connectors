@@ -51,6 +51,31 @@ class AgentContextTest {
   }
 
   @Test
+  void agentInstanceKeyIsReadFromTheMetadata() {
+    final var metadata = new AgentMetadata(1L, 2L, AgentInstanceKey.of(42L), 3);
+
+    assertThat(AgentContext.empty().agentInstanceKey()).isNull();
+    assertThat(
+            AgentContext.empty()
+                .withMetadata(new AgentMetadata(1L, 2L, null, 3))
+                .agentInstanceKey())
+        .isNull();
+    assertThat(AgentContext.empty().withMetadata(metadata).agentInstanceKey())
+        .isEqualTo(AgentInstanceKey.of(42L));
+  }
+
+  @Test
+  void agentInstanceKeyIsNotSerializedOutsideTheMetadata() throws JsonProcessingException {
+    final var context =
+        AgentContext.empty().withMetadata(new AgentMetadata(1L, 2L, AgentInstanceKey.of(42L), 3));
+
+    final var tree = objectMapper.readTree(objectMapper.writeValueAsString(context));
+
+    assertThat(tree.has("agentInstanceKey")).isFalse();
+    assertThat(tree.path("metadata").path("agentInstanceKey").asLong()).isEqualTo(42L);
+  }
+
+  @Test
   void withState() {
     final var initialContext = AgentContext.empty();
     final var updatedContext = initialContext.withState(AgentState.TOOL_DISCOVERY);

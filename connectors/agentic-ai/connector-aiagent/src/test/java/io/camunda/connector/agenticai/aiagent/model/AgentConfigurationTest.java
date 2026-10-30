@@ -22,11 +22,21 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * {@link AgentConfiguration#fingerprint()} is the change-detection and dedup key for the {@code
@@ -38,7 +48,7 @@ class AgentConfigurationTest {
 
   private static AgentConfiguration configuration(
       String model,
-      String systemPrompt,
+      @Nullable String systemPrompt,
       @Nullable Integer maxModelCalls,
       List<ToolDefinition> tools) {
     return new AgentConfiguration(
@@ -121,6 +131,16 @@ class AgentConfigurationTest {
     }
 
     @Test
+    void nullSystemPromptHasAStableAndDistinctFingerprint() {
+      final var fingerprint = configuration("gpt-4o", null, null, List.of()).fingerprint();
+
+      assertThat(fingerprint)
+          .isEqualTo(configuration("gpt-4o", null, null, List.of()).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "", null, List.of()).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "null", null, List.of()).fingerprint());
+    }
+
+    @Test
     void unsetMaxModelCallsYieldsSameFingerprintAsExplicitDefault() {
       final var unset = configuration("gpt-4o", "Be nice.", null, List.of()).fingerprint();
       final var explicit =
@@ -169,6 +189,382 @@ class AgentConfigurationTest {
 
       assertThat(first.chatModel().provider()).isEqualTo(second.chatModel().provider());
       assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
+    }
+
+    private static String fingerprintOfSchema(Map<String, Object> schema) {
+      return configuration(
+              "gpt-4o",
+              "Be nice.",
+              null,
+              List.of(
+                  ToolDefinition.builder().name("t").description("d").inputSchema(schema).build()))
+          .fingerprint();
+    }
+
+    private static Map<String, Object> ordered(Object... keysAndValues) {
+      if (keysAndValues.length % 2 != 0) {
+        throw new IllegalArgumentException("Expected pairs of a key and a value");
+      }
+      final var map = new LinkedHashMap<String, Object>();
+      for (int i = 0; i + 1 < keysAndValues.length; i += 2) {
+        map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+      }
+      return map;
+    }
+
+    @Test
+    void topLevelSchemaKeyOrderIsIrrelevant() {
+      final var props = ordered("a", ordered("type", "string"));
+      final var first = ordered("type", "object", "properties", props, "required", List.of("a"));
+      final var second = ordered("required", List.of("a"), "properties", props, "type", "object");
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void nestedSchemaKeywordOrderIsIrrelevant() {
+      final var first =
+          ordered("properties", ordered("city", ordered("type", "string", "minLength", 1)));
+      final var second =
+          ordered("properties", ordered("city", ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {"$defs", "definitions", "patternProperties", "dependentSchemas", "dependencies"})
+    void namedSchemaCalledPropertiesIgnoresKeywordOrder(String keyword) {
+      final var first =
+          ordered(keyword, ordered("properties", ordered("type", "string", "description", "d")));
+      final var second =
+          ordered(keyword, ordered("properties", ordered("description", "d", "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {"$defs", "definitions", "patternProperties", "dependentSchemas", "dependencies"})
+    void namedSchemaCalledPropertiesRetainsParameterOrder(String keyword) {
+      final var first =
+          ordered(
+              keyword,
+              ordered(
+                  "properties",
+                  ordered(
+                      "properties",
+                      ordered("a", ordered("type", "string"), "b", ordered("type", "string")))));
+      final var second =
+          ordered(
+              keyword,
+              ordered(
+                  "properties",
+                  ordered(
+                      "properties",
+                      ordered("b", ordered("type", "string"), "a", ordered("type", "string")))));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"default", "const"})
+    void dataValueWithPropertiesKeyIgnoresKeyOrder(String keyword) {
+      final var first = ordered(keyword, ordered("properties", ordered("a", 1, "b", 2)));
+      final var second = ordered(keyword, ordered("properties", ordered("b", 2, "a", 1)));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"enum", "examples"})
+    void dataListWithPropertiesKeyIgnoresKeyOrder(String keyword) {
+      final var first = ordered(keyword, List.of(ordered("properties", ordered("a", 1, "b", 2))));
+      final var second = ordered(keyword, List.of(ordered("properties", ordered("b", 2, "a", 1))));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void schemaKeywordOrderInsideArraysIsIrrelevant() {
+      final var first = ordered("anyOf", List.of(ordered("type", "string", "minLength", 1)));
+      final var second = ordered("anyOf", List.of(ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void objectArrayHashesLikeAList() {
+      final var array = ordered("anyOf", new Object[] {ordered("type", "string", "minLength", 1)});
+      final var list = ordered("anyOf", List.of(ordered("minLength", 1, "type", "string")));
+
+      assertThat(fingerprintOfSchema(array)).isEqualTo(fingerprintOfSchema(list));
+    }
+
+    @Test
+    void primitiveArrayHashesLikeAList() {
+      assertThat(fingerprintOfSchema(ordered("enum", new double[] {1.0, 2.5})))
+          .isEqualTo(fingerprintOfSchema(ordered("enum", List.of(1, 2.5))));
+      assertThat(fingerprintOfSchema(ordered("enum", new int[] {1, 2})))
+          .isEqualTo(fingerprintOfSchema(ordered("enum", List.of(1L, 2L))));
+    }
+
+    @Test
+    void nestedParameterOrderRemainsSignificant() {
+      final var first =
+          ordered(
+              "properties",
+              ordered(
+                  "address",
+                  ordered(
+                      "properties",
+                      ordered(
+                          "city",
+                          ordered("type", "string"),
+                          "country",
+                          ordered("type", "string")))));
+      final var second =
+          ordered(
+              "properties",
+              ordered(
+                  "address",
+                  ordered(
+                      "properties",
+                      ordered(
+                          "country",
+                          ordered("type", "string"),
+                          "city",
+                          ordered("type", "string")))));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void parameterOrderIsSignificant() {
+      final var first =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered("a", ordered("type", "string"), "b", ordered("type", "number")));
+      final var second =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered("b", ordered("type", "number"), "a", ordered("type", "string")));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void listOrderIsSignificant() {
+      final var first = ordered("required", List.of("a", "b"));
+      final var second = ordered("required", List.of("b", "a"));
+
+      assertThat(fingerprintOfSchema(first)).isNotEqualTo(fingerprintOfSchema(second));
+    }
+
+    @Test
+    void toolOrderIsSignificant() {
+      final var a = ToolDefinition.builder().name("a").description("d").build();
+      final var b = ToolDefinition.builder().name("b").description("d").build();
+
+      assertThat(configuration("gpt-4o", "p", null, List.of(a, b)).fingerprint())
+          .isNotEqualTo(configuration("gpt-4o", "p", null, List.of(b, a)).fingerprint());
+    }
+
+    @Test
+    void changedSchemaDetailYieldsDifferentFingerprint() {
+      final var base =
+          ordered("properties", ordered("a", ordered("type", "string", "description", "x")));
+      final var otherType =
+          ordered("properties", ordered("a", ordered("type", "number", "description", "x")));
+      final var otherDescription =
+          ordered("properties", ordered("a", ordered("type", "string", "description", "y")));
+
+      assertThat(fingerprintOfSchema(base)).isNotEqualTo(fingerprintOfSchema(otherType));
+      assertThat(fingerprintOfSchema(base)).isNotEqualTo(fingerprintOfSchema(otherDescription));
+    }
+
+    @Test
+    void changedToolNameOrDescriptionYieldsDifferentFingerprint() {
+      final Function<ToolDefinition, String> fingerprint =
+          tool -> configuration("gpt-4o", "p", null, List.of(tool)).fingerprint();
+
+      final var base = ToolDefinition.builder().name("a").description("d").build();
+      assertThat(fingerprint.apply(base))
+          .isNotEqualTo(fingerprint.apply(base.withName("b")))
+          .isNotEqualTo(fingerprint.apply(base.withDescription("e")))
+          .isNotEqualTo(fingerprint.apply(base.withDescription(null)));
+    }
+
+    @Test
+    void changedProviderYieldsDifferentFingerprint() {
+      final var openAi = configuration("gpt-4o", "p", null, List.of());
+      final var other =
+          configurationWithOpenAiBackend(
+              new OpenAiApiBackend(
+                  new OpenAiApiConnection("sk-test", null, null, null, null, null, null)));
+
+      assertThat(openAi.fingerprint()).isNotEqualTo(other.fingerprint());
+    }
+
+    @Test
+    void changedNumberYieldsDifferentFingerprint() {
+      assertThat(fingerprintOfSchema(ordered("maxItems", 5)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maxItems", 6)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.5)));
+      assertThat(fingerprintOfSchema(ordered("minimum", 0.5)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("minimum", 0.6)));
+    }
+
+    @Test
+    void decimalNumbersHashAsTheirRoundTrippedValue() {
+      final var third = BigDecimal.ONE.divide(BigDecimal.valueOf(3), MathContext.DECIMAL128);
+
+      assertThat(fingerprintOfSchema(ordered("minimum", new BigDecimal("1E+1"))))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 10.0)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 10)));
+      assertThat(fingerprintOfSchema(ordered("minimum", third)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", third.doubleValue())));
+      assertThat(fingerprintOfSchema(ordered("minimum", 0.1f)))
+          .isEqualTo(fingerprintOfSchema(ordered("minimum", 0.1d)));
+    }
+
+    @Test
+    void integralDecimalsKeepFullPrecision() {
+      final long aboveDoublePrecision = (1L << 53) + 1;
+
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal(aboveDoublePrecision))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", aboveDoublePrecision)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maximum", aboveDoublePrecision - 1)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal(1L << 53))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1L << 53)));
+    }
+
+    @Test
+    void integralNumbersKeepTheirFingerprintAcrossRepresentations() {
+      final double twoPow53 = 0x1p53;
+
+      assertThat(fingerprintOfSchema(ordered("maximum", twoPow53)))
+          .isEqualTo(
+              fingerprintOfSchema(ordered("maximum", new BigDecimal("9.007199254740992E15"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1L << 53)));
+      assertThat(fingerprintOfSchema(ordered("maximum", 1e16)))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", new BigDecimal("1.0E16"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 10_000_000_000_000_000L)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993.0"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", new BigDecimal("9007199254740993"))));
+      assertThat(fingerprintOfSchema(ordered("maximum", (double) (1L << 60))))
+          .isEqualTo(
+              fingerprintOfSchema(ordered("maximum", new BigDecimal("1.152921504606847E18"))));
+    }
+
+    @Test
+    void decimalRoundedToAnIntegralDoubleHashesLikeThatDouble() {
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1.00000000000000000001"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", 1.0)));
+    }
+
+    @Test
+    void extremeExponentsHashAtDoublePrecision() {
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1E+2147483647"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)));
+      assertThat(fingerprintOfSchema(ordered("maximum", new BigDecimal("1E+1001"))))
+          .isEqualTo(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)));
+    }
+
+    @Test
+    void nonFiniteNumbersAreHashed() {
+      assertThat(fingerprintOfSchema(ordered("maximum", Double.POSITIVE_INFINITY)))
+          .isNotEqualTo(fingerprintOfSchema(ordered("maximum", Double.NaN)));
+    }
+
+    @Test
+    void nullAndAbsentAreDistinct() {
+      // the constructor accepts a null value, the builder's immutable copy does not
+      final Function<Map<String, Object>, String> fingerprint =
+          schema ->
+              configuration("gpt-4o", "p", null, List.of(new ToolDefinition("t", "d", schema)))
+                  .fingerprint();
+
+      assertThat(fingerprint.apply(ordered("default", null)))
+          .isNotEqualTo(fingerprint.apply(ordered()));
+    }
+
+    @Test
+    void definitionsRebuiltThroughRoundTripsKeepTheirFingerprint() throws Exception {
+      final var schema =
+          ordered(
+              "$schema",
+              "https://json-schema.org/draft/2020-12/schema",
+              "description",
+              "d",
+              "additionalProperties",
+              false,
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "city", ordered("type", "string", "description", "c"),
+                  "days", ordered("type", "integer", "minimum", 1)),
+              "required",
+              List.of("city", "days"));
+      final var tool =
+          ToolDefinition.builder().name("getWeather").description("w").inputSchema(schema).build();
+      final var original = configuration("gpt-4o", "Be nice.", null, List.of(tool)).fingerprint();
+
+      var context = AgentContext.builder().toolDefinitions(List.of(tool)).build();
+      for (int i = 0; i < 3; i++) {
+        context =
+            TestObjectMapperSupplier.INSTANCE.readValue(
+                TestObjectMapperSupplier.INSTANCE.writeValueAsString(context), AgentContext.class);
+        assertThat(
+                configuration("gpt-4o", "Be nice.", null, context.toolDefinitions()).fingerprint())
+            .isEqualTo(original);
+      }
+    }
+
+    @Test
+    void fingerprintIsTheDigestOfTheCompactJsonInput() throws Exception {
+      final var schema =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "days",
+                  ordered(
+                      "type", "integer", "minimum", new BigDecimal("1"), "default", BigDecimal.TEN),
+                  "city",
+                  ordered(
+                      "type",
+                      "number",
+                      "multipleOf",
+                      new BigDecimal("0.250"),
+                      "examples",
+                      List.of(ordered("b", 1, "a", 2.0)))),
+              "required",
+              List.of("days", "city"));
+      final var expectedInput =
+          """
+          ["gpt-4o","openai","Be nice.",10,[["getWeather",null,{"properties":{\
+          "days":{"default":10,"minimum":1,"type":"integer"},\
+          "city":{"examples":[{"a":2,"b":1}],"multipleOf":0.25,"type":"number"}},\
+          "required":["days","city"],"type":"object"}]]]""";
+
+      final var fingerprint =
+          configuration(
+                  "gpt-4o", "Be nice.", 10, List.of(new ToolDefinition("getWeather", null, schema)))
+              .fingerprint();
+
+      assertThat(fingerprint)
+          .isEqualTo(
+              HexFormat.of()
+                  .formatHex(
+                      MessageDigest.getInstance("SHA-256")
+                          .digest(expectedInput.getBytes(StandardCharsets.UTF_8))));
     }
 
     @Test

@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentSubProcessRequestHandle
 import io.camunda.connector.agenticai.aiagent.agent.AgentTaskRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.ResponseSchemaValidator;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultCompletedAtResolver;
 import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
@@ -140,6 +141,16 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ResponseSchemaValidator aiAgentResponseSchemaValidator(
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    final var limits = configuration.aiagent().responseSchema();
+    return new ResponseSchemaValidator(
+        objectMapper, limits.maxSizeBytes(), limits.maxNestingDepth());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AwsSdkHttpProxySupport aiAgentAwsSdkHttpProxySupport(
       AgenticAiHttpProxySupport httpProxySupport) {
     return new AwsSdkHttpProxySupport(httpProxySupport.getProxyConfiguration());
@@ -246,7 +257,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     return new AgentTaskRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -254,7 +266,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        responseSchemaValidator);
   }
 
   @Bean
@@ -288,7 +301,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     return new AgentSubProcessRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -296,7 +310,8 @@ public class AgenticAiConnectorsAutoConfiguration {
         chatModelRegistry,
         systemPromptComposer,
         responseHandler,
-        agentInstanceClient);
+        agentInstanceClient,
+        responseSchemaValidator);
   }
 
   @Bean

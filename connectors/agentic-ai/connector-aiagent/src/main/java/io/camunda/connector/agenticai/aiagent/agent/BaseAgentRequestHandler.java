@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.De
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.DiscoverTools;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.ReadyToConverse;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
-import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModel;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatModelRejectedException;
 import io.camunda.connector.agenticai.aiagent.api.chatmodel.ChatRequest;
@@ -32,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
@@ -65,6 +65,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
+  private final ResponseSchemaValidator responseSchemaValidator;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -73,7 +74,8 @@ public abstract class BaseAgentRequestHandler<
       ChatModelRegistry chatModelRegistry,
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
-      AgentInstanceClient agentInstanceClient) {
+      AgentInstanceClient agentInstanceClient,
+      ResponseSchemaValidator responseSchemaValidator) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -81,6 +83,7 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
+    this.responseSchemaValidator = responseSchemaValidator;
   }
 
   @Override
@@ -164,7 +167,7 @@ public abstract class BaseAgentRequestHandler<
     }
     agentInstanceClient.applyToolCallResults(
         executionContext,
-        AgentInstanceKey.from(agentContext.metadata()),
+        agentContext.agentInstanceKey(),
         arrivedResults,
         previousConversation.turns().getLast());
   }
@@ -177,6 +180,9 @@ public abstract class BaseAgentRequestHandler<
       final List<Message> inputMessages,
       final ConversationSession session,
       final ConversationStore store) {
+    final var response = agentConfiguration.response();
+    responseSchemaValidator.validate(response != null ? response.format() : null);
+
     var systemMessage = createSystemMessage(executionContext, agentContext);
     final var conversation =
         AgentConversation.rehydrate(
@@ -369,8 +375,7 @@ public abstract class BaseAgentRequestHandler<
             .context(agentContext)
             .toolCalls(discoveryToolCalls.stream().map(ToolCallProcessVariable::from).toList())
             .build();
-    agentInstanceClient.applyToolDiscoveryStart(
-        executionContext, AgentInstanceKey.from(agentContext.metadata()));
+    agentInstanceClient.applyToolDiscoveryStart(executionContext, agentContext.agentInstanceKey());
     return buildConnectorResponse(executionContext, null, response, null);
   }
 

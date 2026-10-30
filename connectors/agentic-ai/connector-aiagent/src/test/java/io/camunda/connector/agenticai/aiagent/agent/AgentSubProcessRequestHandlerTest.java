@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -102,6 +103,7 @@ class AgentSubProcessRequestHandlerTest {
   @Mock private SystemPromptComposer systemPromptComposer;
   @Mock private AgentResponseHandler responseHandler;
   @Mock private AgentInstanceClient agentInstanceClient;
+  @Mock private ResponseSchemaValidator responseSchemaValidator;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -156,7 +158,8 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(toolDiscoveryToolCalls.getFirst()));
 
-    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
+    verifyNoInteractions(
+        agentInputComposer, chatModelRegistry, chatModel, responseHandler, responseSchemaValidator);
   }
 
   @Test
@@ -193,7 +196,24 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.responseValue()).isNull();
     assertThat(response.completionConditionFulfilled()).isFalse();
 
-    verifyNoInteractions(agentInputComposer, chatModelRegistry, chatModel, responseHandler);
+    verifyNoInteractions(
+        agentInputComposer, chatModelRegistry, chatModel, responseHandler, responseSchemaValidator);
+  }
+
+  @Test
+  void rejectsInvalidResponseSchemaBeforeTheTurnStarts() {
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    doThrow(new ConnectorException("INVALID_RESPONSE_SCHEMA", "Schema exceeds configured limits"))
+        .when(responseSchemaValidator)
+        .validate(any());
+
+    assertThatThrownBy(() -> requestHandler.handleRequest(agentExecutionContext))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            e -> assertThat(e.getErrorCode()).isEqualTo("INVALID_RESPONSE_SCHEMA"));
+    verifyNoInteractions(agentInstanceClient, chatModelRegistry, chatModel, responseHandler);
   }
 
   @Test
@@ -358,7 +378,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(response.cancelRemainingInstances()).isFalse();
     assertThat(response.elementActivations()).isEmpty();
 
-    verifyNoInteractions(chatModelRegistry, chatModel);
+    verifyNoInteractions(chatModelRegistry, chatModel, responseSchemaValidator);
     // no tool call results arrived at all — nothing to report
     verifyNoInteractions(agentInstanceClient);
   }

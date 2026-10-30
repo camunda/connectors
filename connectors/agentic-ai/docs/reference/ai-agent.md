@@ -1170,6 +1170,7 @@ on).
 | `ERROR_CODE_TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`         | `TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT`           | tool results arrive but there is no prior conversation                  |
 | `ERROR_CODE_MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`      | `MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED`        | model calls reached the configured maximum                              |
 | `ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT`           | `FAILED_TO_PARSE_RESPONSE_CONTENT`             | JSON parse failure (explicit JSON response format only)                 |
+| `ERROR_CODE_INVALID_RESPONSE_SCHEMA`                    | `INVALID_RESPONSE_SCHEMA`                      | Response schema cannot be serialized within configured size/depth limits |
 | `ERROR_CODE_FAILED_MODEL_CALL`                          | `FAILED_MODEL_CALL`                            | the chat model call threw                                               |
 | `ERROR_CODE_UNSUPPORTED_MODEL_CONFIGURATION`            | `UNSUPPORTED_MODEL_CONFIGURATION`              | model configuration is invalid for the provider                         |
 | `ERROR_CODE_MODEL_RESPONSE_CONTENT_FILTERED`            | `MODEL_RESPONSE_CONTENT_FILTERED`              | provider blocked the model response with content filtering              |
@@ -1248,6 +1249,39 @@ API timeout (`aiagent.chatModel.api.*`). For the current defaults, see
 (`tools.*`) and
 [`AgenticAiConnectorsConfigurationProperties`](../../connector-aiagent/src/main/java/io/camunda/connector/agenticai/aiagent/configuration/AgenticAiConnectorsConfigurationProperties.java)
 (`aiagent.*`); each property carries its own `@DefaultValue`.
+
+### Response Schema Safety Limits
+
+Both AI Agent flavors validate the configured JSON response schema when a job is about to call the
+model, before the turn is reported to the agent instance and before provider-specific conversion.
+Jobs that do not call the model (tool discovery, waiting for further tool call results) skip the
+validation. These runtime limits are independent of the provider's schema
+compatibility and compilation limits.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| `camunda.connector.agenticai.aiagent.response-schema.max-size-bytes` | `262144` (256 KiB) | Maximum compact UTF-8 JSON size of the response schema |
+| `camunda.connector.agenticai.aiagent.response-schema.max-nesting-depth` | `64` | Maximum nesting of JSON objects and arrays, counting the root object as depth 1 |
+
+Both values must be positive; invalid values prevent application startup. Override them through
+Spring application properties, for example:
+
+```yaml
+camunda:
+  connector:
+    agenticai:
+      aiagent:
+        response-schema:
+          max-size-bytes: 524288
+          max-nesting-depth: 96
+```
+
+Validation streams the already-bound schema into a bounded output without retaining a serialized
+copy. It does not resolve `$ref` references or change property order. A schema that cannot be
+serialized within the configured limits fails with `INVALID_RESPONSE_SCHEMA`, without including
+schema contents in the error. Missing or empty schemas remain unconstrained JSON mode. These checks
+protect subsequent schema processing, not the initial binding of process variables. Raising the
+limits increases local resource exposure and does not override provider API limits.
 
 ---
 
@@ -1815,7 +1849,22 @@ retried batch write dedups against the previous attempt: `USER`/`ASSISTANT` item
 early report and the later batch write for the same result dedup for free), falling back to a
 deterministic hash of `elementId` + `completedAt` for id-less event results; `CONFIGURATION` items key
 off `AgentConfiguration.fingerprint()` itself, so an unchanged configuration resent verbatim dedups
-too.
+too. The fingerprint is a SHA-256 over a JSON serialization of the model, provider, system prompt, model-call limit and
+tool definitions. Schema map keys are sorted recursively, except for `properties` maps, whose parameter
+order is significant. Tool and list order is also significant. Parameter order must be preserved by
+the schema producer; normalization cannot recover an order already lost upstream.
+A null system prompt hashes distinctly from an empty string or the literal `"null"`.
+Named-schema containers (`$defs`, `definitions`, `patternProperties`, `dependentSchemas`,
+`dependencies`) sort their names and normalize each value as a schema, even when its name is
+`properties`. Values under `default`, `const`, `enum` and `examples` are data: their map keys are
+sorted recursively, and a `properties` key there has no keyword meaning. Numbers hash by their decimal
+value as JSON writes it, so a `double` hashes like the decimal it reloads as. Integral values of up
+to 1000 digits hash as exact integers whatever their scale (`1.0E16`, `1e16` and `10000000000000000`
+hash alike). Other decimals hash at double precision, as an integer when they round to one.
+
+**System prompt on `CONFIGURATION` items.** The engine requires a non-blank system prompt on the
+agent instance. A null or blank system prompt fails `create` and `applyTurnStart` with a
+`ConnectorInputException` before any engine call.
 
 **`producedAt` per item (ADR 008).** Every history item carries a required, non-null `producedAt`,
 resolved before it reaches `AgentInstanceHistoryMapper`/`CamundaAgentInstanceClient` — neither
