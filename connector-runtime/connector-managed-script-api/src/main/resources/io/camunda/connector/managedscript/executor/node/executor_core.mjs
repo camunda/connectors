@@ -255,44 +255,54 @@ async function execute(event, workdir, deadlineMs) {
   // Output goes to files, not pipes: a leftover process holding a pipe open would block the read.
   const stdoutPath = path.join(workdir, '.stdout');
   const stderrPath = path.join(workdir, '.stderr');
-  const stdoutFd = openSync(stdoutPath, 'w');
-  const stderrFd = openSync(stderrPath, 'w');
-  const stdoutReadFd = openSync(stdoutPath, 'r');
-  const stderrReadFd = openSync(stderrPath, 'r');
-  let timedOut = false;
-  let childPid = null;
-  const exitCode = await new Promise((resolve) => {
-    const child = spawn(process.execPath, [`--max-old-space-size=${CHILD_HEAP_MB}`, CHILD, workdir], {
-      cwd: workdir,
-      env: childEnv(workdir),
-      stdio: ['pipe', stdoutFd, stderrFd],
-      detached: true, // own process group, killed as a whole on timeout
-    });
-    childPid = child.pid;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
-    }, timeoutMs);
-    child.on('exit', (code, signal) => {
-      clearTimeout(timer);
-      // Before anything is read, so that a failure to read cannot leave the script's processes behind.
-      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
-      resolve(code ?? signal);
-    });
-    child.on('error', () => {
-      clearTimeout(timer);
-      resolve(null);
-    });
-    child.stdin.on('error', () => {});
-    child.stdin.end(JSON.stringify(request));
-  });
-  closeSync(stdoutFd);
-  closeSync(stderrFd);
+  // Every descriptor opened here is closed on every path, also when a later open or the spawn fails.
+  const opened = new Set();
+  const open = (file, flags) => {
+    const fd = openSync(file, flags);
+    opened.add(fd);
+    return fd;
+  };
+  const release = (fd) => {
+    if (!opened.delete(fd)) return;
+    try { closeSync(fd); } catch { /* already closed */ }
+  };
   try {
+    const stdoutFd = open(stdoutPath, 'w');
+    const stderrFd = open(stderrPath, 'w');
+    const stdoutReadFd = open(stdoutPath, 'r');
+    const stderrReadFd = open(stderrPath, 'r');
+    let timedOut = false;
+    let childPid = null;
+    const exitCode = await new Promise((resolve) => {
+      const child = spawn(process.execPath, [`--max-old-space-size=${CHILD_HEAP_MB}`, CHILD, workdir], {
+        cwd: workdir,
+        env: childEnv(workdir),
+        stdio: ['pipe', stdoutFd, stderrFd],
+        detached: true, // own process group, killed as a whole on timeout
+      });
+      childPid = child.pid;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+      }, timeoutMs);
+      child.on('exit', (code, signal) => {
+        clearTimeout(timer);
+        // Before anything is read, so that a failure to read cannot leave the script's processes behind.
+        try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+        resolve(code ?? signal);
+      });
+      child.on('error', () => {
+        clearTimeout(timer);
+        resolve(null);
+      });
+      child.stdin.on('error', () => {});
+      child.stdin.end(JSON.stringify(request));
+    });
+    release(stdoutFd);
+    release(stderrFd);
     return finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, childPid });
   } finally {
-    closeSync(stdoutReadFd);
-    closeSync(stderrReadFd);
+    for (const fd of [...opened]) release(fd);
   }
 }
 

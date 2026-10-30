@@ -264,6 +264,18 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void reportsTheOriginalErrorWhenItsStackIsNotText() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                "export function execute() {"
+                    + " const error = new Error('boom'); error.stack = 42; throw error; }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("message").asText()).isEqualTo("Error: boom");
+  }
+
+  @Test
   void completesAScriptThatLeavesATimerRunning() throws Exception {
     final var request =
         request(

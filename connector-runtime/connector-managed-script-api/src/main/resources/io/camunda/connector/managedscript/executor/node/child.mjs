@@ -31,7 +31,9 @@ function failure(code, message, stackTrace) {
 
 function scriptError(error) {
   const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  return failure('SCRIPT_ERROR', message, error instanceof Error && error.stack ? error.stack : message);
+  // The stack of an Error can be overwritten with anything: use it only when it is text.
+  const stack = error instanceof Error && typeof error.stack === 'string' && error.stack ? error.stack : message;
+  return failure('SCRIPT_ERROR', message, stack);
 }
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
