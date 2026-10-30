@@ -179,6 +179,30 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void returnsWhenAScriptReplacesItsOutputFilesWithAFifo() throws Exception {
+    final var response =
+        call(
+            "import { execSync } from 'node:child_process'; import { unlinkSync } from 'node:fs';"
+                + " export function execute() {"
+                + " unlinkSync('.stderr'); execSync('mkfifo .stderr'); return { a: 1 }; }");
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+  }
+
+  @Test
+  void reportsAScriptThatLogsBeforeRunningOutOfMemoryAsAResourceLimit() throws Exception {
+    final var request =
+        request(
+            "export function execute() {"
+                + " console.log('x'.repeat(10000)); const kept = [];"
+                + " while (true) kept.push(new Array(1000000).fill(kept.length)); }",
+            Map.of());
+    request.put("timeoutMs", 25_000);
+
+    assertThat(errorOf(call(request)).get("code").asText()).isEqualTo("RESOURCE_LIMIT");
+  }
+
+  @Test
   void completesAScriptThatLeavesATimerRunning() throws Exception {
     final var request =
         request(
@@ -272,18 +296,24 @@ class NodeExecutorWrapperTest {
   }
 
   private JsonNode call(Map<String, Object> request) throws Exception {
+    final var stdout = Files.createTempFile(callTmp, "response", ".json");
     final var builder =
         new ProcessBuilder("node", wrapper.resolve("local_call.mjs").toString())
-            .redirectError(ProcessBuilder.Redirect.DISCARD);
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .redirectOutput(stdout.toFile());
     builder.environment().put("EXECUTOR_TMP", callTmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
     final var process = builder.start();
     try (var stdin = process.getOutputStream()) {
       stdin.write(JSON.writeValueAsBytes(request));
     }
-    final var output = process.getInputStream().readAllBytes();
-    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
-    return JSON.readTree(output);
+    try {
+      assertThat(process.waitFor(30, TimeUnit.SECONDS)).as("the wrapper returned in time").isTrue();
+      return JSON.readTree(Files.readAllBytes(stdout));
+    } finally {
+      process.destroyForcibly();
+      Files.deleteIfExists(stdout);
+    }
   }
 
   private static JsonNode errorOf(JsonNode response) {

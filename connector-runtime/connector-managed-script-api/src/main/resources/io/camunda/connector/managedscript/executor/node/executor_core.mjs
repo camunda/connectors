@@ -13,7 +13,7 @@
 
 import { spawn } from 'node:child_process';
 import {
-  closeSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, rmSync,
+  closeSync, fstatSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, rmSync,
   writeFileSync, writeSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -23,6 +23,8 @@ const CONTRACT_VERSION = '1';
 const CHILD = fileURLToPath(new URL('./child.mjs', import.meta.url));
 const MAX_OUTPUT_BYTES = 1_000_000;
 const MAX_LOG_BYTES = 4_096;
+// V8 prints its fatal error before a native backtrace of several KB: look past the backtrace.
+const MAX_DIAGNOSTIC_BYTES = 65_536;
 const MAX_MESSAGE_LENGTH = 1024;
 const MAX_STACK_TRACE_LENGTH = 8192;
 const CHILD_HEAP_MB = 256;
@@ -104,14 +106,15 @@ function scrubEnvironmentBlock() {
   }
 }
 
-function read(file, limit) {
-  const fd = openSync(file, 'r');
-  try {
-    const buffer = Buffer.alloc(limit);
-    return buffer.subarray(0, readSync(fd, buffer, 0, limit, 0));
-  } finally {
-    closeSync(fd);
-  }
+// Reads through a descriptor the wrapper opened before the script started: the script cannot
+// redirect it by replacing or removing the file it points to.
+function read(fd, limit, position = 0) {
+  const buffer = Buffer.alloc(limit);
+  return buffer.subarray(0, readSync(fd, buffer, 0, limit, position));
+}
+
+function readTail(fd, limit) {
+  return read(fd, limit, Math.max(0, fstatSync(fd).size - limit));
 }
 
 function failure(code, message) {
@@ -179,6 +182,8 @@ async function execute(event, workdir, deadlineMs) {
   const stderrPath = path.join(workdir, '.stderr');
   const stdoutFd = openSync(stdoutPath, 'w');
   const stderrFd = openSync(stderrPath, 'w');
+  const stdoutReadFd = openSync(stdoutPath, 'r');
+  const stderrReadFd = openSync(stderrPath, 'r');
   let timedOut = false;
   let childPid = null;
   const exitCode = await new Promise((resolve) => {
@@ -195,6 +200,8 @@ async function execute(event, workdir, deadlineMs) {
     }, timeoutMs);
     child.on('exit', (code, signal) => {
       clearTimeout(timer);
+      // Before anything is read, so that a failure to read cannot leave the script's processes behind.
+      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
       resolve(code ?? signal);
     });
     child.on('error', () => {
@@ -206,17 +213,25 @@ async function execute(event, workdir, deadlineMs) {
   });
   closeSync(stdoutFd);
   closeSync(stderrFd);
+  try {
+    return finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, childPid });
+  } finally {
+    closeSync(stdoutReadFd);
+    closeSync(stderrReadFd);
+  }
+}
 
-  const logs = read(stderrPath, MAX_LOG_BYTES);
+function finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, childPid }) {
+  const logs = read(stderrReadFd, MAX_LOG_BYTES);
   if (timedOut) {
     return { response: failure('TIMEOUT', `script exceeded ${timeoutMs} ms`), logs, childPid };
   }
-  const out = read(stdoutPath, MAX_OUTPUT_BYTES + 1);
+  const out = read(stdoutReadFd, MAX_OUTPUT_BYTES + 1);
   if (out.length > MAX_OUTPUT_BYTES) {
     return { response: failure('RESOURCE_LIMIT', `output larger than ${MAX_OUTPUT_BYTES} bytes`), logs, childPid };
   }
   if (out.length === 0) {
-    const response = logs.includes('heap out of memory')
+    const response = readTail(stderrReadFd, MAX_DIAGNOSTIC_BYTES).includes('heap out of memory')
       ? failure('RESOURCE_LIMIT', 'script ran out of memory')
       : failure('PLATFORM_EXECUTION_FAILED', `child exited with ${exitCode}`);
     return { response, logs, childPid };
