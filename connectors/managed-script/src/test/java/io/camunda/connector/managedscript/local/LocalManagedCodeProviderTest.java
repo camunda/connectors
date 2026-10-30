@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * is skipped. The shims are shell scripts, so these tests do not run on Windows, which the provider
  * does not support.
  */
+@DisabledOnOs(OS.WINDOWS)
 class LocalManagedCodeProviderTest {
 
   private static final ObjectMapper JSON = new ObjectMapper();
@@ -411,6 +414,22 @@ class LocalManagedCodeProviderTest {
   }
 
   @Test
+  void refusesAWrapperFileThatOtherUsersCanWrite() throws IOException {
+    requireNode();
+    final var first = provider(List.of(link("node", node)));
+    first.ensureExecutors();
+    final var installed =
+        directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
+    Files.setPosixFilePermissions(
+        installed.resolve("executor_core.mjs"), PosixFilePermissions.fromString("rw-rw-rw-"));
+
+    assertThatThrownBy(provider(List.of(link("node", node)))::ensureExecutors)
+        .isInstanceOf(ProvisioningException.class)
+        .hasMessageContaining("executor_core.mjs")
+        .hasMessageContaining("can be written by other users");
+  }
+
+  @Test
   void refusesADirectoryThatIsALink() throws IOException {
     requireNode();
     final var linked = Files.createSymbolicLink(bin.resolve("linked"), directory);
@@ -529,6 +548,29 @@ class LocalManagedCodeProviderTest {
             request("export function execute() { return {}; }", Map.of(), 300));
 
     assertThat(response.error().code()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    try (Stream<Path> left = Files.list(directory.resolve("tmp"))) {
+      assertThat(left.toList()).isEmpty();
+    }
+  }
+
+  @Test
+  void removesTheDirectoryOfAnInterruptedCall() throws IOException {
+    shim("node", "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";; *) sleep 60;; esac");
+    final var provider = provider(List.of(bin));
+    provider.ensureExecutors();
+
+    Thread.currentThread().interrupt();
+    final ExecutionResponse response;
+    try {
+      response =
+          provider.execute(
+              ScriptLanguage.JAVASCRIPT,
+              request("export function execute() { return {}; }", Map.of(), 10_000));
+    } finally {
+      Thread.interrupted();
+    }
+
+    assertThat(response.error().code()).isEqualTo("PLATFORM_INTERRUPTED");
     try (Stream<Path> left = Files.list(directory.resolve("tmp"))) {
       assertThat(left.toList()).isEmpty();
     }
