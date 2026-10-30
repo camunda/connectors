@@ -2,10 +2,10 @@ name: Maven cache key
 description: >
   Computes the ~/.m2/repository cache key written by WARM_MAVEN_CACHE.yml, scoped to the
   branch line: <os>-maven-<line>-<pom hash>-<suffix>, where <line> is the X.Y minor of a
-  stable/X.Y branch, release-X.Y.Z branch or X.Y.Z tag, and 8.6 (this branch's line)
-  otherwise. Workflows that check out a PR head or another branch inline the same
-  derivation; keep them in sync (grep for "maven-cache-key"). Requires the repository
-  to be checked out first.
+  stable/X.Y branch, release-X.Y.Z branch or X.Y.Z tag, "main" for main, and 8.6 (this
+  branch's line) otherwise. Workflows that check out a PR head or another branch inline
+  the same derivation; keep them in sync (grep for "maven-cache-key"). Requires the
+  repository to be checked out first.
 
 inputs:
   ref:
@@ -38,6 +38,8 @@ runs:
         ref="${REF#refs/heads/}"
         if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
           line="${BASH_REMATCH[2]}"
+        elif [[ "$ref" == main ]]; then
+          line=main
         else
           line=8.6
         fi
