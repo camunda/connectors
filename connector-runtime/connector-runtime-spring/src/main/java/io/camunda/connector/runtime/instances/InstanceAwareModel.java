@@ -24,8 +24,19 @@ import java.util.Map;
 public sealed interface InstanceAwareModel
     permits InstanceAwareModel.InstanceAwareActivity, InstanceAwareModel.InstanceAwareHealth {
   record InstanceAwareActivity(
-      Severity severity, String tag, OffsetDateTime timestamp, String message, String runtimeId)
-      implements InstanceAwareModel {}
+      Severity severity,
+      String tag,
+      OffsetDateTime timestamp,
+      String message,
+      String runtimeId,
+      Map<String, Object> data)
+      implements InstanceAwareModel {
+
+    public InstanceAwareActivity(
+        Severity severity, String tag, OffsetDateTime timestamp, String message, String runtimeId) {
+      this(severity, tag, timestamp, message, runtimeId, Map.of());
+    }
+  }
 
   record InstanceAwareHealth(
       Health.Status status,

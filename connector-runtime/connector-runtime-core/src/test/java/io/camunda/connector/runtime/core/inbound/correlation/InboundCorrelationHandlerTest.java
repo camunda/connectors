@@ -53,6 +53,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -77,6 +79,18 @@ public class InboundCorrelationHandlerTest {
             TestObjectMapperSupplier.INSTANCE,
             DEFAULT_TTL,
             new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" "})
+  void extractCorrelationKey_withoutExpression_returnsEmpty(String expression) {
+    assertThat(handler.extractCorrelationKey(expression, Map.of())).isEmpty();
+  }
+
+  @Test
+  void extractCorrelationKey_invalidExpression_returnsEmpty() {
+    assertThat(handler.extractCorrelationKey("=1 +", Map.of())).isEmpty();
   }
 
   @ParameterizedTest
@@ -254,6 +268,7 @@ public class InboundCorrelationHandlerTest {
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
       assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.correlationKey()).isEqualTo(correlationKeyValue);
     }
 
     @ParameterizedTest
@@ -285,6 +300,7 @@ public class InboundCorrelationHandlerTest {
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
       assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.correlationKey()).isEmpty();
     }
 
     @ParameterizedTest
@@ -920,12 +936,13 @@ public class InboundCorrelationHandlerTest {
       var success = (Success.MessageCorrelated) result;
       assertThat(success.activatedElement()).isEqualTo(element.element());
       assertThat(success.processInstanceKey()).isEqualTo(99L);
+      assertThat(success.correlationKey()).isEmpty();
     }
 
-    @Test
-    void message_synchronous_shouldUseCorrelateCommand() {
+    @ParameterizedTest
+    @ValueSource(strings = {"myKey", " "})
+    void message_synchronous_shouldUseCorrelateCommand(String correlationKeyValue) {
       // given
-      var correlationKeyValue = "myKey";
       var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, null);
       var element = mock(InboundConnectorElement.class);
       when(element.correlationPoint()).thenReturn(point);
@@ -944,7 +961,11 @@ public class InboundCorrelationHandlerTest {
       verify(camundaClient).newCorrelateMessageCommand();
       verifyNoMoreInteractions(camundaClient);
       verify(dummyCommand).messageName("msg1");
-      verify(dummyCommand).correlationKey(correlationKeyValue);
+      if (correlationKeyValue.isBlank()) {
+        verify(dummyCommand).withoutCorrelationKey();
+      } else {
+        verify(dummyCommand).correlationKey(correlationKeyValue);
+      }
       verify(dummyCommand).send();
 
       assertThat(result).isInstanceOf(Success.MessageCorrelated.class);
@@ -952,6 +973,8 @@ public class InboundCorrelationHandlerTest {
       assertThat(success.activatedElement()).isEqualTo(element.element());
       assertThat(success.messageKey()).isEqualTo(-1);
       assertThat(success.processInstanceKey()).isEqualTo(99L);
+      assertThat(success.correlationKey())
+          .isEqualTo(correlationKeyValue.isBlank() ? "" : correlationKeyValue);
     }
 
     @Test
@@ -976,6 +999,8 @@ public class InboundCorrelationHandlerTest {
       verify(camundaClient).newPublishMessageCommand();
       verifyNoMoreInteractions(camundaClient);
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      assertThat(((Success.MessagePublished) result).correlationKey())
+          .isEqualTo(correlationKeyValue);
     }
   }
 }

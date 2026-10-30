@@ -52,7 +52,8 @@ class InboundConnectorRestControllerMultiInstancesTest extends BaseMultiInstance
                 RUNTIME1_ACTIVITY1.tag(),
                 RUNTIME1_ACTIVITY1.timestamp().withOffsetSameInstant(ZoneOffset.UTC),
                 RUNTIME1_ACTIVITY1.message(),
-                "instance1"),
+                "instance1",
+                RUNTIME1_ACTIVITY1.data()),
             new InstanceAwareModel.InstanceAwareActivity(
                 RUNTIME1_ACTIVITY2.severity(),
                 RUNTIME1_ACTIVITY2.tag(),
@@ -64,7 +65,8 @@ class InboundConnectorRestControllerMultiInstancesTest extends BaseMultiInstance
                 RUNTIME2_ACTIVITY1.tag(),
                 RUNTIME2_ACTIVITY1.timestamp().withOffsetSameInstant(ZoneOffset.UTC),
                 RUNTIME2_ACTIVITY1.message(),
-                "instance2"),
+                "instance2",
+                RUNTIME2_ACTIVITY1.data()),
             new InstanceAwareModel.InstanceAwareActivity(
                 RUNTIME2_ACTIVITY2.severity(),
                 RUNTIME2_ACTIVITY2.tag(),
