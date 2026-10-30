@@ -64,42 +64,7 @@ jobs:
       continue-on-error: true
 
     - name: Checkout repository
-<<<<<<< HEAD
       uses: actions/checkout@v4
-=======
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-    - name: Compute Maven cache key
-      id: maven-cache-key
-      uses: ./.github/actions/maven-cache-key
-
-    # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml. Keep the key in sync.
-    - name: Restore Maven cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      with:
-        path: ~/.m2/repository
-        key: ${{ steps.maven-cache-key.outputs.key }}
-        restore-keys: |
-          ${{ steps.maven-cache-key.outputs.restore-prefix }}
-
-    # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
-    - name: Restore Maven wrapper cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-      with:
-        path: ~/.m2/wrapper
-        key: ${{ runner.os }}-mvnw-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
-
-    # Self-hosted runners don't ship a JDK; buildless extraction needs one to run Maven.
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
-      with:
-        distribution: 'temurin'
-        java-version: '25.0.5+8.0.LTS'
-
-    # On a wrapper cache miss, fail here rather than inside CodeQL's extractor, which silently
-    # falls back to guessing dependencies when mvnw can't run.
-    - name: Install Maven wrapper
-      run: ./mvnw --batch-mode --version
->>>>>>> 6c9ee954 (ci: include the branch line in the Maven cache key (#9828))
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
