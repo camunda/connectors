@@ -24,10 +24,11 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Response schema limits](#response-schema-limits)                            | JSON response schemas larger than 256 KiB or nested deeper than 64 levels |
 | [Turn input composer and response handler](#turn-input-composer-and-response-handler) | Custom `AgentConversationTurnInputComposer` and `AgentResponseHandler` |
 | [Agent instance client and mappers](#agent-instance-client-and-mappers)      | Custom `AgentInstanceClient`, `AgentInstanceHistoryMapper`, `AgentInstanceToolMapper` |
-| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers or `AgentToolsResolverImpl` |
+| [Replaceable bean constructors](#replaceable-bean-constructors)              | Code that constructs the request handlers, `AgentToolsResolverImpl` or `RuntimeToolRegistryImpl` |
+| [Conversation window](#conversation-window)                                  | Code that calls `AgentConversation.window`                      |
 | [Runtime tools and tool names](#runtime-tools-and-tool-names)                | Processes with a tool element named like a runtime tool        |
-| [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), imports `AgentInstanceKey` or reads `AgentMetadata.agentInstanceKey` |
-| [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history |
+| [Model classes](#model-classes)                                              | Code that constructs or pattern-matches the model records (`AgentContext`, `ToolCall`), switches over `Content`, imports `AgentInstanceKey` or reads `AgentMetadata.agentInstanceKey` |
+| [Persisted data](#persisted-data-8-11)                                       | Custom `ConversationStore` implementations, code reading stored messages, the agent context, stored tool calls or the `CONFIGURATION` items of the agent instance history, rollbacks |
 
 ### Module split
 
@@ -213,7 +214,10 @@ client in its properties does not start.
   handler then executes the runtime tool calls and composes again with `composeWithRuntimeToolResults`, which merges the
   runtime tool results with the process results in call order and returns the turn input.
 - `CompositionResult` gains the variant `RuntimeToolResultsRequired(List<ToolCall> runtimeToolCalls)`, so a `switch` over
-  it must handle it. `Deferred.arrivedResults` holds only the results that arrived from the process.
+  it must handle it. `NextTurn` gains the component `documents` (the documents that entered the conversation with the
+  turn, which the request handler registers); the constructor `NextTurn(messages)` remains, so a pattern
+  `NextTurn(var messages)` must become `NextTurn(var messages, var documents)`. `Deferred.arrivedResults` holds only the
+  results that arrived from the process.
 
 `AgentResponseHandler.createResponse(AgentConversation)` keeps its signature. The tool calls of the response must be the
 process tool calls of the last turn (`AgentConversationTurn.processToolCalls()`): the agent executes the runtime tool calls
@@ -226,13 +230,15 @@ tool calls to the process.
 ### Agent instance client and mappers
 
 - `AgentInstanceClient.applyTurnStart` takes the `AgentContext` as a last parameter. Its features decide whether a tool of
-  the `CONFIGURATION` item is a runtime tool.
-- `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>`; convert
-  with `ToolCallResultContent.from(result)`.
+  the `CONFIGURATION` item is a runtime tool and how the documents of the messages are shown, and its document registry is
+  what document tags are expanded with.
+- `AgentInstanceClient.applyToolCallResults` takes `List<ToolCallResultContent>` instead of `List<ToolCallResult>` and the
+  `AgentContext` as a last parameter, whose features decide how the documents of the results are shown; convert with
+  `ToolCallResultContent.from(result)`.
 - `AgentInstanceToolMapper`: the constructor takes a `RuntimeToolRegistry` and `mapTools` takes the `AgentContext`. A
   runtime tool is reported without an element id.
-- `AgentInstanceHistoryMapper` keeps its API. It reports a runtime tool call and its result without an element id, decided
-  by `ToolCall.kind()`.
+- `AgentInstanceHistoryMapper`: the constructor takes a `DocumentExpander`, and `inputHistoryItems` takes the
+  `AgentContext`. It reports a runtime tool call and its result without an element id, decided by `ToolCall.kind()`.
 
 Migration: add the parameter and pass it on. Most extensions should keep `CamundaAgentInstanceClient` and the mappers and
 decorate them instead.
@@ -240,10 +246,17 @@ decorate them instead.
 ### Replaceable bean constructors
 
 The constructors of `AgentTaskRequestHandler` and `AgentSubProcessRequestHandler` (and `BaseAgentRequestHandler`) take a
-`RuntimeToolRegistry` and a `RuntimeToolExecutor` after the `ResponseSchemaValidator`. The constructor of
-`AgentToolsResolverImpl` takes a `RuntimeToolRegistry`. The auto-configuration provides the beans `RuntimeToolRegistry` and
-`RuntimeToolExecutor`, both `@ConditionalOnMissingBean`. A custom bean built with `new` needs the extra arguments; inject
-them as beans.
+`RuntimeToolRegistry`, a `RuntimeToolExecutor` and a `DocumentExpander` after the `ResponseSchemaValidator`. The
+constructor of `AgentToolsResolverImpl` takes a `RuntimeToolRegistry`, and the constructor of `RuntimeToolRegistryImpl`
+takes the `ObjectMapper` that reads a document from its reference. The auto-configuration provides the beans
+`RuntimeToolRegistry`, `RuntimeToolExecutor` and `DocumentExpander`, all `@ConditionalOnMissingBean`. A custom bean built
+with `new` needs the extra arguments; inject them as beans.
+
+### Conversation window
+
+`AgentConversation.window(int size)` is replaced by `window(int size, UnaryOperator<List<Message>> decorator)`. The
+decorator turns the windowed messages into the messages of the snapshot; `UnaryOperator.identity()` leaves them as they
+are. The request handler passes `DocumentExpander.windowDecorator(conversation)`.
 
 ### Runtime tools and tool names
 
@@ -255,7 +268,9 @@ them as beans.
   tool and no name is checked.
 - To add a tool of your own, implement `RuntimeTool` (`definition`, `isEnabled(RuntimeToolContext)`,
   `call(RuntimeToolCall, RuntimeToolContext)`) and expose it as a Spring bean (see §25.4 of the
-  [reference](reference/ai-agent.md)). Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
+  [reference](reference/ai-agent.md)). `RuntimeToolContext.documents()` gives the documents the agent knows when the batch
+  of calls starts; a tool can return documents in its result, which the agent registers after all calls of the message
+  ran. Use a vendor-specific name prefix. `RuntimeToolResult` is sealed (`Success` and
   `Error`). The runtime tool SPI is marked `@Experimental` in 8.11 and may change in a minor release. A call of a
   registered runtime tool that is not enabled when it runs gets an error result and does not go to the process.
 - The tool list of the `CONFIGURATION` agent instance history item holds the process tools and the enabled runtime
@@ -264,14 +279,28 @@ them as beans.
 ### Model classes
 
 - New record components, so a canonical constructor call or a record deconstruction pattern no longer compiles. Use the
-  builder, or for `ToolCall` the constructors with three or four arguments: `AgentContext` (`features`, a list) and
-  `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by default). The agent sets the kind of the tool
-  calls of an assistant message once, when it receives the message.
+  builder, or for `ToolCall` the constructors with three or four arguments: `AgentContext` (`documents`, a list of
+  registry entries, and `features`, a list) and `ToolCall` (`kind`, a `ToolKind`: `PROCESS` or `RUNTIME`, `PROCESS` by
+  default). The agent sets the kind of the tool calls of an assistant message once, when it receives the message.
+- The sealed `Content` interface permits `DocumentReferenceContent` (content type `documentReference`). A `switch` over
+  `Content` must handle it. A custom chat model provider never receives it: the conversation window expands it before the
+  request is built.
+- For an agent instance with the `documents` feature, documents reach a chat model provider differently. A user prompt
+  document goes out as content, as before. A document in a tool result is text, its tag, instead of a `DocumentContent` or
+  the reference JSON, and its content is not added. A custom `ChatModel` that handles `DocumentContent` in tool results
+  therefore sees text for these instances; instances without the feature keep the earlier form.
 - `AgentInstanceKey` moved from `aiagent.agentinstance` of `connector-aiagent` to `aiagent.model` of `aiagent-model`, and
   `AgentMetadata.agentInstanceKey` is an `AgentInstanceKey` (still persisted as a plain number) instead of a `Long`.
   `AgentInstanceKey.from(AgentMetadata)` is removed: read `metadata.agentInstanceKey()`.
-- New in the libraries: the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`, `RuntimeToolContext`, `RuntimeToolResult`,
-  `RuntimeToolException`) is in `aiagent.api.tool` of `aiagent-api`.
+- New in the model: `DocumentId`, the value type of a document id (persisted as a plain string), used by the document
+  registry and `DocumentReferenceContent`. The `source` of a `DocumentReferenceContent` is the `DocumentSource` of the
+  registry entry.
+- Renamed: `DocumentReferenceXmlTag` (see the [module split](#module-split)) is `aiagent.document.LegacyDocumentReferenceXmlTag`,
+  which only agent instances without the `documents` feature use.
+- New in the libraries: the persisted document state (`DocumentRegistry`, `DocumentRegistryEntry`, `DocumentSource`) is in
+  `aiagent.model.document` of `aiagent-model`, and the runtime tool SPI (`RuntimeTool`, `RuntimeToolCall`,
+  `RuntimeToolContext`, `RuntimeToolDocuments`, `AgentDocument`, `RuntimeToolResult`, `RuntimeToolException`) is in
+  `aiagent.api.tool` of `aiagent-api`.
 
 <a id="persisted-data-8-11"></a>
 
@@ -280,13 +309,21 @@ them as beans.
 - The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
   SHA-256 over a JSON serialization of the configuration with normalized schema-key ordering. An existing tracked agent
   instance writes one additional `CONFIGURATION` history item when it next reports a turn after the upgrade.
-- `AgentContext` gains `features`. There is no schema version bump, and a missing field binds to its empty value, so
-  state written by 8.10 loads unchanged. An 8.10 connector runtime ignores `features` and drops it on its next write.
+- `AgentContext` gains `features` and `documents` (the document registry), and the conversation of an agent instance with
+  the `documents` feature can contain `documentReference` content blocks. There is no schema version bump, and a missing
+  field binds to its empty value, so state written by 8.10 loads unchanged. An 8.10 connector runtime ignores the new
+  fields and drops them on its next write.
 - A `ToolCall` of a stored assistant message carries `kind`. The JSON holds it only for a call of a runtime tool, and a
   missing value reads as `PROCESS`, so state written by 8.10 loads unchanged. The agent never computes the kind again, so a
   custom `ConversationStore` must keep it: a store that drops it turns a runtime tool call into a process tool call that
   never gets a result. Serializing the `ToolCall` record with Jackson keeps it.
-- Do not rely on the JSON shape of this field in external systems.
+- A stored message can hold a `DocumentReferenceContent`, which a custom `ConversationStore` must keep like any other
+  content block (serializing `Content` with Jackson keeps it). What a reference stands for is in the registry of the agent
+  context, not in the store, so code that rewrites the agent context must keep `documents`.
+- Rolling back to 8.10 after 8.11 wrote the conversation of an agent instance with the `documents` feature is not
+  supported: an 8.10 runtime fails to read a conversation that contains a `documentReference` block (an unknown content
+  type).
+- Do not rely on the JSON shape of these fields in external systems.
 
 ## Camunda 8.9 to 8.10
 

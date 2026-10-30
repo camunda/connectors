@@ -218,9 +218,11 @@ High-frequency traps (detail behind each link):
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
-  instance without the `runtimeTools` feature (created before it) has no runtime tools and no tool element is checked
+  instance without the `documents` feature keeps the previous document handling: bare content and the older tag
+  format, no registry. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
   against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
-  `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
+  `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
+  [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
 - **Runtime tool calls are tagged once and run in the job that composes the next turn**: the agent tags every tool call of
   an assistant message with its `ToolKind` (`PROCESS` or `RUNTIME`) before the message enters the conversation, and never
   computes it again. When the model issues runtime and process calls together, only the process calls are activated, and
@@ -228,6 +230,14 @@ High-frequency traps (detail behind each link):
   persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A call of a
   runtime tool that is not enabled when it runs gets an error result. `ai-agent.md` §9,
   [ADR 016](docs/adr/016-runtime-tools.md).
+- **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
+  conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
+  result, and the registry in `AgentContext.documents` holds what the references stand for. The window decorator
+  (`DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
+  in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
+  document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
+  of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
+  starts. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -247,8 +257,8 @@ Do not break these (full statement and rationale in
 [architecture tests](#architecture-tests) enforce the first three:
 
 - **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
+  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/document`, `aiagent/tool`, `aiagent/memory`, the root
+  `model/`) stays framework-neutral.
 - **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
   (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
   converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).

@@ -14,6 +14,10 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentRegistryEntry;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import java.util.ArrayList;
 import java.util.List;
@@ -152,6 +156,69 @@ class AgentContextTest {
   }
 
   @Test
+  void documentsDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
+    final var context = AgentContext.empty();
+    assertThat(context.documents()).isEmpty();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    assertThat(serialized).doesNotContain("documents");
+  }
+
+  @Test
+  void agentContextWithoutDocumentsFieldBindsToEmptyDocuments() throws JsonProcessingException {
+    final var json =
+        """
+        {
+          "schemaVersion": 1,
+          "state": "READY",
+          "metrics": {"modelCalls": 1, "tokenUsage": {"inputTokenCount": 1, "outputTokenCount": 2}},
+          "toolDefinitions": [],
+          "conversation": {"type": "in-process", "conversationId": "c", "messages": []}
+        }
+        """;
+
+    final var context = objectMapper.readValue(json, AgentContext.class);
+
+    assertThat(context.documents()).isEmpty();
+    assertThat(context.state()).isEqualTo(AgentState.READY);
+    assertThat(context.schemaVersion()).isEqualTo(AgentContext.CURRENT_SCHEMA_VERSION);
+  }
+
+  @Test
+  void documentsAreSerializedAndDeserialized() throws JsonProcessingException {
+    final var entry =
+        new DocumentRegistryEntry(
+            DocumentId.of("doc-1"),
+            DocumentSource.toolCall("search", "call-1"),
+            Map.of(
+                "camunda.document.type", "camunda", "storeId", "in-memory", "documentId", "doc-1"));
+    final var context = AgentContext.builder().documents(List.of(entry)).build();
+
+    final var serialized = objectMapper.writeValueAsString(context);
+    final var deserialized = objectMapper.readValue(serialized, AgentContext.class);
+
+    assertThat(serialized).contains("\"documents\"");
+    assertThat(deserialized.documents()).containsExactly(entry);
+    assertThat(deserialized).isEqualTo(context);
+  }
+
+  @Test
+  void theDocumentRegistryIsReadFromAndWrittenToTheDocuments() {
+    final var entry =
+        new DocumentRegistryEntry(
+            DocumentId.of("doc-1"),
+            DocumentSource.userMessage(),
+            Map.of("camunda.document.type", "camunda"));
+
+    final var context =
+        AgentContext.empty().withDocumentRegistry(DocumentRegistry.of(List.of(entry)));
+
+    assertThat(context.documents()).containsExactly(entry);
+    assertThat(context.documentRegistry().findById(DocumentId.of("doc-1"))).contains(entry);
+    assertThat(AgentContext.empty().documentRegistry().isEmpty()).isTrue();
+  }
+
+  @Test
   void featuresDefaultToEmptyAndAreOmittedFromJsonWhenEmpty() throws JsonProcessingException {
     final var context = AgentContext.empty();
 
@@ -249,6 +316,7 @@ class AgentContextTest {
                     metrics,
                     toolDefinitions,
                     InProcessConversationContext.builder("test-conversation").build(),
+                    List.of(),
                     List.of(),
                     Map.of()))
         .isInstanceOf(NullPointerException.class)
