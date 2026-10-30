@@ -141,6 +141,44 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void sendsEveryConsoleMethodToTheLogs() throws Exception {
+    final var response =
+        call(
+            "export function execute() {"
+                + " console.debug('d'); console.dir({ a: 1 }); console.table([{ a: 1 }]);"
+                + " return { a: 1 }; }");
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+  }
+
+  @Test
+  void keepsMultibyteCharactersSplitAcrossStdinChunks() throws Exception {
+    final var text = "é€😀".repeat(100_000);
+    final var response =
+        call(
+            "export function execute(variables) { return { text: variables.text }; }",
+            Map.of("text", text));
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+    assertThat(response.get("variables").get("text").asText()).isEqualTo(text);
+  }
+
+  @Test
+  void limitsTheStackTraceOfAForgedScriptError() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                "export function execute() {"
+                    + " process.stdout.write(JSON.stringify({ contractVersion: '1', outcome: 'FAILED',"
+                    + " error: { code: 'SCRIPT_ERROR', message: 'm', stackTrace: 'x'.repeat(100000) } }));"
+                    + " process.exit(0); }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("stackTrace").asText()).hasSize(8192);
+    assertThat(error.get("truncated").asBoolean()).isTrue();
+  }
+
+  @Test
   void completesAScriptThatLeavesATimerRunning() throws Exception {
     final var request =
         request(

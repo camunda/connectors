@@ -24,6 +24,7 @@ const CHILD = fileURLToPath(new URL('./child.mjs', import.meta.url));
 const MAX_OUTPUT_BYTES = 1_000_000;
 const MAX_LOG_BYTES = 4_096;
 const MAX_MESSAGE_LENGTH = 1024;
+const MAX_STACK_TRACE_LENGTH = 8192;
 const CHILD_HEAP_MB = 256;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const SWEEP_ROUNDS = 5;
@@ -133,8 +134,11 @@ function sanitize(response) {
       && CHILD_FAILURE_CODES.includes(response.error.code)) {
     const { code, message, stackTrace, truncated } = response.error;
     const error = { code, message: String(message ?? '').slice(0, MAX_MESSAGE_LENGTH), retryable: false };
-    if (typeof stackTrace === 'string') error.stackTrace = stackTrace;
     error.truncated = truncated === true;
+    if (typeof stackTrace === 'string') {
+      error.stackTrace = stackTrace.slice(0, MAX_STACK_TRACE_LENGTH);
+      error.truncated = error.truncated || stackTrace.length > MAX_STACK_TRACE_LENGTH;
+    }
     return { contractVersion: CONTRACT_VERSION, outcome: 'FAILED', error };
   }
   return failure('INVALID_RESULT', 'the child did not return a contract response');

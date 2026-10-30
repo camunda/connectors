@@ -8,20 +8,15 @@
 
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { inspect } from 'node:util';
+import { Console } from 'node:console';
 
 const CONTRACT_VERSION = '1';
 const MAX_MESSAGE_LENGTH = 1024;
 const MAX_STACK_TRACE_LENGTH = 8192;
 
-// console output in user code goes to the logs, not to the response.
-function writeLog(...values) {
-  process.stderr.write(`${values.map((value) => (typeof value === 'string' ? value : inspect(value))).join(' ')}\n`);
-}
-console.log = writeLog;
-console.info = writeLog;
-console.warn = writeLog;
-console.error = writeLog;
+// console output in user code goes to the logs, not to the response: every method of the console,
+// debug(), dir() and table() included, writes to stderr.
+globalThis.console = new Console({ stdout: process.stderr, stderr: process.stderr });
 
 function failure(code, message, stackTrace) {
   const error = { code, message: message.slice(0, MAX_MESSAGE_LENGTH), retryable: false, truncated: false };
@@ -41,6 +36,7 @@ function scriptError(error) {
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 let input = '';
+process.stdin.setEncoding('utf8'); // keeps a character split across two chunks whole
 for await (const chunk of process.stdin) input += chunk;
 const request = JSON.parse(input);
 

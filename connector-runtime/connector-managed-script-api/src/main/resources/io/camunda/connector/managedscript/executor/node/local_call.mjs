@@ -15,6 +15,7 @@ const DEADLINE_MS = Number(process.env.EXECUTOR_DEADLINE_MS || Infinity);
 const executor = createExecutor({ local: true, tmp: process.env.EXECUTOR_TMP || tmpdir() });
 
 let input = '';
+process.stdin.setEncoding('utf8'); // keeps a character split across two chunks whole
 for await (const chunk of process.stdin) input += chunk;
 let event;
 try {
