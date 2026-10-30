@@ -37,8 +37,12 @@ import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -47,6 +51,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -66,6 +71,8 @@ public abstract class BaseAgentRequestHandler<
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
   private final ResponseSchemaValidator responseSchemaValidator;
+  private final RuntimeToolRegistry runtimeToolRegistry;
+  private final RuntimeToolExecutor runtimeToolExecutor;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -75,7 +82,9 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      ResponseSchemaValidator responseSchemaValidator) {
+      ResponseSchemaValidator responseSchemaValidator,
+      RuntimeToolRegistry runtimeToolRegistry,
+      RuntimeToolExecutor runtimeToolExecutor) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -84,6 +93,8 @@ public abstract class BaseAgentRequestHandler<
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
     this.responseSchemaValidator = responseSchemaValidator;
+    this.runtimeToolRegistry = runtimeToolRegistry;
+    this.runtimeToolExecutor = runtimeToolExecutor;
   }
 
   @Override
@@ -116,9 +127,12 @@ public abstract class BaseAgentRequestHandler<
 
     try (var session = store.createSession(executionContext, agentContext)) {
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
-      // rest of this invocation once populated here from the durable AgentContext.
+      // rest of this invocation once populated here: the durable tool definitions of the
+      // AgentContext plus the runtime tools enabled for this agent, which are never persisted.
       final var configuration =
-          executionContext.configuration().withToolDefinitions(agentContext.toolDefinitions());
+          executionContext
+              .configuration()
+              .withToolDefinitions(toolDefinitions(executionContext, agentContext));
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
@@ -127,8 +141,17 @@ public abstract class BaseAgentRequestHandler<
           TurnReconstructor.reconstruct(loadedMessages, agentContext.metadata());
 
       LOGGER.trace("Composing turn input from history and invocation state");
-      final var compositionResult =
+      var compositionResult =
           agentInputComposer.compose(configuration, agentContext, previousConversation, agentInput);
+      if (compositionResult
+          instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
+        // the results of the process arrived: the agent executes its own calls now
+        final var executions =
+            runtimeToolExecutor.execute(executionContext, agentContext, runtimeToolCalls);
+        compositionResult =
+            agentInputComposer.composeWithRuntimeToolResults(
+                configuration, agentContext, previousConversation, agentInput, executions);
+      }
       return switch (compositionResult) {
         case CompositionResult.Deferred(var arrivedResults) -> {
           LOGGER.debug("No input ready to add, completing job without agent response");
@@ -140,6 +163,9 @@ public abstract class BaseAgentRequestHandler<
           LOGGER.debug("No input could be composed for this turn");
           yield handleNoInput(executionContext);
         }
+        case CompositionResult.RuntimeToolResultsRequired ignored ->
+            throw new IllegalStateException(
+                "The turn input was composed without the runtime tool results after they were computed");
         case CompositionResult.NextTurn(var newMessages) ->
             proceed(
                 executionContext,
@@ -151,6 +177,31 @@ public abstract class BaseAgentRequestHandler<
                 store);
       };
     }
+  }
+
+  /**
+   * The tool definitions of the process and the definitions of the runtime tools enabled for the
+   * agent.
+   *
+   * @throws ConnectorException if a tool of the process has the name of a registered runtime tool
+   */
+  private List<ToolDefinition> toolDefinitions(C executionContext, AgentContext agentContext) {
+    final var processToolDefinitions = agentContext.toolDefinitions();
+    processToolDefinitions.stream()
+        .map(ToolDefinition::name)
+        .filter(name -> runtimeToolRegistry.kindOf(agentContext, name) == ToolKind.RUNTIME)
+        .findFirst()
+        .ifPresent(
+            name -> {
+              throw new ConnectorException(
+                  AgentErrorCodes.ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT,
+                  "The tool name '%s' is also the name of a runtime tool of the AI Agent. Rename the tool of the process with this name or the runtime tool."
+                      .formatted(name));
+            });
+    return Stream.concat(
+            processToolDefinitions.stream(),
+            runtimeToolRegistry.enabledToolDefinitions(executionContext, agentContext).stream())
+        .toList();
   }
 
   /**
@@ -168,7 +219,7 @@ public abstract class BaseAgentRequestHandler<
     agentInstanceClient.applyToolCallResults(
         executionContext,
         agentContext.agentInstanceKey(),
-        arrivedResults,
+        arrivedResults.stream().map(ToolCallResultContent::from).toList(),
         previousConversation.turns().getLast());
   }
 
@@ -201,7 +252,8 @@ public abstract class BaseAgentRequestHandler<
         agentInstanceKey,
         conversation.currentTurn(),
         conversation.lastTurn(),
-        OffsetDateTime.now(ZoneId.systemDefault()));
+        OffsetDateTime.now(ZoneId.systemDefault()),
+        conversation.toAgentContext());
 
     final AgentConversation updatedConversation;
     try (final var chatModel = chatModelRegistry.resolve(agentConfiguration.chatModel())) {
@@ -228,8 +280,14 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Drives the given chat model until it returns a {@code Completed} result, ingesting each round
-   * (including intermediate {@code Continuation} rounds) as its own turn.
+   * Drives the given chat model until it returns a {@code Completed} result that needs no further
+   * round in this job, ingesting each round as its own turn. The tool calls of each message are
+   * tagged with the kind of their tool before the turn is ingested. Further rounds are intermediate
+   * {@code Continuation} rounds and rounds that follow a message that calls runtime tools only: the
+   * agent executes the calls itself and the results are the input of the next round. A message that
+   * calls process tools ends the loop, also when it calls runtime tools too: only the process tool
+   * calls are handed out, and the runtime tool calls are executed when the turn that follows the
+   * process results is composed.
    */
   private AgentConversation driveContinuationLoop(
       C executionContext,
@@ -238,7 +296,7 @@ public abstract class BaseAgentRequestHandler<
       ChatModel chatModel,
       @Nullable AgentInstanceKey agentInstanceKey) {
     var workingConversation = conversation;
-    boolean continued;
+    boolean anotherRound;
     do {
       LOGGER.debug(
           "Sending turn (iterationKey={}) to the model",
@@ -248,32 +306,72 @@ public abstract class BaseAgentRequestHandler<
           workingConversation.window(agentConfiguration.contextWindowSize());
       final var chatResult = executeChatModel(chatModel, executionContext, windowedSnapshot);
 
-      workingConversation =
-          workingConversation.ingest(chatResult.assistantMessage(), chatResult.metrics());
+      // the one place the tool calls are tagged with the kind of their tool
+      final var assistantMessage =
+          runtimeToolRegistry.tagToolCalls(
+              workingConversation.persistedContext(), chatResult.assistantMessage());
+      workingConversation = workingConversation.ingest(assistantMessage, chatResult.metrics());
 
-      continued = chatResult instanceof ChatResult.Continuation;
-      // Exactly one status per round (engine constraint): a continuation round re-asserts THINKING
-      // alongside its assistant item, the final round sends its terminal status instead.
+      final var currentTurn = workingConversation.currentTurn();
+      final boolean continued = chatResult instanceof ChatResult.Continuation;
+      final boolean runtimeRound =
+          !continued && currentTurn.hasRuntimeToolCalls() && !currentTurn.hasProcessToolCalls();
+      anotherRound = continued || runtimeRound;
+
+      // Exactly one status per round (engine constraint): a round that is followed by another one
+      // within this job re-asserts THINKING alongside its assistant item, the final round sends its
+      // terminal status instead. Every tool call the model requested counts as a tool call of the
+      // turn, runtime or not.
       final var status =
-          continued
+          anotherRound
               ? AgentInstanceUpdateStatus.THINKING
               : nextAgentInstanceState(workingConversation.currentTurnMetrics().toolCalls());
       agentInstanceClient.applyTurnCompletion(
           executionContext,
           agentInstanceKey,
-          workingConversation.currentTurn(),
+          currentTurn,
           OffsetDateTime.now(ZoneId.systemDefault()),
           status);
 
       if (continued) {
         LOGGER.debug(
             "Provider requested continuation (iterationKey={}); resuming with another round",
-            workingConversation.currentTurn().iterationKey());
+            currentTurn.iterationKey());
 
         throwIfLimitsReached(workingConversation, agentConfiguration);
         workingConversation = workingConversation.nextContinuationRound();
+      } else if (runtimeRound) {
+        LOGGER.debug(
+            "Executing the runtime tool calls of turn (iterationKey={}); calling the model again",
+            currentTurn.iterationKey());
+
+        throwIfLimitsReached(workingConversation, agentConfiguration);
+        final var executions =
+            runtimeToolExecutor.execute(
+                executionContext,
+                workingConversation.persistedContext(),
+                currentTurn.runtimeToolCalls());
+        workingConversation =
+            workingConversation.nextRuntimeToolRound(
+                ToolCallResultsInputBuilder.build(
+                    executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList()));
+        // the previous turn is the one whose tool calls these results belong to
+        agentInstanceClient.applyTurnStart(
+            executionContext,
+            agentConfiguration,
+            agentInstanceKey,
+            workingConversation.currentTurn(),
+            workingConversation.lastTurn(),
+            OffsetDateTime.now(ZoneId.systemDefault()),
+            workingConversation.toAgentContext());
+      } else if (currentTurn.hasRuntimeToolCalls()) {
+        LOGGER.debug(
+            "{} runtime tool calls of turn (iterationKey={}) are executed with the next turn; {} go to the process",
+            currentTurn.runtimeToolCalls().size(),
+            currentTurn.iterationKey(),
+            currentTurn.processToolCalls().size());
       }
-    } while (continued);
+    } while (anotherRound);
     return workingConversation;
   }
 

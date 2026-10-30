@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.common.annotation.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +34,9 @@ public record AgentContext(
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
+    // the features the agent instance was created with, fixed at creation and never added later: an
+    // instance without a feature keeps the behavior it started with
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> features,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> properties)
     implements AgentContextBuilder.With {
 
@@ -55,6 +59,13 @@ public record AgentContext(
     Objects.requireNonNull(state, "Agent state must not be null");
     Objects.requireNonNull(metrics, "Agent metrics must not be null");
     Objects.requireNonNull(toolDefinitions, "Tool definitions must not be null");
+    Objects.requireNonNull(features, "Features must not be null");
+    features = List.copyOf(new LinkedHashSet<>(features));
+  }
+
+  /** Returns {@code true} if the agent instance was created with the given feature. */
+  public boolean supports(String feature) {
+    return features.contains(feature);
   }
 
   /** Returns the agent instance key from the metadata, or {@code null} if there is none. */

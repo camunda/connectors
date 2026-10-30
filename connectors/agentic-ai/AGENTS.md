@@ -216,6 +216,18 @@ High-frequency traps (detail behind each link):
 - **Gateway `transformToolCallResults` must carry `completedAt` forward**: MCP/A2A handlers rebuild a
   new `ToolCallResult` when unwrapping the gateway envelope; unlike `elementId`, `completedAt` has no
   fallback resolution and is silently dropped if not copied explicitly. `ai-agent.md` §19, §23.
+- **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
+  instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
+  instance without the `runtimeTools` feature (created before it) has no runtime tools and no tool element is checked
+  against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
+  `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
+- **Runtime tool calls are tagged once and run in the job that composes the next turn**: the agent tags every tool call of
+  an assistant message with its `ToolKind` (`PROCESS` or `RUNTIME`) before the message enters the conversation, and never
+  computes it again. When the model issues runtime and process calls together, only the process calls are activated, and
+  the runtime calls run when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
+  persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A call of a
+  runtime tool that is not enabled when it runs gets an error result. `ai-agent.md` §9,
+  [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently
@@ -245,8 +257,8 @@ Do not break these (full statement and rationale in
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
   `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
   named `FooImpl` implements the interface `Foo`; review checks the rest.
-- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
+- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store,
+  gateway tool, or runtime tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
 ## Working in this module
@@ -347,9 +359,11 @@ Before claiming a change is complete:
 
 ## Extension points
 
-Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, or a gateway tool by
-implementing the SPI and registering a Spring bean. Where to start (SPI + reference implementation per
-type): `ai-agent.md` §25 (gateway tools: §19).
+Add an LLM provider, a `SystemPromptContributor`, a `ConversationStore`, a gateway tool, or a runtime
+tool (a tool the connector runtime runs itself, without activating a BPMN element; a process tool must not have its name)
+by implementing the SPI and registering a Spring bean. A runtime tool is the three-method interface `RuntimeTool`
+(`definition`, `isEnabled`, `call`), an experimental SPI in 8.11. Where to start (SPI + reference implementation per
+type): `ai-agent.md` §25 (gateway tools: §19; runtime tools: §25.4 and [ADR 016](docs/adr/016-runtime-tools.md)).
 
 ## Element templates
 

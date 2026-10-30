@@ -13,6 +13,7 @@ import static io.camunda.connector.agenticai.common.json.JacksonExceptionMessage
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
@@ -22,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.request.AgentTaskResponseConfigura
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -48,19 +48,12 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
   @Override
   public AgentResponse createResponse(AgentConversation conversation) {
     final var agentContext = conversation.toAgentContext();
-    final var assistantMessage =
-        Objects.requireNonNull(
-            conversation
-                .lastTurn()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "Cannot create an agent response: the conversation has no completed turn"))
-                .assistantMessage(),
-            "Cannot create an agent response: the last turn has no assistant message");
-    final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());
+    final var lastTurn = lastTurnOf(conversation);
+    final var assistantMessage = assistantMessageOf(lastTurn);
+    // the stored assistant message keeps every tool call the model sent; only the calls handed to
+    // the process become tool calls of the response
     final var toolCalls =
-        gatewayToolHandlers.transformToolCalls(agentContext, rawToolCalls).stream()
+        gatewayToolHandlers.transformToolCalls(agentContext, lastTurn.processToolCalls()).stream()
             .map(ToolCallProcessVariable::from)
             .toList();
 
@@ -79,6 +72,21 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             responseText -> handleFirstResponseText(responseConfiguration, builder, responseText));
 
     return builder.build();
+  }
+
+  private static AgentConversationTurn lastTurnOf(AgentConversation conversation) {
+    return conversation
+        .lastTurn()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Cannot create an agent response: the conversation has no completed turn"));
+  }
+
+  private static AssistantMessage assistantMessageOf(AgentConversationTurn lastTurn) {
+    return Objects.requireNonNull(
+        lastTurn.assistantMessage(),
+        "Cannot create an agent response: the last turn has no assistant message");
   }
 
   private Optional<String> deriveResponseText(AssistantMessage assistantMessage) {

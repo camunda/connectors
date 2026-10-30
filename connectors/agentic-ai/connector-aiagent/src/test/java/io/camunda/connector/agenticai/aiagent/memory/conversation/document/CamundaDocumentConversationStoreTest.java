@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,10 +29,13 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
@@ -396,6 +400,45 @@ class CamundaDocumentConversationStoreTest {
         new String(creationRequest.content().readAllBytes()),
         documentContentAsString(new DocumentContent(expectedMessages)),
         true);
+  }
+
+  @Test
+  void keepsTheKindOfToolCallsWhenTheStoredConversationIsLoadedAgain() throws Exception {
+    mockJobContext();
+    final var assistantMessage = assistantMessageWithMixedToolKinds();
+
+    final var storedDocument = mock(Document.class);
+    when(documentFactory.create(documentCreationRequestCaptor.capture()))
+        .thenReturn(storedDocument);
+
+    final var agentContext = AgentContext.empty();
+    AgentContext storedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      var storedConversation =
+          session.storeMessages(
+              agentContext,
+              ConversationStoreRequest.of(List.of(userMessage("hi"), assistantMessage)));
+      storedAgentContext = agentContext.withConversation(storedConversation);
+    }
+
+    final var storedContent = documentCreationRequestCaptor.getValue().content().readAllBytes();
+    when(storedDocument.asInputStream()).thenReturn(new ByteArrayInputStream(storedContent));
+
+    try (var session = store.createSession(executionContext, storedAgentContext)) {
+      final var loadedMessages = session.loadMessages(storedAgentContext).messages();
+
+      assertThat(loadedMessages.getLast())
+          .asInstanceOf(InstanceOfAssertFactories.type(AssistantMessage.class))
+          .satisfies(
+              loaded -> {
+                assertThat(loaded.toolCalls())
+                    .containsExactlyElementsOf(assistantMessage.toolCalls());
+                assertThat(loaded.toolCalls())
+                    .extracting(ToolCall::kind)
+                    .containsExactly(ToolKind.RUNTIME, ToolKind.PROCESS);
+              });
+    }
   }
 
   @ParameterizedTest
