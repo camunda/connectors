@@ -42,12 +42,10 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>${version.commons-codec}</version>
     </dependency>
     <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>java-jwt</artifactId>
-      <version>${version.auth0.jwt}</version>
     </dependency>
     <dependency>
       <groupId>com.auth0</groupId>
@@ -57,7 +55,6 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>${version.wiremock}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -72,7 +69,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>

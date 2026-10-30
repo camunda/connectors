@@ -15,12 +15,6 @@
   <description>Camunda Email Connector</description>
   <packaging>jar</packaging>
 
-  <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -34,13 +28,11 @@
     <dependency>
       <groupId>com.icegreen</groupId>
       <artifactId>greenmail</artifactId>
-      <version>2.1.15</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>4.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -81,7 +73,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>

@@ -24,7 +24,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>host-ip-validator-annotation</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>

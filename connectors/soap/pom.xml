@@ -23,35 +23,10 @@
     </license>
   </licenses>
 
-  <properties>
-    <version.commons-text>1.11.0</version.commons-text>
-    <version.commons-lang3>3.21.0</version.commons-lang3>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${version.netty}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${version.spring-boot}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>${version.commons-lang3}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.ws</groupId>
@@ -91,12 +66,10 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>${version.bouncycastle-pkix}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <version>${version.bouncycastle-prov}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -139,7 +112,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>

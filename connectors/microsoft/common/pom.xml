@@ -29,7 +29,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.graph</groupId>
@@ -50,7 +49,6 @@
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
     </dependency>
     <dependency>
       <groupId>io.projectreactor</groupId>

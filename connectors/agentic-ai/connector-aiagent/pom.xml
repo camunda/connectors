@@ -112,7 +112,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>io.soabase.record-builder</groupId>
       <artifactId>record-builder-core</artifactId>
-      <version>${version.record-builder}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -211,7 +210,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp-jvm</artifactId>
-      <version>${version.okhttp}</version>
     </dependency>
 
     <dependency>
@@ -249,7 +247,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>utils</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -262,7 +259,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>apache-client</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -271,7 +267,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-client-spi</artifactId>
-      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -418,7 +413,6 @@ io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid=${project.basedir}/e
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <dependencies>
           <dependency>
             <groupId>io.camunda.connector</groupId>

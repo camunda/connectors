@@ -30,7 +30,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>${version.jackson-bom}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -60,50 +59,42 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>13.6.1.jre11</version>
     </dependency>
 
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.14</version>
     </dependency>
 
     <!-- Mariadb is used because of an issue with the MySQL ConnectorJ licence (GPL). We're not mentioning Mariadb in our docs -->
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.11</version>
     </dependency>
 
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>26.10.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-mariadb</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-postgresql</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-mssqlserver</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-mysql</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -121,7 +112,6 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-oracle-free</artifactId>
-      <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -136,7 +126,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>
