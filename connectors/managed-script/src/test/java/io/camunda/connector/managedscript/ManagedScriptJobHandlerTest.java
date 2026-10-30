@@ -10,6 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -25,7 +28,9 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class ManagedScriptJobHandlerTest {
 
@@ -40,6 +45,15 @@ class ManagedScriptJobHandlerTest {
   private final Map<Long, ScriptResource> stored = new HashMap<>();
   private final AtomicInteger fetches = new AtomicInteger();
   private final ManagedScriptJobHandler handler = handler(Duration.ofMillis(200));
+
+  private ListAppender<ILoggingEvent> logs;
+
+  @AfterEach
+  void detachLogs() {
+    if (logs != null) {
+      ((Logger) LoggerFactory.getLogger(ManagedScriptJobHandler.class)).detachAppender(logs);
+    }
+  }
 
   @Test
   void sendsTheScriptWithItsInputAndContextAndCompletesWithItsVariables() {
@@ -342,6 +356,61 @@ class ManagedScriptJobHandlerTest {
     assertThat(empty).isEqualTo(new Outcome.Completed(Map.of()));
   }
 
+  @Test
+  void neverLogsTheScriptItsInputOrItsOutput() {
+    captureLogs();
+    store("sum.py", "SCRIPT_SENTINEL");
+    provider.respond(
+        ExecutionResponse.completed(Map.of("out", "OUTPUT_SENTINEL")),
+        scriptFailure("SCRIPT_ERROR", "MESSAGE_SENTINEL", "TRACE_SENTINEL"));
+    final var throwing =
+        new ManagedScriptJobHandler(
+            new FakeProvider() {
+              @Override
+              public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+                throw new IllegalStateException("INPUT_SENTINEL in an exception message");
+              }
+            },
+            resources(Duration.ofMillis(200)),
+            ConnectorsObjectMapperSupplier.getCopy(),
+            Duration.ofSeconds(30),
+            BACKOFF);
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+    throwing.handle(client, "default", job(SCRIPT_HEADER), Map.of("in", "INPUT_SENTINEL"));
+
+    assertThat(logs.list).isNotEmpty();
+    for (var event : logs.list) {
+      final var text =
+          event.getFormattedMessage()
+              + (event.getThrowableProxy() == null ? "" : event.getThrowableProxy().getMessage());
+      assertThat(text)
+          .doesNotContain(
+              "SCRIPT_SENTINEL",
+              "INPUT_SENTINEL",
+              "OUTPUT_SENTINEL",
+              "MESSAGE_SENTINEL",
+              "TRACE_SENTINEL");
+    }
+  }
+
+  @Test
+  void auditsEachInvocation() {
+    captureLogs();
+    store("sum.py", "x");
+
+    handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(logs.list)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .anyMatch(
+            message ->
+                message.matches(
+                    "Managed-script job 42: script resource %d, language python, outcome COMPLETED, \\d+ ms"
+                        .formatted(SCRIPT_KEY)));
+  }
+
   private ManagedScriptJobHandler handler(Duration visibilityTimeout) {
     return new ManagedScriptJobHandler(
         provider,
@@ -404,6 +473,12 @@ class ManagedScriptJobHandlerTest {
     assertThat(failed.message()).startsWith(code.name() + ": ");
     assertThat(failed.retries()).isEqualTo(retries);
     return failed;
+  }
+
+  private void captureLogs() {
+    logs = new ListAppender<>();
+    logs.start();
+    ((Logger) LoggerFactory.getLogger(ManagedScriptJobHandler.class)).addAppender(logs);
   }
 
   private static void sleep(long millis) {
