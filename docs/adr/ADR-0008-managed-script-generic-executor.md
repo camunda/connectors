@@ -417,9 +417,9 @@ name.
 
 Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
 calls the script's `execute`, and enforces the child process, the limits and the cleanup. The
-wrapper files of each language and their digest are published to providers, in the Apache 2.0 API
-module or a module of their own (decided in
-[#9907](https://github.com/camunda/connectors/issues/9907)), so that a provider written
+wrapper files of each language and their digest are published to providers in the Apache 2.0 API
+module, as resources read through `ExecutorWrapper`
+([#9907](https://github.com/camunda/connectors/issues/9907)), so that a provider written
 outside this repository, for example in Self-Managed for another platform, can package the wrapper
 and name its executors from the digest. Such a provider either creates the executors in
 `ensureExecutors`, like the built-in ones, or, when they are deployed separately (for example with
@@ -436,7 +436,7 @@ SPI is **not a stable API** and has no compatibility guarantee yet. In particula
 
 | Module | License | Contents | Where it ships |
 |---|---|---|---|
-| `connector-runtime/connector-managed-script-api` | Apache 2.0 | Provider SPI and execution contract; depends on nothing but Jackson annotations | Wherever a provider is built |
+| `connector-runtime/connector-managed-script-api` | Apache 2.0 | Provider SPI, execution contract and executor wrappers; depends on nothing but Jackson annotations | Wherever a provider is built |
 | `connectors/managed-script` | Camunda proprietary, like the other connectors | Connector, element template, job handler, readiness, `local` provider | Default bundle, disabled by default (`camunda.connector.managed-code.enabled=false`) |
 | `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Not in the default bundle |
 | `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Not in the default bundle |
