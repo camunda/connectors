@@ -1,0 +1,112 @@
+---
+name: Trigger coverage gate
+
+# Asks c8-cross-component-e2e-tests to report coverage-plan state onto this PR.
+#
+# A coverage plan is a reviewed list of the automated cases an epic needs.
+# `component:connectors` epics route their cases into that suite, so the plan
+# exists and its tests run there — but nothing told the PR implementing the
+# epic. This does: the gate resolves the epic from the PR body and posts a
+# neutral check. It never blocks a merge.
+#
+# Ported from camunda/camunda-hub's workflow of the same name.
+
+on:
+  pull_request:
+    # `edited` matters: the issue link is usually pasted in after opening.
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  trigger-coverage-gate:
+    name: Trigger coverage gate in c8-cross-component-e2e-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    # Forks get no secrets, so the Vault step would fail rather than skip. Bot
+    # branches carry release notes full of issue links and no epic behind them.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot'
+    steps:
+      # No checkout. This job holds Vault credentials, and nothing it runs
+      # needs a working tree: the PR body is read from the environment and the
+      # dispatch is a curl. The hub and camunda/camunda copies check out only
+      # their `observe-build-status` action, from the base commit, because
+      # those repositories have one; this repository does not.
+
+      # Matches ANY issue reference, not just product-hub: the gate resolves an
+      # epic through the sub-issue parent chain, which starts at any issue.
+      - name: Look for an issue reference
+        id: issue
+        env:
+          # Contributor-controlled text, so it is read from the environment
+          # rather than interpolated into the script.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          # HTML comments first, so the PR template's own example does not count.
+          visible=$(printf '%s' "${PR_BODY:-}" | perl -0777 -pe 's/<!--.*?-->//gs')
+          # The three forms findIssueReferences() reads. A here-string, not a
+          # pipe: grep -q plus pipefail can turn a real match into "no match".
+          if grep -qE \
+            '(\b[A-Za-z0-9._-]+/[A-Za-z0-9._-]+#[0-9]+\b|https?://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/issues/[0-9]+|(^|[^A-Za-z0-9_/#])#[0-9]+\b)' \
+            <<< "$visible"; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No issue reference in the PR body — nothing for the gate to resolve."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Same Vault path, approle and pin this repository already uses in
+      # alwaysgreen-triage.yml to dispatch to the same target repository.
+      - name: Generate a GitHub token for the e2e repo
+        if: steps.issue.outputs.found == 'true'
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7fe5cca167f7826bedbc078ae36ff2e974cc8cb5 # generate-github-app-token-from-vault-secrets-1.1.2
+        with:
+          github-app-id-vault-key: GITHUB_APP_ID
+          github-app-id-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          github-app-private-key-vault-key: GITHUB_APP_SECRET
+          github-app-private-key-vault-path: secret/data/products/qa/ci/github.com/apps/camunda/quality-assurance-ci
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID }}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+          owner: camunda
+          repositories: c8-cross-component-e2e-tests
+
+      - name: Trigger repository_dispatch event
+        if: steps.issue.outputs.found == 'true'
+        env:
+          GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
+          SOURCE_REPO: ${{ github.repository }}
+          # The PR HEAD, never github.sha: on a pull_request event that is the
+          # merge commit, which resolves to no pull request in the gate.
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -n \
+            --arg repo "$SOURCE_REPO" \
+            --arg sha "$SOURCE_SHA" \
+            '{event_type: "coverage-gate", client_payload: {source_repo: $repo, source_sha: $sha}}')
+
+          # --fail-with-body so a 401/404 is an error: a silent dispatch failure
+          # looks exactly like a PR the gate chose not to report on.
+          curl -sS --fail-with-body -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/camunda/c8-cross-component-e2e-tests/dispatches \
+            -d "$payload"
+          echo "Dispatched coverage-gate for $SOURCE_REPO@$SOURCE_SHA"
