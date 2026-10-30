@@ -65,7 +65,7 @@ else:
             )
         except MemoryError as error:
             response = raised("RESOURCE_LIMIT", error)
-        except (TypeError, ValueError, RecursionError) as error:
+        except Exception as error:  # noqa: BLE001 - json.dumps runs the result's own methods
             response = failure("INVALID_RESULT", f"the result of execute() is not JSON: {error}")
 
 stdout.write(response if isinstance(response, str) else json.dumps(response))

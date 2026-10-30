@@ -22,8 +22,8 @@ try:
     import resource
 except ImportError:  # Windows: no rlimits; the local mode is not supported there
     resource = None
-import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -141,6 +141,45 @@ def _limit_memory():
         resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
     except (ValueError, OSError):  # macOS does not support RLIMIT_AS
         pass
+
+
+def _allow_owner(path):
+    try:
+        os.chmod(path, os.lstat(path).st_mode | 0o700)
+    except OSError:
+        pass
+
+
+def _remove(path):
+    """Removes a file, a link or a whole directory tree, and never follows a link.
+
+    A script can take the permissions off a directory, so that its content cannot be listed or
+    removed: the owner gets them back on every directory of the tree before it is read.
+    """
+    directories, pending = [], [path]
+    while pending:
+        current = pending.pop()
+        try:
+            is_directory = stat.S_ISDIR(os.lstat(current).st_mode)
+        except OSError:
+            continue
+        if not is_directory:
+            try:
+                os.unlink(current)
+            except OSError:
+                pass
+            continue
+        _allow_owner(current)
+        try:
+            pending.extend(os.path.join(current, name) for name in os.listdir(current))
+        except OSError:
+            pass
+        directories.append(current)
+    for directory in reversed(directories):  # the deepest first
+        try:
+            os.rmdir(directory)
+        except OSError:
+            pass
 
 
 def _kill_group(pid):
@@ -337,13 +376,13 @@ class Executor:
             path = os.path.join(self._tmp, entry)
             if not os.path.lexists(path):
                 continue
-            try:
-                if os.path.isdir(path) and not os.path.islink(path):
-                    shutil.rmtree(path, ignore_errors=True)
-                else:
-                    os.unlink(path)
-            except OSError:
-                pass  # Not ours to remove.
+            # Entries are unlinked from their parent: a directory of the baseline that the script
+            # made read-only gets its owner permissions back (the directory itself is left alone).
+            parent = os.path.dirname(entry)
+            while parent:
+                _allow_owner(os.path.join(self._tmp, parent))
+                parent = os.path.dirname(parent)
+            _remove(path)
 
     def run(self, event, deadline_ms):
         """Runs the script of ``event`` and returns the contract response; never raises."""
@@ -362,7 +401,7 @@ class Executor:
             if self._local:
                 if child_pid is not None:
                     _kill_group(child_pid)
-                shutil.rmtree(workdir, ignore_errors=True)
+                _remove(workdir)
             else:
                 self._sweep()
                 self._clean_tmp()

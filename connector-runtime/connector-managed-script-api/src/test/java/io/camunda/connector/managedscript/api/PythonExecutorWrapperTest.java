@@ -275,6 +275,24 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void rejectsAResultWhoseSerializationRaises() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                class Broken(dict):
+                    def items(self):
+                        raise RuntimeError("no items")
+
+                def execute(variables, context):
+                    return {"a": Broken(k=1)}
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
+    assertThat(error.get("message").asText()).contains("no items");
+  }
+
+  @Test
   void keepsTheResourceLimitWhenMemoryRunsOutWhileSerializingTheResult() throws Exception {
     final var error =
         errorOf(
@@ -385,6 +403,24 @@ class PythonExecutorWrapperTest {
     request.put("variables", "not an object");
 
     assertThat(errorOf(call(request)).get("code").asText()).isEqualTo("INVALID_INPUT");
+  }
+
+  @Test
+  void removesADirectoryTheScriptMadeUnwritable() throws Exception {
+    call(
+        """
+        import os
+
+        def execute(variables, context):
+            os.mkdir("locked")
+            open("locked/file", "w").close()
+            os.chmod("locked", 0o500)
+            return {"a": 1}
+        """);
+
+    try (var left = Files.list(callTmp)) {
+      assertThat(left).isEmpty();
+    }
   }
 
   @Test
