@@ -315,6 +315,21 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void removesADirectoryTheScriptMadeUnwritable() throws Exception {
+    final var response =
+        call(
+            "import fs from 'node:fs';"
+                + " export function execute() { fs.mkdirSync('locked');"
+                + " fs.writeFileSync('locked/file', 'x'); fs.chmodSync('locked', 0o500);"
+                + " return { a: 1 }; }");
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+    try (var left = Files.list(callTmp)) {
+      assertThat(left).isEmpty();
+    }
+  }
+
+  @Test
   void leavesNoCallDirectoryBehind() throws Exception {
     call("export function execute() { return { a: 1 }; }");
     call("export function execute() { throw new Error('boom'); }");

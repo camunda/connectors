@@ -13,8 +13,8 @@
 
 import { spawn } from 'node:child_process';
 import {
-  closeSync, fstatSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, rmSync,
-  writeFileSync, writeSync,
+  chmodSync, closeSync, fstatSync, lstatSync, mkdtempSync, openSync, readdirSync, readFileSync,
+  readSync, rmdirSync, unlinkSync, writeFileSync, writeSync,
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,9 +84,49 @@ function snapshot(directory, prefix = '') {
   return found;
 }
 
+function allowOwner(target) {
+  try {
+    chmodSync(target, lstatSync(target).mode | 0o700);
+  } catch {
+    // Not ours to change.
+  }
+}
+
+// Removes a file, a link or a whole directory tree, and never follows a link. A script can take the
+// permissions off a directory, so that its content cannot be listed or removed: the owner gets them
+// back on every directory of the tree before it is read. Never throws.
+function remove(target) {
+  const directories = [];
+  const pending = [target];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    let isDirectory;
+    try {
+      isDirectory = lstatSync(current).isDirectory();
+    } catch {
+      continue;
+    }
+    if (!isDirectory) {
+      try { unlinkSync(current); } catch { /* not ours to remove */ }
+      continue;
+    }
+    allowOwner(current);
+    try {
+      for (const name of readdirSync(current)) pending.push(path.join(current, name));
+    } catch { /* not readable: removed empty or left */ }
+    directories.push(current);
+  }
+  for (const directory of directories.reverse()) { // the deepest first
+    try { rmdirSync(directory); } catch { /* not empty: not ours */ }
+  }
+}
+
 // Removes everything under `directory` that is not in `baseline`, also inside the directories that
 // were already there: a writable directory of the baseline must not carry files to the next call.
 function removeNew(directory, baseline, prefix = '') {
+  // Entries are unlinked from their parent: a directory of the baseline that the script made
+  // read-only gets its owner permissions back (the directory itself is left alone).
+  if (prefix) allowOwner(path.join(directory, prefix));
   let children = [];
   try {
     children = readdirSync(path.join(directory, prefix), { withFileTypes: true });
@@ -96,11 +136,7 @@ function removeNew(directory, baseline, prefix = '') {
   for (const child of children) {
     const relative = path.join(prefix, child.name);
     if (!baseline.has(relative)) {
-      try {
-        rmSync(path.join(directory, relative), { recursive: true, force: true });
-      } catch {
-        // Not ours to remove.
-      }
+      remove(path.join(directory, relative));
     } else if (child.isDirectory()) {
       removeNew(directory, baseline, relative);
     }
@@ -334,7 +370,7 @@ export function createExecutor({ local, tmp }) {
         if (result.childPid) {
           try { process.kill(-result.childPid, 'SIGKILL'); } catch { /* already gone */ }
         }
-        rmSync(workdir, { recursive: true, force: true });
+        remove(workdir);
       } else {
         sweep();
         cleanTmp();
