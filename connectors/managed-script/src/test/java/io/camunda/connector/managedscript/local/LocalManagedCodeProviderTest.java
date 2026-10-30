@@ -463,6 +463,34 @@ class LocalManagedCodeProviderTest {
   }
 
   @Test
+  void stopsWhatTheWrapperStartedWhenTheWrapperIsKilled() throws Exception {
+    final var pidFile = bin.resolve("script.pid");
+    shim(
+        "node",
+        "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";;\n"
+            + "*) sleep 60 & echo $! > '"
+            + pidFile
+            + "'; sleep 1; kill -9 $$;; esac");
+    final var provider = provider(List.of(bin));
+    provider.ensureExecutors();
+
+    final var response =
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            request("export function execute() { return {}; }", Map.of(), 10_000));
+
+    assertThat(response.error().code()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    final var script = ProcessHandle.of(Long.parseLong(Files.readString(pidFile).strip()));
+    final var deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+    while (script.isPresent() && script.get().isAlive() && System.nanoTime() < deadline) {
+      Thread.sleep(50);
+    }
+    assertThat(script.isEmpty() || !script.get().isAlive())
+        .as("the script the wrapper started is gone")
+        .isTrue();
+  }
+
+  @Test
   void keepsTheInterruptionOfAProbeInsteadOfRejectingThePlatform() throws IOException {
     shim("node", "sleep 30");
     final var provider = provider(List.of(bin));

@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,6 +27,9 @@ final class ProcessRunner {
    */
   record Result(
       boolean timedOut, boolean outputTooLarge, int exitCode, byte[] stdout, String stderr) {}
+
+  /** How often the descendants of the process are noted while it runs. */
+  private static final long POLL_MILLIS = 200;
 
   private ProcessRunner() {}
 
@@ -46,6 +50,9 @@ final class ProcessRunner {
     final var stdout = Files.createTempFile(scratch, "stdout", ".tmp");
     final var stderr = Files.createTempFile(scratch, "stderr", ".tmp");
     Process process = null;
+    // Processes the process started, noted while it runs: once it is gone, for a crash or a kill,
+    // they are no longer its descendants, and would run on without anything enforcing a deadline.
+    final var started = new HashSet<ProcessHandle>();
     try {
       process = builder.redirectOutput(stdout.toFile()).redirectError(stderr.toFile()).start();
       final var in = process.getOutputStream();
@@ -62,7 +69,17 @@ final class ProcessRunner {
                   }
                 });
       }
-      if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+      final long deadline = System.nanoTime() + timeout.toNanos();
+      boolean exited;
+      do {
+        final long remaining = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime());
+        exited =
+            process.waitFor(Math.max(1, Math.min(POLL_MILLIS, remaining)), TimeUnit.MILLISECONDS);
+        if (!exited) {
+          process.descendants().forEach(started::add);
+        }
+      } while (!exited && System.nanoTime() < deadline);
+      if (!exited) {
         return new Result(true, false, -1, new byte[0], "");
       }
       final var error = head(stderr, maxErrorBytes);
@@ -75,6 +92,7 @@ final class ProcessRunner {
         process.descendants().forEach(ProcessHandle::destroyForcibly);
         process.destroyForcibly();
       }
+      started.stream().filter(ProcessHandle::isAlive).forEach(ProcessHandle::destroyForcibly);
       Files.deleteIfExists(stdout);
       Files.deleteIfExists(stderr);
     }
