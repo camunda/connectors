@@ -243,6 +243,35 @@ Do not break these (full statement and rationale in
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
+### Rules for changes that are hard to undo
+
+Four things ship once and then stay: stored shapes, names, defaults and limits. An AI that works alone must not decide them silently. Each rule starts with the outcome that a customer gets.
+
+1. **A customer can roll back to the previous version.** The older version can raise an incident on state that it does not understand. The incident names the cause. The customer recovers without losing data, for example by upgrading again. The older version never overwrites state that it cannot read.
+   - Ways to meet this:
+     1. Turn new behavior on only after the upgrade is final.
+     2. Stamp new state with a version.
+     3. Write a release note.
+     4. Keep sample state from each release as a test input.
+   - Example: Kafka keeps the old protocol version pinned while brokers upgrade one by one. Raising the version is the point of no return, so rollback stays possible until then.
+2. **A name matches the interface where it appears.** A person approves each new name. Six rules apply, and two tiers decide which rules lead.
+   1. User-facing tier: a name that a user sees follows the user-facing UI.
+      1. Direction words follow the vocabulary of the UI.
+      2. Use product terms.
+      3. A name that a user must type needs help in the UI (rule 5).
+   2. System tier: a name that only the system sees follows the system interface. Tool names, configuration keys, error codes and tags are examples.
+      1. Follow the existing patterns of the module.
+      2. The verb says the effect.
+   3. Both tiers: one noun and one verb per thing.
+   - Example: Git split `checkout`, which did two jobs, into `switch` for branches and `restore` for files. Each verb now says its effect.
+3. **A customer can see why a default or limit applied, and can change it.** A person approves each new default or limit. Defaults are conservative. The PR states the value, the reason, how to see a hit and how to change it. An error message names the limit and every configuration option that must change with it.
+   - Example: Kafka's "record too large" error names the setting `max.request.size`. The full fix needs other size options to match, so a good message names all of them.
+4. **A capability is complete after a customer can see it work and test it.** Anything automated that changes the result appears in a log, a history or an incident.
+   - Each user-facing capability has one test. The test uses only what a customer has.
+   - Example: Kubernetes asks for end-to-end tests, documentation and a production readiness review before a feature reaches beta and general availability.
+5. **An author can reach every concept.** Each concept that an author sets has help: a button, a quick fix, a labeled field, or a docs example.
+   - Example: an editor offers a quick fix next to a warning, so the author does not need to know the fix first.
+
 ## Working in this module
 
 General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
@@ -338,6 +367,8 @@ Before claiming a change is complete:
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
   `api-changes.json` with a link to its `breaking-changes.md` anchor
   ([API compatibility check](../../docs/api-compatibility.md)).
+- [ ] A change that adds a name, a stored shape, a default or a limit is labeled in the PR, and a named person signed off
+  (see [Rules for changes that are hard to undo](#rules-for-changes-that-are-hard-to-undo)).
 
 ## Extension points
 
