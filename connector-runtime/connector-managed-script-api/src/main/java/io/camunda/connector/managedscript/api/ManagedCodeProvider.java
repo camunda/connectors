@@ -33,10 +33,11 @@ public interface ManagedCodeProvider {
    * configured settings, and returns once they can be invoked. A provider whose executors are
    * deployed separately checks them instead of creating them.
    *
-   * <p>Not called at startup: the connector calls it before the first execution, on a job thread,
-   * and again before the next execution after {@link #execute} reported {@link
-   * ErrorCode#DEPLOYMENT_MISSING}. Must be idempotent: several runtime instances may call it at
-   * once.
+   * <p>The connector may call it in the background once the runtime is ready, from the first job
+   * that needs the executors, and again after {@link #execute} reported {@link
+   * ErrorCode#DEPLOYMENT_MISSING}, before it invokes the executor again (ADR-0008). It may
+   * therefore run on any thread and more than once in the life of a runtime. Must be idempotent:
+   * several runtime instances may call it at once.
    *
    * @throws ProvisioningException when the executors cannot be made ready
    */
