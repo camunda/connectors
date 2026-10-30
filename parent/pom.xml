@@ -193,7 +193,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.2</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.52.0</version.slack>
+    <version.slack>1.53.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
