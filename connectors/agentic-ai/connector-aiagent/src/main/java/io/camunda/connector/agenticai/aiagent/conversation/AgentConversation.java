@@ -7,9 +7,12 @@
 package io.camunda.connector.agenticai.aiagent.conversation;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
+import io.camunda.connector.agenticai.aiagent.document.DocumentExpander;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowFilter;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.conversation.ConversationContext;
@@ -316,10 +319,27 @@ public final class AgentConversation {
    * list for this invocation once the handler has populated it via {@link
    * AgentConfiguration#withToolDefinitions} with the tools of the process and the enabled runtime
    * tools.
+   *
+   * <p>For an agent instance with the documents feature the windowed messages are expanded for the
+   * model as {@link DocumentExpander#expandMessages} does; {@link #allMessages()} and the stored
+   * conversation are not affected.
    */
   public ConversationSnapshot window(int size) {
     var windowed = MessageWindowFilter.apply(allMessages(), size);
+    if (currentContext.supports(AgentFeatures.DOCUMENTS)) {
+      windowed = DocumentExpander.expandMessages(windowed);
+    }
     return new ConversationSnapshot(windowed, configuration.toolDefinitions());
+  }
+
+  /**
+   * The documents the model saw when it was called last, see {@link
+   * ConversationDocuments#seenByModel}.
+   *
+   * @param size the size of the context window the model was called with
+   */
+  public ConversationDocuments documentsSeenByModel(int size) {
+    return ConversationDocuments.seenByModel(currentContext, allMessages(), size);
   }
 
   /**

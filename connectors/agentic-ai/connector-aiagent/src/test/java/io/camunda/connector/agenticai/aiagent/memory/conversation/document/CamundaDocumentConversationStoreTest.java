@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.TestPhysicalTenantClientSelectors.singleTenant;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessageWithMixedToolKinds;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
+import static io.camunda.connector.agenticai.testutil.TestDocuments.createDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,21 +25,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.CamundaDocumentMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
+import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -438,6 +445,51 @@ class CamundaDocumentConversationStoreTest {
                     .extracting(ToolCall::kind)
                     .containsExactly(ToolKind.RUNTIME, ToolKind.PROCESS);
               });
+    }
+  }
+
+  @Test
+  void keepsDocumentReferencesWithTheirDocumentWhenTheStoredConversationIsLoadedAgain()
+      throws Exception {
+    mockJobContext();
+    // the connectors object mapper of the runtime reads documents, as for document content
+    store =
+        new CamundaDocumentConversationStore(
+            documentFactory, documentStore, singleTenant(), TestObjectMapperSupplier.INSTANCE);
+    final var document = createDocument("report", "report.txt");
+    final var reference =
+        DocumentHandle.referenceFor(document, DocumentSource.toolCall("fetch", "call-1"))
+            .withDelivery(DocumentDelivery.CONTENT);
+    final var message =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), reference)).build();
+
+    final var storedDocument = mock(Document.class);
+    when(documentFactory.create(documentCreationRequestCaptor.capture()))
+        .thenReturn(storedDocument);
+
+    final var agentContext = AgentContext.empty();
+    AgentContext storedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      var storedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(List.of(message)));
+      storedAgentContext = agentContext.withConversation(storedConversation);
+    }
+
+    final var storedContent = documentCreationRequestCaptor.getValue().content().readAllBytes();
+    when(storedDocument.asInputStream()).thenReturn(new ByteArrayInputStream(storedContent));
+
+    // the stored conversation holds the reference of the document, not only its tag
+    assertThat(new String(storedContent, StandardCharsets.UTF_8)).contains(reference.id().value());
+    try (var session = store.createSession(executionContext, storedAgentContext)) {
+      final var loaded = session.loadMessages(storedAgentContext).messages();
+      assertThat(loaded).singleElement().isEqualTo(message);
+      assertThat(((UserMessage) loaded.getFirst()).content().get(1))
+          .isInstanceOfSatisfying(
+              DocumentReferenceContent.class,
+              loadedReference ->
+                  assertThat(loadedReference.document().asByteArray())
+                      .isEqualTo("report".getBytes(StandardCharsets.UTF_8)));
     }
   }
 

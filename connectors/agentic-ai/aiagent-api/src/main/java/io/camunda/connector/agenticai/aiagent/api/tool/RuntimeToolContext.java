@@ -38,4 +38,12 @@ public interface RuntimeToolContext {
    * while the call runs.
    */
   AgentContext agentContext();
+
+  /**
+   * The documents of the context window the model was called with when it asked for the batch of
+   * calls this call belongs to. The documents the other calls of the batch return are not part of
+   * it, they are known to the next turn. Empty when a tool is asked whether it is {@link
+   * RuntimeTool#isEnabled enabled}.
+   */
+  RuntimeToolDocuments documents();
 }

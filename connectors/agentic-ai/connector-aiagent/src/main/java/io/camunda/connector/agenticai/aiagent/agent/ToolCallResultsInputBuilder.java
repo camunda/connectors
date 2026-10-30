@@ -8,7 +8,8 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.model.message.content.TextContent.textContent;
 
-import io.camunda.connector.agenticai.aiagent.document.DocumentReferenceXmlTag;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
+import io.camunda.connector.agenticai.aiagent.document.LegacyDocumentReferenceXmlTag;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
@@ -25,8 +26,13 @@ import java.util.Map;
 
 /**
  * Builds the input of the turn that follows a turn with tool calls from the tool call results of
- * all of its calls: the tool call result message and, when a result holds documents, the message
- * that carries them.
+ * all of its calls, in the order of the calls. The composer uses it for the results of a turn with
+ * process tool calls, the request handler for a turn with runtime tool calls only, so the input is
+ * the same for both.
+ *
+ * <p>An agent instance with the documents feature keeps a document that is a whole result as a
+ * document reference inside the tool result. An agent instance without it keeps the document in a
+ * message of its own, next to its tag.
  */
 final class ToolCallResultsInputBuilder {
 
@@ -47,7 +53,10 @@ final class ToolCallResultsInputBuilder {
       documents = List.copyOf(documents);
     }
 
-    /** The entry for the result of a runtime tool; its documents are the ones of its content. */
+    /**
+     * The entry for the result of a runtime tool; its documents are the ones of its content, so the
+     * result of a failed call, whose content is text, has none.
+     */
     static Entry of(RuntimeToolExecution execution) {
       return new Entry(
           execution.result(),
@@ -59,10 +68,41 @@ final class ToolCallResultsInputBuilder {
    * The messages for the results of all tool calls of a turn.
    *
    * @param entries the results in the order of the tool calls
-   * @return the tool call result message, followed by the message with the documents of the results
-   *     if there are any
+   * @param documentFlow whether the agent instance has the documents feature
+   * @return the tool call result message; without the documents feature, followed by the message
+   *     with the documents of the results if there are any
    */
-  static List<Message> build(List<Entry> entries) {
+  static List<Message> build(List<Entry> entries, boolean documentFlow) {
+    return documentFlow ? buildWithDocumentTags(entries) : buildWithDocumentMessage(entries);
+  }
+
+  /** A document that is a whole result is persisted as its document reference. */
+  private static List<Message> buildWithDocumentTags(List<Entry> entries) {
+    final var results =
+        entries.stream()
+            .map(Entry::result)
+            .map(ToolCallResultsInputBuilder::withDocumentReferences)
+            .toList();
+    return List.of(
+        ToolCallResultMessage.builder()
+            .results(results)
+            .metadata(defaultMessageMetadata())
+            .build());
+  }
+
+  /** The result with every document that is the whole content of the result as its reference. */
+  private static ToolCallResultContent withDocumentReferences(ToolCallResultContent result) {
+    return result.withContent(
+        result.content().stream()
+            .<Content>map(
+                block ->
+                    block instanceof DocumentContent documentContent
+                        ? DocumentHandle.referenceFor(documentContent.document())
+                        : block)
+            .toList());
+  }
+
+  private static List<Message> buildWithDocumentMessage(List<Entry> entries) {
     final var messages = new ArrayList<Message>();
     messages.add(
         ToolCallResultMessage.builder()
@@ -98,7 +138,7 @@ final class ToolCallResultsInputBuilder {
       for (var doc : group.documents()) {
         content.add(
             textContent(
-                DocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
+                LegacyDocumentReferenceXmlTag.from(doc, group.toolCallId(), group.toolCallName())
                     .toXml()));
         content.add(DocumentContent.documentContent(doc));
       }

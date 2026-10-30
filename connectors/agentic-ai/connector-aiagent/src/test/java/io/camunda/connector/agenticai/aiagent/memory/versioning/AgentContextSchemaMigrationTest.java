@@ -14,11 +14,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.InlineDocument;
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -516,6 +523,54 @@ class AgentContextSchemaMigrationTest {
       assertThat(result.elementId()).isEqualTo("Activity_1");
       assertThat(result.completedAt()).isEqualTo(OffsetDateTime.parse("2026-01-01T10:15:30Z"));
       assertThat(result.properties()).containsEntry("interrupted", true);
+    }
+
+    @Test
+    void toolCallResultMessagesKeepTheirTypedBlocksThroughTheVersionedDeserialization()
+        throws Exception {
+      final var blocks =
+          List.<Content>of(
+              TextContent.textContent("Loaded the document."),
+              new DocumentReferenceContent(
+                  DocumentId.of("doc-1"),
+                  new InlineDocument("data", "a.txt", "text/plain"),
+                  "report.txt",
+                  "text/plain",
+                  10L,
+                  DocumentSource.toolCall("search", "call-1"),
+                  DocumentDelivery.REFERENCE,
+                  null),
+              TextContent.textContent("Its content follows in the next message."));
+      final var result =
+          ToolCallResultContent.builder()
+              .id("call-1")
+              .name("search")
+              .content(blocks)
+              .completedAt(OffsetDateTime.parse("2026-10-05T10:15:30.123+02:00"))
+              .build();
+      final var context =
+          AgentContext.builder()
+              .conversation(
+                  InProcessConversationContext.builder("conv")
+                      .messages(
+                          List.of(ToolCallResultMessage.builder().results(List.of(result)).build()))
+                      .build())
+              .build();
+
+      final var serialized = objectMapper.writeValueAsString(context);
+      final var bound = objectMapper.readValue(serialized, AgentContext.class);
+
+      assertThat(bound.conversation())
+          .isInstanceOfSatisfying(
+              InProcessConversationContext.class,
+              conversation ->
+                  assertThat(conversation.messages())
+                      .singleElement()
+                      .isInstanceOfSatisfying(
+                          ToolCallResultMessage.class,
+                          message ->
+                              assertThat(message.results().getFirst().content())
+                                  .isEqualTo(blocks)));
     }
 
     @Test

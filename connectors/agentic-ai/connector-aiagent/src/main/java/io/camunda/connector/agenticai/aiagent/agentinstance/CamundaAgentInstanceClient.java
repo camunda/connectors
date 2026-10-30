@@ -241,7 +241,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
               configuration, agentContext, turn.iterationKey(), turnIngestionTimestamp));
     }
     historyItems.addAll(
-        inputHistoryItems(turn, previousTurn, turnIngestionTimestamp, turn.iterationKey()));
+        inputHistoryItems(
+            turn, previousTurn, turnIngestionTimestamp, turn.iterationKey(), agentContext));
 
     applyBatchedUpdate(
         executionContext,
@@ -289,13 +290,15 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentConversationTurn turn,
       Optional<AgentConversationTurn> previousTurn,
       OffsetDateTime turnIngestionTimestamp,
-      int iterationKey) {
+      int iterationKey,
+      AgentContext agentContext) {
     final Map<String, ToolCall> toolCallsById =
         previousTurn.map(AgentConversationTurn::toolCallsById).orElse(Map.of());
     final List<AgentInstanceHistoryItem> items = new ArrayList<>();
     for (final Message message : turn.inputMessages()) {
       for (final var item :
-          historyMapper.inputHistoryItems(message, toolCallsById, turnIngestionTimestamp)) {
+          historyMapper.inputHistoryItems(
+              message, toolCallsById, turnIngestionTimestamp, agentContext)) {
         items.add(toHistoryItem(item, iterationKey));
       }
     }
@@ -355,7 +358,8 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       AgentExecutionContext executionContext,
       @Nullable AgentInstanceKey agentInstanceKey,
       List<ToolCallResultContent> toolCallResults,
-      AgentConversationTurn previousTurn) {
+      AgentConversationTurn previousTurn,
+      AgentContext agentContext) {
     if (agentInstanceKey == null) {
       LOGGER.debug("Skipping agent instance tool call results: no agent instance key");
       return;
@@ -370,7 +374,10 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
     // completedAt
     for (final var item :
         historyMapper.inputHistoryItems(
-            syntheticMessage, toolCallsById, OffsetDateTime.now(ZoneId.systemDefault()))) {
+            syntheticMessage,
+            toolCallsById,
+            OffsetDateTime.now(ZoneId.systemDefault()),
+            agentContext)) {
       items.add(toHistoryItem(item, iteration));
     }
 

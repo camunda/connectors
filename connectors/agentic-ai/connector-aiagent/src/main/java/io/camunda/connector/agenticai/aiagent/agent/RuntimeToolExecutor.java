@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
@@ -31,11 +32,13 @@ public interface RuntimeToolExecutor {
    *
    * @param executionContext the invocation of the agent
    * @param agentContext the persisted state of the agent
+   * @param documents the documents the agent knows at the start of the calls
    * @param runtimeToolCalls the calls to execute
    * @return one execution per call, in the order of the calls
    */
   List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      RuntimeToolDocuments documents,
       List<ToolCall> runtimeToolCalls);
 }

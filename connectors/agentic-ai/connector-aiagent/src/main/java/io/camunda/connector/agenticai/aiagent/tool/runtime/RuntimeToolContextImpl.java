@@ -7,10 +7,13 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
 /** The agent as of a call of a runtime tool. */
 public record RuntimeToolContextImpl(
-    AgentExecutionContext executionContext, AgentContext agentContext)
+    AgentExecutionContext executionContext,
+    AgentContext agentContext,
+    RuntimeToolDocuments documents)
     implements RuntimeToolContext {}

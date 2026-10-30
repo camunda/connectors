@@ -1364,7 +1364,8 @@ class CamundaAgentInstanceClientTest {
           List.of(
               ToolCallResultContent.from(
                   ToolCallResult.builder().id("a").name("getWeather").build())),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verifyNoInteractions(camundaClient);
     }
@@ -1400,7 +1401,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(ToolCallResultContent.from(arrivedResult)),
-          previousTurn);
+          previousTurn,
+          NEW_INSTANCE);
 
       verify(updateCommandStep2, never()).status(any());
       verify(updateCommandStep2).jobKey(JOB_KEY);
@@ -1475,7 +1477,8 @@ class CamundaAgentInstanceClientTest {
           TestAgentExecutionContext.withLimits(),
           AgentInstanceKey.of(AGENT_INSTANCE_KEY),
           List.of(runtimeResult),
-          assistantTurn);
+          assistantTurn,
+          NEW_INSTANCE);
       // the other write carries it together with the result of the process, with the turn start
       client.applyTurnStart(
           TestAgentExecutionContext.withLimits(),
@@ -1515,7 +1518,8 @@ class CamundaAgentInstanceClientTest {
                       List.of(
                           ToolCallResultContent.from(
                               ToolCallResult.builder().id("orphan").name("getWeather").build())),
-                      previousTurn))
+                      previousTurn,
+                      NEW_INSTANCE))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("No originating tool call found")
           .hasMessageContaining("orphan");
@@ -1629,7 +1633,8 @@ class CamundaAgentInstanceClientTest {
                                   .name("getWeather")
                                   .completedAt(TURN_INGESTION_TIMESTAMP)
                                   .build())),
-                      previousTurn))
+                      previousTurn,
+                      NEW_INSTANCE))
           .isInstanceOfSatisfying(
               ConnectorRetryException.class, e -> assertThat(e.getRetries()).isEqualTo(0));
     }

@@ -8,7 +8,12 @@ package io.camunda.connector.agenticai.aiagent.document;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
 
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
@@ -18,9 +23,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Derives a stable id for a document, verbatim wherever possible.
+ * Derives a stable id for a document, verbatim wherever possible, and the reference block the model
+ * is shown for it.
  *
  * <p>This id is the caller-visible handle other code cross-references a document by (e.g. a
  * document registry) - it is never sanitized or hashed away for a specific provider's wire-format
@@ -56,16 +64,96 @@ public final class DocumentHandle {
    * types above are expected: {@link DocumentReference} is a plain, non-sealed interface, so the
    * compiler cannot prove the switch is exhaustive without it.
    */
-  public static String idFor(Document document) {
+  public static DocumentId idFor(Document document) {
     return idForReference(document.reference(), document);
   }
 
-  private static String idForReference(DocumentReference reference, Document document) {
+  /**
+   * Returns the file name the model is shown for the given document, or {@code null} when none is
+   * known:
+   *
+   * <ul>
+   *   <li>{@link CamundaDocumentReference} → the file name of the document metadata
+   *   <li>{@link ExternalDocumentReference}, {@link InlineDocumentReference} → the reference {@code
+   *       name}
+   * </ul>
+   */
+  public static @Nullable String fileNameFor(Document document) {
+    return switch (document.reference()) {
+      case ExternalDocumentReference ref -> StringUtils.trimToNull(ref.name());
+      case InlineDocumentReference ref -> StringUtils.trimToNull(ref.name());
+      case null, default -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? StringUtils.trimToNull(metadata.getFileName()) : null;
+      }
+    };
+  }
+
+  /**
+   * Returns the content type the model is shown for the given document, or {@code null} when it is
+   * not known without fetching the content: the content type of the Camunda document metadata or
+   * the {@code contentType} of an inline reference. Metadata of external documents is only
+   * available by downloading the document, so they have none.
+   */
+  public static @Nullable String contentTypeFor(Document document) {
+    return switch (document.reference()) {
+      case ExternalDocumentReference ignored -> null;
+      case InlineDocumentReference ref -> StringUtils.trimToNull(ref.contentType());
+      case null, default -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? StringUtils.trimToNull(metadata.getContentType()) : null;
+      }
+    };
+  }
+
+  /**
+   * Returns the size in bytes the model is shown for the given document, or {@code null} when it is
+   * not known without reading the content: the size of the Camunda document metadata. Other
+   * references have none.
+   */
+  public static @Nullable Long sizeFor(Document document) {
+    return switch (document.reference()) {
+      case CamundaDocumentReference ignored -> {
+        final DocumentMetadata metadata = document.metadata();
+        yield metadata != null ? metadata.getSize() : null;
+      }
+      case null, default -> null;
+    };
+  }
+
+  /**
+   * Creates the block of a document that is a whole tool result, the short tag the model sees for
+   * it: it has no source and the delivery {@code reference}.
+   */
+  public static DocumentReferenceContent referenceFor(Document document) {
+    return referenceFor(document, null);
+  }
+
+  /**
+   * Creates the block of a document with the delivery {@code reference}, with the id and the
+   * attributes the model is shown derived from the document.
+   *
+   * @param source where the document entered the conversation, or {@code null} for none
+   */
+  public static DocumentReferenceContent referenceFor(
+      Document document, @Nullable DocumentSource source) {
+    return new DocumentReferenceContent(
+        idFor(document),
+        document,
+        fileNameFor(document),
+        contentTypeFor(document),
+        sizeFor(document),
+        source,
+        DocumentDelivery.REFERENCE,
+        null);
+  }
+
+  private static DocumentId idForReference(DocumentReference reference, Document document) {
     return switch (reference) {
-      case CamundaDocumentReference ref -> ref.getDocumentId();
-      case ExternalDocumentReference ref -> "ext-" + sha256Prefix(ref.url(), 12);
+      case CamundaDocumentReference ref -> DocumentId.of(ref.getDocumentId());
+      case ExternalDocumentReference ref -> DocumentId.of("ext-" + sha256Prefix(ref.url(), 12));
       case InlineDocumentReference ref when ref.content() != null && !ref.content().isBlank() ->
-          "inline-" + sha256Prefix(ref.content(), 12);
+          DocumentId.of("inline-" + sha256Prefix(ref.content(), 12));
       case null, default ->
           throw new ConnectorException(
               ERROR_CODE_FAILED_MODEL_CALL,

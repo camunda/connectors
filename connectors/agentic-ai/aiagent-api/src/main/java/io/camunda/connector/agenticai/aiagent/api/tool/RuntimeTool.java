@@ -15,7 +15,8 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * {@link #call handler}, run by the agent when the model calls the tool. Register a tool as a
  * Spring bean of this type.
  *
- * <p>The tool types of this package are {@link Experimental}.
+ * <p>The tool types of this package, including {@link RuntimeToolDocuments} and {@link
+ * AgentDocument}, are {@link Experimental}.
  *
  * <h2>Execution contract</h2>
  *
@@ -26,7 +27,10 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  *   <li><b>Concurrency.</b> The calls of one assistant message may run concurrently. Their results
  *       are returned and applied in the order of the calls. {@link #call} and {@link #isEnabled}
  *       may be called from different threads, and a {@link RuntimeToolContext} is safe to read
- *       concurrently.
+ *       concurrently. The calls of one message see the same {@link RuntimeToolContext#documents()
+ *       documents}, the ones of the window of their model call: a call must not depend on a
+ *       document another call of the same message returned. The documents the results contain are
+ *       known to the next turn, as long as their result is in its context window.
  *   <li><b>Bounded run time.</b> A call runs within the agent job, and the framework neither
  *       cancels nor times it out. It must return well within the timeout of the job.
  *   <li><b>Mixed batches.</b> The agent classifies the calls of an assistant message once, when it

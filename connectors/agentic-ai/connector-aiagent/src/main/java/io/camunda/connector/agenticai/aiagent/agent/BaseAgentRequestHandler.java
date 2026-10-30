@@ -27,10 +27,12 @@ import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.MessageUtil;
@@ -146,8 +148,13 @@ public abstract class BaseAgentRequestHandler<
       if (compositionResult
           instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
         // the results of the process arrived: the agent executes its own calls now
+        // the calls see the documents the model saw when it asked for them
+        final var documents =
+            ConversationDocuments.seenByModel(
+                agentContext, loadedMessages, configuration.contextWindowSize());
         final var executions =
-            runtimeToolExecutor.execute(executionContext, agentContext, runtimeToolCalls);
+            runtimeToolExecutor.execute(
+                executionContext, agentContext, documents, runtimeToolCalls);
         compositionResult =
             agentInputComposer.composeWithRuntimeToolResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -220,7 +227,8 @@ public abstract class BaseAgentRequestHandler<
         executionContext,
         agentContext.agentInstanceKey(),
         arrivedResults.stream().map(ToolCallResultContent::from).toList(),
-        previousConversation.turns().getLast());
+        previousConversation.turns().getLast(),
+        agentContext);
   }
 
   private R proceed(
@@ -350,11 +358,13 @@ public abstract class BaseAgentRequestHandler<
             runtimeToolExecutor.execute(
                 executionContext,
                 workingConversation.persistedContext(),
+                workingConversation.documentsSeenByModel(agentConfiguration.contextWindowSize()),
                 currentTurn.runtimeToolCalls());
         workingConversation =
             workingConversation.nextRuntimeToolRound(
                 ToolCallResultsInputBuilder.build(
-                    executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList()));
+                    executions.stream().map(ToolCallResultsInputBuilder.Entry::of).toList(),
+                    workingConversation.persistedContext().supports(AgentFeatures.DOCUMENTS)));
         // the previous turn is the one whose tool calls these results belong to
         agentInstanceClient.applyTurnStart(
             executionContext,

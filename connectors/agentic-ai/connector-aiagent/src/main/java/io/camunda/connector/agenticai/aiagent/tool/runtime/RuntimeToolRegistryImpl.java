@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.document.ConversationDocuments;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
@@ -53,7 +54,8 @@ public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var context =
+        new RuntimeToolContextImpl(executionContext, agentContext, ConversationDocuments.empty());
     return toolsByName.values().stream().filter(tool -> tool.isEnabled(context)).toList();
   }
 
@@ -63,7 +65,8 @@ public class RuntimeToolRegistryImpl implements RuntimeToolRegistry {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return Optional.empty();
     }
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var context =
+        new RuntimeToolContextImpl(executionContext, agentContext, ConversationDocuments.empty());
     return Optional.ofNullable(toolsByName.get(name)).filter(tool -> tool.isEnabled(context));
   }
 

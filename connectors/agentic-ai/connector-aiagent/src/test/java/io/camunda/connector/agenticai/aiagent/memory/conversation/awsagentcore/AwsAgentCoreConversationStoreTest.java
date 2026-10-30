@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_SYSTEM_PROMPT;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
@@ -19,24 +21,36 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
+import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
+import io.camunda.connector.agenticai.aiagent.document.DocumentHandle;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
+import io.camunda.connector.agenticai.aiagent.model.document.DocumentSource;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
 import io.camunda.connector.agenticai.aiagent.model.message.SystemMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.UserMessage;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryStorageTemplateConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -863,6 +877,103 @@ class AwsAgentCoreConversationStoreTest {
       assertThat(loadResult.messages().get(0)).isInstanceOf(UserMessage.class);
       assertThat(loadResult.messages().get(1)).isInstanceOf(AssistantMessage.class);
     }
+  }
+
+  @Test
+  void aDocumentReferenceWithTheDeliveryContentSurvivesStoreAndLoadAndIsExpandedWithItsDocument() {
+    final var document =
+        new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE)
+            .create(
+                DocumentCreationRequest.from("data".getBytes(StandardCharsets.UTF_8))
+                    .contentType("application/pdf")
+                    .fileName("report.pdf")
+                    .build());
+    final var tag =
+        DocumentHandle.referenceFor(document, DocumentSource.userMessage())
+            .withDelivery(DocumentDelivery.CONTENT);
+    final var tagOnlyMessage =
+        UserMessage.builder().content(List.of(TextContent.textContent("see"), tag)).build();
+
+    final var agentContext =
+        AgentContext.builder()
+            .conversation(
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
+                    .memoryId(MEMORY_ID)
+                    .actorId(ACTOR_ID)
+                    .build())
+            .features(List.of(AgentFeatures.RUNTIME_TOOLS, AgentFeatures.DOCUMENTS))
+            .build();
+
+    mockListEventsResponse(List.of());
+    when(bedrockClient.createEvent(any(CreateEventRequest.class)))
+        .thenReturn(createEventResponse());
+
+    AgentContext storedContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      final var updatedConversation =
+          session.storeMessages(
+              agentContext,
+              ConversationStoreRequest.of(List.of(tagOnlyMessage, assistantMessage("ok"))));
+      storedContext = agentContext.withConversation(updatedConversation);
+    }
+
+    // feed the stored events back as the events the memory returns
+    verify(bedrockClient, times(2)).createEvent(createEventRequestCaptor.capture());
+    final var baseTimestamp = Instant.now().minusSeconds(60);
+    final var storedEvents = new ArrayList<Event>();
+    for (final var request : createEventRequestCaptor.getAllValues()) {
+      storedEvents.add(
+          Event.builder()
+              .eventTimestamp(baseTimestamp.plusSeconds(storedEvents.size()))
+              .payload(request.payload())
+              .metadata(request.metadata())
+              .build());
+    }
+    mockListEventsResponse(storedEvents);
+
+    final List<Message> loaded;
+    try (var session = store.createSession(executionContext, storedContext)) {
+      loaded = session.loadMessages(storedContext).messages();
+    }
+
+    assertThat(loaded).hasSize(2);
+    assertThat(loaded.get(0))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            user -> {
+              assertThat(user.content()).containsExactly(TextContent.textContent("see"), tag);
+              assertThat(user.content().get(1))
+                  .isInstanceOfSatisfying(
+                      DocumentReferenceContent.class,
+                      reference -> {
+                        assertThat(reference.id()).isEqualTo(tag.id());
+                        assertThat(reference.delivery()).isEqualTo(DocumentDelivery.CONTENT);
+                      });
+            });
+
+    final var conversation =
+        AgentConversation.rehydrate(
+            new AgentConfiguration(
+                TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null),
+            storedContext,
+            TurnReconstructor.reconstruct(loaded),
+            null,
+            List.of(userMessage("next")));
+    final var windowed = conversation.window(20).messages();
+
+    assertThat(windowed.get(0))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            expanded -> {
+              assertThat(expanded.content()).hasSize(3);
+              assertThat(expanded.content().subList(0, 2))
+                  .containsExactly(
+                      TextContent.textContent("see"), TextContent.textContent(tag.toTag()));
+              assertThat(expanded.content().get(2)).isInstanceOf(DocumentContent.class);
+            });
+    // the loaded conversation keeps the document reference only
+    assertThat(conversation.allMessages().get(0)).isEqualTo(loaded.get(0));
   }
 
   @Test

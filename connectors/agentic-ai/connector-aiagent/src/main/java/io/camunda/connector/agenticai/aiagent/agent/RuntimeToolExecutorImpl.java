@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolDocuments;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -47,20 +48,24 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      RuntimeToolDocuments documents,
       List<ToolCall> runtimeToolCalls) {
     return runtimeToolCalls.stream()
-        .map(toolCall -> execute(executionContext, agentContext, toolCall))
+        .map(toolCall -> execute(executionContext, agentContext, documents, toolCall))
         .toList();
   }
 
   private RuntimeToolExecution execute(
-      AgentExecutionContext executionContext, AgentContext agentContext, ToolCall toolCall) {
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      RuntimeToolDocuments documents,
+      ToolCall toolCall) {
     final var startedAt = OffsetDateTime.now(ZoneId.systemDefault());
     final var tool =
         runtimeToolRegistry.findEnabled(executionContext, agentContext, toolCall.name());
     final var result =
         tool.isPresent()
-            ? run(executionContext, agentContext, tool.get(), toolCall)
+            ? run(executionContext, agentContext, documents, tool.get(), toolCall)
             : RuntimeToolResult.error("The tool '%s' is not enabled.".formatted(toolCall.name()));
     final var completedAt = OffsetDateTime.now(ZoneId.systemDefault());
     return new RuntimeToolExecution(
@@ -71,6 +76,7 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
   private RuntimeToolResult run(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
+      RuntimeToolDocuments documents,
       RuntimeTool tool,
       ToolCall toolCall) {
     final var runtimeToolCall =
@@ -79,7 +85,8 @@ public class RuntimeToolExecutorImpl implements RuntimeToolExecutor {
             toolCall.name(),
             toolCall.arguments() == null ? Map.of() : toolCall.arguments(),
             argumentsMapper);
-    final var runtimeToolContext = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var runtimeToolContext =
+        new RuntimeToolContextImpl(executionContext, agentContext, documents);
 
     RuntimeToolResult result;
     try {
