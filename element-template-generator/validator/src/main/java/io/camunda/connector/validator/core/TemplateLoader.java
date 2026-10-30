@@ -19,6 +19,7 @@ package io.camunda.connector.validator.core;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -28,14 +29,16 @@ import java.nio.file.Path;
  * Parses element-template JSON files. Strict mode rejects duplicate object keys — which Jackson
  * would otherwise silently coalesce (last-wins) — and surfaces them as a {@code duplicate-keys}
  * finding instead of {@code json-parse}. Mirrors the duplicate-key check that the Camunda Web
- * Modeler runs at editor save-time.
+ * Modeler runs at editor save-time. Content after the first JSON value is a {@code json-parse}
+ * finding, so an appended document is never silently ignored.
  */
 public final class TemplateLoader {
 
   public static final String DUPLICATE_KEYS_RULE = "duplicate-keys";
   public static final String JSON_PARSE_RULE = "json-parse";
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER =
+      new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
   static {
     MAPPER.getFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);

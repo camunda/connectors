@@ -1,0 +1,88 @@
+{
+  "suppressions": [
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "data.containerElementId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "data.containerElementId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-adhoctoolsschema-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-adhoctoolsschema-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    }
+  ]
+}

@@ -1,0 +1,2256 @@
+{
+  "suppressions": [
+    {
+      "rule": "condition-property-order",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "empty-group",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "resultExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "empty-group",
+      "template": "agenticai-aiagent-job-worker.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.anthropic.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.azureOpenAi.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.azureOpenAi.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.authentication.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.googleVertexAi.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.anthropic.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.azureOpenAi.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.azureOpenAi.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.authentication.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.googleVertexAi.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "resultExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "empty-group",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.googleGemini.model.parameters.thinking.thinkingBudget",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.googleGemini.backend.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "resultExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "empty-group",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.anthropic.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.authentication.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.googleVertexAi.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.actorId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.response.format.parseJson",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.anthropic.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.authentication.apiKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.authentication.secretKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.googleVertexAi.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.googleVertexAi.projectId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.googleVertexAi.region",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "resultExpression",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "agentContext",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.googleGemini.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.mistral.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.custom.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.apiVersion",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-subprocess.v2.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.googleGemini.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.mistral.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.custom.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.apiVersion",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-ai-agent-task.v2.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "agentContext",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.azureOpenAi.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.azureOpenAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.googleVertexAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-job-worker.json",
+      "property": "provider.openaiCompatible.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.azureOpenAi.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.azureOpenAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.googleVertexAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-aiagent-outbound-connector.json",
+      "property": "provider.openaiCompatible.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "agentContext",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.googleGemini.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.mistral.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.apiVersion",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.awsBedrockMantle.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.googleGemini.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.mistral.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.custom.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.apiVersion",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.backend.foundry.authentication.managedIdentity.entraIdScope",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "agentContext",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.azureOpenAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.googleVertexAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-job-worker-hybrid.json",
+      "property": "provider.openaiCompatible.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.authentication.accessKey",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "data.memory.storage.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.anthropic.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.azureOpenAi.authentication.authorityHost",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.azureOpenAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.endpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.bedrock.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.googleVertexAi.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.openai.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
+      "property": "provider.openaiCompatible.timeouts.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    }
+  ]
+}

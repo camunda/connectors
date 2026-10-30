@@ -16,9 +16,15 @@ jobs:
   build-image:
     name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Import Secrets
@@ -37,14 +43,18 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_HARBOR_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -144,6 +154,13 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   trigger-sm-e2e:
     name: Trigger SM E2E tests
@@ -300,8 +317,13 @@ jobs:
     # Dispatch only. The downstream run reports back through a `saas-e2e-result`
     # repository_dispatch handled by SAAS_E2E_RESULT.yaml, so no runner waits for it.
     timeout-minutes: 10
-    permissions: { }
+    permissions:
+      contents: read
+      id-token: write
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - name: Generate GitHub App Token (for dispatch)
         id: github-token
         uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
@@ -409,13 +431,27 @@ jobs:
             echo ""
             echo "The result is reported by the \`SaaS E2E result\` workflow when the downstream run finishes."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+
   run-ai-agent-cpt:
     name: AI Agent bundle E2E (CPT)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     needs: [ build-image ]
     if: needs.build-image.outputs.connectors-version != ''
     timeout-minutes: 20
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check for agentic-ai changes
@@ -472,15 +508,20 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
+      - name: Compute Maven cache key
+        if: steps.changes.outputs.ai == 'true'
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
         if: steps.changes.outputs.ai == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -521,6 +562,13 @@ jobs:
             -pl connectors-e2e-test/connectors-e2e-test-agentic-ai/connectors-e2e-test-agentic-ai-real-llm \
             -Pit-real-llm \
             --batch-mode
+
+      - name: Submit build status
+        if: always() && steps.changes.outputs.ai == 'true'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
 
   # Triage is NOT a job here. It runs from connectors-streak-detector.yml, a workflow_run
   # listener on the default branch, so one gate covers this branch and every stable/8.x

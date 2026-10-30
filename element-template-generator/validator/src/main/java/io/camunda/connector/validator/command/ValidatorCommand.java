@@ -22,17 +22,23 @@ import io.camunda.connector.validator.core.MultiFileRule;
 import io.camunda.connector.validator.core.ReportPrinter;
 import io.camunda.connector.validator.core.Rule;
 import io.camunda.connector.validator.core.Severity;
+import io.camunda.connector.validator.core.SuppressionFilter;
 import io.camunda.connector.validator.core.TemplateFinder;
 import io.camunda.connector.validator.core.TemplateLoader;
+import io.camunda.connector.validator.rule.BrTagRule;
 import io.camunda.connector.validator.rule.ConditionPropertyOrderRule;
 import io.camunda.connector.validator.rule.ConditionTargetExistsRule;
 import io.camunda.connector.validator.rule.ConditionValueInChoicesRule;
 import io.camunda.connector.validator.rule.CurrentVersionBumpRule;
 import io.camunda.connector.validator.rule.DefaultValueInChoicesRule;
+import io.camunda.connector.validator.rule.DocsLinkVersionRule;
+import io.camunda.connector.validator.rule.DoubleWordRule;
 import io.camunda.connector.validator.rule.ElementTemplateVersionConsistencyRule;
 import io.camunda.connector.validator.rule.EmptyGroupRule;
 import io.camunda.connector.validator.rule.GroupTargetExistsRule;
 import io.camunda.connector.validator.rule.HybridParityRule;
+import io.camunda.connector.validator.rule.LatinAbbreviationRule;
+import io.camunda.connector.validator.rule.MaxDescriptionLengthRule;
 import io.camunda.connector.validator.rule.OperationDescriptionConnectorNameRule;
 import io.camunda.connector.validator.rule.PresetConditionsSatisfiedRule;
 import io.camunda.connector.validator.rule.PresetCoverageRule;
@@ -45,6 +51,7 @@ import io.camunda.connector.validator.rule.StepGroupShapeRule;
 import io.camunda.connector.validator.rule.StepLeafShapeRule;
 import io.camunda.connector.validator.rule.StepsPresetsPresentRule;
 import io.camunda.connector.validator.rule.TaskDefinitionBindingFormRule;
+import io.camunda.connector.validator.rule.TrailingPeriodRule;
 import io.camunda.connector.validator.rule.UniqueGroupIdRule;
 import io.camunda.connector.validator.rule.UniqueIdVersionRule;
 import io.camunda.connector.validator.rule.UniquePropertyIdRule;
@@ -57,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -88,8 +97,7 @@ public class ValidatorCommand implements Callable<Integer> {
       description =
           "Connector directory names whose templates are skipped entirely (by exact name, not path). "
               + "Repeatable; comma-separated values are also accepted. "
-              + "When specified, replaces the default set entirely. "
-              + "Default: agentic-ai.")
+              + "Default: none.")
   private Set<String> skippedConnectors =
       new LinkedHashSet<>(TemplateFinder.DEFAULT_SKIPPED_CONNECTORS);
 
@@ -113,7 +121,11 @@ public class ValidatorCommand implements Callable<Integer> {
   @Override
   public Integer call() {
     List<Path> all = TemplateFinder.findAll(root, skippedDirectories, skippedConnectors);
-    if (all.isEmpty()) {
+    List<Path> suppressionFiles =
+        TemplateFinder.findSuppressionFiles(root, skippedDirectories, skippedConnectors);
+    if (all.isEmpty()
+        && suppressionFiles.isEmpty()
+        && SuppressionFilter.owningSuppressionFile(root).isEmpty()) {
       System.out.printf("No element-templates/*.json files found under %s%n", root);
       return 0;
     }
@@ -127,9 +139,14 @@ public class ValidatorCommand implements Callable<Integer> {
     findings.addAll(runSingleFileRules(templates, schemaRule));
     findings.addAll(runMultiFileRules(templates));
 
+    SuppressionFilter.Result filtered =
+        SuppressionFilter.apply(
+            findings, templates, suppressionFiles, root, skippedDirectories, suppressibleRuleIds());
+
     boolean colorEnabled = !noColor && System.console() != null;
-    ReportPrinter.print(findings, templates.size(), System.out, colorEnabled);
-    return findings.stream().anyMatch(f -> f.severity() == Severity.ERROR) ? 1 : 0;
+    ReportPrinter.print(
+        filtered.findings(), templates.size(), filtered.suppressed(), System.out, colorEnabled);
+    return filtered.findings().stream().anyMatch(f -> f.severity() == Severity.ERROR) ? 1 : 0;
   }
 
   private String resolveSchemaUrl() {
@@ -157,28 +174,45 @@ public class ValidatorCommand implements Callable<Integer> {
     return new LoadResult(templates, parseFindings);
   }
 
+  /** Schema and parse findings are not suppressible; every semantic rule is. */
+  private static Set<String> suppressibleRuleIds() {
+    return Stream.concat(
+            singleFileRules().stream().map(Rule::id),
+            multiFileRules().stream().map(MultiFileRule::id))
+        .collect(Collectors.toSet());
+  }
+
+  private static List<Rule> singleFileRules() {
+    return List.of(
+        new PresetTargetExistsRule(),
+        new ConditionTargetExistsRule(),
+        new ConditionValueInChoicesRule(),
+        new ConditionPropertyOrderRule(),
+        new GroupTargetExistsRule(),
+        new DefaultValueInChoicesRule(),
+        new UniqueGroupIdRule(),
+        new UniquePropertyIdRule(),
+        new EmptyGroupRule(),
+        new TaskDefinitionBindingFormRule(),
+        new StepsPresetsPresentRule(),
+        new StepGroupShapeRule(),
+        new StepLeafShapeRule(),
+        new OperationDescriptionConnectorNameRule(),
+        new PresetIdUniqueRule(),
+        new PresetIdResolvesRule(),
+        new PresetOperationGroupConsistencyRule(),
+        new PresetConditionsSatisfiedRule(),
+        new PresetCoverageRule(),
+        new DocsLinkVersionRule(),
+        new LatinAbbreviationRule(),
+        new DoubleWordRule(),
+        new BrTagRule(),
+        new TrailingPeriodRule(),
+        new MaxDescriptionLengthRule());
+  }
+
   private static List<Finding> runSingleFileRules(Map<Path, JsonNode> templates, Rule schema) {
-    List<Rule> rules =
-        List.of(
-            new PresetTargetExistsRule(),
-            new ConditionTargetExistsRule(),
-            new ConditionValueInChoicesRule(),
-            new ConditionPropertyOrderRule(),
-            new GroupTargetExistsRule(),
-            new DefaultValueInChoicesRule(),
-            new UniqueGroupIdRule(),
-            new UniquePropertyIdRule(),
-            new EmptyGroupRule(),
-            new TaskDefinitionBindingFormRule(),
-            new StepsPresetsPresentRule(),
-            new StepGroupShapeRule(),
-            new StepLeafShapeRule(),
-            new OperationDescriptionConnectorNameRule(),
-            new PresetIdUniqueRule(),
-            new PresetIdResolvesRule(),
-            new PresetOperationGroupConsistencyRule(),
-            new PresetConditionsSatisfiedRule(),
-            new PresetCoverageRule());
+    List<Rule> rules = singleFileRules();
     List<Finding> findings = new ArrayList<>();
     for (Map.Entry<Path, JsonNode> entry : templates.entrySet()) {
       Path path = entry.getKey();
@@ -200,16 +234,18 @@ public class ValidatorCommand implements Callable<Integer> {
     return findings;
   }
 
+  private static List<MultiFileRule> multiFileRules() {
+    return List.of(
+        new HybridParityRule(),
+        new VersionedTemplateConsistencyRule(),
+        new ElementTemplateVersionConsistencyRule(),
+        new CurrentVersionBumpRule(),
+        new UniqueIdVersionRule());
+  }
+
   private static List<Finding> runMultiFileRules(Map<Path, JsonNode> templates) {
-    List<MultiFileRule> multiFileRules =
-        List.of(
-            new HybridParityRule(),
-            new VersionedTemplateConsistencyRule(),
-            new ElementTemplateVersionConsistencyRule(),
-            new CurrentVersionBumpRule(),
-            new UniqueIdVersionRule());
     List<Finding> findings = new ArrayList<>();
-    for (MultiFileRule rule : multiFileRules) {
+    for (MultiFileRule rule : multiFileRules()) {
       findings.addAll(rule.apply(templates));
     }
     return findings;

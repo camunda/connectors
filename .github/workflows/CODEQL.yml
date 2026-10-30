@@ -41,6 +41,7 @@ jobs:
 
       # required to fetch internal or private CodeQL packs
       packages: read
+      id-token: write
 
       # only required for workflows in private repositories
       actions: read
@@ -61,17 +62,24 @@ jobs:
         # If you are analyzing a compiled language, you can modify the 'build-mode' for that language to customize how
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
+    - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+      continue-on-error: true
+
     - name: Checkout repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+    - name: Compute Maven cache key
+      id: maven-cache-key
+      uses: ./.github/actions/maven-cache-key
 
     # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml. Keep the key in sync.
     - name: Restore Maven cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+        key: ${{ steps.maven-cache-key.outputs.key }}
         restore-keys: |
-          ${{ runner.os }}-maven-
+          ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
     # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
     - name: Restore Maven wrapper cache
@@ -125,3 +133,27 @@ jobs:
       uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
       with:
         category: "/language:${{matrix.language}}"
+
+    - name: Validate telemetry refs
+      id: telemetry-ref-safety
+      if: always()
+      continue-on-error: true
+      shell: bash
+      env:
+        HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+        BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+      run: |
+        case "$HEAD_REF$BASE_REF" in
+          *['$`"']*)
+            echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+            exit 1
+            ;;
+        esac
+
+    - name: Submit build status
+      if: always() && steps.telemetry-ref-safety.outcome == 'success'
+      continue-on-error: true
+      uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+      with:
+        build_status: ${{ job.status }}
+        job_name_override: analyze/${{ matrix.language }}

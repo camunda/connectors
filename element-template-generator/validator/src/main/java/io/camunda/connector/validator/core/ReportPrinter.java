@@ -39,7 +39,11 @@ public final class ReportPrinter {
    * colorEnabled = false} to suppress (e.g. via {@code --no-color}).
    */
   public static void print(
-      List<Finding> findings, int filesScanned, PrintStream out, boolean colorEnabled) {
+      List<Finding> findings,
+      int filesScanned,
+      int suppressed,
+      PrintStream out,
+      boolean colorEnabled) {
     Map<Path, List<Finding>> byFile = new TreeMap<>();
     for (Finding f : findings) {
       byFile.computeIfAbsent(f.file(), k -> new ArrayList<>()).add(f);
@@ -56,9 +60,13 @@ public final class ReportPrinter {
       out.println();
     }
 
+    String suppressedNote = suppressed > 0 ? " " + suppressed + " suppressed." : "";
     if (findings.isEmpty()) {
       out.println(
-          color(GREEN, "Scanned " + filesScanned + " template(s). No findings.", colorEnabled));
+          color(
+              GREEN,
+              "Scanned " + filesScanned + " template(s). No findings." + suppressedNote,
+              colorEnabled));
     } else {
       out.println(
           color(
@@ -69,14 +77,16 @@ public final class ReportPrinter {
                   + findings.size()
                   + " finding(s) in "
                   + byFile.size()
-                  + " file(s). Run failed.",
+                  + " file(s)."
+                  + suppressedNote
+                  + " Run failed.",
               colorEnabled));
     }
   }
 
   /** Convenience overload — auto-detects color support via {@code System.console()}. */
   public static void print(List<Finding> findings, int filesScanned, PrintStream out) {
-    print(findings, filesScanned, out, System.console() != null);
+    print(findings, filesScanned, 0, out, System.console() != null);
   }
 
   private static String colorBySeverity(Severity severity, boolean colorEnabled) {

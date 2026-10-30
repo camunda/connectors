@@ -8,6 +8,8 @@ name: Warm Maven cache
 # Scheduled workflows only run on main, so this workflow also warms the cache for
 # each maintained stable/* branch: it checks the branch out and runs that branch's
 # own build. A pom change on a stable branch is picked up by the next scheduled run.
+# On a key miss, dependencies are resolved from scratch rather than seeded from an
+# older entry: other branches' entries would leak their dependencies into this one.
 #
 # Runs on the same runner type as the internal "Test branch" jobs: caches are
 # only restorable on runners with a matching cache version.
@@ -35,6 +37,9 @@ jobs:
     name: warm-cache (${{ matrix.ref }})
     if: github.repository == 'camunda/connectors'
     runs-on: gcp-core-8-default
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       # Mirror each branch's "Test branch" toolchain and Maven invocations, so the
@@ -88,16 +93,29 @@ jobs:
               mvn --batch-mode clean test -PcheckFormat -T 1C
               mvn --batch-mode compile generate-sources package -DskipTests --projects bundle/default-bundle --also-make -T 1C '-P!autoFormat'
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ matrix.ref }}
           persist-credentials: false
 
-      # Must match the key used by the internal jobs in the checked-out branch's
-      # TEST_FEATURE_BRANCH.yml and DEPLOY_SNAPSHOTS.yaml; the pom hash comes from that branch.
+      # Must match .github/actions/maven-cache-key in the checked-out branch, which the
+      # jobs restoring this cache use; the pom hash comes from that branch. Inlined because
+      # that action is not available on every warmed branch.
       - name: Compute cache key
         id: key
-        run: echo "value=${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal" >> "$GITHUB_OUTPUT"
+        env:
+          REF: ${{ matrix.ref }}
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ "$REF" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          echo "value=${RUNNER_OS}-maven-${line}-${HASH}-internal" >> "$GITHUB_OUTPUT"
 
       - name: Check for existing cache
         id: lookup
@@ -112,17 +130,10 @@ jobs:
         if: matrix.wrapper
         id: mvnw-cache
         uses: ./.github/actions/cache-maven-wrapper
+        # Explicit: this resolves the action from the checked-out ref, and older stable
+        # branches default to saving.
         with:
           restore-only: 'true'
-
-      - name: Restore previous cache
-        if: steps.lookup.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ~/.m2/repository
-          key: ${{ steps.key.outputs.value }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         if: steps.lookup.outputs.cache-hit != 'true' || (matrix.wrapper && steps.mvnw-cache.outputs.cache-hit != 'true')
@@ -207,3 +218,77 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ steps.key.outputs.value }}
+
+      - name: Record active cache keys
+        env:
+          MAVEN_KEY: ${{ steps.key.outputs.value }}
+          MVNW_KEY: ${{ steps.mvnw-cache.outputs.cache-primary-key }}
+        run: |
+          echo "$MAVEN_KEY" > "$RUNNER_TEMP/active-cache-keys.txt"
+          if [ -n "$MVNW_KEY" ]; then echo "$MVNW_KEY" >> "$RUNNER_TEMP/active-cache-keys.txt"; fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: active-cache-keys-${{ strategy.job-index }}-of-${{ strategy.job-total }}
+          path: ${{ runner.temp }}/active-cache-keys.txt
+          retention-days: 1
+
+      - name: Submit build status
+        if: always()
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: warm-cache/${{ matrix.ref }}
+
+  # Each pom change on a warmed branch saves a new ~1.4 GB entry, and the previous one
+  # would otherwise linger until unused for 7 days, pushing the repository over its
+  # cache limit. Runs only when every branch was warmed, so the active key set is complete.
+  cleanup:
+    name: delete superseded caches
+    needs: warm-cache
+    # A run on another ref saves its entries under that ref, so it must not delete main's.
+    if: github.repository == 'camunda/connectors' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: active-cache-keys-*
+          path: active-cache-keys
+
+      - name: Delete superseded main cache entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW_FILE: WARM_MAVEN_CACHE.yml
+        shell: bash
+        run: |
+          # A rerun of an older run would treat a newer run's keys as superseded.
+          latest=$(gh run list --workflow "$WORKFLOW_FILE" --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [ -z "$latest" ]; then echo "::error::Could not determine the latest run"; exit 1; fi
+          if [ "$latest" -gt "$GITHUB_RUN_ID" ]; then
+            echo "::notice::Run $latest supersedes this run; skipping cleanup"
+            exit 0
+          fi
+          # Each artifact name carries the matrix size; a partial rerun after expiry leaves gaps.
+          files=(active-cache-keys/*/active-cache-keys.txt)
+          total=$(ls active-cache-keys | sed -n 's/.*-of-//p' | sort -u)
+          if [ "$(wc -w <<< "$total")" -ne 1 ] || [ "${#files[@]}" -ne "$total" ]; then
+            echo "::error::Expected $total manifests, found ${#files[@]}; refusing to delete caches"
+            exit 1
+          fi
+          active=$(cat "${files[@]}" | sort -u)
+          if [ -z "$active" ]; then echo "::error::No active cache keys recorded"; exit 1; fi
+          echo "Active keys:"
+          echo "$active"
+          # Delete by ID: deleting by key would also hit entries on other refs.
+          gh cache list --ref refs/heads/main --key Linux-m --limit 1000 --json id,key \
+            --jq '.[] | select(.key | test("^Linux-maven-.*-internal$|^Linux-mvnw-")) | "\(.id) \(.key)"' |
+          while read -r id key; do
+            if ! grep -qxF "$key" <<< "$active"; then
+              echo "Deleting $key ($id)"
+              gh cache delete "$id"
+            fi
+          done
