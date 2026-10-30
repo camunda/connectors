@@ -29,7 +29,7 @@ import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
     name = "Managed script",
     version = 1,
     description = "Run a Python or JavaScript script without operating a job worker",
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     inputDataClass = ManagedScriptRequest.class,
     propertyGroups = {
       @PropertyGroup(id = "script", label = "Script"),
