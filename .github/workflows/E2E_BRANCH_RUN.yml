@@ -100,12 +100,34 @@ jobs:
             secret/data/products/connectors/ci/artifactory USER | ARTIFACTORY_USR;
             secret/data/products/connectors/ci/artifactory TOKEN | ARTIFACTORY_PSW;
 
+      # Inlined rather than using .github/actions/maven-cache-key: the checked-out branch
+      # may predate that action. Keep the line derivation in sync with it. For PR-triggered
+      # runs, inputs.branch is the PR head, so the PR base determines the line. A supplied key
+      # determines the line itself: RELEASE passes the tag as inputs.branch, but its key follows
+      # the branch the release runs from.
       - name: Resolve Maven cache key
         id: maven-cache-key
         env:
+          BRANCH: ${{ github.base_ref || inputs.branch }}
           PROVIDED_KEY: ${{ inputs.maven-cache-key }}
-          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
-        run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ -n "$PROVIDED_KEY" ]]; then
+            # <os>-maven-<line>-<pom hash>-<suffix>: drop the hash and suffix
+            echo "restore-prefix=${PROVIDED_KEY%-*-*}-" >> "$GITHUB_OUTPUT"
+            echo "value=$PROVIDED_KEY" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$BRANCH" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          elif [[ "${BRANCH#refs/heads/}" == main ]]; then
+            line=main
+          else
+            line=8.7
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "value=${prefix}${HASH}-internal" >> "$GITHUB_OUTPUT"
 
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
@@ -114,7 +136,7 @@ jobs:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
