@@ -64,6 +64,7 @@ final class ScriptResources {
   private final Duration visibilityPollInterval;
   private final Map<CacheKey, ScriptResource> cache;
 
+  /** Fetches resources from Camunda with {@link #fetchFromCamunda}. */
   ScriptResources(int maxEntries) {
     this(
         maxEntries,
@@ -131,6 +132,7 @@ final class ScriptResources {
             .formatted(resourceKey, visibilityTimeout));
   }
 
+  /** The production {@link Fetcher}; package-private for {@code ScriptResourcesTest}. */
   static ScriptResource fetchFromCamunda(CamundaClient client, long resourceKey, Duration timeout)
       throws InterruptedException {
     final long deadline = System.nanoTime() + timeout.toNanos();
