@@ -21,7 +21,6 @@ import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.response.Resource;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +45,7 @@ class ScriptResourcesTest {
     final var script = resources(Duration.ofSeconds(1)).get(client, "default", KEY);
 
     assertThat(script.name()).isEqualTo("sum.py");
-    assertThat(new String(script.content(), StandardCharsets.UTF_8)).isEqualTo("print(1)");
+    assertThat(script.content()).isEqualTo("print(1)");
   }
 
   @Test

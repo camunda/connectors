@@ -21,7 +21,6 @@ import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -150,7 +149,7 @@ class ManagedScriptJobHandlerTest {
   @Test
   void waitsForTheScriptToBecomeVisible() {
     final var handler = handler(Duration.ofSeconds(5));
-    final var script = new ScriptResource("sum.py", "x".getBytes(StandardCharsets.UTF_8));
+    final var script = new ScriptResource("sum.py", "x");
     new Thread(
             () -> {
               sleep(100);
@@ -371,7 +370,7 @@ class ManagedScriptJobHandlerTest {
 
   private void store(String name, String source) {
     synchronized (stored) {
-      stored.put(SCRIPT_KEY, new ScriptResource(name, source.getBytes(StandardCharsets.UTF_8)));
+      stored.put(SCRIPT_KEY, new ScriptResource(name, source));
     }
   }
 

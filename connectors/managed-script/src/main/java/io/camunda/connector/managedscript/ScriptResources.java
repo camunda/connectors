@@ -8,7 +8,6 @@ package io.camunda.connector.managedscript;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientHttpException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -53,9 +52,9 @@ final class ScriptResources {
 
   /**
    * @param name the file name of the resource, which gives the script's language
-   * @param content UTF-8 bytes of the content returned by Camunda
+   * @param content the source of the script
    */
-  record ScriptResource(String name, byte[] content) {}
+  record ScriptResource(String name, String content) {}
 
   private record CacheKey(String physicalTenantId, long resourceKey) {}
 
@@ -138,10 +137,9 @@ final class ScriptResources {
     final long deadline = System.nanoTime() + timeout.toNanos();
     final var metadata =
         await(client.newResourceGetRequest(resourceKey).send(), resourceKey, deadline);
-    // The client returns the content as a String.
     final var content =
         await(client.newResourceContentBinaryGetRequest(resourceKey).send(), resourceKey, deadline);
-    return new ScriptResource(metadata.getResourceName(), content.getBytes(StandardCharsets.UTF_8));
+    return new ScriptResource(metadata.getResourceName(), content);
   }
 
   /**

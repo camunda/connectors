@@ -17,7 +17,6 @@ import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -88,7 +87,7 @@ final class ManagedScriptJobHandler {
       }
       final var script = resources.get(camundaClient, physicalTenantId, links.scriptResourceKey());
       language = languageOf(script.name());
-      return execute(job, input, language, new String(script.content(), StandardCharsets.UTF_8));
+      return execute(job, input, language, script.content());
     } catch (InvalidJobException e) {
       return failed(job, e.code(), e.getMessage(), null, language);
     } catch (ResourceNotVisibleException e) {
