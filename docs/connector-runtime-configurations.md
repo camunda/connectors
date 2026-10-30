@@ -57,10 +57,11 @@ Each failure has an error code, and the code decides what happens to the job's r
 
 - no retries left, so an incident: script errors, timeouts, limits, invalid jobs or results, and
   permanent platform failures (`PLATFORM_REJECTED`, `PLATFORM_EXECUTION_FAILED`);
-- one retry consumed, after `provisioning-retry-backoff`: transient platform failures
+- one retry consumed, using the task's `retryBackoff` header: transient platform failures
   (`PLATFORM_THROTTLED`, `PLATFORM_UNAVAILABLE`, `PLATFORM_ERROR`) and a missing executor
   (`DEPLOYMENT_MISSING`);
-- retries unchanged, after the same backoff: `PROVISIONING_PENDING` and `PLATFORM_INTERRUPTED`.
+- retries unchanged, after `provisioning-retry-backoff`: `PROVISIONING_PENDING` and
+  `PLATFORM_INTERRUPTED`.
 
 The incident shows the error message, and the script's stack trace when the script raised the
 failure. Both also reach the runtime's error log, so a script must not let a sensitive value reach
