@@ -10,10 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.local.LocalManagedCodeProperties;
+import io.camunda.connector.managedscript.local.LocalManagedCodeProvider;
 import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
+import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
@@ -57,6 +61,27 @@ class ManagedCodeAutoConfigurationTest {
           assertThat(configuration.type()).isEqualTo("io.camunda:managed-script:1");
           assertThat(configuration.inputVariables()).containsExactly("scriptInput");
         });
+  }
+
+  @Test
+  void registersTheLocalProviderOnlyWhenItIsConfigured(@TempDir Path directory) {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=local",
+            "camunda.connector.managed-code.local.directory=" + directory)
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              assertThat(context).hasSingleBean(LocalManagedCodeProvider.class);
+              assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
+            });
+    enabled.run(context -> assertThat(context).doesNotHaveBean(LocalManagedCodeProvider.class));
+  }
+
+  @Test
+  void keepsTheWrapperFilesOfTheLocalProviderInTheDirectoryOfTheUser() {
+    assertThat(new LocalManagedCodeProperties(null).directory())
+        .isEqualTo(Path.of(System.getProperty("user.home"), ".camunda", "managed-script"));
   }
 
   @Test

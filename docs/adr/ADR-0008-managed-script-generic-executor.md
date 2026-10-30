@@ -451,8 +451,9 @@ distribution that offers managed scripts, such as the SaaS image, adds the modul
 to the classpath.
 
 The `local` provider is for **trusted development only and is not a sandbox**. It runs the same
-wrapper as a local Node.js or Python process, in a local mode that only kills the script's process
-group and uses a temporary directory of its own, because it shares the host with other processes.
+wrapper as a local Node.js or Python process, started through an entry point of its own that reads
+one call from stdin, in a local mode that only kills the script's process group and uses a temporary
+directory of its own, because it shares the host with other processes.
 It logs a warning at startup. Windows is not supported.
 
 ## Consequences
