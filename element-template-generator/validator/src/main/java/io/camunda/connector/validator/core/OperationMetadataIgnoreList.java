@@ -57,6 +57,7 @@ public final class OperationMetadataIgnoreList {
           "hugging-face",
           "jdbc",
           "kafka",
+          "managed-script",
           "rabbitmq",
           "rpa",
           "sendgrid",
