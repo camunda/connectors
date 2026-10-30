@@ -41,21 +41,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # Must match .github/actions/maven-cache-key in the checked-out branch, which the
-      # jobs restoring this cache use; the pom hash comes from that branch. Inlined because
-      # that action is not available on every warmed branch.
+      # Must match the key used by the internal jobs in the checked-out branch's
+      # TEST_FEATURE_BRANCH.yml and DEPLOY_SNAPSHOTS.yaml; the pom hash comes from that branch.
       - name: Compute cache key
         id: key
-        env:
-          REF: ${{ matrix.ref }}
-          HASH: ${{ hashFiles('**/pom.xml') }}
-        run: |
-          if [[ "$REF" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
-            line="${BASH_REMATCH[2]}"
-          else
-            line=main
-          fi
-          echo "value=${RUNNER_OS}-maven-${line}-${HASH}-internal" >> "$GITHUB_OUTPUT"
+        run: echo "value=${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal" >> "$GITHUB_OUTPUT"
 
       - name: Check for existing cache
         id: lookup

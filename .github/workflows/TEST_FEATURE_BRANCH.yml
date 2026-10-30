@@ -75,7 +75,7 @@ jobs:
           if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
             line="${BASH_REMATCH[2]}"
           else
-            line=main
+            line=8.10
           fi
           prefix="${RUNNER_OS}-maven-${line}-"
           echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
@@ -288,10 +288,6 @@ jobs:
             echo "internal=false" >> $GITHUB_OUTPUT
           fi
 
-<<<<<<< HEAD
-      # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
-      # per-PR saves don't evict it. Keep the key in sync with that workflow.
-=======
       # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
       # PR head, which may predate that action. Keep the line derivation in sync with it.
       - name: Compute Maven cache key
@@ -305,13 +301,14 @@ jobs:
           if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
             line="${BASH_REMATCH[2]}"
           else
-            line=main
+            line=8.10
           fi
           prefix="${RUNNER_OS}-maven-${line}-"
           echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
           echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
 
->>>>>>> 6c9ee954 (ci: include the branch line in the Maven cache key (#9828))
+      # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
+      # per-PR saves don't evict it. Keep the key in sync with that workflow.
       - name: Restore cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
