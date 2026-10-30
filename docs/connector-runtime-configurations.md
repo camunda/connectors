@@ -47,6 +47,32 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   keeps its retries (`PROVISIONING_PENDING`, `PLATFORM_INTERRUPTED`), whatever the task's
   `retryBackoff` header says. A failure that consumes a retry uses the task's `retryBackoff`.
 
+### Local provider
+
+The `local` provider, part of `connectors/managed-script`, runs scripts on the host of the runtime,
+with the interpreter installed there: Node.js 20 or later for `.js` scripts, Python 3.10 or later
+(`python3`) for `.py` scripts. It is for **trusted development only and is not a sandbox**: a script
+runs with the permissions of the user of the runtime, so use it to try a script without a cloud
+account, not in production. It logs a warning at startup. Windows is not supported.
+
+```properties
+camunda.connector.managed-code.enabled=true
+camunda.connector.managed-code.provider=local
+camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
+```
+
+- `local.directory` is where the provider writes the wrapper files, in a directory named after their
+  digest (such as `js-0123456789ab`), and creates the temporary directories of the calls. It is
+  private to the user of the runtime. The default is `.camunda/managed-script` in the user's home
+  directory. If a file there does not match the wrapper of this runtime, the provider refuses to
+  start the language instead of running it: remove the directory.
+- A language needs only its own interpreter. The provider finds `node` and `python3` on the `PATH`
+  and starts the real interpreter behind a version-manager shim such as asdf's, which only works from
+  the directory it was set up for. A host with only Node.js runs `.js` scripts, and a `.py` script
+  fails with a message saying that Python 3.10 or later was not found, until you install it: the
+  next job looks again, so the runtime does not need a restart. The runtime fails the first job, with
+  the reason of each language, when it finds neither.
+
 The job timeout of a managed-script task must cover `execution-timeout` and the time the first job
 takes to make the executors ready, so that a script still running does not get its job activated
 again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)

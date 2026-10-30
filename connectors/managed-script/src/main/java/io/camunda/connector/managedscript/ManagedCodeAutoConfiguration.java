@@ -8,6 +8,7 @@ package io.camunda.connector.managedscript;
 
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.local.LocalManagedCodeConfiguration;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
 @AutoConfiguration
@@ -23,6 +25,7 @@ import org.springframework.context.annotation.Scope;
     name = "enabled",
     havingValue = "true")
 @EnableConfigurationProperties(ManagedCodeProperties.class)
+@Import(LocalManagedCodeConfiguration.class)
 public class ManagedCodeAutoConfiguration {
 
   private static final int RESOURCE_CACHE_SIZE = 256;
