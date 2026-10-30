@@ -26,6 +26,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
@@ -175,7 +176,7 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     } catch (IOException e) {
       return ExecutionResponse.failed(
           ErrorCode.DEPLOYMENT_MISSING,
-          "Cannot start " + executor.interpreter() + ": " + e.getMessage());
+          "Cannot run the local wrapper with " + executor.interpreter() + ": " + e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return ExecutionResponse.failed(
@@ -244,11 +245,18 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
         environment.put(name, value);
       }
     }
-    environment.put("EXECUTOR_TMP", scratch.toString());
-
-    final var result =
-        ProcessRunner.run(
-            builder, input, deadline, MAX_RESPONSE_BYTES, MAX_SCRIPT_LOG_BYTES, scratch);
+    // A directory of this call, removed whatever happens to the wrapper: when it is killed at the
+    // deadline, or crashes, its own cleanup does not run, and the script and its output would stay.
+    final var callDirectory = Files.createTempDirectory(scratch, "call-");
+    environment.put("EXECUTOR_TMP", callDirectory.toString());
+    final ProcessRunner.Result result;
+    try {
+      result =
+          ProcessRunner.run(
+              builder, input, deadline, MAX_RESPONSE_BYTES, MAX_SCRIPT_LOG_BYTES, callDirectory);
+    } finally {
+      removeCallDirectory(callDirectory);
+    }
     if (!result.stderr().isBlank()) {
       SCRIPT_LOG.info("Logs of the script of execution {}:\n{}", executionId, result.stderr());
     }
@@ -272,6 +280,17 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     return ExecutionResponse.failed(
         ErrorCode.PLATFORM_EXECUTION_FAILED,
         "The local wrapper exited with code " + result.exitCode() + " without a valid response");
+  }
+
+  /** Best effort: whatever stays is in a directory that only the user of the runtime can read. */
+  private static void removeCallDirectory(Path callDirectory) {
+    try (var files = Files.walk(callDirectory)) {
+      for (var file : files.sorted(Comparator.reverseOrder()).toList()) {
+        Files.deleteIfExists(file);
+      }
+    } catch (IOException | UncheckedIOException e) {
+      LOG.warn("Cannot remove the directory {} of a local call: {}", callDirectory, e.getMessage());
+    }
   }
 
   /**
