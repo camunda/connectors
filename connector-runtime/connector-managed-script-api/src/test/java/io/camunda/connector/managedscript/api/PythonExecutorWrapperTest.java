@@ -458,6 +458,49 @@ class PythonExecutorWrapperTest {
     }
   }
 
+  // The cleanup of a cloud executor alone: the whole call also kills every process that started
+  // after the executor, which a test on a shared host must not do.
+  @Test
+  void cleansAFileLeftInABaselineDirectoryTheScriptMadeUnreadable() throws Exception {
+    final var tmp = Files.createDirectories(callTmp.resolve("cloud"));
+    Files.createDirectories(tmp.resolve("cache/sub"));
+    final var driver =
+        """
+        import os, stat, sys
+        sys.dont_write_bytecode = True
+        sys.path.insert(0, sys.argv[1])
+        import executor_core
+
+        tmp = sys.argv[2]
+        cache, sub = os.path.join(tmp, "cache"), os.path.join(tmp, "cache", "sub")
+
+        def modes():
+            return stat.S_IMODE(os.stat(cache).st_mode), stat.S_IMODE(os.stat(sub).st_mode)
+
+        before = modes()
+        executor = executor_core.create_executor(local=False, tmp=tmp)
+        open(os.path.join(sub, "left"), "w").write("secret")
+        os.chmod(sub, 0)
+        os.chmod(cache, 0)
+        executor._clean_tmp()
+        print(sorted(os.listdir(sub)), modes() == before)
+        """;
+    final var process =
+        new ProcessBuilder(
+                python.orElseThrow().toString(),
+                "-I",
+                "-c",
+                driver,
+                wrapper.toString(),
+                tmp.toString())
+            .redirectErrorStream(true)
+            .start();
+    final var output = new String(process.getInputStream().readAllBytes()).trim();
+    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+
+    assertThat(output).isEqualTo("[] True");
+  }
+
   @Test
   void leavesNoCallDirectoryBehind() throws Exception {
     call("def execute(variables, context):\n    return {'a': 1}\n");
