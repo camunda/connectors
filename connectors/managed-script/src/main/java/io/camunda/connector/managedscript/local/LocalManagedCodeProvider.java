@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,15 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalManagedCodeProvider.class);
 
+  /**
+   * What a script wrote with {@code console} or {@code print}, which the wrapper keeps at 4 KB per
+   * call. A logger of its own, so that it can be routed or silenced apart from the provider's.
+   */
+  private static final Logger SCRIPT_LOG =
+      LoggerFactory.getLogger("io.camunda.connector.managedscript.local.script");
+
+  private static final int MAX_SCRIPT_LOG_BYTES = 8 * 1024;
+
   /** Identifies the provider in the digest of the wrapper: the interpreter is the host's. */
   private static final String WRAPPER_RUNTIME = "local";
 
@@ -65,6 +76,7 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   private final Path scratch;
   private final ObjectMapper mapper;
   private final InterpreterLocator locator;
+  private final Duration callGrace;
 
   private volatile Map<ScriptLanguage, Executor> executors;
 
@@ -73,6 +85,12 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   }
 
   LocalManagedCodeProvider(Path directory, ObjectMapper mapper, InterpreterLocator locator) {
+    this(directory, mapper, locator, CALL_GRACE);
+  }
+
+  LocalManagedCodeProvider(
+      Path directory, ObjectMapper mapper, InterpreterLocator locator, Duration callGrace) {
+    this.callGrace = callGrace;
     this.directory = directory.toAbsolutePath();
     this.scratch = this.directory.resolve("tmp");
     this.mapper = mapper;
@@ -105,6 +123,9 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
       try {
         ready.put(runtime.language(), prepare(runtime));
       } catch (ProvisioningException e) {
+        if (e.code() == ErrorCode.PLATFORM_INTERRUPTED) {
+          throw e;
+        }
         LOG.info(
             "Local managed scripts: no {} scripts: {}",
             runtime.language().language(),
@@ -133,10 +154,10 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     } catch (ProvisioningException e) {
       return ExecutionResponse.failed(e.code(), e.getMessage());
     }
-    if (!Files.isRegularFile(executor.entryPoint())) {
+    final var missing = executor.missingFile();
+    if (missing != null) {
       return ExecutionResponse.failed(
-          ErrorCode.DEPLOYMENT_MISSING,
-          "The wrapper files are missing from " + executor.directory());
+          ErrorCode.DEPLOYMENT_MISSING, "The wrapper file " + missing + " is missing");
     }
     final byte[] input;
     try {
@@ -146,7 +167,11 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
           ErrorCode.INVALID_INPUT, "The input of the script cannot be serialized");
     }
     try {
-      return call(executor, input, Duration.ofMillis(request.timeoutMs()).plus(CALL_GRACE));
+      return call(
+          executor,
+          request.executionId(),
+          input,
+          Duration.ofMillis(request.timeoutMs()).plus(callGrace));
     } catch (IOException e) {
       return ExecutionResponse.failed(
           ErrorCode.DEPLOYMENT_MISSING,
@@ -184,7 +209,8 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   private Executor prepare(LocalRuntime runtime) {
     final var interpreter = locator.locate(runtime, scratch);
-    return new Executor(runtime, interpreter, install(runtime));
+    final var wrapper = wrapper(runtime);
+    return new Executor(runtime, interpreter, install(runtime, wrapper), wrapper.files().keySet());
   }
 
   private void requireSupportedHost() {
@@ -201,7 +227,8 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
   }
 
-  private ExecutionResponse call(Executor executor, byte[] input, Duration deadline)
+  private ExecutionResponse call(
+      Executor executor, String executionId, byte[] input, Duration deadline)
       throws IOException, InterruptedException {
     final var command = new ArrayList<String>();
     command.add(executor.interpreter().toString());
@@ -219,7 +246,12 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
     environment.put("EXECUTOR_TMP", scratch.toString());
 
-    final var result = ProcessRunner.run(builder, input, deadline, MAX_RESPONSE_BYTES, scratch);
+    final var result =
+        ProcessRunner.run(
+            builder, input, deadline, MAX_RESPONSE_BYTES, MAX_SCRIPT_LOG_BYTES, scratch);
+    if (!result.stderr().isBlank()) {
+      SCRIPT_LOG.info("Logs of the script of execution {}:\n{}", executionId, result.stderr());
+    }
     if (result.timedOut()) {
       return ExecutionResponse.failed(
           ErrorCode.PLATFORM_EXECUTION_FAILED,
@@ -246,8 +278,7 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
    * Writes the files of the wrapper that are absent, as a concurrent runtime may, and checks that
    * the directory holds exactly the wrapper of this runtime.
    */
-  private Path install(LocalRuntime runtime) {
-    final var wrapper = wrapper(runtime);
+  private Path install(LocalRuntime runtime, ExecutorWrapper wrapper) {
     final var target = directory.resolve(wrapper.executorName("", WRAPPER_RUNTIME));
     try {
       createPrivateDirectory(target);
@@ -315,17 +346,53 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     return files;
   }
 
+  /**
+   * Creates the directory with access for its owner only, or checks that an existing one is not a
+   * link, belongs to the user of the runtime and cannot be written by anyone else: the files in it
+   * are run, so whoever can replace them runs code as this user.
+   */
   private static void createPrivateDirectory(Path path) throws IOException {
-    if (!Files.isDirectory(path)) {
+    if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
       Files.createDirectories(
           path, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
     }
+    if (!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_REJECTED, path + " must be a directory, not a link or a file");
+    }
+    final var owner = Files.getOwner(path, LinkOption.NOFOLLOW_LINKS).getName();
+    if (!owner.equals(System.getProperty("user.name"))) {
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_REJECTED,
+          "%s belongs to %s, not to the user of the runtime".formatted(path, owner));
+    }
+    final var permissions = Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS);
+    if (permissions.contains(PosixFilePermission.GROUP_WRITE)
+        || permissions.contains(PosixFilePermission.OTHERS_WRITE)) {
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_REJECTED,
+          "%s can be written by other users: remove that access, for example with chmod go-w"
+              .formatted(path));
+    }
   }
 
-  private record Executor(LocalRuntime runtime, Path interpreter, Path directory) {
+  /**
+   * @param files names of the files of the wrapper, in {@code directory}
+   */
+  private record Executor(
+      LocalRuntime runtime, Path interpreter, Path directory, Set<String> files) {
 
     Path entryPoint() {
       return directory.resolve(runtime.entryPoint());
+    }
+
+    /** The first file of the wrapper that is gone, or {@code null}. */
+    Path missingFile() {
+      return files.stream()
+          .map(directory::resolve)
+          .filter(file -> !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS))
+          .findFirst()
+          .orElse(null);
     }
   }
 }
