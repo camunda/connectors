@@ -6,6 +6,7 @@
 // Started by executor_core in a fresh Node.js process for every call, with a request that
 // executor_core has already validated: { variables, context }.
 
+import { fstatSync, writeSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Console } from 'node:console';
@@ -35,6 +36,25 @@ function scriptError(error) {
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
+// A failure of the script that the try/catch below cannot see is still the script's: a timer that
+// throws, a promise that rejects with no one waiting, or a process.exit() before execute() returns.
+// Without a response the wrapper would report a platform failure and the call would be retried.
+let responded = false;
+function respondAndExit(response) {
+  if (responded) return;
+  responded = true;
+  writeSync(1, typeof response === 'string' ? response : JSON.stringify(response));
+  process.exit(0);
+}
+process.on('uncaughtException', (error) => respondAndExit(scriptError(error)));
+process.on('unhandledRejection', (error) => respondAndExit(scriptError(error)));
+// Nothing is added when the script already wrote to stdout itself: the wrapper judges that output.
+process.on('exit', (code) => {
+  if (!responded && fstatSync(1).size === 0) {
+    respondAndExit(failure('SCRIPT_ERROR', `the script ended the process with exit code ${code} before execute() returned`));
+  }
+});
+
 let input = '';
 process.stdin.setEncoding('utf8'); // keeps a character split across two chunks whole
 for await (const chunk of process.stdin) input += chunk;
@@ -60,4 +80,4 @@ try {
 
 // Exit once the response is written: a timer or socket the script left open must not turn a
 // finished call into a timeout, nor write to stdout after the response.
-process.stdout.write(typeof response === 'string' ? response : JSON.stringify(response), () => process.exit(0));
+respondAndExit(response);

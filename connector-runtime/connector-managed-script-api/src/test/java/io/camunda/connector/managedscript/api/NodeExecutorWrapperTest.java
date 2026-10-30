@@ -203,6 +203,40 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void reportsATimerThatThrowsWhileExecuteIsAwaitingAsAScriptError() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                "export async function execute() {"
+                    + " setTimeout(() => { throw new Error('late boom'); }, 10);"
+                    + " await new Promise((resolve) => setTimeout(resolve, 300)); return { a: 1 }; }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("message").asText()).contains("late boom");
+  }
+
+  @Test
+  void reportsAnUnhandledRejectionAsAScriptError() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                "export async function execute() {"
+                    + " Promise.reject(new Error('nobody waits'));"
+                    + " await new Promise((resolve) => setTimeout(resolve, 300)); return { a: 1 }; }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("message").asText()).contains("nobody waits");
+  }
+
+  @Test
+  void reportsAnExitBeforeExecuteReturnsAsAScriptError() throws Exception {
+    final var error = errorOf(call("export function execute() { process.exit(1); }"));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("message").asText()).contains("exit code 1");
+  }
+
+  @Test
   void completesAScriptThatLeavesATimerRunning() throws Exception {
     final var request =
         request(
