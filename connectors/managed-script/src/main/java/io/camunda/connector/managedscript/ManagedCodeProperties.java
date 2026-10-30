@@ -18,8 +18,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param deploymentNamePrefix prefix of every executor name, one per cluster; the identity of the
  *     runtime may only manage executors whose name starts with it (default {@code camunda-ms-})
  * @param executionTimeout how long a script may run before the executor stops it (default 30s)
- * @param provisioningRetryBackoff backoff of a job that failed because of the platform (default
- *     10s)
+ * @param provisioningRetryBackoff backoff of a job that failed because of the platform and keeps
+ *     its retries, whatever the task's {@code retryBackoff} header says (default 10s)
  */
 @ConfigurationProperties(prefix = "camunda.connector.managed-code")
 public record ManagedCodeProperties(

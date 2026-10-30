@@ -115,7 +115,7 @@ with no user code in it.
   so a script runs at most once per job attempt. Job retries handle the rest.
 - **Not ready yet.** A job that arrives before the executors of its language are ready waits up to
   the provisioning timeout. It then fails with `PROVISIONING_PENDING`, its retries unchanged
-  (`JobContext.getRetries()`), and a backoff. A retryable creation failure is retried in the
+  (`JobContext.getRetries()`), and the operator's backoff. A retryable creation failure is retried in the
   background with a jittered exponential backoff of at most 1 minute. If that failure lasts longer
   than twice the provisioning timeout, it is reported to waiting jobs, which then consume their
   retries, so a lasting denial ends in an incident. A permission denial within the
@@ -329,8 +329,11 @@ field changes. Adding an optional field that older parties ignore does not chang
 ### Error codes and retries
 
 The set below is closed: providers and wrappers map every failure to one of these codes. "Consume
-one" lets the job lose one retry, with the configured backoff. "None left" sets the retries to 0,
-which raises an incident. "Unchanged" keeps the job's current retries, with a backoff.
+one" lets the job lose one retry, with the backoff of the task's `retryBackoff` header, as for any
+connector: the modeler sets it next to the retries it spends. "None left" sets the retries to 0,
+which raises an incident. "Unchanged" keeps the job's current retries, with the operator's backoff
+(`provisioning-retry-backoff`), whatever the header says: these jobs retry without bound, so only
+the operator sets how often they call the platform.
 
 | Code | Raised by | Meaning | Retries |
 |---|---|---|---|

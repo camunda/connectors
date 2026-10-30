@@ -43,7 +43,9 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   such as `ce-` followed by 24 hexadecimal characters and `-`.
 - `execution-timeout` is the deadline of a script, enforced by the executor, which reports
   `TIMEOUT`.
-- `provisioning-retry-backoff` is the backoff of a job that failed because of the platform.
+- `provisioning-retry-backoff` is the backoff of a job that failed because of the platform and
+  keeps its retries (`PROVISIONING_PENDING`, `PLATFORM_INTERRUPTED`), whatever the task's
+  `retryBackoff` header says. A failure that consumes a retry uses the task's `retryBackoff`.
 
 The job timeout of a managed-script task must cover `execution-timeout` and the time the first job
 takes to make the executors ready, so that a script still running does not get its job activated

@@ -142,7 +142,7 @@ class ManagedScriptJobHandlerTest {
     final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
     final var failed = assertFailed(outcome, ErrorCode.PLATFORM_UNAVAILABLE, null);
-    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
     assertThat(fetches.get()).isGreaterThan(1);
   }
 
@@ -313,7 +313,7 @@ class ManagedScriptJobHandlerTest {
     final var completed = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
     final var failed = assertFailed(missing, ErrorCode.DEPLOYMENT_MISSING, null);
-    assertThat(failed.backoff()).isEqualTo(BACKOFF);
+    assertThat(failed.backoff()).isEqualTo(Duration.ZERO);
     assertThat(completed).isEqualTo(new Outcome.Completed(Map.of("sum", 5)));
     assertThat(provider.ensureCalls).isEqualTo(2);
   }

@@ -42,7 +42,7 @@ final class ManagedScriptJobHandler {
 
     /**
      * @param retries the retries the job keeps; {@code null} lets the runtime consume one
-     * @param backoff {@link Duration#ZERO} for no backoff
+     * @param backoff {@link Duration#ZERO} lets the task's {@code retryBackoff} header apply
      */
     record Failed(String code, String message, Integer retries, Duration backoff)
         implements Outcome {}
@@ -192,7 +192,9 @@ final class ManagedScriptJobHandler {
     final var text = IncidentMessage.format(code, message, stackTrace, language);
     return switch (code.retries()) {
       case NONE_LEFT -> new Outcome.Failed(code.name(), text, 0, Duration.ZERO);
-      case CONSUME_ONE -> new Outcome.Failed(code.name(), text, null, retryBackoff);
+      // The modeler sets the backoff next to the retries a job consumes.
+      case CONSUME_ONE -> new Outcome.Failed(code.name(), text, null, Duration.ZERO);
+      // A job that keeps its retries can fail without bound, so the operator paces it.
       case UNCHANGED -> new Outcome.Failed(code.name(), text, job.getRetries(), retryBackoff);
     };
   }
