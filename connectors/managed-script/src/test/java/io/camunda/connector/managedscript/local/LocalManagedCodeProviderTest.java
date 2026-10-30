@@ -491,6 +491,50 @@ class LocalManagedCodeProviderTest {
   }
 
   @Test
+  void removesTheDirectoryOfACallWhoseWrapperWasKilled() throws IOException {
+    shim(
+        "node",
+        "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";;\n"
+            + "*) mkdir \"$EXECUTOR_TMP/run-1\"; echo secret > \"$EXECUTOR_TMP/run-1/user_script.mjs\";"
+            + " kill -9 $$;; esac");
+    final var provider = provider(List.of(bin));
+    provider.ensureExecutors();
+
+    final var response =
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            request("export function execute() { return {}; }", Map.of(), 10_000));
+
+    assertThat(response.error().code()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    try (Stream<Path> left = Files.list(directory.resolve("tmp"))) {
+      assertThat(left.toList()).isEmpty();
+    }
+  }
+
+  @Test
+  void removesTheDirectoryOfACallThatTimedOut() throws IOException {
+    shim(
+        "node",
+        "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";;\n"
+            + "*) mkdir \"$EXECUTOR_TMP/run-1\"; echo secret > \"$EXECUTOR_TMP/run-1/user_script.mjs\";"
+            + " sleep 60;; esac");
+    final var provider =
+        new LocalManagedCodeProvider(
+            directory, JSON, new InterpreterLocator(List.of(bin)), Duration.ofMillis(300));
+    provider.ensureExecutors();
+
+    final var response =
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            request("export function execute() { return {}; }", Map.of(), 300));
+
+    assertThat(response.error().code()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    try (Stream<Path> left = Files.list(directory.resolve("tmp"))) {
+      assertThat(left.toList()).isEmpty();
+    }
+  }
+
+  @Test
   void keepsTheInterruptionOfAProbeInsteadOfRejectingThePlatform() throws IOException {
     shim("node", "sleep 30");
     final var provider = provider(List.of(bin));
