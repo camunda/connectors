@@ -119,7 +119,7 @@ jobs:
           if [[ "$BRANCH" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
             line="${BASH_REMATCH[2]}"
           else
-            line=main
+            line=8.9
           fi
           prefix="${RUNNER_OS}-maven-${line}-"
           echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
