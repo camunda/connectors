@@ -67,11 +67,43 @@ function zombie(pid) {
   }
 }
 
-function entries(directory) {
+// Every path under `directory`, relative to it. Symlinks are listed, never followed.
+function snapshot(directory, prefix = '') {
+  const found = new Set();
+  let children = [];
   try {
-    return new Set(readdirSync(directory));
+    children = readdirSync(path.join(directory, prefix), { withFileTypes: true });
   } catch {
-    return new Set();
+    return found;
+  }
+  for (const child of children) {
+    const relative = path.join(prefix, child.name);
+    found.add(relative);
+    if (child.isDirectory()) for (const nested of snapshot(directory, relative)) found.add(nested);
+  }
+  return found;
+}
+
+// Removes everything under `directory` that is not in `baseline`, also inside the directories that
+// were already there: a writable directory of the baseline must not carry files to the next call.
+function removeNew(directory, baseline, prefix = '') {
+  let children = [];
+  try {
+    children = readdirSync(path.join(directory, prefix), { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const child of children) {
+    const relative = path.join(prefix, child.name);
+    if (!baseline.has(relative)) {
+      try {
+        rmSync(path.join(directory, relative), { recursive: true, force: true });
+      } catch {
+        // Not ours to remove.
+      }
+    } else if (child.isDirectory()) {
+      removeNew(directory, baseline, relative);
+    }
   }
 }
 
@@ -252,7 +284,7 @@ function finish(stdoutReadFd, stderrReadFd, { timedOut, timeoutMs, exitCode, chi
  */
 export function createExecutor({ local, tmp }) {
   const baselinePids = local ? null : pids();
-  const baselineTmp = local ? null : entries(tmp);
+  const baselineTmp = local ? null : snapshot(tmp);
   if (!local) scrubEnvironmentBlock();
 
   // A script can leave its process group with setsid or a double fork, so killing the group is not
@@ -276,14 +308,7 @@ export function createExecutor({ local, tmp }) {
   }
 
   function cleanTmp() {
-    for (const entry of entries(tmp)) {
-      if (baselineTmp.has(entry)) continue;
-      try {
-        rmSync(path.join(tmp, entry), { recursive: true, force: true });
-      } catch {
-        // Not ours to remove.
-      }
-    }
+    removeNew(tmp, baselineTmp);
   }
 
   /** Runs the script of `event` and returns the contract response; never throws. */
