@@ -485,6 +485,8 @@ class PythonExecutorWrapperTest {
         executor._clean_tmp()
         print(sorted(os.listdir(sub)), modes() == before)
         """;
+    // To a file, so that the deadline applies before anything is read.
+    final var outputFile = Files.createTempFile(wrapper, "cleanup", ".txt");
     final var process =
         new ProcessBuilder(
                 python.orElseThrow().toString(),
@@ -494,11 +496,14 @@ class PythonExecutorWrapperTest {
                 wrapper.toString(),
                 tmp.toString())
             .redirectErrorStream(true)
+            .redirectOutput(outputFile.toFile())
             .start();
-    final var output = new String(process.getInputStream().readAllBytes()).trim();
-    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+    if (!process.waitFor(30, TimeUnit.SECONDS)) {
+      process.destroyForcibly();
+      throw new AssertionError("the cleanup did not finish within 30 seconds");
+    }
 
-    assertThat(output).isEqualTo("[] True");
+    assertThat(Files.readString(outputFile).trim()).isEqualTo("[] True");
   }
 
   @Test
