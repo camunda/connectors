@@ -293,6 +293,23 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void rejectsAResultWhoseSerializationExits() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                class Exiting(dict):
+                    def items(self):
+                        raise SystemExit(3)
+
+                def execute(variables, context):
+                    return {"a": Exiting(k=1)}
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
+  }
+
+  @Test
   void keepsTheResourceLimitWhenMemoryRunsOutWhileSerializingTheResult() throws Exception {
     final var error =
         errorOf(
