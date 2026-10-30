@@ -28,16 +28,15 @@ class ExecutorWrapperTest {
   private final ExecutorWrapper python = ExecutorWrapper.of(ScriptLanguage.PYTHON);
 
   @Test
-  void packagesTheCoreTheChildAndTheLocalEntryPoint() {
-    assertThat(javascript.files())
-        .containsOnlyKeys("child.mjs", "executor_core.mjs", "local_call.mjs");
+  void packagesTheCoreAndTheChild() {
+    assertThat(javascript.files()).containsOnlyKeys("child.mjs", "executor_core.mjs");
     assertThat(new String(javascript.files().get("executor_core.mjs"), StandardCharsets.UTF_8))
         .contains("export function createExecutor");
   }
 
   @Test
-  void packagesThePythonCoreChildAndLocalEntryPoint() {
-    assertThat(python.files()).containsOnlyKeys("child.py", "executor_core.py", "local_call.py");
+  void packagesThePythonCoreAndChild() {
+    assertThat(python.files()).containsOnlyKeys("child.py", "executor_core.py");
     assertThat(new String(python.files().get("executor_core.py"), StandardCharsets.UTF_8))
         .contains("def create_executor(local, tmp)");
   }

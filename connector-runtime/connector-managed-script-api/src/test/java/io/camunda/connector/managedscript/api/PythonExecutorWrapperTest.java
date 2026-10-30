@@ -38,9 +38,9 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Runs the Python wrapper on a real {@code python3}, through its local entry point. Skipped when no
- * {@code python3} 3.10 or later is on the PATH. The local mode only kills the process group of its
- * own script, so the tests never touch other processes of the host.
+ * Runs the Python wrapper on a real {@code python3}, through a test driver that calls its core.
+ * Skipped when no {@code python3} 3.10 or later is on the PATH. The local mode only kills the
+ * process group of its own script, so the tests never touch other processes of the host.
  */
 class PythonExecutorWrapperTest {
 
@@ -56,6 +56,9 @@ class PythonExecutorWrapperTest {
     python = findPython().filter(PythonExecutorWrapperTest::supported);
     for (var file : ExecutorWrapper.of(ScriptLanguage.PYTHON).files().entrySet()) {
       Files.write(wrapper.resolve(file.getKey()), file.getValue());
+    }
+    try (var driver = PythonExecutorWrapperTest.class.getResourceAsStream("test_driver.py")) {
+      Files.write(wrapper.resolve("test_driver.py"), driver.readAllBytes());
     }
   }
 
@@ -597,7 +600,7 @@ class PythonExecutorWrapperTest {
   private JsonNode call(Map<String, Object> request, Path tmp) throws Exception {
     final var builder =
         new ProcessBuilder(
-                python.orElseThrow().toString(), "-I", wrapper.resolve("local_call.py").toString())
+                python.orElseThrow().toString(), "-I", wrapper.resolve("test_driver.py").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD);
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
