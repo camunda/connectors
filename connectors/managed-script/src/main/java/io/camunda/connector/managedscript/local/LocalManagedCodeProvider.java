@@ -351,7 +351,10 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
   }
 
-  /** The files of the directory, or {@code null} when it holds anything but regular files. */
+  /**
+   * The files of the directory, or {@code null} when it holds anything but regular files. A file
+   * that another user owns or can write is refused: it is run by every call.
+   */
   private static Map<String, byte[]> readInstalled(Path target) throws IOException {
     final var files = new TreeMap<String, byte[]>();
     try (var entries = Files.list(target)) {
@@ -359,6 +362,7 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
         if (!Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
           return null;
         }
+        requireOnlyWritableByUser(entry);
         files.put(entry.getFileName().toString(), Files.readAllBytes(entry));
       }
     }
@@ -379,6 +383,11 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
       throw new ProvisioningException(
           ErrorCode.PLATFORM_REJECTED, path + " must be a directory, not a link or a file");
     }
+    requireOnlyWritableByUser(path);
+  }
+
+  /** The user of the runtime owns the file or directory, and nobody else can write to it. */
+  private static void requireOnlyWritableByUser(Path path) throws IOException {
     final var owner = Files.getOwner(path, LinkOption.NOFOLLOW_LINKS).getName();
     if (!owner.equals(System.getProperty("user.name"))) {
       throw new ProvisioningException(
