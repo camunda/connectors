@@ -28,7 +28,7 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  *       are returned and applied in the order of the calls. {@link #call} and {@link #isEnabled}
  *       may be called from different threads, and a {@link RuntimeToolContext} is safe to read
  *       concurrently. The calls of one message see the same {@link RuntimeToolContext#documents()
- *       documents}, the ones known when the first of them starts: a call must not depend on a
+ *       documents}, the ones of the window of their model call: a call must not depend on a
  *       document another call of the same message returned. The documents the results contain are
  *       known to the next turn, as long as their result is in its context window.
  *   <li><b>Bounded run time.</b> A call runs within the agent job, and the framework neither

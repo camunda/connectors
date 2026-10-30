@@ -40,9 +40,10 @@ public interface RuntimeToolContext {
   AgentContext agentContext();
 
   /**
-   * The documents the agent knows as of the start of the batch of calls this call belongs to. The
-   * documents the other calls of the batch return are not part of it, they are known to the next
-   * turn. Empty when a tool is asked whether it is {@link RuntimeTool#isEnabled enabled}.
+   * The documents of the context window the model was called with when it asked for the batch of
+   * calls this call belongs to. The documents the other calls of the batch return are not part of
+   * it, they are known to the next turn. Empty when a tool is asked whether it is {@link
+   * RuntimeTool#isEnabled enabled}.
    */
   RuntimeToolDocuments documents();
 }

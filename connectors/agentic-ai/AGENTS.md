@@ -217,7 +217,7 @@ High-frequency traps (detail behind each link):
 - **Agent instance features gate behavior per instance**: `AgentContext.features` is set only when a new agent
   instance creates its context (`AgentInitializerImpl`) and never added to a context that exists without it. An
   instance without the `documents` feature keeps the previous document handling: bare content and the older tag
-  format, no registry. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
+  format, no document references. Without the `runtimeTools` feature it has no runtime tools and no tool element is checked
   against runtime tool names. Gate new behavior that changes the wire format or the persisted shape on
   `AgentContext.supports(...)` and keep the legacy path covered by `LegacyDocumentConversationTest`.
   [ADR 017](docs/adr/017-document-flow.md), [ADR 016](docs/adr/016-runtime-tools.md).
@@ -230,12 +230,12 @@ High-frequency traps (detail behind each link):
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **Documents are persisted as references and expanded for the model**: for an instance with the `documents` feature the
   conversation holds typed document references (`DocumentReferenceContent`), also for a document that is a whole tool
-  result, and the registry in `AgentContext.documents` holds what the references stand for. `AgentConversation.window`
-  (with `DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content from the registry;
+  result. A reference holds its document, so the documents of a conversation are derived from its messages
+  (`ConversationDocuments`); there is no registry in the `AgentContext`. `AgentConversation.window` (with
+  `DocumentExpander`) turns a reference into its tag text and, with the delivery `content`, the content of its document;
   in a tool result it renders the short tag as text, so the providers have no document specific code. A user prompt
-  document is a reference with the delivery `content`. The documents a runtime tool returns are registered after the calls
-  of a message ran, in call order, by `ToolCallResultsInputBuilder`, and a tool reads the documents known when the batch
-  starts. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
+  document is a reference with the delivery `content`. A runtime tool reads the documents of the context window the model
+  was called with (`AgentConversation.documentsSeenByModel`), not the documents the other calls of the batch return. [ADR 017](docs/adr/017-document-flow.md) and `ai-agent.md` "Document Extraction from Tool Call Results".
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has
   been persisted and reloaded (or the exact same instance is reused) — tests that independently

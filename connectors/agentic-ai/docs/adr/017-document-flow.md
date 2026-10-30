@@ -1,4 +1,4 @@
-# Document flow: a registry, short tags and content on demand
+# Document flow: references in the conversation, short tags and content on demand
 
 * Deciders: Agentic AI Team
 * Date: Oct 19, 2026
@@ -31,8 +31,7 @@ tools without the model handling bytes or store details. Four capabilities follo
 2. The model can ask for the content of a document, within limits, and a process can opt in to adding content without
    the model asking.
 3. The model can return documents with the final response.
-4. Documents stay known for the lifetime of the agent instance, independent of the context window and of the
-   conversation store.
+4. A tool can use every document the model can see, with every conversation store.
 
 The decision applies to both flavors (AI Agent Sub-process and AI Agent Task). Out of scope are document parameters of
 MCP and A2A tools, whose schemas come from the remote side, Modeler support and document retention.
@@ -45,8 +44,9 @@ MCP and A2A tools, whose schemas come from the remote side, Modeler support and 
   the history.
 * **Stable requests**: the bytes of a request prefix stay the same across requests, for prompt caching, and stored
   messages are never rewritten.
-* **Independence from the window and the store**: a document stays known when its message is evicted, and no
-  conversation store needs its own implementation.
+* **Independence from the store**: no conversation store needs its own implementation.
+* **One source of truth**: the conversation alone tells which documents the agent knows, so no second state has to
+  stay in sync with it.
 * **Running instances keep running**: persisted state and agent instances of earlier versions keep loading and
   behaving as before.
 * **No opaque failures**: a limit the broker enforces is checked up front, with an error the operator can act on.
@@ -56,7 +56,7 @@ MCP and A2A tools, whose schemas come from the remote side, Modeler support and 
 ## Considered Options
 
 1. Keep ADR 004: content of every document in the request, as a follow-up user message.
-2. References by default, a document registry in the agent context, content on request or by opt-in (chosen).
+2. References by default, documents derived from the conversation, content on request or by opt-in (chosen).
 
 Option 2 has several decisions of its own, each with alternatives, in the decision outcome.
 
@@ -66,20 +66,22 @@ Chosen option: **Option 2**, because a tag costs a few dozen tokens, so a conver
 documents, and the cases in which the model needs the content are rare and known: it asks for it, or the process
 designer knows it up front.
 
-### Registry in the agent context, typed block in the conversation
+### Typed block in the conversation, documents derived from the messages
 
 A document is persisted in the conversation as a typed content block, `DocumentReferenceContent`, with its id, the
-attributes of its tag, its source and its delivery. The complete Camunda document reference lives once, in a document
-registry that is a field of the agent context, persisted by the same job completion as the rest of the context. The
-source of a block is the same value as the source in the registry entry. A document has a stable id, a value type
-`DocumentId`.
+attributes of its tag, the document itself, its source and its delivery. A document has a stable id, a value type
+`DocumentId`. The documents the agent knows are derived from the messages: the references of user messages and the
+documents of tool results, as a reference or nested in an object, in the order of the messages. Assistant messages are
+not read, because the model writes them. The first occurrence of an id wins.
 
 Alternatives:
 
-* *Keep the document as content in the messages.* Every later call pays for the bytes, an inline document is stored
-  several times, and an evicted message loses the document.
-* *Derive the registry from the messages.* Documents nested in tool results or extracted by gateway handlers are hard to
-  find again, and a window evicts messages.
+* *A document registry in the agent context.* It keeps a document known after its message left the window. But the agent
+  context grows with every document and is never pruned, the persisted conversation is no longer self-contained, the
+  registry and the conversation must stay in sync, and an inline document is held several times, which needs a size
+  limit of its own.
+* *Keep the document as content in the messages.* Every later call pays for the bytes, and an inline document is stored
+  several times.
 * *A registry next to the messages in each conversation store.* Three stores would need an implementation, and the
   registry would not commit atomically with the job.
 * *A tag as text.* The id and the delivery would have to be parsed back, and a tag a user typed would look like one the
@@ -87,29 +89,32 @@ Alternatives:
 
 Consequences accepted:
 
-* The agent context grows with every document of the conversation, and the registry is never pruned. The bound is the
-  message size of the broker for a job completion.
-* The persisted conversation is not self-contained: the content comes from the registry when the conversation is
-  windowed, so replaying needs the registry of the same agent context. Both are written by the same job completion.
-* There is no schema version bump: a missing field binds to an empty registry, so earlier state loads.
+* A document is known only while a message that holds it is in the context window. The model cannot see a document of
+  an evicted message either, so the agent knows what the model can see.
+* Documents nested in a tool result, also in the typed content of a gateway handler, are found again by walking the
+  object, every time the conversation is windowed.
+* The conversation holds the complete document reference with each block, so a document referenced several times is
+  stored several times.
+* There is no schema version bump: the agent context gains only the list of features, and a missing field binds to an
+  empty list.
 
 ### Documents of runtime tools
 
-A runtime tool can return a document in its result, also nested in an object. The agent registers the documents of the
-results of one assistant message after all its calls ran, in the order of the calls, with the call as their source, and
-shows the model the tags of the documents in place of the documents. This happens in one place that the composer of a
-mixed batch and the runtime tool round of a job share, so both give the same result. A result that is an error registers
-nothing.
+A runtime tool can return a document in its result, also nested in an object. The tool result keeps the document, with
+the call as its source, and the model reads the tag of the document in place of the document. A document that is the
+whole content of a result is persisted as its reference. This happens in one place that the composer of a mixed batch
+and the runtime tool round of a job share, so both give the same result. A result that is an error holds no document.
 
-A runtime tool reads the documents the agent knows when the batch of calls starts. The calls of one message do not see
-the documents the other calls returned, and the next turn knows them. This follows the contract of
-[ADR 016](016-runtime-tools.md): the calls of one message may run concurrently and a call must not depend on another
-call of the same message. The registration is a function of the agent context and the results only, so a job that runs
-again from the same context computes the same registry.
+A runtime tool reads the documents of the context window the model was called with when it asked for the calls. The
+calls of one message do not see the documents the other calls returned, and the next turn knows them while their results
+are in its window. This follows the contract of [ADR 016](016-runtime-tools.md): the calls of one message may run
+concurrently and a call must not depend on another call of the same message. The documents are a function of the stored
+messages and the window size only, so a job that runs again from the same context sees the same documents, also when the
+calls run in a later job than the model call.
 
-Alternatives: *register the documents while the calls run* lets a call see the documents of an earlier call and ties the
-contract to a sequential execution; *a method of the tool context that registers a document* gives a tool write access
-to the state of the agent, which ADR 016 avoids.
+Alternatives: *a document registry that the agent updates after the calls ran* needs a second state next to the
+conversation (see above); *a method of the tool context that registers a document* gives a tool write access to the
+state of the agent, which ADR 016 avoids.
 
 ### The model reads short tags only
 
@@ -189,7 +194,8 @@ Only a value that is exactly one tag is a document. A plain string stays text ev
 that equals an id never turns into a document by accident. Documents are not searched for in the alternatives of a union
 that are objects or arrays, because a value cannot be assigned to one alternative reliably.
 
-A process tool receives the Camunda document reference of the registry entry, a runtime tool the `DocumentId`. Passing a
+A process tool receives the Camunda document reference of the document the tag stands for, a runtime tool the
+`DocumentId`. Passing a
 tag to a tool never adds content. The agent resolves the parameters once, when it receives the message of the model, on
 the call the model made, before a gateway handler transforms it. A gateway handler that defines its tools itself can declare document
 parameters and receives the references. The MCP and A2A handlers declare none: the schema of an MCP tool comes from the
@@ -228,25 +234,24 @@ optimization, and the persisted form needs no change for it (see Follow-up).
 
 ### Documents outside the window
 
-The window never announces a document whose message it hides. The registry still resolves the tag of such a document, so
-a tag that is still in the model's context can be passed to a tool or loaded again within the guard.
+The window never announces a document whose message it hides, and the agent no longer knows such a document. A tag of
+it, for example in a later assistant message, does not resolve.
 
 A note that lists the hidden documents was considered and dropped. It costs one tag per document in every request for the
-life of the instance, and it is not part of the history, which is the audit record of what the model reads. A tool the
-model calls to list the known documents costs tokens only when needed, and is a follow-up.
+life of the instance, and it is not part of the history, which is the audit record of what the model reads. Keeping
+documents known beyond the window needs state next to the conversation, which this decision avoids; it is a follow-up.
 
-### Inline documents are limited
+### Inline documents
 
-An inline document holds its content in the registry, in the tool result and in the response documents, about three
-times. The registry rejects an inline document above 1 MiB, and inline documents above 1 MiB in total, with an error
-code for each, instead of letting the job completion fail with an opaque error of the broker. The total keeps the
-content within about three quarters of the message size of the broker. There is no fallback to a reference-only entry.
+An inline document holds its content in its reference block, in the conversation. There is no limit of its own. With the
+in-process store the conversation is part of the agent context, so a large inline document counts towards the message
+size of the broker for a job completion.
 
 ### Instance features and the legacy path
 
 The agent context lists the features an agent instance was created with: `runtimeTools` and `documents`. A feature is
 assigned when the instance is created and never added later. An instance without `documents` keeps the handling it was
-created with: documents are content in the conversation with the earlier tag format, there is no registry, no response
+created with: documents are content in the conversation with the earlier tag format, there are no document references, no response
 documents and no document parameters, and a document in a tool result renders as its reference JSON.
 
 Alternatives: *migrate running instances* is not possible for an append-only store, and a conversation with messages in
@@ -272,8 +277,8 @@ history back after a document flow and requires it.
 
 ### Positive Consequences
 
-* A conversation carries any number of documents at a few dozen tokens each, and documents survive the window and every
-  conversation store.
+* A conversation carries any number of documents at a few dozen tokens each, with every conversation store, and the
+  persisted conversation alone tells which documents the agent knows.
 * The model can hand a document to a tool and return one with the response, without handling bytes or store details.
 * Content enters the request only through one guard, so a document that a provider cannot render never fails a model
   call.
@@ -281,7 +286,8 @@ history back after a document flow and requires it.
 
 ### Negative Consequences
 
-* The agent context grows with the registry, which is never pruned, and inline documents are held several times.
+* A document is known only while a message that holds it is in the context window.
+* A document referenced several times is stored with each reference, and inline content has no limit of its own.
 * The limits are global and byte-based, so they are as strict as the strictest provider and are a poor measure of
   tokens.
 * The content reaches the model only in a user message, and stays in every request until its message leaves the window.
@@ -290,12 +296,13 @@ history back after a document flow and requires it.
 
 ## Follow-up
 
-* **`c8__list_documents` built-in.** A runtime tool that lists the known documents when the model needs them. It
-  replaces the note about documents that left the window, which cost a tag per document in every request.
+* **`c8__list_documents` built-in.** A runtime tool that lists the known documents when the model needs them.
+* **Documents beyond the window.** Keeping a document known after its message left the window needs state next to the
+  conversation, for example a registry in the agent context.
 * **A switch for the built-in document tools.** A setting frozen at instance creation as part of the agent configuration
   (not a FEEL expression evaluated per job). Every new instance is offered both tools, which costs tokens and
   can change tool selection for agents that never use documents. ADR 016 lists the general allow and deny list.
-* **Per-tool document scoping.** Allowed document sources per tool. Any registry document can be passed to any tool by
+* **Per-tool document scoping.** Allowed document sources per tool. Any known document can be passed to any tool by
   tag, so text a tool returned can name another document.
 * **Per-provider limits and native tool-result documents.** A capability matrix of the providers (issue #7230) would
   reject a type before the load and replace the global limits, and would let the window place content in the tool
@@ -306,14 +313,13 @@ history back after a document flow and requires it.
   can bound the work; external documents are reference-only on request of a tool.
 * **History reporting of documents.** External document URLs are reported to the history and can expose a URL with a
   token, and an inline document in a user message makes the history mapper fail. Both should be reported as tags.
-* **Registry pruning and a size budget.** Entries nobody references could be pruned.
-* **Compaction.** A compaction that rewrites or drops messages must keep the registry intact and decide what happens to
-  references with the delivery `content` and the follow-up messages that hold them.
+* **Compaction.** A compaction that rewrites or drops messages decides which documents stay known, because the documents
+  are derived from the messages, and what happens to references with the delivery `content`.
 * **Ranges for `c8__get_document`.** Pages, lines or bytes, as an additive field of the reference and an optional
   argument.
 * **MCP and A2A tools that take documents.** Needs a mapping from the remote schema and from a document reference into
   the format the remote side expects.
-* **A reference-only entry for inline documents.** It would replace the limits above and the several copies.
+* **A reference-only form for inline documents.** It would keep large inline content out of the conversation.
 * **Content type sniffing** for documents of unknown type.
 * **Expiry of a document in its store.** The agent does not notice it; whether it drops the entry and tells the model, or
   leaves it to the tool that dereferences the document, is open.
