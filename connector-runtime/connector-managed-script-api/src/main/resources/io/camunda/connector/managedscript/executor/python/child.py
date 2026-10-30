@@ -6,7 +6,6 @@ Started by executor_core in a fresh interpreter for every call, with a request t
 has already validated: { variables, context }.
 """
 
-import contextlib
 import importlib.util
 import json
 import os
@@ -45,11 +44,12 @@ def load(workdir):
 
 request = json.loads(sys.stdin.buffer.read().decode("utf-8"))
 stdout = sys.stdout
+# print() in user code goes to the logs, not to the response. Redirected for the whole life of the
+# process: a thread the script left running must not write to the response after execute() returns.
+sys.stdout = sys.stderr
 
 try:
-    # print() in user code goes to the logs, not to the response.
-    with contextlib.redirect_stdout(sys.stderr):
-        result = load(sys.argv[1])(request["variables"], request["context"])
+    result = load(sys.argv[1])(request["variables"], request["context"])
 except MemoryError as error:
     response = raised("RESOURCE_LIMIT", error)
 except BaseException as error:  # noqa: BLE001 - SystemExit and KeyboardInterrupt are script errors too
@@ -63,6 +63,8 @@ else:
             response = json.dumps(
                 {"contractVersion": CONTRACT_VERSION, "outcome": "COMPLETED", "variables": result}, allow_nan=False
             )
+        except MemoryError as error:
+            response = raised("RESOURCE_LIMIT", error)
         except (TypeError, ValueError, RecursionError) as error:
             response = failure("INVALID_RESULT", f"the result of execute() is not JSON: {error}")
 

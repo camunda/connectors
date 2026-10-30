@@ -34,7 +34,10 @@ CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "child.py")
 MAX_OUTPUT_BYTES = 1_000_000
 MAX_LOG_BYTES = 4_096
 MAX_MESSAGE_LENGTH = 1024
+MAX_STACK_TRACE_LENGTH = 8192
 CHILD_MEMORY_BYTES = 256 * 1024 * 1024
+# Per file the child writes: its logs and response go to files, which a print loop would fill.
+CHILD_FILE_BYTES = 64 * 1024 * 1024
 DEFAULT_TIMEOUT_MS = 10_000
 SWEEP_ROUNDS = 5
 PR_SET_DUMPABLE = 4
@@ -82,11 +85,13 @@ def _reap():
             return
 
 
-def _entries(directory):
-    try:
-        return set(os.listdir(directory))
-    except OSError:
-        return set()
+def _tree(directory):
+    """Every path under ``directory``, relative to it, without following symbolic links."""
+    found = set()
+    for root, directories, files in os.walk(directory, followlinks=False):
+        for name in directories + files:
+            found.add(os.path.relpath(os.path.join(root, name), directory))
+    return found
 
 
 def _scrub_environment_block():
@@ -130,14 +135,17 @@ def _harden():
         pass
 
 
-def _limit_memory():
-    """Runs in the child before exec: a script that allocates more gets a MemoryError."""
+def _limit_resources():
+    """Runs in the child before exec: a script that allocates more gets a MemoryError, and one that
+    writes a file larger than CHILD_FILE_BYTES gets an OSError.
+    """
     if resource is None:
         return
-    try:
-        resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
-    except (ValueError, OSError):  # macOS does not support RLIMIT_AS
-        pass
+    for limit, size in ((resource.RLIMIT_FSIZE, CHILD_FILE_BYTES), (resource.RLIMIT_AS, CHILD_MEMORY_BYTES)):
+        try:
+            resource.setrlimit(limit, (size, size))
+        except (ValueError, OSError):  # macOS does not support RLIMIT_AS
+            pass
 
 
 def _kill_group(pid):
@@ -186,9 +194,12 @@ def _sanitize(response):
             "message": ("" if message is None else str(message))[:MAX_MESSAGE_LENGTH],
             "retryable": False,
         }
+        truncated = error.get("truncated") is True
         if isinstance(error.get("stackTrace"), str):
-            sanitized["stackTrace"] = error["stackTrace"]
-        sanitized["truncated"] = error.get("truncated") is True
+            # The end of a Python traceback is the frame nearest the error.
+            sanitized["stackTrace"] = error["stackTrace"][-MAX_STACK_TRACE_LENGTH:]
+            truncated = truncated or len(error["stackTrace"]) > MAX_STACK_TRACE_LENGTH
+        sanitized["truncated"] = truncated
         return {"contractVersion": CONTRACT_VERSION, "outcome": "FAILED", "error": sanitized}
     return failure("INVALID_RESULT", "the child did not return a contract response")
 
@@ -257,7 +268,7 @@ def _execute(event, workdir, deadline_ms):
             stdout=stdout,
             stderr=stderr,
             start_new_session=True,  # own process group, killed as a whole on timeout
-            preexec_fn=_limit_memory,
+            preexec_fn=_limit_resources,
         )
         try:
             child.stdin.write(json.dumps(request).encode("utf-8"))
@@ -297,7 +308,7 @@ class Executor:
         self._local = local
         self._tmp = tmp
         self._baseline_pids = None if local else _pids()
-        self._baseline_tmp = None if local else _entries(tmp)
+        self._baseline_tmp = None if local else _tree(tmp)
         if not local:
             _scrub_environment_block()
             _harden()
@@ -325,8 +336,12 @@ class Executor:
         _reap()
 
     def _clean_tmp(self):
-        for entry in _entries(self._tmp) - self._baseline_tmp:
+        # Everything new under the directory, however deep: a script can write inside a directory
+        # that was already there. Shallowest first, so a new directory goes in one call.
+        for entry in sorted(_tree(self._tmp) - self._baseline_tmp, key=lambda found: found.count(os.sep)):
             path = os.path.join(self._tmp, entry)
+            if not os.path.lexists(path):
+                continue
             try:
                 if os.path.isdir(path) and not os.path.islink(path):
                     shutil.rmtree(path, ignore_errors=True)

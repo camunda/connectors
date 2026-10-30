@@ -234,6 +234,79 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void keepsTheResponseCleanWhileAThreadKeepsPrinting() throws Exception {
+    final var response =
+        call(
+            """
+            import threading, time
+
+            def spam():
+                while True:
+                    print("late output")
+
+            def execute(variables, context):
+                threading.Thread(target=spam, daemon=True).start()
+                time.sleep(0.2)
+                return {"a": 1}
+            """);
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+  }
+
+  @Test
+  void doesNotLetAScriptForgeAnOversizedStackTrace() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                import json, os
+
+                def execute(variables, context):
+                    trace = "x" * 20000 + "nearest the error"
+                    os.write(1, json.dumps({"contractVersion": "1", "outcome": "FAILED",
+                        "error": {"code": "SCRIPT_ERROR", "message": "m", "stackTrace": trace,
+                        "truncated": False}}).encode())
+                    os._exit(0)
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("stackTrace").asText()).hasSize(8192).endsWith("nearest the error");
+    assertThat(error.get("truncated").asBoolean()).isTrue();
+  }
+
+  @Test
+  void stopsAScriptThatFillsItsLogs() throws Exception {
+    final var request =
+        request(
+            "def execute(variables, context):\n    while True:\n        print('x' * 1000)\n",
+            Map.of());
+    request.put("timeoutMs", 20_000);
+
+    final var error = errorOf(call(request));
+
+    // The log file is capped, so the write fails in the script instead of filling the disk.
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+  }
+
+  @Test
+  void keepsTheResourceLimitWhenMemoryRunsOutWhileSerializingTheResult() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                class Exhausted(dict):
+                    def items(self):
+                        raise MemoryError()
+
+                def execute(variables, context):
+                    print("x" * 5000)
+                    return {"a": Exhausted(k=1)}
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("RESOURCE_LIMIT");
+  }
+
+  @Test
   void sendsPrintToTheLogsNotTheResponse() throws Exception {
     final var response =
         call("def execute(variables, context):\n    print('to the logs')\n    return {'a': 1}\n");
@@ -368,13 +441,20 @@ class PythonExecutorWrapperTest {
             .redirectError(ProcessBuilder.Redirect.DISCARD);
     builder.environment().put("EXECUTOR_TMP", callTmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
+    // To a file, so that the deadline applies before anything is read: reading the pipe to its end
+    // would wait for a hung wrapper as long as the wrapper does.
+    final var output = Files.createTempFile(wrapper, "response", ".json");
+    builder.redirectOutput(output.toFile());
     final var process = builder.start();
     try (var stdin = process.getOutputStream()) {
       stdin.write(JSON.writeValueAsBytes(request));
     }
-    final var output = process.getInputStream().readAllBytes();
-    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
-    return JSON.readTree(output);
+    if (!process.waitFor(30, TimeUnit.SECONDS)) {
+      process.descendants().forEach(ProcessHandle::destroyForcibly);
+      process.destroyForcibly();
+      throw new AssertionError("the wrapper did not answer within 30 seconds");
+    }
+    return JSON.readTree(Files.readAllBytes(output));
   }
 
   private static JsonNode errorOf(JsonNode response) {
