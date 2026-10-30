@@ -79,7 +79,10 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
 
   public KafkaExecutable() {
     this(
-        KafkaConsumer::new,
+        props -> {
+          KafkaBootstrapProbe.verify(props);
+          return new KafkaConsumer<>(props);
+        },
         RetryPolicy.builder()
             .handle(Exception.class)
             .withDelay(Duration.ofSeconds(30))
