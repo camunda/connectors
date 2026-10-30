@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -393,6 +394,119 @@ class LocalManagedCodeProviderTest {
 
     assertThat(provider.execute(ScriptLanguage.PYTHON, script).outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
+  }
+
+  @Test
+  void refusesADirectoryThatOtherUsersCanWrite() throws IOException {
+    requireNode();
+    Files.setPosixFilePermissions(directory, PosixFilePermissions.fromString("rwxrwxr-x"));
+
+    assertThatThrownBy(provider(List.of(link("node", node)))::ensureExecutors)
+        .isInstanceOfSatisfying(
+            ProvisioningException.class,
+            e -> {
+              assertThat(e.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+              assertThat(e.getMessage()).contains("can be written by other users");
+            });
+  }
+
+  @Test
+  void refusesADirectoryThatIsALink() throws IOException {
+    requireNode();
+    final var linked = Files.createSymbolicLink(bin.resolve("linked"), directory);
+    final var provider =
+        new LocalManagedCodeProvider(
+            linked, JSON, new InterpreterLocator(List.of(link("node", node))));
+
+    assertThatThrownBy(provider::ensureExecutors)
+        .isInstanceOf(ProvisioningException.class)
+        .hasMessageContaining("not a link");
+  }
+
+  @Test
+  void reportsAMissingCoreFileSoThatTheHandlerPreparesTheExecutorsAgain() throws IOException {
+    requireNode();
+    final var provider = provider(List.of(link("node", node)));
+    provider.ensureExecutors();
+    final var script = request("export function execute() { return {}; }", Map.of(), 10_000);
+    final var installed =
+        directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
+    Files.delete(installed.resolve("executor_core.mjs"));
+
+    final var response = provider.execute(ScriptLanguage.JAVASCRIPT, script);
+
+    assertThat(response.isDeploymentMissing()).isTrue();
+    assertThat(response.error().message()).contains("executor_core.mjs");
+    deleteRecursively(installed);
+    provider.ensureExecutors();
+    assertThat(provider.execute(ScriptLanguage.JAVASCRIPT, script).outcome())
+        .isEqualTo(ExecutionResponse.COMPLETED);
+  }
+
+  @Test
+  void stopsAWrapperThatDoesNotReadItsInputWithinTheDeadline() throws IOException {
+    shim("node", "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";; *) sleep 60;; esac");
+    final var provider =
+        new LocalManagedCodeProvider(
+            directory, JSON, new InterpreterLocator(List.of(bin)), Duration.ofMillis(500));
+    provider.ensureExecutors();
+    final var input = Map.<String, Object>of("big", "x".repeat(8 * 1024 * 1024));
+
+    final var start = System.nanoTime();
+    final var response =
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            request("export function execute() { return {}; }", input, 500));
+
+    assertThat(response.error().code()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(20));
+  }
+
+  @Test
+  void keepsTheInterruptionOfAProbeInsteadOfRejectingThePlatform() throws IOException {
+    shim("node", "sleep 30");
+    final var provider = provider(List.of(bin));
+
+    Thread.currentThread().interrupt();
+    try {
+      assertThatThrownBy(provider::ensureExecutors)
+          .isInstanceOfSatisfying(
+              ProvisioningException.class,
+              e -> assertThat(e.code()).isEqualTo(ErrorCode.PLATFORM_INTERRUPTED));
+      assertThat(Thread.currentThread().isInterrupted()).isTrue();
+    } finally {
+      Thread.interrupted();
+    }
+  }
+
+  @Test
+  void logsWhatTheScriptWritesToItsConsole() throws IOException {
+    requireNode();
+    final var provider = provider(List.of(link("node", node)));
+    provider.ensureExecutors();
+    final var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    final var logger =
+        (Logger) LoggerFactory.getLogger("io.camunda.connector.managedscript.local.script");
+    logger.addAppender(appender);
+    try {
+      provider.execute(
+          ScriptLanguage.JAVASCRIPT,
+          request(
+              "export function execute() { console.log('hello from the script'); return {}; }",
+              Map.of(),
+              10_000));
+    } finally {
+      logger.detachAppender(appender);
+    }
+
+    assertThat(appender.list)
+        .singleElement()
+        .satisfies(
+            event ->
+                assertThat(event.getFormattedMessage())
+                    .contains("hello from the script")
+                    .contains("execution 42"));
   }
 
   @Test

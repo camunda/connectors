@@ -63,9 +63,14 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
 
 - `local.directory` is where the provider writes the wrapper files, in a directory named after their
   digest (such as `js-0123456789ab`), and creates the temporary directories of the calls. It is
-  private to the user of the runtime. The default is `.camunda/managed-script` in the user's home
-  directory. If a file there does not match the wrapper of this runtime, the provider refuses to
-  start the language instead of running it: remove the directory.
+  private to the user of the runtime: the provider refuses a directory that is a link, belongs to
+  another user or can be written by others, because the files in it are run. The default is
+  `.camunda/managed-script` in the user's home directory. If a file there does not match the wrapper
+  of this runtime, the provider refuses to start the language instead of running it: remove the
+  directory.
+- What a script writes with `console` or `print`, up to 4 KB per call, is logged at `INFO` by the
+  logger `io.camunda.connector.managedscript.local.script`, apart from the provider's own logs, so
+  that you can route or silence it. It is not part of the result or of an incident.
 - A language needs only its own interpreter. The provider finds `node` and `python3` on the `PATH`
   and starts the real interpreter behind a version-manager shim such as asdf's, which only works from
   the directory it was set up for. A host with only Node.js runs `.js` scripts, and a `.py` script

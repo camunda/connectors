@@ -95,7 +95,12 @@ final class InterpreterLocator {
       // The environment of the runtime, which a version manager needs to pick a version.
       final var result =
           ProcessRunner.run(
-              new ProcessBuilder(command), null, PROBE_TIMEOUT, MAX_PROBE_BYTES, scratch);
+              new ProcessBuilder(command),
+              null,
+              PROBE_TIMEOUT,
+              MAX_PROBE_BYTES,
+              MAX_PROBE_BYTES,
+              scratch);
       if (result.timedOut()) {
         reason[0] = "no answer within " + PROBE_TIMEOUT.toSeconds() + " seconds";
         return null;
@@ -123,9 +128,11 @@ final class InterpreterLocator {
       reason[0] = "cannot be started: " + e.getMessage();
       return null;
     } catch (InterruptedException e) {
+      // Not a missing interpreter: the job keeps its retries.
       Thread.currentThread().interrupt();
-      reason[0] = "interrupted";
-      return null;
+      throw new ProvisioningException(
+          ErrorCode.PLATFORM_INTERRUPTED,
+          "Interrupted while looking for " + runtime.minimumVersion());
     }
   }
 

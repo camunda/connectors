@@ -20,8 +20,6 @@ import java.util.concurrent.TimeUnit;
  */
 final class ProcessRunner {
 
-  private static final int MAX_ERROR_BYTES = 512;
-
   /**
    * @param stdout empty when {@code timedOut} or {@code outputTooLarge}
    * @param stderr the beginning of the standard error
@@ -32,28 +30,42 @@ final class ProcessRunner {
   private ProcessRunner() {}
 
   /**
-   * @param stdin written to the process before it is waited for; may be {@code null}
+   * @param stdin written to the process while it is waited for, so that a process that does not
+   *     read it cannot keep the deadline from applying; may be {@code null}
+   * @param maxErrorBytes how much of the standard error is kept
    * @param scratch directory, private to this runtime, of the temporary files
    */
   static Result run(
-      ProcessBuilder builder, byte[] stdin, Duration timeout, int maxOutputBytes, Path scratch)
+      ProcessBuilder builder,
+      byte[] stdin,
+      Duration timeout,
+      int maxOutputBytes,
+      int maxErrorBytes,
+      Path scratch)
       throws IOException, InterruptedException {
     final var stdout = Files.createTempFile(scratch, "stdout", ".tmp");
     final var stderr = Files.createTempFile(scratch, "stderr", ".tmp");
     Process process = null;
     try {
       process = builder.redirectOutput(stdout.toFile()).redirectError(stderr.toFile()).start();
-      try (var in = process.getOutputStream()) {
-        if (stdin != null) {
-          in.write(stdin);
-        }
-      } catch (IOException e) {
-        // The process ended before it read its input: its exit code tells why.
+      final var in = process.getOutputStream();
+      if (stdin == null) {
+        in.close();
+      } else {
+        Thread.ofVirtual()
+            .start(
+                () -> {
+                  try (in) {
+                    in.write(stdin);
+                  } catch (IOException e) {
+                    // The process ended before it read its input: its exit code tells why.
+                  }
+                });
       }
       if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
         return new Result(true, false, -1, new byte[0], "");
       }
-      final var error = head(stderr);
+      final var error = head(stderr, maxErrorBytes);
       if (Files.size(stdout) > maxOutputBytes) {
         return new Result(false, true, process.exitValue(), new byte[0], error);
       }
@@ -68,9 +80,9 @@ final class ProcessRunner {
     }
   }
 
-  private static String head(Path file) throws IOException {
+  private static String head(Path file, int maxBytes) throws IOException {
     try (var in = Files.newInputStream(file)) {
-      return new String(in.readNBytes(MAX_ERROR_BYTES), StandardCharsets.UTF_8).strip();
+      return new String(in.readNBytes(maxBytes), StandardCharsets.UTF_8).strip();
     }
   }
 }
