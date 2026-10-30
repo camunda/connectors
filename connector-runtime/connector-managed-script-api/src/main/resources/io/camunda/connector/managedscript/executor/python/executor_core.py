@@ -418,9 +418,11 @@ class Executor:
         invalid = _validate(event)
         if invalid:
             return invalid
-        workdir = tempfile.mkdtemp(prefix="run-", dir=self._tmp)
+        workdir = None
         response, logs, child_pid = failure("PLATFORM_EXECUTION_FAILED", "wrapper error"), b"", None
         try:
+            # A missing or full temporary directory is a platform failure, not an exception.
+            workdir = tempfile.mkdtemp(prefix="run-", dir=self._tmp)
             response, logs, child_pid = _execute(event, workdir, deadline_ms)
         except Exception as error:  # noqa: BLE001 - the executor must keep serving calls
             response = failure("PLATFORM_EXECUTION_FAILED", f"wrapper error: {type(error).__name__}: {error}")
@@ -428,7 +430,8 @@ class Executor:
             if self._local:
                 if child_pid is not None:
                     _kill_group(child_pid)
-                _remove(workdir)
+                if workdir is not None:
+                    _remove(workdir)
             else:
                 self._sweep()
                 self._clean_tmp()

@@ -26,8 +26,20 @@ def failure(code, message, stack_trace=None):
     return {"contractVersion": CONTRACT_VERSION, "outcome": "FAILED", "error": error}
 
 
+def describe(error):
+    """The text of an error. The script's own __str__ runs here, and it can raise too."""
+    try:
+        return f"{type(error).__name__}: {error}"
+    except BaseException:  # noqa: BLE001
+        return type(error).__name__
+
+
 def raised(code, error):
-    return failure(code, f"{type(error).__name__}: {error}", traceback.format_exc())
+    try:
+        stack_trace = traceback.format_exc()
+    except BaseException:  # noqa: BLE001 - the traceback formats the exception with the same __str__
+        stack_trace = None
+    return failure(code, describe(error), stack_trace)
 
 
 def load(workdir):
@@ -66,7 +78,7 @@ else:
         except MemoryError as error:
             response = raised("RESOURCE_LIMIT", error)
         except BaseException as error:  # noqa: BLE001 - json.dumps runs the result's own methods, which can raise anything
-            response = failure("INVALID_RESULT", f"the result of execute() is not JSON: {error}")
+            response = failure("INVALID_RESULT", f"the result of execute() is not JSON: {describe(error)}")
 
 stdout.write(response if isinstance(response, str) else json.dumps(response))
 stdout.flush()

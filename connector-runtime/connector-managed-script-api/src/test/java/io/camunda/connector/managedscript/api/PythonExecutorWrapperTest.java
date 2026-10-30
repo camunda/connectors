@@ -311,6 +311,57 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void reportsAnExceptionWhoseTextCannotBeFormattedAsAScriptError() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                class Mute(Exception):
+                    def __str__(self):
+                        raise RuntimeError("no text")
+
+                def execute(variables, context):
+                    raise Mute()
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
+    assertThat(error.get("message").asText()).isEqualTo("Mute");
+  }
+
+  @Test
+  void rejectsAResultWhoseSerializationRaisesAnExceptionThatCannotBeFormatted() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                class Mute(Exception):
+                    def __str__(self):
+                        raise RuntimeError("no text")
+
+                class Broken(dict):
+                    def items(self):
+                        raise Mute()
+
+                def execute(variables, context):
+                    return {"a": Broken(k=1)}
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
+  }
+
+  @Test
+  void reportsAMissingTemporaryDirectoryAsAPlatformFailure() throws Exception {
+    final var response =
+        call(
+            request("def execute(variables, context):\n    return {'a': 1}\n", Map.of()),
+            callTmp.resolve("does-not-exist"));
+
+    final var error = errorOf(response);
+    assertThat(error.get("code").asText()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+    assertThat(error.get("retryable").asBoolean()).isFalse();
+  }
+
+  @Test
   void rejectsAResultWhoseSerializationExits() throws Exception {
     final var error =
         errorOf(
@@ -540,11 +591,15 @@ class PythonExecutorWrapperTest {
   }
 
   private JsonNode call(Map<String, Object> request) throws Exception {
+    return call(request, callTmp);
+  }
+
+  private JsonNode call(Map<String, Object> request, Path tmp) throws Exception {
     final var builder =
         new ProcessBuilder(
                 python.orElseThrow().toString(), "-I", wrapper.resolve("local_call.py").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD);
-    builder.environment().put("EXECUTOR_TMP", callTmp.toString());
+    builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
     // To a file, so that the deadline applies before anything is read: reading the pipe to its end
     // would wait for a hung wrapper as long as the wrapper does.
