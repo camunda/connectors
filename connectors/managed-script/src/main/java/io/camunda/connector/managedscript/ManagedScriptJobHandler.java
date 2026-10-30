@@ -7,6 +7,7 @@
 package io.camunda.connector.managedscript;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.managedscript.ScriptResources.ResourceNotVisibleException;
@@ -50,7 +51,7 @@ final class ManagedScriptJobHandler {
 
   private final ManagedCodeProvider provider;
   private final ScriptResources resources;
-  private final ObjectMapper objectMapper;
+  private final ObjectReader linksReader;
   private final Duration executionTimeout;
   private final Duration retryBackoff;
   private final Object executorsLock = new Object();
@@ -64,7 +65,7 @@ final class ManagedScriptJobHandler {
       Duration retryBackoff) {
     this.provider = provider;
     this.resources = resources;
-    this.objectMapper = objectMapper;
+    this.linksReader = LinkedResources.reader(objectMapper);
     this.executionTimeout = executionTimeout;
     this.retryBackoff = retryBackoff;
   }
@@ -80,7 +81,7 @@ final class ManagedScriptJobHandler {
       Map<String, Object> input) {
     ScriptLanguage language = null;
     try {
-      final var links = LinkedResources.parse(job.getCustomHeaders(), objectMapper);
+      final var links = LinkedResources.parse(job.getCustomHeaders(), linksReader);
       if (links.dependenciesResourceKey().isPresent()) {
         throw new InvalidJobException(
             ErrorCode.UNSUPPORTED_DEPENDENCIES, "Managed scripts do not support dependencies yet");

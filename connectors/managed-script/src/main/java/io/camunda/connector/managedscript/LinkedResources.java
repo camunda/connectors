@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,12 +24,26 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
   static final String DEPENDENCIES_LINK = "dependencies";
 
   /**
+   * The reader of the {@code linkedResources} header. Strict: the shared mapper would accept a
+   * single object as an array, a one-element array as a single value, and trailing tokens.
+   */
+  static ObjectReader reader(ObjectMapper objectMapper) {
+    return objectMapper
+        .readerFor(new TypeReference<List<Link>>() {})
+        .without(
+            DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
+            DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS)
+        .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+  }
+
+  /**
    * Parses the {@code linkedResources} job header, a JSON array of {@code {"resourceKey",
    * "resourceType", "linkName"}} objects.
    *
+   * @param reader from {@link #reader(ObjectMapper)}
    * @throws InvalidJobException when the header is missing, malformed or has no script link
    */
-  static LinkedResources parse(Map<String, String> headers, ObjectMapper objectMapper) {
+  static LinkedResources parse(Map<String, String> headers, ObjectReader reader) {
     final var header = headers.get(HEADER);
     if (header == null || header.isBlank()) {
       throw new InvalidJobException(
@@ -36,16 +51,7 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
     }
     final List<Link> links;
     try {
-      // Strict: the shared mapper would accept a single object as an array, a one-element array as
-      // a single value, and trailing tokens.
-      links =
-          objectMapper
-              .readerFor(new TypeReference<List<Link>>() {})
-              .without(
-                  DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
-                  DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS)
-              .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-              .readValue(header);
+      links = reader.readValue(header);
     } catch (JsonProcessingException e) {
       throw new InvalidJobException("The '%s' header is not a valid JSON array".formatted(HEADER));
     }
