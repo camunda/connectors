@@ -17,7 +17,7 @@ on:
         description: 'Skip Maven release'
         required: false
         type: boolean
-        default: false
+        default: true
       skip-docker-release:
         description: 'Skip Docker release'
         required: false
@@ -27,7 +27,7 @@ on:
         description: 'Skip E2E tests'
         required: false
         type: boolean
-        default: false
+        default: true
       latest:
         description: 'Mark this release as latest (push latest docker tags & mark GitHub release latest)'
         required: false
@@ -192,15 +192,16 @@ jobs:
         env:
           CAMUNDA_VERSION: ${{ inputs.camunda-version }}
 
+      # Ad-hoc patch release (SUPPORT-35252): tests ran on the branch, only package the jars
       - name: Compile and Test
-        run: ./mvnw -B -U package source:jar javadoc:jar -Pe2eExcluded
+        run: ./mvnw -B -U package -DskipTests -Pe2eExcluded
 
       - name: Publish Test Report
-        if: always()
+        if: false
         uses: scacap/action-surefire-report@v1
 
       - name: Upload detailed surefire reports
-        if: always()
+        if: false
         uses: actions/upload-artifact@v7
         with:
           name: surefire-reports
@@ -457,17 +458,8 @@ jobs:
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped')
     strategy:
       matrix:
+        # Ad-hoc patch release (SUPPORT-35252): only the SaaS bundle is needed
         include:
-          - name: connector-runtime
-            context: connector-runtime/connector-runtime-application/
-            image: camunda/connectors
-            readme: ''
-            short_description: ''
-          - name: bundle-default
-            context: bundle/default-bundle/
-            image: camunda/connectors-bundle
-            readme: bundle/README.md
-            short_description: 'Camunda out-of-the-box Connectors Bundle'
           - name: bundle-saas
             context: bundle/camunda-saas-bundle/
             image: camunda/connectors-bundle-saas
@@ -609,7 +601,9 @@ jobs:
 
   helm-deploy:
     needs: [setup, e2e-tests, docker-release]
+    # Ad-hoc patch release (SUPPORT-35252)
     if: |
+      false &&
       always() &&
       !inputs.skip-docker-release &&
       needs.setup.result == 'success' &&
@@ -640,7 +634,9 @@ jobs:
     permissions:
       contents: read
 
+    # Ad-hoc patch release (SUPPORT-35252)
     if: |
+      false &&
       needs.setup.result == 'success' &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
       (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
