@@ -31,8 +31,12 @@ public interface ManagedCodeProvider {
   /**
    * Makes sure the executors of the cluster exist, run the wrapper of this runtime and have the
    * configured settings, and returns once they can be invoked. A provider whose executors are
-   * deployed separately checks them instead of creating them. Must be idempotent: several runtime
-   * instances may call it at once.
+   * deployed separately checks them instead of creating them.
+   *
+   * <p>Not called at startup: the connector calls it before the first execution, on a job thread,
+   * and again before the next execution after {@link #execute} reported {@link
+   * ErrorCode#DEPLOYMENT_MISSING}. Must be idempotent: several runtime instances may call it at
+   * once.
    *
    * @throws ProvisioningException when the executors cannot be made ready
    */
