@@ -37,7 +37,9 @@ import java.util.TreeMap;
  *
  * <p>For JavaScript: {@code executor_core.mjs}, the shared core, which exports {@code
  * createExecutor}; {@code child.mjs}, the child runner; and {@code local_call.mjs}, an entry point
- * that runs one call read from stdin, in local mode.
+ * that runs one call read from stdin, in local mode. For Python, the same three files: {@code
+ * executor_core.py}, which defines {@code create_executor}, {@code child.py} and {@code
+ * local_call.py}.
  *
  * @param files file name to content, in name order
  */
@@ -49,6 +51,8 @@ public record ExecutorWrapper(ScriptLanguage language, Map<String, byte[]> files
   private static final String ROOT = "/io/camunda/connector/managedscript/executor/";
   private static final List<String> JAVASCRIPT_FILES =
       List.of("child.mjs", "executor_core.mjs", "local_call.mjs");
+  private static final List<String> PYTHON_FILES =
+      List.of("child.py", "executor_core.py", "local_call.py");
 
   public ExecutorWrapper {
     final Map<String, byte[]> copy = new TreeMap<>();
@@ -64,20 +68,14 @@ public record ExecutorWrapper(ScriptLanguage language, Map<String, byte[]> files
     return copy;
   }
 
-  /**
-   * @throws UnsupportedOperationException for Python, whose wrapper is not available yet
-   */
   public static ExecutorWrapper of(ScriptLanguage language) {
-    return switch (language) {
-      case JAVASCRIPT -> {
-        final Map<String, byte[]> files = new TreeMap<>();
-        JAVASCRIPT_FILES.forEach(name -> files.put(name, resource("node/" + name)));
-        yield new ExecutorWrapper(language, files);
-      }
-      case PYTHON ->
-          throw new UnsupportedOperationException(
-              "The Python executor wrapper is not available yet");
-    };
+    final Map<String, byte[]> files = new TreeMap<>();
+    switch (language) {
+      case JAVASCRIPT ->
+          JAVASCRIPT_FILES.forEach(name -> files.put(name, resource("node/" + name)));
+      case PYTHON -> PYTHON_FILES.forEach(name -> files.put(name, resource("python/" + name)));
+    }
+    return new ExecutorWrapper(language, files);
   }
 
   /**

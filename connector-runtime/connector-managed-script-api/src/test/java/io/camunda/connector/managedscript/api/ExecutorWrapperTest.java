@@ -17,7 +17,6 @@
 package io.camunda.connector.managedscript.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.Test;
 class ExecutorWrapperTest {
 
   private final ExecutorWrapper javascript = ExecutorWrapper.of(ScriptLanguage.JAVASCRIPT);
+  private final ExecutorWrapper python = ExecutorWrapper.of(ScriptLanguage.PYTHON);
 
   @Test
   void packagesTheCoreTheChildAndTheLocalEntryPoint() {
@@ -33,6 +33,13 @@ class ExecutorWrapperTest {
         .containsOnlyKeys("child.mjs", "executor_core.mjs", "local_call.mjs");
     assertThat(new String(javascript.files().get("executor_core.mjs"), StandardCharsets.UTF_8))
         .contains("export function createExecutor");
+  }
+
+  @Test
+  void packagesThePythonCoreChildAndLocalEntryPoint() {
+    assertThat(python.files()).containsOnlyKeys("child.py", "executor_core.py", "local_call.py");
+    assertThat(new String(python.files().get("executor_core.py"), StandardCharsets.UTF_8))
+        .contains("def create_executor(local, tmp)");
   }
 
   @Test
@@ -58,8 +65,9 @@ class ExecutorWrapperTest {
   }
 
   @Test
-  void hasNoPythonWrapperYet() {
-    assertThatThrownBy(() -> ExecutorWrapper.of(ScriptLanguage.PYTHON))
-        .isInstanceOf(UnsupportedOperationException.class);
+  void namesAPythonExecutorWithItsOwnDigest() {
+    assertThat(python.executorName("camunda-ms-", "python3.13"))
+        .isEqualTo("camunda-ms-py-" + python.digest("python3.13").substring(0, 12));
+    assertThat(python.digest("python3.13")).isNotEqualTo(javascript.digest("python3.13"));
   }
 }
