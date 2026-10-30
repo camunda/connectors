@@ -93,6 +93,8 @@ jobs:
           fi
           if [[ "$BRANCH" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
             line="${BASH_REMATCH[2]}"
+          elif [[ "${BRANCH#refs/heads/}" == main ]]; then
+            line=main
           else
             line=8.10
           fi
