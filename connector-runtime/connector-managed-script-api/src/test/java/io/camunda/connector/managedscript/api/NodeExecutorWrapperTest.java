@@ -254,6 +254,16 @@ class NodeExecutorWrapperTest {
   }
 
   @Test
+  void returnsAContractFailureWhenTheCallDirectoryCannotBeCreated() throws Exception {
+    final var response =
+        call(
+            request("export function execute() { return { a: 1 }; }", Map.of()),
+            callTmp.resolve("missing"));
+
+    assertThat(errorOf(response).get("code").asText()).isEqualTo("PLATFORM_EXECUTION_FAILED");
+  }
+
+  @Test
   void completesAScriptThatLeavesATimerRunning() throws Exception {
     final var request =
         request(
@@ -362,13 +372,17 @@ class NodeExecutorWrapperTest {
   }
 
   private JsonNode call(Map<String, Object> request) throws Exception {
+    return call(request, callTmp);
+  }
+
+  private JsonNode call(Map<String, Object> request, Path executorTmp) throws Exception {
     final var stdout = Files.createTempFile(callTmp, "response", ".json");
     final var builder =
         new ProcessBuilder(
                 node.orElseThrow().toString(), wrapper.resolve("local_call.mjs").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .redirectOutput(stdout.toFile());
-    builder.environment().put("EXECUTOR_TMP", callTmp.toString());
+    builder.environment().put("EXECUTOR_TMP", executorTmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
     final var process = builder.start();
     try (var stdin = process.getOutputStream()) {

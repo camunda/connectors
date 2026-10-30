@@ -358,9 +358,10 @@ export function createExecutor({ local, tmp }) {
   async function run(event, deadlineMs) {
     const invalid = validate(event ?? {});
     if (invalid) return invalid;
-    const workdir = mkdtempSync(path.join(tmp, 'run-'));
+    let workdir = null;
     let result = { response: failure('PLATFORM_EXECUTION_FAILED', 'wrapper error'), logs: Buffer.alloc(0), childPid: null };
     try {
+      workdir = mkdtempSync(path.join(tmp, 'run-'));
       result = await execute(event, workdir, deadlineMs);
     } catch (error) {
       // The executor must keep serving calls.
@@ -370,7 +371,7 @@ export function createExecutor({ local, tmp }) {
         if (result.childPid) {
           try { process.kill(-result.childPid, 'SIGKILL'); } catch { /* already gone */ }
         }
-        remove(workdir);
+        if (workdir) remove(workdir);
       } else {
         sweep();
         cleanTmp();
