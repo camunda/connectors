@@ -47,8 +47,9 @@ and secrets.
 | Input variable | `scriptInput`, the only variable the connector fetches |
 
 The template builds `scriptInput` with one FEEL expression, so a script receives exactly what the
-modeler maps and no other process variable. Its default job timeout covers the provisioning
-timeout plus the execution timeout.
+modeler maps and no other process variable. The job timeout of the task must cover the time to make
+the executors ready plus the execution timeout; the job worker's default, 5 minutes, covers the
+defaults, so the template sets none.
 
 ### Language
 

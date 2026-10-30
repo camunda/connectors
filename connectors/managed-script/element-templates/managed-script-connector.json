@@ -192,7 +192,6 @@
     "label" : "Job timeout",
     "description" : "ISO-8601 duration after which Zeebe considers this job timed out if not yet completed. Leave empty to use the default timeout",
     "optional" : true,
-    "value" : "PT3M",
     "group" : "retries",
     "binding" : {
       "key" : "jobTimeout",

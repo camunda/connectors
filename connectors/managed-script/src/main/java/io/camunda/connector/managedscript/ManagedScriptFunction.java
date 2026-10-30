@@ -31,8 +31,6 @@ import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
     description = "Run a Python or JavaScript script without operating a job worker",
     engineVersion = "^8.10",
     inputDataClass = ManagedScriptRequest.class,
-    // Covers the default execution timeout (30s) and a first job that makes the executors ready.
-    defaultJobTimeout = "PT3M",
     propertyGroups = {
       @PropertyGroup(id = "script", label = "Script"),
       @PropertyGroup(id = "input", label = "Input")

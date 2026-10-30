@@ -47,8 +47,8 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
 
 The job timeout of a managed-script task must cover `execution-timeout` and the time the first job
 takes to make the executors ready, so that a script still running does not get its job activated
-again. The element template sets a job timeout of `PT3M`, which covers the defaults; raise it in the
-task when you raise `execution-timeout`.
+again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)
+covers the defaults; set the job timeout of the task when you raise `execution-timeout`.
 
 Secrets in the script input are resolved as for any connector.
 
