@@ -1,0 +1,298 @@
+// Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH under one or more
+// contributor license agreements. Licensed under the Apache License, Version 2.0.
+//
+// Generic executor: runs one managed script per call, in a fresh child process (ADR-0008).
+//
+// Shared by every provider's adapter. The script arrives as data in the request: nothing is
+// deployed per script. The wrapper is trusted; the child runs user code.
+//
+// On a cloud executor, after every call the wrapper kills every process that was not there when
+// the executor was created and removes every new entry in the temporary directory, so nothing
+// survives into the next call. In local mode, on a host shared with other processes, it kills only
+// the process group of the script and removes only the directory of the call.
+
+import { spawn } from 'node:child_process';
+import {
+  closeSync, mkdtempSync, openSync, readdirSync, readFileSync, readSync, rmSync,
+  writeFileSync, writeSync,
+} from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const CONTRACT_VERSION = '1';
+const CHILD = fileURLToPath(new URL('./child.mjs', import.meta.url));
+const MAX_OUTPUT_BYTES = 1_000_000;
+const MAX_LOG_BYTES = 4_096;
+const MAX_MESSAGE_LENGTH = 1024;
+const CHILD_HEAP_MB = 256;
+const DEFAULT_TIMEOUT_MS = 10_000;
+const SWEEP_ROUNDS = 5;
+// The only failures the child may report: the others are the platform's.
+const CHILD_FAILURE_CODES = ['SCRIPT_ERROR', 'INVALID_RESULT', 'RESOURCE_LIMIT'];
+const SCRUBBED_VARIABLES = ['AWS_ACCESS_KEY_ID=', 'AWS_SECRET_ACCESS_KEY=', 'AWS_SESSION_TOKEN='];
+
+function pids() {
+  try {
+    return new Set(readdirSync('/proc').filter((entry) => /^\d+$/.test(entry)).map(Number));
+  } catch {
+    return new Set(); // macOS: no /proc, only the process group is killed
+  }
+}
+
+function ancestors() {
+  const seen = new Set();
+  let pid = process.pid;
+  while (pid > 0 && !seen.has(pid)) {
+    seen.add(pid);
+    try {
+      // The command name is in parentheses and may contain spaces: read after the last one.
+      const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
+      pid = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[1]);
+    } catch {
+      break;
+    }
+  }
+  return seen;
+}
+
+function zombie(pid) {
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[0] === 'Z';
+  } catch {
+    return true; // gone
+  }
+}
+
+function entries(directory) {
+  try {
+    return new Set(readdirSync(directory));
+  } catch {
+    return new Set();
+  }
+}
+
+// Overwrites the credentials in this process's initial environment block, which is what
+// /proc/<pid>/environ shows to other processes of the same user. The wrapper never calls a cloud
+// API, so it does not need them. Node.js has no prctl(PR_SET_DUMPABLE) to hide the whole file.
+function scrubEnvironmentBlock() {
+  for (const name of SCRUBBED_VARIABLES) delete process.env[name.slice(0, -1)];
+  if (process.platform !== 'linux') return;
+  try {
+    const stat = readFileSync('/proc/self/stat', 'utf8');
+    const fields = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
+    const start = Number(fields[47]); // fields 50 and 51: env_start, env_end
+    const end = Number(fields[48]);
+    const fd = openSync('/proc/self/mem', 'r+');
+    try {
+      const block = Buffer.alloc(end - start);
+      readSync(fd, block, 0, block.length, start);
+      let offset = 0;
+      for (const entry of block.toString('latin1').split('\0')) {
+        if (SCRUBBED_VARIABLES.some((name) => entry.startsWith(name))) {
+          block.fill(0, offset, offset + entry.length);
+        }
+        offset += entry.length + 1;
+      }
+      writeSync(fd, block, 0, block.length, start);
+    } finally {
+      closeSync(fd);
+    }
+  } catch {
+    // Best effort: the child never inherits this environment anyway.
+  }
+}
+
+function read(file, limit) {
+  const fd = openSync(file, 'r');
+  try {
+    const buffer = Buffer.alloc(limit);
+    return buffer.subarray(0, readSync(fd, buffer, 0, limit, 0));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function failure(code, message) {
+  return {
+    contractVersion: CONTRACT_VERSION,
+    outcome: 'FAILED',
+    error: { code, message: message.slice(0, MAX_MESSAGE_LENGTH), retryable: false, truncated: false },
+  };
+}
+
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+// The child is not trusted: keep only contract fields, so a script cannot forge a platform failure
+// or ask to be retried.
+function sanitize(response) {
+  if (isObject(response) && response.outcome === 'COMPLETED' && isObject(response.variables)) {
+    return { contractVersion: CONTRACT_VERSION, outcome: 'COMPLETED', variables: response.variables };
+  }
+  if (isObject(response) && response.outcome === 'FAILED' && isObject(response.error)
+      && CHILD_FAILURE_CODES.includes(response.error.code)) {
+    const { code, message, stackTrace, truncated } = response.error;
+    const error = { code, message: String(message ?? '').slice(0, MAX_MESSAGE_LENGTH), retryable: false };
+    if (typeof stackTrace === 'string') error.stackTrace = stackTrace;
+    error.truncated = truncated === true;
+    return { contractVersion: CONTRACT_VERSION, outcome: 'FAILED', error };
+  }
+  return failure('INVALID_RESULT', 'the child did not return a contract response');
+}
+
+function childEnv(workdir) {
+  // No platform variables: credentials and the platform's addresses stay in the wrapper.
+  return {
+    PATH: process.env.EXECUTOR_CHILD_PATH || '/usr/local/bin:/usr/bin:/bin',
+    HOME: workdir,
+    TMPDIR: workdir,
+    LANG: 'C.UTF-8',
+  };
+}
+
+function validate(event) {
+  if (event.contractVersion !== CONTRACT_VERSION) {
+    return failure('UNSUPPORTED_CONTRACT_VERSION',
+      `contract version ${JSON.stringify(event.contractVersion)} is not supported, expected ${CONTRACT_VERSION}`);
+  }
+  if (typeof event.script !== 'string' || event.script.length === 0) {
+    return failure('INVALID_INPUT', "'script' must be a non-empty string");
+  }
+  if (!isObject(event.variables)) return failure('INVALID_INPUT', "'variables' must be a JSON object");
+  if (event.context !== undefined && !isObject(event.context)) {
+    return failure('INVALID_INPUT', "'context' must be a JSON object");
+  }
+  return null;
+}
+
+async function execute(event, workdir, deadlineMs) {
+  writeFileSync(path.join(workdir, 'user_script.mjs'), event.script);
+  const request = { variables: event.variables, context: event.context ?? {} };
+  const timeoutMs = Math.max(1, Math.min(Number(event.timeoutMs) || DEFAULT_TIMEOUT_MS, deadlineMs));
+
+  // Output goes to files, not pipes: a leftover process holding a pipe open would block the read.
+  const stdoutPath = path.join(workdir, '.stdout');
+  const stderrPath = path.join(workdir, '.stderr');
+  const stdoutFd = openSync(stdoutPath, 'w');
+  const stderrFd = openSync(stderrPath, 'w');
+  let timedOut = false;
+  let childPid = null;
+  const exitCode = await new Promise((resolve) => {
+    const child = spawn(process.execPath, [`--max-old-space-size=${CHILD_HEAP_MB}`, CHILD, workdir], {
+      cwd: workdir,
+      env: childEnv(workdir),
+      stdio: ['pipe', stdoutFd, stderrFd],
+      detached: true, // own process group, killed as a whole on timeout
+    });
+    childPid = child.pid;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try { process.kill(-child.pid, 'SIGKILL'); } catch { /* already gone */ }
+    }, timeoutMs);
+    child.on('exit', (code, signal) => {
+      clearTimeout(timer);
+      resolve(code ?? signal);
+    });
+    child.on('error', () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+    child.stdin.on('error', () => {});
+    child.stdin.end(JSON.stringify(request));
+  });
+  closeSync(stdoutFd);
+  closeSync(stderrFd);
+
+  const logs = read(stderrPath, MAX_LOG_BYTES);
+  if (timedOut) {
+    return { response: failure('TIMEOUT', `script exceeded ${timeoutMs} ms`), logs, childPid };
+  }
+  const out = read(stdoutPath, MAX_OUTPUT_BYTES + 1);
+  if (out.length > MAX_OUTPUT_BYTES) {
+    return { response: failure('RESOURCE_LIMIT', `output larger than ${MAX_OUTPUT_BYTES} bytes`), logs, childPid };
+  }
+  if (out.length === 0) {
+    const response = logs.includes('heap out of memory')
+      ? failure('RESOURCE_LIMIT', 'script ran out of memory')
+      : failure('PLATFORM_EXECUTION_FAILED', `child exited with ${exitCode}`);
+    return { response, logs, childPid };
+  }
+  try {
+    return { response: sanitize(JSON.parse(out.toString('utf8'))), logs, childPid };
+  } catch {
+    return { response: failure('INVALID_RESULT', 'the script wrote to standard output outside the contract'), logs, childPid };
+  }
+}
+
+/**
+ * Creates the executor of one instance. Call it once, when the instance starts: on a cloud
+ * executor, what exists at that moment is kept after every call, and anything else is removed.
+ *
+ * @param {{ local: boolean, tmp: string }} options `local` for a host shared with other processes;
+ *     `tmp`, the directory where every call gets a directory of its own
+ */
+export function createExecutor({ local, tmp }) {
+  const baselinePids = local ? null : pids();
+  const baselineTmp = local ? null : entries(tmp);
+  if (!local) scrubEnvironmentBlock();
+
+  // A script can leave its process group with setsid or a double fork, so killing the group is not
+  // enough. Repeats while new processes appear, to catch processes forked during the sweep.
+  function sweep() {
+    // Node.js cannot reap processes it did not spawn, so zombies are skipped, not counted.
+    const killed = new Set();
+    const protectedPids = new Set([...baselinePids, ...ancestors()]);
+    for (let round = 0; round < SWEEP_ROUNDS; round += 1) {
+      const targets = [...pids()].filter((pid) => !protectedPids.has(pid) && !killed.has(pid) && !zombie(pid));
+      if (targets.length === 0) break;
+      for (const pid of targets) {
+        try {
+          process.kill(pid, 'SIGKILL');
+          killed.add(pid);
+        } catch {
+          protectedPids.add(pid);
+        }
+      }
+    }
+  }
+
+  function cleanTmp() {
+    for (const entry of entries(tmp)) {
+      if (baselineTmp.has(entry)) continue;
+      try {
+        rmSync(path.join(tmp, entry), { recursive: true, force: true });
+      } catch {
+        // Not ours to remove.
+      }
+    }
+  }
+
+  /** Runs the script of `event` and returns the contract response; never throws. */
+  async function run(event, deadlineMs) {
+    const invalid = validate(event ?? {});
+    if (invalid) return invalid;
+    const workdir = mkdtempSync(path.join(tmp, 'run-'));
+    let result = { response: failure('PLATFORM_EXECUTION_FAILED', 'wrapper error'), logs: Buffer.alloc(0), childPid: null };
+    try {
+      result = await execute(event, workdir, deadlineMs);
+    } catch (error) {
+      // The executor must keep serving calls.
+      result = { ...result, response: failure('PLATFORM_EXECUTION_FAILED', `wrapper error: ${error}`) };
+    } finally {
+      if (local) {
+        if (result.childPid) {
+          try { process.kill(-result.childPid, 'SIGKILL'); } catch { /* already gone */ }
+        }
+        rmSync(workdir, { recursive: true, force: true });
+      } else {
+        sweep();
+        cleanTmp();
+      }
+    }
+    const logs = result.logs.toString('utf8');
+    if (logs) process.stderr.write(`[script] ${logs}\n`);
+    return result.response;
+  }
+
+  return { run };
+}

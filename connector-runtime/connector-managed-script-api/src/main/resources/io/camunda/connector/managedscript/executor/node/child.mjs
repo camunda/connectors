@@ -1,0 +1,67 @@
+// Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH under one or more
+// contributor license agreements. Licensed under the Apache License, Version 2.0.
+//
+// Runs user_script.mjs from the work directory and writes the contract response to stdout.
+//
+// Started by executor_core in a fresh Node.js process for every call, with a request that
+// executor_core has already validated: { variables, context }.
+
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { inspect } from 'node:util';
+
+const CONTRACT_VERSION = '1';
+const MAX_MESSAGE_LENGTH = 1024;
+const MAX_STACK_TRACE_LENGTH = 8192;
+
+// console output in user code goes to the logs, not to the response.
+function writeLog(...values) {
+  process.stderr.write(`${values.map((value) => (typeof value === 'string' ? value : inspect(value))).join(' ')}\n`);
+}
+console.log = writeLog;
+console.info = writeLog;
+console.warn = writeLog;
+console.error = writeLog;
+
+function failure(code, message, stackTrace) {
+  const error = { code, message: message.slice(0, MAX_MESSAGE_LENGTH), retryable: false, truncated: false };
+  if (stackTrace !== undefined) {
+    // The start of a JavaScript stack is the frame nearest the error.
+    error.stackTrace = stackTrace.slice(0, MAX_STACK_TRACE_LENGTH);
+    error.truncated = stackTrace.length > MAX_STACK_TRACE_LENGTH;
+  }
+  return { contractVersion: CONTRACT_VERSION, outcome: 'FAILED', error };
+}
+
+function scriptError(error) {
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return failure('SCRIPT_ERROR', message, error instanceof Error && error.stack ? error.stack : message);
+}
+
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+let input = '';
+for await (const chunk of process.stdin) input += chunk;
+const request = JSON.parse(input);
+
+let response;
+try {
+  const { execute } = await import(pathToFileURL(path.join(process.argv[2], 'user_script.mjs')).href);
+  if (typeof execute !== 'function') throw new TypeError('the script must export a function execute(variables, context)');
+  const result = await execute(request.variables, request.context);
+  if (!isObject(result)) {
+    response = failure('INVALID_RESULT', 'execute() must return a JSON object');
+  } else {
+    try {
+      response = JSON.stringify({ contractVersion: CONTRACT_VERSION, outcome: 'COMPLETED', variables: result });
+    } catch (error) {
+      response = failure('INVALID_RESULT', `the result of execute() is not JSON: ${error.message}`);
+    }
+  }
+} catch (error) {
+  response = scriptError(error);
+}
+
+// Exit once the response is written: a timer or socket the script left open must not turn a
+// finished call into a timeout, nor write to stdout after the response.
+process.stdout.write(typeof response === 'string' ? response : JSON.stringify(response), () => process.exit(0));
