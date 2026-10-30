@@ -217,6 +217,24 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void rejectsAForgedResponseNestedDeeperThanTheParserAllows() throws Exception {
+    final var error =
+        errorOf(
+            call(
+                """
+                import os
+
+                def execute(variables, context):
+                    depth = 100000
+                    os.write(1, b'{"contractVersion": "1", "outcome": "COMPLETED", "variables": {"a": '
+                        + b"[" * depth + b"]" * depth + b"}}")
+                    os._exit(0)
+                """));
+
+    assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
+  }
+
+  @Test
   void isNotBlockedByAScriptThatReplacesItsOutputWithAFifo() throws Exception {
     final var response =
         call(

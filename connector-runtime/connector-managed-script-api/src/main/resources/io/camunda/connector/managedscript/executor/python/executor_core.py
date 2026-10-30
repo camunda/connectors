@@ -83,12 +83,41 @@ def _reap():
             return
 
 
-def _tree(directory):
-    """Every path under ``directory``, relative to it, without following symbolic links."""
-    found = set()
-    for root, directories, files in os.walk(directory, followlinks=False):
-        for name in directories + files:
-            found.add(os.path.relpath(os.path.join(root, name), directory))
+def _allow_owner(path):
+    """Gives the owner the permissions on a directory. Never follows a link: chmod would."""
+    try:
+        mode = os.lstat(path).st_mode
+        if stat.S_ISDIR(mode):
+            os.chmod(path, mode | 0o700)
+    except OSError:
+        pass
+
+
+def _tree(directory, repair=False):
+    """Every path under ``directory``, relative to it, with its mode, without following links.
+
+    With ``repair``, the owner gets the permissions back on every directory before it is read: a
+    script can take them off a directory, and what it left inside would go unseen.
+    """
+    found, pending = {}, [""]
+    while pending:
+        relative = pending.pop()
+        path = os.path.join(directory, relative)
+        if repair and relative:
+            _allow_owner(path)
+        try:
+            names = os.listdir(path)
+        except OSError:
+            continue
+        for name in names:
+            child = os.path.join(relative, name)
+            try:
+                mode = os.lstat(os.path.join(directory, child)).st_mode
+            except OSError:
+                continue
+            found[child] = mode
+            if stat.S_ISDIR(mode):
+                pending.append(child)
     return found
 
 
@@ -140,13 +169,6 @@ def _limit_memory():
     try:
         resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
     except (ValueError, OSError):  # macOS does not support RLIMIT_AS
-        pass
-
-
-def _allow_owner(path):
-    try:
-        os.chmod(path, os.lstat(path).st_mode | 0o700)
-    except OSError:
         pass
 
 
@@ -315,6 +337,8 @@ def _execute(event, workdir, deadline_ms):
             _kill_group(child.pid)
             child.wait()
             return failure("TIMEOUT", f"script exceeded {timeout_ms} ms"), _read(stderr, MAX_LOG_BYTES), child.pid
+        # Before anything is read, so that nothing the script left running survives a failure below.
+        _kill_group(child.pid)
 
         logs = _read(stderr, MAX_LOG_BYTES)
         out = _read(stdout, MAX_OUTPUT_BYTES + 1)
@@ -331,7 +355,7 @@ def _execute(event, workdir, deadline_ms):
         # A script can write a response to fd 1 itself: NaN, Infinity and 1e999 are not JSON.
         response = json.loads(out, parse_constant=_reject_constant, parse_float=_finite)
         return _sanitize(response), logs, child.pid
-    except ValueError:
+    except (ValueError, RecursionError):  # RecursionError: nesting deeper than the parser allows
         return failure("INVALID_RESULT", "the script wrote to standard output outside the contract"), logs, child.pid
 
 
@@ -372,17 +396,20 @@ class Executor:
     def _clean_tmp(self):
         # Everything new under the directory, however deep: a script can write inside a directory
         # that was already there. Shallowest first, so a new directory goes in one call.
-        for entry in sorted(_tree(self._tmp) - self._baseline_tmp, key=lambda found: found.count(os.sep)):
+        new = _tree(self._tmp, repair=True).keys() - self._baseline_tmp.keys()
+        for entry in sorted(new, key=lambda found: found.count(os.sep)):
             path = os.path.join(self._tmp, entry)
-            if not os.path.lexists(path):
-                continue
-            # Entries are unlinked from their parent: a directory of the baseline that the script
-            # made read-only gets its owner permissions back (the directory itself is left alone).
-            parent = os.path.dirname(entry)
-            while parent:
-                _allow_owner(os.path.join(self._tmp, parent))
-                parent = os.path.dirname(parent)
-            _remove(path)
+            if os.path.lexists(path):
+                _remove(path)
+        # The directories of the baseline had their owner permissions restored to be read: they get
+        # the mode they had when the executor was created.
+        for entry, mode in self._baseline_tmp.items():
+            path = os.path.join(self._tmp, entry)
+            try:
+                if stat.S_ISDIR(mode) and stat.S_ISDIR(os.lstat(path).st_mode):
+                    os.chmod(path, stat.S_IMODE(mode))
+            except OSError:
+                pass
 
     def run(self, event, deadline_ms):
         """Runs the script of ``event`` and returns the contract response; never raises."""
