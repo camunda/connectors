@@ -301,7 +301,6 @@ Limits enforced by the wrapper:
 | Script logs kept per call (stderr) | 4 KB |
 | Child memory, Python | 256 MB of address space through `RLIMIT_AS`, where the OS supports it (not macOS) |
 | Child memory, JavaScript | 256 MB of V8 heap through `--max-old-space-size` |
-| Child file size, Python | 64 MB per file through `RLIMIT_FSIZE`, so that a script's logs and response cannot fill the temporary directory |
 | `error.message` | 1,024 characters |
 | `error.stackTrace` | 8,192 characters, keeping the frames nearest the error |
 

@@ -36,8 +36,6 @@ MAX_LOG_BYTES = 4_096
 MAX_MESSAGE_LENGTH = 1024
 MAX_STACK_TRACE_LENGTH = 8192
 CHILD_MEMORY_BYTES = 256 * 1024 * 1024
-# Per file the child writes: its logs and response go to files, which a print loop would fill.
-CHILD_FILE_BYTES = 64 * 1024 * 1024
 DEFAULT_TIMEOUT_MS = 10_000
 SWEEP_ROUNDS = 5
 PR_SET_DUMPABLE = 4
@@ -135,17 +133,14 @@ def _harden():
         pass
 
 
-def _limit_resources():
-    """Runs in the child before exec: a script that allocates more gets a MemoryError, and one that
-    writes a file larger than CHILD_FILE_BYTES gets an OSError.
-    """
+def _limit_memory():
+    """Runs in the child before exec: a script that allocates more gets a MemoryError."""
     if resource is None:
         return
-    for limit, size in ((resource.RLIMIT_FSIZE, CHILD_FILE_BYTES), (resource.RLIMIT_AS, CHILD_MEMORY_BYTES)):
-        try:
-            resource.setrlimit(limit, (size, size))
-        except (ValueError, OSError):  # macOS does not support RLIMIT_AS
-            pass
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (CHILD_MEMORY_BYTES, CHILD_MEMORY_BYTES))
+    except (ValueError, OSError):  # macOS does not support RLIMIT_AS
+        pass
 
 
 def _kill_group(pid):
@@ -268,7 +263,7 @@ def _execute(event, workdir, deadline_ms):
             stdout=stdout,
             stderr=stderr,
             start_new_session=True,  # own process group, killed as a whole on timeout
-            preexec_fn=_limit_resources,
+            preexec_fn=_limit_memory,
         )
         try:
             child.stdin.write(json.dumps(request).encode("utf-8"))

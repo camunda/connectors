@@ -275,20 +275,6 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
-  void stopsAScriptThatFillsItsLogs() throws Exception {
-    final var request =
-        request(
-            "def execute(variables, context):\n    while True:\n        print('x' * 1000)\n",
-            Map.of());
-    request.put("timeoutMs", 20_000);
-
-    final var error = errorOf(call(request));
-
-    // The log file is capped, so the write fails in the script instead of filling the disk.
-    assertThat(error.get("code").asText()).isEqualTo("SCRIPT_ERROR");
-  }
-
-  @Test
   void keepsTheResourceLimitWhenMemoryRunsOutWhileSerializingTheResult() throws Exception {
     final var error =
         errorOf(
