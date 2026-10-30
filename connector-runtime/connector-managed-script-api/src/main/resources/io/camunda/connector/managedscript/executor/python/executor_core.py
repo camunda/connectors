@@ -147,9 +147,19 @@ def _kill_group(pid):
         pass  # already gone
 
 
-def _read(path, limit):
-    with open(path, "rb") as handle:
-        return handle.read(limit)
+def _read(fd, limit):
+    return os.pread(fd, limit, 0)
+
+
+def _reject_constant(name):
+    raise ValueError(f"{name} is not JSON")
+
+
+def _finite(text):
+    number = float(text)
+    if not math.isfinite(number):
+        raise ValueError(f"{text} is out of range")
+    return number
 
 
 def failure(code, message):
@@ -228,9 +238,16 @@ def _execute(event, workdir, deadline_ms):
     timeout_ms = _timeout_ms(event, deadline_ms)
 
     # Output goes to files, not pipes: a leftover process holding a pipe open would block the read.
-    stdout_path = os.path.join(workdir, ".stdout")
-    stderr_path = os.path.join(workdir, ".stderr")
-    with open(stdout_path, "wb") as stdout, open(stderr_path, "wb") as stderr:
+    # They are read through the descriptors opened here, never reopened by name, so a script that
+    # replaces them, with a FIFO for example, cannot block the wrapper.
+    flags = os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    stdout = os.open(os.path.join(workdir, ".stdout"), flags, 0o600)
+    try:
+        stderr = os.open(os.path.join(workdir, ".stderr"), flags, 0o600)
+    except OSError:
+        os.close(stdout)
+        raise
+    try:
         child = subprocess.Popen(
             # -I: no PYTHON* variables, no user site directory, no work directory on the path.
             [sys.executable, "-I", CHILD, workdir],
@@ -252,10 +269,13 @@ def _execute(event, workdir, deadline_ms):
         except subprocess.TimeoutExpired:
             _kill_group(child.pid)
             child.wait()
-            return failure("TIMEOUT", f"script exceeded {timeout_ms} ms"), _read(stderr_path, MAX_LOG_BYTES), child.pid
+            return failure("TIMEOUT", f"script exceeded {timeout_ms} ms"), _read(stderr, MAX_LOG_BYTES), child.pid
 
-    logs = _read(stderr_path, MAX_LOG_BYTES)
-    out = _read(stdout_path, MAX_OUTPUT_BYTES + 1)
+        logs = _read(stderr, MAX_LOG_BYTES)
+        out = _read(stdout, MAX_OUTPUT_BYTES + 1)
+    finally:
+        os.close(stdout)
+        os.close(stderr)
     if len(out) > MAX_OUTPUT_BYTES:
         return failure("RESOURCE_LIMIT", f"output larger than {MAX_OUTPUT_BYTES} bytes"), logs, child.pid
     if not out:
@@ -263,7 +283,9 @@ def _execute(event, workdir, deadline_ms):
             return failure("RESOURCE_LIMIT", "script ran out of memory"), logs, child.pid
         return failure("PLATFORM_EXECUTION_FAILED", f"child exited with {exit_code}"), logs, child.pid
     try:
-        return _sanitize(json.loads(out)), logs, child.pid
+        # A script can write a response to fd 1 itself: NaN, Infinity and 1e999 are not JSON.
+        response = json.loads(out, parse_constant=_reject_constant, parse_float=_finite)
+        return _sanitize(response), logs, child.pid
     except ValueError:
         return failure("INVALID_RESULT", "the script wrote to standard output outside the contract"), logs, child.pid
 

@@ -21,11 +21,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,11 +49,11 @@ class PythonExecutorWrapperTest {
   @TempDir static Path wrapper;
   @TempDir Path callTmp;
 
-  private static boolean pythonAvailable;
+  private static Optional<Path> python;
 
   @BeforeAll
   static void installWrapper() throws IOException {
-    pythonAvailable = pythonAvailable();
+    python = findPython().filter(PythonExecutorWrapperTest::supported);
     for (var file : ExecutorWrapper.of(ScriptLanguage.PYTHON).files().entrySet()) {
       Files.write(wrapper.resolve(file.getKey()), file.getValue());
     }
@@ -59,7 +62,7 @@ class PythonExecutorWrapperTest {
   @BeforeEach
   void requirePython() {
     assumeTrue(
-        pythonAvailable,
+        python.isPresent(),
         "no python3 3.10 or later on the PATH: the Python wrapper tests need Python 3.10+");
   }
 
@@ -121,6 +124,26 @@ class PythonExecutorWrapperTest {
   }
 
   @Test
+  void runsADataclassWithPostponedAnnotations() throws Exception {
+    final var response =
+        call(
+            """
+            from __future__ import annotations
+            from dataclasses import asdict, dataclass
+
+            @dataclass
+            class Point:
+                x: int
+
+            def execute(variables, context):
+                return asdict(Point(1))
+            """);
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
+    assertThat(response.get("variables").get("x").asInt()).isEqualTo(1);
+  }
+
+  @Test
   void rejectsAResultThatIsNotADict() throws Exception {
     final var error = errorOf(call("def execute(variables, context):\n    return [1, 2]\n"));
 
@@ -174,6 +197,40 @@ class PythonExecutorWrapperTest {
 
     assertThat(error.get("code").asText()).isEqualTo("INVALID_RESULT");
     assertThat(error.get("retryable").asBoolean()).isFalse();
+  }
+
+  @Test
+  void rejectsAForgedResponseThatIsNotJson() throws Exception {
+    for (var number : new String[] {"NaN", "Infinity", "1e999"}) {
+      final var error =
+          errorOf(
+              call(
+                  "import os\n\ndef execute(variables, context):\n"
+                      + "    os.write(1, b'{\"contractVersion\": \"1\", \"outcome\": \"COMPLETED\","
+                      + " \"variables\": {\"a\": "
+                      + number
+                      + "}}')\n"
+                      + "    os._exit(0)\n"));
+
+      assertThat(error.get("code").asText()).as(number).isEqualTo("INVALID_RESULT");
+    }
+  }
+
+  @Test
+  void isNotBlockedByAScriptThatReplacesItsOutputWithAFifo() throws Exception {
+    final var response =
+        call(
+            """
+            import os
+
+            def execute(variables, context):
+                for name in (".stdout", ".stderr"):
+                    os.unlink(name)
+                    os.mkfifo(name)
+                return {"a": 1}
+            """);
+
+    assertThat(response.get("outcome").asText()).isEqualTo("COMPLETED");
   }
 
   @Test
@@ -306,7 +363,8 @@ class PythonExecutorWrapperTest {
 
   private JsonNode call(Map<String, Object> request) throws Exception {
     final var builder =
-        new ProcessBuilder("python3", "-I", wrapper.resolve("local_call.py").toString())
+        new ProcessBuilder(
+                python.orElseThrow().toString(), "-I", wrapper.resolve("local_call.py").toString())
             .redirectError(ProcessBuilder.Redirect.DISCARD);
     builder.environment().put("EXECUTOR_TMP", callTmp.toString());
     builder.environment().put("AWS_SECRET_ACCESS_KEY", "not-for-scripts");
@@ -324,11 +382,21 @@ class PythonExecutorWrapperTest {
     return response.get("error");
   }
 
-  private static boolean pythonAvailable() {
+  private static Optional<Path> findPython() {
+    return Arrays.stream(System.getenv().getOrDefault("PATH", "").split(File.pathSeparator))
+        .filter(directory -> !directory.isEmpty())
+        .map(directory -> Path.of(directory, "python3").toAbsolutePath())
+        .filter(Files::isExecutable)
+        .findFirst();
+  }
+
+  private static boolean supported(Path python) {
     try {
       final var process =
           new ProcessBuilder(
-                  "python3", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)")
+                  python.toString(),
+                  "-c",
+                  "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)")
               .redirectErrorStream(true)
               .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();

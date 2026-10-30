@@ -34,6 +34,8 @@ def raised(code, error):
 def load(workdir):
     spec = importlib.util.spec_from_file_location("user_script", os.path.join(workdir, "user_script.py"))
     module = importlib.util.module_from_spec(spec)
+    # Registered like an imported module: dataclasses and pickle look the module up by name.
+    sys.modules["user_script"] = module
     spec.loader.exec_module(module)
     execute = getattr(module, "execute", None)
     if not callable(execute):
