@@ -31,6 +31,11 @@ public record ManagedScriptRequest(
             group = "input",
             label = "Script input",
             description = "Object passed to the script, for example ={a: order.amount, b: tax}",
+            tooltip =
+                "The script defines execute(variables, context), which receives this object as"
+                    + " variables and returns an object: the result of the task, mapped by the"
+                    + " result variable or expression. Return a business error as data, for example"
+                    + " {\"error\": \"INSUFFICIENT_FUNDS\"}, and map it with the error expression.",
             type = PropertyType.Text,
             feel = FeelMode.required,
             optional = true)
