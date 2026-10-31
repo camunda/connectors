@@ -113,10 +113,10 @@ limitations under the License.</license.inlineheader>
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
     <version.netty>4.2.19.Final</version.netty>
-    <version.spring-cloud-gcp-starter-logging>8.3.0</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.3.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
-    <version.aws-sdk2>2.57.5</version.aws-sdk2>
+    <version.aws-sdk2>2.57.8</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -142,7 +142,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.2.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20261011-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20261023-2.9.2</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.55.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
@@ -150,7 +150,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
-    <version.google-genai>1.79.0</version.google-genai>
+    <version.google-genai>1.80.0</version.google-genai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -174,8 +174,8 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.10.4</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.6</version.microsoft-graph-core>
-    <version.azure-identity>1.18.7</version.azure-identity>
-    <version.azure-core>1.60.0</version.azure-core>
+    <version.azure-identity>1.19.0</version.azure-identity>
+    <version.azure-core>1.61.0</version.azure-core>
     <version.msal4j>1.26.0</version.msal4j>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
@@ -197,7 +197,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.2</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.52.0</version.slack>
+    <version.slack>1.53.0</version.slack>
 
     <version.testcontainers>2.0.5</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -213,9 +213,9 @@ limitations under the License.</license.inlineheader>
     <version.system-stubs>2.1.8</version.system-stubs>
 
     <version.auth0.jwt>4.6.2</version.auth0.jwt>
-    <version.auth0.jwks>0.24.1</version.auth0.jwks>
+    <version.auth0.jwks>0.24.2</version.auth0.jwks>
 
-    <version.langchain4j>1.22.0</version.langchain4j>
+    <version.langchain4j>1.23.0</version.langchain4j>
     <version.mcp-sdk>2.1.0</version.mcp-sdk>
     <version.elasticsearch-java>8.19.23</version.elasticsearch-java>
     <version.elasticsearch-rest-client>8.19.23</version.elasticsearch-rest-client>
@@ -223,7 +223,7 @@ limitations under the License.</license.inlineheader>
     <version.scala>3.10.0</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.7.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>5.1.2</plugin.version.license>
