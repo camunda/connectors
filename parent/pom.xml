@@ -102,11 +102,11 @@ limitations under the License.</license.inlineheader>
          which silently moved Tomcat back into the vulnerable range - do not repeat that: compare
          against 10.1.59, not against whatever the BOM happens to ship. -->
     <tomcat.version>10.1.61</tomcat.version>
-    <version.spring-cloud-gcp-starter-logging>5.13.11</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>5.13.12</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.57.7</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.57.8</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
@@ -168,7 +168,7 @@ limitations under the License.</license.inlineheader>
     <version.mariadb-java-client>3.5.11</version.mariadb-java-client>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
-    <version.azure-identity>1.18.7</version.azure-identity>
+    <version.azure-identity>1.19.0</version.azure-identity>
 
     <version.bouncycastle.bcpkix>1.86</version.bouncycastle.bcpkix>
     <version.bouncycastle.bcprov>1.86</version.bouncycastle.bcprov>
@@ -190,7 +190,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.24.2</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.6.3</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.7.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.6.4</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.2.0</plugin.version.maven-install-plugin>
     <plugin.version.license>4.6</plugin.version.license>
