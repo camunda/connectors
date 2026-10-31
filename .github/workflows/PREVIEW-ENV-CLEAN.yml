@@ -31,7 +31,7 @@ jobs:
 
     - name: Generate a GitHub token
       id: github-token
-      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
+      uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@9965a08067900e11c602a050b8821ec92f49544b # main
       with:
         github-app-id-vault-key: GITHUB_PREVIEW_ENVIRONMENTS_APP_ID
         github-app-id-vault-path: secret/data/products/connectors/ci/common
@@ -42,7 +42,7 @@ jobs:
         vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID}}
         vault-url: ${{ secrets.VAULT_ADDR }}
 
-    - uses: camunda/infra-global-github-actions/preview-env/clean@7b31f83bbaa79b0fe698d0b71cae0bc9189b7ac9 # main
+    - uses: camunda/infra-global-github-actions/preview-env/clean@9965a08067900e11c602a050b8821ec92f49544b # main
       with:
         labels: deploy-preview
         pull-request: ${{ inputs.pull-request }}
