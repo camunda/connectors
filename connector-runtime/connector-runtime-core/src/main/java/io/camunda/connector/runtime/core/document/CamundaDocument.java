@@ -57,8 +57,8 @@ public class CamundaDocument implements Document {
 
   @Override
   public byte[] asByteArray() {
-    try {
-      return documentStore.getDocumentContent(reference).readAllBytes();
+    try (InputStream content = documentStore.getDocumentContent(reference)) {
+      return content.readAllBytes();
     } catch (Exception e) {
       throw new RuntimeException("Failed to read document content: " + e.getMessage(), e);
     }
