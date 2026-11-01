@@ -107,6 +107,12 @@ except in compliance with the proprietary license.</license.inlineheader>
 
     <dependency>
       <groupId>io.confluent</groupId>
+      <artifactId>kafka-schema-registry-client</artifactId>
+      <version>${version.schema-registry}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent</groupId>
       <artifactId>kafka-schema-serializer</artifactId>
       <version>${version.schema-registry}</version>
     </dependency>

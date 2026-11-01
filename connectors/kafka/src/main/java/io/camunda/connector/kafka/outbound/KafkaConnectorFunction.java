@@ -16,6 +16,9 @@ import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.ProducerRecordFactory;
+import io.camunda.connector.kafka.outbound.model.RegistrySchemaResolver;
+import io.camunda.connector.kafka.outbound.model.ResolvedSchema;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +41,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     },
     type = "io.camunda:connector-kafka:1")
 @ElementTemplate(
-    engineVersion = "^8.10",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.KAFKA.v1",
     name = "Publish Message to Kafka",
     description = "Produce Kafka message",
@@ -52,7 +55,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
       "kafka topic"
     },
     inputDataClass = KafkaConnectorRequest.class,
-    version = 7,
+    version = 8,
     configurations = {KafkaConnectionConfiguration.class},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Connection"),
@@ -68,6 +71,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
 
   private final ProducerRecordFactory producerRecordFactory = new ProducerRecordFactory();
+  private final RegistrySchemaResolver registrySchemaResolver;
 
   public KafkaConnectorFunction() {
     this(KafkaProducer::new);
@@ -75,7 +79,14 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   public KafkaConnectorFunction(
       final Function<Properties, Producer<String, Object>> producerCreatorFunction) {
+    this(producerCreatorFunction, new RegistrySchemaResolver());
+  }
+
+  public KafkaConnectorFunction(
+      final Function<Properties, Producer<String, Object>> producerCreatorFunction,
+      final RegistrySchemaResolver registrySchemaResolver) {
     this.producerCreatorFunction = producerCreatorFunction;
+    this.registrySchemaResolver = registrySchemaResolver;
   }
 
   @Override
@@ -85,17 +96,39 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
-    Properties props = KafkaPropertiesUtil.assembleKafkaClientProperties(request);
-    try (Producer<String, Object> producer = producerCreatorFunction.apply(props)) {
-      ProducerRecord<String, Object> producerRecord =
-          producerRecordFactory.createProducerRecord(request);
-      Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
-      return constructKafkaConnectorResponse(kafkaResponse.get(45, TimeUnit.SECONDS));
+    var resolvedSchema = resolveRegisteredSchema(request);
+    Properties props = KafkaPropertiesUtil.assembleKafkaClientProperties(request, resolvedSchema);
+    try {
+      return send(request, props, resolvedSchema);
     } catch (Exception e) {
       throw new ConnectorException(
           "FAIL",
           "Error during Kafka Producer execution; error message: [" + e.getMessage() + "]",
           e);
+    }
+  }
+
+  private Optional<ResolvedSchema> resolveRegisteredSchema(final KafkaConnectorRequest request) {
+    try {
+      return registrySchemaResolver.resolve(request);
+    } catch (Exception e) {
+      throw new ConnectorException(
+          "FAIL",
+          "Could not fetch the schema from the registry; error message: [" + e.getMessage() + "]",
+          e);
+    }
+  }
+
+  private KafkaConnectorResponse send(
+      final KafkaConnectorRequest request,
+      final Properties props,
+      final Optional<ResolvedSchema> resolvedSchema)
+      throws Exception {
+    try (Producer<String, Object> producer = producerCreatorFunction.apply(props)) {
+      ProducerRecord<String, Object> producerRecord =
+          producerRecordFactory.createProducerRecord(request, resolvedSchema);
+      Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
+      return constructKafkaConnectorResponse(kafkaResponse.get(45, TimeUnit.SECONDS));
     }
   }
 
