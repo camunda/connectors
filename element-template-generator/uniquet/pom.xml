@@ -16,13 +16,6 @@
   <artifactId>uniquet</artifactId>
   <packaging>jar</packaging>
 
-  <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <version.picocli>4.7.7</version.picocli>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -37,7 +30,6 @@
     <dependency>
       <groupId>info.picocli</groupId>
       <artifactId>picocli</artifactId>
-      <version>${version.picocli}</version>
     </dependency>
 
     <dependency>
@@ -76,7 +68,7 @@
             <path>
               <groupId>info.picocli</groupId>
               <artifactId>picocli-codegen</artifactId>
-              <version>4.7.7</version>
+              <version>${version.picocli}</version>
             </path>
           </annotationProcessorPaths>
           <compilerArgs>
@@ -87,7 +79,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>
-        <version>2.1.0</version>
         <executions>
           <execution>
             <phase>package</phase>

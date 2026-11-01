@@ -59,7 +59,6 @@
     <dependency>
       <groupId>io.soabase.record-builder</groupId>
       <artifactId>record-builder-core</artifactId>
-      <version>${version.record-builder}</version>
       <scope>provided</scope>
     </dependency>
 

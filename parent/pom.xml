@@ -91,7 +91,6 @@ limitations under the License.</license.inlineheader>
     <version.junit-jupiter>6.1.3</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.22.4</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.22.4</version.jackson-datatype-jsr310>
     <!-- CVE-2026-68497 / GHSA-q4xh-88c3-wmh7: Jackson 3.x line (tools.jackson:*), separate from the
          legacy com.fasterxml.jackson:jackson-bom above and not covered by it. Jackson 3.x reaches the
          runtime transitively via spring-boot-starter-webmvc -> spring-boot-starter-jackson ->
@@ -103,6 +102,8 @@ limitations under the License.</license.inlineheader>
     <version.jackson3-bom>3.2.4</version.jackson3-bom>
     <version.hibernate-validator>9.1.5.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
+    <version.greenmail>2.1.15</version.greenmail>
+    <version.xmlunit>2.14.0</version.xmlunit>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
@@ -119,8 +120,6 @@ limitations under the License.</license.inlineheader>
     <version.aws-sdk2>2.57.5</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
-
-    <version.localstack>2.0.5</version.localstack>
 
     <version.okhttp>5.5.1</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
@@ -148,9 +147,10 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-docs>v1-rev20261006-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.91.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20261019-2.9.2</version.google-api-services-sheets>
-    <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <!-- keep in sync with langchain4j-google-genai -->
     <version.google-genai>1.79.0</version.google-genai>
+    <!-- overrides the Google libraries BOM for the whole Vertex AI family -->
+    <version.google-cloud-vertexai>1.52.0</version.google-cloud-vertexai>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
@@ -164,7 +164,6 @@ limitations under the License.</license.inlineheader>
 
     <version.commons-fileupload>2.0.0-M5</version.commons-fileupload>
     <version.commons-io>2.22.0</version.commons-io>
-    <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.4.0</version.kafka-clients>
     <!-- CVE-2026-106450 / CVE-2026-106451: lz4-java transitive override — remove once kafka-clients ships lz4-java >= 1.11.4
@@ -206,7 +205,6 @@ limitations under the License.</license.inlineheader>
     <version.snappy-java>1.1.10.12</version.snappy-java>
     <version.commons-codec>1.23.0</version.commons-codec>
     <version.guava>33.7.2-jre</version.guava>
-    <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
     <version.javax.annotation-api>1.3.2</version.javax.annotation-api>
 
     <version.wiremock>3.13.2</version.wiremock>
@@ -229,7 +227,6 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license>5.1.2</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
-    <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.10.4</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
@@ -262,11 +259,6 @@ limitations under the License.</license.inlineheader>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${version.jackson-datatype-jsr310}</version>
-      </dependency>
 
       <!-- Jackson 3.x BOM, imported before Spring Boot so its version takes precedence -->
       <dependency>
@@ -286,6 +278,11 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
+        <version>${version.okhttp}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp-jvm</artifactId>
         <version>${version.okhttp}</version>
       </dependency>
 
@@ -325,6 +322,37 @@ limitations under the License.</license.inlineheader>
         <type>pom</type>
       </dependency>
 
+      <!-- Testcontainers BOM imported before Spring Boot so version.testcontainers governs every
+           testcontainers-* module, not only the ones we declare -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${version.testcontainers}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client.
+           Imported before Spring Boot, which manages its own grpc-java version, so version.grpc takes precedence -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${version.grpc}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Google Cloud libraries BOM, imported once here so connectors, secret providers and the bundles
+           resolve one Google Cloud stack (a split gax/gax-grpc crashed the SaaS runtime). Imported after
+           grpc-bom so version.grpc wins, and before Spring Boot, where they overlap only on gson -->
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${version.google-libraries-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Spring Boot BOM -->
       <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -341,13 +369,21 @@ limitations under the License.</license.inlineheader>
         <version>42.7.14</version>
       </dependency>
 
-      <!-- gRPC BOM - the version has to be equal or greater than the one from the Camunda client -->
+      <!-- JDBC drivers newer than Spring Boot's, managed here so the bundles ship what connector-jdbc tests -->
       <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-bom</artifactId>
-        <version>${version.grpc}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <groupId>com.microsoft.sqlserver</groupId>
+        <artifactId>mssql-jdbc</artifactId>
+        <version>13.6.1.jre11</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>3.5.11</version>
+      </dependency>
+      <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>26.10.0</version>
       </dependency>
 
       <!-- Protobuf - the version has to be equal or greater than the one from the Camunda client -->
@@ -603,95 +639,15 @@ limitations under the License.</license.inlineheader>
           <version>${version.auth0.jwt}</version>
       </dependency>
 
+      <!-- AWS SDK v2 BOM: manages every software.amazon.awssdk artifact, including the ones only
+           reached transitively (e.g. opensearch via langchain4j-opensearch), so the whole SDK
+           moves in lockstep with version.aws-sdk2 -->
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
-        <artifactId>lambda</artifactId>
+        <artifactId>bom</artifactId>
         <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sagemakerruntime</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sqs</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sns</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>eventbridge</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>comprehend</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>dynamodb</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>textract</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bedrockruntime</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bedrockagentcore</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sdk-core</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>aws-core</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>auth</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>regions</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>http-auth-spi</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>http-auth</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>sts</artifactId>
-        <version>${version.aws-sdk2}</version>
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>netty-nio-client</artifactId>
-        <version>${version.aws-sdk2}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
@@ -750,6 +706,21 @@ limitations under the License.</license.inlineheader>
         <artifactId>google-genai</artifactId>
         <version>${version.google-genai}</version>
       </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-vertexai</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-cloud-vertexai-v1</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>grpc-google-cloud-vertexai-v1</artifactId>
+        <version>${version.google-cloud-vertexai}</version>
+      </dependency>
 
       <dependency>
         <groupId>org.danilopianini</groupId>
@@ -767,6 +738,210 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.httpcomponents.client5</groupId>
         <artifactId>httpclient5</artifactId>
         <version>${version.httpclient5}</version>
+      </dependency>
+
+      <!-- Transitive libraries that no imported BOM manages. Without these, nearest-wins gave them
+           different versions per module (and between a module and the bundles that ship it).
+           Each is pinned to the highest version the reactor already resolved. -->
+      <dependency>
+        <groupId>com.fasterxml.woodstox</groupId>
+        <artifactId>woodstox-core</artifactId>
+        <version>7.2.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.opentelemetry</groupId>
+        <artifactId>detector-resources-support</artifactId>
+        <version>0.33.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.opentelemetry</groupId>
+        <artifactId>exporter-metrics</artifactId>
+        <version>0.33.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.opentelemetry</groupId>
+        <artifactId>shared-resourcemapping</artifactId>
+        <version>0.33.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.woodstox</groupId>
+        <artifactId>stax2-api</artifactId>
+        <version>4.3.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okio</groupId>
+        <artifactId>okio</artifactId>
+        <version>3.18.2</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okio</groupId>
+        <artifactId>okio-jvm</artifactId>
+        <version>3.18.2</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.cel</groupId>
+        <artifactId>common</artifactId>
+        <version>0.13.1</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.cel</groupId>
+        <artifactId>protobuf</artifactId>
+        <version>0.13.1</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.cel</groupId>
+        <artifactId>runtime</artifactId>
+        <version>0.13.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.james</groupId>
+        <artifactId>apache-mime4j-core</artifactId>
+        <version>0.8.15</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.james</groupId>
+        <artifactId>apache-mime4j-dom</artifactId>
+        <version>0.8.15</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.james</groupId>
+        <artifactId>apache-mime4j-storage</artifactId>
+        <version>0.8.15</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.18.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna-platform</artifactId>
+        <version>5.18.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.re2j</groupId>
+        <artifactId>re2j</artifactId>
+        <version>1.8</version>
+      </dependency>
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.12.7</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>9.10.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hdrhistogram</groupId>
+        <artifactId>HdrHistogram</artifactId>
+        <version>2.2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-annotations</artifactId>
+        <version>2.2.53</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${version.error-prone}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.j2objc</groupId>
+        <artifactId>j2objc-annotations</artifactId>
+        <version>3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-qual</artifactId>
+        <version>3.55.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-annotations</artifactId>
+        <version>1.27</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>17.0.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.icegreen</groupId>
+        <artifactId>greenmail</artifactId>
+        <version>${version.greenmail}</version>
+      </dependency>
+
+      <!-- overrides Spring Boot's xmlunit; first pinned in connectors-e2e-test-base for CVE-2024-31573 -->
+      <dependency>
+        <groupId>org.xmlunit</groupId>
+        <artifactId>xmlunit-core</artifactId>
+        <version>${version.xmlunit}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>${version.json}</version>
+      </dependency>
+
+      <!-- one version for the whole Kiota family -->
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-abstractions</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-authentication-azure</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-http-okHttp</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-form</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-json</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-multipart</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.kiota</groupId>
+        <artifactId>microsoft-kiota-serialization-text</artifactId>
+        <version>${version.microsoft-kiota-abstraction}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${version.httpclient}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>${version.commons-io}</version>
+      </dependency>
+
+      <!-- overrides Spring Boot's commons-codec -->
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${version.commons-codec}</version>
       </dependency>
 
       <dependency>
@@ -1018,16 +1193,6 @@ limitations under the License.</license.inlineheader>
         <scope>test</scope>
       </dependency>
 
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>${version.testcontainers}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers-junit-jupiter</artifactId>
-        <version>${version.testcontainers}</version>
-      </dependency>
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
