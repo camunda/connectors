@@ -106,10 +106,15 @@ final class ManagedScriptJobHandler {
     } catch (ResourceNotVisibleException e) {
       outcome = failed(job, ErrorCode.PLATFORM_UNAVAILABLE, e.getMessage(), null, language);
     } catch (ProvisioningException e) {
+      // A denial of the invocation, while the grants of a new cluster propagate, is waited out.
+      final var code =
+          e.permissionDenied() && readiness.withinGrantPropagationWindow()
+              ? ErrorCode.PROVISIONING_PENDING
+              : e.code();
       outcome =
           failed(
               job,
-              e.code(),
+              code,
               "The executor of %s is not ready: %s".formatted(language.language(), e.getMessage()),
               null,
               language);

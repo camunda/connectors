@@ -112,6 +112,26 @@ class ExecutorReadinessTest {
   }
 
   @Test
+  void failsAnAttemptWaitingForItsBackoffOnceClosed() {
+    final var provider =
+        new FakeProvider() {
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {
+            super.ensureExecutors(language);
+            throw new ProvisioningException(ErrorCode.PLATFORM_UNAVAILABLE, "service error");
+          }
+        };
+    readiness = new ExecutorReadiness(provider, Duration.ofMinutes(1), WINDOW, now::get);
+    final var ready = readiness.start(ScriptLanguage.PYTHON);
+    awaitAttempt();
+    assertThat(ready).isNotDone();
+
+    readiness.close();
+
+    assertThat(failureOf(ready).code()).isEqualTo(ErrorCode.PLATFORM_INTERRUPTED);
+  }
+
+  @Test
   void turnsAnUnexpectedExceptionIntoARetryableFailure() throws Exception {
     final var provider =
         new FakeProvider() {

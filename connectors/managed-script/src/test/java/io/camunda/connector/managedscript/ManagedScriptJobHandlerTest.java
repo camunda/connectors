@@ -432,6 +432,31 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void waitsOutADeniedInvocationWithinTheGrantPropagationWindowOnly() {
+    store("sum.py", "x");
+    final var denying =
+        new FakeProvider() {
+          @Override
+          public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
+            throw ProvisioningException.permissionDenied("AccessDenied on Invoke", null);
+          }
+        };
+    final var withinWindow =
+        handler(
+            denying,
+            new ExecutorReadiness(denying, READINESS_BACKOFF, Duration.ofMinutes(2)),
+            resources(Duration.ofMillis(200)));
+    final var afterWindow = handler(denying);
+
+    final var pending = withinWindow.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var rejected = afterWindow.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(pending, ErrorCode.PROVISIONING_PENDING, 3);
+    assertThat(failed.message()).contains("AccessDenied on Invoke");
+    assertFailed(rejected, ErrorCode.PLATFORM_REJECTED, 0);
+  }
+
+  @Test
   void makesAMissingExecutorReadyAgainWithinTheJob() {
     store("sum.py", "x");
     provider.respond(

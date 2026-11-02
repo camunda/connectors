@@ -416,7 +416,8 @@ name.
   retried within the grant-propagation window.
 - `execute(language, request)`: sends the request to the executor of the language and returns the
   contract response. It returns a failure as a `FAILED` response instead of throwing it, and reports
-  a missing executor as `DEPLOYMENT_MISSING`.
+  a missing executor as `DEPLOYMENT_MISSING`. The one exception is a denied invocation, thrown as a
+  permission denial, so that the connector waits it out within the grant-propagation window.
 
 Every executor runs **our wrapper**, whatever the provider: the wrapper implements the contract,
 calls the script's `execute`, and enforces the child process, the limits and the cleanup. The

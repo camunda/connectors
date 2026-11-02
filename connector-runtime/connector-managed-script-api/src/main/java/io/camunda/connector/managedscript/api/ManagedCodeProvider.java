@@ -50,6 +50,10 @@ public interface ManagedCodeProvider {
    * Runs the script of the request on the executor of its language. Script and platform failures
    * are returned as a {@code FAILED} response, not thrown. A missing executor is reported with
    * {@link ErrorCode#DEPLOYMENT_MISSING}.
+   *
+   * @throws ProvisioningException only for {@link ProvisioningException#permissionDenied}, when the
+   *     platform denies the invocation: the job keeps its retries while the grants of a new cluster
+   *     propagate, and fails without retries after
    */
   ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request);
 }

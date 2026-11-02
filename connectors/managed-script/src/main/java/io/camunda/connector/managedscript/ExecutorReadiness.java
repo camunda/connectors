@@ -151,10 +151,18 @@ final class ExecutorReadiness implements AutoCloseable {
     return Optional.of(failure);
   }
 
+  /** Completes the attempts that are still running, so that no job waits for them. */
   @Override
   public void close() {
     closed = true;
     scheduler.shutdownNow();
+    synchronized (this) {
+      for (var attempts : languages.values()) {
+        if (attempts.ready != null) {
+          attempts.ready.completeExceptionally(stopped());
+        }
+      }
+    }
   }
 
   private void schedule(
@@ -238,7 +246,11 @@ final class ExecutorReadiness implements AutoCloseable {
     ready.completeExceptionally(failure);
   }
 
-  private boolean withinGrantPropagationWindow() {
+  /**
+   * Whether a permission denial may still come from grants that propagate: within the window from
+   * the first attempt of this runtime, which no later attempt renews.
+   */
+  synchronized boolean withinGrantPropagationWindow() {
     return firstAttemptNanos != null
         && nanoTime.getAsLong() - firstAttemptNanos < grantPropagationWindow.toNanos();
   }
