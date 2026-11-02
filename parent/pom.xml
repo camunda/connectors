@@ -153,6 +153,7 @@ limitations under the License.</license.inlineheader>
 
     <version.microsoft-graph>6.72.0</version.microsoft-graph>
     <version.azure-identity>1.19.0</version.azure-identity>
+    <version.azure-core>1.61.0</version.azure-core>
     <version.azure-cosmos>4.83.0</version.azure-cosmos>
 
     <!-- Independent properties: bcpkix-jdk18on and bcprov-jdk18on don't always ship
@@ -684,6 +685,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core</artifactId>
+        <version>${version.azure-core}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.sendgrid</groupId>
         <artifactId>sendgrid-java</artifactId>
         <version>${version.sendGrid}</version>
@@ -1025,9 +1032,11 @@ limitations under the License.</license.inlineheader>
                 <regex>^1\.23\.0$</regex>
                 <regexMessage>
 version.langchain4j was changed! Check if the parsson CVE-2026-9563 override can be removed.
-If the new langchain4j-elasticsearch and langchain4j-opensearch versions ship parsson &gt;= 1.1.8 (confirm with
-`mvn dependency:tree -Dincludes=org.eclipse.parsson:parsson`), remove the version.parsson property,
-the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+If the new langchain4j-elasticsearch and langchain4j-opensearch versions ship parsson &gt;= 1.1.8, remove the
+version.parsson property, the parsson dependencyManagement entry, and this enforcer rule from parent/pom.xml.
+To confirm, first remove the parsson dependencyManagement entry locally, then run
+`mvn dependency:tree -Dincludes=org.eclipse.parsson:parsson` - with the entry in place the tree always
+reports the pinned version, whatever the upstream chains request.
 See: https://nvd.nist.gov/vuln/detail/CVE-2026-9563
                 </regexMessage>
               </requireProperty>
