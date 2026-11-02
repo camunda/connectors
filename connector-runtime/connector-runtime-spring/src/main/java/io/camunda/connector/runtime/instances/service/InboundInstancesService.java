@@ -73,7 +73,8 @@ public class InboundInstancesService {
                     activity.tag(),
                     activity.timestamp(),
                     activity.message(),
-                    hostname))
+                    hostname,
+                    activity.data()))
         .toList();
   }
 

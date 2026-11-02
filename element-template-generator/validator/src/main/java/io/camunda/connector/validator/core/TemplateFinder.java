@@ -25,6 +25,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public final class TemplateFinder {
 
@@ -35,12 +37,8 @@ public final class TemplateFinder {
   public static final Set<String> DEFAULT_SKIPPED_DIRECTORIES =
       Set.of("target", "node_modules", ".git", ".idea", ".m2");
 
-  /**
-   * Connector directories whose templates the validator skips entirely by default. Agentic-AI
-   * templates are generated/maintained outside the standard connector workflow and intentionally
-   * diverge from the conventions enforced here.
-   */
-  public static final Set<String> DEFAULT_SKIPPED_CONNECTORS = Set.of("agentic-ai");
+  /** Connector directories whose templates the validator skips entirely by default. */
+  public static final Set<String> DEFAULT_SKIPPED_CONNECTORS = Set.of();
 
   private TemplateFinder() {}
 
@@ -65,6 +63,33 @@ public final class TemplateFinder {
     return walk(root, true, skippedDirs, skippedConnectors);
   }
 
+  /** All {@value SuppressionFile#FILE_NAME} files, honoring the same skip options. */
+  public static List<Path> findSuppressionFiles(
+      Path root, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(
+        root,
+        false,
+        skippedDirs,
+        skippedConnectors,
+        file -> SuppressionFile.FILE_NAME.equals(file.getFileName().toString()));
+  }
+
+  /**
+   * Whether discovery prunes {@code dir} itself or any of its subdirectories via {@code
+   * skippedDirs}.
+   */
+  public static boolean containsSkippedDirectory(Path dir, Set<String> skippedDirs) {
+    if (skippedDirs.isEmpty() || !Files.isDirectory(dir)) {
+      return false;
+    }
+    try (Stream<Path> paths = Files.walk(dir)) {
+      return paths.anyMatch(
+          p -> Files.isDirectory(p) && skippedDirs.contains(p.getFileName().toString()));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to walk " + dir, e);
+    }
+  }
+
   public static boolean isVersioned(Path path) {
     for (Path segment : path) {
       if (VERSIONED_SEGMENT.equals(segment.toString())) {
@@ -76,6 +101,20 @@ public final class TemplateFinder {
 
   private static List<Path> walk(
       Path root, boolean includeVersioned, Set<String> skippedDirs, Set<String> skippedConnectors) {
+    return walk(
+        root,
+        includeVersioned,
+        skippedDirs,
+        skippedConnectors,
+        TemplateFinder::isElementTemplateJson);
+  }
+
+  private static List<Path> walk(
+      Path root,
+      boolean includeVersioned,
+      Set<String> skippedDirs,
+      Set<String> skippedConnectors,
+      Predicate<Path> include) {
     List<Path> results = new ArrayList<>();
     try {
       Files.walkFileTree(
@@ -98,7 +137,7 @@ public final class TemplateFinder {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-              if (isElementTemplateJson(file)) {
+              if (include.test(file)) {
                 results.add(file);
               }
               return FileVisitResult.CONTINUE;

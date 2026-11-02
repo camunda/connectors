@@ -1,13 +1,15 @@
 name: Cache Maven wrapper distribution
 description: >
   Caches the Maven distribution downloaded by ./mvnw (~/.m2/wrapper), keyed on
-  .mvn/wrapper/maven-wrapper.properties. Requires the repository to be checked out first.
+  .mvn/wrapper/maven-wrapper.properties. Restore-only by default: WARM_MAVEN_CACHE.yml is the
+  single writer, so per-ref saves don't evict the shared entry. Requires the repository to be
+  checked out first.
 
 inputs:
   restore-only:
     description: When 'true', only restore the cache and never save it
     required: false
-    default: 'false'
+    default: 'true'
 
 outputs:
   cache-hit:

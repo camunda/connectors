@@ -52,7 +52,7 @@ enum AgenticAiModules {
 
   private static final String ARCHIVE_SEPARATOR = "!/";
   private static final Pattern VERSION_AND_EXTENSION =
-      Pattern.compile("-\\d+(\\.\\d+)*(-SNAPSHOT)?\\.jar");
+      Pattern.compile("-\\d+\\.\\d+\\.\\d+(-SNAPSHOT|-alpha\\d+|-rc\\d+)?\\.jar");
 
   private final String artifactId;
   private final String layerName;
@@ -96,7 +96,8 @@ enum AgenticAiModules {
 
   /**
    * Resolves the module whose build output contains the class: either the reactor output directory
-   * {@code <artifactId>/target/classes} or a jar named {@code <artifactId>-<version>.jar}.
+   * {@code <artifactId>/target/classes} or a jar named {@code <artifactId>-<version>.jar}, where
+   * the version is a stable, alpha, release candidate or snapshot version.
    */
   static Optional<AgenticAiModules> moduleOf(final JavaClass javaClass) {
     return javaClass
@@ -107,7 +108,7 @@ enum AgenticAiModules {
                 Arrays.stream(values()).filter(module -> module.isLocatedIn(location)).findFirst());
   }
 
-  private boolean isLocatedIn(final String location) {
+  boolean isLocatedIn(final String location) {
     if (location.contains("/" + artifactId + "/target/classes/")) {
       return true;
     }

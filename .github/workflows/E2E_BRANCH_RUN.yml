@@ -36,6 +36,9 @@ jobs:
   build:
     name: Build
     runs-on: ${{ inputs.build-runner }}
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       modules: ${{ steps.set-modules.outputs.modules }}
     env:
@@ -43,6 +46,20 @@ jobs:
       # Modules absent from the map use ubuntu-latest; callers can provide their own map.
       E2E_RUNNER_OVERRIDES: ${{ inputs.runner-overrides }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - name: Encode build status job name
+        id: build-status-name
+        if: always()
+        continue-on-error: true
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          branch=$(jq -rn --arg value "$BRANCH" '$value | @uri')
+          printf 'value=build/%s\n' "$branch" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.branch }}
@@ -85,12 +102,32 @@ jobs:
             secret/data/products/connectors/ci/nexus USER | CI_NEXUS_USR;
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
 
+      # Inlined rather than using .github/actions/maven-cache-key: the checked-out branch
+      # may predate that action. Keep the line derivation in sync with it. For PR-triggered
+      # runs, inputs.branch is the PR head, so the PR base determines the line. A supplied key
+      # determines the line itself: RELEASE passes the tag as inputs.branch, but its key follows
+      # the branch the release runs from.
       - name: Resolve Maven cache key
         id: maven-cache-key
         env:
+          BRANCH: ${{ github.base_ref || inputs.branch }}
           PROVIDED_KEY: ${{ inputs.maven-cache-key }}
-          DEFAULT_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
-        run: echo "value=${PROVIDED_KEY:-$DEFAULT_KEY}" >> "$GITHUB_OUTPUT"
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          if [[ -n "$PROVIDED_KEY" ]]; then
+            # <os>-maven-<line>-<pom hash>-<suffix>: drop the hash and suffix
+            echo "restore-prefix=${PROVIDED_KEY%-*-*}-" >> "$GITHUB_OUTPUT"
+            echo "value=$PROVIDED_KEY" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$BRANCH" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=main
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "value=${prefix}${HASH}-internal" >> "$GITHUB_OUTPUT"
 
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
@@ -99,7 +136,7 @@ jobs:
           path: ~/.m2/repository
           key: ${{ steps.maven-cache-key.outputs.value }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
@@ -266,17 +303,60 @@ jobs:
           compression-level: 0
           overwrite: true
 
+      - name: Validate telemetry refs
+        id: telemetry-ref-safety
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          case "$HEAD_REF$BASE_REF" in
+            *['$`"']*)
+              echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+              exit 1
+              ;;
+          esac
+
+      - name: Submit build status
+        if: always() && steps.build-status-name.outcome == 'success' && steps.telemetry-ref-safety.outcome == 'success'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: ${{ steps.build-status-name.outputs.value }}
+
   # Test phase (matrix: entry): each e2e-test module runs in its own job, in isolation.
   # Runner is baked into each entry by the build job from the runner-overrides input.
   test:
     name: ${{ matrix.entry.module }}
     needs: build
     runs-on: ${{ matrix.entry.runner }}
+    permissions:
+      contents: read
+      checks: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
         entry: ${{ fromJson(needs.build.outputs.modules) }}
     steps:
+      - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
+        continue-on-error: true
+
+      - name: Encode build status job name
+        id: build-status-name
+        if: always()
+        continue-on-error: true
+        env:
+          BRANCH: ${{ inputs.branch }}
+          MODULE: ${{ matrix.entry.module }}
+        run: |
+          set -euo pipefail
+          name=$(jq -rn --arg branch "$BRANCH" --arg module "$MODULE" '"test/" + ($branch | @uri) + "/" + ($module | @uri)')
+          printf 'value=%s\n' "$name" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.branch }}
@@ -413,6 +493,30 @@ jobs:
           path: |
             **/target/surefire-reports/*.xml
             **/target/surefire-reports/*-output.txt
+
+      - name: Validate telemetry refs
+        id: telemetry-ref-safety
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref || github.event.merge_group.head_ref }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+        run: |
+          case "$HEAD_REF$BASE_REF" in
+            *['$`"']*)
+              echo "::warning::Build status not submitted because a branch name contains unsupported characters."
+              exit 1
+              ;;
+          esac
+
+      - name: Submit build status
+        if: always() && steps.build-status-name.outcome == 'success' && steps.telemetry-ref-safety.outcome == 'success'
+        continue-on-error: true
+        uses: camunda/infra-global-github-actions/submit-build-status@25d228468383a1d73dfe3a261a6d0c6b0296fa45 # submit-build-status-1.3.4
+        with:
+          build_status: ${{ job.status }}
+          job_name_override: ${{ steps.build-status-name.outputs.value }}
 
   # Slack notification on build OR test failure (a build failure skips the test job, so
   # both results are checked). main/stable only, not PR runs.

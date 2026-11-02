@@ -287,9 +287,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       case ProcessInstanceCreatedWithResult s ->
           new ProcessInstanceCreatedWithResult(
               element, s.processInstanceKey(), s.tenantId(), s.variables());
-      case MessagePublished s -> new MessagePublished(element, s.messageKey(), s.tenantId());
+      case MessagePublished s ->
+          new MessagePublished(element, s.messageKey(), s.tenantId(), s.correlationKey());
       case MessageCorrelated s ->
-          new MessageCorrelated(element, s.processInstanceKey(), s.messageKey(), s.tenantId());
+          new MessageCorrelated(
+              element, s.processInstanceKey(), s.messageKey(), s.tenantId(), s.correlationKey());
       case MessageAlreadyCorrelated s -> new MessageAlreadyCorrelated(element);
     };
   }
@@ -324,7 +326,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withSeverity(Severity.INFO)
                     .withTag(ActivityLogTag.CORRELATION)
                     .withMessage("Message published")
-                    .withData(Map.of("messageKey", messagePublished.messageKey())));
+                    .withData(
+                        Map.of(
+                            "messageKey",
+                            messagePublished.messageKey(),
+                            "correlationKey",
+                            redactMessage(messagePublished.correlationKey()))));
         break;
       case MessageAlreadyCorrelated ignored:
         logRuntime(
@@ -342,7 +349,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withTag(ActivityLogTag.CORRELATION)
                     .withMessage("Message correlated to process instance")
                     .withData(
-                        Map.of("processInstanceKey", messageCorrelated.processInstanceKey())));
+                        Map.of(
+                            "processInstanceKey",
+                            messageCorrelated.processInstanceKey(),
+                            "messageKey",
+                            messageCorrelated.messageKey(),
+                            "correlationKey",
+                            redactMessage(messageCorrelated.correlationKey()))));
 
         break;
       case Success.ProcessInstanceCreatedWithResult processInstanceCreatedWithResult:

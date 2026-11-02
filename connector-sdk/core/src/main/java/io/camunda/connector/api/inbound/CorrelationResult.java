@@ -59,16 +59,35 @@ public sealed interface CorrelationResult {
         Map<String, Object> variables)
         implements Success {}
 
-    record MessagePublished(ProcessElement activatedElement, Long messageKey, String tenantId)
-        implements Success {}
+    record MessagePublished(
+        ProcessElement activatedElement, Long messageKey, String tenantId, String correlationKey)
+        implements Success {
+
+      public MessagePublished(ProcessElement activatedElement, Long messageKey, String tenantId) {
+        this(activatedElement, messageKey, tenantId, "");
+      }
+    }
 
     /**
      * Result for synchronous message correlation via {@code newCorrelateMessageCommand}. Contains
      * the process instance key of the correlated process instance.
      */
     record MessageCorrelated(
-        ProcessElement activatedElement, Long processInstanceKey, Long messageKey, String tenantId)
-        implements Success {}
+        ProcessElement activatedElement,
+        Long processInstanceKey,
+        Long messageKey,
+        String tenantId,
+        String correlationKey)
+        implements Success {
+
+      public MessageCorrelated(
+          ProcessElement activatedElement,
+          Long processInstanceKey,
+          Long messageKey,
+          String tenantId) {
+        this(activatedElement, processInstanceKey, messageKey, tenantId, "");
+      }
+    }
 
     record MessageAlreadyCorrelated(ProcessElement activatedElement) implements Success {}
   }

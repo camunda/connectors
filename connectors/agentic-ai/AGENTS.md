@@ -25,6 +25,8 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
+- [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
+  element templates
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
 - E2E tests [`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md): e2e
   modules, running e2e tests, real-LLM CPT coverage
@@ -383,6 +385,11 @@ Do not list `hybrid/` templates in the README. They are intentionally omitted.
 When the `engines.camunda` minimum of the AI Agent templates is bumped (rule 3 above), also add regression
 fixtures for the new template generation in the same change, as described in
 [Element template regression fixtures](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#element-template-regression-fixtures).
+
+### Template text
+
+When you write or change help text in `@TemplateProperty` annotations (`label`, `tooltip`,
+`placeholder`, `description`), follow [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md).
 
 ### Agent definition marker
 

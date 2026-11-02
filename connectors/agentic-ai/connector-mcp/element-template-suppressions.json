@@ -1,0 +1,514 @@
+{
+  "suppressions": [
+    {
+      "rule": "condition-property-order",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "br-tag",
+      "template": "agenticai-mcp-message-start-event.json",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-mcp-message-start-event.json",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "condition-property-order",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "reason": "Existing finding, accepted when agentic-ai was enabled. Fix in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "latin-abbreviation",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.toolOperation.method",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.audience",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.clientId",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.clientSecret",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.oauthTokenEndpoint",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.scopes",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.type",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.timeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "id",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "retryBackoff",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "retryCount",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "trailing-period",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "version",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "data.connectorMode.standaloneModeFilters.prompts.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "data.connectorMode.standaloneModeFilters.resources.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-client-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.connectorMode.standaloneModeFilters.prompts.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.connectorMode.standaloneModeFilters.resources.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.http.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "data.transport.sse.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "agenticai-mcp-remote-client-outbound-connector.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.standaloneModeFilters.prompts.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.standaloneModeFilters.resources.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-client-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.standaloneModeFilters.prompts.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.connectorMode.standaloneModeFilters.resources.excluded",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.http.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "data.transport.sse.authentication.clientAuthentication",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    },
+    {
+      "rule": "max-description-length",
+      "template": "hybrid/agenticai-mcp-remote-client-outbound-connector-hybrid.json",
+      "property": "jobTimeout",
+      "reason": "Existing help text, accepted when agentic-ai was enabled. Fix while rewording in https://github.com/camunda/connectors/issues/8422."
+    }
+  ]
+}
