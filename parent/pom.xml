@@ -98,7 +98,7 @@ limitations under the License.</license.inlineheader>
          spring-boot-dependencies ships rabbit-amqp-client >= 5.34.0
          Ref: https://github.com/rabbitmq/rabbitmq-java-client/security/advisories/GHSA-jh4v-gfqj-7rhx -->
     <version.amqp-client>5.37.0</version.amqp-client>
-    <version.spring-cloud-gcp-starter-logging>7.4.10</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>7.5.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
