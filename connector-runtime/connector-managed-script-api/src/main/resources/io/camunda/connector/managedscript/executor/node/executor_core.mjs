@@ -121,6 +121,13 @@ function remove(target) {
   }
 }
 
+// Removes everything in `directory`, also what a script took the permissions off, and returns the
+// names of what is left. For an entry point that starts on a directory a previous runtime used.
+export function clear(directory) {
+  for (const name of readdirSync(directory)) remove(path.join(directory, name));
+  return readdirSync(directory);
+}
+
 // Removes everything under `directory` that is not in `baseline`, also inside the directories that
 // were already there: a writable directory of the baseline must not carry files to the next call.
 function removeNew(directory, baseline, prefix = '') {

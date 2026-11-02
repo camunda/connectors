@@ -7,9 +7,7 @@
 // Lambda loads this module, so that what exists at that moment is kept after every call and
 // anything else is removed.
 
-import { readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { createExecutor } from './executor_core.mjs';
+import { clear, createExecutor } from './executor_core.mjs';
 
 // Left to the wrapper, out of the remaining time of the function, to answer and clean up.
 const SAFETY_MS = 1_000;
@@ -17,9 +15,10 @@ const SAFETY_MS = 1_000;
 const TMP = process.env.EXECUTOR_TMP ?? '/tmp';
 
 // Lambda keeps /tmp when it restarts the runtime after a timeout or a crash: what a call left there
-// must not become part of what the executor keeps.
-for (const name of readdirSync(TMP)) {
-  rmSync(join(TMP, name), { recursive: true, force: true });
+// must not become part of what the executor keeps. Better not to start than to keep it.
+const left = clear(TMP);
+if (left.length > 0) {
+  throw new Error(`Cannot clear ${TMP} of a previous runtime: ${left.join(', ')}`);
 }
 
 const executor = createExecutor({ local: false, tmp: TMP });

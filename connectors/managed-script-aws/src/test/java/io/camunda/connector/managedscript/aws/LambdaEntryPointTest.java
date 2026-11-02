@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -48,6 +49,11 @@ class LambdaEntryPointTest {
     Files.writeString(tmp.resolve("user_script.py"), "secret of a previous call");
     Files.createDirectories(tmp.resolve("run-1/nested"));
     Files.writeString(tmp.resolve("run-1/nested/output"), "secret of a previous call");
+    // A script can take the permissions off a directory, so that its content cannot be removed.
+    Files.setPosixFilePermissions(
+        tmp.resolve("run-1/nested"), PosixFilePermissions.fromString("r-x------"));
+    Files.setPosixFilePermissions(
+        tmp.resolve("run-1"), PosixFilePermissions.fromString("r-x------"));
 
     final var builder =
         new ProcessBuilder(command).directory(task.toFile()).redirectErrorStream(true);

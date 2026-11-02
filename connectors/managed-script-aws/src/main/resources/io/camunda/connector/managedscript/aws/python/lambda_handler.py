@@ -8,7 +8,6 @@ else is removed.
 """
 
 import os
-import shutil
 
 import executor_core
 
@@ -17,21 +16,12 @@ SAFETY_MS = 1_000
 
 TMP = os.environ.get("EXECUTOR_TMP", "/tmp")
 
+# Lambda keeps /tmp when it restarts the runtime after a timeout or a crash: what a call left there
+# must not become part of what the executor keeps. Better not to start than to keep it.
+_left = executor_core.clear(TMP)
+if _left:
+    raise RuntimeError("Cannot clear %s of a previous runtime: %s" % (TMP, ", ".join(_left)))
 
-def _clear(directory):
-    """Lambda keeps /tmp when it restarts the runtime after a timeout or a crash: what a call left
-    there must not become part of what the executor keeps."""
-    for entry in os.scandir(directory):
-        if entry.is_dir(follow_symlinks=False):
-            shutil.rmtree(entry.path, ignore_errors=True)
-        else:
-            try:
-                os.unlink(entry.path)
-            except OSError:
-                pass
-
-
-_clear(TMP)
 executor = executor_core.create_executor(local=False, tmp=TMP)
 
 
