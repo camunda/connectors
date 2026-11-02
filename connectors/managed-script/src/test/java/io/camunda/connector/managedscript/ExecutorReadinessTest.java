@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,9 +55,10 @@ class ExecutorReadinessTest {
 
   @Test
   void doesNotReportADenialWithinTheWindowAsALastingFailure() {
-    readiness = new ExecutorReadiness(denying(), BACKOFF, WINDOW, now::get);
+    final var provider = denying();
+    readiness = new ExecutorReadiness(provider, BACKOFF, WINDOW, now::get);
     readiness.start(ScriptLanguage.PYTHON);
-    awaitAttempt();
+    awaitCalls(provider, 2);
 
     now.addAndGet(Duration.ofMinutes(1).toNanos());
 
@@ -75,7 +77,7 @@ class ExecutorReadinessTest {
         };
     readiness = new ExecutorReadiness(provider, BACKOFF, WINDOW, now::get);
     readiness.start(ScriptLanguage.JAVASCRIPT);
-    awaitAttempt();
+    awaitCalls(provider, 2);
 
     assertThat(readiness.lastingFailure(ScriptLanguage.JAVASCRIPT, Duration.ofSeconds(10)))
         .isEmpty();
@@ -123,12 +125,22 @@ class ExecutorReadinessTest {
         };
     readiness = new ExecutorReadiness(provider, Duration.ofMinutes(1), WINDOW, now::get);
     final var ready = readiness.start(ScriptLanguage.PYTHON);
-    awaitAttempt();
+    awaitCalls(provider, 1);
     assertThat(ready).isNotDone();
 
     readiness.close();
 
     assertThat(failureOf(ready).code()).isEqualTo(ErrorCode.PLATFORM_INTERRUPTED);
+  }
+
+  @Test
+  void neverWaitsLongerThanOneMinuteBetweenAttempts() {
+    for (int i = 0; i < 100; i++) {
+      assertThat(ExecutorReadiness.withJitter(Duration.ofMinutes(4)))
+          .isBetween(Duration.ofSeconds(30), Duration.ofMinutes(1));
+      assertThat(ExecutorReadiness.withJitter(Duration.ofSeconds(10)))
+          .isBetween(Duration.ofSeconds(5), Duration.ofSeconds(10));
+    }
   }
 
   @Test
@@ -160,13 +172,9 @@ class ExecutorReadinessTest {
     };
   }
 
-  /** Lets the first attempt run; later ones keep failing in the background. */
-  private static void awaitAttempt() {
-    try {
-      Thread.sleep(BACKOFF.multipliedBy(4).toMillis());
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+  /** Waits until the provider was called that often: each failure before is recorded. */
+  private static void awaitCalls(FakeProvider provider, int calls) {
+    Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> provider.ensureCalls() >= calls);
   }
 
   /** The failure the attempt completes with. */

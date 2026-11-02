@@ -260,10 +260,13 @@ final class ExecutorReadiness implements AutoCloseable {
         ErrorCode.PLATFORM_INTERRUPTED, "The managed-script connector is stopping");
   }
 
-  /** Up to 50% more, so that runtimes started together do not try again in step. */
-  private static Duration withJitter(Duration duration) {
-    final long millis = Math.max(1, duration.toMillis());
-    return Duration.ofMillis(millis + ThreadLocalRandom.current().nextLong(millis / 2 + 1));
+  /**
+   * Between half the backoff and the backoff, capped at 1 minute, so that runtimes started together
+   * do not try again in step.
+   */
+  static Duration withJitter(Duration backoff) {
+    final long millis = Math.max(1, Math.min(backoff.toMillis(), MAX_BACKOFF.toMillis()));
+    return Duration.ofMillis(millis - ThreadLocalRandom.current().nextLong(millis / 2 + 1));
   }
 
   /** The current attempt of a language and its failures. */

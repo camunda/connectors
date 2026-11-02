@@ -115,7 +115,8 @@ final class ManagedScriptJobHandler {
           failed(
               job,
               code,
-              "The executor of %s is not ready: %s".formatted(language.language(), e.getMessage()),
+              "The executor of %s is not ready: %s"
+                  .formatted(language == null ? "the script" : language.language(), e.getMessage()),
               null,
               language);
     } catch (InterruptedException e) {
