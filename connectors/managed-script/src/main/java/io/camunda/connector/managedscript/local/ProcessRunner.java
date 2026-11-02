@@ -28,6 +28,13 @@ final class ProcessRunner {
   record Result(
       boolean timedOut, boolean outputTooLarge, int exitCode, byte[] stdout, String stderr) {}
 
+  /** The process did not start, so nothing of the call ran. */
+  static final class NotStartedException extends IOException {
+    NotStartedException(IOException cause) {
+      super(cause.getMessage(), cause);
+    }
+  }
+
   /** How often the descendants of the process are noted while it runs. */
   private static final long POLL_MILLIS = 200;
 
@@ -38,6 +45,8 @@ final class ProcessRunner {
    *     read it cannot keep the deadline from applying; may be {@code null}
    * @param maxErrorBytes how much of the standard error is kept
    * @param scratch directory, private to this runtime, of the temporary files
+   * @throws NotStartedException when the process cannot be started; any other {@link IOException}
+   *     may come after the process ran
    */
   static Result run(
       ProcessBuilder builder,
@@ -47,14 +56,24 @@ final class ProcessRunner {
       int maxErrorBytes,
       Path scratch)
       throws IOException, InterruptedException {
-    final var stdout = Files.createTempFile(scratch, "stdout", ".tmp");
-    final var stderr = Files.createTempFile(scratch, "stderr", ".tmp");
+    final Path stdout;
+    final Path stderr;
+    try {
+      stdout = Files.createTempFile(scratch, "stdout", ".tmp");
+      stderr = Files.createTempFile(scratch, "stderr", ".tmp");
+    } catch (IOException e) {
+      throw new NotStartedException(e);
+    }
     Process process = null;
     // Processes the process started, noted while it runs: once it is gone, for a crash or a kill,
     // they are no longer its descendants, and would run on without anything enforcing a deadline.
     final var started = new HashSet<ProcessHandle>();
     try {
-      process = builder.redirectOutput(stdout.toFile()).redirectError(stderr.toFile()).start();
+      try {
+        process = builder.redirectOutput(stdout.toFile()).redirectError(stderr.toFile()).start();
+      } catch (IOException e) {
+        throw new NotStartedException(e);
+      }
       final var in = process.getOutputStream();
       if (stdin == null) {
         in.close();
@@ -92,8 +111,17 @@ final class ProcessRunner {
         process.destroyForcibly();
       }
       started.stream().filter(ProcessHandle::isAlive).forEach(ProcessHandle::destroyForcibly);
-      Files.deleteIfExists(stdout);
-      Files.deleteIfExists(stderr);
+      deleteQuietly(stdout);
+      deleteQuietly(stderr);
+    }
+  }
+
+  /** A file left behind must not replace the result of a call that ran. */
+  private static void deleteQuietly(Path file) {
+    try {
+      Files.deleteIfExists(file);
+    } catch (IOException e) {
+      // In the scratch directory, which only the user of the runtime can read.
     }
   }
 

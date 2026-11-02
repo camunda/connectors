@@ -150,10 +150,15 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
           request.executionId(),
           input,
           Duration.ofMillis(request.timeoutMs()).plus(callGrace));
-    } catch (IOException e) {
+    } catch (ProcessRunner.NotStartedException e) {
+      // Nothing ran, so the job may make the executor ready again and call it at once.
       return ExecutionResponse.failed(
           ErrorCode.DEPLOYMENT_MISSING,
           "Cannot run the local wrapper with " + executor.interpreter() + ": " + e.getMessage());
+    } catch (IOException e) {
+      // The script may have run: calling it again within the job could run it twice.
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_EXECUTION_FAILED, "The local call failed: " + e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return ExecutionResponse.failed(
@@ -206,7 +211,12 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
     // A directory of this call, removed whatever happens to the wrapper: when it is killed at the
     // deadline, or crashes, its own cleanup does not run, and the script and its output would stay.
-    final var callDirectory = Files.createTempDirectory(scratch, "call-");
+    final Path callDirectory;
+    try {
+      callDirectory = Files.createTempDirectory(scratch, "call-");
+    } catch (IOException e) {
+      throw new ProcessRunner.NotStartedException(e);
+    }
     environment.put("EXECUTOR_TMP", callDirectory.toString());
     final ProcessRunner.Result result;
     try {

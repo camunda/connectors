@@ -462,6 +462,22 @@ class LocalManagedCodeProviderTest {
   }
 
   @Test
+  void reportsAnInterpreterThatCannotStartAsAMissingExecutor() throws IOException {
+    shim("node", "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";; esac");
+    final var provider = provider(List.of(bin));
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
+    Files.delete(bin.resolve("node"));
+
+    final var response =
+        provider.execute(
+            ScriptLanguage.JAVASCRIPT,
+            request("export function execute() { return {}; }", Map.of(), 10_000));
+
+    assertThat(response.isDeploymentMissing()).isTrue();
+    assertThat(response.error().message()).contains("Cannot run the local wrapper");
+  }
+
+  @Test
   void reportsAMissingCoreFileSoThatTheHandlerPreparesTheExecutorsAgain() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
