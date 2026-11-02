@@ -8,8 +8,10 @@ package io.camunda.connector.kafka.inbound;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -39,13 +41,16 @@ import org.slf4j.LoggerFactory;
  * <p>TLS uses the connector's own {@code ssl.*} settings, like the Kafka client, so the probe's
  * handshake succeeds whenever the consumer's would.
  *
+ * <p>Every address a bootstrap host resolves to is probed, because the Kafka client ({@code
+ * client.dns.lookup=use_all_dns_ips}) may connect to any of them.
+ *
  * <p>Only an implausible response fails the check. Any other outcome (connection refused, timeout,
  * TLS handshake failure, closed connection, invalid configuration) is left to the Kafka client to
  * handle as before.
  */
 final class KafkaBootstrapProbe {
 
-  static final String DISABLED_ENV = "CAMUNDA_CONNECTOR_KAFKA_BOOTSTRAP_PROBE_DISABLED";
+  static final String ENABLED_ENV = "CAMUNDA_CONNECTOR_KAFKA_BOOTSTRAP_PROBE_ENABLED";
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaBootstrapProbe.class);
 
@@ -85,7 +90,12 @@ final class KafkaBootstrapProbe {
   }
 
   static void verify(Properties kafkaProps, int timeoutMs) {
-    if (Boolean.parseBoolean(System.getenv(DISABLED_ENV))) {
+    verify(kafkaProps, timeoutMs, InetAddress::getAllByName);
+  }
+
+  static void verify(Properties kafkaProps, int timeoutMs, Resolver resolver) {
+    // Enabled unless explicitly set to false
+    if ("false".equalsIgnoreCase(System.getenv(ENABLED_ENV))) {
       return;
     }
     AbstractConfig config;
@@ -115,7 +125,16 @@ final class KafkaBootstrapProbe {
         if (host == null || port == null) {
           continue;
         }
-        probe(host, port, sslFactory, timeoutMs);
+        InetAddress[] addresses;
+        try {
+          addresses = resolver.resolve(host);
+        } catch (UnknownHostException e) {
+          LOG.debug("Bootstrap probe of {}:{} inconclusive: {}", host, port, e.toString());
+          continue;
+        }
+        for (InetAddress address : addresses) {
+          probe(host, address, port, sslFactory, timeoutMs);
+        }
       }
     } finally {
       if (sslFactory != null) {
@@ -142,10 +161,13 @@ final class KafkaBootstrapProbe {
     return sslFactory;
   }
 
-  private static void probe(String host, int port, SslFactory sslFactory, int timeoutMs) {
+  // Connects to the given address but uses the host name for TLS (SNI, hostname verification)
+  private static void probe(
+      String host, InetAddress address, int port, SslFactory sslFactory, int timeoutMs) {
+    String target = host + ":" + port + " (" + address.getHostAddress() + ")";
     byte[] prefix;
     try (Socket raw = new Socket()) {
-      raw.connect(new InetSocketAddress(host, port), timeoutMs);
+      raw.connect(new InetSocketAddress(address, port), timeoutMs);
       raw.setSoTimeout(timeoutMs);
       if (sslFactory == null) {
         prefix = exchange(raw);
@@ -155,18 +177,18 @@ final class KafkaBootstrapProbe {
         }
       }
     } catch (IOException | RuntimeException e) {
-      LOG.debug("Bootstrap probe of {}:{} inconclusive: {}", host, port, e.toString());
+      LOG.debug("Bootstrap probe of {} inconclusive: {}", target, e.toString());
       return;
     }
     if (prefix.length < Integer.BYTES) {
-      LOG.debug("Bootstrap probe of {}:{} inconclusive: connection closed", host, port);
+      LOG.debug("Bootstrap probe of {} inconclusive: connection closed", target);
       return;
     }
     int responseSize = ByteBuffer.wrap(prefix).getInt();
     if (responseSize >= 0 && responseSize <= MAX_PLAUSIBLE_RESPONSE_SIZE) {
       return;
     }
-    throw new IllegalStateException(describe(host, port, sslFactory != null, responseSize));
+    throw new IllegalStateException(describe(target, sslFactory != null, responseSize));
   }
 
   // Uses the SSLContext and SSL parameters (protocols, cipher suites, hostname verification) the
@@ -190,11 +212,11 @@ final class KafkaBootstrapProbe {
     return socket.getInputStream().readNBytes(Integer.BYTES);
   }
 
-  private static String describe(String host, int port, boolean tls, int responseSize) {
+  private static String describe(String target, boolean tls, int responseSize) {
     String message =
         String.format(
-            "Bootstrap server %s:%d does not speak the Kafka protocol: the response length prefix is %d bytes, which the Kafka client would try to allocate.",
-            host, port, responseSize);
+            "Bootstrap server %s does not speak the Kafka protocol: the response length prefix is %d bytes, which the Kafka client would try to allocate.",
+            target, responseSize);
     if (responseSize == HTTP_MAGIC) {
       return message
           + " The server answered with an HTTP response, so this is an HTTP(S) endpoint, not a Kafka broker. Check the bootstrap server port (Confluent Cloud brokers use port 9092, not 443).";
@@ -219,5 +241,10 @@ final class KafkaBootstrapProbe {
         .putShort((short) CLIENT_ID.length)
         .put(CLIENT_ID)
         .array();
+  }
+
+  @FunctionalInterface
+  interface Resolver {
+    InetAddress[] resolve(String host) throws UnknownHostException;
   }
 }

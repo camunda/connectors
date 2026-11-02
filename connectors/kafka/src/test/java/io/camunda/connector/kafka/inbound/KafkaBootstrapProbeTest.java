@@ -13,8 +13,10 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -171,6 +173,37 @@ class KafkaBootstrapProbeTest {
                     TIMEOUT_MS))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("localhost:" + port);
+  }
+
+  @Test
+  void shouldFailWhenAnotherAddressOfTheHostIsNotKafka() throws Exception {
+    // Bound to IPv4 only, so the first address (::1) is refused or unreachable
+    int port =
+        startServer(
+            new ServerSocket(0, 50, InetAddress.getByName("127.0.0.1")),
+            true,
+            out -> write(out, HTTP_RESPONSE));
+    KafkaBootstrapProbe.Resolver resolver =
+        host ->
+            new InetAddress[] {InetAddress.getByName("::1"), InetAddress.getByName("127.0.0.1")};
+
+    assertThatThrownBy(
+            () -> KafkaBootstrapProbe.verify(props("broker.example:" + port), TIMEOUT_MS, resolver))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("broker.example:" + port + " (127.0.0.1)")
+        .hasMessageContaining("HTTP(S) endpoint");
+  }
+
+  @Test
+  void shouldPassWhenHostCannotBeResolved() {
+    KafkaBootstrapProbe.Resolver resolver =
+        host -> {
+          throw new UnknownHostException(host);
+        };
+
+    assertThatCode(
+            () -> KafkaBootstrapProbe.verify(props("broker.example:9092"), TIMEOUT_MS, resolver))
+        .doesNotThrowAnyException();
   }
 
   @Test
