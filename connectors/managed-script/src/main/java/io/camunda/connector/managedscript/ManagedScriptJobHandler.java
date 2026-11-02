@@ -20,6 +20,8 @@ import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +56,7 @@ final class ManagedScriptJobHandler {
   private final ObjectReader linksReader;
   private final Duration executionTimeout;
   private final Duration retryBackoff;
-  private final Object executorsLock = new Object();
-  private boolean executorsReady;
+  private final Set<ScriptLanguage> readyLanguages = ConcurrentHashMap.newKeySet();
 
   ManagedScriptJobHandler(
       ManagedCodeProvider provider,
@@ -141,23 +142,19 @@ final class ManagedScriptJobHandler {
             input == null ? Map.of() : input,
             executionContext(job),
             executionTimeout.toMillis());
-    ensureExecutors();
+    ensureExecutor(language);
     final var response = provider.execute(language, request);
     if (response != null && response.isDeploymentMissing()) {
-      // The job consumes a retry, and the next job makes the executors ready again.
-      synchronized (executorsLock) {
-        executorsReady = false;
-      }
+      // The job consumes a retry, and the next job makes the executor ready again.
+      readyLanguages.remove(language);
     }
     return outcome(job, language, response);
   }
 
-  private void ensureExecutors() {
-    synchronized (executorsLock) {
-      if (!executorsReady) {
-        provider.ensureExecutors();
-        executorsReady = true;
-      }
+  private void ensureExecutor(ScriptLanguage language) {
+    if (!readyLanguages.contains(language)) {
+      provider.ensureExecutors(language);
+      readyLanguages.add(language);
     }
   }
 

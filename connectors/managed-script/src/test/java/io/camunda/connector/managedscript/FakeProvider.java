@@ -25,6 +25,7 @@ class FakeProvider implements ManagedCodeProvider {
   private final Deque<ExecutionResponse> responses = new ArrayDeque<>();
   private final Deque<RuntimeException> ensureFailures = new ArrayDeque<>();
   final List<Call> calls = new ArrayList<>();
+  final List<ScriptLanguage> ensured = new ArrayList<>();
   int ensureCalls;
 
   FakeProvider() {
@@ -51,8 +52,9 @@ class FakeProvider implements ManagedCodeProvider {
   }
 
   @Override
-  public void ensureExecutors() {
+  public void ensureExecutors(ScriptLanguage language) {
     ensureCalls++;
+    ensured.add(language);
     if (!ensureFailures.isEmpty()) {
       throw ensureFailures.poll();
     }

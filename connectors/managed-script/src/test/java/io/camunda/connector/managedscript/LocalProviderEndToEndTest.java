@@ -16,8 +16,6 @@ import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.managedscript.ManagedScriptJobHandler.Outcome;
 import io.camunda.connector.managedscript.ScriptResources.ScriptResource;
-import io.camunda.connector.managedscript.api.ErrorCode;
-import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import io.camunda.connector.managedscript.local.LocalManagedCodeProvider;
@@ -99,17 +97,14 @@ class LocalProviderEndToEndTest {
         Duration.ofSeconds(10));
   }
 
-  /** Whether the provider has an interpreter for the language: the others fail their scripts. */
+  /** Whether the provider has an interpreter for the language. */
   private static boolean isInstalled(LocalManagedCodeProvider provider, ScriptLanguage language) {
     try {
-      provider.ensureExecutors();
+      provider.ensureExecutors(language);
+      return true;
     } catch (ProvisioningException e) {
       return false;
     }
-    final var probe = new ExecutionRequest("0", "", Map.of(), Map.of(), 1_000);
-    final var response = provider.execute(language, probe);
-    return response.error() == null
-        || !ErrorCode.PLATFORM_REJECTED.name().equals(response.error().code());
   }
 
   private static JobContext job() {

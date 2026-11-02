@@ -408,9 +408,12 @@ A provider implements one interface, `ManagedCodeProvider`, and is chosen by its
 name.
 
 - `name()`: the value of the property.
-- `ensureExecutors()`: makes sure the executors exist, run the wrapper of this runtime and have
-  the configured settings, and returns once they can be invoked. Idempotent, and safe to call from
-  several runtime instances at once. It has no default: every provider implements it.
+- `ensureExecutors(language)`: makes sure the executor of the language exists, runs the wrapper of
+  this runtime and has the configured settings, and returns once it can be invoked. Idempotent, and
+  safe to call from several runtime instances at once, and for different languages at once. It has
+  no default: every provider implements it. A `ProvisioningException` it throws carries an error
+  code, which tells whether the connector tries again, and marks a permission denial, which is
+  retried within the grant-propagation window.
 - `execute(language, request)`: sends the request to the executor of the language and returns the
   contract response. It returns a failure as a `FAILED` response instead of throwing it, and reports
   a missing executor as `DEPLOYMENT_MISSING`.
@@ -428,9 +431,9 @@ the expected wrapper.
 
 The connector keeps everything else: fetching the script, waiting for readiness without consuming
 a retry, recovering from `DEPLOYMENT_MISSING`, the limits and the incident text. The
-SPI is **not a stable API** and has no compatibility guarantee yet. In particular,
-[#9909](https://github.com/camunda/connectors/issues/9909) may change the signature of
-`ensureExecutors` so that readiness can be tracked per language.
+SPI is **not a stable API** and has no compatibility guarantee yet. `ensureExecutors` takes the
+language ([#9909](https://github.com/camunda/connectors/issues/9909)), so that readiness is tracked
+per language.
 
 ### Module layout
 

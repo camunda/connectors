@@ -98,7 +98,7 @@ class ManagedScriptErrorExpressionTest {
           }
 
           @Override
-          public void ensureExecutors() {}
+          public void ensureExecutors(ScriptLanguage language) {}
 
           @Override
           public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {

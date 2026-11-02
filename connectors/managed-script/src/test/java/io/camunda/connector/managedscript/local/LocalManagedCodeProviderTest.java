@@ -89,7 +89,7 @@ class LocalManagedCodeProviderTest {
   void runsANodeScriptThroughTheWrapper() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -108,7 +108,7 @@ class LocalManagedCodeProviderTest {
   void runsAPythonScriptThroughTheWrapper() throws IOException {
     requirePython();
     final var provider = provider(List.of(link("python3", python)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
 
     final var response =
         provider.execute(
@@ -126,7 +126,7 @@ class LocalManagedCodeProviderTest {
   void returnsAScriptErrorWithItsStackTrace() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -146,7 +146,7 @@ class LocalManagedCodeProviderTest {
   void stopsAScriptAtItsTimeout() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -161,7 +161,7 @@ class LocalManagedCodeProviderTest {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
 
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var wrapper = wrapperOf(ScriptLanguage.JAVASCRIPT);
     final var installed = directory.resolve(wrapper.executorName("", "local"));
@@ -181,8 +181,8 @@ class LocalManagedCodeProviderTest {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
 
-    provider.ensureExecutors();
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     assertThat(provider.interpreter(ScriptLanguage.JAVASCRIPT)).isNotNull();
   }
@@ -191,14 +191,14 @@ class LocalManagedCodeProviderTest {
   void refusesWrapperFilesThatDoNotMatchTheirDigest() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var installed =
         directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
     Files.writeString(installed.resolve("executor_core.mjs"), "// changed");
 
     final var second = provider(List.of(link("node", node)));
 
-    assertThatThrownBy(second::ensureExecutors)
+    assertThatThrownBy(() -> second.ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOfSatisfying(
             ProvisioningException.class,
             e -> {
@@ -213,12 +213,13 @@ class LocalManagedCodeProviderTest {
   void refusesAFileThatTheWrapperDoesNotHave() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var installed =
         directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
     Files.writeString(installed.resolve("extra.mjs"), "// planted");
 
-    assertThatThrownBy(() -> provider(List.of(link("node", node))).ensureExecutors())
+    assertThatThrownBy(
+            () -> provider(List.of(link("node", node))).ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOf(ProvisioningException.class)
         .hasMessageContaining("do not match the wrapper");
   }
@@ -230,7 +231,7 @@ class LocalManagedCodeProviderTest {
     final var script = request("export function execute() { return { a: 1 }; }", Map.of(), 10_000);
     assertThat(provider.execute(ScriptLanguage.JAVASCRIPT, script).error().code())
         .isEqualTo("DEPLOYMENT_MISSING");
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     assertThat(provider.execute(ScriptLanguage.JAVASCRIPT, script).outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
 
@@ -239,7 +240,7 @@ class LocalManagedCodeProviderTest {
 
     final var missing = provider.execute(ScriptLanguage.JAVASCRIPT, script);
     assertThat(missing.isDeploymentMissing()).isTrue();
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     assertThat(provider.execute(ScriptLanguage.JAVASCRIPT, script).outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
   }
@@ -248,15 +249,19 @@ class LocalManagedCodeProviderTest {
   void failsWithAClearMessageWhenNoInterpreterIsInstalled() {
     final var provider = provider(List.of(bin));
 
-    assertThatThrownBy(provider::ensureExecutors)
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOfSatisfying(
             ProvisioningException.class,
             e -> {
               assertThat(e.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
-              assertThat(e.getMessage())
-                  .contains("Node.js 20 or later was not found on the PATH")
-                  .contains("Python 3.10 or later was not found on the PATH");
+              assertThat(e.getMessage()).contains("Node.js 20 or later was not found on the PATH");
             });
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOfSatisfying(
+            ProvisioningException.class,
+            e ->
+                assertThat(e.getMessage())
+                    .contains("Python 3.10 or later was not found on the PATH"));
   }
 
   @Test
@@ -264,9 +269,13 @@ class LocalManagedCodeProviderTest {
     shim("node", "echo 'No version is set for command node' >&2\nexit 126");
     shim("python3", "echo 'pyenv: python3: command not found' >&2\nexit 127");
 
-    assertThatThrownBy(provider(List.of(bin))::ensureExecutors)
+    final var provider = provider(List.of(bin));
+
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOf(ProvisioningException.class)
-        .hasMessageContaining(bin.resolve("node") + ": No version is set for command node")
+        .hasMessageContaining(bin.resolve("node") + ": No version is set for command node");
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOf(ProvisioningException.class)
         .hasMessageContaining("pyenv: python3: command not found");
   }
 
@@ -275,9 +284,13 @@ class LocalManagedCodeProviderTest {
     shim("node", "case \"$1\" in -p) printf '%s\\n18.19.0\\n' \"$0\";; esac");
     shim("python3", "printf '%s\\n3.9\\n' \"$0\"");
 
-    assertThatThrownBy(provider(List.of(bin))::ensureExecutors)
+    final var provider = provider(List.of(bin));
+
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOf(ProvisioningException.class)
-        .hasMessageContaining("version 18.19.0 is older than Node.js 20")
+        .hasMessageContaining("version 18.19.0 is older than Node.js 20");
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOf(ProvisioningException.class)
         .hasMessageContaining("version 3.9 is older than Python 3.10");
   }
 
@@ -287,7 +300,7 @@ class LocalManagedCodeProviderTest {
     shim("node", "exec '" + node + "' \"$@\"");
     final var provider = provider(List.of(bin));
 
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     assertThat(provider.interpreter(ScriptLanguage.JAVASCRIPT)).isNotEqualTo(bin.resolve("node"));
     assertThat(provider.interpreter(ScriptLanguage.JAVASCRIPT).toRealPath())
@@ -304,19 +317,28 @@ class LocalManagedCodeProviderTest {
     Files.createSymbolicLink(working.resolve("node"), node);
     final var provider = provider(List.of(broken, working));
 
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     assertThat(provider.interpreter(ScriptLanguage.JAVASCRIPT)).isNotNull();
   }
 
   @Test
-  void runsTheLanguagesOfTheInterpretersItHasAndFailsTheOthers() throws IOException {
+  void preparesTheLanguagesOfTheInterpretersItHasAndRefusesTheOthers() throws IOException {
     requireNode();
     Files.createSymbolicLink(bin.resolve("node"), node);
     shim("python3", "echo 'No version is set for command python3' >&2\nexit 126");
     final var provider = provider(List.of(bin));
 
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOfSatisfying(
+            ProvisioningException.class,
+            e -> {
+              assertThat(e.code()).isEqualTo(ErrorCode.PLATFORM_REJECTED);
+              assertThat(e.getMessage())
+                  .contains("Python 3.10 or later")
+                  .contains("No version is set for command python3");
+            });
 
     assertThat(
             provider
@@ -325,15 +347,13 @@ class LocalManagedCodeProviderTest {
                     request("export function execute() { return {}; }", Map.of(), 10_000))
                 .outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
-    final var python =
-        provider.execute(
-            ScriptLanguage.PYTHON,
-            request("def execute(variables, context):\n    return {}\n", Map.of(), 10_000));
-    assertThat(python.outcome()).isEqualTo(ExecutionResponse.FAILED);
-    assertThat(python.error().code()).isEqualTo("PLATFORM_REJECTED");
-    assertThat(python.error().message())
-        .contains("Python 3.10 or later")
-        .contains("No version is set for command python3");
+    assertThat(
+            provider
+                .execute(
+                    ScriptLanguage.PYTHON,
+                    request("def execute(variables, context):\n    return {}\n", Map.of(), 10_000))
+                .isDeploymentMissing())
+        .isTrue();
   }
 
   @Test
@@ -342,7 +362,7 @@ class LocalManagedCodeProviderTest {
     requirePython();
     final var searchPath = List.of(link("node", node), link("python3", python));
     final var first = provider(searchPath);
-    first.ensureExecutors();
+    ensureAll(first);
     assertThat(
             first
                 .execute(
@@ -367,7 +387,7 @@ class LocalManagedCodeProviderTest {
                 .outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
 
-    provider(searchPath).ensureExecutors();
+    ensureAll(provider(searchPath));
 
     for (var language : ScriptLanguage.values()) {
       final var installed = directory.resolve(wrapperOf(language).executorName("", "local"));
@@ -379,21 +399,19 @@ class LocalManagedCodeProviderTest {
   }
 
   @Test
-  void findsAnInterpreterInstalledAfterTheStart() throws IOException {
-    requireNode();
+  void findsAnInterpreterInstalledAfterAFailedAttempt() throws IOException {
     requirePython();
-    Files.createSymbolicLink(bin.resolve("node"), node);
     shim("python3", "echo 'No version is set for command python3' >&2\nexit 126");
     final var provider = provider(List.of(bin));
-    provider.ensureExecutors();
-    final var script =
-        request("def execute(variables, context):\n    return {}\n", Map.of(), 10_000);
-    assertThat(provider.execute(ScriptLanguage.PYTHON, script).error().code())
-        .isEqualTo("PLATFORM_REJECTED");
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.PYTHON))
+        .isInstanceOf(ProvisioningException.class);
 
     Files.delete(bin.resolve("python3"));
     Files.createSymbolicLink(bin.resolve("python3"), python);
 
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+    final var script =
+        request("def execute(variables, context):\n    return {}\n", Map.of(), 10_000);
     assertThat(provider.execute(ScriptLanguage.PYTHON, script).outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
   }
@@ -403,7 +421,8 @@ class LocalManagedCodeProviderTest {
     requireNode();
     Files.setPosixFilePermissions(directory, PosixFilePermissions.fromString("rwxrwxr-x"));
 
-    assertThatThrownBy(provider(List.of(link("node", node)))::ensureExecutors)
+    assertThatThrownBy(
+            () -> provider(List.of(link("node", node))).ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOfSatisfying(
             ProvisioningException.class,
             e -> {
@@ -416,13 +435,14 @@ class LocalManagedCodeProviderTest {
   void refusesAWrapperFileThatOtherUsersCanWrite() throws IOException {
     requireNode();
     final var first = provider(List.of(link("node", node)));
-    first.ensureExecutors();
+    first.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var installed =
         directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
     Files.setPosixFilePermissions(
         installed.resolve("executor_core.mjs"), PosixFilePermissions.fromString("rw-rw-rw-"));
 
-    assertThatThrownBy(provider(List.of(link("node", node)))::ensureExecutors)
+    assertThatThrownBy(
+            () -> provider(List.of(link("node", node))).ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOf(ProvisioningException.class)
         .hasMessageContaining("executor_core.mjs")
         .hasMessageContaining("can be written by other users");
@@ -436,7 +456,7 @@ class LocalManagedCodeProviderTest {
         new LocalManagedCodeProvider(
             linked, JSON, new InterpreterLocator(List.of(link("node", node))));
 
-    assertThatThrownBy(provider::ensureExecutors)
+    assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.JAVASCRIPT))
         .isInstanceOf(ProvisioningException.class)
         .hasMessageContaining("not a link");
   }
@@ -445,7 +465,7 @@ class LocalManagedCodeProviderTest {
   void reportsAMissingCoreFileSoThatTheHandlerPreparesTheExecutorsAgain() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var script = request("export function execute() { return {}; }", Map.of(), 10_000);
     final var installed =
         directory.resolve(wrapperOf(ScriptLanguage.JAVASCRIPT).executorName("", "local"));
@@ -456,7 +476,7 @@ class LocalManagedCodeProviderTest {
     assertThat(response.isDeploymentMissing()).isTrue();
     assertThat(response.error().message()).contains("executor_core.mjs");
     deleteRecursively(installed);
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     assertThat(provider.execute(ScriptLanguage.JAVASCRIPT, script).outcome())
         .isEqualTo(ExecutionResponse.COMPLETED);
   }
@@ -467,7 +487,7 @@ class LocalManagedCodeProviderTest {
     final var provider =
         new LocalManagedCodeProvider(
             directory, JSON, new InterpreterLocator(List.of(bin)), Duration.ofMillis(500));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var input = Map.<String, Object>of("big", "x".repeat(8 * 1024 * 1024));
 
     final var start = System.nanoTime();
@@ -490,7 +510,7 @@ class LocalManagedCodeProviderTest {
             + pidFile
             + "'; sleep 1; kill -9 $$;; esac");
     final var provider = provider(List.of(bin));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -516,7 +536,7 @@ class LocalManagedCodeProviderTest {
             + "*) mkdir \"$EXECUTOR_TMP/run-1\"; echo secret > \"$EXECUTOR_TMP/run-1/user_script.mjs\";"
             + " kill -9 $$;; esac");
     final var provider = provider(List.of(bin));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -539,7 +559,7 @@ class LocalManagedCodeProviderTest {
     final var provider =
         new LocalManagedCodeProvider(
             directory, JSON, new InterpreterLocator(List.of(bin)), Duration.ofMillis(300));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     final var response =
         provider.execute(
@@ -556,7 +576,7 @@ class LocalManagedCodeProviderTest {
   void removesTheDirectoryOfAnInterruptedCall() throws IOException {
     shim("node", "case \"$1\" in -p) printf '%s\\n24.0.0\\n' \"$0\";; *) sleep 60;; esac");
     final var provider = provider(List.of(bin));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
 
     Thread.currentThread().interrupt();
     final ExecutionResponse response;
@@ -582,7 +602,7 @@ class LocalManagedCodeProviderTest {
 
     Thread.currentThread().interrupt();
     try {
-      assertThatThrownBy(provider::ensureExecutors)
+      assertThatThrownBy(() -> provider.ensureExecutors(ScriptLanguage.JAVASCRIPT))
           .isInstanceOfSatisfying(
               ProvisioningException.class,
               e -> assertThat(e.code()).isEqualTo(ErrorCode.PLATFORM_INTERRUPTED));
@@ -596,7 +616,7 @@ class LocalManagedCodeProviderTest {
   void logsWhatTheScriptWritesToItsConsole() throws IOException {
     requireNode();
     final var provider = provider(List.of(link("node", node)));
-    provider.ensureExecutors();
+    provider.ensureExecutors(ScriptLanguage.JAVASCRIPT);
     final var appender = new ListAppender<ILoggingEvent>();
     appender.start();
     final var logger =
@@ -631,6 +651,12 @@ class LocalManagedCodeProviderTest {
     assertThat(LocalRuntime.PYTHON.accepts("3.9")).isFalse();
     assertThat(LocalRuntime.PYTHON.accepts("2.7")).isFalse();
     assertThat(LocalRuntime.PYTHON.accepts("not a version")).isFalse();
+  }
+
+  private static void ensureAll(LocalManagedCodeProvider provider) {
+    for (var language : ScriptLanguage.values()) {
+      provider.ensureExecutors(language);
+    }
   }
 
   private LocalManagedCodeProvider provider(List<Path> searchPath) {
