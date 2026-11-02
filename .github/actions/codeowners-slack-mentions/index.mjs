@@ -8,7 +8,7 @@
 
 import {readFileSync, appendFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {minimatch} from 'minimatch';
+import {Minimatch} from 'minimatch';
 
 const SEP = '/';
 
@@ -63,13 +63,12 @@ export function patternToMatcher(pattern) {
   // everything beneath it; a final "*"/"**" already means "everything here".
   const alsoOwnsDescendants = lastSegment !== '*' && lastSegment !== '**';
 
-  const baseRe = minimatch.makeRe(glob, MINIMATCH_OPTS);
-  if (!baseRe) throw new Error(`invalid pattern: ${pattern}`);
-  const descendantRe = alsoOwnsDescendants
-    ? minimatch.makeRe(`${glob}/**`, MINIMATCH_OPTS)
+  const baseMatcher = new Minimatch(glob, MINIMATCH_OPTS);
+  const descendantMatcher = alsoOwnsDescendants
+    ? new Minimatch(`${glob}/**`, MINIMATCH_OPTS)
     : null;
 
-  return (subject) => baseRe.test(subject) || Boolean(descendantRe?.test(subject));
+  return (subject) => baseMatcher.match(subject) || Boolean(descendantMatcher?.match(subject));
 }
 
 // ---------------------------------------------------------------------------
