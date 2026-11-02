@@ -38,6 +38,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CloudWatchLogsException;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException;
@@ -320,6 +321,26 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
+  void reportsAConcurrentRetentionUpdateAsRetryable() {
+    when(lambda.getFunction(any(GetFunctionRequest.class))).thenThrow(notFound());
+    when(logs.putRetentionPolicy(any(PutRetentionPolicyRequest.class)))
+        .thenThrow(
+            CloudWatchLogsException.builder()
+                .statusCode(400)
+                .awsErrorDetails(
+                    AwsErrorDetails.builder()
+                        .errorCode("OperationAbortedException")
+                        .errorMessage("A conflicting operation is currently in progress")
+                        .build())
+                .build());
+
+    final var failure = ensureFails(ScriptLanguage.PYTHON);
+
+    assertThat(failure.code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE);
+    assertThat(failure.code().retryable()).isTrue();
+  }
+
+  @Test
   void reportsAServiceErrorAsRetryable() {
     when(lambda.getFunction(any(GetFunctionRequest.class)))
         .thenThrow(serviceError(503, "ServiceException"));
@@ -409,6 +430,17 @@ class AwsLambdaManagedCodeProviderTest {
     final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
 
     assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_THROTTLED.name());
+    assertThat(response.error().retryable()).isTrue();
+  }
+
+  @Test
+  void reportsAnInvocationOfAFunctionBeingReactivatedAsUnavailable() {
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenThrow(serviceError(409, "ResourceConflictException"));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE.name());
     assertThat(response.error().retryable()).isTrue();
   }
 

@@ -490,9 +490,23 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       return new ProvisioningException(ErrorCode.PLATFORM_THROTTLED, message, e);
     }
     return new ProvisioningException(
-        e.statusCode() >= 500 ? ErrorCode.PLATFORM_UNAVAILABLE : ErrorCode.PLATFORM_REJECTED,
+        e.statusCode() >= 500 || conflicting(e)
+            ? ErrorCode.PLATFORM_UNAVAILABLE
+            : ErrorCode.PLATFORM_REJECTED,
         message,
         e);
+  }
+
+  /**
+   * Another call on the same resource is in progress: another instance setting the retention of the
+   * log group, or a function that is being updated or reactivated. It passes.
+   */
+  private static boolean conflicting(AwsServiceException e) {
+    final var details = e.awsErrorDetails();
+    final var code = details == null ? null : details.errorCode();
+    return e.statusCode() == 409
+        || "OperationAbortedException".equals(code)
+        || "ResourceConflictException".equals(code);
   }
 
   /** Denied to the identity of the runtime, or the execution role is not assumable yet. */
@@ -516,7 +530,9 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     if (throttled(e)) {
       return ErrorCode.PLATFORM_THROTTLED;
     }
-    return e.statusCode() >= 500 ? ErrorCode.PLATFORM_UNAVAILABLE : ErrorCode.PLATFORM_REJECTED;
+    return e.statusCode() >= 500 || conflicting(e)
+        ? ErrorCode.PLATFORM_UNAVAILABLE
+        : ErrorCode.PLATFORM_REJECTED;
   }
 
   private static boolean throttled(AwsServiceException e) {
