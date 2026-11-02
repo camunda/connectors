@@ -14,8 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,6 +28,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaConnectionConfiguration;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -39,6 +43,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -259,6 +264,39 @@ public class KafkaExecutableTest {
     verify(mockConsumer, times(MAX_ATTEMPTS)).subscribe(anyCollection(), any());
     verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
     verify(mockConsumer, times(MAX_ATTEMPTS)).close();
+  }
+
+  @Test
+  void testConsumerReportedDownWhenLoopEndsWithError() {
+    // Given
+    doNothing().when(mockConsumer).subscribe(anyCollection(), any());
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    var groupMetadataMock = mock(ConsumerGroupMetadata.class);
+    when(groupMetadataMock.groupId()).thenReturn("groupId");
+    when(groupMetadataMock.groupInstanceId()).thenReturn(Optional.of("groupInstanceId"));
+    when(groupMetadataMock.generationId()).thenReturn(1);
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
+    var spyContext = spy(context);
+
+    // When an Error escapes the loop, it is not retried
+    when(mockConsumer.poll(any())).thenThrow(new StackOverflowError("Test error"));
+    kafkaExecutable.activate(spyContext);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .pollInterval(Duration.ofMillis(100))
+        .untilAsserted(() -> assertTrue(kafkaExecutable.kafkaConnectorConsumer.future.isDone()));
+
+    // Then
+    verify(mockConsumer, times(1)).poll(any(Duration.class));
+    ArgumentCaptor<Activity> activities = ArgumentCaptor.forClass(Activity.class);
+    verify(spyContext, atLeastOnce()).log(activities.capture());
+    Health lastHealth =
+        activities.getAllValues().stream()
+            .map(Activity::healthChange)
+            .filter(Objects::nonNull)
+            .reduce((first, second) -> second)
+            .orElseThrow();
+    assertEquals(Health.Status.DOWN, lastHealth.getStatus());
   }
 
   @Test
