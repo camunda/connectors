@@ -27,12 +27,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
-<<<<<<< HEAD
-=======
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
->>>>>>> 76b873b (fix(kafka): reject non-Kafka bootstrap servers before creating the consumer (#9988))
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.model.schema.NoSchemaStrategy;
@@ -44,11 +40,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-<<<<<<< HEAD
-=======
-import java.util.Map;
 import java.util.Objects;
->>>>>>> 76b873b (fix(kafka): reject non-Kafka bootstrap servers before creating the consumer (#9988))
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
