@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** A provider that answers with queued responses and records what it is asked. */
 class FakeProvider implements ManagedCodeProvider {
@@ -23,10 +25,11 @@ class FakeProvider implements ManagedCodeProvider {
 
   private final String name;
   private final Deque<ExecutionResponse> responses = new ArrayDeque<>();
-  private final Deque<RuntimeException> ensureFailures = new ArrayDeque<>();
+  private final Deque<RuntimeException> ensureFailures = new ConcurrentLinkedDeque<>();
   final List<Call> calls = new ArrayList<>();
-  final List<ScriptLanguage> ensured = new ArrayList<>();
-  int ensureCalls;
+
+  /** The languages it was asked to make ready, from the threads of the readiness. */
+  final List<ScriptLanguage> ensured = new CopyOnWriteArrayList<>();
 
   FakeProvider() {
     this("fake");
@@ -34,6 +37,10 @@ class FakeProvider implements ManagedCodeProvider {
 
   FakeProvider(String name) {
     this.name = name;
+  }
+
+  int ensureCalls() {
+    return ensured.size();
   }
 
   FakeProvider respond(ExecutionResponse... queued) {
@@ -53,7 +60,6 @@ class FakeProvider implements ManagedCodeProvider {
 
   @Override
   public void ensureExecutors(ScriptLanguage language) {
-    ensureCalls++;
     ensured.add(language);
     if (!ensureFailures.isEmpty()) {
       throw ensureFailures.poll();

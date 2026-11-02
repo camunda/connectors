@@ -20,8 +20,10 @@ import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +32,9 @@ import org.slf4j.LoggerFactory;
  * executor of its language. Returns the job outcome instead of completing or failing the job, which
  * the connector runtime does.
  *
- * <p>The executors are made ready by the first job that needs them, and by the next job after one
- * is reported missing. Logs never contain the script, its input or its output, nor failure
- * messages, which can quote them.
+ * <p>A job waits for the executor of its language up to the provisioning timeout, which also covers
+ * making it ready again once after it was reported missing. Logs never contain the script, its
+ * input or its output, nor failure messages, which can quote them.
  */
 final class ManagedScriptJobHandler {
 
@@ -52,21 +54,26 @@ final class ManagedScriptJobHandler {
   }
 
   private final ManagedCodeProvider provider;
+  private final ExecutorReadiness readiness;
   private final ScriptResources resources;
   private final ObjectReader linksReader;
+  private final Duration provisioningTimeout;
   private final Duration executionTimeout;
   private final Duration retryBackoff;
-  private final Set<ScriptLanguage> readyLanguages = ConcurrentHashMap.newKeySet();
 
   ManagedScriptJobHandler(
       ManagedCodeProvider provider,
+      ExecutorReadiness readiness,
       ScriptResources resources,
       ObjectMapper objectMapper,
+      Duration provisioningTimeout,
       Duration executionTimeout,
       Duration retryBackoff) {
     this.provider = provider;
+    this.readiness = readiness;
     this.resources = resources;
     this.linksReader = LinkedResources.reader(objectMapper);
+    this.provisioningTimeout = provisioningTimeout;
     this.executionTimeout = executionTimeout;
     this.retryBackoff = retryBackoff;
   }
@@ -101,7 +108,11 @@ final class ManagedScriptJobHandler {
     } catch (ProvisioningException e) {
       outcome =
           failed(
-              job, e.code(), "The executors are not available: " + e.getMessage(), null, language);
+              job,
+              e.code(),
+              "The executor of %s is not ready: %s".formatted(language.language(), e.getMessage()),
+              null,
+              language);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       outcome =
@@ -134,7 +145,8 @@ final class ManagedScriptJobHandler {
   }
 
   private Outcome execute(
-      JobContext job, Map<String, Object> input, ScriptLanguage language, String source) {
+      JobContext job, Map<String, Object> input, ScriptLanguage language, String source)
+      throws InterruptedException {
     final var request =
         new ExecutionRequest(
             Long.toString(job.getJobKey()),
@@ -142,19 +154,41 @@ final class ManagedScriptJobHandler {
             input == null ? Map.of() : input,
             executionContext(job),
             executionTimeout.toMillis());
-    ensureExecutor(language);
-    final var response = provider.execute(language, request);
+    // One budget for the job, so that a missing executor does not double its wait.
+    final long deadline = System.nanoTime() + provisioningTimeout.toNanos();
+    var ready = readiness.start(language);
+    awaitExecutor(language, ready, deadline);
+    var response = provider.execute(language, request);
     if (response != null && response.isDeploymentMissing()) {
-      // The job consumes a retry, and the next job makes the executor ready again.
-      readyLanguages.remove(language);
+      // Made ready again once within the job; missing again, it consumes a retry.
+      ready = readiness.restart(language, ready);
+      awaitExecutor(language, ready, deadline);
+      response = provider.execute(language, request);
     }
     return outcome(job, language, response);
   }
 
-  private void ensureExecutor(ScriptLanguage language) {
-    if (!readyLanguages.contains(language)) {
-      provider.ensureExecutors(language);
-      readyLanguages.add(language);
+  private void awaitExecutor(
+      ScriptLanguage language, CompletableFuture<Void> ready, long deadlineNanos)
+      throws InterruptedException {
+    try {
+      // A bounded wait on the shared attempt: a timeout must not complete or cancel it.
+      ready.get(Math.max(0, deadlineNanos - System.nanoTime()), TimeUnit.NANOSECONDS);
+    } catch (TimeoutException e) {
+      // A retryable failure that lasts must end in an incident.
+      final var lasting = readiness.lastingFailure(language, provisioningTimeout.multipliedBy(2));
+      if (lasting.isPresent()) {
+        throw lasting.get();
+      }
+      throw new ProvisioningException(
+          ErrorCode.PROVISIONING_PENDING,
+          "still being made ready after %s; the job will be retried"
+              .formatted(provisioningTimeout));
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof ProvisioningException failure) {
+        throw failure;
+      }
+      throw new IllegalStateException(e.getCause());
     }
   }
 

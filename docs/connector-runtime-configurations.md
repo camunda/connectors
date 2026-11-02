@@ -29,6 +29,8 @@ camunda.connector.managed-code.enabled=true
 camunda.connector.managed-code.provider=<provider name>
 camunda.connector.managed-code.deployment-name-prefix=camunda-ms-
 camunda.connector.managed-code.execution-timeout=30s
+camunda.connector.managed-code.provisioning-timeout=2m
+camunda.connector.managed-code.grant-propagation-window=2m
 camunda.connector.managed-code.provisioning-retry-backoff=10s
 ```
 
@@ -43,6 +45,19 @@ camunda.connector.managed-code.provisioning-retry-backoff=10s
   such as `ce-` followed by 24 hexadecimal characters and `-`.
 - `execution-timeout` is the deadline of a script, enforced by the executor, which reports
   `TIMEOUT`.
+- `provisioning-timeout` is how long a job waits for the executor of its language, including to
+  make it ready again once when the provider reports it missing. The job then fails with
+  `PROVISIONING_PENDING`, its retries unchanged. Once the runtime is ready, it makes the executors
+  ready in the background, each language on its own, so that a failing Python executor does not
+  hold back JavaScript jobs; a job that arrives earlier starts it. A transient failure is tried
+  again with a backoff that doubles up to 1 minute. When it has lasted longer than twice
+  `provisioning-timeout`, waiting jobs fail with it and consume their retries, so that a lasting
+  failure ends in an incident. A permanent failure fails waiting jobs without retries, and the
+  first job after `provisioning-retry-backoff` tries again.
+- `grant-propagation-window` is how long after the first attempt of the runtime a permission denial
+  is taken for the grants of a new cluster that still propagate (IAM grants took 66 to 98 seconds,
+  measured once): it is tried again, and waiting jobs fail with `PROVISIONING_PENDING`. After the
+  window, a denial is permanent (`PLATFORM_REJECTED`). `0s` turns it off.
 - `provisioning-retry-backoff` is the backoff of a job that failed because of the platform and
   keeps its retries (`PROVISIONING_PENDING`, `PLATFORM_INTERRUPTED`), whatever the task's
   `retryBackoff` header says. A failure that consumes a retry uses the task's `retryBackoff`.
@@ -77,13 +92,12 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
   and starts the real interpreter behind a version-manager shim such as asdf's, which only works from
   the directory it was set up for. A host with only Node.js runs `.js` scripts, and a `.py` script
   fails with a message saying that Python 3.10 or later was not found, until you install it: the
-  next job looks again, so the runtime does not need a restart. The runtime fails the first job, with
-  the reason of each language, when it finds neither.
+  first job after `provisioning-retry-backoff` looks again, so the runtime does not need a restart.
 
-The job timeout of a managed-script task must cover `execution-timeout` and the time the first job
-takes to make the executors ready, so that a script still running does not get its job activated
+The job timeout of a managed-script task must cover `provisioning-timeout` and `execution-timeout`,
+plus a few seconds for the call, so that a script still running does not get its job activated
 again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)
-covers the defaults; set the job timeout of the task when you raise `execution-timeout`.
+covers the defaults; set the job timeout of the task when you raise either.
 
 Each failure has an error code, and the code decides what happens to the job's retries
 (ADR-0008):

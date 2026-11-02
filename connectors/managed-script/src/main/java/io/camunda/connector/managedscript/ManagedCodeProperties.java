@@ -18,6 +18,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param deploymentNamePrefix prefix of every executor name, one per cluster; the identity of the
  *     runtime may only manage executors whose name starts with it (default {@code camunda-ms-})
  * @param executionTimeout how long a script may run before the executor stops it (default 30s)
+ * @param provisioningTimeout how long a job waits for the executor of its language before it fails
+ *     with {@code PROVISIONING_PENDING}, its retries unchanged (default 2m)
+ * @param grantPropagationWindow how long after the first attempt of the runtime a permission denial
+ *     is taken for grants that still propagate, and tried again (default 2m)
  * @param provisioningRetryBackoff backoff of a job that failed because of the platform and keeps
  *     its retries, whatever the task's {@code retryBackoff} header says (default 10s)
  */
@@ -27,6 +31,8 @@ public record ManagedCodeProperties(
     String provider,
     String deploymentNamePrefix,
     Duration executionTimeout,
+    Duration provisioningTimeout,
+    Duration grantPropagationWindow,
     Duration provisioningRetryBackoff) {
 
   static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
@@ -41,6 +47,9 @@ public record ManagedCodeProperties(
       Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
 
   private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
+  // IAM grants took 66 to 98 seconds to apply, measured once.
+  private static final Duration DEFAULT_GRANT_PROPAGATION_WINDOW = Duration.ofMinutes(2);
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
   public ManagedCodeProperties {
@@ -56,6 +65,11 @@ public record ManagedCodeProperties(
               .formatted(deploymentNamePrefix, MAX_DEPLOYMENT_NAME_PREFIX_LENGTH));
     }
     executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
+    provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
+    grantPropagationWindow =
+        grantPropagationWindow == null || grantPropagationWindow.isNegative()
+            ? DEFAULT_GRANT_PROPAGATION_WINDOW
+            : grantPropagationWindow;
     provisioningRetryBackoff =
         positive(provisioningRetryBackoff, DEFAULT_PROVISIONING_RETRY_BACKOFF);
   }

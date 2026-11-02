@@ -87,12 +87,14 @@ class LocalProviderEndToEndTest {
     assumeTrue(isInstalled(provider, language), "no interpreter for " + language.language());
     return new ManagedScriptJobHandler(
         provider,
+        new ExecutorReadiness(provider, Duration.ofSeconds(10), Duration.ZERO),
         new ScriptResources(
             16,
             (camundaClient, resourceKey, timeout) -> new ScriptResource(fileName, source),
             Duration.ofSeconds(1),
             Duration.ofMillis(10)),
         ConnectorsObjectMapperSupplier.getCopy(),
+        Duration.ofSeconds(30),
         Duration.ofSeconds(30),
         Duration.ofSeconds(10));
   }

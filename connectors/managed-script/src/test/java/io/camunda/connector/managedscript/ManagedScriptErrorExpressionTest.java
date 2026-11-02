@@ -117,8 +117,10 @@ class ManagedScriptErrorExpressionTest {
         new ManagedScriptFunction(
             new ManagedScriptJobHandler(
                 provider,
+                new ExecutorReadiness(provider, Duration.ofSeconds(10), Duration.ZERO),
                 resources,
                 ConnectorsObjectMapperSupplier.getCopy(),
+                Duration.ofSeconds(30),
                 Duration.ofSeconds(30),
                 Duration.ofSeconds(10)),
             clients);
