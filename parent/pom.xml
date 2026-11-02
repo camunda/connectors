@@ -176,7 +176,7 @@ limitations under the License.</license.inlineheader>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
-    <version.netty>4.2.19.Final</version.netty>
+    <version.netty>4.2.20.Final</version.netty>
 
     <!-- CVE-2026-90559: snappy-java transitive override — remove once kafka-clients ships snappy-java >= 1.1.10.10
          Ref: https://nvd.nist.gov/vuln/detail/CVE-2026-90559 -->
