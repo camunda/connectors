@@ -102,6 +102,11 @@ public class KafkaConnectorConsumer {
             .getAsync(retryableFutureSupplier)
             .exceptionally(
                 (e) -> {
+                  // Errors (e.g. OutOfMemoryError) are not retried and bypass the reportDown in
+                  // consume(), so the connector would otherwise stay UP while no longer consuming
+                  if (shouldLoop) {
+                    reportDown(e);
+                  }
                   shouldLoop = false;
                   throw new RuntimeException(
                       "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
