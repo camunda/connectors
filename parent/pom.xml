@@ -122,6 +122,7 @@ limitations under the License.</license.inlineheader>
     <version.aws-lambda-java-core>1.4.1</version.aws-lambda-java-core>
 
     <version.okhttp>5.5.1</version.okhttp>
+    <version.okio>3.18.2</version.okio>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
     <version.opensearch-client>2.26.0</version.opensearch-client>
     <!-- CVE-2026-9563: parsson transitive override — remove once opensearch-java ships parsson >= 1.1.8
@@ -771,12 +772,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio</artifactId>
-        <version>3.18.2</version>
+        <version>${version.okio}</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.okio</groupId>
         <artifactId>okio-jvm</artifactId>
-        <version>3.18.2</version>
+        <version>${version.okio}</version>
       </dependency>
       <dependency>
         <groupId>dev.cel</groupId>
