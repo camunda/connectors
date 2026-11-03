@@ -18,7 +18,8 @@ public interface PromptConfiguration {
   String prompt();
 
   record SystemPromptConfiguration(
-      @FEEL
+      @NotBlank
+          @FEEL
           @TemplateProperty(
               group = "systemPrompt",
               label = "System prompt",
