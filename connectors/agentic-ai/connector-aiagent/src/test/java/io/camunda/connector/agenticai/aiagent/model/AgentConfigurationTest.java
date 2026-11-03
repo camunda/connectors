@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.agenticai.aiagent.model.request.LimitsConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
@@ -22,8 +24,18 @@ import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration.OpenAiBackend.OpenAiCustomBackend.CustomBackend;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiCustomEndpointAuthentication.ApiKeyAuthentication;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,6 +79,39 @@ class AgentConfigurationTest {
         null,
         null,
         null);
+  }
+
+  private static AgentConfiguration configurationWithTool(Map<String, Object> inputSchema) {
+    return configuration("gpt-4o", "Be nice.", null, List.of(tool("getWeather", inputSchema)));
+  }
+
+  private static ToolDefinition tool(String name, Map<String, Object> inputSchema) {
+    return ToolDefinition.builder()
+        .name(name)
+        .description("Get the weather forecast")
+        .inputSchema(inputSchema)
+        .build();
+  }
+
+  /** A map that keeps the given entries in the given order, like a map built by Jackson. */
+  private static Map<String, Object> ordered(Object... keysAndValues) {
+    if (keysAndValues.length % 2 != 0) {
+      throw new IllegalArgumentException("Expected pairs of a key and a value");
+    }
+    final var map = new LinkedHashMap<String, Object>();
+    for (int i = 0; i + 1 < keysAndValues.length; i += 2) {
+      map.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return map;
+  }
+
+  private static Map<String, Object> schemaWithParameters(String... parameters) {
+    final var properties = new LinkedHashMap<String, Object>();
+    for (String parameter : parameters) {
+      properties.put(parameter, ordered("type", "string", "description", parameter));
+    }
+    return ordered(
+        "type", "object", "properties", properties, "required", Arrays.asList(parameters));
   }
 
   @Nested
@@ -169,6 +214,198 @@ class AgentConfigurationTest {
 
       assertThat(first.chatModel().provider()).isEqualTo(second.chatModel().provider());
       assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
+    }
+
+    @Test
+    void keyOrderOfSchemaMapsAtAnyDepthDoesNotChangeFingerprint() {
+      final var first =
+          ordered(
+              "type",
+              "object",
+              "properties",
+              ordered(
+                  "days",
+                  ordered(
+                      "minimum",
+                      1,
+                      "maximum",
+                      7,
+                      "items",
+                      List.of(ordered("a", 1, "b", ordered("c", 1, "d", 2)))),
+                  "city",
+                  ordered("type", "string", "enum", List.of("Berlin", "Paris"))),
+              "required",
+              List.of("days", "city"));
+      final var second =
+          ordered(
+              "required",
+              List.of("days", "city"),
+              "properties",
+              ordered(
+                  "days",
+                  ordered(
+                      "items",
+                      List.of(ordered("b", ordered("d", 2, "c", 1), "a", 1)),
+                      "maximum",
+                      7,
+                      "minimum",
+                      1),
+                  "city",
+                  ordered("enum", List.of("Berlin", "Paris"), "type", "string")),
+              "type",
+              "object");
+
+      assertThat(configurationWithTool(first).fingerprint())
+          .isEqualTo(configurationWithTool(second).fingerprint());
+    }
+
+    @Test
+    void keyOrderOfSchemaMapsInsideAParameterNamedPropertiesDoesNotChangeFingerprint() {
+      final var first =
+          ordered(
+              "properties", ordered("properties", ordered("type", "string", "description", "d")));
+      final var second =
+          ordered(
+              "properties", ordered("properties", ordered("description", "d", "type", "string")));
+
+      assertThat(configurationWithTool(first).fingerprint())
+          .isEqualTo(configurationWithTool(second).fingerprint());
+    }
+
+    @Test
+    void orderOfParametersChangesFingerprint() {
+      final var first = configurationWithTool(schemaWithParameters("city", "days")).fingerprint();
+      final var second = configurationWithTool(schemaWithParameters("days", "city")).fingerprint();
+
+      assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void orderOfRequiredChangesFingerprint() {
+      final var first =
+          ordered(
+              "properties",
+              schemaWithParameters("a", "b").get("properties"),
+              "required",
+              List.of("a", "b"));
+      final var second =
+          ordered(
+              "properties",
+              schemaWithParameters("a", "b").get("properties"),
+              "required",
+              List.of("b", "a"));
+
+      assertThat(configurationWithTool(first).fingerprint())
+          .isNotEqualTo(configurationWithTool(second).fingerprint());
+    }
+
+    @Test
+    void orderOfToolsChangesFingerprint() {
+      final var getWeather = tool("getWeather", Map.of("type", "object"));
+      final var getTime = tool("getTime", Map.of("type", "object"));
+
+      final var first =
+          configuration("gpt-4o", "Be nice.", null, List.of(getWeather, getTime)).fingerprint();
+      final var second =
+          configuration("gpt-4o", "Be nice.", null, List.of(getTime, getWeather)).fingerprint();
+
+      assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void changedSchemaDetailChangesFingerprint() {
+      final var first =
+          configurationWithTool(ordered("properties", ordered("days", ordered("maximum", 7))));
+      final var second =
+          configurationWithTool(ordered("properties", ordered("days", ordered("maximum", 8))));
+
+      assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
+    }
+
+    @Test
+    void toolWithoutDescriptionHasAFingerprint() {
+      final var tools = List.of(ToolDefinition.builder().name("getWeather").build());
+
+      assertThat(configuration("gpt-4o", "Be nice.", null, tools).fingerprint())
+          .matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void toolDefinitionHoldsNoSet() {
+      // the iteration order of a set is unspecified and no flag of the mapper sorts it
+      assertThat(ToolDefinition.class.getRecordComponents())
+          .noneMatch(component -> Set.class.isAssignableFrom(component.getType()));
+    }
+
+    @Test
+    void numbersHashTheSameFreshAndAfterAPersistenceRoundTrip() throws JsonProcessingException {
+      final var mapper = ConnectorsObjectMapperSupplier.getCopy();
+      final var schema =
+          ordered(
+              "properties",
+              ordered(
+                  "price",
+                      ordered("minimum", new BigDecimal("0.10"), "maximum", new BigDecimal("2.50")),
+                  "count", ordered("maximum", new BigDecimal("1E+2")),
+                  "ratio",
+                      ordered(
+                          "default",
+                          BigDecimal.ONE.divide(new BigDecimal(3), MathContext.DECIMAL128)),
+                  "big", ordered("maximum", new BigDecimal("9007199254740993")),
+                  "scaled", ordered("maximum", 100.0)));
+      final var fresh = configurationWithTool(schema);
+
+      final var json = mapper.writeValueAsString(fresh.toolDefinitions());
+      final List<ToolDefinition> reloaded = mapper.readValue(json, new TypeReference<>() {});
+
+      assertThat(fresh.withToolDefinitions(reloaded).fingerprint()).isEqualTo(fresh.fingerprint());
+    }
+
+    @Test
+    void numbersThatDifferChangeFingerprint() {
+      final var first = configurationWithTool(ordered("maximum", 9007199254740992L));
+      final var second = configurationWithTool(ordered("maximum", 9007199254740993L));
+
+      assertThat(first.fingerprint()).isNotEqualTo(second.fingerprint());
+    }
+
+    @Test
+    void fingerprintIsTheDigestOfTheCanonicalJsonOfTheConfiguration()
+        throws NoSuchAlgorithmException {
+      final var configuration =
+          configuration(
+              "gpt-4o",
+              "Be nice.",
+              10,
+              List.of(
+                  tool(
+                      "getWeather",
+                      ordered(
+                          "type",
+                          "object",
+                          "properties",
+                          ordered(
+                              "city",
+                              ordered("type", "string"),
+                              "days",
+                              ordered("type", "integer")),
+                          "required",
+                          List.of("city")))));
+
+      final var json =
+          """
+          ["gpt-4o","%s","Be nice.",10,[["getWeather","Get the weather forecast",\
+          {"properties":{"city":{"type":"string"},"days":{"type":"integer"}},"required":["city"],"type":"object"},\
+          ["city","days"]]]]\
+          """
+              .formatted(configuration.chatModel().descriptiveProvider());
+      final var expected =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(json.getBytes(StandardCharsets.UTF_8)));
+
+      assertThat(configuration.fingerprint()).isEqualTo(expected);
     }
 
     @Test

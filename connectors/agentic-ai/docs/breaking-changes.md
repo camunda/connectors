@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [Persisted data](#persisted-data-8-11)                                       | Code reading the `CONFIGURATION` items of the agent instance history |
 
 ### Module split
 
@@ -189,6 +190,14 @@ The MCP and A2A server URLs must be HTTP or HTTPS URLs (`common.validation.HttpU
 A URL without the `http://` or `https://` scheme fails the validation. A runtime with such an MCP
 client in its properties does not start.
 
+
+<a id="persisted-data-8-11"></a>
+
+### Persisted data
+
+- The configuration fingerprint, the id of the `CONFIGURATION` agent instance history item, is computed differently: it is a
+  SHA-256 over a JSON serialization of the configuration. Every running agent instance, also one created before 8.11, writes
+  one additional `CONFIGURATION` history item on its first job after the upgrade.
 
 ## Camunda 8.9 to 8.10
 
