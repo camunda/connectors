@@ -16,7 +16,9 @@ import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingCredentia
 import io.camunda.connector.model.embedding.models.BedrockEmbeddingCredential;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingCredential;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingCredential;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbCredential;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchCredential;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsCredential;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchCredential;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlCredential;
 import io.camunda.connector.model.embedding.vector.store.ElasticsearchCredential;
@@ -41,7 +43,9 @@ import io.camunda.connector.model.embedding.vector.store.OpenSearchCredential;
       AzureCosmosDbNoSqlCredential.class,
       AmazonManagedOpenSearchCredential.class,
       OpenSearchCredential.class,
-      ElasticsearchCredential.class
+      ElasticsearchCredential.class,
+      AmazonS3VectorsCredential.class,
+      AmazonDynamoDbCredential.class
     },
     version = 4,
     propertyGroups = {

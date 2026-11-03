@@ -11,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
@@ -22,7 +24,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Binds real JSON-shaped variables, as the runtime does, to cover the authentication discriminators
  * that direct record construction cannot reach: a Modeler diagram keeps a leftover inline
- * discriminator when a credential is bound, and the inline value is the fallback otherwise.
+ * discriminator when a credential is bound, and the inline value is the fallback otherwise. The AWS
+ * stores have no discriminator; their cases check that the store type and credential bind from
+ * JSON.
  */
 class EmbeddingsCredentialBindingTest {
 
@@ -208,5 +212,68 @@ class EmbeddingsCredentialBindingTest {
 
     var config = ((AzureCosmosDbNoSqlVectorStore) request.vectorStore()).azureCosmosDbNoSql();
     assertThat(apiKey(config.authentication())).isEqualTo("INLINE_KEY");
+  }
+
+  @Test
+  void s3VectorsCredentialWinsOverInline() {
+    var request =
+        bind(OPEN_AI_MODEL, s3VectorsStore(Map.of("accessKey", "CRED_AK", "secretKey", "CRED_SK")));
+
+    var config = ((AmazonS3VectorsVectorStore) request.vectorStore()).amazonS3Vectors();
+    assertThat(config.accessKey()).isEqualTo("CRED_AK");
+    assertThat(config.secretKey()).isEqualTo("CRED_SK");
+    assertThat(config.vectorBucketName()).isEqualTo("bucket");
+  }
+
+  @Test
+  void s3VectorsInlineUsedWhenNoCredential() {
+    var request = bind(OPEN_AI_MODEL, s3VectorsStore(null));
+
+    var config = ((AmazonS3VectorsVectorStore) request.vectorStore()).amazonS3Vectors();
+    assertThat(config.accessKey()).isEqualTo("INLINE_AK");
+    assertThat(config.secretKey()).isEqualTo("INLINE_SK");
+  }
+
+  @Test
+  void dynamoDbCredentialWinsOverInline() {
+    var request =
+        bind(OPEN_AI_MODEL, dynamoDbStore(Map.of("accessKey", "CRED_AK", "secretKey", "CRED_SK")));
+
+    var config = ((AmazonDynamoDbVectorStore) request.vectorStore()).amazonDynamoDb();
+    assertThat(config.accessKey()).isEqualTo("CRED_AK");
+    assertThat(config.secretKey()).isEqualTo("CRED_SK");
+    assertThat(config.tableName()).isEqualTo("table");
+  }
+
+  @Test
+  void dynamoDbInlineUsedWhenNoCredential() {
+    var request = bind(OPEN_AI_MODEL, dynamoDbStore(null));
+
+    var config = ((AmazonDynamoDbVectorStore) request.vectorStore()).amazonDynamoDb();
+    assertThat(config.accessKey()).isEqualTo("INLINE_AK");
+    assertThat(config.secretKey()).isEqualTo("INLINE_SK");
+  }
+
+  private static Map<String, Object> s3VectorsStore(Map<String, Object> credential) {
+    var config = awsStoreConfig("amazonS3VectorsCredential", credential);
+    config.put("vectorBucketName", "bucket");
+    return Map.of("storeType", "amazonS3VectorsStore", "amazonS3Vectors", config);
+  }
+
+  private static Map<String, Object> dynamoDbStore(Map<String, Object> credential) {
+    var config = awsStoreConfig("amazonDynamoDbCredential", credential);
+    config.put("tableName", "table");
+    return Map.of("storeType", "amazonDynamoDbStore", "amazonDynamoDb", config);
+  }
+
+  private static Map<String, Object> awsStoreConfig(
+      String credentialKey, Map<String, Object> credential) {
+    var config = new HashMap<String, Object>();
+    config.put("accessKey", "INLINE_AK");
+    config.put("secretKey", "INLINE_SK");
+    config.put("region", "us-east-1");
+    config.put("indexName", "index");
+    putIfNotNull(config, credentialKey, credential);
+    return config;
   }
 }

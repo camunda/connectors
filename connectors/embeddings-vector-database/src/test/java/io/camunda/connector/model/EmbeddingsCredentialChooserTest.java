@@ -17,8 +17,12 @@ import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelP
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingCredential;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbCredential;
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchCredential;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsCredential;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchCredential;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
@@ -249,6 +253,80 @@ class EmbeddingsCredentialChooserTest {
       var cfg =
           new AmazonManagedOpenSearchVectorStore.Configuration(
               null, null, null, "https://server", "us-east-1", "index");
+      assertThat(messages(cfg))
+          .contains(
+              "No access key provided by the credential or the element template",
+              "No secret key provided by the credential or the element template");
+    }
+  }
+
+  @Nested
+  class AmazonS3Vectors {
+    @Test
+    void credentialWinsOverInline() {
+      var cfg =
+          new AmazonS3VectorsVectorStore.Configuration(
+              new AmazonS3VectorsCredential("CRED_AK", "CRED_SK"),
+              "INLINE_AK",
+              "INLINE_SK",
+              "us-east-1",
+              "bucket",
+              "index");
+      assertThat(cfg.accessKey()).isEqualTo("CRED_AK");
+      assertThat(cfg.secretKey()).isEqualTo("CRED_SK");
+    }
+
+    @Test
+    void inlineUsedWhenNoCredential() {
+      var cfg =
+          new AmazonS3VectorsVectorStore.Configuration(
+              null, "INLINE_AK", "INLINE_SK", "us-east-1", "bucket", "index");
+      assertThat(cfg.accessKey()).isEqualTo("INLINE_AK");
+      assertThat(cfg.secretKey()).isEqualTo("INLINE_SK");
+    }
+
+    @Test
+    void failsWhenNeitherPresent() {
+      var cfg =
+          new AmazonS3VectorsVectorStore.Configuration(
+              null, null, null, "us-east-1", "bucket", "index");
+      assertThat(messages(cfg))
+          .contains(
+              "No access key provided by the credential or the element template",
+              "No secret key provided by the credential or the element template");
+    }
+  }
+
+  @Nested
+  class AmazonDynamoDb {
+    @Test
+    void credentialWinsOverInline() {
+      var cfg =
+          new AmazonDynamoDbVectorStore.Configuration(
+              new AmazonDynamoDbCredential("CRED_AK", "CRED_SK"),
+              "INLINE_AK",
+              "INLINE_SK",
+              "us-east-1",
+              "table",
+              "index");
+      assertThat(cfg.accessKey()).isEqualTo("CRED_AK");
+      assertThat(cfg.secretKey()).isEqualTo("CRED_SK");
+    }
+
+    @Test
+    void inlineUsedWhenNoCredential() {
+      var cfg =
+          new AmazonDynamoDbVectorStore.Configuration(
+              null, "INLINE_AK", "INLINE_SK", "us-east-1", "table", "index");
+      assertThat(cfg.accessKey()).isEqualTo("INLINE_AK");
+      assertThat(cfg.secretKey()).isEqualTo("INLINE_SK");
+    }
+
+    @Test
+    void failsWhenNeitherPresent() {
+      var cfg =
+          new AmazonDynamoDbVectorStore.Configuration(
+              null, null, null, "us-east-1", "table", "index");
       assertThat(messages(cfg))
           .contains(
               "No access key provided by the credential or the element template",

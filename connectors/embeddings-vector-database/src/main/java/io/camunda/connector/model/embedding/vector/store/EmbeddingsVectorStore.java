@@ -29,6 +29,12 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(
       value = AzureAiSearchVectorStore.class,
       name = AzureAiSearchVectorStore.AZURE_AI_SEARCH_STORE),
+  @JsonSubTypes.Type(
+      value = AmazonS3VectorsVectorStore.class,
+      name = AmazonS3VectorsVectorStore.AMAZON_S3_VECTORS_STORE),
+  @JsonSubTypes.Type(
+      value = AmazonDynamoDbVectorStore.class,
+      name = AmazonDynamoDbVectorStore.AMAZON_DYNAMODB_STORE),
 })
 @TemplateDiscriminatorProperty(
     name = "storeType",
@@ -38,7 +44,9 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     label = "Embeddings store",
     description = "Select embedding store")
 public sealed interface EmbeddingsVectorStore
-    permits AmazonManagedOpenSearchVectorStore,
+    permits AmazonDynamoDbVectorStore,
+        AmazonManagedOpenSearchVectorStore,
+        AmazonS3VectorsVectorStore,
         AzureAiSearchVectorStore,
         AzureCosmosDbNoSqlVectorStore,
         ElasticsearchVectorStore,

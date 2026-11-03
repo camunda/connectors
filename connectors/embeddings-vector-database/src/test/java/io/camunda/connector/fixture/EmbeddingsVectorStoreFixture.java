@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.fixture;
 
+import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
+import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
@@ -36,6 +38,18 @@ public class EmbeddingsVectorStoreFixture {
             "https://opensearch.aws",
             "us-east-1",
             "embeddings_idx"));
+  }
+
+  public static AmazonS3VectorsVectorStore createAmazonS3VectorsVectorStore() {
+    return new AmazonS3VectorsVectorStore(
+        new AmazonS3VectorsVectorStore.Configuration(
+            null, "ACCESS_KEY", "SECRET_KEY", "us-east-1", "vector-bucket", "embeddings_idx"));
+  }
+
+  public static AmazonDynamoDbVectorStore createAmazonDynamoDbVectorStore() {
+    return new AmazonDynamoDbVectorStore(
+        new AmazonDynamoDbVectorStore.Configuration(
+            null, "ACCESS_KEY", "SECRET_KEY", "us-east-1", "embeddings", "embeddings_idx"));
   }
 
   public static AzureCosmosDbNoSqlVectorStore createAzureCosmosDbNoSqlVectorStore() {
