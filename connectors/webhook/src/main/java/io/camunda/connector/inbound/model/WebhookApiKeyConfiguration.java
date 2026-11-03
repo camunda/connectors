@@ -29,6 +29,13 @@ public record WebhookApiKeyConfiguration(
             constraints = @PropertyConstraints(notEmpty = true))
         String apiKey) {
 
+  /** See {@link WebhookBasicAuthConfiguration}: the required field is checked here. */
+  public WebhookApiKeyConfiguration {
+    if (apiKey == null || apiKey.isBlank()) {
+      throw new IllegalArgumentException("apiKey is required in the webhook API key credential");
+    }
+  }
+
   @Override
   public String toString() {
     return "WebhookApiKeyConfiguration{apiKey=[REDACTED]}";

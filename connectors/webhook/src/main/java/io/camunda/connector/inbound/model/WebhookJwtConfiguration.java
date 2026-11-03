@@ -40,4 +40,18 @@ public record WebhookJwtConfiguration(
             label = "Audience",
             description = "Expected value of the JWT 'aud' claim",
             constraints = @PropertyConstraints(notEmpty = true))
-        String audience) {}
+        String audience) {
+
+  /** See {@link WebhookBasicAuthConfiguration}: the required fields are checked here. */
+  public WebhookJwtConfiguration {
+    requirePresent(jwkUrl, "jwkUrl");
+    requirePresent(issuer, "issuer");
+    requirePresent(audience, "audience");
+  }
+
+  private static void requirePresent(String value, String name) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException(name + " is required in the webhook JWT credential");
+    }
+  }
+}

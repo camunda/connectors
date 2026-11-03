@@ -289,6 +289,54 @@ class WebhookAuthorizationCredentialTest {
   }
 
   @Test
+  void basicCredentialWithAnEmptyUsername_isRejectedWhenBinding() {
+    assertThatThrownBy(
+            () ->
+                bind(
+                    """
+                    { "type": "BASIC",
+                      "basicCredential": { "username": "", "password": "cred-pass" } }
+                    """))
+        .hasRootCauseMessage("username is required in the webhook Basic credential");
+  }
+
+  @Test
+  void basicCredentialWithABlankPassword_isRejected() {
+    assertThatThrownBy(() -> new WebhookBasicAuthConfiguration("cred-user", "  "))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("password is required in the webhook Basic credential");
+  }
+
+  @Test
+  void apiKeyCredentialWithABlankKey_isRejectedWhenBinding() {
+    assertThatThrownBy(
+            () ->
+                bind(
+                    """
+                    { "type": "APIKEY", "apiKeyLocator": "%s",
+                      "apiKeyCredential": { "apiKey": "  " } }
+                    """
+                        .formatted(LOCATOR.replace("\"", "\\\""))))
+        .hasRootCauseMessage("apiKey is required in the webhook API key credential");
+  }
+
+  @Test
+  void jwtCredentialWithAnEmptyField_isRejectedWhenBinding() {
+    assertThatThrownBy(
+            () ->
+                bind(
+                    """
+                    { "type": "JWT",
+                      "jwt": { "jwtCredential": {
+                        "jwkUrl": "", "issuer": "https://idp.example", "audience": "api1" } } }
+                    """))
+        .hasRootCauseMessage("jwkUrl is required in the webhook JWT credential");
+    assertThatThrownBy(() -> new WebhookJwtConfiguration("https://idp.example/jwks", null, "api1"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("issuer is required in the webhook JWT credential");
+  }
+
+  @Test
   void credentialsDoNotLeakTheirSecretsIntoToString() {
     assertThat(new WebhookBasicAuthConfiguration("user", CREDENTIAL_VALUE).toString())
         .doesNotContain(CREDENTIAL_VALUE)

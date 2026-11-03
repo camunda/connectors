@@ -33,6 +33,20 @@ public record WebhookBasicAuthConfiguration(
             constraints = @PropertyConstraints(notEmpty = true))
         String password) {
 
+  /**
+   * Activation does not cascade bean validation into the credential, so the required fields are
+   * checked here. Hub's form already enforces them; this guards a credential created through the
+   * cluster-variable API.
+   */
+  public WebhookBasicAuthConfiguration {
+    if (username == null || username.isBlank()) {
+      throw new IllegalArgumentException("username is required in the webhook Basic credential");
+    }
+    if (password == null || password.isBlank()) {
+      throw new IllegalArgumentException("password is required in the webhook Basic credential");
+    }
+  }
+
   @Override
   public String toString() {
     return "WebhookBasicAuthConfiguration{username='" + username + "', password=[REDACTED]}";
