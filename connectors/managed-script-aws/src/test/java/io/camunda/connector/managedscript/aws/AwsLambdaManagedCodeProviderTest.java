@@ -25,6 +25,8 @@ import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -483,7 +485,33 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
-  void reportsAResponseOutsideTheContractAsAnInvalidResult() {
+  void reportsAnInvocationThatCouldNotConnectAsUnavailable() {
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenThrow(
+            SdkClientException.create(
+                "Unable to execute HTTP request", new ConnectException("Connection refused")));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE.name());
+    assertThat(response.error().retryable()).isTrue();
+  }
+
+  @Test
+  void reportsAnInvocationLostAfterItWasSentAsAPlatformExecutionFailure() {
+    when(invoker.invoke(any(InvokeRequest.class)))
+        .thenThrow(
+            SdkClientException.create(
+                "Unable to execute HTTP request", new SocketTimeoutException("Read timed out")));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_EXECUTION_FAILED.name());
+    assertThat(response.error().retryable()).isFalse();
+  }
+
+  @Test
+  void reportsAResponseOutsideTheContractAsAPlatformExecutionFailure() {
     when(invoker.invoke(any(InvokeRequest.class)))
         .thenReturn(
             InvokeResponse.builder()
@@ -493,7 +521,7 @@ class AwsLambdaManagedCodeProviderTest {
 
     final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
 
-    assertThat(response.error().code()).isEqualTo(ErrorCode.INVALID_RESULT.name());
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_EXECUTION_FAILED.name());
   }
 
   @Test

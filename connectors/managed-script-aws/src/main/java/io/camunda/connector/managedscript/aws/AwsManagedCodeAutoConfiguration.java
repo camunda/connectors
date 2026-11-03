@@ -7,30 +7,34 @@
 package io.camunda.connector.managedscript.aws;
 
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.managedscript.ManagedCodeAutoConfiguration;
-import io.camunda.connector.managedscript.ManagedCodeProperties;
+import io.camunda.connector.managedscript.api.ManagedCodeSettings;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 /**
  * Registers the {@code aws} provider when managed code is enabled with it. The module is not in the
  * default bundle: a distribution that offers managed scripts on AWS adds it to the classpath.
  */
-@AutoConfiguration(before = ManagedCodeAutoConfiguration.class)
+@AutoConfiguration(beforeName = "io.camunda.connector.managedscript.ManagedCodeAutoConfiguration")
 @ConditionalOnBooleanProperty("camunda.connector.managed-code.enabled")
 @ConditionalOnProperty(
     prefix = "camunda.connector.managed-code",
     name = "provider",
     havingValue = AwsLambdaManagedCodeProvider.NAME)
-@EnableConfigurationProperties({ManagedCodeProperties.class, AwsManagedCodeProperties.class})
+@EnableConfigurationProperties(AwsManagedCodeProperties.class)
 public class AwsManagedCodeAutoConfiguration {
 
   @Bean
   AwsLambdaManagedCodeProvider awsLambdaManagedCodeProvider(
-      ManagedCodeProperties shared, AwsManagedCodeProperties aws) {
+      Environment environment, AwsManagedCodeProperties aws) {
+    // Bound here, not taken from the connector, which this module does not depend on.
+    final var shared =
+        Binder.get(environment).bindOrCreate(ManagedCodeSettings.PREFIX, ManagedCodeSettings.class);
     final var functionTimeoutSeconds =
         AwsLambdaManagedCodeProvider.functionTimeoutSeconds(shared.executionTimeout());
     return new AwsLambdaManagedCodeProvider(

@@ -131,9 +131,10 @@ camunda.connector.managed-code.aws.log-retention-days=30
   The configuration holds no access key.
 - A script is invoked synchronously, never retried by the SDK, so that it runs at most once per job
   attempt. A request above 6 MB, the script and its input as JSON, fails with `RESOURCE_LIMIT`
-  before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error with
-  `PLATFORM_UNAVAILABLE`, and a Lambda function error, such as the function timeout or memory, with
-  `PLATFORM_EXECUTION_FAILED`.
+  before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error or a
+  connection that could not be made with `PLATFORM_UNAVAILABLE`. A Lambda function error, such as
+  the function timeout or memory, a connection lost after the request was sent, and a response
+  outside the contract fail with `PLATFORM_EXECUTION_FAILED`: the script may have run.
 - A denied call, while making the executors ready or invoking them, is retried as long as the grants
   of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`.
 - The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete

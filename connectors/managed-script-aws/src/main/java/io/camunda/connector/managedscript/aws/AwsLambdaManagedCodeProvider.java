@@ -15,6 +15,9 @@ import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Map;
@@ -256,9 +259,17 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
           invocationCode(e),
           bounded("Lambda executor '%s' was not called: %s".formatted(name, message(e))));
     } catch (SdkClientException e) {
+      if (notSent(e)) {
+        return ExecutionResponse.failed(
+            ErrorCode.PLATFORM_UNAVAILABLE,
+            bounded("Lambda executor '%s' was not called: %s".formatted(name, message(e))));
+      }
+      // The request may have reached the function: calling it again could run the script twice.
       return ExecutionResponse.failed(
-          ErrorCode.PLATFORM_UNAVAILABLE,
-          bounded("The call to Lambda executor '%s' failed: %s".formatted(name, message(e))));
+          ErrorCode.PLATFORM_EXECUTION_FAILED,
+          bounded(
+              "The call to Lambda executor '%s' failed after it was sent: %s"
+                  .formatted(name, message(e))));
     }
     final var body = response.payload() == null ? null : response.payload().asUtf8String();
     if (response.functionError() != null) {
@@ -278,9 +289,24 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     } catch (IOException e) {
       // Not a response: reported below.
     }
+    // The wrapper writes the response, not the script: a broken one is the platform's failure.
     return ExecutionResponse.failed(
-        ErrorCode.INVALID_RESULT,
+        ErrorCode.PLATFORM_EXECUTION_FAILED,
         "Lambda executor '%s' returned no valid contract response".formatted(name));
+  }
+
+  /** Whether the connection failed before the request was sent, so that nothing of it ran. */
+  static boolean notSent(Throwable failure) {
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      if (cause instanceof ConnectException
+          || cause instanceof UnknownHostException
+          || cause instanceof NoRouteToHostException
+          // The connect timeout of the Apache client, without depending on its class.
+          || cause.getClass().getSimpleName().equals("ConnectTimeoutException")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
