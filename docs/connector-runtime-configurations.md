@@ -214,6 +214,7 @@ camunda.connector.managed-code.deployment-name-prefix=ce-0123456789abcdef0123456
 camunda.connector.managed-code.gcp.project-id=my-project
 camunda.connector.managed-code.gcp.region=europe-west1
 camunda.connector.managed-code.gcp.function-service-account=camunda-ms-executor@my-project.iam.gserviceaccount.com
+camunda.connector.managed-code.gcp.build-service-account=camunda-ms-builder@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.deployer-service-account=camunda-ms-deployer@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.memory=512Mi
 camunda.connector.managed-code.gcp.max-instance-count=1000
@@ -241,6 +242,9 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   `32Gi`, in `Mi` or `Gi` (default `512Mi`).
 - `gcp.function-service-account` is required: without it, Cloud Run would run the executors as the
   default compute service account, which often has Editor on the project.
+- `gcp.build-service-account` is required for the same reason. The provider uploads the source of
+  an executor, and Cloud Build builds its image as this account, by default the compute service
+  account, which the identity of the runtime would then need to act as.
 - Credentials come from the application default credentials only: the file named by
   `GOOGLE_APPLICATION_CREDENTIALS` (a service account key, or a workload identity federation
   configuration), the gcloud credentials, then the metadata server. The provider works without the
@@ -270,6 +274,11 @@ Account Credentials APIs enabled.
 The **function service account** runs customer code: grant it **no role**, since a script can read
 the memory of the wrapper during its call. Cloud Run collects the logs of the executors without one.
 
+The **build service account** builds the images of the executors. It needs
+`roles/logging.logWriter`, `roles/artifactregistry.writer` and `roles/storage.objectViewer` on the
+project, to write the build logs, push the image to the `gcf-artifacts` repository and read the
+uploaded source.
+
 The **identity of the runtime**, or the deployer service account when one is set, needs these
 grants, limited to the prefix of its cluster, with `<location>` standing for
 `projects/<project>/locations/<region>`. They are the ones the shared-project isolation tests of the
@@ -281,6 +290,7 @@ executor design proved together:
 | `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/operations/")` | poll the operations of a creation or update |
 | A custom role with only `cloudfunctions.functions.generateUploadUrl` | project, condition `resource.name == "<location>"` | upload the source: the upload URL is requested on the location, where the developer role would list the functions of every cluster |
 | `roles/iam.serviceAccountUser` | the function service account only | run the executors as it |
+| `roles/iam.serviceAccountUser` | the build service account only | build the executors as it |
 | `roles/run.invoker` | project, condition `request.host.startsWith("<prefix>")` | call its own executors through their `run.app` host; a condition on the service name has no effect |
 
 It needs no Cloud Build, Artifact Registry, Cloud Storage or Cloud Run admin access: builds push

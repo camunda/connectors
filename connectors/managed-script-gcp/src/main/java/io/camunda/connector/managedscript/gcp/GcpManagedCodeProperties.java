@@ -20,6 +20,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     role, since the script of a call can read the memory of the wrapper. Required: without it,
  *     Cloud Run would use the default compute service account, which often has Editor on the
  *     project
+ * @param buildServiceAccount email of the service account Cloud Build builds the executors as.
+ *     Required: without it, Cloud Build would use the default compute service account, and the
+ *     identity of the runtime would need to act as that account, which often has Editor
  * @param deployerServiceAccount email of a service account that the application default credentials
  *     impersonate to create and call the executors; none to use them as they are
  * @param memory memory of an executor, in {@code Mi} or {@code Gi} (default {@code 512Mi})
@@ -31,6 +34,7 @@ public record GcpManagedCodeProperties(
     String projectId,
     String region,
     String functionServiceAccount,
+    String buildServiceAccount,
     String deployerServiceAccount,
     String memory,
     Integer maxInstanceCount) {
@@ -48,13 +52,8 @@ public record GcpManagedCodeProperties(
   public GcpManagedCodeProperties {
     projectId = required(projectId, "project-id");
     region = required(region, "region");
-    functionServiceAccount = required(functionServiceAccount, "function-service-account");
-    if (!functionServiceAccount.contains("@")) {
-      throw new IllegalArgumentException(
-          "camunda.connector.managed-code.gcp.function-service-account '%s' must be the email of a"
-                  .formatted(functionServiceAccount)
-              + " service account");
-    }
+    functionServiceAccount = email(functionServiceAccount, "function-service-account");
+    buildServiceAccount = email(buildServiceAccount, "build-service-account");
     deployerServiceAccount =
         deployerServiceAccount == null || deployerServiceAccount.isBlank()
             ? null
@@ -104,6 +103,16 @@ public record GcpManagedCodeProperties(
     } catch (ArithmeticException | NumberFormatException e) {
       return -1;
     }
+  }
+
+  private static String email(String value, String name) {
+    final var email = required(value, name);
+    if (!email.contains("@")) {
+      throw new IllegalArgumentException(
+          "camunda.connector.managed-code.gcp.%s '%s' must be the email of a service account"
+              .formatted(name, email));
+    }
+    return email;
   }
 
   private static String required(String value, String name) {

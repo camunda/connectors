@@ -130,6 +130,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   private final String prefix;
   private final String location;
   private final String functionServiceAccount;
+  private final String buildServiceAccount;
   private final String memory;
   private final long memoryBytes;
   private final int maxInstanceCount;
@@ -182,6 +183,9 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     this.prefix = prefix;
     this.location = properties.location();
     this.functionServiceAccount = properties.functionServiceAccount();
+    this.buildServiceAccount =
+        "projects/%s/serviceAccounts/%s"
+            .formatted(properties.projectId(), properties.buildServiceAccount());
     this.memory = properties.memory();
     this.memoryBytes = GcpManagedCodeProperties.memoryBytes(properties.memory());
     this.maxInstanceCount = properties.maxInstanceCount();
@@ -372,6 +376,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     upload(name, upload.getUploadUrl(), executor.zip());
     final var function =
         Function.newBuilder()
+            // Required although the request names the function too: an empty name is refused.
+            .setName(functionName(name))
             .setDescription("Camunda managed-script executor of " + executor.language().language())
             .setEnvironment(Environment.GEN_2)
             .putLabels(OWNER_LABEL, OWNER_VALUE)
@@ -380,6 +386,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                 BuildConfig.newBuilder()
                     .setRuntime(executor.runtime())
                     .setEntryPoint(executor.entryPoint())
+                    .setServiceAccount(buildServiceAccount)
                     .setSource(Source.newBuilder().setStorageSource(upload.getStorageSource())))
             .setServiceConfig(serviceConfig(Map.of()).setAllTrafficOnLatestRevision(true))
             .build();

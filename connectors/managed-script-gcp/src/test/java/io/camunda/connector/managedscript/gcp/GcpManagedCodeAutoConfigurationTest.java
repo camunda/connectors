@@ -28,6 +28,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 class GcpManagedCodeAutoConfigurationTest {
 
   private static final String FUNCTION_SA = "executor@camunda-p.iam.gserviceaccount.com";
+  private static final String BUILD_SA = "builder@camunda-p.iam.gserviceaccount.com";
   private static final String DEPLOYER_SA = "deployer@camunda-p.iam.gserviceaccount.com";
 
   /**
@@ -55,7 +56,8 @@ class GcpManagedCodeAutoConfigurationTest {
           "camunda.connector.managed-code.provider=gcp",
           "camunda.connector.managed-code.gcp.project-id=camunda-p",
           "camunda.connector.managed-code.gcp.region=europe-west1",
-          "camunda.connector.managed-code.gcp.function-service-account=" + FUNCTION_SA);
+          "camunda.connector.managed-code.gcp.function-service-account=" + FUNCTION_SA,
+          "camunda.connector.managed-code.gcp.build-service-account=" + BUILD_SA);
 
   private final ApplicationContextRunner gcp =
       configured.withBean(
@@ -87,7 +89,8 @@ class GcpManagedCodeAutoConfigurationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"project-id", "region", "function-service-account"})
+  @ValueSource(
+      strings = {"project-id", "region", "function-service-account", "build-service-account"})
   void failsStartupWithoutARequiredSetting(String setting) {
     gcp.withPropertyValues("camunda.connector.managed-code.gcp." + setting + "=")
         .run(context ->
@@ -155,19 +158,21 @@ class GcpManagedCodeAutoConfigurationTest {
   @ValueSource(strings = {"64Mi", "33Gi", "512MB", "512", "1.5Gi"})
   void rejectsAMemoryOutsideTheRangeOrInAnotherUnit(String memory) {
     assertThatThrownBy(
-            () -> new GcpManagedCodeProperties("p", "r", FUNCTION_SA, null, memory, null))
+            () -> new GcpManagedCodeProperties("p", "r", FUNCTION_SA, BUILD_SA, null, memory, null))
         .hasMessageContaining("between 128Mi and 32Gi");
   }
 
   @Test
   void rejectsANonPositiveMaxInstanceCount() {
-    assertThatThrownBy(() -> new GcpManagedCodeProperties("p", "r", FUNCTION_SA, null, null, 0))
+    assertThatThrownBy(
+            () -> new GcpManagedCodeProperties("p", "r", FUNCTION_SA, BUILD_SA, null, null, 0))
         .hasMessageContaining("max-instance-count 0 must be positive");
   }
 
   @Test
   void rejectsAFunctionServiceAccountThatIsNotAnEmail() {
-    assertThatThrownBy(() -> new GcpManagedCodeProperties("p", "r", "executor", null, null, null))
+    assertThatThrownBy(
+            () -> new GcpManagedCodeProperties("p", "r", "executor", BUILD_SA, null, null, null))
         .hasMessageContaining("must be the email of a service account");
   }
 

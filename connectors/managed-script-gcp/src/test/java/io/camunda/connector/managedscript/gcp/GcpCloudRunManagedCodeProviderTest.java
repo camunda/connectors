@@ -81,6 +81,7 @@ import org.mockito.ArgumentCaptor;
 class GcpCloudRunManagedCodeProviderTest {
 
   private static final String SERVICE_ACCOUNT = "executor@camunda-p.iam.gserviceaccount.com";
+  private static final String BUILD_SERVICE_ACCOUNT = "builder@camunda-p.iam.gserviceaccount.com";
   private static final String PREFIX = "ce-0123456789abcdef01234567-";
   private static final String LOCATION = "projects/camunda-p/locations/europe-west1";
   private static final String PYTHON_EXECUTOR =
@@ -150,7 +151,10 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(request.getParent()).isEqualTo(LOCATION);
     assertThat(request.getFunctionId()).isEqualTo(PYTHON_EXECUTOR).hasSizeLessThanOrEqualTo(63);
     final var function = request.getFunction();
+    assertThat(function.getName()).isEqualTo(LOCATION + "/functions/" + PYTHON_EXECUTOR);
     assertThat(function.getEnvironment()).isEqualTo(Environment.GEN_2);
+    assertThat(function.getBuildConfig().getServiceAccount())
+        .isEqualTo("projects/camunda-p/serviceAccounts/" + BUILD_SERVICE_ACCOUNT);
     assertThat(function.getLabelsMap())
         .containsEntry(
             GcpCloudRunManagedCodeProvider.DIGEST_LABEL,
@@ -623,7 +627,7 @@ class GcpCloudRunManagedCodeProviderTest {
         new ObjectMapper(),
         PREFIX,
         new GcpManagedCodeProperties(
-            "camunda-p", "europe-west1", SERVICE_ACCOUNT, null, "512Mi", 10),
+            "camunda-p", "europe-west1", SERVICE_ACCOUNT, BUILD_SERVICE_ACCOUNT, null, "512Mi", 10),
         Duration.ofSeconds(30),
         activationTimeout,
         Duration.ofMillis(100),
