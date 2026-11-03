@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
@@ -44,9 +43,8 @@ public class A2aClientPollingConfiguration {
       A2aPollingExecutorService executorService,
       A2aAgentCardFetcher agentCardFetcher,
       A2aSdkClientFactory clientFactory,
-      A2aSdkObjectConverter objectConverter,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new A2aClientPollingExecutable(
-        executorService, agentCardFetcher, clientFactory, objectConverter, objectMapper);
+        executorService, agentCardFetcher, clientFactory, objectMapper);
   }
 }

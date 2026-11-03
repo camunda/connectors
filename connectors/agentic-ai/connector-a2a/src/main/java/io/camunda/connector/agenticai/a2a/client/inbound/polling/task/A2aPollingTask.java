@@ -7,11 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.inbound.polling.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.TaskQueryParams;
-import io.a2a.spec.TaskState;
-import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
@@ -20,6 +16,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStat
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfigBuilder;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientListener;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -46,7 +43,6 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   private final ProcessInstanceContext processInstanceContext;
   private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aSdkClientFactory clientFactory;
-  private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
   private @Nullable A2aSdkClient client;
@@ -56,13 +52,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       final ProcessInstanceContext processInstanceContext,
       final A2aAgentCardFetcher agentCardFetcher,
       final A2aSdkClientFactory clientFactory,
-      final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.context = context;
     this.processInstanceContext = processInstanceContext;
     this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
-    this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
   }
 
@@ -124,20 +118,18 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
         runtimeProperties.data().historyLength());
 
     try {
-      final var loadedTask =
-          client.getTask(new TaskQueryParams(task.id(), runtimeProperties.data().historyLength()));
+      final var loadedTask = client.getTask(task.id(), runtimeProperties.data().historyLength());
       LOGGER.debug(
           "Loaded A2A task {} with state {}",
           task.id(),
-          Optional.ofNullable(loadedTask.getStatus())
-              .map(TaskStatus::state)
-              .map(TaskState::asString)
+          Optional.ofNullable(loadedTask.status())
+              .map(A2aTaskStatus::state)
+              .map(A2aTaskStatus.TaskState::asString)
               .orElse(null));
 
-      final var convertedTask = objectConverter.convert(loadedTask);
       final var response =
           A2aClientResponse.builder()
-              .result(convertedTask)
+              .result(loadedTask)
               .pollingData(clientResponse.pollingData())
               .build();
       processInstanceContext.correlate(response);
@@ -193,7 +185,8 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
             A2aSdkClientConfigBuilder.builder()
                 .historyLength(runtimeProperties.data().historyLength())
                 .build();
-        this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {}, a2aClientConfig);
+        this.client =
+            clientFactory.buildClient(agentCard, A2aSdkClientListener.NOOP, a2aClientConfig);
       } catch (Exception e) {
         LOGGER.error("Failed to create A2A client", e);
         this.context.log(activity ->

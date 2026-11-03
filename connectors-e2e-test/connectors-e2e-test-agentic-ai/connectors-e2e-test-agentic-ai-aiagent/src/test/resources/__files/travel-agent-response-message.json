@@ -2,16 +2,16 @@
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "role": "agent",
-    "messageId": "msg-123",
-    "contextId": "ctx-123",
-    "parts": [
-      {
-        "kind": "text",
-        "text": "Hotel room booked successfully!"
-      }
-    ],
-    "kind": "message",
-    "metadata": {}
+    "message": {
+      "role": "ROLE_AGENT",
+      "messageId": "msg-123",
+      "contextId": "ctx-123",
+      "parts": [
+        {
+          "text": "Hotel room booked successfully!"
+        }
+      ],
+      "metadata": {}
+    }
   }
 }

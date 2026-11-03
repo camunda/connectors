@@ -1,36 +1,34 @@
 {
-  "id": "task-001",
-  "contextId": "ctx-001",
-  "status": {
-    "state": "completed",
-    "timestamp": "2024-03-15T10:11:00Z"
-  },
-  "artifacts": [
-    {
-      "artifactId": "art-001",
-      "name": "ExchangeRate",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "1 USD = 0.85 EUR"
-        }
-      ]
-    }
-  ],
-  "history": [
-    {
-      "role": "user",
-      "parts": [
-        {
-          "kind": "text",
-          "text": "What's the exchange rate for USD to EUR?"
-        }
-      ],
-      "messageId": "msg-001",
-      "taskId": "task-001",
-      "contextId": "ctx-001",
-      "kind": "message"
-    }
-  ],
-  "kind": "task"
+  "task": {
+    "id": "task-001",
+    "contextId": "ctx-001",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "timestamp": "2024-03-15T10:11:00Z"
+    },
+    "artifacts": [
+      {
+        "artifactId": "art-001",
+        "name": "ExchangeRate",
+        "parts": [
+          {
+            "text": "1 USD = 0.85 EUR"
+          }
+        ]
+      }
+    ],
+    "history": [
+      {
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "What's the exchange rate for USD to EUR?"
+          }
+        ],
+        "messageId": "msg-001",
+        "taskId": "task-001",
+        "contextId": "ctx-001"
+      }
+    ]
+  }
 }

@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingActivationProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
@@ -35,7 +34,6 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   private final A2aPollingExecutorService executorService;
   private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aSdkClientFactory clientFactory;
-  private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
   private final A2aPollingActivationProperties activationProperties;
@@ -49,14 +47,12 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
       final A2aPollingExecutorService executorService,
       final A2aAgentCardFetcher agentCardFetcher,
       final A2aSdkClientFactory clientFactory,
-      final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
 
     this.context = context;
     this.executorService = executorService;
     this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
-    this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
     this.activationProperties = context.bindProperties(A2aPollingActivationProperties.class);
   }
@@ -97,12 +93,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
         key -> {
           final var task =
               new A2aPollingTask(
-                  context,
-                  processInstanceContext,
-                  agentCardFetcher,
-                  clientFactory,
-                  objectConverter,
-                  objectMapper);
+                  context, processInstanceContext, agentCardFetcher, clientFactory, objectMapper);
 
           final var future =
               this.executorService.scheduleWithFixedDelay(

@@ -16,14 +16,12 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
-import io.a2a.spec.Task;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aTaskNotificationParser;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -74,24 +72,23 @@ class A2aClientWebhookExecutableTest {
       """;
 
   private A2aClientWebhookExecutable webhookExecutable;
+  private A2aTaskNotificationParser taskNotificationParser;
 
   @BeforeEach
   void beforeEach() {
-    A2aSdkObjectConverter a2aSdkObjectConverter = mock(A2aSdkObjectConverter.class);
-    webhookExecutable = new A2aClientWebhookExecutable(a2aSdkObjectConverter, new ObjectMapper());
+    taskNotificationParser = mock(A2aTaskNotificationParser.class);
+    webhookExecutable = new A2aClientWebhookExecutable(taskNotificationParser);
 
     lenient()
-        .when(a2aSdkObjectConverter.convert(any(Task.class)))
-        .thenAnswer(invocation -> {
-          Task task = invocation.getArgument(0);
-          return new A2aTask(
-              task.getId(),
-              task.getContextId(),
-              new A2aTaskStatus(TaskState.WORKING, null, null),
-              Map.of("key1", "value1", "key2", "value2"),
-              List.of(),
-              List.of());
-        });
+        .when(taskNotificationParser.parse(any(byte[].class)))
+        .thenReturn(
+            new A2aTask(
+                "task-123",
+                "ctx-123",
+                new A2aTaskStatus(TaskState.WORKING, null, null),
+                Map.of("key1", "value1", "key2", "value2"),
+                List.of(),
+                List.of()));
   }
 
   @Test
@@ -139,6 +136,8 @@ class A2aClientWebhookExecutableTest {
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
     when(payload.rawBody()).thenReturn("invalid json".getBytes(StandardCharsets.UTF_8));
+    when(taskNotificationParser.parse(any(byte[].class)))
+        .thenThrow(new IllegalArgumentException("Invalid A2A task notification"));
 
     webhookExecutable.activate(ctx);
 

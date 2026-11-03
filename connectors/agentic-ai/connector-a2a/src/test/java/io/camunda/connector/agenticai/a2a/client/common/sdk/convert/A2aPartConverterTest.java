@@ -5,20 +5,20 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.a2a.client.common.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.a2a.spec.DataPart;
-import io.a2a.spec.FilePart;
-import io.a2a.spec.FileWithBytes;
-import io.a2a.spec.Part;
-import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aDataPart;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart;
 import java.util.List;
 import java.util.Map;
+import org.a2aproject.sdk.spec.DataPart;
+import org.a2aproject.sdk.spec.FilePart;
+import org.a2aproject.sdk.spec.FileWithBytes;
+import org.a2aproject.sdk.spec.Part;
+import org.a2aproject.sdk.spec.TextPart;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -35,7 +35,7 @@ class A2aPartConverterTest {
 
   @Test
   void convertTextPartToA2aTextPart() {
-    TextPart textPart = new TextPart("Hello, world!");
+    TextPart textPart = new TextPart("Hello, world!", null);
 
     var result = converter.convert(textPart);
 
@@ -61,7 +61,7 @@ class A2aPartConverterTest {
   @Test
   void convertDataPartToA2aDataPart() {
     Map<String, Object> data = Map.of("field1", "value1", "field2", 123);
-    DataPart dataPart = new DataPart(data);
+    DataPart dataPart = new DataPart(data, null);
 
     var result = converter.convert(dataPart);
 
@@ -87,10 +87,10 @@ class A2aPartConverterTest {
 
   @Test
   void convertMultiplePartsOfDifferentTypes() {
-    TextPart textPart1 = new TextPart("First text");
+    TextPart textPart1 = new TextPart("First text", null);
     Map<String, Object> data = Map.of("key", "value");
-    DataPart dataPart = new DataPart(data);
-    TextPart textPart2 = new TextPart("Second text");
+    DataPart dataPart = new DataPart(data, null);
+    TextPart textPart2 = new TextPart("Second text", null);
 
     var result = converter.convert(List.of(textPart1, dataPart, textPart2));
 
@@ -113,7 +113,7 @@ class A2aPartConverterTest {
   @Test
   void unsupportedPartTypeThrowsRuntimeException() {
     FileWithBytes fileWithBytes = new FileWithBytes("application/pdf", "file.pdf", "BASE64DATA==");
-    FilePart filePart = new FilePart(fileWithBytes);
+    FilePart filePart = new FilePart(fileWithBytes, null);
 
     assertThatThrownBy(() -> converter.convert(filePart))
         .isInstanceOf(RuntimeException.class)
@@ -122,10 +122,10 @@ class A2aPartConverterTest {
 
   @Test
   void unsupportedPartTypeThrowsRuntimeExceptionWhenMultipleParts() {
-    TextPart textPart1 = new TextPart("First text");
+    TextPart textPart1 = new TextPart("First text", null);
     FileWithBytes fileWithBytes = new FileWithBytes("application/pdf", "file.pdf", "BASE64DATA==");
-    FilePart filePart = new FilePart(fileWithBytes);
-    TextPart textPart2 = new TextPart("Second text");
+    FilePart filePart = new FilePart(fileWithBytes, null);
+    TextPart textPart2 = new TextPart("Second text", null);
 
     assertThatThrownBy(() -> converter.convert(List.of(textPart1, filePart, textPart2)))
         .isInstanceOf(RuntimeException.class)

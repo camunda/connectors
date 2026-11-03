@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTex
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -23,17 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.AgentCard;
-import io.a2a.spec.Artifact;
-import io.a2a.spec.Message;
-import io.a2a.spec.Task;
-import io.a2a.spec.TaskQueryParams;
-import io.a2a.spec.TaskStatus;
-import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
@@ -44,6 +35,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfig;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfigBuilder;
@@ -108,34 +100,6 @@ class A2aPollingTaskTest {
                       .contents(List.of(textPart("Hello, world")))
                       .build()));
 
-  private static final Message A2A_MESSAGE =
-      new Message.Builder()
-          .role(Message.Role.AGENT)
-          .contextId("ctx-123")
-          .messageId("msg-123")
-          .parts(List.of(new TextPart("A message")))
-          .build();
-
-  private static final Task WORKING_A2A_TASK =
-      new Task.Builder()
-          .id("task-123")
-          .contextId("ctx-123")
-          .status(new TaskStatus(io.a2a.spec.TaskState.WORKING, A2A_MESSAGE, WORKING_AT))
-          .build();
-
-  private static final Task COMPLETED_A2A_TASK =
-      new Task.Builder()
-          .id("task-123")
-          .contextId("ctx-123")
-          .status(new TaskStatus(io.a2a.spec.TaskState.COMPLETED, A2A_MESSAGE, COMPLETED_AT))
-          .artifacts(
-              List.of(
-                  new Artifact.Builder()
-                      .artifactId("artifact-123")
-                      .parts(new TextPart("Hello, world"))
-                      .build()))
-          .build();
-
   @Mock private InboundIntermediateConnectorContext context;
   @Mock private ProcessInstanceContext processInstanceContext;
 
@@ -143,10 +107,7 @@ class A2aPollingTaskTest {
   @Mock private A2aSdkClientFactory clientFactory;
   @Mock private A2aSdkClient client;
 
-  private final A2aSdkObjectConverter objectConverter =
-      new A2aSdkObjectConverterImpl(new A2aPartConverterImpl());
-
-  @Mock private AgentCard agentCard;
+  @Mock private A2aSdkAgentCard agentCard;
 
   private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
@@ -158,12 +119,7 @@ class A2aPollingTaskTest {
     loggedActivities = new ArrayList<>();
     pollingTask =
         new A2aPollingTask(
-            context,
-            processInstanceContext,
-            agentCardFetcher,
-            clientFactory,
-            objectConverter,
-            objectMapper);
+            context, processInstanceContext, agentCardFetcher, clientFactory, objectMapper);
   }
 
   private void expectErrors() {
@@ -336,7 +292,7 @@ class A2aPollingTaskTest {
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
-    when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3)))
+    when(client.getTask(WORKING_TASK.id(), 3))
         .thenThrow(new RuntimeException("Fetching task failed"));
 
     pollingTask.run();
@@ -360,7 +316,7 @@ class A2aPollingTaskTest {
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
-    when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3))).thenReturn(COMPLETED_A2A_TASK);
+    when(client.getTask(WORKING_TASK.id(), 3)).thenReturn(COMPLETED_TASK);
 
     pollingTask.run();
 
@@ -375,14 +331,14 @@ class A2aPollingTaskTest {
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
-    when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3))).thenReturn(WORKING_A2A_TASK);
+    when(client.getTask(WORKING_TASK.id(), 3)).thenReturn(WORKING_TASK);
 
     pollingTask.run();
     pollingTask.run();
 
     verify(agentCardFetcher, times(1)).fetchAgentCardRaw(any(A2aConnectionConfiguration.class));
-    verify(clientFactory, times(1)).buildClient(any(AgentCard.class), any(), any());
-    verify(client, times(2)).getTask(any(TaskQueryParams.class));
+    verify(clientFactory, times(1)).buildClient(any(A2aSdkAgentCard.class), any(), any());
+    verify(client, times(2)).getTask(any(), anyInt());
 
     verify(processInstanceContext, times(2))
         .correlate(assertArg(arg -> assertThat(arg).isEqualTo(a2aClientResponse(WORKING_TASK))));

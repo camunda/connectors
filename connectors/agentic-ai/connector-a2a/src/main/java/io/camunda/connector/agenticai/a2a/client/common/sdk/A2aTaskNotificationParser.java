@@ -4,15 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound;
+package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.spec.Task;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 
-public interface A2aSendMessageResponseHandler {
-  A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
+/** Parses the body of an A2A push notification into a task. */
+public interface A2aTaskNotificationParser {
 
-  A2aTask handleTask(Task task);
+  /**
+   * Parses the notification body.
+   *
+   * @throws IllegalArgumentException if the payload is not a valid A2A 1.0 stream response that
+   *     contains a task
+   */
+  A2aTask parse(byte[] payload);
 }

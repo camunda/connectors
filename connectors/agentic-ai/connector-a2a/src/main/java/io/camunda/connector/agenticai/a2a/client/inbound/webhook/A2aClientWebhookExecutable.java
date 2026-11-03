@@ -8,10 +8,8 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.Task;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aTaskNotificationParser;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookProperties.A2aWebhookPropertiesWrapper;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.model.A2aWebhookResult;
@@ -33,7 +31,6 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.HMACScope;
 import io.camunda.connector.inbound.signature.HMACVerifier;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -44,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.webhook.v0",
-    version = 1,
+    version = 2,
     name = "A2A Client Webhook Connector (early access)",
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
@@ -74,23 +71,20 @@ import org.slf4j.LoggerFactory;
           templateIdOverride = "io.camunda.connectors.agenticai.a2a.client.webhook.receive.v0",
           templateNameOverride = "A2A Client Webhook Receive Task Connector (early access)"),
     })
-@InboundConnector(name = "A2A Webhook Connector", type = "io.camunda.agenticai:a2aclient:webhook:0")
+@InboundConnector(name = "A2A Webhook Connector", type = "io.camunda.agenticai:a2aclient:webhook:1")
 public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aClientWebhookExecutable.class);
 
-  private final A2aSdkObjectConverter a2aSdkObjectConverter;
-  private final ObjectMapper objectMapper;
+  private final A2aTaskNotificationParser taskNotificationParser;
 
   @Nullable private A2aWebhookProperties props;
   @Nullable private WebhookAuthorizationHandler<?> authChecker;
   @Nullable private InboundConnectorContext context;
   @Nullable private HMACVerifier hmacVerifier;
 
-  public A2aClientWebhookExecutable(
-      A2aSdkObjectConverter a2aSdkObjectConverter, ObjectMapper objectMapper) {
-    this.a2aSdkObjectConverter = a2aSdkObjectConverter;
-    this.objectMapper = objectMapper;
+  public A2aClientWebhookExecutable(A2aTaskNotificationParser taskNotificationParser) {
+    this.taskNotificationParser = taskNotificationParser;
   }
 
   @Override
@@ -223,10 +217,9 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   private MappedHttpRequest mapRequest(
       WebhookProcessingPayload payload, InboundConnectorContext ctx) {
     try {
-      Task task = objectMapper.readValue(payload.rawBody(), Task.TYPE_REFERENCE);
-      A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
+      A2aTask a2aTask = taskNotificationParser.parse(payload.rawBody());
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
-    } catch (IOException e) {
+    } catch (IllegalArgumentException e) {
       ctx.log(activity ->
           activity
               .withSeverity(Severity.ERROR)

@@ -6,16 +6,24 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcherImpl;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverter;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSendMessageResponseHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aTaskNotificationParser;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aTaskNotificationParserImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aDocumentToPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aPartConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +47,27 @@ public class A2aClientCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public A2aDocumentToPartConverter a2aDocumentToPartConverter(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new A2aDocumentToPartConverterImpl(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
+      A2aSdkObjectConverter sdkObjectConverter) {
+    return new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aTaskNotificationParser a2aTaskNotificationParser(
+      A2aSdkObjectConverter sdkObjectConverter) {
+    return new A2aTaskNotificationParserImpl(sdkObjectConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public A2aHttpClientFactory a2aHttpClientFactory(AgenticAiHttpProxySupport proxySupport) {
     return new A2aHttpClientFactory(proxySupport);
   }
@@ -52,7 +81,16 @@ public class A2aClientCommonConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aSdkClientFactory a2aSdkClientFactory(
-      A2aClientCommonConfigurationProperties properties, A2aHttpClientFactory httpClientFactory) {
-    return new A2aSdkClientFactoryImpl(properties.transport(), httpClientFactory);
+      A2aClientCommonConfigurationProperties properties,
+      A2aHttpClientFactory httpClientFactory,
+      A2aSendMessageResponseHandler responseHandler,
+      A2aDocumentToPartConverter documentToPartConverter,
+      A2aSdkObjectConverter sdkObjectConverter) {
+    return new A2aSdkClientFactoryImpl(
+        properties.transport(),
+        httpClientFactory,
+        responseHandler,
+        documentToPartConverter,
+        sdkObjectConverter);
   }
 }

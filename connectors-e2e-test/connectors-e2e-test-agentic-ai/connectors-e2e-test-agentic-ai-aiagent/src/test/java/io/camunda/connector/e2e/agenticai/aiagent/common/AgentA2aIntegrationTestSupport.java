@@ -207,7 +207,7 @@ public class AgentA2aIntegrationTestSupport {
 
     stubFor(
         post(urlPathEqualTo("/travel-agent"))
-            .withRequestBody(WireMock.containing("message/send"))
+            .withRequestBody(WireMock.containing("SendMessage"))
             .willReturn(
                 aResponse()
                     .withBody(
@@ -215,14 +215,14 @@ public class AgentA2aIntegrationTestSupport {
 
     stubFor(
         post(urlPathEqualTo("/weather-agent"))
-            .withRequestBody(WireMock.containing("message/send"))
+            .withRequestBody(WireMock.containing("SendMessage"))
             .willReturn(
                 aResponse()
                     .withBody(
                         testFileContentSupplier.apply("weather-agent-response-submitted.json"))));
     stubFor(
         post(urlPathEqualTo("/weather-agent"))
-            .withRequestBody(WireMock.containing("tasks/get"))
+            .withRequestBody(WireMock.containing("GetTask"))
             .willReturn(
                 aResponse()
                     .withBody(
@@ -230,7 +230,7 @@ public class AgentA2aIntegrationTestSupport {
 
     stubFor(
         post(urlPathEqualTo("/exchange-rate-agent"))
-            .withRequestBody(WireMock.containing("message/send"))
+            .withRequestBody(WireMock.containing("SendMessage"))
             .willReturn(
                 aResponse()
                     .withBody(testFileContentSupplier.apply("exchange-rate-agent-response.json"))));

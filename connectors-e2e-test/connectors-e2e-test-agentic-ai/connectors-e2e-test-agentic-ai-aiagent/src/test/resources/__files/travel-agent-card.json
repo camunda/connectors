@@ -1,16 +1,18 @@
 {
   "name": "Travel agent",
   "description": "Helps with travel bookings",
-  "url": "%s/travel-agent",
   "version": "1.0.0",
   "documentationUrl": "http://example.com/docs",
   "capabilities": {
     "streaming": true,
-    "pushNotifications": true,
-    "stateTransitionHistory": true
+    "pushNotifications": true
   },
-  "defaultInputModes": ["text"],
-  "defaultOutputModes": ["text"],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
   "skills": [
     {
       "id": "hotel-booking",
@@ -26,5 +28,11 @@
       ]
     }
   ],
-  "protocolVersion": "0.3.0"
+  "supportedInterfaces": [
+    {
+      "protocolBinding": "JSONRPC",
+      "url": "%s/travel-agent",
+      "protocolVersion": "1.0"
+    }
+  ]
 }

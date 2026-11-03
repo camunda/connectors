@@ -21,6 +21,7 @@ Summary of what changes for a custom extension. Details follow in the linked sec
 | [Module split](#module-split)   | Every extension: Maven dependencies, some imports, memory and custom provider configuration, conversation context subtypes, auto-configuration |
 | [MCP gateway tool property](#mcp-gateway-tool-property) | Runtimes that disable the MCP Client connectors as AI Agent tools |
 | [Server URL validation](#server-url-validation) | MCP and A2A server URLs that are not HTTP or HTTPS URLs |
+| [A2A 1.0](#a2a-10) | A2A client connectors, A2A servers, A2A webhook senders, extensions that use A2A SDK types |
 
 ### Module split
 
@@ -104,7 +105,7 @@ dependencies. A custom runtime that runs all agentic AI connectors, like the pre
 | `common.util`: `ObjectMapperConstants`, `FeelOffsetDateTimeParser`, `FeelOffsetDateTimeSerializer`, `FeelOffsetDateTimeDeserializer` | `common.json.*`                                |
 | `common.util.retry.*`                                                        | `common.retry.*`                               |
 | `common.util.BpmnUtils`                                                      | `tools.schema.processdefinition.BpmnUtils`     |
-| `a2a.client.common.convert.A2aPartToContentConverter(Impl)`                  | `a2a.client.common.convert.A2aPartConverter(Impl)` |
+| `a2a.client.common.convert.A2aPartToContentConverter(Impl)`                  | `a2a.client.common.sdk.convert.A2aPartConverter(Impl)` |
 | `common.AgenticAiHttpProxySupport` AWS SDK methods (`createAwsHttpClientBuilder`, `createAwsAsyncHttpClientBuilder`) | `aiagent.proxy.aws.AwsSdkHttpProxySupport` (`httpClientBuilder`, `asyncHttpClientBuilder`), a separate bean |
 | `common.AgenticAiHttpProxySupport.azureProxyOptions`                         | `aiagent.proxy.azure.AzureHttpProxySupport.proxyOptions`, a separate bean |
 | `common.AgenticAiHttpProxySupport.defaultGoogleGenAiBaseUrl`                 | Google GenAI base URL helper of the Gemini provider (`aiagent.chatmodel.provider.gemini`) |
@@ -172,6 +173,30 @@ A2A Client connector:
 The old property is a deprecated alias and will be removed in a future release. Setting either
 property to `false` disables the MCP Client connectors as AI Agent tools. The runtime logs a warning
 at startup while the old property is set. Replace it with the new property.
+
+### A2A 1.0
+
+The A2A client connectors use the A2A protocol 1.0 and the A2A Java SDK 1.x
+(`org.a2aproject.sdk`). The element templates, job types and connector outputs keep their shape.
+
+- The connectors support only A2A 1.0 servers. A2A 0.3 servers are not supported.
+  An A2A 0.3 Agent Card fails with an error that names the unsupported protocol version.
+- The job types change to `io.camunda.agenticai:a2aclient:1`, `io.camunda.agenticai:a2aclient:polling:1`
+  and `io.camunda.agenticai:a2aclient:webhook:1`. The element template versions rise to `1` (outbound and polling)
+  and `2` (webhook). Existing processes need a manual update to the new template versions.
+- The connectors send the `A2A-Version: 1.0` header on every request.
+- The Agent Card of the server must list its endpoints in `supportedInterfaces`.
+- The A2A webhook connector accepts only the A2A 1.0 push notification payload of a task.
+  The task is wrapped in a `task` property.
+- A2A 1.0 supports one authentication scheme for each push notification configuration.
+  The connector uses the first value of `authenticationSchemes` and logs a warning when you set more.
+- Open question: the 0.3 header `X-A2A-Notification-Token` is not defined in A2A 1.0. The connector keeps
+  the existing push configuration and adds no new header.
+- The A2A SDK types are limited to the package `a2a.client.common.sdk`. The beans
+  `A2aAgentCardFetcher`, `A2aMessageSender` and `A2aSdkClientFactory` now use the connector types
+  `A2aSdkAgentCard`, `A2aSdkClientListener` and `A2aOutgoingMessage` instead of SDK types.
+- The `CustomJdkA2AHttpClient` class is removed. The connector uses the SDK `JdkA2AHttpClient`
+  with the same proxy configuration.
 
 ### Server URL validation
 

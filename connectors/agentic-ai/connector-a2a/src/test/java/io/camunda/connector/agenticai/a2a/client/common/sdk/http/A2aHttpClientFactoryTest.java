@@ -12,10 +12,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.a2a.client.http.A2AHttpClient;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import java.net.http.HttpClient;
+import org.a2aproject.sdk.client.http.A2AHttpClient;
+import org.a2aproject.sdk.client.http.JdkA2AHttpClient;
 import org.junit.jupiter.api.Test;
 
 class A2aHttpClientFactoryTest {
@@ -31,7 +32,7 @@ class A2aHttpClientFactoryTest {
     var factory = new A2aHttpClientFactory(proxySupport);
     A2AHttpClient httpClient = factory.createHttpClient();
 
-    assertThat(httpClient).isNotNull().isInstanceOf(CustomJdkA2AHttpClient.class);
+    assertThat(httpClient).isNotNull().isInstanceOf(JdkA2AHttpClient.class);
     verify(proxyConfigurator).configure(any(HttpClient.Builder.class));
   }
 }

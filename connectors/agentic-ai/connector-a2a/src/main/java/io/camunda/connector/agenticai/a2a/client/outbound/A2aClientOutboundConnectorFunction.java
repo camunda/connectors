@@ -19,7 +19,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 @OutboundConnector(
     name = "A2A Client",
     inputVariables = {"data"},
-    type = "io.camunda.agenticai:a2aclient:0")
+    type = "io.camunda.agenticai:a2aclient:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.v0",
     name = "A2A Client (early access)",
@@ -28,7 +28,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/early-access/alpha/a2a-client/a2a-client-connector/",
     engineVersion = "^8.9",
-    version = 0,
+    version = 1,
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = A2aClientRequest.class,
     propertyGroups = {

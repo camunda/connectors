@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.part.A2aTextPart;
@@ -25,6 +24,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkAgentCard;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest.A2aRequestData;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aToolOperation
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import org.a2aproject.sdk.spec.AgentCard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -90,7 +91,7 @@ class A2aClientRequestHandlerTest {
 
     @Test
     void handleSendMessage() {
-      var agentCard = mock(AgentCard.class);
+      var agentCard = new A2aSdkAgentCard(mock(AgentCard.class));
       var sendMessageConfiguration =
           new A2aCommonSendMessageConfiguration(
               new A2aResponseRetrievalMode.Blocking(), 1, Duration.ofSeconds(1));
@@ -172,7 +173,7 @@ class A2aClientRequestHandlerTest {
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
-      var agentCard = mock(AgentCard.class);
+      var agentCard = new A2aSdkAgentCard(mock(AgentCard.class));
       when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
 
       var expectedSendResult =
@@ -227,7 +228,7 @@ class A2aClientRequestHandlerTest {
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
-      var agentCard = mock(AgentCard.class);
+      var agentCard = new A2aSdkAgentCard(mock(AgentCard.class));
       when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
 
       var expectedSendResult =

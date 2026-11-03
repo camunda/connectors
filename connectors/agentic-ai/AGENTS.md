@@ -78,7 +78,8 @@ all modules, in package `io.camunda.connector.agenticai.archunit`:
   dependencies listed in the test (today: Mistral on OpenAI). The rest of the AI agent (outside `aiagent.chatmodel.provider`
   and `aiagent.configuration`) does not depend on the providers.
 - `VendorSdkArchTest`: one table row per vendor SDK: each SDK (Anthropic, OpenAI, Gemini, Bedrock runtime and AgentCore, AWS and Azure HTTP clients,
-  LangChain4j, A2A, MCP) is only used by the packages that integrate it.
+  LangChain4j, A2A, MCP) is only used by the packages that integrate it. The A2A SDK is confined to the adapter package
+  `a2a.client.common.sdk`.
 - `AutoConfigurationArchTest`: every `@AutoConfiguration` class lives in a `configuration` package, is switched by
   `@ConditionalOnBooleanProperty` on `camunda.connector.agenticai.enabled` with `matchIfMissing = true`, and is listed
   in the `AutoConfiguration.imports` of the module it is loaded from; every Agentic AI entry of an `imports` resource

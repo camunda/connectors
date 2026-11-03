@@ -5,6 +5,6 @@
  * except in compliance with the proprietary license.
  */
 @NullMarked
-package io.camunda.connector.agenticai.a2a.client.common.convert;
+package io.camunda.connector.agenticai.a2a.client.common.sdk.convert;
 
 import org.jspecify.annotations.NullMarked;

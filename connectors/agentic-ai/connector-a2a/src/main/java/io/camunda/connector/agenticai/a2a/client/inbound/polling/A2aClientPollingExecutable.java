@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRequest;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
@@ -22,7 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
-    version = 0,
+    version = 1,
     name = "A2A Client Polling Connector (early access)",
     description =
         "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
@@ -52,14 +51,13 @@ import org.jspecify.annotations.Nullable;
           templateIdOverride = "io.camunda.connectors.agenticai.a2a.client.polling.receive.v0",
           templateNameOverride = "A2A Client Polling Receive Task Connector (early access)"),
     })
-@InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
+@InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:1")
 public class A2aClientPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
   private final A2aPollingExecutorService executorService;
   private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aSdkClientFactory clientFactory;
-  private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
   private @Nullable A2aPollingProcessInstancesFetcherTask processInstancesFetcherTask;
@@ -68,12 +66,10 @@ public class A2aClientPollingExecutable
       final A2aPollingExecutorService executorService,
       final A2aAgentCardFetcher agentCardFetcher,
       final A2aSdkClientFactory clientFactory,
-      final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.executorService = executorService;
     this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
-    this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
   }
 
@@ -81,12 +77,7 @@ public class A2aClientPollingExecutable
   public void activate(final InboundIntermediateConnectorContext context) {
     processInstancesFetcherTask =
         new A2aPollingProcessInstancesFetcherTask(
-            context,
-            executorService,
-            agentCardFetcher,
-            clientFactory,
-            objectConverter,
-            objectMapper);
+            context, executorService, agentCardFetcher, clientFactory, objectMapper);
     processInstancesFetcherTask.start();
   }
 
