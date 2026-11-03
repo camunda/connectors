@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 
-def T = new GroovyClassLoader(getClass().classLoader)
-    .parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
+def loader = new GroovyClassLoader(getClass().classLoader)
+def T = loader.parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
+def A = loader.parseClass(new File(project.basedir, 'bin/AgentTemplateTransforms.groovy'))
 
 def file = T.existingFile(T.requiredProperty(binding, 'sourceFile'))
 def outputFile = new File(T.requiredProperty(binding, 'outputFile'))
@@ -25,7 +26,7 @@ def json = T.readJson(file)
 List properties = (List) json.get('properties')
 
 // this script never changes a template's own id, so it is the stable lookup key
-def systemPromptDefault = T.systemPromptOverride(systemPromptOverrides, (String) json.id)
+def systemPromptDefault = A.systemPromptOverride(systemPromptOverrides, (String) json.id)
 if (systemPromptDefault) {
     T.requireIds(properties, ["data.systemPrompt.prompt"], "System prompt property")
 }
@@ -68,7 +69,7 @@ properties.each { property ->
 }
 
 if (moveOpenAiEffortAfterModel) {
-    updatedProperties = T.moveOpenAiEffortAfterModel(updatedProperties)
+    updatedProperties = A.moveOpenAiEffortAfterModel(updatedProperties)
 }
 
 json.put('properties', updatedProperties)

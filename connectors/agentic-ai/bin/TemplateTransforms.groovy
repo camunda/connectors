@@ -11,9 +11,10 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import java.nio.file.Files
 
 /**
- * Helpers shared by the element template transform scripts of the agentic AI modules. The scripts
- * find properties by hard-coded ids, so every lookup here fails the build when an id or anchor is
- * missing instead of silently leaving the template unchanged.
+ * Generic helpers shared by the element template transform scripts of the agentic AI modules. The
+ * scripts find properties by hard-coded ids, so every lookup here fails the build when an id or
+ * anchor is missing instead of silently leaving the template unchanged. Connector-specific helpers
+ * live next to the connector's scripts, e.g. connector-aiagent/bin/AgentTemplateTransforms.groovy.
  *
  * Load it from a gmavenplus script with:
  * <pre>
@@ -72,14 +73,6 @@ class TemplateTransforms {
         return result
     }
 
-    /**
-     * Returns the default system prompt for the template id from "templateId=file" lines, or null
-     * if the template id has no entry.
-     */
-    static String systemPromptOverride(Object overrides, String templateId) {
-        def file = parseKeyValueLines(overrides)[templateId]
-        return file ? existingFile(file).getText('UTF-8').stripTrailing() : null
-    }
 
     /**
      * Copies the existing output file to versioned/NAME-VERSION.json if the new template has a
@@ -158,18 +151,5 @@ class TemplateTransforms {
         def remaining = properties.findAll { !(it.id in idsToMove) }
         remaining.addAll(remaining.findIndexOf { it.id == afterId } + 1, moving)
         return remaining
-    }
-
-    /**
-     * OpenAI's effort is declared per API family (a sibling of the model, like the other
-     * per-family request parameters), so it's emitted before the model. Moves it after the model,
-     * matching Anthropic and Bedrock.
-     */
-    static List moveOpenAiEffortAfterModel(List properties) {
-        return moveAfter(
-            properties,
-            ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
-            "provider.openai.model.model"
-        )
     }
 }

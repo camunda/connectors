@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,6 +27,8 @@ class AgentElementTemplateTransformsTest {
 
   private static final String DEPRECATION_MESSAGE =
       "For Camunda 8.10+, please replace with the v2 version of the AI Agent element template. See documentation for details.";
+  private static final String OUTPUT_ELEMENT_EXPRESSION =
+      "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult,\n  completedAt: now()\n}";
   private static final String DEPRECATION_DOCUMENTATION_REF =
       "https://docs.camunda.io/docs/8.10/reference/announcements-release-notes/8100/8100-announcements/#agentic-orchestration";
 
@@ -58,20 +59,6 @@ class AgentElementTemplateTransformsTest {
       strings = {
         "agenticai-aiagent-outbound-connector.json",
         "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
-        "agenticai-ai-agent-task.v2.json",
-        "hybrid/agenticai-ai-agent-task.v2-hybrid.json"
-      })
-  void taskAgentDefinitionMarkerFollowsTaskDefinitionType(String file) throws IOException {
-    final var properties = properties(template(file));
-    final var type = taskDefinitionTypeIndex(properties);
-    assertThat(bindingType(properties.get(type + 1))).isEqualTo("zeebe:agentDefinition");
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "agenticai-aiagent-outbound-connector.json",
-        "hybrid/agenticai-aiagent-outbound-connector-hybrid.json",
         "agenticai-aiagent-job-worker.json",
         "hybrid/agenticai-aiagent-job-worker-hybrid.json"
       })
@@ -81,9 +68,6 @@ class AgentElementTemplateTransformsTest {
     assertThat(template.get("deprecated").get("message").asText()).isEqualTo(DEPRECATION_MESSAGE);
     assertThat(template.get("deprecated").get("documentationRef").asText())
         .isEqualTo(DEPRECATION_DOCUMENTATION_REF);
-    final var fieldNames = new ArrayList<String>();
-    template.fieldNames().forEachRemaining(fieldNames::add);
-    assertThat(fieldNames.get(fieldNames.indexOf("keywords") + 1)).isEqualTo("deprecated");
   }
 
   @ParameterizedTest
@@ -118,23 +102,6 @@ class AgentElementTemplateTransformsTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "agenticai-ai-agent-task.v2.json",
-        "hybrid/agenticai-ai-agent-task.v2-hybrid.json",
-        "agenticai-ai-agent-subprocess.v2.json",
-        "hybrid/agenticai-ai-agent-subprocess.v2-hybrid.json"
-      })
-  void openAiEffortFollowsModel(String file) throws IOException {
-    final var ids = ids(properties(template(file)));
-    final var model = ids.indexOf("provider.openai.model.model");
-    assertThat(model).isNotNegative();
-    assertThat(ids.subList(model + 1, model + 3))
-        .containsExactlyInAnyOrder(
-            "provider.openai.api.completions.effort", "provider.openai.api.responses.effort");
-  }
-
-  @ParameterizedTest
   @CsvSource({
     "agenticai-aiagent-job-worker.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1,io.camunda.agenticai:aiagent-job-worker:1,AI Agent Sub-process (Deprecated)",
     "hybrid/agenticai-aiagent-job-worker-hybrid.json,io.camunda.connectors.agenticai.aiagent.jobworker.v1,io.camunda.agenticai:aiagent-job-worker:1,Hybrid AI Agent Sub-process (Deprecated)",
@@ -153,33 +120,29 @@ class AgentElementTemplateTransformsTest {
     assertThat(template.get("elementType").get("value").asText()).isEqualTo("bpmn:AdHocSubProcess");
     assertThat(template.toString()).doesNotContain("agentic-ai-aiagent-task/");
 
-    final var groups = ids(iterable(template.get("groups")));
-    assertThat(groups.get(groups.indexOf("limits") + 1)).isEqualTo("events");
+    assertThat(ids(iterable(template.get("groups")))).contains("events");
 
     final var properties = properties(template);
-    final var ids = ids(properties);
-    assertThat(ids)
+    assertThat(ids(properties))
         .doesNotContain(
             "data.tools.containerElementId",
             "data.tools.toolCallResults",
             "resultExpression",
-            "data.agentContext");
+            "data.agentContext")
+        .contains("data.response.includeAgentContext");
 
-    final var type = taskDefinitionTypeIndex(properties);
-    assertThat(properties.get(type).get("value").asText()).isEqualTo(connectorType);
-    final var outputCollection = properties.get(type + 1);
-    assertThat(outputCollection.get("id").asText()).isEqualTo("outputCollection");
+    assertThat(taskDefinitionType(properties).get("value").asText()).isEqualTo(connectorType);
+
+    final var outputCollection = property(properties, "outputCollection");
     assertThat(bindingType(outputCollection)).isEqualTo("zeebe:adHoc");
     assertThat(outputCollection.get("value").asText()).isEqualTo("toolCallResults");
-    final var outputElement = properties.get(type + 2);
-    assertThat(outputElement.get("id").asText()).isEqualTo("outputElement");
+    final var outputElement = property(properties, "outputElement");
     assertThat(bindingType(outputElement)).isEqualTo("zeebe:adHoc");
-    assertThat(outputElement.get("value").asText()).contains("toolCall._meta.id");
-    final var toolContainer = properties.get(type + 3);
-    assertThat(toolContainer.get("binding").get("name").asText())
-        .isEqualTo("io.camunda.agenticai.toolContainer");
+    assertThat(outputElement.get("value").asText()).isEqualTo(OUTPUT_ELEMENT_EXPRESSION);
+
+    final var toolContainer =
+        propertyWithBinding(properties, "zeebe:property", "io.camunda.agenticai.toolContainer");
     assertThat(toolContainer.get("value").asText()).isEqualTo("true");
-    assertThat(bindingType(properties.get(type + 4))).isEqualTo("zeebe:agentDefinition");
 
     assertThat(property(properties, "id").get("value").asText()).isEqualTo(templateId);
 
@@ -192,25 +155,28 @@ class AgentElementTemplateTransformsTest {
     assertThat(bindingType(resultVariable)).isEqualTo("zeebe:output");
     assertThat(resultVariable.get("binding").get("source").asText()).isEqualTo("=agent");
 
-    assertThat(ids.get(ids.indexOf("data.limits.maxModelCalls") + 1))
-        .isEqualTo("data.events.behavior");
     assertThat(property(properties, "data.events.behavior").get("group").asText())
         .isEqualTo("events");
-    assertThat(ids.get(ids.indexOf("data.response.includeAssistantMessage") + 1))
-        .isEqualTo("data.response.includeAgentContext");
 
-    final var agentInput = properties.getLast();
-    assertThat(bindingType(agentInput)).isEqualTo("zeebe:input");
-    assertThat(agentInput.get("binding").get("name").asText()).isEqualTo("agent");
+    propertyWithBinding(properties, "zeebe:input", "agent");
   }
 
-  private static int taskDefinitionTypeIndex(List<JsonNode> properties) {
-    return IntStream.range(0, properties.size())
-        .filter(i ->
-            bindingType(properties.get(i)).equals("zeebe:taskDefinition")
-                && properties.get(i).get("binding").path("property").asText().equals("type"))
+  private static JsonNode taskDefinitionType(List<JsonNode> properties) {
+    return properties.stream()
+        .filter(p -> bindingType(p).equals("zeebe:taskDefinition"))
+        .filter(p -> p.get("binding").path("property").asText().equals("type"))
         .findFirst()
         .orElseThrow(() -> new AssertionError("Missing zeebe:taskDefinition type property"));
+  }
+
+  private static JsonNode propertyWithBinding(
+      List<JsonNode> properties, String bindingType, String bindingName) {
+    return properties.stream()
+        .filter(p -> bindingType(p).equals(bindingType))
+        .filter(p -> p.get("binding").path("name").asText().equals(bindingName))
+        .findFirst()
+        .orElseThrow(
+            () -> new AssertionError("Missing " + bindingType + " property: " + bindingName));
   }
 
   private static String bindingType(JsonNode property) {

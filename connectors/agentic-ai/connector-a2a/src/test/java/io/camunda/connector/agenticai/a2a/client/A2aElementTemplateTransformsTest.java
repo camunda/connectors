@@ -63,14 +63,11 @@ class A2aElementTemplateTransformsTest {
     final var properties = properties(file);
     final var ids = properties.stream().map(p -> p.path("id").asText(null)).toList();
 
-    final var input = ids.indexOf("internal_clientResponse");
-    assertThat(input).isNotNegative();
-    final var inputBinding = properties.get(input).get("binding");
+    final var inputBinding = property(properties, "internal_clientResponse").get("binding");
     assertThat(inputBinding.get("type").asText()).isEqualTo("zeebe:input");
     assertThat(inputBinding.get("name").asText()).isEqualTo("internal_clientResponse");
 
-    final var clientResponse = properties.get(input + 1);
-    assertThat(clientResponse.get("id").asText()).isEqualTo(clientResponseId);
+    final var clientResponse = property(properties, clientResponseId);
     assertThat(clientResponse.get("type").asText()).isEqualTo("Hidden");
     assertThat(clientResponse.get("value").asText()).isEqualTo("=internal_clientResponse");
     assertThat(clientResponse.get("binding").get("type").asText()).isEqualTo("zeebe:property");

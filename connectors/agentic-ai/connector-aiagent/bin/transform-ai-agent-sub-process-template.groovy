@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 
-def T = new GroovyClassLoader(getClass().classLoader)
-    .parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
+def loader = new GroovyClassLoader(getClass().classLoader)
+def T = loader.parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
+def A = loader.parseClass(new File(project.basedir, 'bin/AgentTemplateTransforms.groovy'))
 
 static def replaceDocumentationLinks(String text) {
     if (text == null) return null
@@ -42,7 +43,7 @@ def deprecationDocumentationRef = T.optionalProperty(binding, 'deprecationDocume
 // templateId property above, so that is the stable lookup key here, not the source template's own
 // id). A template whose id has no entry keeps the source template's default.
 def systemPromptOverrides = T.optionalProperty(binding, 'systemPromptOverrides')
-def systemPromptDefault = T.systemPromptOverride(systemPromptOverrides, templateId)
+def systemPromptDefault = A.systemPromptOverride(systemPromptOverrides, templateId)
 
 // optional: "true" for templates whose OpenAI provider has per-API-family effort properties
 def moveOpenAiEffortAfterModel = T.optionalProperty(binding, 'moveOpenAiEffortAfterModel')?.toString()?.toBoolean()
@@ -280,7 +281,7 @@ updatedProperties.add([
 ])
 
 if (moveOpenAiEffortAfterModel) {
-    updatedProperties = T.moveOpenAiEffortAfterModel(updatedProperties)
+    updatedProperties = A.moveOpenAiEffortAfterModel(updatedProperties)
 }
 
 json.put('properties', updatedProperties)

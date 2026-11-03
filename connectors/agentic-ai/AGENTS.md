@@ -356,11 +356,13 @@ template via `connector-aiagent/bin/transform-ai-agent-sub-process-template.groo
 phase); the same script also derives the v2 AI Agent Sub-process template from the v2 AI Agent Task template.
 
 The transform scripts in `connector-aiagent/bin/` and `connector-a2a/bin/` find properties by hard-coded
-ids. They share their helpers through [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy), which
-fails the build when an expected property id or anchor is missing. When you rename a property a script
+ids. They share generic helpers through [`bin/TemplateTransforms.groovy`](bin/TemplateTransforms.groovy), which
+fails the build when an expected property id or anchor is missing; AI Agent specific helpers live in
+[`connector-aiagent/bin/AgentTemplateTransforms.groovy`](connector-aiagent/bin/AgentTemplateTransforms.groovy). When you rename a property a script
 looks up, update the script in the same change. `AgentElementTemplateTransformsTest` (`connector-aiagent`)
 and `A2aElementTemplateTransformsTest` (`connector-a2a`) assert what the scripts inject into the
-generated JSON. When you change a script, update these tests too.
+generated JSON. They check what the scripts change, not property order, so reordering properties
+doesn't require test changes; review any generated template diff instead.
 
 To regenerate, run `mvn clean compile -f connectors/agentic-ai/pom.xml` and commit the JSON diff; never edit
 the generated JSON by hand. For the generation mechanism and annotation reference, see the
