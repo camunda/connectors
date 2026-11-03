@@ -28,8 +28,11 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.DynamicWebhookProperties.DynamicWebhookPropertiesWrapper;
 import io.camunda.connector.inbound.model.HMACScope;
+import io.camunda.connector.inbound.model.WebhookApiKeyConfiguration;
+import io.camunda.connector.inbound.model.WebhookBasicAuthConfiguration;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
+import io.camunda.connector.inbound.model.WebhookJwtConfiguration;
 import io.camunda.connector.inbound.model.WebhookOutputExample;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACVerifier;
@@ -51,14 +54,19 @@ import org.slf4j.LoggerFactory;
     // response still deduplicate into a single executable.
     deduplicationClasses = {WebhookConnectorPropertiesWrapper.class})
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 16,
+    version = 17,
     inputDataClass = {
       WebhookConnectorPropertiesWrapper.class,
       DynamicWebhookPropertiesWrapper.class
+    },
+    configurations = {
+      WebhookBasicAuthConfiguration.class,
+      WebhookApiKeyConfiguration.class,
+      WebhookJwtConfiguration.class
     },
     description = "Configure webhook to receive callbacks",
     keywords = {

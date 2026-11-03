@@ -5,7 +5,7 @@
   "description" : "Configure webhook to receive callbacks",
   "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/protocol/http-webhook/",
-  "version" : 16,
+  "version" : 17,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,7 +16,7 @@
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "endpoint",
@@ -264,6 +264,23 @@
       "value" : "JWT"
     } ]
   }, {
+    "id" : "inbound.auth.basicCredential",
+    "label" : "Basic credential",
+    "description" : "Choose a reusable Basic authorization credential, or configure one-time parameters below.",
+    "optional" : true,
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.basicCredential",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "BASIC",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:webhook-basic-auth:1"
+  }, {
     "id" : "inbound.auth.username",
     "label" : "Username",
     "description" : "Username for basic authentication",
@@ -275,9 +292,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "BASIC",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.basicCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "BASIC",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -292,11 +315,34 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "BASIC",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.basicCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "BASIC",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
+  }, {
+    "id" : "inbound.auth.apiKeyCredential",
+    "label" : "API key credential",
+    "description" : "Choose a reusable API key credential, or configure a one-time API key below.",
+    "optional" : true,
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.apiKeyCredential",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "APIKEY",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:webhook-api-key:1"
   }, {
     "id" : "inbound.auth.apiKey",
     "label" : "API key",
@@ -309,9 +355,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "APIKEY",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.apiKeyCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "APIKEY",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -336,6 +388,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "inbound.auth.jwt.jwtCredential",
+    "label" : "JWT credential",
+    "description" : "Choose a reusable JWT authorization credential, or configure one-time parameters below.",
+    "optional" : true,
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.jwt.jwtCredential",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:webhook-jwt:1"
+  }, {
     "id" : "inbound.auth.jwt.jwkUrl",
     "label" : "JWK URL",
     "description" : "Well-known URL of JWKs",
@@ -347,9 +416,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.jwt.jwtCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "JWT",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -367,9 +442,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.jwt.jwtCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "JWT",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -387,9 +468,15 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "inbound.auth.jwt.jwtCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "inbound.auth.type",
+        "equals" : "JWT",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -658,6 +745,105 @@
     },
     "tooltip" : "<div><p>Example response:</p><code>{\"request\":{\"body\":{\"orderId\":\"123\",\"status\":\"created\"},\"headers\":{\"Content-Type\":\"application/json\"},\"params\":{}}}</code><p>Example FEEL expression: <code>= { orderId: request.body.orderId }</code> -&gt; <code>{\"orderId\":\"123\"}</code></p></div>",
     "type" : "Text"
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda.connectors:webhook-basic-auth:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Webhook Basic Authorization",
+    "properties" : [ {
+      "id" : "username",
+      "label" : "Username",
+      "description" : "Username expected on incoming requests",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "username",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "password",
+      "label" : "Password",
+      "description" : "Password expected on incoming requests",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:webhook-api-key:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Webhook API Key",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "API key",
+      "description" : "Expected API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:webhook-jwt:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Webhook JWT Authorization",
+    "properties" : [ {
+      "id" : "jwkUrl",
+      "label" : "JWK URL",
+      "description" : "Well-known URL of JWKs",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "jwkUrl",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "issuer",
+      "label" : "Issuer",
+      "description" : "Expected value of the JWT 'iss' claim",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "issuer",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "audience",
+      "label" : "Audience",
+      "description" : "Expected value of the JWT 'aud' claim",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authorization",
+      "binding" : {
+        "name" : "audience",
+        "type" : "property"
+      },
+      "type" : "String"
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyBpZD0naWNvbicgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAzMiAzMic+CiAgPGRlZnM+CiAgICA8c3R5bGU+LmNscy0xIHsgZmlsbDogbm9uZTsgfTwvc3R5bGU+CiAgPC9kZWZzPgogIDxwYXRoCiAgICBkPSdNMjQsMjZhMywzLDAsMSwwLTIuODE2NC00SDEzdjFhNSw1LDAsMSwxLTUtNVYxNmE3LDcsMCwxLDAsNi45Mjg3LDhoNi4yNTQ5QTIuOTkxNCwyLjk5MTQsMCwwLDAsMjQsMjZaJy8+CiAgPHBhdGgKICAgIGQ9J00yNCwxNmE3LjAyNCw3LjAyNCwwLDAsMC0yLjU3LjQ4NzNsLTMuMTY1Ni01LjUzOTVhMy4wNDY5LDMuMDQ2OSwwLDEsMC0xLjczMjYuOTk4NWw0LjExODksNy4yMDg1Ljg2ODYtLjQ5NzZhNS4wMDA2LDUuMDAwNiwwLDEsMS0xLjg1MSw2Ljg0MThMMTcuOTM3LDI2LjUwMUE3LjAwMDUsNy4wMDA1LDAsMSwwLDI0LDE2WicvPgogIDxwYXRoCiAgICBkPSdNOC41MzIsMjAuMDUzN2EzLjAzLDMuMDMsMCwxLDAsMS43MzI2Ljk5ODVDMTEuNzQsMTguNDcsMTMuODYsMTQuNzYwNywxMy44OSwxNC43MDhsLjQ5NzYtLjg2ODItLjg2NzctLjQ5N2E1LDUsMCwxLDEsNi44MTItMS44NDM4bDEuNzMxNSwxLjAwMmE3LjAwMDgsNy4wMDA4LDAsMSwwLTEwLjM0NjIsMi4wMzU2Yy0uNDU3Ljc0MjctMS4xMDIxLDEuODcxNi0yLjA3MzcsMy41NzI4WicvPgogIDxyZWN0IGlkPSdfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXycgZGF0YS1uYW1lPScmbHQ7VHJhbnNwYXJlbnQgUmVjdGFuZ2xlJmd0OycgY2xhc3M9J2Nscy0xJwogICAgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJy8+Cjwvc3ZnPg=="
