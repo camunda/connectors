@@ -33,8 +33,11 @@ abstract class AwsVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
    */
   protected abstract EmbeddingStore<TextSegment> openForWrite(int dimension);
 
-  /** Checks the index or table, failing when it is missing, and returns the store to search. */
-  protected abstract EmbeddingStore<TextSegment> openForRead();
+  /**
+   * Checks the index or table, failing when it is missing or does not match the given dimension,
+   * and returns the store to search.
+   */
+  protected abstract EmbeddingStore<TextSegment> openForRead(int dimension);
 
   protected abstract String name();
 
@@ -90,6 +93,6 @@ abstract class AwsVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
           "%s returns at most %d results per query, but %d were requested"
               .formatted(name(), MAX_RESULTS, request.maxResults()));
     }
-    return openForRead().search(request);
+    return openForRead(request.queryEmbedding().dimension()).search(request);
   }
 }

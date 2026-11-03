@@ -45,6 +45,10 @@ import software.amazon.awssdk.services.dynamodb.model.VectorIndexDescription;
 
 class AmazonDynamoDbEmbeddingStoreTest {
 
+  private static final String TABLE = "Table 'table' in region 'eu-central-1'";
+  private static final String INDEX =
+      "Vector index 'index' on table 'table' in region 'eu-central-1'";
+
   private final DynamoDbClient client = mock(DynamoDbClient.class);
   private final AmazonDynamoDbEmbeddingStore store =
       new AmazonDynamoDbEmbeddingStore(client, "eu-central-1", "table", "index");
@@ -61,7 +65,22 @@ class AmazonDynamoDbEmbeddingStoreTest {
 
     assertThatThrownBy(() -> store.search(searchRequest(5)))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage("Table 'table' not found in region 'eu-central-1'");
+        .hasMessage(TABLE + " not found");
+  }
+
+  @Test
+  void searchFailsWhenTheIndexHasOtherDimensions() {
+    when(client.describeTable(any(DescribeTableRequest.class)))
+        .thenReturn(described(table("id", vectorIndex("index", ProjectionType.ALL, "embedding"))));
+
+    assertThatThrownBy(() ->
+            store.search(
+                EmbeddingSearchRequest.builder()
+                    .queryEmbedding(Embedding.from(new float[] {1, 2}))
+                    .maxResults(5)
+                    .build()))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage(INDEX + " has 3 dimensions, but the embedding model produces 2");
   }
 
   @Test
@@ -71,7 +90,7 @@ class AmazonDynamoDbEmbeddingStoreTest {
 
     assertThatThrownBy(() -> store.search(searchRequest(5)))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage("Table 'table' has no vector index named 'index'");
+        .hasMessage(TABLE + " has no vector index named 'index'");
   }
 
   @Test
@@ -83,8 +102,7 @@ class AmazonDynamoDbEmbeddingStoreTest {
     assertThatThrownBy(() -> store.search(searchRequest(5)))
         .isInstanceOf(ConnectorException.class)
         .hasMessage(
-            "Vector index 'index' must project the '_page_content' attribute, which holds the"
-                + " chunk text");
+            INDEX + " must project the '_page_content' attribute, which holds the chunk text");
   }
 
   @Test
@@ -160,7 +178,7 @@ class AmazonDynamoDbEmbeddingStoreTest {
     assertThatThrownBy(
             () -> store.add(Embedding.from(new float[] {1, 2, 3}), TextSegment.from("chunk")))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage("Table 'table' must have a partition key and no sort key");
+        .hasMessage(TABLE + " must have a partition key and no sort key");
   }
 
   private static EmbeddingSearchRequest searchRequest(int maxResults) {

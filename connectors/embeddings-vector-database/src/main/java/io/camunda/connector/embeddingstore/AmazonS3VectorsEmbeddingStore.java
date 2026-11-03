@@ -36,6 +36,7 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
   private final String region;
   private final String vectorBucketName;
   private final String indexName;
+  private final String indexLabel;
 
   AmazonS3VectorsEmbeddingStore(
       S3VectorsClient client, String region, String vectorBucketName, String indexName) {
@@ -43,6 +44,9 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
     this.region = region;
     this.vectorBucketName = vectorBucketName;
     this.indexName = indexName;
+    this.indexLabel =
+        "Vector index '%s' in vector bucket '%s' in region '%s'"
+            .formatted(indexName, vectorBucketName, region);
   }
 
   @Override
@@ -58,29 +62,30 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
   @Override
   protected EmbeddingStore<TextSegment> openForWrite(int dimension) {
     var index = findIndex().orElseGet(() -> createIndex(dimension));
-    if (index.dimension() != dimension) {
-      throw new ConnectorException(
-          "Vector index '%s' has %d dimensions, but the embedding model produces %d"
-              .formatted(indexName, index.dimension(), dimension));
-    }
+    checkDimension(index, dimension);
     var metadata = index.metadataConfiguration();
     if (metadata == null || !metadata.nonFilterableMetadataKeys().contains(TEXT_METADATA_KEY)) {
       throw new ConnectorException(
-          ("Vector index '%s' must declare '%s' as a non-filterable metadata key, because the chunk"
-                  + " text is stored there. Use a new index name to let the connector create it.")
-              .formatted(indexName, TEXT_METADATA_KEY));
+          ("%s must declare '%s' as a non-filterable metadata key, because the chunk text is"
+                  + " stored there. Use a new index name to let the connector create it.")
+              .formatted(indexLabel, TEXT_METADATA_KEY));
     }
     return libraryStore(index);
   }
 
   @Override
-  protected EmbeddingStore<TextSegment> openForRead() {
-    return libraryStore(
-        findIndex()
-            .orElseThrow(() ->
-                new ConnectorException(
-                    "Vector index '%s' not found in vector bucket '%s' in region '%s'"
-                        .formatted(indexName, vectorBucketName, region))));
+  protected EmbeddingStore<TextSegment> openForRead(int dimension) {
+    var index = findIndex().orElseThrow(() -> new ConnectorException(indexLabel + " not found"));
+    checkDimension(index, dimension);
+    return libraryStore(index);
+  }
+
+  private void checkDimension(Index index, int dimension) {
+    if (index.dimension() != dimension) {
+      throw new ConnectorException(
+          "%s has %d dimensions, but the embedding model produces %d"
+              .formatted(indexLabel, index.dimension(), dimension));
+    }
   }
 
   private EmbeddingStore<TextSegment> libraryStore(Index index) {
@@ -131,7 +136,7 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
     return AwsWait.<Index>until(
         this::findIndex,
         INDEX_READY_TIMEOUT,
-        "Vector index '%s' was not available within %d seconds"
-            .formatted(indexName, INDEX_READY_TIMEOUT.toSeconds()));
+        "%s was not available within %d seconds"
+            .formatted(indexLabel, INDEX_READY_TIMEOUT.toSeconds()));
   }
 }

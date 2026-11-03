@@ -44,6 +44,8 @@ import software.amazon.awssdk.services.s3vectors.model.QueryVectorsResponse;
 class AmazonS3VectorsEmbeddingStoreTest {
 
   private static final String TEXT = AmazonS3VectorsEmbeddingStore.TEXT_METADATA_KEY;
+  private static final String INDEX =
+      "Vector index 'index' in vector bucket 'bucket' in region 'eu-central-1'";
 
   private final S3VectorsClient client = mock(S3VectorsClient.class);
   private final AmazonS3VectorsEmbeddingStore store =
@@ -55,8 +57,18 @@ class AmazonS3VectorsEmbeddingStoreTest {
 
     assertThatThrownBy(() -> store.search(searchRequest(5)))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage(
-            "Vector index 'index' not found in vector bucket 'bucket' in region 'eu-central-1'");
+        .hasMessage(INDEX + " not found");
+  }
+
+  @Test
+  void searchFailsWhenTheIndexHasOtherDimensions() {
+    when(client.getIndex(any(GetIndexRequest.class)))
+        .thenReturn(indexResponse(index(1024, DistanceMetric.COSINE, TEXT)));
+
+    assertThatThrownBy(() -> store.search(searchRequest(5)))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage(INDEX + " has 1024 dimensions, but the embedding model produces 3");
+    verify(client, never()).queryVectors(any(QueryVectorsRequest.class));
   }
 
   @Test
@@ -153,7 +165,7 @@ class AmazonS3VectorsEmbeddingStoreTest {
     assertThatThrownBy(
             () -> store.add(Embedding.from(new float[] {1, 2, 3}), TextSegment.from("chunk")))
         .isInstanceOf(ConnectorException.class)
-        .hasMessage("Vector index 'index' has 1024 dimensions, but the embedding model produces 3");
+        .hasMessage(INDEX + " has 1024 dimensions, but the embedding model produces 3");
   }
 
   @Test
@@ -165,7 +177,7 @@ class AmazonS3VectorsEmbeddingStoreTest {
             () -> store.add(Embedding.from(new float[] {1, 2, 3}), TextSegment.from("chunk")))
         .isInstanceOf(ConnectorException.class)
         .hasMessageStartingWith(
-            "Vector index 'index' must declare '_page_content' as a non-filterable metadata key");
+            INDEX + " must declare '_page_content' as a non-filterable metadata key");
   }
 
   private static EmbeddingSearchRequest searchRequest(int maxResults) {

@@ -42,16 +42,19 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
   private static final Duration TABLE_READY_TIMEOUT = Duration.ofSeconds(120);
 
   private final DynamoDbClient client;
-  private final String region;
   private final String tableName;
   private final String indexName;
+  private final String tableLabel;
+  private final String indexLabel;
 
   AmazonDynamoDbEmbeddingStore(
       DynamoDbClient client, String region, String tableName, String indexName) {
     this.client = client;
-    this.region = region;
     this.tableName = tableName;
     this.indexName = indexName;
+    this.tableLabel = "Table '%s' in region '%s'".formatted(tableName, region);
+    this.indexLabel =
+        "Vector index '%s' on table '%s' in region '%s'".formatted(indexName, tableName, region);
   }
 
   @Override
@@ -68,39 +71,36 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
     if (table == null || table.tableStatus() != TableStatus.ACTIVE) {
       table = waitUntilActive();
     }
-    var vectorIndex = vectorIndex(table);
-    if (vectorIndex.dimensions() != dimension) {
-      throw new ConnectorException(
-          "Vector index '%s' has %d dimensions, but the embedding model produces %d"
-              .formatted(indexName, vectorIndex.dimensions(), dimension));
-    }
+    var vectorIndex = vectorIndex(table, dimension);
     return libraryStore(table, vectorIndex);
   }
 
   @Override
-  protected EmbeddingStore<TextSegment> openForRead() {
+  protected EmbeddingStore<TextSegment> openForRead(int dimension) {
     var table =
-        describeTable()
-            .orElseThrow(() ->
-                new ConnectorException(
-                    "Table '%s' not found in region '%s'".formatted(tableName, region)));
-    var vectorIndex = vectorIndex(table);
+        describeTable().orElseThrow(() -> new ConnectorException(tableLabel + " not found"));
+    var vectorIndex = vectorIndex(table, dimension);
     if (vectorIndex.indexStatus() != IndexStatus.ACTIVE) {
       throw new ConnectorException(
-          "Vector index '%s' on table '%s' is not ready yet (status %s)"
-              .formatted(indexName, tableName, vectorIndex.indexStatusAsString()));
+          "%s is not ready yet (status %s)"
+              .formatted(indexLabel, vectorIndex.indexStatusAsString()));
     }
     return libraryStore(table, vectorIndex);
   }
 
-  private VectorIndexDescription vectorIndex(TableDescription table) {
+  private VectorIndexDescription vectorIndex(TableDescription table, int dimension) {
     var vectorIndex =
         table.vectorIndexes().stream()
             .filter(index -> indexName.equals(index.indexName()))
             .findFirst()
             .orElseThrow(() ->
                 new ConnectorException(
-                    "Table '%s' has no vector index named '%s'".formatted(tableName, indexName)));
+                    "%s has no vector index named '%s'".formatted(tableLabel, indexName)));
+    if (vectorIndex.dimensions() != dimension) {
+      throw new ConnectorException(
+          "%s has %d dimensions, but the embedding model produces %d"
+              .formatted(indexLabel, vectorIndex.dimensions(), dimension));
+    }
     var projection = vectorIndex.projection();
     boolean projectsText =
         projection != null
@@ -109,8 +109,8 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
                     && projection.nonKeyAttributes().contains(TEXT_ATTRIBUTE)));
     if (!projectsText) {
       throw new ConnectorException(
-          "Vector index '%s' must project the '%s' attribute, which holds the chunk text"
-              .formatted(indexName, TEXT_ATTRIBUTE));
+          "%s must project the '%s' attribute, which holds the chunk text"
+              .formatted(indexLabel, TEXT_ATTRIBUTE));
     }
     return vectorIndex;
   }
@@ -118,8 +118,7 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
   private EmbeddingStore<TextSegment> libraryStore(
       TableDescription table, VectorIndexDescription vectorIndex) {
     if (table.keySchema().size() != 1) {
-      throw new ConnectorException(
-          "Table '%s' must have a partition key and no sort key".formatted(tableName));
+      throw new ConnectorException(tableLabel + " must have a partition key and no sort key");
     }
     var keyAttribute = table.keySchema().getFirst().attributeName();
     boolean stringKey =
@@ -129,7 +128,8 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
                     && definition.attributeType() == ScalarAttributeType.S);
     if (!stringKey) {
       throw new ConnectorException(
-          "Partition key '%s' of table '%s' must be a string".formatted(keyAttribute, tableName));
+          "%s must have a string partition key, but '%s' is not a string"
+              .formatted(tableLabel, keyAttribute));
     }
     return DynamoDbEmbeddingStore.builder()
         .dynamoDbClient(client)
@@ -191,7 +191,7 @@ class AmazonDynamoDbEmbeddingStore extends AwsVectorEmbeddingStore {
     return AwsWait.until(
         () -> describeTable().filter(table -> table.tableStatus() == TableStatus.ACTIVE),
         TABLE_READY_TIMEOUT,
-        "Table '%s' was not active within %d seconds"
-            .formatted(tableName, TABLE_READY_TIMEOUT.toSeconds()));
+        "%s was not active within %d seconds"
+            .formatted(tableLabel, TABLE_READY_TIMEOUT.toSeconds()));
   }
 }
