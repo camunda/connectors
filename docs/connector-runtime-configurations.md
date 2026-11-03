@@ -63,8 +63,10 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
 
 - `local.directory` is where the provider writes the wrapper files, in a directory named after their
   digest (such as `js-0123456789ab`), and creates the temporary directories of the calls. It is
-  private to the user of the runtime: the provider refuses a directory that is a link, belongs to
-  another user or can be written by others, because the files in it are run. The default is
+  private to the user of the runtime: when it prepares a language, the provider refuses a directory
+  or wrapper file that is a link, belongs to another user or can be written by others, because the
+  files in it are run. It does not check the parent directories: choose a directory whose parents
+  other users cannot write to either, or that only the user of the runtime can enter. The default is
   `.camunda/managed-script` in the user's home directory. If a file there does not match the wrapper
   of this runtime, the provider refuses to start the language instead of running it: remove the
   directory.

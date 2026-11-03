@@ -73,6 +73,8 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   /** The response of the wrapper holds at most 1 MB of output: this leaves room for the rest. */
   private static final int MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 
+  private static volatile Integer runtimeUid;
+
   private final Path directory;
   private final Path scratch;
   private final ObjectMapper mapper;
@@ -388,11 +390,13 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
 
   /** The user of the runtime owns the file or directory, and nobody else can write to it. */
   private static void requireOnlyWritableByUser(Path path) throws IOException {
-    final var owner = Files.getOwner(path, LinkOption.NOFOLLOW_LINKS).getName();
-    if (!owner.equals(System.getProperty("user.name"))) {
+    final var owner = uid(path);
+    final var user = runtimeUid();
+    if (owner != user) {
       throw new ProvisioningException(
           ErrorCode.PLATFORM_REJECTED,
-          "%s belongs to %s, not to the user of the runtime".formatted(path, owner));
+          "%s belongs to the user %d, not to the user of the runtime (%d)"
+              .formatted(path, owner, user));
     }
     final var permissions = Files.getPosixFilePermissions(path, LinkOption.NOFOLLOW_LINKS);
     if (permissions.contains(PosixFilePermission.GROUP_WRITE)
@@ -402,6 +406,28 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
           "%s can be written by other users: remove that access, for example with chmod go-w"
               .formatted(path));
     }
+  }
+
+  private static int uid(Path path) throws IOException {
+    return (Integer) Files.getAttribute(path, "unix:uid", LinkOption.NOFOLLOW_LINKS);
+  }
+
+  /**
+   * The numeric user of the runtime, as the owner of a file it creates: its name can be unknown, as
+   * with an arbitrary user that has no entry in {@code /etc/passwd} (OpenShift).
+   */
+  private static int runtimeUid() throws IOException {
+    var current = runtimeUid;
+    if (current == null) {
+      final var probe = Files.createTempFile("managed-script-uid", ".tmp");
+      try {
+        current = uid(probe);
+      } finally {
+        Files.deleteIfExists(probe);
+      }
+      runtimeUid = current;
+    }
+    return current;
   }
 
   /**

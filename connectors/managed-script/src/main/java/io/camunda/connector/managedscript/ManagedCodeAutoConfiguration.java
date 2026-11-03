@@ -66,7 +66,8 @@ public class ManagedCodeAutoConfiguration {
     final var matching =
         providers
             .orderedStream()
-            .filter(provider -> properties.provider().equals(provider.name()))
+            // Ignoring case, as the condition on the property of a provider's configuration does.
+            .filter(provider -> properties.provider().equalsIgnoreCase(provider.name()))
             .toList();
     if (matching.isEmpty()) {
       throw new IllegalStateException(

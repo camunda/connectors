@@ -75,6 +75,19 @@ class ManagedCodeAutoConfigurationTest {
   }
 
   @Test
+  void matchesTheNameOfTheProviderIgnoringCaseAsTheConditionOfItsConfigurationDoes(
+      @TempDir Path directory) {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provider=Local",
+            "camunda.connector.managed-code.local.directory=" + directory)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).hasSingleBean(ManagedScriptJobHandler.class);
+        });
+  }
+
+  @Test
   void keepsTheWrapperFilesOfTheLocalProviderInTheDirectoryOfTheUser() {
     assertThat(new LocalManagedCodeProperties(null).directory())
         .isEqualTo(Path.of(System.getProperty("user.home"), ".camunda", "managed-script"));
