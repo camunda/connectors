@@ -83,13 +83,9 @@ class A2aAgentCardFetcherTest {
 
       final var result = agentCardFetcher.fetchAgentCard(request);
 
-      a2aStatic.verify(
-          () ->
-              A2A.getAgentCard(
-                  mockHttpClient,
-                  AGENT_URL,
-                  ".well-known/agent-card.json",
-                  Collections.emptyMap()));
+      a2aStatic.verify(() ->
+          A2A.getAgentCard(
+              mockHttpClient, AGENT_URL, ".well-known/agent-card.json", Collections.emptyMap()));
       assertAgentCard(result, DEFAULT_INPUT_MODES, DEFAULT_OUTPUT_MODES);
     }
   }
@@ -108,13 +104,9 @@ class A2aAgentCardFetcherTest {
 
       final var result = agentCardFetcher.fetchAgentCard(request);
 
-      a2aStatic.verify(
-          () ->
-              A2A.getAgentCard(
-                  mockHttpClient,
-                  AGENT_URL,
-                  ".well-known/agent-card.json",
-                  Collections.emptyMap()));
+      a2aStatic.verify(() ->
+          A2A.getAgentCard(
+              mockHttpClient, AGENT_URL, ".well-known/agent-card.json", Collections.emptyMap()));
       assertAgentCard(result, inputModes, outputModes);
     }
   }

@@ -60,21 +60,20 @@ public class HttpServiceDocumentTest {
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setStoreResponse(true);
-      assertThatThrownBy(
-              () ->
-                  customApacheHttpClient.executeConnectorRequest(
-                      request,
-                      new DocumentFactory() {
-                        @Override
-                        public Document resolve(DocumentReference reference) {
-                          return null;
-                        }
+      assertThatThrownBy(() ->
+              customApacheHttpClient.executeConnectorRequest(
+                  request,
+                  new DocumentFactory() {
+                    @Override
+                    public Document resolve(DocumentReference reference) {
+                      return null;
+                    }
 
-                        @Override
-                        public Document create(DocumentCreationRequest request) {
-                          throw new RuntimeException("Cannot create document");
-                        }
-                      }))
+                    @Override
+                    public Document create(DocumentCreationRequest request) {
+                      throw new RuntimeException("Cannot create document");
+                    }
+                  }))
           .hasMessage(
               "Error while executing an HTTP request: Failed to create document: Cannot create document");
       var documents = store.getDocuments();

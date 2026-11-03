@@ -45,16 +45,15 @@ public class BedrockContentMapper {
 
   public List<ContentBlock> mapToContentBlocks(List<BedrockContent> contentBlocks) {
     return contentBlocks.stream()
-        .map(
-            content -> {
-              String text = content.getText();
-              if (text != null) {
-                return mapToContentBlock(text);
-              }
-              var document = content.getDocument();
-              var docBlock = documentMapper.mapToFileBlock(document);
-              return mapToContentBlock(docBlock);
-            })
+        .map(content -> {
+          String text = content.getText();
+          if (text != null) {
+            return mapToContentBlock(text);
+          }
+          var document = content.getDocument();
+          var docBlock = documentMapper.mapToFileBlock(document);
+          return mapToContentBlock(docBlock);
+        })
         .toList();
   }
 

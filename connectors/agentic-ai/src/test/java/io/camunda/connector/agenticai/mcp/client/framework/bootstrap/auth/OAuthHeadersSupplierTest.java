@@ -66,12 +66,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "test-access-token",
-                        "token_type": "Bearer",
-                        "expires_in": 3600
-                      }
-                      """)));
+                          {
+                            "access_token": "test-access-token",
+                            "token_type": "Bearer",
+                            "expires_in": 3600
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -109,12 +109,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "test-access-token",
-                        "token_type": "Bearer",
-                        "expires_in": 7200
-                      }
-                      """)));
+                          {
+                            "access_token": "test-access-token",
+                            "token_type": "Bearer",
+                            "expires_in": 7200
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -156,12 +156,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "body-auth-token",
-                        "token_type": "Bearer",
-                        "expires_in": 1800
-                      }
-                      """)));
+                          {
+                            "access_token": "body-auth-token",
+                            "token_type": "Bearer",
+                            "expires_in": 1800
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -207,12 +207,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "cached-token",
-                        "token_type": "Bearer",
-                        "expires_in": 3600
-                      }
-                      """)));
+                          {
+                            "access_token": "cached-token",
+                            "token_type": "Bearer",
+                            "expires_in": 3600
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -250,12 +250,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                              {
-                                "access_token": "cached-token",
-                                "token_type": "Bearer",
-                                "expires_in": 3600
-                              }
-                              """)));
+                          {
+                            "access_token": "cached-token",
+                            "token_type": "Bearer",
+                            "expires_in": 3600
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -304,12 +304,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "initial-token",
-                        "token_type": "Bearer",
-                        "expires_in": 10
-                      }
-                      """))
+                          {
+                            "access_token": "initial-token",
+                            "token_type": "Bearer",
+                            "expires_in": 10
+                          }
+                          """))
               .willSetStateTo("Token Issued"));
 
       // second token expires in 1 hour
@@ -323,12 +323,12 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "access_token": "refreshed-token",
-                        "token_type": "Bearer",
-                        "expires_in": 3600
-                      }
-                      """)));
+                          {
+                            "access_token": "refreshed-token",
+                            "token_type": "Bearer",
+                            "expires_in": 3600
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -382,11 +382,11 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                        {
-                          "access_token": "initial-token",
-                          "token_type": "Bearer"
-                        }
-                        """))
+                          {
+                            "access_token": "initial-token",
+                            "token_type": "Bearer"
+                          }
+                          """))
               .willSetStateTo("Token Issued"));
 
       // second token
@@ -400,11 +400,11 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                        {
-                          "access_token": "refreshed-token",
-                          "token_type": "Bearer"
-                        }
-                        """)));
+                          {
+                            "access_token": "refreshed-token",
+                            "token_type": "Bearer"
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -460,11 +460,11 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "error": "invalid_client",
-                        "error_description": "Invalid client credentials"
-                      }
-                      """)));
+                          {
+                            "error": "invalid_client",
+                            "error_description": "Invalid client credentials"
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(
@@ -495,11 +495,11 @@ class OAuthHeadersSupplierTest {
                       .withHeader("Content-Type", "application/json")
                       .withBody(
                           """
-                      {
-                        "token_type": "Bearer",
-                        "expires_in": 3600
-                      }
-                      """)));
+                          {
+                            "token_type": "Bearer",
+                            "expires_in": 3600
+                          }
+                          """)));
 
       final var auth =
           new OAuthAuthentication(

@@ -51,7 +51,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
           elementTemplate -> elementTemplate.withoutPropertyValueStartingWith("data.response."),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -67,7 +67,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.includeAssistantMessage", "=false"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -83,7 +83,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_TEXT)
                   .hasResponseText(HAIKU_TEXT)
@@ -99,7 +99,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_JSON)
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -114,7 +114,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -136,18 +136,17 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
       final var lastChatRequest = chatRequestCaptor.getValue();
       assertThat(lastChatRequest.responseFormat())
           .isNotNull()
-          .satisfies(
-              format -> {
-                assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
+          .satisfies(format -> {
+            assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
 
-                if (expectedJsonSchema == null) {
-                  assertThat(format.jsonSchema()).isNull();
-                } else {
-                  assertThat(format.jsonSchema())
-                      .usingRecursiveComparison()
-                      .isEqualTo(expectedJsonSchema);
-                }
-              });
+            if (expectedJsonSchema == null) {
+              assertThat(format.jsonSchema()).isNull();
+            } else {
+              assertThat(format.jsonSchema())
+                  .usingRecursiveComparison()
+                  .isEqualTo(expectedJsonSchema);
+            }
+          });
     }
 
     @Test
@@ -156,7 +155,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
           elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -171,7 +170,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
@@ -206,7 +205,7 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
                   .property("data.response.format.schemaName", "HaikuSchema"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()

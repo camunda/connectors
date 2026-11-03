@@ -62,35 +62,34 @@ public class StructuredService {
 
     response
         .extractedFields()
-        .forEach(
-            (key, value) -> {
-              String variableName;
-              // Check if key variable should be overridden by renameMappings value
-              if (renameMappings != null && renameMappings.containsKey(key)) {
-                variableName = renameMappings.get(key);
-              } else {
-                variableName = formatZeebeVariableName(key, delimiter);
-              }
-              Object confidenceScore = response.confidenceScore().get(key);
+        .forEach((key, value) -> {
+          String variableName;
+          // Check if key variable should be overridden by renameMappings value
+          if (renameMappings != null && renameMappings.containsKey(key)) {
+            variableName = renameMappings.get(key);
+          } else {
+            variableName = formatZeebeVariableName(key, delimiter);
+          }
+          Object confidenceScore = response.confidenceScore().get(key);
 
-              // Check if field should be included based on includedFields filter
-              boolean shouldInclude;
-              if (includedFields == null || includedFields.isEmpty()) {
-                shouldInclude = true;
-              } else {
-                shouldInclude = includedFields.contains(key);
-              }
+          // Check if field should be included based on includedFields filter
+          boolean shouldInclude;
+          if (includedFields == null || includedFields.isEmpty()) {
+            shouldInclude = true;
+          } else {
+            shouldInclude = includedFields.contains(key);
+          }
 
-              // Include the field if it should be included and value is not null
-              if (shouldInclude && value != null) {
-                parsedResults.put(variableName, value);
-                originalKeys.put(variableName, key);
-                processedGeometry.put(variableName, response.geometry().get(key));
-                if (confidenceScore != null) {
-                  processedConfidenceScores.put(variableName, confidenceScore);
-                }
-              }
-            });
+          // Include the field if it should be included and value is not null
+          if (shouldInclude && value != null) {
+            parsedResults.put(variableName, value);
+            originalKeys.put(variableName, key);
+            processedGeometry.put(variableName, response.geometry().get(key));
+            if (confidenceScore != null) {
+              processedConfidenceScores.put(variableName, confidenceScore);
+            }
+          }
+        });
 
     return new StructuredExtractionResult(
         parsedResults, processedConfidenceScores, originalKeys, processedGeometry);

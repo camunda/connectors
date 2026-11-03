@@ -282,16 +282,14 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       ExecutableId id, Cancelled cancelledExecutable, ConnectorRetryException retryException) {
     batchExecutableProcessor
         .restartFromContext(cancelledExecutable, retryException)
-        .thenAccept(
-            activated -> {
-              stateStore.replace(id, activated);
-              LOG.info("Connector restarted successfully");
-            })
-        .exceptionally(
-            throwable -> {
-              LOG.error("The inbound connector could not be restarted", throwable);
-              return null;
-            });
+        .thenAccept(activated -> {
+          stateStore.replace(id, activated);
+          LOG.info("Connector restarted successfully");
+        })
+        .exceptionally(throwable -> {
+          LOG.error("The inbound connector could not be restarted", throwable);
+          return null;
+        });
   }
 
   @Override

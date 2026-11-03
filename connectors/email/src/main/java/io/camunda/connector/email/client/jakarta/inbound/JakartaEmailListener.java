@@ -39,38 +39,33 @@ public class JakartaEmailListener implements EmailListener {
             .handle(EmailConnectorException.class)
             .withBackoff(Duration.of(5, ChronoUnit.SECONDS), Duration.of(1, ChronoUnit.HOURS))
             .withMaxAttempts(INFINITE_RETRIES)
-            .onRetry(
-                event ->
-                    context.log(
-                        activity ->
-                            activity
-                                .withSeverity(Severity.WARNING)
-                                .withTag("Context creation")
-                                .withMessage(
-                                    "Retrying after attempt %s failed ..."
-                                        .formatted(event.getAttemptCount()))))
+            .onRetry(event ->
+                context.log(activity ->
+                    activity
+                        .withSeverity(Severity.WARNING)
+                        .withTag("Context creation")
+                        .withMessage(
+                            "Retrying after attempt %s failed ..."
+                                .formatted(event.getAttemptCount()))))
             .build();
     this.pollingManagerFuture =
         Failsafe.with(retryPolicy)
             .with(scheduledExecutorService)
             .getAsync(() -> PollingManager.create(context, new JakartaUtils()));
     this.scheduledPollingManagerFuture =
-        this.pollingManagerFuture.thenApply(
-            pollingManager ->
-                scheduledExecutorService.scheduleWithFixedDelay(
-                    pollingManager::poll, 0, pollingManager.delay(), TimeUnit.SECONDS));
-    this.scheduledPollingManagerFuture.whenComplete(
-        (pollingManager, throwable) -> {
-          if (throwable != null) {
-            context.reportHealth(Health.down(Health.Error.from(throwable)));
-            context.log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.ERROR)
-                        .withTag("Context creation")
-                        .withMessage(throwable.getMessage()));
-          } else context.reportHealth(Health.up());
-        });
+        this.pollingManagerFuture.thenApply(pollingManager ->
+            scheduledExecutorService.scheduleWithFixedDelay(
+                pollingManager::poll, 0, pollingManager.delay(), TimeUnit.SECONDS));
+    this.scheduledPollingManagerFuture.whenComplete((pollingManager, throwable) -> {
+      if (throwable != null) {
+        context.reportHealth(Health.down(Health.Error.from(throwable)));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag("Context creation")
+                .withMessage(throwable.getMessage()));
+      } else context.reportHealth(Health.up());
+    });
   }
 
   @Override

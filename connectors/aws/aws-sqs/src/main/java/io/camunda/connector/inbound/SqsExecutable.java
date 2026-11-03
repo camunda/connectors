@@ -104,12 +104,11 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
   public void activate(final InboundConnectorContext context) {
     this.context = context;
     LOGGER.info("Subscription activation requested by the Connector runtime");
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag("Subscription activation")
-                .withMessage("Subscription activation requested"));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag("Subscription activation")
+            .withMessage("Subscription activation requested"));
     SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
 
     var region =
@@ -134,12 +133,11 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     }
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag("Subscription activation")
-                .withMessage("Activated subscription for queue: " + properties.getQueue().url()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag("Subscription activation")
+            .withMessage("Activated subscription for queue: " + properties.getQueue().url()));
     context.reportHealth(Health.up());
   }
 

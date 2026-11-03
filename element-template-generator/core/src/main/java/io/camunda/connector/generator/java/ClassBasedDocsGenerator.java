@@ -89,37 +89,35 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   public static Map<String, DataExampleModel> collectExampleData(Class<?> type) {
     var methods = findAllDataExampleMethods(type);
     return methods.stream()
-        .map(
-            pair -> {
-              var method = pair.getLeft();
-              var annotation = pair.getRight();
-              Object result;
-              String json;
-              Object feelResult = null;
-              String feelResultJson = null;
-              try {
-                result = method.invoke(new Arrays[0]);
-                json = OBJECT_WRITER.writeValueAsString(result);
-                if (StringUtils.isNotBlank(annotation.feel())) {
-                  feelResult = feelEngine.evaluate(annotation.feel(), result);
-                  feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
-                }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-              return new DataExampleModel(
-                  annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
-            })
+        .map(pair -> {
+          var method = pair.getLeft();
+          var annotation = pair.getRight();
+          Object result;
+          String json;
+          Object feelResult = null;
+          String feelResultJson = null;
+          try {
+            result = method.invoke(new Arrays[0]);
+            json = OBJECT_WRITER.writeValueAsString(result);
+            if (StringUtils.isNotBlank(annotation.feel())) {
+              feelResult = feelEngine.evaluate(annotation.feel(), result);
+              feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
+            }
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+          return new DataExampleModel(
+              annotation.id(), result, json, annotation.feel(), feelResult, feelResultJson);
+        })
         .collect(Collectors.toMap(DataExampleModel::id, v -> v));
   }
 
   public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
     return Arrays.stream(type.getDeclaredMethods())
         .filter(m -> Modifier.isStatic(m.getModifiers()))
-        .filter(
-            m ->
-                Arrays.stream(m.getAnnotations())
-                    .anyMatch(a -> DataExample.class.equals(a.annotationType())))
+        .filter(m ->
+            Arrays.stream(m.getAnnotations())
+                .anyMatch(a -> DataExample.class.equals(a.annotationType())))
         .map(m -> Pair.of(m, m.getDeclaredAnnotation(DataExample.class)))
         .toList();
   }

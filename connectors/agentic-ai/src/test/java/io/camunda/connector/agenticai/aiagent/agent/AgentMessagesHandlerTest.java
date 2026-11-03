@@ -119,14 +119,13 @@ class AgentMessagesHandlerTest {
 
     @Test
     void throwsExceptionWhenReceivingToolCallResultsOnEmptyConversation() {
-      assertThatThrownBy(
-              () ->
-                  messagesHandler.addUserMessages(
-                      executionContext,
-                      AgentContext.empty(),
-                      runtimeMemory,
-                      userPromptWithDocuments,
-                      TOOL_CALL_RESULTS))
+      assertThatThrownBy(() ->
+              messagesHandler.addUserMessages(
+                  executionContext,
+                  AgentContext.empty(),
+                  runtimeMemory,
+                  userPromptWithDocuments,
+                  TOOL_CALL_RESULTS))
           .isInstanceOfSatisfying(
               ConnectorException.class,
               e -> assertThat(e.getErrorCode()).isEqualTo("TOOL_CALL_RESULTS_ON_EMPTY_CONTEXT"));
@@ -188,16 +187,15 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .satisfies(
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(1)
-                      .first()
-                      .isEqualTo(textContent("Tell me a story"));
-                  assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
-                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
+            .satisfies(userMessage -> {
+              assertThat(userMessage.content())
+                  .hasSize(1)
+                  .first()
+                  .isEqualTo(textContent("Tell me a story"));
+              assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
+              assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                  .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+            });
 
         return (UserMessage) addedMessages.getFirst();
       }
@@ -215,18 +213,17 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .satisfies(
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(2)
-                      .satisfiesExactly(
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(DocumentContent.documentContent(documents.get(0))),
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(DocumentContent.documentContent(documents.get(1))));
-                });
+            .satisfies(userMessage -> {
+              assertThat(userMessage.content())
+                  .hasSize(2)
+                  .satisfiesExactly(
+                      c ->
+                          assertThat(c)
+                              .isEqualTo(DocumentContent.documentContent(documents.get(0))),
+                      c ->
+                          assertThat(c)
+                              .isEqualTo(DocumentContent.documentContent(documents.get(1))));
+            });
 
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
       }
@@ -244,19 +241,18 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .satisfies(
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(3)
-                      .satisfiesExactly(
-                          c -> assertThat(c).isEqualTo(textContent("Tell me a story")),
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(DocumentContent.documentContent(documents.get(0))),
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(DocumentContent.documentContent(documents.get(1))));
-                });
+            .satisfies(userMessage -> {
+              assertThat(userMessage.content())
+                  .hasSize(3)
+                  .satisfiesExactly(
+                      c -> assertThat(c).isEqualTo(textContent("Tell me a story")),
+                      c ->
+                          assertThat(c)
+                              .isEqualTo(DocumentContent.documentContent(documents.get(0))),
+                      c ->
+                          assertThat(c)
+                              .isEqualTo(DocumentContent.documentContent(documents.get(1))));
+            });
 
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
       }
@@ -306,10 +302,8 @@ class AgentMessagesHandlerTest {
                 userMessage -> {
                   assertThat(userMessage.content())
                       .hasSize(1)
-                      .satisfiesExactly(
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(objectContent(Map.of("another", "event data"))));
+                      .satisfiesExactly(c ->
+                          assertThat(c).isEqualTo(objectContent(Map.of("another", "event data"))));
                   assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
                       .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
                 });
@@ -343,12 +337,10 @@ class AgentMessagesHandlerTest {
                 userMessage ->
                     assertThat(userMessage.content())
                         .hasSize(1)
-                        .satisfiesExactly(
-                            c ->
-                                assertThat(c)
-                                    .isEqualTo(
-                                        textContent(
-                                            EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE))));
+                        .satisfiesExactly(c ->
+                            assertThat(c)
+                                .isEqualTo(
+                                    textContent(EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE))));
       }
     }
 
@@ -380,14 +372,13 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-            .satisfies(
-                toolCallResultMessage -> {
-                  assertThat(toolCallResultMessage.results())
-                      .containsExactlyElementsOf(TOOL_CALL_RESULTS);
-                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
+            .satisfies(toolCallResultMessage -> {
+              assertThat(toolCallResultMessage.results())
+                  .containsExactlyElementsOf(TOOL_CALL_RESULTS);
+              assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+              assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                  .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+            });
 
         assertThat(runtimeMemory.allMessages())
             .containsExactly(assistantMessage, addedMessages.getFirst());
@@ -415,14 +406,13 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-            .satisfies(
-                toolCallResultMessage -> {
-                  assertThat(toolCallResultMessage.results())
-                      .containsExactlyElementsOf(TOOL_CALL_RESULTS); // ordered by request order
-                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
+            .satisfies(toolCallResultMessage -> {
+              assertThat(toolCallResultMessage.results())
+                  .containsExactlyElementsOf(TOOL_CALL_RESULTS); // ordered by request order
+              assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+              assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                  .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+            });
 
         assertThat(runtimeMemory.allMessages())
             .containsExactly(assistantMessage, addedMessages.getFirst());
@@ -436,15 +426,14 @@ class AgentMessagesHandlerTest {
 
         final var transformedToolCallResults =
             TOOL_CALL_RESULTS.stream()
-                .map(
-                    toolCallResult -> {
-                      if (toolCallResult.name().equals("getWeather")) {
-                        return toolCallResult.withContent(
-                            "Transformed Weather Result: " + toolCallResult.content());
-                      } else {
-                        return toolCallResult;
-                      }
-                    })
+                .map(toolCallResult -> {
+                  if (toolCallResult.name().equals("getWeather")) {
+                    return toolCallResult.withContent(
+                        "Transformed Weather Result: " + toolCallResult.content());
+                  } else {
+                    return toolCallResult;
+                  }
+                })
                 .toList();
 
         when(gatewayToolHandlers.transformToolCallResults(AGENT_CONTEXT, TOOL_CALL_RESULTS))
@@ -461,14 +450,13 @@ class AgentMessagesHandlerTest {
         assertThat(addedMessages)
             .hasSize(1)
             .first(InstanceOfAssertFactories.type(ToolCallResultMessage.class))
-            .satisfies(
-                toolCallResultMessage -> {
-                  assertThat(toolCallResultMessage.results())
-                      .containsExactlyElementsOf(transformedToolCallResults);
-                  assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
-                  assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
+            .satisfies(toolCallResultMessage -> {
+              assertThat(toolCallResultMessage.results())
+                  .containsExactlyElementsOf(transformedToolCallResults);
+              assertThat(toolCallResultMessage.metadata()).containsOnlyKeys("timestamp");
+              assertThat((ZonedDateTime) toolCallResultMessage.metadata().get("timestamp"))
+                  .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+            });
 
         assertThat(runtimeMemory.allMessages())
             .containsExactly(assistantMessage, addedMessages.getFirst());
@@ -576,11 +564,10 @@ class AgentMessagesHandlerTest {
                             userMessage -> {
                               assertThat(userMessage.content())
                                   .hasSize(1)
-                                  .satisfiesExactly(
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(
-                                                  objectContent(Map.of("another", "event data"))));
+                                  .satisfiesExactly(c ->
+                                      assertThat(c)
+                                          .isEqualTo(
+                                              objectContent(Map.of("another", "event data"))));
                               assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
                                   .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
                             }));
@@ -681,11 +668,10 @@ class AgentMessagesHandlerTest {
                             userMessage -> {
                               assertThat(userMessage.content())
                                   .hasSize(1)
-                                  .satisfiesExactly(
-                                      c ->
-                                          assertThat(c)
-                                              .isEqualTo(
-                                                  objectContent(Map.of("another", "event data"))));
+                                  .satisfiesExactly(c ->
+                                      assertThat(c)
+                                          .isEqualTo(
+                                              objectContent(Map.of("another", "event data"))));
                               assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
                                   .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
                             }));
@@ -744,29 +730,25 @@ class AgentMessagesHandlerTest {
                             userMessage ->
                                 assertThat(userMessage.content())
                                     .hasSize(1)
-                                    .satisfiesExactly(
-                                        c ->
-                                            assertThat(c)
-                                                .isEqualTo(
-                                                    textContent(
-                                                        EVENT_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE)))));
+                                    .satisfiesExactly(c ->
+                                        assertThat(c)
+                                            .isEqualTo(
+                                                textContent(
+                                                    EVENT_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE)))));
       }
 
       static List<Arguments> toolCallResultsWithEventsAndEventBehavior() {
         final List<Arguments> arguments = new ArrayList<>();
         toolCallResultsWithEvents()
-            .forEach(
-                toolCallResults -> {
-                  arguments.add(
-                      arguments(
-                          toolCallResults,
-                          new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS)));
-                  arguments.add(
-                      arguments(
-                          toolCallResults, new EventHandlingConfiguration(INTERRUPT_TOOL_CALLS)));
-                  arguments.add(arguments(toolCallResults, new EventHandlingConfiguration(null)));
-                  arguments.add(arguments(toolCallResults, null));
-                });
+            .forEach(toolCallResults -> {
+              arguments.add(
+                  arguments(
+                      toolCallResults, new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS)));
+              arguments.add(
+                  arguments(toolCallResults, new EventHandlingConfiguration(INTERRUPT_TOOL_CALLS)));
+              arguments.add(arguments(toolCallResults, new EventHandlingConfiguration(null)));
+              arguments.add(arguments(toolCallResults, null));
+            });
 
         return arguments;
       }
@@ -792,13 +774,11 @@ class AgentMessagesHandlerTest {
 
       static List<List<ToolCallResult>> partialToolCallResultsWithEvents() {
         return toolCallResultsWithEvents().stream()
-            .map(
-                toolCallResults ->
-                    toolCallResults.stream()
-                        .filter(
-                            toolCallResult ->
-                                !Objects.equals(TOOL_CALL_RESULTS.get(0).id(), toolCallResult.id()))
-                        .toList())
+            .map(toolCallResults ->
+                toolCallResults.stream()
+                    .filter(toolCallResult ->
+                        !Objects.equals(TOOL_CALL_RESULTS.get(0).id(), toolCallResult.id()))
+                    .toList())
             .toList();
       }
     }

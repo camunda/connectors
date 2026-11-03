@@ -162,9 +162,8 @@ class Langchain4JAiFrameworkAdapterTest {
     final var cause = new ModelNotFoundException("Model 'dummy' was not found");
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
-    assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+    assertThatThrownBy(() ->
+            adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {
@@ -184,9 +183,8 @@ class Langchain4JAiFrameworkAdapterTest {
     final var cause = new UnresolvedModelServerException((String) null);
     doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
 
-    assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+    assertThatThrownBy(() ->
+            adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {
@@ -326,9 +324,8 @@ class Langchain4JAiFrameworkAdapterTest {
         .thenReturn(L4J_MESSAGES);
     doThrow(new RuntimeException("model unavailable")).when(chatModel).chat(any(ChatRequest.class));
 
-    assertThatThrownBy(
-            () ->
-                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+    assertThatThrownBy(() ->
+            adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
         .isInstanceOf(ConnectorException.class);
 
     verify(chatModel).close();

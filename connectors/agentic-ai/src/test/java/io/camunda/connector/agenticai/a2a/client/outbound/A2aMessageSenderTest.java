@@ -66,11 +66,10 @@ class A2aMessageSenderTest {
   @BeforeEach
   void setUp() {
     when(clientFactory.buildClient(eq(agentCard), any(), any()))
-        .thenAnswer(
-            inv -> {
-              consumerRef.set(inv.getArgument(1));
-              return client;
-            });
+        .thenAnswer(inv -> {
+          consumerRef.set(inv.getArgument(1));
+          return client;
+        });
   }
 
   @Test
@@ -106,12 +105,11 @@ class A2aMessageSenderTest {
         .buildClient(
             eq(agentCard),
             any(),
-            assertArg(
-                config -> {
-                  assertThat(config.blocking())
-                      .isEqualTo(retrievalMode instanceof A2aResponseRetrievalMode.Blocking);
-                  assertThat(config.pushNotificationConfig()).isNull();
-                }));
+            assertArg(config -> {
+              assertThat(config.blocking())
+                  .isEqualTo(retrievalMode instanceof A2aResponseRetrievalMode.Blocking);
+              assertThat(config.pushNotificationConfig()).isNull();
+            }));
     verify(client).close();
   }
 
@@ -148,16 +146,15 @@ class A2aMessageSenderTest {
         .buildClient(
             eq(agentCard),
             any(),
-            assertArg(
-                config -> {
-                  assertThat(config.blocking()).isFalse();
-                  assertThat(config.pushNotificationConfig()).isNotNull();
-                  assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
-                  assertThat(config.pushNotificationConfig().token()).isEqualTo(token);
-                  assertThat(config.pushNotificationConfig().authSchemes())
-                      .containsExactlyElementsOf(notification.authenticationSchemes());
-                  assertThat(config.pushNotificationConfig().credentials()).isEqualTo(credentials);
-                }));
+            assertArg(config -> {
+              assertThat(config.blocking()).isFalse();
+              assertThat(config.pushNotificationConfig()).isNotNull();
+              assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
+              assertThat(config.pushNotificationConfig().token()).isEqualTo(token);
+              assertThat(config.pushNotificationConfig().authSchemes())
+                  .containsExactlyElementsOf(notification.authenticationSchemes());
+              assertThat(config.pushNotificationConfig().credentials()).isEqualTo(credentials);
+            }));
     verify(client).close();
   }
 

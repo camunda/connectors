@@ -106,15 +106,14 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext = AgentContext.empty();
     when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
 
-    assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+    assertThatThrownBy(() ->
+            store.executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+                  return agentResponse(agentContext);
+                }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
             "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got: null");
@@ -128,15 +127,14 @@ class CamundaDocumentConversationStoreTest {
             new MemoryConfiguration(
                 new MemoryStorageConfiguration.InProcessMemoryStorageConfiguration(), 20));
 
-    assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+    assertThatThrownBy(() ->
+            store.executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+                  return agentResponse(agentContext);
+                }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageStartingWith(
             "Expected memory storage configuration to be of type CamundaDocumentMemoryStorageConfiguration, but got:")
@@ -185,15 +183,14 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+    assertThatThrownBy(() ->
+            store.executeInSession(
+                executionContext,
+                agentContext,
+                session -> {
+                  session.loadIntoRuntimeMemory(agentContext, memory);
+                  return agentResponse(agentContext);
+                }))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unsupported conversation context: TestConversationContext");
   }
@@ -217,12 +214,11 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(document);
-              assertThat(conversation.previousDocuments()).isEmpty();
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(document);
+          assertThat(conversation.previousDocuments()).isEmpty();
+        });
 
     final var creationRequest = documentCreationRequestCaptor.getValue();
     assertDocumentCreationRequest(creationRequest, updatedAgentContext);
@@ -267,12 +263,11 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
+        });
 
     final var expectedMessages = new ArrayList<>(TEST_MESSAGES);
     expectedMessages.add(userMessage);
@@ -331,18 +326,16 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments())
-                  .containsExactlyElementsOf(expectedPreviousDocuments);
-            });
-
-    expectedDeletedDocuments.forEach(
-        reference -> {
-          verify(documentStore).deleteDocument(reference);
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments())
+              .containsExactlyElementsOf(expectedPreviousDocuments);
         });
+
+    expectedDeletedDocuments.forEach(reference -> {
+      verify(documentStore).deleteDocument(reference);
+    });
   }
 
   @Test
@@ -385,16 +378,15 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments())
-                  .containsExactly(
-                      previousDocuments.get(0), // this failed to be purged
-                      previousDocuments.get(2),
-                      previousDocument);
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments())
+              .containsExactly(
+                  previousDocuments.get(0), // this failed to be purged
+                  previousDocuments.get(2),
+                  previousDocument);
+        });
   }
 
   private AgentResponse agentResponse(AgentContext agentContext) {

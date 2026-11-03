@@ -60,9 +60,8 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newProcessDefinitionMessageSubscriptionStatisticsRequest()
-            .filter(
-                subscription ->
-                    subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
+            .filter(subscription ->
+                subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
@@ -77,11 +76,10 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newElementInstanceSearchRequest()
-            .filter(
-                i ->
-                    i.processDefinitionKey(processDefinitionKey)
-                        .elementId(elementId)
-                        .state(ElementInstanceState.ACTIVE));
+            .filter(i ->
+                i.processDefinitionKey(processDefinitionKey)
+                    .elementId(elementId)
+                    .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
@@ -96,10 +94,9 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newVariableSearchRequest()
-            .filter(
-                v ->
-                    v.processInstanceKey(processInstanceKey)
-                        .scopeKey(s -> s.in(processInstanceKey, elementInstanceKey)));
+            .filter(v ->
+                v.processInstanceKey(processInstanceKey)
+                    .scopeKey(s -> s.in(processInstanceKey, elementInstanceKey)));
     if (variablePaginationIndex != null) {
       query.page(p -> p.limit(limit).after(variablePaginationIndex));
     } else {

@@ -90,42 +90,36 @@ class McpClientHeadersSupplierFactoryTest {
 
     @Test
     void shouldCombineStaticAndBasicAuthHeaders() {
-      withMockedBasicAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(STATIC_HEADERS, BASIC_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBasicAuthHeadersSupplier(() -> {
+        final var transport = createTransport(STATIC_HEADERS, BASIC_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
-            expectedHeaders.put("Authorization", "Basic constructed");
+        LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
+        expectedHeaders.put("Authorization", "Basic constructed");
 
-            assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
-          });
+        assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
+      });
     }
 
     @Test
     void shouldOverwriteStaticAuthorizationHeader() {
-      withMockedBasicAuthHeadersSupplier(
-          () -> {
-            final var transport =
-                createTransport(Map.of("Authorization", "Static"), BASIC_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBasicAuthHeadersSupplier(() -> {
+        final var transport = createTransport(Map.of("Authorization", "Static"), BASIC_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers)
-                .containsExactlyEntriesOf(Map.of("Authorization", "Basic constructed"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Basic constructed"));
+      });
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     void shouldReturnOnlyBasicAuthHeadersWhenNoStaticHeaders(Map<String, String> staticHeaders) {
-      withMockedBasicAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(staticHeaders, BASIC_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBasicAuthHeadersSupplier(() -> {
+        final var transport = createTransport(staticHeaders, BASIC_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers)
-                .containsExactlyEntriesOf(Map.of("Authorization", "Basic constructed"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Basic constructed"));
+      });
     }
 
     private void withMockedBasicAuthHeadersSupplier(Runnable testCode) {
@@ -151,42 +145,37 @@ class McpClientHeadersSupplierFactoryTest {
 
     @Test
     void shouldCombineStaticAndBearerAuthHeaders() {
-      withMockedBearerAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(STATIC_HEADERS, BEARER_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBearerAuthHeadersSupplier(() -> {
+        final var transport = createTransport(STATIC_HEADERS, BEARER_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
-            expectedHeaders.put("Authorization", "Bearer constructed");
+        LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
+        expectedHeaders.put("Authorization", "Bearer constructed");
 
-            assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
-          });
+        assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
+      });
     }
 
     @Test
     void shouldOverwriteStaticAuthorizationHeader() {
-      withMockedBearerAuthHeadersSupplier(
-          () -> {
-            final var transport =
-                createTransport(Map.of("Authorization", "Static"), BEARER_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBearerAuthHeadersSupplier(() -> {
+        final var transport =
+            createTransport(Map.of("Authorization", "Static"), BEARER_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers)
-                .containsExactlyEntriesOf(Map.of("Authorization", "Bearer constructed"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer constructed"));
+      });
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     void shouldReturnOnlyBearerAuthHeadersWhenNoStaticHeaders(Map<String, String> staticHeaders) {
-      withMockedBearerAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(staticHeaders, BEARER_AUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedBearerAuthHeadersSupplier(() -> {
+        final var transport = createTransport(staticHeaders, BEARER_AUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers)
-                .containsExactlyEntriesOf(Map.of("Authorization", "Bearer constructed"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer constructed"));
+      });
     }
 
     private void withMockedBearerAuthHeadersSupplier(Runnable testCode) {
@@ -221,39 +210,36 @@ class McpClientHeadersSupplierFactoryTest {
 
     @Test
     void shouldCombineStaticAndOAuthHeaders() {
-      withMockedOAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(STATIC_HEADERS, OAUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedOAuthHeadersSupplier(() -> {
+        final var transport = createTransport(STATIC_HEADERS, OAUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
-            expectedHeaders.put("Authorization", "Bearer oauth");
+        LinkedHashMap<String, String> expectedHeaders = new LinkedHashMap<>(STATIC_HEADERS);
+        expectedHeaders.put("Authorization", "Bearer oauth");
 
-            assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
-          });
+        assertThat(headers).containsExactlyEntriesOf(expectedHeaders);
+      });
     }
 
     @Test
     void shouldOverwriteStaticAuthorizationHeader() {
-      withMockedOAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(Map.of("Authorization", "Static"), OAUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedOAuthHeadersSupplier(() -> {
+        final var transport = createTransport(Map.of("Authorization", "Static"), OAUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer oauth"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer oauth"));
+      });
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     void shouldReturnOnlyBearerAuthHeadersWhenNoStaticHeaders(Map<String, String> staticHeaders) {
-      withMockedOAuthHeadersSupplier(
-          () -> {
-            final var transport = createTransport(staticHeaders, OAUTH_CONFIG);
-            final var headers = factory.createHttpHeadersSupplier(transport).get();
+      withMockedOAuthHeadersSupplier(() -> {
+        final var transport = createTransport(staticHeaders, OAUTH_CONFIG);
+        final var headers = factory.createHttpHeadersSupplier(transport).get();
 
-            assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer oauth"));
-          });
+        assertThat(headers).containsExactlyEntriesOf(Map.of("Authorization", "Bearer oauth"));
+      });
     }
 
     private void withMockedOAuthHeadersSupplier(Runnable testCode) {

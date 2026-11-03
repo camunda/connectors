@@ -106,13 +106,12 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
 
     ArgumentCaptor<ScanRequest> requestCaptor = ArgumentCaptor.forClass(ScanRequest.class);
     when(dynamoDbClient.scan(requestCaptor.capture()))
-        .thenAnswer(
-            invocation -> {
-              ScanRequest req = invocation.getArgument(0);
-              return req.exclusiveStartKey() == null || req.exclusiveStartKey().isEmpty()
-                  ? page1
-                  : page2;
-            });
+        .thenAnswer(invocation -> {
+          ScanRequest req = invocation.getArgument(0);
+          return req.exclusiveStartKey() == null || req.exclusiveStartKey().isEmpty()
+              ? page1
+              : page2;
+        });
 
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> items =

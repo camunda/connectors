@@ -25,15 +25,15 @@ class ToolCallProcessVariableTest {
         new ToolCallProcessVariable("123456", "toolName", Map.of("foo", "bar", "baz", "qux"));
     private static final String TOOL_CALL_JSON_VALUE =
         """
-            {
-              "_meta": {
-                "id": "123456",
-                "name": "toolName"
-              },
-              "foo": "bar",
-              "baz": "qux"
-            }
-            """;
+        {
+          "_meta": {
+            "id": "123456",
+            "name": "toolName"
+          },
+          "foo": "bar",
+          "baz": "qux"
+        }
+        """;
 
     @Test
     void canBeSerialized() throws Exception {

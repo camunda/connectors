@@ -77,15 +77,14 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
         camundaClient
             .newWorker()
             .jobType("user_feedback")
-            .handler(
-                (client, job) -> {
-                  userFeedbackJobWorkerCounter.incrementAndGet();
-                  client
-                      .newCompleteCommand(job.getKey())
-                      .variables(userFeedbackVariables.get())
-                      .send()
-                      .join();
-                })
+            .handler((client, job) -> {
+              userFeedbackJobWorkerCounter.incrementAndGet();
+              client
+                  .newCompleteCommand(job.getKey())
+                  .variables(userFeedbackVariables.get())
+                  .send()
+                  .join();
+            })
             .open();
   }
 

@@ -44,12 +44,12 @@ public class EnvironmentSecretProvider implements SecretProvider {
     if (!StringUtils.hasText(prefix)) {
       LOG.warn(
           """
-                You are using connector environment secrets in unsafe mode. \
-                All environment variables are accessible as connector secrets. \
-                Please configure a meaningful secret prefix using \
-                `camunda.connector.secretprovider.environment.prefix` \
-                or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
-                """);
+          You are using connector environment secrets in unsafe mode. \
+          All environment variables are accessible as connector secrets. \
+          Please configure a meaningful secret prefix using \
+          `camunda.connector.secretprovider.environment.prefix` \
+          or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
+          """);
     } else {
       LOG.debug(
           "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",

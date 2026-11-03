@@ -61,26 +61,23 @@ class OutboundConnectorsAutoConfigurationTest {
 
   @Test
   void shouldDefaultSecretFilterModeToStrict() {
-    contextRunner.run(
-        context -> {
-          var secretFilterFactory = context.getBean(SecretFilterFactory.class);
-          var mode =
-              (SecretFilterMode)
-                  ReflectionTestUtils.getField(secretFilterFactory, "secretFilterMode");
-          assertThat(mode).isEqualTo(SecretFilterMode.STRICT);
-        });
+    contextRunner.run(context -> {
+      var secretFilterFactory = context.getBean(SecretFilterFactory.class);
+      var mode =
+          (SecretFilterMode) ReflectionTestUtils.getField(secretFilterFactory, "secretFilterMode");
+      assertThat(mode).isEqualTo(SecretFilterMode.STRICT);
+    });
   }
 
   @Test
   void shouldCreateConnectorExecutorServiceByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
-          assertThat(context).hasBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-          assertThat(context.getBean(CamundaClientExecutorService.class))
-              .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
-              .isInstanceOf(MeteredCamundaClientExecutorService.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
+      assertThat(context).hasBean(CONNECTOR_EXECUTOR_BEAN_NAME);
+      assertThat(context.getBean(CamundaClientExecutorService.class))
+          .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
+          .isInstanceOf(MeteredCamundaClientExecutorService.class);
+    });
   }
 
   @Test
@@ -97,11 +94,10 @@ class OutboundConnectorsAutoConfigurationTest {
   void shouldNotCreateConnectorExecutorServiceWhenVirtualThreadsAreDisabled() {
     contextRunner
         .withPropertyValues("camunda.connector.virtual-threads.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-              assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
+          assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
+        });
   }
 
   static class RequiredOutboundRuntimeBeans {

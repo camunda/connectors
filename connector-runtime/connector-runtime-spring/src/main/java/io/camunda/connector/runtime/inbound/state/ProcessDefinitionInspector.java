@@ -183,13 +183,12 @@ public class ProcessDefinitionInspector {
     Collection<FlowElement> allElements = collectFlowElements(process.getFlowElements(), buffer);
     Collection<BaseElement> inboundEligibleElements = new HashSet<>();
     for (FlowElement element : allElements) {
-      INBOUND_ELIGIBLE_TYPES.forEach(
-          iet -> {
-            if (iet.isInstance(element)
-                && getRawProperties(element).containsKey(INBOUND_TYPE_KEYWORD)) {
-              inboundEligibleElements.add(element);
-            }
-          });
+      INBOUND_ELIGIBLE_TYPES.forEach(iet -> {
+        if (iet.isInstance(element)
+            && getRawProperties(element).containsKey(INBOUND_TYPE_KEYWORD)) {
+          inboundEligibleElements.add(element);
+        }
+      });
     }
     return inboundEligibleElements;
   }
@@ -266,12 +265,11 @@ public class ProcessDefinitionInspector {
             catchEvent.getEventDefinitions().stream()
                 .filter(def -> def instanceof MessageEventDefinition)
                 .findAny()
-                .orElseThrow(
-                    () ->
-                        new InvalidInboundConnectorDefinitionException(
-                            "Sanity check failed: "
-                                + catchEvent.getClass().getSimpleName()
-                                + " must contain at least one event definition"));
+                .orElseThrow(() ->
+                    new InvalidInboundConnectorDefinitionException(
+                        "Sanity check failed: "
+                            + catchEvent.getClass().getSimpleName()
+                            + " must contain at least one event definition"));
     String name = msgDef.getMessage().getName();
 
     String correlationKeyExpression =
@@ -371,22 +369,19 @@ public class ProcessDefinitionInspector {
 
   private String extractRequiredProperty(BaseElement element, String name) {
     return extractProperty(element, name)
-        .orElseThrow(
-            () ->
-                new InvalidInboundConnectorDefinitionException(
-                    "Missing required property " + name));
+        .orElseThrow(() ->
+            new InvalidInboundConnectorDefinitionException("Missing required property " + name));
   }
 
   private Optional<String> extractProperty(BaseElement element, String name) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     return Optional.ofNullable(zeebeProperties)
         .map(ZeebeProperties::getProperties)
-        .flatMap(
-            props ->
-                props.stream()
-                    .filter(property -> property.getName().equals(name))
-                    .findAny()
-                    .map(ZeebeProperty::getValue));
+        .flatMap(props ->
+            props.stream()
+                .filter(property -> property.getName().equals(name))
+                .findAny()
+                .map(ZeebeProperty::getValue));
   }
 
   private static ElementTemplateDetails getElementTemplateDetails(BaseElement element) {

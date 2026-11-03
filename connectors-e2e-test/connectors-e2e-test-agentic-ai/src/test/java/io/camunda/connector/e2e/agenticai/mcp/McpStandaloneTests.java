@@ -500,34 +500,31 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   private void updateServiceTaskInput(BpmnModelInstance bpmnModel, String value) {
     var serviceTasks =
         bpmnModel.getModelElementsByType(ServiceTask.class).stream()
-            .filter(
-                st -> {
-                  var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
-                  var type = taskDefinition.getType();
+            .filter(st -> {
+              var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
+              var type = taskDefinition.getType();
 
-                  return type != null && type.startsWith("io.camunda.agenticai:mcpremoteclient");
-                })
+              return type != null && type.startsWith("io.camunda.agenticai:mcpremoteclient");
+            })
             .toList();
     assertThat(serviceTasks).isNotEmpty();
 
-    serviceTasks.forEach(
-        serviceTask -> {
-          ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
-          assertThat(ioMapping).isNotNull();
+    serviceTasks.forEach(serviceTask -> {
+      ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
+      assertThat(ioMapping).isNotNull();
 
-          final var inputMapping =
-              ioMapping.getChildElementsByType(ZeebeInput.class).stream()
-                  .filter(input -> "data.transport.http.url".equals(input.getTarget()))
-                  .findFirst()
-                  .orElseGet(
-                      () -> {
-                        final var im = bpmnModel.newInstance(ZeebeInput.class);
-                        im.setTarget("data.transport.http.url");
-                        ioMapping.addChildElement(im);
-                        return im;
-                      });
+      final var inputMapping =
+          ioMapping.getChildElementsByType(ZeebeInput.class).stream()
+              .filter(input -> "data.transport.http.url".equals(input.getTarget()))
+              .findFirst()
+              .orElseGet(() -> {
+                final var im = bpmnModel.newInstance(ZeebeInput.class);
+                im.setTarget("data.transport.http.url");
+                ioMapping.addChildElement(im);
+                return im;
+              });
 
-          inputMapping.setSource(value);
-        });
+      inputMapping.setSource(value);
+    });
   }
 }

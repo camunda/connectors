@@ -77,17 +77,16 @@ public class TestMailClient implements MailClient {
     Optional<Boolean> readState =
         mailboxState.values().stream()
             // Map reduce because java doesn't like mutating local variables from inside lambdas
-            .map(
-                l -> {
-                  for (int index = 0; index < l.size(); index++) {
-                    var e = l.get(index);
-                    if (e.msg().equals(msg)) {
-                      l.remove(index);
-                      return Optional.of(e.isRead);
-                    }
-                  }
-                  return Optional.<Boolean>empty();
-                })
+            .map(l -> {
+              for (int index = 0; index < l.size(); index++) {
+                var e = l.get(index);
+                if (e.msg().equals(msg)) {
+                  l.remove(index);
+                  return Optional.of(e.isRead);
+                }
+              }
+              return Optional.<Boolean>empty();
+            })
             .reduce(Optional.empty(), (l, r) -> l.isPresent() ? l : r);
     mailboxState.get(getFolderId(folder)).add(new InternalMessage(msg, readState.orElse(false)));
   }

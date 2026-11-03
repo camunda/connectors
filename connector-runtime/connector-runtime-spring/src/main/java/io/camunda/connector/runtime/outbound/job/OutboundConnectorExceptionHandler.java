@@ -134,11 +134,10 @@ public class OutboundConnectorExceptionHandler {
       Map<?, ?> map, List<String> secrets, Set<Object> enclosing) {
     // keys are masked too, and collapsed keys simply overwrite rather than fail
     var masked = new LinkedHashMap<String, Object>();
-    map.forEach(
-        (key, entry) ->
-            masked.put(
-                SecretUtil.hideSecretsFromMessage(String.valueOf(key), secrets),
-                maskSecrets(entry, secrets, enclosing)));
+    map.forEach((key, entry) ->
+        masked.put(
+            SecretUtil.hideSecretsFromMessage(String.valueOf(key), secrets),
+            maskSecrets(entry, secrets, enclosing)));
     return masked;
   }
 

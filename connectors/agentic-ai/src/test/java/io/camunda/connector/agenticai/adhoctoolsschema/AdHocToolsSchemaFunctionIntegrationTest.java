@@ -227,10 +227,8 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   @ParameterizedTest
   @ValueSource(longs = {0, -10})
   void throwsExceptionWhenProcessDefinitionKeyIsInvalid(Long processDefinitionKey) {
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(processDefinitionKey, AD_HOC_SUB_PROCESS_ID)))
+    assertThatThrownBy(() ->
+            function.execute(outboundConnectorContext(processDefinitionKey, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Process definition key must not be null or negative");
 
@@ -241,10 +239,8 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   @NullAndEmptySource
   @ValueSource(strings = {"   "})
   void throwsExceptionWhenAdHocSubProcessIdIsInvalid(String adHocSubProcessId) {
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(PROCESS_DEFINITION_KEY, adHocSubProcessId)))
+    assertThatThrownBy(() ->
+            function.execute(outboundConnectorContext(PROCESS_DEFINITION_KEY, adHocSubProcessId)))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("adHocSubProcessId cannot be null or empty");
 
@@ -256,10 +252,9 @@ class AdHocToolsSchemaFunctionIntegrationTest {
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY).send().join())
         .thenReturn("DUMMY");
 
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
+    assertThatThrownBy(() ->
+            function.execute(
+                outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOf(ModelParseException.class);
   }
 
@@ -289,10 +284,9 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.inputParameter, \"An input parameter\")");
 
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
+    assertThatThrownBy(() ->
+            function.execute(
+                outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -313,10 +307,9 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         .when(parameterExtractor)
         .extractParameters("fromAi(toolCall.outputParameter, \"An output parameter\")");
 
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
+    assertThatThrownBy(() ->
+            function.execute(
+                outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -334,10 +327,9 @@ class AdHocToolsSchemaFunctionIntegrationTest {
     when(schemaGenerator.generateToolSchema(any()))
         .thenThrow(new AdHocToolSchemaGenerationException("I can't generate this schema"));
 
-    assertThatThrownBy(
-            () ->
-                function.execute(
-                    outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
+    assertThatThrownBy(() ->
+            function.execute(
+                outboundConnectorContext(PROCESS_DEFINITION_KEY, AD_HOC_SUB_PROCESS_ID)))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             e -> {
@@ -368,14 +360,13 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         List<AdHocToolElement> elements) {
       return elements.stream()
           .filter(element -> element.elementId().equals("Simple_Tool"))
-          .map(
-              element ->
-                  GatewayToolDefinition.builder()
-                      .type("simpleTool")
-                      .name(element.elementId())
-                      .description(element.documentationWithNameFallback())
-                      .properties(Map.of("simple", true))
-                      .build())
+          .map(element ->
+              GatewayToolDefinition.builder()
+                  .type("simpleTool")
+                  .name(element.elementId())
+                  .description(element.documentationWithNameFallback())
+                  .properties(Map.of("simple", true))
+                  .build())
           .toList();
     }
   }
@@ -388,14 +379,13 @@ class AdHocToolsSchemaFunctionIntegrationTest {
         List<AdHocToolElement> elements) {
       return elements.stream()
           .filter(element -> element.elementId().equals("A_Complex_Tool"))
-          .map(
-              element ->
-                  GatewayToolDefinition.builder()
-                      .type("complexTool")
-                      .name(element.elementId())
-                      .description(element.documentationWithNameFallback())
-                      .properties(Map.of("toolType", "complex"))
-                      .build())
+          .map(element ->
+              GatewayToolDefinition.builder()
+                  .type("complexTool")
+                  .name(element.elementId())
+                  .description(element.documentationWithNameFallback())
+                  .properties(Map.of("toolType", "complex"))
+                  .build())
           .toList();
     }
   }

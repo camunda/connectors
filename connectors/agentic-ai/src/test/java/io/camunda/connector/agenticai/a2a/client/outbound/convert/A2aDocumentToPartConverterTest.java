@@ -122,12 +122,11 @@ public class A2aDocumentToPartConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(FilePart.class))
-        .satisfies(
-            filePart -> {
-              assertThat(filePart.getFile().mimeType()).isEqualTo(mediaType);
-              assertThat(filePart.getFile()).isInstanceOf(FileWithBytes.class);
-              assertThat(((FileWithBytes) filePart.getFile()).bytes()).isEqualTo(DUMMY_B64_VALUE);
-            });
+        .satisfies(filePart -> {
+          assertThat(filePart.getFile().mimeType()).isEqualTo(mediaType);
+          assertThat(filePart.getFile()).isInstanceOf(FileWithBytes.class);
+          assertThat(((FileWithBytes) filePart.getFile()).bytes()).isEqualTo(DUMMY_B64_VALUE);
+        });
 
     verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();

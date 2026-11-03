@@ -222,13 +222,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling-response");
-              assertThat(activity.message())
-                  .startsWith("Error loading A2A client response: Unrecognized token 'invalid'");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling-response");
+          assertThat(activity.message())
+              .startsWith("Error loading A2A client response: Unrecognized token 'invalid'");
+        });
   }
 
   @Test
@@ -242,12 +241,11 @@ class A2aPollingTaskTest {
 
     verify(processInstanceContext)
         .correlate(
-            ArgumentMatchers.<A2aClientResponse>assertArg(
-                arg -> {
-                  assertThat(arg.result()).isEqualTo(agentCard);
-                  assertThat(arg.pollingData()).isNotNull();
-                  assertThat(arg.pollingData().id()).isEqualTo("agent-card-id");
-                }));
+            ArgumentMatchers.<A2aClientResponse>assertArg(arg -> {
+              assertThat(arg.result()).isEqualTo(agentCard);
+              assertThat(arg.pollingData()).isNotNull();
+              assertThat(arg.pollingData().id()).isEqualTo("agent-card-id");
+            }));
     verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
@@ -424,11 +422,10 @@ class A2aPollingTaskTest {
   }
 
   private A2aClientResponse taskArgumentMatcher(final A2aTask expectedTask) {
-    return assertArg(
-        arg ->
-            assertThat(arg)
-                .usingRecursiveComparison()
-                .ignoringFieldsOfTypes(OffsetDateTime.class)
-                .isEqualTo(a2aClientResponse(expectedTask)));
+    return assertArg(arg ->
+        assertThat(arg)
+            .usingRecursiveComparison()
+            .ignoringFieldsOfTypes(OffsetDateTime.class)
+            .isEqualTo(a2aClientResponse(expectedTask)));
   }
 }

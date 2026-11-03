@@ -236,22 +236,20 @@ class A2aGatewayToolHandlerTest {
 
       assertThat(result).hasSize(1);
       assertThat(result)
-          .satisfiesExactly(
-              toolDefinition -> {
-                assertThat(toolDefinition.name()).isEqualTo("A2A_a2a1");
-                // description contains JSON string of the map; parse and compare
-                var parsed = readDescriptionAsMap(toolDefinition.description());
-                assertThat(parsed).isEqualTo(content);
-                assertThat(toolDefinition.inputSchema())
-                    .satisfies(
-                        schema -> {
-                          assertThat(schema).containsOnlyKeys("type", "properties", "required");
-                          assertThat(schema).containsEntry("required", List.of("text"));
-                          //noinspection unchecked
-                          assertThat((Map<String, Object>) schema.get("properties"))
-                              .containsOnlyKeys("text", "contextId", "taskId", "referenceTaskIds");
-                        });
-              });
+          .satisfiesExactly(toolDefinition -> {
+            assertThat(toolDefinition.name()).isEqualTo("A2A_a2a1");
+            // description contains JSON string of the map; parse and compare
+            var parsed = readDescriptionAsMap(toolDefinition.description());
+            assertThat(parsed).isEqualTo(content);
+            assertThat(toolDefinition.inputSchema())
+                .satisfies(schema -> {
+                  assertThat(schema).containsOnlyKeys("type", "properties", "required");
+                  assertThat(schema).containsEntry("required", List.of("text"));
+                  //noinspection unchecked
+                  assertThat((Map<String, Object>) schema.get("properties"))
+                      .containsOnlyKeys("text", "contextId", "taskId", "referenceTaskIds");
+                });
+          });
     }
 
     @Test

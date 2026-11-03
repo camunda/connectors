@@ -156,14 +156,13 @@ class A2aSdkObjectConverterTest {
       A2aTask result = converter.convert(task);
 
       assertThat(result.artifacts())
-          .satisfiesExactly(
-              a2aArtifact -> {
-                assertThat(a2aArtifact.artifactId()).isEqualTo("art-1");
-                assertThat(a2aArtifact.name()).isEqualTo("result.txt");
-                assertThat(a2aArtifact.description()).isEqualTo("Task result");
-                assertThat(a2aArtifact.metadata()).containsEntry("type", "text");
-                assertThat(a2aArtifact.contents()).isEqualTo(contents);
-              });
+          .satisfiesExactly(a2aArtifact -> {
+            assertThat(a2aArtifact.artifactId()).isEqualTo("art-1");
+            assertThat(a2aArtifact.name()).isEqualTo("result.txt");
+            assertThat(a2aArtifact.description()).isEqualTo("Task result");
+            assertThat(a2aArtifact.metadata()).containsEntry("type", "text");
+            assertThat(a2aArtifact.contents()).isEqualTo(contents);
+          });
     }
 
     @Test
@@ -231,14 +230,13 @@ class A2aSdkObjectConverterTest {
     A2aTask result = converter.convert(task);
 
     assertThat(result.history())
-        .satisfiesExactly(
-            message -> {
-              assertThat(message.messageId()).isEqualTo("hist-1");
-              assertThat(message.contextId()).isEqualTo("ctx-h");
-              assertThat(message.taskId()).isEqualTo("task-h-one");
-              assertThat(message.role()).isEqualTo(A2aMessage.Role.USER);
-              assertThat(message.contents()).isEqualTo(convertedContent);
-            });
+        .satisfiesExactly(message -> {
+          assertThat(message.messageId()).isEqualTo("hist-1");
+          assertThat(message.contextId()).isEqualTo("ctx-h");
+          assertThat(message.taskId()).isEqualTo("task-h-one");
+          assertThat(message.role()).isEqualTo(A2aMessage.Role.USER);
+          assertThat(message.contents()).isEqualTo(convertedContent);
+        });
   }
 
   @Test

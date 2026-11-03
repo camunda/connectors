@@ -162,21 +162,24 @@ public class L4JAiAgentA2aIntegrationTestSupport {
                     .name("A2A_Travel_Agent")
                     .arguments(
                         """
-                            {"text":"Book a single hotel room"}""")
+                        {"text":"Book a single hotel room"}\
+                        """)
                     .build(),
                 ToolExecutionRequest.builder()
                     .id("ccc333")
                     .name("A2A_Weather_Agent")
                     .arguments(
                         """
-                            {"text":"What's the weather in London?"}""")
+                        {"text":"What's the weather in London?"}\
+                        """)
                     .build(),
                 ToolExecutionRequest.builder()
                     .id("ddd444")
                     .name("A2A_Exchange_Rate_Agent")
                     .arguments(
                         """
-                            {"text":"What's the exchange rate for USD to EUR?"}""")
+                        {"text":"What's the exchange rate for USD to EUR?"}\
+                        """)
                     .build())),
         new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "39"),
         new ToolExecutionResultMessage("bbb222", "A2A_Travel_Agent", travelAgentTooCallResult),
@@ -185,11 +188,12 @@ public class L4JAiAgentA2aIntegrationTestSupport {
             "ddd444", "A2A_Exchange_Rate_Agent", exchangeRateAgentToolCallResult),
         new AiMessage(
             """
-                I called some of my normal and A2A tools and got the following results:
-                SuperfluxProduct: 39
-                A2A_Travel_Agent: %s
-                A2A_Weather_Agent: %s
-                A2A_Exchange_Rate_Agent: %s"""
+            I called some of my normal and A2A tools and got the following results:
+            SuperfluxProduct: 39
+            A2A_Travel_Agent: %s
+            A2A_Weather_Agent: %s
+            A2A_Exchange_Rate_Agent: %s\
+            """
                 .formatted(
                     travelAgentTooCallResult,
                     weatherAgentTooCallResult,

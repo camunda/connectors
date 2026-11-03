@@ -52,12 +52,11 @@ public final class IntrinsicFunctionUtil {
         }
       }
       node.properties()
-          .forEach(
-              entry -> {
-                var childPath = new ArrayList<>(fieldPath);
-                childPath.add(entry.getKey());
-                walk(entry.getValue(), childPath, allowList);
-              });
+          .forEach(entry -> {
+            var childPath = new ArrayList<>(fieldPath);
+            childPath.add(entry.getKey());
+            walk(entry.getValue(), childPath, allowList);
+          });
     } else if (node.isArray()) {
       node.forEach(element -> walk(element, fieldPath, allowList));
     }

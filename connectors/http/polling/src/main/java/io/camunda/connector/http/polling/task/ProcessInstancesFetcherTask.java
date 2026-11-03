@@ -67,18 +67,17 @@ public class ProcessInstancesFetcherTask implements Runnable {
             .filter(entry -> !activeTasks.contains(entry.getKey()))
             .toList();
 
-    inactiveTasks.forEach(
-        entry -> {
-          entry.getValue().cancel(true);
-          runningHttpRequestTaskIds.remove(entry.getKey());
-        });
+    inactiveTasks.forEach(entry -> {
+      entry.getValue().cancel(true);
+      runningHttpRequestTaskIds.remove(entry.getKey());
+    });
   }
 
   private void scheduleRequest(ProcessInstanceContext processInstanceContext) {
     String taskKey = getRequestTaskKey(processInstanceContext);
     runningHttpRequestTaskIds.computeIfAbsent(
         taskKey,
-        (key) -> {
+        key -> {
           var task = new HttpRequestTask(httpService, processInstanceContext, context);
           return this.executorService
               .getExecutorService()

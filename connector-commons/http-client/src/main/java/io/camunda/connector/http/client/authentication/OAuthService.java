@@ -74,11 +74,10 @@ public class OAuthService {
         .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
         .map(JsonNode::asText)
         .map(accessToken -> toTokenResponse(accessToken, jsonNode))
-        .orElseThrow(
-            () ->
-                new ConnectorException(
-                    "OAUTH_TOKEN_ERROR",
-                    "OAuth token response does not contain an access_token field"));
+        .orElseThrow(() ->
+            new ConnectorException(
+                "OAUTH_TOKEN_ERROR",
+                "OAuth token response does not contain an access_token field"));
   }
 
   private TokenResponse toTokenResponse(String accessToken, JsonNode jsonNode) {

@@ -43,9 +43,8 @@ public class TypePropertyBasedGatewayToolDefinitionResolver
   private boolean hasMatchingGatewayTypeProperty(AdHocToolElement element) {
     return element.properties() != null
         && element.properties().entrySet().stream()
-            .anyMatch(
-                property ->
-                    GATEWAY_TYPE_EXTENSION.equals(property.getKey())
-                        && gatewayType.equals(property.getValue()));
+            .anyMatch(property ->
+                GATEWAY_TYPE_EXTENSION.equals(property.getKey())
+                    && gatewayType.equals(property.getValue()));
   }
 }

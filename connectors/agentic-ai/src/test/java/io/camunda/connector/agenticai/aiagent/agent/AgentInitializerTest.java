@@ -249,12 +249,11 @@ class AgentInitializerTest {
 
       when(gatewayToolHandlers.initiateToolDiscovery(
               any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryInitiationResult(
-                      args.getArgument(0, AgentContext.class)
-                          .withProperty("mcpClients", List.of("AnMcpClient")),
-                      toolDiscoveryToolCalls));
+          .thenAnswer(args ->
+              new GatewayToolDiscoveryInitiationResult(
+                  args.getArgument(0, AgentContext.class)
+                      .withProperty("mcpClients", List.of("AnMcpClient")),
+                  toolDiscoveryToolCalls));
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
@@ -289,12 +288,11 @@ class AgentInitializerTest {
 
       when(gatewayToolHandlers.initiateToolDiscovery(
               any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryInitiationResult(
-                      args.getArgument(0, AgentContext.class)
-                          .withProperty("mcpClients", List.of("AnMcpClient")),
-                      toolDiscoveryToolCalls));
+          .thenAnswer(args ->
+              new GatewayToolDiscoveryInitiationResult(
+                  args.getArgument(0, AgentContext.class)
+                      .withProperty("mcpClients", List.of("AnMcpClient")),
+                  toolDiscoveryToolCalls));
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
@@ -364,13 +362,12 @@ class AgentInitializerTest {
 
       when(gatewayToolHandlers.handleToolDiscoveryResults(
               any(AgentContext.class), eq(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryResult(
-                      args.getArgument(0, AgentContext.class)
-                          .withToolDefinitions(expectedToolDefinitions)
-                          .withProperty("discovered", true),
-                      List.of()));
+          .thenAnswer(args ->
+              new GatewayToolDiscoveryResult(
+                  args.getArgument(0, AgentContext.class)
+                      .withToolDefinitions(expectedToolDefinitions)
+                      .withProperty("discovered", true),
+                  List.of()));
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
@@ -408,13 +405,12 @@ class AgentInitializerTest {
 
       when(gatewayToolHandlers.handleToolDiscoveryResults(
               any(AgentContext.class), eq(mergedToolCallResults)))
-          .thenAnswer(
-              args ->
-                  new GatewayToolDiscoveryResult(
-                      args.getArgument(0, AgentContext.class)
-                          .withToolDefinitions(expectedToolDefinitions)
-                          .withProperty("discovered", true),
-                      TOOL_CALL_RESULTS));
+          .thenAnswer(args ->
+              new GatewayToolDiscoveryResult(
+                  args.getArgument(0, AgentContext.class)
+                      .withToolDefinitions(expectedToolDefinitions)
+                      .withProperty("discovered", true),
+                  TOOL_CALL_RESULTS));
 
       final var result = agentInitializer.initializeAgent(executionContext);
 

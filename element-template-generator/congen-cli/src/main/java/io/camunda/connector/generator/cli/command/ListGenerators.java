@@ -30,9 +30,8 @@ public class ListGenerators implements Callable<Integer> {
     System.out.println("Available generators:");
     try {
       GeneratorServiceLoader.loadGenerators()
-          .forEach(
-              (key, generator) ->
-                  System.out.println(" - " + key + ", usage: " + generator.getUsage()));
+          .forEach((key, generator) ->
+              System.out.println(" - " + key + ", usage: " + generator.getUsage()));
     } catch (Exception e) {
       System.err.println("Failed to list generators: " + e.getMessage());
       return GENERATION_FAILED.getCode();

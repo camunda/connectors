@@ -60,7 +60,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={{\"key\":\"value\"}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -75,7 +75,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("stringMap", "={\"keyString\":null}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -94,7 +94,7 @@ class InboundConnectorContextImplTest {
                 "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -118,11 +118,11 @@ class InboundConnectorContextImplTest {
       ValidInboundConnectorDetails details, SecretProvider secretProvider) {
     return new InboundConnectorContextImpl(
         secretProvider,
-        (e) -> {},
+        e -> {},
         new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
         details,
         null,
-        (e) -> {},
+        e -> {},
         mapper,
         activityLogRegistry,
         true);
@@ -217,10 +217,10 @@ class InboundConnectorContextImplTest {
     var context =
         new InboundConnectorContextImpl(
             secretProvider,
-            (e) -> {},
+            e -> {},
             getInboundConnectorDefinition(Map.of("token", "secrets.DECLARED")),
             null,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry);
 
@@ -269,7 +269,7 @@ class InboundConnectorContextImplTest {
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"));
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -284,7 +284,7 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();
@@ -300,7 +300,7 @@ class InboundConnectorContextImplTest {
     var health = Health.up();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -310,12 +310,11 @@ class InboundConnectorContextImplTest {
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
     assertThat(logs)
         .singleElement()
-        .satisfies(
-            log -> {
-              assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
-              assertThat(log.healthChange()).isEqualTo(health);
-              assertThat(log.severity()).isEqualTo(Severity.INFO);
-            });
+        .satisfies(log -> {
+          assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
+          assertThat(log.healthChange()).isEqualTo(health);
+          assertThat(log.severity()).isEqualTo(Severity.INFO);
+        });
   }
 
   @Test
@@ -325,7 +324,7 @@ class InboundConnectorContextImplTest {
     var health = Health.down();
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when
     inboundConnectorContext.reportHealth(health);
@@ -335,12 +334,11 @@ class InboundConnectorContextImplTest {
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
     assertThat(logs)
         .singleElement()
-        .satisfies(
-            log -> {
-              assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
-              assertThat(log.healthChange()).isEqualTo(health);
-              assertThat(log.severity()).isEqualTo(Severity.ERROR);
-            });
+        .satisfies(log -> {
+          assertThat(log.tag()).isEqualTo(ActivityLogTag.HEALTH);
+          assertThat(log.healthChange()).isEqualTo(health);
+          assertThat(log.severity()).isEqualTo(Severity.ERROR);
+        });
   }
 
   @Test
@@ -349,7 +347,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
     var context =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when an activity's message happens to carry the resolved value
     context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
@@ -370,7 +368,7 @@ class InboundConnectorContextImplTest {
     when(failingProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
     var context =
         new InboundConnectorContextImpl(
-            failingProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            failingProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when
     context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));
@@ -380,11 +378,10 @@ class InboundConnectorContextImplTest {
         activityLogRegistry.getLogs(ExecutableId.fromDeduplicationId(definition.deduplicationId()));
     assertThat(logs)
         .singleElement()
-        .satisfies(
-            log -> {
-              assertThat(log.message()).doesNotContain("bar");
-              assertThat(log.message()).contains("withheld");
-            });
+        .satisfies(log -> {
+          assertThat(log.message()).doesNotContain("bar");
+          assertThat(log.message()).contains("withheld");
+        });
   }
 
   @Test
@@ -393,7 +390,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
     var context =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when the reported health carries the resolved value in its error
     context.reportHealth(Health.down(new RuntimeException("token was bar")));
@@ -414,7 +411,7 @@ class InboundConnectorContextImplTest {
     var definition = getInboundConnectorDefinition(Map.of("token", "secrets.FOO"));
     var context =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when the same failure is reported twice
     context.reportHealth(Health.down(new RuntimeException("token was bar")));
@@ -434,7 +431,7 @@ class InboundConnectorContextImplTest {
     when(downProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("down"));
     var context =
         new InboundConnectorContextImpl(
-            downProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            downProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when two distinct failures are reported during the outage
     context.reportHealth(Health.down(new RuntimeException("kafka broker unreachable")));
@@ -455,7 +452,7 @@ class InboundConnectorContextImplTest {
     when(rotatingProvider.fetchAll(any(), any())).thenReturn(List.of("new-value"));
     var context =
         new InboundConnectorContextImpl(
-            rotatingProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            rotatingProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when the bound value is used, binding first so it is actually substituted and captured
     context.getProperties();
@@ -476,7 +473,7 @@ class InboundConnectorContextImplTest {
     when(partialProvider.fetchAll(any(), any())).thenReturn(List.of("only-one-value"));
     var context =
         new InboundConnectorContextImpl(
-            partialProvider, (e) -> {}, definition, null, (e) -> {}, mapper, activityLogRegistry);
+            partialProvider, e -> {}, definition, null, e -> {}, mapper, activityLogRegistry);
 
     // when nothing was ever bound, so only the (incomplete) re-read is available
     context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was leaked"));
@@ -507,7 +504,7 @@ class InboundConnectorContextImplTest {
                 representative.deduplicationId(List.of()), List.of(representative, sibling));
     var context =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, details, null, (e) -> {}, mapper, activityLogRegistry);
+            secretProvider, e -> {}, details, null, e -> {}, mapper, activityLogRegistry);
 
     // when a message carries the value that only the sibling names
     context.log(activity -> activity.withSeverity(Severity.ERROR).withMessage("token was bar"));

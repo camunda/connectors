@@ -120,15 +120,14 @@ class AgentContextTest {
       AgentMetrics metrics,
       List<ToolDefinition> toolDefinitions,
       String exceptionMessage) {
-    assertThatThrownBy(
-            () ->
-                new AgentContext(
-                    state,
-                    null,
-                    metrics,
-                    toolDefinitions,
-                    InProcessConversationContext.builder("test-conversation").build(),
-                    Map.of()))
+    assertThatThrownBy(() ->
+            new AgentContext(
+                state,
+                null,
+                metrics,
+                toolDefinitions,
+                InProcessConversationContext.builder("test-conversation").build(),
+                Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessage(exceptionMessage);
   }

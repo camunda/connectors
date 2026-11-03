@@ -86,12 +86,11 @@ class OutboundConnectorExceptionHandlerTest {
    */
   private void holdingOnly(Map<String, String> values) {
     when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              requestedKeys.addAll(keys);
-              return keys.stream().map(values::get).filter(Objects::nonNull).toList();
-            });
+        .thenAnswer(invocation -> {
+          List<String> keys = invocation.getArgument(0);
+          requestedKeys.addAll(keys);
+          return keys.stream().map(values::get).filter(Objects::nonNull).toList();
+        });
   }
 
   /**
@@ -217,14 +216,13 @@ class OutboundConnectorExceptionHandlerTest {
                     + " `java.util.LinkedHashMap` from String value ('super-secret')"));
 
     var logged =
-        logsOf(
-            () ->
-                handlerOverStore.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"),
-                    job,
-                    Duration.ofSeconds(1),
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handlerOverStore.manageConnectorJobHandlerException(
+                new RuntimeException("boom"),
+                job,
+                Duration.ofSeconds(1),
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
@@ -242,14 +240,13 @@ class OutboundConnectorExceptionHandlerTest {
         };
 
     var logged =
-        logsOf(
-            () ->
-                handler.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"),
-                    job,
-                    Duration.ofSeconds(1),
-                    unreadableAllowList,
-                    List.of()));
+        logsOf(() ->
+            handler.manageConnectorJobHandlerException(
+                new RuntimeException("boom"),
+                job,
+                Duration.ofSeconds(1),
+                unreadableAllowList,
+                List.of()));
 
     assertThat(logged).anyMatch(message -> message.contains("Activity_1"));
   }
@@ -496,13 +493,12 @@ class OutboundConnectorExceptionHandlerTest {
     when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("super-secret"));
 
     var logged =
-        logsOf(
-            () ->
-                handlerOverStore.handleFinalResultException(
-                    new RuntimeException("failed talking to https://api?key=super-secret"),
-                    job,
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handlerOverStore.handleFinalResultException(
+                new RuntimeException("failed talking to https://api?key=super-secret"),
+                job,
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("***"));
@@ -514,13 +510,12 @@ class OutboundConnectorExceptionHandlerTest {
     when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
 
     var logged =
-        logsOf(
-            () ->
-                handlerOverStore.handleFinalResultException(
-                    new RuntimeException("failed talking to https://api?key=super-secret"),
-                    job,
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handlerOverStore.handleFinalResultException(
+                new RuntimeException("failed talking to https://api?key=super-secret"),
+                job,
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));

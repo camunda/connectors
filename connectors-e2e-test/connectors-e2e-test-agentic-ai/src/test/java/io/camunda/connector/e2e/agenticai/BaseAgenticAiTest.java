@@ -77,17 +77,16 @@ public abstract class BaseAgenticAiTest {
     await()
         .pollInSameThread()
         .atMost(Duration.ofSeconds(10))
-        .untilAsserted(
-            () -> {
-              final var processDefinitions =
-                  camundaClient
-                      .newProcessDefinitionSearchRequest()
-                      .filter(filter -> filter.processDefinitionId(process.getId()))
-                      .send()
-                      .join();
+        .untilAsserted(() -> {
+          final var processDefinitions =
+              camundaClient
+                  .newProcessDefinitionSearchRequest()
+                  .filter(filter -> filter.processDefinitionId(process.getId()))
+                  .send()
+                  .join();
 
-              assertThat(processDefinitions.items()).hasSize(expectedVersionCount);
-            });
+          assertThat(processDefinitions.items()).hasSize(expectedVersionCount);
+        });
 
     return zeebeTest;
   }
@@ -96,10 +95,9 @@ public abstract class BaseAgenticAiTest {
     final var incidents =
         camundaClient
             .newIncidentSearchRequest()
-            .filter(
-                filter ->
-                    filter.processInstanceKey(
-                        zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
+            .filter(filter ->
+                filter.processInstanceKey(
+                    zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
             .send()
             .join();
 

@@ -55,15 +55,14 @@ public class SystemPromptComposerImpl implements SystemPromptComposer {
       LOGGER.trace("Added base system prompt");
     }
 
-    contributors.forEach(
-        contributor -> {
-          String contribution = contributor.contributeSystemPrompt(executionContext, agentContext);
-          if (StringUtils.isNotBlank(contribution)) {
-            composed.add(contribution);
-            LOGGER.debug(
-                "Added system prompt contribution from {}", contributor.getClass().getSimpleName());
-          }
-        });
+    contributors.forEach(contributor -> {
+      String contribution = contributor.contributeSystemPrompt(executionContext, agentContext);
+      if (StringUtils.isNotBlank(contribution)) {
+        composed.add(contribution);
+        LOGGER.debug(
+            "Added system prompt contribution from {}", contributor.getClass().getSimpleName());
+      }
+    });
 
     return String.join(SEPARATOR, composed);
   }

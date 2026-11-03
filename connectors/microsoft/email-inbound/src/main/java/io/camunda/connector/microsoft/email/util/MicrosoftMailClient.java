@@ -98,10 +98,9 @@ public class MicrosoftMailClient implements MailClient {
     var resp =
         getGraphClient()
             .mailFolders()
-            .get(
-                c ->
-                    c.queryParameters.filter =
-                        String.format("displayName eq '%s'", folderName.replace("'", "''")));
+            .get(c ->
+                c.queryParameters.filter =
+                    String.format("displayName eq '%s'", folderName.replace("'", "''")));
     if (resp == null || resp.getValue() == null || resp.getValue().isEmpty()) {
       throw new ConnectorException(
           "No folder with name " + folderName + " could be found in mailbox " + userId);
@@ -153,18 +152,17 @@ public class MicrosoftMailClient implements MailClient {
         .client(getClient())
         .collectionPage(Objects.requireNonNull(messageResponse))
         .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
-        .requestConfigurator(
-            requestInfo -> {
-              // Re-add the header and query parameters to subsequent requests
-              requestInfo.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
-              if (StringUtils.isNotBlank(filterString)) {
-                requestInfo.addQueryParameter(ODATA_FILTER_PARAM, filterString);
-              }
-              requestInfo.addQueryParameter(
-                  ODATA_SELECT_PARAM, String.join(",", EmailMessage.getSelect()));
-              requestInfo.addQueryParameter(ODATA_TOP_PARAM, PAGE_SIZE);
-              return requestInfo;
-            })
+        .requestConfigurator(requestInfo -> {
+          // Re-add the header and query parameters to subsequent requests
+          requestInfo.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+          if (StringUtils.isNotBlank(filterString)) {
+            requestInfo.addQueryParameter(ODATA_FILTER_PARAM, filterString);
+          }
+          requestInfo.addQueryParameter(
+              ODATA_SELECT_PARAM, String.join(",", EmailMessage.getSelect()));
+          requestInfo.addQueryParameter(ODATA_TOP_PARAM, PAGE_SIZE);
+          return requestInfo;
+        })
         .processPageItemCallback(msg -> processMessageItem(msg, handler))
         .build();
   }
@@ -223,15 +221,14 @@ public class MicrosoftMailClient implements MailClient {
         .mailFolders()
         .byMailFolderId(getFolderId(folder))
         .messages()
-        .get(
-            requestConfiguration -> {
-              requestConfiguration.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
-              if (StringUtils.isNotBlank(filterString)) {
-                requestConfiguration.queryParameters.filter = filterString;
-              }
-              requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-              requestConfiguration.queryParameters.top = PAGE_SIZE;
-            });
+        .get(requestConfiguration -> {
+          requestConfiguration.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+          if (StringUtils.isNotBlank(filterString)) {
+            requestConfiguration.queryParameters.filter = filterString;
+          }
+          requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+          requestConfiguration.queryParameters.top = PAGE_SIZE;
+        });
   }
 
   private static boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {

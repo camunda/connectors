@@ -65,34 +65,30 @@ public class MsEmailInboundExecutable
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CONSUMER)
-                .withMessage(
-                    "Microsoft O365 Email connector activation requested for process "
-                        + context.getDefinition().elements().stream()
-                            .map(ProcessElement::bpmnProcessId)
-                            .toList()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag(ActivityLogTag.CONSUMER)
+            .withMessage(
+                "Microsoft O365 Email connector activation requested for process "
+                    + context.getDefinition().elements().stream()
+                        .map(ProcessElement::bpmnProcessId)
+                        .toList()));
     try {
       worker = new EmailPollingWorker(context);
       context.reportHealth(Health.up());
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Microsoft O365 Email connector activated successfully"));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Microsoft O365 Email connector activated successfully"));
     } catch (Exception e) {
       LOGGER.error("Failed to activate Microsoft O365 Email Inbound connector", e);
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage(
-                      "Microsoft O365 Email connector activation failed: " + e.getMessage()));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Microsoft O365 Email connector activation failed: " + e.getMessage()));
       context.reportHealth(Health.down(e));
       throw e;
     }
@@ -100,12 +96,11 @@ public class MsEmailInboundExecutable
 
   @Override
   public void deactivate() throws Exception {
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CONSUMER)
-                .withMessage("Microsoft O365 Email connector deactivation requested"));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag(ActivityLogTag.CONSUMER)
+            .withMessage("Microsoft O365 Email connector deactivation requested"));
     worker.close();
     context.reportHealth(Health.down());
   }

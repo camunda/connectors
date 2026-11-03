@@ -302,12 +302,11 @@ public class InboundConnectorMultiVersionTests {
   private void awaitHealthyExecutable(String processId) {
     Awaitility.await("process " + processId + " should have healthy executable")
         .atMost(AWAIT_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              var executables = queryExecutables(processId);
-              assertThat(executables).isNotEmpty();
-              assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
-            });
+        .untilAsserted(() -> {
+          var executables = queryExecutables(processId);
+          assertThat(executables).isNotEmpty();
+          assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+        });
   }
 
   // ============= TEST SCENARIOS =============
@@ -355,19 +354,18 @@ public class InboundConnectorMultiVersionTests {
       // Then: Still single executable (deduplicated by same properties)
       Awaitility.await("should have single executable with v2 element")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Only v2 should be represented (v1 has no active instances)
-                var processDefKeys =
-                    executables.getFirst().elements().stream()
-                        .map(e -> e.element().processDefinitionKey())
-                        .collect(Collectors.toSet());
-                assertThat(processDefKeys).contains(keyV2);
-              });
+            // Only v2 should be represented (v1 has no active instances)
+            var processDefKeys =
+                executables.getFirst().elements().stream()
+                    .map(e -> e.element().processDefinitionKey())
+                    .collect(Collectors.toSet());
+            assertThat(processDefKeys).contains(keyV2);
+          });
     }
 
     @Test
@@ -387,23 +385,17 @@ public class InboundConnectorMultiVersionTests {
       // props)
       Awaitility.await("should have new executable with v2 config")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Only v2 element should be present
-                assertThat(executables.getFirst().elements()).hasSize(1);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV2);
-              });
+            // Only v2 element should be present
+            assertThat(executables.getFirst().elements()).hasSize(1);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV2);
+          });
     }
 
     @Test
@@ -422,19 +414,18 @@ public class InboundConnectorMultiVersionTests {
       // Then: Still single executable (deduplicated by manual ID)
       Awaitility.await("should have single executable with v2 element")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Only v2 should be represented (v1 has no active instances)
-                var processDefKeys =
-                    executables.getFirst().elements().stream()
-                        .map(e -> e.element().processDefinitionKey())
-                        .collect(Collectors.toSet());
-                assertThat(processDefKeys).contains(keyV2);
-              });
+            // Only v2 should be represented (v1 has no active instances)
+            var processDefKeys =
+                executables.getFirst().elements().stream()
+                    .map(e -> e.element().processDefinitionKey())
+                    .collect(Collectors.toSet());
+            assertThat(processDefKeys).contains(keyV2);
+          });
     }
 
     @Test
@@ -453,23 +444,17 @@ public class InboundConnectorMultiVersionTests {
       // Then: Old connector deactivated, new one activated
       Awaitility.await("should have new executable with v2 config")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Only v2 element should be present
-                assertThat(executables.getFirst().elements()).hasSize(1);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV2);
-              });
+            // Only v2 element should be present
+            assertThat(executables.getFirst().elements()).hasSize(1);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV2);
+          });
     }
 
     @Test
@@ -511,20 +496,14 @@ public class InboundConnectorMultiVersionTests {
       // Then: Connector should be reactivated with v3
       Awaitility.await("connector should be reactivated with v3")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV3);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV3);
+          });
     }
 
     @Test
@@ -549,20 +528,14 @@ public class InboundConnectorMultiVersionTests {
       // Then: Connector should be activated with v3's new config
       Awaitility.await("connector should be activated with v3 config")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV3);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV3);
+          });
     }
   }
 
@@ -594,19 +567,18 @@ public class InboundConnectorMultiVersionTests {
       // Then: Single executable (deduplicated) with elements from BOTH versions
       Awaitility.await("should have single executable with both version elements")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Both v1 and v2 should be represented
-                var processDefKeys =
-                    executables.getFirst().elements().stream()
-                        .map(e -> e.element().processDefinitionKey())
-                        .collect(Collectors.toSet());
-                assertThat(processDefKeys).containsExactlyInAnyOrder(keyV1, keyV2);
-              });
+            // Both v1 and v2 should be represented
+            var processDefKeys =
+                executables.getFirst().elements().stream()
+                    .map(e -> e.element().processDefinitionKey())
+                    .collect(Collectors.toSet());
+            assertThat(processDefKeys).containsExactlyInAnyOrder(keyV1, keyV2);
+          });
     }
 
     @Test
@@ -635,19 +607,13 @@ public class InboundConnectorMultiVersionTests {
       Awaitility.await("v1 connector should still be active")
           .atMost(AWAIT_TIMEOUT)
           .during(Duration.ofSeconds(5)) // Ensure it stays active
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV1);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV1);
+          });
     }
 
     @Test
@@ -681,19 +647,13 @@ public class InboundConnectorMultiVersionTests {
       // Verify v1 connector is still active (protected by the CREATED subscription)
       Awaitility.await("v1 connector should still be active before message correlation")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV1);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV1);
+          });
 
       // When: Publish the Zeebe message that correlates with v1's waiting instance.
       // This transitions the message subscription away from the CREATED state,
@@ -742,11 +702,10 @@ public class InboundConnectorMultiVersionTests {
       // Then: Both executables exist (different dedup IDs = separate executables)
       Awaitility.await("should have two separate executables")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(2);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(2);
+          });
     }
 
     @Test
@@ -782,16 +741,15 @@ public class InboundConnectorMultiVersionTests {
       // User can fix this by deploying a new version with correct configuration
       Awaitility.await("executable should be replaced with invalid")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
 
-                var executable = executables.getFirst();
-                // The executable should be DOWN/INVALID due to configuration conflict
-                assertThat(executable.health().getStatus()).isEqualTo(Health.Status.DOWN);
-                assertThat(executable.health().getError()).isNotNull();
-              });
+            var executable = executables.getFirst();
+            // The executable should be DOWN/INVALID due to configuration conflict
+            assertThat(executable.health().getStatus()).isEqualTo(Health.Status.DOWN);
+            assertThat(executable.health().getError()).isNotNull();
+          });
     }
 
     @Test
@@ -818,13 +776,11 @@ public class InboundConnectorMultiVersionTests {
       // Wait for executable to become invalid
       Awaitility.await("executable should be invalid after v2")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus())
-                    .isEqualTo(Health.Status.DOWN);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.DOWN);
+          });
 
       // When: Deploy v3 with correct config (same as v1, fixes the issue)
       var model3 = createInboundConnectorProcess("config-a", "shared-id");
@@ -834,12 +790,11 @@ public class InboundConnectorMultiVersionTests {
       // Then: Executable should be healthy again
       Awaitility.await("executable should be healthy after v3 fix")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          });
     }
   }
 
@@ -917,17 +872,16 @@ public class InboundConnectorMultiVersionTests {
       // are not needed - new process instances always start on the latest version
       Awaitility.await("should have single executable with only v2 start event element")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Only v2 should be represented (v1's start event filtered out)
-                var elements = executables.getFirst().elements();
-                assertThat(elements).hasSize(1);
-                assertThat(elements.getFirst().element().processDefinitionKey()).isEqualTo(keyV2);
-              });
+            // Only v2 should be represented (v1's start event filtered out)
+            var elements = executables.getFirst().elements();
+            assertThat(elements).hasSize(1);
+            assertThat(elements.getFirst().element().processDefinitionKey()).isEqualTo(keyV2);
+          });
     }
 
     @Test
@@ -959,19 +913,18 @@ public class InboundConnectorMultiVersionTests {
       // Intermediate catch events are not filtered - v1 has an active subscription
       Awaitility.await("should have single executable with both version elements")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Both v1 and v2 should be represented
-                var processDefKeys =
-                    executables.getFirst().elements().stream()
-                        .map(e -> e.element().processDefinitionKey())
-                        .collect(Collectors.toSet());
-                assertThat(processDefKeys).containsExactlyInAnyOrder(keyV1, keyV2);
-              });
+            // Both v1 and v2 should be represented
+            var processDefKeys =
+                executables.getFirst().elements().stream()
+                    .map(e -> e.element().processDefinitionKey())
+                    .collect(Collectors.toSet());
+            assertThat(processDefKeys).containsExactlyInAnyOrder(keyV1, keyV2);
+          });
     }
   }
 
@@ -1007,24 +960,23 @@ public class InboundConnectorMultiVersionTests {
       // - One for catchEvent2 (newly activated)
       Awaitility.await("should have two executables after v2 deployment")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(2);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(2);
 
-                // Both should be healthy
-                assertThat(executables).allMatch(e -> e.health().getStatus() == Health.Status.UP);
+            // Both should be healthy
+            assertThat(executables).allMatch(e -> e.health().getStatus() == Health.Status.UP);
 
-                // Collect all process definition keys from all executables
-                var allProcessDefKeys =
-                    executables.stream()
-                        .flatMap(e -> e.elements().stream())
-                        .map(e -> e.element().processDefinitionKey())
-                        .collect(Collectors.toSet());
+            // Collect all process definition keys from all executables
+            var allProcessDefKeys =
+                executables.stream()
+                    .flatMap(e -> e.elements().stream())
+                    .map(e -> e.element().processDefinitionKey())
+                    .collect(Collectors.toSet());
 
-                // v2 should be represented (v1 has no active instances so it's replaced)
-                assertThat(allProcessDefKeys).contains(keyV2);
-              });
+            // v2 should be represented (v1 has no active instances so it's replaced)
+            assertThat(allProcessDefKeys).contains(keyV2);
+          });
     }
 
     @Test
@@ -1039,12 +991,11 @@ public class InboundConnectorMultiVersionTests {
       // Wait for both executables to be active
       Awaitility.await("should have two executables for v1")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(2);
-                assertThat(executables).allMatch(e -> e.health().getStatus() == Health.Status.UP);
-              });
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(2);
+            assertThat(executables).allMatch(e -> e.health().getStatus() == Health.Status.UP);
+          });
 
       // When: Deploy v2 with connector ONLY on catchEvent1 (removing catchEvent2)
       var model2 = createInboundConnectorProcess("config-a", "dedup-event1");
@@ -1054,22 +1005,16 @@ public class InboundConnectorMultiVersionTests {
       // Then: Should have only ONE executable (catchEvent2's executable deactivated)
       Awaitility.await("should have one executable after v2 removes catchEvent2")
           .atMost(AWAIT_TIMEOUT)
-          .untilAsserted(
-              () -> {
-                var executables = queryExecutables(testProcessId);
-                assertThat(executables).hasSize(1);
-                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+          .untilAsserted(() -> {
+            var executables = queryExecutables(testProcessId);
+            assertThat(executables).hasSize(1);
+            assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
 
-                // Should only have v2's element
-                assertThat(
-                        executables
-                            .getFirst()
-                            .elements()
-                            .getFirst()
-                            .element()
-                            .processDefinitionKey())
-                    .isEqualTo(keyV2);
-              });
+            // Should only have v2's element
+            assertThat(
+                    executables.getFirst().elements().getFirst().element().processDefinitionKey())
+                .isEqualTo(keyV2);
+          });
     }
   }
 
@@ -1129,20 +1074,19 @@ public class InboundConnectorMultiVersionTests {
           .atMost(AWAIT_TIMEOUT)
           .pollInterval(Duration.ofMillis(500))
           .ignoreExceptions()
-          .until(
-              () -> {
-                try {
-                  var result =
-                      camundaClient
-                          .newEvaluateExpressionCommand()
-                          .expression("=camunda.vars.env." + variableName)
-                          .send()
-                          .join();
-                  return result.getResult() != null;
-                } catch (Exception e) {
-                  return false;
-                }
-              });
+          .until(() -> {
+            try {
+              var result =
+                  camundaClient
+                      .newEvaluateExpressionCommand()
+                      .expression("=camunda.vars.env." + variableName)
+                      .send()
+                      .join();
+              return result.getResult() != null;
+            } catch (Exception e) {
+              return false;
+            }
+          });
     }
   }
 }

@@ -57,13 +57,12 @@ public class DisabledConnectorEnvVarsConfig {
         direction,
         key ->
             getConnectorEnvironmentVariable(key.name(), "DISABLED")
-                .map(
-                    value ->
-                        Arrays.stream(value.split(","))
-                            .map(String::trim)
-                            .map(String::toLowerCase)
-                            .filter(e -> !e.isBlank())
-                            .collect(Collectors.toSet()))
+                .map(value ->
+                    Arrays.stream(value.split(","))
+                        .map(String::trim)
+                        .map(String::toLowerCase)
+                        .filter(e -> !e.isBlank())
+                        .collect(Collectors.toSet()))
                 .orElse(Set.of()));
   }
 }

@@ -299,11 +299,10 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       List<ChatMessage> expectedConversation, boolean assertToolSpecifications) {
     await()
         .alias("Chat request with expected conversation")
-        .untilAsserted(
-            () -> {
-              assertThat(chatRequestCaptor.getValue().messages())
-                  .hasSize(expectedConversation.size() - 1);
-            });
+        .untilAsserted(() -> {
+          assertThat(chatRequestCaptor.getValue().messages())
+              .hasSize(expectedConversation.size() - 1);
+        });
 
     final var lastChatRequest = chatRequestCaptor.getValue();
 
@@ -346,24 +345,22 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
     await()
         .alias("toolCall variable does not leak to root scope")
         .atMost(Duration.ofSeconds(15))
-        .untilAsserted(
-            () -> {
-              final var leaked =
-                  camundaClient
-                      .newVariableSearchRequest()
-                      .filter(
-                          f ->
-                              f.processInstanceKey(processInstanceKey)
-                                  .scopeKey(processInstanceKey)
-                                  .name("toolCall"))
-                      .send()
-                      .join()
-                      .items();
-              assertThat(leaked)
-                  .as(
-                      "toolCall should only exist on inner-instance scopes — leak to root scope detected")
-                  .isEmpty();
-            });
+        .untilAsserted(() -> {
+          final var leaked =
+              camundaClient
+                  .newVariableSearchRequest()
+                  .filter(f ->
+                      f.processInstanceKey(processInstanceKey)
+                          .scopeKey(processInstanceKey)
+                          .name("toolCall"))
+                  .send()
+                  .join()
+                  .items();
+          assertThat(leaked)
+              .as(
+                  "toolCall should only exist on inner-instance scopes — leak to root scope detected")
+              .isEmpty();
+        });
   }
 
   protected record ChatInteraction(ChatResponse chatResponse, Map<String, Object> userFeedback) {
