@@ -440,10 +440,9 @@ class ProcessDefinitionSecretKeyCacheTest {
             Caffeine.newBuilder().build());
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("still not found");
     // 1 initial attempt + 3 retries
@@ -455,11 +454,10 @@ class ProcessDefinitionSecretKeyCacheTest {
     // The deadline check lives in ProcessDefinitionModelCache, and both it and this class now
     // wrap it in their own real Caffeine cache -- either may leave the IllegalStateException
     // unwrapped or nest it a level or two under its own wrapper.
-    assertThatThrownBy(
-            () ->
-                secretKeyCache.getSecretKeys(
-                    new SecretKeyContext(
-                        PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
+    assertThatThrownBy(() ->
+            secretKeyCache.getSecretKeys(
+                new SecretKeyContext(
+                    PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
         .satisfiesAnyOf(
             e -> assertThat(e).isInstanceOf(IllegalStateException.class),
             e -> assertThat(e).hasCauseInstanceOf(IllegalStateException.class),
@@ -478,10 +476,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
     long start = System.nanoTime();
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .satisfiesAnyOf(
             e -> assertThat(e).isInstanceOf(TimeoutExceededException.class),
             e -> assertThat(e).hasMessage("still not found"));
@@ -501,23 +498,21 @@ class ProcessDefinitionSecretKeyCacheTest {
             Caffeine.newBuilder().build());
     String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
     when(xmlRequest.execute())
-        .thenAnswer(
-            invocation -> {
-              long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
-              while (System.nanoTime() < until) {
-                try {
-                  Thread.sleep(10);
-                } catch (InterruptedException ignored) {
-                }
-              }
-              return bpmnXml;
-            });
+        .thenAnswer(invocation -> {
+          long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
+          while (System.nanoTime() < until) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException ignored) {
+            }
+          }
+          return bpmnXml;
+        });
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(150);
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .isInstanceOf(TimeoutExceededException.class);
   }
 

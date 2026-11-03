@@ -313,49 +313,47 @@ public class PollingTextractCaller {
 
     // extract key-value pairs
     blocks.stream()
-        .filter(
-            block ->
-                block.blockType().equals(BlockType.KEY_VALUE_SET)
-                    && block.entityTypes().contains(EntityType.KEY))
-        .forEach(
-            keyBlock -> {
-              String originalKey = getTextFromRelationships(keyBlock, blockMap);
-              String key = originalKey;
+        .filter(block ->
+            block.blockType().equals(BlockType.KEY_VALUE_SET)
+                && block.entityTypes().contains(EntityType.KEY))
+        .forEach(keyBlock -> {
+          String originalKey = getTextFromRelationships(keyBlock, blockMap);
+          String key = originalKey;
 
-              // Handle duplicate keys by adding a suffix
-              if (keyValuePairs.containsKey(key)) {
-                int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
-                keyOccurrences.put(originalKey, count);
-                key = originalKey + " " + count;
-              } else {
-                keyOccurrences.put(originalKey, 1);
-              }
+          // Handle duplicate keys by adding a suffix
+          if (keyValuePairs.containsKey(key)) {
+            int count = keyOccurrences.getOrDefault(originalKey, 1) + 1;
+            keyOccurrences.put(originalKey, count);
+            key = originalKey + " " + count;
+          } else {
+            keyOccurrences.put(originalKey, 1);
+          }
 
-              Block valueBlock =
-                  blockMap.get(
-                      keyBlock.relationships().stream()
-                          .filter(relation -> relation.type().equals(RelationshipType.VALUE))
-                          .flatMap(relation -> relation.ids().stream())
-                          .findFirst()
-                          .orElseThrow(() -> new ConnectorException("Value block not found")));
+          Block valueBlock =
+              blockMap.get(
+                  keyBlock.relationships().stream()
+                      .filter(relation -> relation.type().equals(RelationshipType.VALUE))
+                      .flatMap(relation -> relation.ids().stream())
+                      .findFirst()
+                      .orElseThrow(() -> new ConnectorException("Value block not found")));
 
-              String value = getTextFromRelationships(valueBlock, blockMap);
+          String value = getTextFromRelationships(valueBlock, blockMap);
 
-              Float keyConfidence = keyBlock.confidence();
-              Float valueConfidence = valueBlock.confidence();
+          Float keyConfidence = keyBlock.confidence();
+          Float valueConfidence = valueBlock.confidence();
 
-              // Use the lower of the two confidence scores (conservative approach)
-              float combinedConfidence = Math.min(keyConfidence, valueConfidence);
+          // Use the lower of the two confidence scores (conservative approach)
+          float combinedConfidence = Math.min(keyConfidence, valueConfidence);
 
-              keyValuePairs.put(key, value);
-              confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
+          keyValuePairs.put(key, value);
+          confidenceScores.put(key, combinedConfidence / 100); // Convert to percentage
 
-              var keyPolygonMap = keyBlock.geometry().polygon();
-              var valuePolygonMap = valueBlock.geometry().polygon();
-              geometry.put(
-                  key,
-                  new Polygon(keyBlock.page(), getBoundingPolygon(keyPolygonMap, valuePolygonMap)));
-            });
+          var keyPolygonMap = keyBlock.geometry().polygon();
+          var valuePolygonMap = valueBlock.geometry().polygon();
+          geometry.put(
+              key,
+              new Polygon(keyBlock.page(), getBoundingPolygon(keyPolygonMap, valuePolygonMap)));
+        });
 
     // extract table data
     List<Block> tables =
@@ -369,33 +367,31 @@ public class PollingTextractCaller {
           .flatMap(relation -> relation.ids().stream())
           .map(blockMap::get)
           .filter(block -> block.blockType().equals(BlockType.CELL))
-          .forEach(
-              block -> {
-                String cellText = getTextFromRelationships(block, blockMap);
-                int colIndex = block.columnIndex() - 1;
-                int rowIndex = block.rowIndex() - 1;
+          .forEach(block -> {
+            String cellText = getTextFromRelationships(block, blockMap);
+            int colIndex = block.columnIndex() - 1;
+            int rowIndex = block.rowIndex() - 1;
 
-                // ensure the outer list has enough rows
-                while (tableData.size() <= rowIndex) {
-                  tableData.add(new ArrayList<>());
-                  tableConfidence.add(new ArrayList<>());
-                }
+            // ensure the outer list has enough rows
+            while (tableData.size() <= rowIndex) {
+              tableData.add(new ArrayList<>());
+              tableConfidence.add(new ArrayList<>());
+            }
 
-                List<String> row = tableData.get(rowIndex);
-                List<Float> confidenceRow = tableConfidence.get(rowIndex);
+            List<String> row = tableData.get(rowIndex);
+            List<Float> confidenceRow = tableConfidence.get(rowIndex);
 
-                // ensure the row list has enough columns
-                while (row.size() <= colIndex) {
-                  row.add("");
-                }
-                while (confidenceRow.size() <= colIndex) {
-                  confidenceRow.add(0.0f);
-                }
+            // ensure the row list has enough columns
+            while (row.size() <= colIndex) {
+              row.add("");
+            }
+            while (confidenceRow.size() <= colIndex) {
+              confidenceRow.add(0.0f);
+            }
 
-                row.set(colIndex, cellText);
-                confidenceRow.set(
-                    colIndex, block.confidence() / 100); // Convert to percentage as Float
-              });
+            row.set(colIndex, cellText);
+            confidenceRow.set(colIndex, block.confidence() / 100); // Convert to percentage as Float
+          });
       String tableKey = "table " + (tables.indexOf(table) + 1);
       keyValuePairs.put(tableKey, tableData);
       confidenceScores.put(tableKey, tableConfidence);
@@ -418,16 +414,13 @@ public class PollingTextractCaller {
         .filter(relation -> relation.type().equals(RelationshipType.CHILD))
         .flatMap(relation -> relation.ids().stream())
         .map(blockMap::get)
-        .map(
-            valueBlock -> {
-              if (valueBlock.blockType().equals(BlockType.SELECTION_ELEMENT)) {
-                return valueBlock.selectionStatus().equals(SelectionStatus.SELECTED)
-                    ? "true"
-                    : "false";
-              } else {
-                return valueBlock.text();
-              }
-            })
+        .map(valueBlock -> {
+          if (valueBlock.blockType().equals(BlockType.SELECTION_ELEMENT)) {
+            return valueBlock.selectionStatus().equals(SelectionStatus.SELECTED) ? "true" : "false";
+          } else {
+            return valueBlock.text();
+          }
+        })
         .collect(Collectors.joining(" "));
   }
 

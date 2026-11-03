@@ -44,14 +44,13 @@ public class McpClientLangchain4JFrameworkConfiguration {
     final var registry = new McpClientRegistry<McpClient>();
     configuration
         .clients()
-        .forEach(
-            (id, clientConfig) -> {
-              if (clientConfig.enabled()) {
-                LOGGER.info("Creating MCP client with ID '{}'", id);
-                final var client = clientFactory.createClient(id, clientConfig);
-                registry.register(id, client);
-              }
-            });
+        .forEach((id, clientConfig) -> {
+          if (clientConfig.enabled()) {
+            LOGGER.info("Creating MCP client with ID '{}'", id);
+            final var client = clientFactory.createClient(id, clientConfig);
+            registry.register(id, client);
+          }
+        });
 
     return registry;
   }

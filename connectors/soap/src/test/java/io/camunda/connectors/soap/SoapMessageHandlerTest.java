@@ -28,13 +28,11 @@ public class SoapMessageHandlerTest {
   Stream<DynamicTest> shouldGenerateBody() {
     return Stream.of(new BodyTemplate(mockTemplate(), mockContext()), new BodyJson(mockJson()))
         .map(bodyPart -> (SoapBodyPart) bodyPart)
-        .map(
-            bodyPart ->
-                new TestParameter<>(bodyPart, body -> assertThat(body).isEqualTo(mockXml())))
-        .map(
-            parameter ->
-                DynamicTest.dynamicTest(
-                    parameter.parameter().toString(), () -> shouldGenerateBody(parameter)));
+        .map(bodyPart ->
+            new TestParameter<>(bodyPart, body -> assertThat(body).isEqualTo(mockXml())))
+        .map(parameter ->
+            DynamicTest.dynamicTest(
+                parameter.parameter().toString(), () -> shouldGenerateBody(parameter)));
   }
 
   @TestFactory
@@ -44,28 +42,27 @@ public class SoapMessageHandlerTest {
             new HeaderJson(mockJson()),
             new HeaderNone())
         .map(headerPart -> (SoapHeaderPart) headerPart)
-        .map(
-            headerPart -> {
-              if (headerPart instanceof HeaderNone) {
-                return new TestParameter<>(headerPart, header -> assertThat(header).isNull());
-              }
-              return new TestParameter<>(
-                  headerPart, header -> assertThat(header).isEqualTo(mockXml()));
-            })
-        .map(
-            parameter ->
-                DynamicTest.dynamicTest(
-                    parameter.parameter().toString(), () -> shouldGenerateHeader(parameter)));
+        .map(headerPart -> {
+          if (headerPart instanceof HeaderNone) {
+            return new TestParameter<>(headerPart, header -> assertThat(header).isNull());
+          }
+          return new TestParameter<>(headerPart, header -> assertThat(header).isEqualTo(mockXml()));
+        })
+        .map(parameter ->
+            DynamicTest.dynamicTest(
+                parameter.parameter().toString(), () -> shouldGenerateHeader(parameter)));
   }
 
   private String mockXml() {
     return """
-        <root><inner id="abc">value</inner></root>""";
+    <root><inner id="abc">value</inner></root>\
+    """;
   }
 
   private String mockTemplate() {
     return """
-        <root><inner id="abc">{{inner}}</inner></root>""";
+    <root><inner id="abc">{{inner}}</inner></root>\
+    """;
   }
 
   private Map<String, Object> mockContext() {

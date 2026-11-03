@@ -206,11 +206,10 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
                 .filter(entry -> entry.getKey().isAssignableFrom(connectorClass))
                 .map(Map.Entry::getValue)
                 .findFirst()
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "Connector class must be either 'InboundConnectorExecutable' or 'OutboundConnectorFunction': "
-                                + connector.getConnectorClass()));
+                .orElseThrow(() ->
+                    new IllegalArgumentException(
+                        "Connector class must be either 'InboundConnectorExecutable' or 'OutboundConnectorFunction': "
+                            + connector.getConnectorClass()));
         Path filePath = path.resolve(fileName);
         if (!Files.exists(filePath)) {
           Files.writeString(
@@ -242,23 +241,21 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     var clazz = classLoader.loadClass(connectorConfig.getConnectorClass());
     connectorConfig
         .getFiles()
-        .forEach(
-            fileNameById -> {
-              var templatePath =
-                  new File(project.getBasedir(), fileNameById.getDocTemplatePath())
-                      .getAbsolutePath();
-              var templateOutputPath =
-                  new File(project.getBasedir(), fileNameById.getDocOutputPath()).getAbsolutePath();
-              var config = new DocsGeneratorConfiguration(templatePath, templateOutputPath);
+        .forEach(fileNameById -> {
+          var templatePath =
+              new File(project.getBasedir(), fileNameById.getDocTemplatePath()).getAbsolutePath();
+          var templateOutputPath =
+              new File(project.getBasedir(), fileNameById.getDocOutputPath()).getAbsolutePath();
+          var config = new DocsGeneratorConfiguration(templatePath, templateOutputPath);
 
-              var doc = generator.generate(clazz, config);
+          var doc = generator.generate(clazz, config);
 
-              try (PrintWriter out = new PrintWriter(config.outputPath())) {
-                out.println(doc.content());
-              } catch (FileNotFoundException e) {
-                throw new RuntimeException(e);
-              }
-            });
+          try (PrintWriter out = new PrintWriter(config.outputPath())) {
+            out.println(doc.content());
+          } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   private void generateElementTemplates(ConnectorConfig config, ClassLoader classLoader)
@@ -266,19 +263,18 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     var clazz = classLoader.loadClass(config.getConnectorClass());
     var features =
         config.getFeatures().entrySet().stream()
-            .map(
-                e -> {
-                  try {
-                    var feature = GenerationFeature.valueOf(e.getKey());
-                    return Map.entry(feature, e.getValue());
-                  } catch (IllegalArgumentException ex) {
-                    throw new IllegalArgumentException(
-                        "Unknown feature: "
-                            + e.getKey()
-                            + ". Known features are: "
-                            + Arrays.toString(GenerationFeature.values()));
-                  }
-                })
+            .map(e -> {
+              try {
+                var feature = GenerationFeature.valueOf(e.getKey());
+                return Map.entry(feature, e.getValue());
+              } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException(
+                    "Unknown feature: "
+                        + e.getKey()
+                        + ". Known features are: "
+                        + Arrays.toString(GenerationFeature.values()));
+              }
+            })
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     var generatorConfig =
@@ -370,11 +366,10 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
             .filter(f -> f.getTemplateId().equals(expectedId))
             .findFirst()
             .map(FileNameById::getTemplateFileName)
-            .orElseGet(
-                () -> {
-                  getLog().warn("No file name specified for " + expectedId + ". Using default.");
-                  return transformConnectorNameToTemplateFileName(template.name());
-                });
+            .orElseGet(() -> {
+              getLog().warn("No file name specified for " + expectedId + ". Using default.");
+              return transformConnectorNameToTemplateFileName(template.name());
+            });
     if (hybrid) {
       fileName = fileName.replace(".json", "-hybrid.json");
     }

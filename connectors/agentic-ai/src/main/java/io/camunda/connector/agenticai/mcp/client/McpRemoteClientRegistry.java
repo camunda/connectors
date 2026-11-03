@@ -39,12 +39,11 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
         .scheduler(Scheduler.systemScheduler())
         .maximumSize(maximumSize)
         .expireAfterAccess(cacheConfig.expireAfter())
-        .evictionListener(
-            (key, value, cause) -> {
-              LOGGER.info(
-                  "MCP({}): Removing cached remote HTTP client (removal cause: {})", key, cause);
-              this.closeClient(key, value);
-            })
+        .evictionListener((key, value, cause) -> {
+          LOGGER.info(
+              "MCP({}): Removing cached remote HTTP client (removal cause: {})", key, cause);
+          this.closeClient(key, value);
+        })
         .build();
   }
 

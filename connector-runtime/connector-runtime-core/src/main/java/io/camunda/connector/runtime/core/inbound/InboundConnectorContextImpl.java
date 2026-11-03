@@ -175,20 +175,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
     } catch (FeelEngineWrapperException feelEngineWrapperException) {
-      log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withMessage(
-                      "Failed to evaluate FEEL expression: "
-                          + feelEngineWrapperException.getMessage()));
+      log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withMessage(
+                  "Failed to evaluate FEEL expression: "
+                      + feelEngineWrapperException.getMessage()));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
-      log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
+      log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withMessage("Failed to correlate inbound event: " + exception.getMessage()));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
@@ -208,31 +206,28 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private void logCorrelationSuccess(Success success) {
     switch (success) {
       case ProcessInstanceCreated processInstanceCreated:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Process instance created")
-                    .withData(
-                        Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Process instance created")
+                .withData(
+                    Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
         break;
       case MessagePublished messagePublished:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Message published")
-                    .withData(Map.of("messageKey", messagePublished.messageKey())));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message published")
+                .withData(Map.of("messageKey", messagePublished.messageKey())));
         break;
       case MessageAlreadyCorrelated ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Message already correlated"));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message already correlated"));
         break;
     }
   }
@@ -240,36 +235,32 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private void logCorrelationFailure(Failure failure) {
     switch (failure) {
       case ActivationConditionNotMet ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.WARNING)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Activation condition not met"));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Activation condition not met"));
         break;
       case InvalidInput ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Invalid input: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Invalid input: " + failure.message()));
         break;
       case ZeebeClientStatus ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Zeebe client status error: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Zeebe client status error: " + failure.message()));
         break;
       case Other ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Other error: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Other error: " + failure.message()));
         break;
     }
   }
@@ -316,10 +307,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
     return SecretFilter.allowOnly(
         connectorDetails.rawPropertiesWithoutKeywords().entrySet().stream()
-            .flatMap(
-                entry ->
-                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
-                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+            .flatMap(entry ->
+                SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }

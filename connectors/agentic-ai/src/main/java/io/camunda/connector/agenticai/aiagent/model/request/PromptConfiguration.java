@@ -42,7 +42,8 @@ Wrap minimal, inspectable reasoning in *exactly* this XML template:
 <reflection>…list candidate tools, justify which you will call next and why…</reflection>
 </thinking>
 
-Reveal **no** additional private reasoning outside these tags.\"""";
+Reveal **no** additional private reasoning outside these tags.\"\
+""";
   }
 
   record UserPromptConfiguration(

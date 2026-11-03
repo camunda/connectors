@@ -69,7 +69,6 @@ public class FeelEngineWrapper {
             .functionProvider(SpiServiceLoader.loadFunctionProvider())
             .customValueMapper(new CustomValueMapper(objectMapper))
             .build();
-    ;
   }
 
   private static String trimExpression(final String expression) {

@@ -42,18 +42,17 @@ public class TenantAwareProcessStateStoreImpl implements ProcessStateStore {
         processDefinitions.processDefinitionVersions().entrySet().stream()
             .collect(Collectors.groupingBy(entry -> entry.getKey().tenantId()));
 
-    groupedByTenant.forEach(
-        (tenantId, definitions) -> {
-          var store =
-              processStateStores.computeIfAbsent(
-                  tenantId,
-                  key -> new ProcessStateStoreImpl(processDefinitionInspector, executableRegistry));
+    groupedByTenant.forEach((tenantId, definitions) -> {
+      var store =
+          processStateStores.computeIfAbsent(
+              tenantId,
+              key -> new ProcessStateStoreImpl(processDefinitionInspector, executableRegistry));
 
-          var tenantProcessDefinitions =
-              new ProcessImportResult(
-                  definitions.stream()
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-          store.update(tenantProcessDefinitions);
-        });
+      var tenantProcessDefinitions =
+          new ProcessImportResult(
+              definitions.stream()
+                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+      store.update(tenantProcessDefinitions);
+    });
   }
 }

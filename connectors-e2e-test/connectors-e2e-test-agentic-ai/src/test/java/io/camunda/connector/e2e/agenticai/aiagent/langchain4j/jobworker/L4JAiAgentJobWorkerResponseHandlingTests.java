@@ -53,7 +53,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .withoutPropertyValueStartingWith("data.response.format."),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -69,7 +69,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.includeAssistantMessage", "=false"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -85,7 +85,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_TEXT)
                   .hasResponseText(HAIKU_TEXT)
@@ -101,7 +101,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_JSON)
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -116,7 +116,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -138,18 +138,17 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
       final var lastChatRequest = chatRequestCaptor.getValue();
       assertThat(lastChatRequest.responseFormat())
           .isNotNull()
-          .satisfies(
-              format -> {
-                assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
+          .satisfies(format -> {
+            assertThat(format.type()).isEqualTo(ResponseFormatType.JSON);
 
-                if (expectedJsonSchema == null) {
-                  assertThat(format.jsonSchema()).isNull();
-                } else {
-                  assertThat(format.jsonSchema())
-                      .usingRecursiveComparison()
-                      .isEqualTo(expectedJsonSchema);
-                }
-              });
+            if (expectedJsonSchema == null) {
+              assertThat(format.jsonSchema()).isNull();
+            } else {
+              assertThat(format.jsonSchema())
+                  .usingRecursiveComparison()
+                  .isEqualTo(expectedJsonSchema);
+            }
+          });
     }
 
     @Test
@@ -158,7 +157,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
           elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -173,7 +172,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
@@ -208,7 +207,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
                   .property("data.response.format.schemaName", "HaikuSchema"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               JobWorkerAgentResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()

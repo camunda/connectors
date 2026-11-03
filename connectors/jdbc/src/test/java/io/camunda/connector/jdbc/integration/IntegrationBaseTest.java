@@ -188,13 +188,12 @@ public abstract class IntegrationBaseTest {
       var employee = DEFAULT_EMPLOYEES.get(i);
       employee
           .toMap()
-          .forEach(
-              (key, expected) -> {
-                Object actual = row.get(key);
-                assertThat(String.valueOf(actual))
-                    .as("Key: %s", key)
-                    .isEqualTo(String.valueOf(expected));
-              });
+          .forEach((key, expected) -> {
+            Object actual = row.get(key);
+            assertThat(String.valueOf(actual))
+                .as("Key: %s", key)
+                .isEqualTo(String.valueOf(expected));
+          });
     }
   }
 
@@ -813,22 +812,22 @@ public abstract class IntegrationBaseTest {
     static final String INSERT = "INSERT INTO Employee (id, name, age, department) VALUES %s";
     static final String CREATE_TABLE =
         """
-                CREATE TABLE Employee (
-                  id INT PRIMARY KEY,
-                  name VARCHAR(100),
-                  age INT,
-                  department VARCHAR(100));
-                """;
+        CREATE TABLE Employee (
+          id INT PRIMARY KEY,
+          name VARCHAR(100),
+          age INT,
+          department VARCHAR(100));
+        """;
 
     static final String CREATE_TABLE_ORACLE =
         """
-                CREATE TABLE Employee (
-                  id NUMBER PRIMARY KEY,
-                  name VARCHAR2(100),
-                  age NUMBER,
-                  department VARCHAR2(100)
-                )
-            """;
+            CREATE TABLE Employee (
+              id NUMBER PRIMARY KEY,
+              name VARCHAR2(100),
+              age NUMBER,
+              department VARCHAR2(100)
+            )
+        """;
 
     String toInsertQueryFormat() {
       return String.format("(%d, '%s', %d, '%s')", id, name, age, department);

@@ -36,13 +36,12 @@ public class DefaultTextSegmentExtractor {
         documentSplitterFactory.createDocumentSplitter(embedRequest.documentSplitter());
     if (embedRequest.documentSource() == EmbedDocumentSource.CamundaDocument) {
       return embedRequest.newDocuments().stream()
-          .map(
-              camundaDoc ->
-                  DocumentLoader.load(
-                      new CamundaDocumentSource(camundaDoc),
-                      // Apache Tika includes metadata, such as
-                      // real content type, encoding
-                      new ApacheTikaDocumentParser(true)))
+          .map(camundaDoc ->
+              DocumentLoader.load(
+                  new CamundaDocumentSource(camundaDoc),
+                  // Apache Tika includes metadata, such as
+                  // real content type, encoding
+                  new ApacheTikaDocumentParser(true)))
           .map(splitter::split)
           .flatMap(List::stream)
           .toList();

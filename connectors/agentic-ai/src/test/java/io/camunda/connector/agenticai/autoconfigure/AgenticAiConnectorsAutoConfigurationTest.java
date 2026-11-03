@@ -112,45 +112,42 @@ class AgenticAiConnectorsAutoConfigurationTest {
   void whenAiAgentConnectorDisabled_thenNoAiAgentFunctionIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.outbound-connector.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              OutboundConnectorAgentRequestHandler.class, AiAgentFunction.class))
-                      .toList());
-              assertThat(context)
-                  .doesNotHaveBean(OutboundConnectorAgentRequestHandler.class)
-                  .doesNotHaveBean(AiAgentFunction.class);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(
+              context,
+              ALL_BEANS.stream()
+                  .filter(
+                      notAnyOf(OutboundConnectorAgentRequestHandler.class, AiAgentFunction.class))
+                  .toList());
+          assertThat(context)
+              .doesNotHaveBean(OutboundConnectorAgentRequestHandler.class)
+              .doesNotHaveBean(AiAgentFunction.class);
+        });
   }
 
   @Test
   void whenAiAgentJobWorkerConnectorDisabled_thenNoAiAgentJobWorkerIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.job-worker.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              AiAgentJobWorkerValueCustomizer.class,
-                              JobWorkerAgentRequestHandler.class,
-                              JobWorkerAgentExecutionContextFactory.class,
-                              AiAgentJobWorkerHandler.class,
-                              AiAgentJobWorker.class))
-                      .toList());
-              assertThat(context)
-                  .doesNotHaveBean(AiAgentJobWorkerValueCustomizer.class)
-                  .doesNotHaveBean(JobWorkerAgentRequestHandler.class)
-                  .doesNotHaveBean(JobWorkerAgentExecutionContextFactory.class)
-                  .doesNotHaveBean(AiAgentJobWorkerHandler.class)
-                  .doesNotHaveBean(AiAgentJobWorker.class);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(
+              context,
+              ALL_BEANS.stream()
+                  .filter(
+                      notAnyOf(
+                          AiAgentJobWorkerValueCustomizer.class,
+                          JobWorkerAgentRequestHandler.class,
+                          JobWorkerAgentExecutionContextFactory.class,
+                          AiAgentJobWorkerHandler.class,
+                          AiAgentJobWorker.class))
+                  .toList());
+          assertThat(context)
+              .doesNotHaveBean(AiAgentJobWorkerValueCustomizer.class)
+              .doesNotHaveBean(JobWorkerAgentRequestHandler.class)
+              .doesNotHaveBean(JobWorkerAgentExecutionContextFactory.class)
+              .doesNotHaveBean(AiAgentJobWorkerHandler.class)
+              .doesNotHaveBean(AiAgentJobWorker.class);
+        });
   }
 
   @Test
@@ -158,13 +155,12 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.ad-hoc-tools-schema-resolver.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream().filter(notAnyOf(AdHocToolsSchemaFunction.class)).toList());
-              assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(
+              context,
+              ALL_BEANS.stream().filter(notAnyOf(AdHocToolsSchemaFunction.class)).toList());
+          assertThat(context).doesNotHaveBean(AdHocToolsSchemaFunction.class);
+        });
   }
 
   @Test
@@ -172,11 +168,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.enabled=false")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
-                    .isInstanceOf(CamundaClientProcessDefinitionAdHocToolElementsResolver.class));
+        .run(context ->
+            assertThat(context)
+                .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                .isInstanceOf(CamundaClientProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test
@@ -184,11 +179,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.enabled=true")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
-                    .isInstanceOf(CachingProcessDefinitionAdHocToolElementsResolver.class));
+        .run(context ->
+            assertThat(context)
+                .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                .isInstanceOf(CachingProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test
@@ -196,30 +190,29 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.maximum-size=-10")
-        .run(
-            context ->
-                assertThat(context)
-                    .hasFailed()
-                    .getFailure()
-                    .hasRootCauseInstanceOf(BindValidationException.class)
-                    .rootCause()
-                    .isInstanceOfSatisfying(
-                        BindValidationException.class,
-                        e -> {
-                          assertThat(e.getValidationErrors().getAllErrors())
-                              .hasSize(1)
-                              .first(InstanceOfAssertFactories.type(FieldError.class))
-                              .extracting(
-                                  FieldError::getObjectName,
-                                  FieldError::getField,
-                                  FieldError::getRejectedValue,
-                                  FieldError::getDefaultMessage)
-                              .containsExactly(
-                                  "camunda.connector.agenticai",
-                                  "tools.processDefinition.cache.maximumSize",
-                                  -10L,
-                                  "must be greater than or equal to 0");
-                        }));
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .hasRootCauseInstanceOf(BindValidationException.class)
+                .rootCause()
+                .isInstanceOfSatisfying(
+                    BindValidationException.class,
+                    e -> {
+                      assertThat(e.getValidationErrors().getAllErrors())
+                          .hasSize(1)
+                          .first(InstanceOfAssertFactories.type(FieldError.class))
+                          .extracting(
+                              FieldError::getObjectName,
+                              FieldError::getField,
+                              FieldError::getRejectedValue,
+                              FieldError::getDefaultMessage)
+                          .containsExactly(
+                              "camunda.connector.agenticai",
+                              "tools.processDefinition.cache.maximumSize",
+                              -10L,
+                              "must be greater than or equal to 0");
+                    }));
   }
 
   private Predicate<Class<?>> notAnyOf(Class<?>... classes) {

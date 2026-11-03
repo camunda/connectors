@@ -48,12 +48,11 @@ class AdHocToolsSchemaResolverTest {
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
-        .satisfies(
-            toolDefinition -> {
-              assertThat(toolDefinition.name()).isEqualTo("Test_Tool");
-              assertThat(toolDefinition.description()).isEqualTo("This is a test tool.");
-              assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
-            });
+        .satisfies(toolDefinition -> {
+          assertThat(toolDefinition.name()).isEqualTo("Test_Tool");
+          assertThat(toolDefinition.description()).isEqualTo("This is a test tool.");
+          assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
+        });
   }
 
   @ParameterizedTest
@@ -72,12 +71,11 @@ class AdHocToolsSchemaResolverTest {
     final var schemaResponse = resolver.resolveAdHocToolsSchema(List.of(element));
     assertThat(schemaResponse.toolDefinitions())
         .singleElement()
-        .satisfies(
-            toolDefinition -> {
-              assertThat(toolDefinition.name()).isEqualTo("Test_Tool");
-              assertThat(toolDefinition.description()).isEqualTo("Test Tool");
-              assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
-            });
+        .satisfies(toolDefinition -> {
+          assertThat(toolDefinition.name()).isEqualTo("Test_Tool");
+          assertThat(toolDefinition.description()).isEqualTo("Test Tool");
+          assertThat(toolDefinition.inputSchema()).isEqualTo(DUMMY_SCHEMA);
+        });
   }
 
   @Test

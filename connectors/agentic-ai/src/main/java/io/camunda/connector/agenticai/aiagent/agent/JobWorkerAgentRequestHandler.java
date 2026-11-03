@@ -66,12 +66,9 @@ public class JobWorkerAgentRequestHandler
             .filter(ToolCallResultMessage.class::isInstance)
             .map(ToolCallResultMessage.class::cast)
             .flatMap(msg -> msg.results().stream())
-            .anyMatch(
-                result ->
-                    Boolean.TRUE.equals(
-                        result
-                            .properties()
-                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
+            .anyMatch(result ->
+                Boolean.TRUE.equals(
+                    result.properties().getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
 
     // cancel remaining instances if any tool call was interrupted
     if (hasInterruptedToolCalls) {
@@ -138,16 +135,15 @@ public class JobWorkerAgentRequestHandler
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
         .variables(variables)
-        .onCompletionError(
-            throwable -> {
-              if (conversationStore != null) {
-                LOGGER.debug("Allowing conversation store to compensate job failure");
+        .onCompletionError(throwable -> {
+          if (conversationStore != null) {
+            LOGGER.debug("Allowing conversation store to compensate job failure");
 
-                // allow storage to compensate for failed job completion
-                conversationStore.compensateFailedJobCompletion(
-                    executionContext, agentResponse.context(), throwable);
-              }
-            })
+            // allow storage to compensate for failed job completion
+            conversationStore.compensateFailedJobCompletion(
+                executionContext, agentResponse.context(), throwable);
+          }
+        })
         .build();
   }
 

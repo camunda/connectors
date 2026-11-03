@@ -12,7 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize()
+@JsonDeserialize
 @TemplateSubType(label = "Item", id = "itemOperation")
 @TemplateDiscriminatorProperty(name = "itemOperation", group = "operation", label = "Select action")
 public sealed interface ItemInput extends AwsInput

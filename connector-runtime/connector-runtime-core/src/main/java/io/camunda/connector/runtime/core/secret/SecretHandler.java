@@ -46,13 +46,12 @@ public class SecretHandler {
             var value =
                 Optional.ofNullable(
                         secretProvider.getSecret(secretFilterContext.secretName(), context))
-                    .orElseThrow(
-                        () ->
-                            new ConnectorInputException(
-                                String.format(
-                                    "Secret with name '%s' is not available",
-                                    secretFilterContext.secretName()),
-                                null));
+                    .orElseThrow(() ->
+                        new ConnectorInputException(
+                            String.format(
+                                "Secret with name '%s' is not available",
+                                secretFilterContext.secretName()),
+                            null));
             resolvedValues.add(value);
             // the serialized job JSON carries this form, not the raw value, when it differs
             resolvedValues.add(SecretUtil.jsonEscape(value));

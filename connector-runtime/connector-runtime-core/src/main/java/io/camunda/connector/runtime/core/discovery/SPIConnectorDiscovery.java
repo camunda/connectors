@@ -39,11 +39,10 @@ public class SPIConnectorDiscovery {
 
   public static List<InboundConnectorConfiguration> discoverInbound() {
     return ServiceLoader.load(InboundConnectorExecutable.class).stream()
-        .map(
-            functionProvider -> {
-              Class<? extends InboundConnectorExecutable> cls = functionProvider.type();
-              return ConnectorConfigurationUtil.getInboundConnectorConfiguration(cls);
-            })
+        .map(functionProvider -> {
+          Class<? extends InboundConnectorExecutable> cls = functionProvider.type();
+          return ConnectorConfigurationUtil.getInboundConnectorConfiguration(cls);
+        })
         .collect(Collectors.toList());
   }
 }

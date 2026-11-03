@@ -19,9 +19,8 @@ public class AwsUtils {
         .map(AwsConfiguration::region)
         .or(() -> Optional.ofNullable(region))
         .filter(str -> !str.isBlank())
-        .orElseThrow(
-            () ->
-                new ValidationException(
-                    "Found constraints violated while validating input: - configuration.region: must not be empty"));
+        .orElseThrow(() ->
+            new ValidationException(
+                "Found constraints violated while validating input: - configuration.region: must not be empty"));
   }
 }

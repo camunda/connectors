@@ -75,34 +75,31 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
             .handleResultIf(Objects::isNull)
             .withDelay(Duration.ofMinutes(1))
             .withMaxAttempts(MAX_RETRIES)
-            .onRetry(
-                ev ->
-                    LOGGER.debug(
-                        "Polling Textract job {} attempt {} started.", jobId, ev.getAttemptCount()))
-            .onFailure(
-                ev ->
-                    LOGGER.warn(
-                        "Textract job {} not completed after {} attempts.",
-                        jobId,
-                        ev.getAttemptCount()))
+            .onRetry(ev ->
+                LOGGER.debug(
+                    "Polling Textract job {} attempt {} started.", jobId, ev.getAttemptCount()))
+            .onFailure(ev ->
+                LOGGER.warn(
+                    "Textract job {} not completed after {} attempts.",
+                    jobId,
+                    ev.getAttemptCount()))
             .build();
 
     return Failsafe.with(retryPolicy)
-        .get(
-            () -> {
-              LOGGER.debug("Textract polling job {} started", jobId);
-              GetDocumentAnalysisResult response =
-                  textractClient.getDocumentAnalysis(
-                      new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
+        .get(() -> {
+          LOGGER.debug("Textract polling job {} started", jobId);
+          GetDocumentAnalysisResult response =
+              textractClient.getDocumentAnalysis(
+                  new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
 
-              String status = response.getJobStatus();
+          String status = response.getJobStatus();
 
-              if (JobStatus.SUCCEEDED.toString().equals(status)) {
-                return response;
-              } else if (JobStatus.FAILED.toString().equals(status)) {
-                throw new ConnectorInputException("Textract polling job: " + response);
-              }
-              return null;
-            });
+          if (JobStatus.SUCCEEDED.toString().equals(status)) {
+            return response;
+          } else if (JobStatus.FAILED.toString().equals(status)) {
+            throw new ConnectorInputException("Textract polling job: " + response);
+          }
+          return null;
+        });
   }
 }

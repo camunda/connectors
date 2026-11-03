@@ -113,10 +113,9 @@ public class SqsQueueConsumerTest {
 
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -146,10 +145,9 @@ public class SqsQueueConsumerTest {
         .thenReturn(new Other(new RuntimeException()));
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -170,10 +168,9 @@ public class SqsQueueConsumerTest {
         .thenReturn(new ActivationConditionNotMet(true));
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+        new Thread(() -> {
+          consumer.run();
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -191,11 +188,10 @@ public class SqsQueueConsumerTest {
             ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     // when
     Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-              verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-            });
+        new Thread(() -> {
+          consumer.run();
+          verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+        });
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -212,11 +208,10 @@ public class SqsQueueConsumerTest {
     var queueMissing = QueueDoesNotExistException.builder().message("queue missing").build();
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenThrow(queueMissing, queueMissing, queueMissing)
-        .thenAnswer(
-            invocation -> {
-              consumer.setQueueConsumerActive(false);
-              return ReceiveMessageResponse.builder().messages(List.<Message>of()).build();
-            });
+        .thenAnswer(invocation -> {
+          consumer.setQueueConsumerActive(false);
+          return ReceiveMessageResponse.builder().messages(List.<Message>of()).build();
+        });
 
     // when
     consumer.run();
@@ -228,12 +223,11 @@ public class SqsQueueConsumerTest {
     verify(context, times(2)).log(activityCaptor.capture());
     List<Activity> activities =
         activityCaptor.getAllValues().stream()
-            .map(
-                builderConsumer -> {
-                  ActivityBuilder builder = Activity.newBuilder();
-                  builderConsumer.accept(builder);
-                  return builder.build();
-                })
+            .map(builderConsumer -> {
+              ActivityBuilder builder = Activity.newBuilder();
+              builderConsumer.accept(builder);
+              return builder.build();
+            })
             .toList();
     assertThat(activities.get(0).healthChange()).isEqualTo(Health.down(queueMissing));
     assertThat(activities.get(1).healthChange()).isEqualTo(Health.up());

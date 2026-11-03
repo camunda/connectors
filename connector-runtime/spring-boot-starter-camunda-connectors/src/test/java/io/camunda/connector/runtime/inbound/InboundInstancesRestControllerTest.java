@@ -88,89 +88,79 @@ class InboundInstancesRestControllerTest {
     when(executableRegistry.getConnectorName(TYPE_1)).thenReturn("Webhook");
     when(executableRegistry.getConnectorName(TYPE_2)).thenReturn("AnotherType");
     when(executableRegistry.query(any()))
-        .thenAnswer(
-            invocationOnMock ->
-                "UNKNOWN-ID"
-                        .equals(invocationOnMock.getArgument(0, ActiveExecutableQuery.class).type())
-                    ? Collections.emptyList()
-                    : Stream.of(
-                            new ActiveExecutableResponse(
-                                RANDOM_ID_1,
-                                TestWebhookExecutable.class,
-                                List.of(
-                                    new InboundConnectorElement(
-                                        Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
-                                        new StandaloneMessageCorrelationPoint(
-                                            "myPath", "=expression", "=myPath", null),
-                                        new ProcessElementWithRuntimeData(
-                                            "ProcessA", 1, 1, "", ""))),
-                                Health.up(),
-                                Collections.emptyList(),
-                                System.currentTimeMillis()),
-                            new ActiveExecutableResponse(
-                                RANDOM_ID_2,
-                                AnotherExecutable.class,
-                                List.of(
-                                    new InboundConnectorElement(
-                                        Map.of(
-                                            "inbound.other.prop",
-                                            "myOtherValue",
-                                            "inbound.type",
-                                            TYPE_2),
-                                        new StandaloneMessageCorrelationPoint(
-                                            "myPath", "=expression", "=myPath", null),
-                                        new ProcessElementWithRuntimeData(
-                                            "ProcessB", 2, 1, "", ""))),
-                                Health.up(),
-                                Collections.emptyList(),
-                                System.currentTimeMillis()),
-                            new ActiveExecutableResponse(
-                                RANDOM_ID_3,
-                                AnotherExecutable.class,
-                                List.of(
-                                    new InboundConnectorElement(
-                                        Map.of(
-                                            "inbound.other.prop",
-                                            "myOtherValue2",
-                                            "inbound.type",
-                                            TYPE_2),
-                                        new StandaloneMessageCorrelationPoint(
-                                            "myPath", "=expression", "=myPath", null),
-                                        new ProcessElementWithRuntimeData(
-                                            "ProcessC", 2, 1, "id1", "")),
-                                    new InboundConnectorElement(
-                                        Map.of(
-                                            "inbound.other.prop",
-                                            "myOtherValue2_2",
-                                            "inbound.type",
-                                            TYPE_2),
-                                        new StandaloneMessageCorrelationPoint(
-                                            "myPath", "=expression2", "=myPath2", null),
-                                        new ProcessElementWithRuntimeData(
-                                            "ProcessC", 2, 1, "id2", ""))),
-                                Health.up(),
-                                List.of(
-                                    Activity.level(Severity.INFO).tag("myTag").message("myMessage"),
-                                    Activity.level(Severity.ERROR)
-                                        .tag("myTag2")
-                                        .message("myMessage2")),
-                                System.currentTimeMillis()))
-                        .filter(
-                            response -> {
-                              var providedType =
-                                  invocationOnMock
-                                      .getArgument(0, ActiveExecutableQuery.class)
-                                      .type();
-                              return switch (providedType) {
-                                case null -> true;
-                                case TYPE_1 -> response.executableId().equals(RANDOM_ID_1);
-                                case TYPE_2 ->
-                                    response.executableId().equals(RANDOM_ID_2)
-                                        || response.executableId().equals(RANDOM_ID_3);
-                                default -> false;
-                              };
-                            })
-                        .toList());
+        .thenAnswer(invocationOnMock ->
+            "UNKNOWN-ID".equals(invocationOnMock.getArgument(0, ActiveExecutableQuery.class).type())
+                ? Collections.emptyList()
+                : Stream.of(
+                        new ActiveExecutableResponse(
+                            RANDOM_ID_1,
+                            TestWebhookExecutable.class,
+                            List.of(
+                                new InboundConnectorElement(
+                                    Map.of("inbound.context", "myPath", "inbound.type", TYPE_1),
+                                    new StandaloneMessageCorrelationPoint(
+                                        "myPath", "=expression", "=myPath", null),
+                                    new ProcessElementWithRuntimeData("ProcessA", 1, 1, "", ""))),
+                            Health.up(),
+                            Collections.emptyList(),
+                            System.currentTimeMillis()),
+                        new ActiveExecutableResponse(
+                            RANDOM_ID_2,
+                            AnotherExecutable.class,
+                            List.of(
+                                new InboundConnectorElement(
+                                    Map.of(
+                                        "inbound.other.prop",
+                                        "myOtherValue",
+                                        "inbound.type",
+                                        TYPE_2),
+                                    new StandaloneMessageCorrelationPoint(
+                                        "myPath", "=expression", "=myPath", null),
+                                    new ProcessElementWithRuntimeData("ProcessB", 2, 1, "", ""))),
+                            Health.up(),
+                            Collections.emptyList(),
+                            System.currentTimeMillis()),
+                        new ActiveExecutableResponse(
+                            RANDOM_ID_3,
+                            AnotherExecutable.class,
+                            List.of(
+                                new InboundConnectorElement(
+                                    Map.of(
+                                        "inbound.other.prop",
+                                        "myOtherValue2",
+                                        "inbound.type",
+                                        TYPE_2),
+                                    new StandaloneMessageCorrelationPoint(
+                                        "myPath", "=expression", "=myPath", null),
+                                    new ProcessElementWithRuntimeData("ProcessC", 2, 1, "id1", "")),
+                                new InboundConnectorElement(
+                                    Map.of(
+                                        "inbound.other.prop",
+                                        "myOtherValue2_2",
+                                        "inbound.type",
+                                        TYPE_2),
+                                    new StandaloneMessageCorrelationPoint(
+                                        "myPath", "=expression2", "=myPath2", null),
+                                    new ProcessElementWithRuntimeData(
+                                        "ProcessC", 2, 1, "id2", ""))),
+                            Health.up(),
+                            List.of(
+                                Activity.level(Severity.INFO).tag("myTag").message("myMessage"),
+                                Activity.level(Severity.ERROR).tag("myTag2").message("myMessage2")),
+                            System.currentTimeMillis()))
+                    .filter(response -> {
+                      var providedType =
+                          invocationOnMock.getArgument(0, ActiveExecutableQuery.class).type();
+                      return switch (providedType) {
+                        case null -> true;
+                        case TYPE_1 -> response.executableId().equals(RANDOM_ID_1);
+                        case TYPE_2 ->
+                            response.executableId().equals(RANDOM_ID_2)
+                                || response.executableId().equals(RANDOM_ID_3);
+                        default -> false;
+                      };
+                    })
+                    .toList());
   }
 
   @Test

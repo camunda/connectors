@@ -50,61 +50,49 @@ class ToolSpecificationConverterTest {
         .isEqualTo(
             "Make line-based edits to a text file. Each edit replaces exact line sequences with new content. Returns a git-style diff showing the changes made. Only works within allowed directories.");
     assertThat(toolSpecification.parameters())
-        .satisfies(
-            schema -> {
-              assertThat(schema.properties()).containsOnlyKeys("path", "edits", "dryRun");
+        .satisfies(schema -> {
+          assertThat(schema.properties()).containsOnlyKeys("path", "edits", "dryRun");
 
-              assertThat(schema.properties().get("path"))
-                  .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-                  .satisfies(
-                      stringSchema -> {
-                        assertThat(stringSchema.description()).isNull();
-                      });
+          assertThat(schema.properties().get("path"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+              .satisfies(stringSchema -> {
+                assertThat(stringSchema.description()).isNull();
+              });
 
-              assertThat(schema.properties().get("edits"))
-                  .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
-                  .satisfies(
-                      arraySchema -> {
-                        assertThat(arraySchema.items())
-                            .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
-                            .satisfies(
-                                objectSchema -> {
-                                  assertThat(objectSchema.properties())
-                                      .containsOnlyKeys("oldText", "newText");
-                                  assertThat(objectSchema.properties().get("oldText"))
-                                      .asInstanceOf(
-                                          InstanceOfAssertFactories.type(JsonStringSchema.class))
-                                      .satisfies(
-                                          stringSchema -> {
-                                            assertThat(stringSchema.description())
-                                                .isEqualTo(
-                                                    "Text to search for - must match exactly");
-                                          });
-                                  assertThat(objectSchema.properties().get("newText"))
-                                      .asInstanceOf(
-                                          InstanceOfAssertFactories.type(JsonStringSchema.class))
-                                      .satisfies(
-                                          stringSchema -> {
-                                            assertThat(stringSchema.description())
-                                                .isEqualTo("Text to replace with");
-                                          });
-                                  assertThat(objectSchema.required())
-                                      .containsExactly("oldText", "newText");
-                                  assertThat(objectSchema.additionalProperties()).isFalse();
-                                });
-                      });
+          assertThat(schema.properties().get("edits"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
+              .satisfies(arraySchema -> {
+                assertThat(arraySchema.items())
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
+                    .satisfies(objectSchema -> {
+                      assertThat(objectSchema.properties()).containsOnlyKeys("oldText", "newText");
+                      assertThat(objectSchema.properties().get("oldText"))
+                          .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                          .satisfies(stringSchema -> {
+                            assertThat(stringSchema.description())
+                                .isEqualTo("Text to search for - must match exactly");
+                          });
+                      assertThat(objectSchema.properties().get("newText"))
+                          .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                          .satisfies(stringSchema -> {
+                            assertThat(stringSchema.description())
+                                .isEqualTo("Text to replace with");
+                          });
+                      assertThat(objectSchema.required()).containsExactly("oldText", "newText");
+                      assertThat(objectSchema.additionalProperties()).isFalse();
+                    });
+              });
 
-              assertThat(schema.properties().get("dryRun"))
-                  .asInstanceOf(InstanceOfAssertFactories.type(JsonBooleanSchema.class))
-                  .satisfies(
-                      booleanSchema -> {
-                        assertThat(booleanSchema.description())
-                            .isEqualTo("Preview changes using git-style diff format");
-                      });
+          assertThat(schema.properties().get("dryRun"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonBooleanSchema.class))
+              .satisfies(booleanSchema -> {
+                assertThat(booleanSchema.description())
+                    .isEqualTo("Preview changes using git-style diff format");
+              });
 
-              assertThat(schema.required()).containsExactly("path", "edits");
-              assertThat(schema.additionalProperties()).isFalse();
-            });
+          assertThat(schema.required()).containsExactly("path", "edits");
+          assertThat(schema.additionalProperties()).isFalse();
+        });
   }
 
   @Test

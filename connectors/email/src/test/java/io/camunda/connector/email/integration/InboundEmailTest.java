@@ -114,10 +114,9 @@ public class InboundEmailTest extends BaseEmailTest {
     verify(inboundConnectorContext, timeout(3000).times(1)).correlate(any());
     await()
         .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                assertFlagOnLastEmail(
-                    emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
+        .untilAsserted(() ->
+            assertFlagOnLastEmail(
+                emailInboundConnectorProperties.data().pollingConfig().handlingStrategy()));
   }
 
   @Test
@@ -149,17 +148,16 @@ public class InboundEmailTest extends BaseEmailTest {
 
     await()
         .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                Assertions.assertTrue(
-                    Arrays.stream(
-                            Arrays.stream(super.getLastReceivedEmails())
-                                .findFirst()
-                                .get()
-                                .getFlags()
-                                .getSystemFlags())
-                        .toList()
-                        .isEmpty()));
+        .untilAsserted(() ->
+            Assertions.assertTrue(
+                Arrays.stream(
+                        Arrays.stream(super.getLastReceivedEmails())
+                            .findFirst()
+                            .get()
+                            .getFlags()
+                            .getSystemFlags())
+                    .toList()
+                    .isEmpty()));
   }
 
   @Test
@@ -191,17 +189,16 @@ public class InboundEmailTest extends BaseEmailTest {
 
     await()
         .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                Assertions.assertTrue(
-                    Arrays.stream(
-                            Arrays.stream(super.getLastReceivedEmails())
-                                .findFirst()
-                                .get()
-                                .getFlags()
-                                .getSystemFlags())
-                        .toList()
-                        .contains(Flags.Flag.SEEN)));
+        .untilAsserted(() ->
+            Assertions.assertTrue(
+                Arrays.stream(
+                        Arrays.stream(super.getLastReceivedEmails())
+                            .findFirst()
+                            .get()
+                            .getFlags()
+                            .getSystemFlags())
+                    .toList()
+                    .contains(Flags.Flag.SEEN)));
   }
 
   @Test
@@ -233,17 +230,16 @@ public class InboundEmailTest extends BaseEmailTest {
 
     await()
         .atMost(5, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                Assertions.assertTrue(
-                    Arrays.stream(
-                            Arrays.stream(super.getLastReceivedEmails())
-                                .findFirst()
-                                .get()
-                                .getFlags()
-                                .getSystemFlags())
-                        .toList()
-                        .isEmpty()));
+        .untilAsserted(() ->
+            Assertions.assertTrue(
+                Arrays.stream(
+                        Arrays.stream(super.getLastReceivedEmails())
+                            .findFirst()
+                            .get()
+                            .getFlags()
+                            .getSystemFlags())
+                    .toList()
+                    .isEmpty()));
   }
 
   private void assertFlagOnLastEmail(HandlingStrategy handlingStrategy) throws MessagingException {

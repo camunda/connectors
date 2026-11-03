@@ -242,18 +242,16 @@ public class BatchExecutableProcessor {
       RetryPolicy<Object> retryPolicy =
           RetryPolicy.builder()
               .withDelay(retryException.getBackoffDuration())
-              .onFailedAttempt(
-                  event ->
-                      LOG.error(
-                          "Reactivation failed for inbound connector: {}",
-                          cancelled.context().getDefinition().type(),
-                          event.getLastException()))
-              .onRetry(
-                  event ->
-                      LOG.warn(
-                          "Failure #{} to reactivate connector: {}. Retrying.",
-                          event.getAttemptCount(),
-                          cancelled.context().getDefinition().type()))
+              .onFailedAttempt(event ->
+                  LOG.error(
+                      "Reactivation failed for inbound connector: {}",
+                      cancelled.context().getDefinition().type(),
+                      event.getLastException()))
+              .onRetry(event ->
+                  LOG.warn(
+                      "Failure #{} to reactivate connector: {}. Retrying.",
+                      event.getAttemptCount(),
+                      cancelled.context().getDefinition().type()))
               .withMaxRetries(retryException.getRetries())
               .build();
       return Failsafe.with(retryPolicy)
