@@ -86,20 +86,18 @@ public class PollingManager {
       return new PollingManager(
           connectorContext, emailListenerConfig, authentication, jakartaUtils, folder, store);
     } catch (AuthenticationFailedException exception) {
-      connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("Authentication error")
-                  .withMessage("Authentication failed"));
+      connectorContext.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("Authentication error")
+              .withMessage("Authentication failed"));
       throw new RuntimeException(exception);
     } catch (MailConnectException exception) {
-      connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("Connection error")
-                  .withMessage(exception.getMessage()));
+      connectorContext.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("Connection error")
+              .withMessage(exception.getMessage()));
       throw new EmailConnectorException(exception);
     } catch (MessagingException e) {
       try {
@@ -118,13 +116,12 @@ public class PollingManager {
 
   private List<Document> createDocumentList(Email email) {
     return email.body().attachments().stream()
-        .map(
-            document ->
-                this.connectorContext.create(
-                    DocumentCreationRequest.from(document.inputStream())
-                        .contentType(document.contentType())
-                        .fileName(document.name())
-                        .build()))
+        .map(document ->
+            this.connectorContext.create(
+                DocumentCreationRequest.from(document.inputStream())
+                    .contentType(document.contentType())
+                    .fileName(document.name())
+                    .build()))
         .toList();
   }
 
@@ -139,25 +136,23 @@ public class PollingManager {
       case CorrelationResult.Failure failure ->
           switch (failure.handlingStrategy()) {
             case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream ignored -> {
-              this.connectorContext.log(
-                  activity ->
-                      activity
-                          .withSeverity(Severity.ERROR)
-                          .withTag(ActivityLogTag.MESSAGE)
-                          .withMessage(
-                              "Error processing mail: %s, message %s"
-                                  .formatted(email.messageId(), failure.message())));
+              this.connectorContext.log(activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withTag(ActivityLogTag.MESSAGE)
+                      .withMessage(
+                          "Error processing mail: %s, message %s"
+                              .formatted(email.messageId(), failure.message())));
               yield false;
             }
             case CorrelationFailureHandlingStrategy.Ignore ignored -> {
-              this.connectorContext.log(
-                  activity ->
-                      activity
-                          .withSeverity(Severity.INFO)
-                          .withTag(ActivityLogTag.MESSAGE)
-                          .withMessage(
-                              "No correlation condition was met for email: %s. `Ignore unmatched event` was selected. Continuing.."
-                                  .formatted(email.messageId())));
+              this.connectorContext.log(activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag(ActivityLogTag.MESSAGE)
+                      .withMessage(
+                          "No correlation condition was met for email: %s. `Ignore unmatched event` was selected. Continuing.."
+                              .formatted(email.messageId())));
               yield true;
             }
           };
@@ -176,12 +171,11 @@ public class PollingManager {
     } catch (Exception e) {
       // All exception are caught at highest level, ensuring the scheduler never stops, and continue
       // polling indefinitely
-      this.connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("mail-polling")
-                  .withMessage(e.getMessage()));
+      this.connectorContext.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("mail-polling")
+              .withMessage(e.getMessage()));
       this.connectorContext.reportHealth(Health.down());
     }
   }
@@ -237,12 +231,11 @@ public class PollingManager {
   }
 
   private boolean process(Email email) {
-    this.connectorContext.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag("new-email")
-                .withMessage("Processing email: %s".formatted(email.messageId())));
+    this.connectorContext.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag("new-email")
+            .withMessage("Processing email: %s".formatted(email.messageId())));
     ActivationCheckResult activationCheckResult =
         this.connectorContext.canActivate(createResponse(email, List.of()));
     return switch (activationCheckResult) {
@@ -250,36 +243,33 @@ public class PollingManager {
           switch (failure) {
             case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement -> {
               if (noMatchingElement.discardUnmatchedEvents()) {
-                this.connectorContext.log(
-                    activity ->
-                        activity
-                            .withSeverity(Severity.INFO)
-                            .withTag("NoMatchingElement")
-                            .withMessage(
-                                "No matching activation condition. Discarding unmatched email: %s"
-                                    .formatted(email.messageId())));
+                this.connectorContext.log(activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag("NoMatchingElement")
+                        .withMessage(
+                            "No matching activation condition. Discarding unmatched email: %s"
+                                .formatted(email.messageId())));
                 yield true;
               } else {
-                this.connectorContext.log(
-                    activity ->
-                        activity
-                            .withSeverity(Severity.INFO)
-                            .withTag("NoMatchingElement")
-                            .withMessage(
-                                "No matching activation condition. Not discarding unmatched email: %s"
-                                    .formatted(email.messageId())));
+                this.connectorContext.log(activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag("NoMatchingElement")
+                        .withMessage(
+                            "No matching activation condition. Not discarding unmatched email: %s"
+                                .formatted(email.messageId())));
                 yield false;
               }
             }
             case ActivationCheckResult.Failure.TooManyMatchingElements ignored -> {
-              this.connectorContext.log(
-                  activity ->
-                      activity
-                          .withSeverity(Severity.ERROR)
-                          .withTag("TooManyMatchingElements")
-                          .withMessage(
-                              "Too many matching activation conditions. Email: %s"
-                                  .formatted(email.messageId())));
+              this.connectorContext.log(activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withTag("TooManyMatchingElements")
+                      .withMessage(
+                          "Too many matching activation conditions. Email: %s"
+                              .formatted(email.messageId())));
               yield false;
             }
           };

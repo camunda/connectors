@@ -144,19 +144,20 @@ class KafkaConnectorFunctionTest {
     // given
     final String noAuthRequest =
         """
-                    {
-                        "topic":{
-                          "bootstrapServers":"kafka-stub.kafka.cloud:1234",
-                          "topicName":"some-awesome-topic"
-                        },
-                        "message":{
-                          "key":"Happy",
-                          "value":"Case"
-                        },
-                        "schemaStrategy":{
-                          "type":"noSchema"
-                        }
-                      }""";
+        {
+            "topic":{
+              "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+              "topicName":"some-awesome-topic"
+            },
+            "message":{
+              "key":"Happy",
+              "value":"Case"
+            },
+            "schemaStrategy":{
+              "type":"noSchema"
+            }
+          }\
+        """;
     CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
     RecordMetadata kafkaResponse =
         new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);

@@ -62,12 +62,12 @@ class DocumentToContentSerializerTest {
 
     JSONAssert.assertEquals(
         """
-            {
-              "type" : "text",
-              "media_type" : "%s",
-              "data" : "Hello, world!"
-            }
-            """
+        {
+          "type" : "text",
+          "media_type" : "%s",
+          "data" : "Hello, world!"
+        }
+        """
             .formatted(contentType),
         serializedDocument,
         true);
@@ -87,12 +87,12 @@ class DocumentToContentSerializerTest {
 
     JSONAssert.assertEquals(
         """
-            {
-              "type" : "base64",
-              "media_type" : "%s",
-              "data" : "SGVsbG8sIHdvcmxkIQ=="
-            }
-            """
+        {
+          "type" : "base64",
+          "media_type" : "%s",
+          "data" : "SGVsbG8sIHdvcmxkIQ=="
+        }
+        """
             .formatted(contentType),
         serializedDocument,
         true);
@@ -118,39 +118,39 @@ class DocumentToContentSerializerTest {
 
     JSONAssert.assertEquals(
         """
+        {
+          "hello": "world",
+          "document1": {
+            "type": "text",
+            "media_type": "text/plain",
+            "data": "Hello, world!"
+          },
+          "documents": [
             {
-              "hello": "world",
-              "document1": {
-                "type": "text",
-                "media_type": "text/plain",
-                "data": "Hello, world!"
-              },
-              "documents": [
-                {
-                  "type": "base64",
-                  "media_type": "application/pdf",
-                  "data": "PFBERiBDT05URU5UPg=="
-                },
-                {
-                  "type": "base64",
-                  "media_type": "image/png",
-                  "data": "PElNQUdFIENPTlRFTlQ+"
-                }
-              ],
-              "map": {
-                "some_csv": {
-                  "type": "text",
-                  "media_type": "text/csv",
-                  "data": "foo,bar"
-                },
-                "some_json": {
-                  "type": "text",
-                  "media_type": "application/json",
-                  "data": "{\\"foo\\": \\"bar\\"}"
-                }
-              }
+              "type": "base64",
+              "media_type": "application/pdf",
+              "data": "PFBERiBDT05URU5UPg=="
+            },
+            {
+              "type": "base64",
+              "media_type": "image/png",
+              "data": "PElNQUdFIENPTlRFTlQ+"
             }
-            """,
+          ],
+          "map": {
+            "some_csv": {
+              "type": "text",
+              "media_type": "text/csv",
+              "data": "foo,bar"
+            },
+            "some_json": {
+              "type": "text",
+              "media_type": "application/json",
+              "data": "{\\"foo\\": \\"bar\\"}"
+            }
+          }
+        }
+        """,
         serialized,
         true);
   }

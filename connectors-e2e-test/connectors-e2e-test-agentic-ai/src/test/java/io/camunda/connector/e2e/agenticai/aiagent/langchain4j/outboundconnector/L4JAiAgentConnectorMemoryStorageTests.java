@@ -39,7 +39,7 @@ public class L4JAiAgentConnectorMemoryStorageTests extends BaseL4JAiAgentConnect
         elementTemplate -> elementTemplate.property("data.memory.storage.type", "in-process"),
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) -> {
+        agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse)
               .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
               .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
@@ -66,7 +66,7 @@ public class L4JAiAgentConnectorMemoryStorageTests extends BaseL4JAiAgentConnect
                     "data.memory.storage.customProperties", "={ customProperty: \"customValue\" }"),
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) -> {
+        agentResponse -> {
           AgentResponseAssert.assertThat(agentResponse)
               .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
               .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)

@@ -55,11 +55,10 @@ public record AgentMetrics(
     }
 
     public TokenUsage add(TokenUsage tokenUsage) {
-      return with(
-          builder ->
-              builder
-                  .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
-                  .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
+      return with(builder ->
+          builder
+              .inputTokenCount(builder.inputTokenCount() + tokenUsage.inputTokenCount())
+              .outputTokenCount(builder.outputTokenCount() + tokenUsage.outputTokenCount()));
     }
 
     public static TokenUsage empty() {

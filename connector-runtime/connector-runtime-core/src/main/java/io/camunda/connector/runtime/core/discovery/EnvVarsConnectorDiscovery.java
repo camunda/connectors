@@ -135,15 +135,11 @@ public class EnvVarsConnectorDiscovery {
           getConnectorEnvironmentVariable(name, "DEDUPLICATION_PROPERTIES")
               .map(properties -> properties.split(","))
               .map(Arrays::asList)
-              .or(
-                  () ->
-                      annotationConfig.map(InboundConnectorConfiguration::deduplicationProperties))
-              .orElseThrow(
-                  () ->
-                      envMissing(
-                          "Deduplication properties not specified",
-                          name,
-                          "DEDUPLICATION_PROPERTIES")));
+              .or(() ->
+                  annotationConfig.map(InboundConnectorConfiguration::deduplicationProperties))
+              .orElseThrow(() ->
+                  envMissing(
+                      "Deduplication properties not specified", name, "DEDUPLICATION_PROPERTIES")));
 
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);

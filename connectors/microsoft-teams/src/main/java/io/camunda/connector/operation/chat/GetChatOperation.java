@@ -20,13 +20,12 @@ public record GetChatOperation(GetChat model) implements ChatOperation {
         graphClient
             .chats()
             .byChatId(model.chatId())
-            .get(
-                getRequestConfiguration -> {
-                  if (model.expand() != null
-                      && availableExpandList.contains(model.expand())
-                      && getRequestConfiguration.queryParameters != null) {
-                    getRequestConfiguration.queryParameters.expand = new String[] {model.expand()};
-                  }
-                }));
+            .get(getRequestConfiguration -> {
+              if (model.expand() != null
+                  && availableExpandList.contains(model.expand())
+                  && getRequestConfiguration.queryParameters != null) {
+                getRequestConfiguration.queryParameters.expand = new String[] {model.expand()};
+              }
+            }));
   }
 }

@@ -62,44 +62,44 @@ public abstract class BaseAutomationAnywhereTest {
 
   protected static final String EXPECTED_REQUEST_BODY_JSON_WITH_ITEM =
       """
+      {
+        "workItems": [
           {
-            "workItems": [
-              {
-                "json": {
-                  "last_name": "Doe",
-                  "email": "jane.doe@example.com"
-                }
-              }
-            ]
+            "json": {
+              "last_name": "Doe",
+              "email": "jane.doe@example.com"
+            }
           }
-          """;
+        ]
+      }
+      """;
 
   protected static final String EXPECTED_REQUEST_BODY_WITH_FILTER =
       """
-              {
-                "filter" : {
-                  "field" : "id",
-                  "value" : 31250,
-                  "operator" : "eq"
-                }
-              }
-              """;
+      {
+        "filter" : {
+          "field" : "id",
+          "value" : 31250,
+          "operator" : "eq"
+        }
+      }
+      """;
 
   protected static final String EXPECTED_PASSWORD_BASED_AUTH_REQUEST =
       """
-              {
-                "password" : "password",
-                "multipleLogin" : true,
-                "username" : "username"
-              }
-              """;
+      {
+        "password" : "password",
+        "multipleLogin" : true,
+        "username" : "username"
+      }
+      """;
   protected static final String EXPECTED_API_KEY_BASED_AUTH_REQUEST =
       """
-              {
-                "username" : "apiUserName",
-                "apiKey" : "myApiKey"
-              }
-              """;
+      {
+        "username" : "apiUserName",
+        "apiKey" : "myApiKey"
+      }
+      """;
 
   @BeforeEach
   void beforeEach() {

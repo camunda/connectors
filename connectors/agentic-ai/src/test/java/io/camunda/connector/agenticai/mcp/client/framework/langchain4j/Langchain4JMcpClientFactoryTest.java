@@ -50,142 +50,135 @@ class Langchain4JMcpClientFactoryTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void createsStdioMcpClient(boolean logEvents) {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
-              mockConstruction(
-                  StdioMcpTransport.Builder.class,
-                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig =
-                createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), logEvents);
-            final var client =
-                factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
+    withMockedMcpClientBuilder(mockedMcpClientConstruction -> {
+      try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+          mockConstruction(
+              StdioMcpTransport.Builder.class,
+              withSettings().defaultAnswer(CALLS_REAL_METHODS),
+              (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
+        final var stdioConfig =
+            createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), logEvents);
+        final var client =
+            factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+        assertThat(client).isEqualTo(mcpClient);
 
-            final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).command(List.of("command", "arg1", "arg2"));
-            verify(transportBuilder).environment(stdioConfig.env());
-            verify(transportBuilder).logEvents(stdioConfig.logEvents());
+        final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
+        verify(transportBuilder).command(List.of("command", "arg1", "arg2"));
+        verify(transportBuilder).environment(stdioConfig.env());
+        verify(transportBuilder).logEvents(stdioConfig.logEvents());
 
-            verifyMcpClientBuilder(
-                mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
-          }
-        });
+        verifyMcpClientBuilder(
+            mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
+      }
+    });
   }
 
   @Test
   void createsStdioMcpClientWithoutArguments() {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
-              mockConstruction(
-                  StdioMcpTransport.Builder.class,
-                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), false);
-            final var client =
-                factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
+    withMockedMcpClientBuilder(mockedMcpClientConstruction -> {
+      try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+          mockConstruction(
+              StdioMcpTransport.Builder.class,
+              withSettings().defaultAnswer(CALLS_REAL_METHODS),
+              (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
+        final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), false);
+        final var client =
+            factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+        assertThat(client).isEqualTo(mcpClient);
 
-            final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).command(List.of("command"));
-            verify(transportBuilder).environment(stdioConfig.env());
-            verify(transportBuilder).logEvents(stdioConfig.logEvents());
+        final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
+        verify(transportBuilder).command(List.of("command"));
+        verify(transportBuilder).environment(stdioConfig.env());
+        verify(transportBuilder).logEvents(stdioConfig.logEvents());
 
-            verifyMcpClientBuilder(
-                mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
-          }
-        });
+        verifyMcpClientBuilder(
+            mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
+      }
+    });
   }
 
   @ParameterizedTest
   @CsvSource({"true,true", "true,false", "false,true", "false,false"})
   void createsHttpMcpClient(boolean logRequests, boolean logResponses) {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<HttpMcpTransport.Builder> mockedTransportBuilder =
-              mockConstruction(
-                  HttpMcpTransport.Builder.class,
-                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                  (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
-            final var sseConfig =
-                createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
-            final var client =
-                factory.createClient(CLIENT_ID, createMcpClientConfiguration(null, sseConfig));
+    withMockedMcpClientBuilder(mockedMcpClientConstruction -> {
+      try (MockedConstruction<HttpMcpTransport.Builder> mockedTransportBuilder =
+          mockConstruction(
+              HttpMcpTransport.Builder.class,
+              withSettings().defaultAnswer(CALLS_REAL_METHODS),
+              (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
+        final var sseConfig =
+            createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
+        final var client =
+            factory.createClient(CLIENT_ID, createMcpClientConfiguration(null, sseConfig));
 
-            assertThat(client).isEqualTo(mcpClient);
+        assertThat(client).isEqualTo(mcpClient);
 
-            final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
-            verify(transportBuilder).sseUrl(sseConfig.url());
-            verify(transportBuilder).timeout(sseConfig.timeout());
-            verify(transportBuilder).logRequests(sseConfig.logRequests());
-            verify(transportBuilder).logResponses(sseConfig.logResponses());
+        final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
+        verify(transportBuilder).sseUrl(sseConfig.url());
+        verify(transportBuilder).timeout(sseConfig.timeout());
+        verify(transportBuilder).logRequests(sseConfig.logRequests());
+        verify(transportBuilder).logResponses(sseConfig.logResponses());
 
-            final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
-            verifyMcpClientBuilder(mcpClientBuilder, httpMcpTransport);
-          }
-        });
+        final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
+        verifyMcpClientBuilder(mcpClientBuilder, httpMcpTransport);
+      }
+    });
   }
 
   @Test
   void prefersStdioOverHttp() {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedStdioTransportBuilder =
-                  mockConstruction(
-                      StdioMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(stdioMcpTransport).when(mock).build());
-              MockedConstruction<HttpMcpTransport.Builder> mockedHttpTransportBuilder =
-                  mockConstruction(
-                      HttpMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
-            final var sseConfig = createSseHttpMcpClientTransportConfiguration(true, true);
-            final var client =
-                factory.createClient(
-                    CLIENT_ID, createMcpClientConfiguration(stdioConfig, sseConfig));
+    withMockedMcpClientBuilder(mockedMcpClientConstruction -> {
+      try (MockedConstruction<StdioMcpTransport.Builder> mockedStdioTransportBuilder =
+              mockConstruction(
+                  StdioMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build());
+          MockedConstruction<HttpMcpTransport.Builder> mockedHttpTransportBuilder =
+              mockConstruction(
+                  HttpMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(httpMcpTransport).when(mock).build())) {
+        final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
+        final var sseConfig = createSseHttpMcpClientTransportConfiguration(true, true);
+        final var client =
+            factory.createClient(CLIENT_ID, createMcpClientConfiguration(stdioConfig, sseConfig));
 
-            assertThat(client).isEqualTo(mcpClient);
+        assertThat(client).isEqualTo(mcpClient);
 
-            verifyMcpClientBuilder(
-                mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
+        verifyMcpClientBuilder(
+            mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
 
-            assertThat(mockedStdioTransportBuilder.constructed()).hasSize(1);
-            assertThat(mockedHttpTransportBuilder.constructed()).isEmpty();
-          }
-        });
+        assertThat(mockedStdioTransportBuilder.constructed()).hasSize(1);
+        assertThat(mockedHttpTransportBuilder.constructed()).isEmpty();
+      }
+    });
   }
 
   @Test
   void doesNotApplyTimeoutsAndReconnectIntervalIfNull() {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
-              mockConstruction(
-                  StdioMcpTransport.Builder.class,
-                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
-            final var client =
-                factory.createClient(
-                    CLIENT_ID,
-                    new McpClientConfiguration(true, stdioConfig, null, null, null, null));
+    withMockedMcpClientBuilder(mockedMcpClientConstruction -> {
+      try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+          mockConstruction(
+              StdioMcpTransport.Builder.class,
+              withSettings().defaultAnswer(CALLS_REAL_METHODS),
+              (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
+        final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
+        final var client =
+            factory.createClient(
+                CLIENT_ID, new McpClientConfiguration(true, stdioConfig, null, null, null, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+        assertThat(client).isEqualTo(mcpClient);
 
-            final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
-            verify(mcpClientBuilder).key(CLIENT_ID);
-            verify(mcpClientBuilder).transport(any(McpTransport.class));
-            verify(mcpClientBuilder, never()).initializationTimeout(any());
-            verify(mcpClientBuilder, never()).toolExecutionTimeout(any());
-            verify(mcpClientBuilder, never()).reconnectInterval(any());
-          }
-        });
+        final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
+        verify(mcpClientBuilder).key(CLIENT_ID);
+        verify(mcpClientBuilder).transport(any(McpTransport.class));
+        verify(mcpClientBuilder, never()).initializationTimeout(any());
+        verify(mcpClientBuilder, never()).toolExecutionTimeout(any());
+        verify(mcpClientBuilder, never()).reconnectInterval(any());
+      }
+    });
   }
 
   private void withMockedMcpClientBuilder(

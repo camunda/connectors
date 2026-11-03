@@ -66,13 +66,12 @@ public class InboundInstancesSecurityConfiguration {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        mappings.forEach(
-            mapping ->
-                registry
-                    .addMapping(mapping)
-                    .allowCredentials(allowCredentials)
-                    .allowedOrigins(allowedOrigins)
-                    .allowedMethods("*"));
+        mappings.forEach(mapping ->
+            registry
+                .addMapping(mapping)
+                .allowCredentials(allowCredentials)
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("*"));
       }
     };
   }
@@ -82,9 +81,8 @@ public class InboundInstancesSecurityConfiguration {
   public SecurityFilterChain inboundInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
         .csrf(csrf -> csrf.ignoringRequestMatchers("/inbound-instances/**"))
-        .securityMatchers(
-            requestMatcherConfigurer ->
-                requestMatcherConfigurer.requestMatchers("/inbound-instances/**"))
+        .securityMatchers(requestMatcherConfigurer ->
+            requestMatcherConfigurer.requestMatchers("/inbound-instances/**"))
         .authorizeHttpRequests(
             auth -> auth.requestMatchers("/inbound-instances/**").authenticated())
         .oauth2ResourceServer(

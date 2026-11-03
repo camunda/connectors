@@ -46,16 +46,13 @@ class PollingTextractCallerTest {
 
     awsS3UtilMockedStatic = Mockito.mockStatic(AwsS3Util.class);
     awsS3UtilMockedStatic
-        .when(
-            () ->
-                AwsS3Util.buildS3ObjectFromDocument(
-                    any(), any(String.class), any(S3AsyncClient.class)))
+        .when(() ->
+            AwsS3Util.buildS3ObjectFromDocument(any(), any(String.class), any(S3AsyncClient.class)))
         .thenReturn(s3Object);
     awsS3UtilMockedStatic
-        .when(
-            () ->
-                AwsS3Util.deleteS3ObjectFromBucketAsync(
-                    any(), any(String.class), any(S3AsyncClient.class)))
+        .when(() ->
+            AwsS3Util.deleteS3ObjectFromBucketAsync(
+                any(), any(String.class), any(S3AsyncClient.class)))
         .thenAnswer(invocation -> null);
   }
 

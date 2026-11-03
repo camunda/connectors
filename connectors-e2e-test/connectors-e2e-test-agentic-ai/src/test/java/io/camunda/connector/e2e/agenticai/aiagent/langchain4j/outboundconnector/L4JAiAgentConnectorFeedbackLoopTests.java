@@ -45,7 +45,7 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
         e -> e,
         HAIKU_TEXT,
         true,
-        (agentResponse) ->
+        agentResponse ->
             AgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(HAIKU_TEXT)
                 .hasResponseText(HAIKU_TEXT)
@@ -64,7 +64,7 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
         },
         HAIKU_TEXT,
         false,
-        (agentResponse) ->
+        agentResponse ->
             // defaults to text
             AgentResponseAssert.assertThat(agentResponse)
                 .hasNoResponseMessage()

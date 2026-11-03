@@ -127,14 +127,13 @@ class McpClientRegistryTest {
   @Test
   void doesNotThrowException_whenClosingEmptyRegistry() {
     assertThat(registry)
-        .satisfies(
-            r -> {
-              try {
-                r.close();
-              } catch (Exception e) {
-                throw new RuntimeException("Should not throw exception", e);
-              }
-            });
+        .satisfies(r -> {
+          try {
+            r.close();
+          } catch (Exception e) {
+            throw new RuntimeException("Should not throw exception", e);
+          }
+        });
   }
 
   @Test
@@ -144,14 +143,13 @@ class McpClientRegistryTest {
     registry.register("test-client", client);
 
     assertThat(registry)
-        .satisfies(
-            r -> {
-              try {
-                r.close();
-              } catch (Exception e) {
-                throw new RuntimeException("Should not throw exception", e);
-              }
-            });
+        .satisfies(r -> {
+          try {
+            r.close();
+          } catch (Exception e) {
+            throw new RuntimeException("Should not throw exception", e);
+          }
+        });
   }
 
   interface MockAutoCloseableClient extends AutoCloseable {}

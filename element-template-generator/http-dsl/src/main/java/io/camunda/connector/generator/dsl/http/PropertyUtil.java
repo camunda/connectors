@@ -58,18 +58,17 @@ public class PropertyUtil {
     }
     var choices =
         availableTypes.stream()
-            .map(
-                type -> {
-                  String label = type.label();
-                  if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
-                    label += " (" + apiKey.key() + ")";
-                  }
-                  if (type instanceof HttpAuthentication.BasicAuth basicAuth
-                      && !basicAuth.key.isEmpty()) {
-                    label += " (" + basicAuth.key + ")";
-                  }
-                  return new DropdownProperty.DropdownChoice(label, type.id());
-                })
+            .map(type -> {
+              String label = type.label();
+              if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
+                label += " (" + apiKey.key() + ")";
+              }
+              if (type instanceof HttpAuthentication.BasicAuth basicAuth
+                  && !basicAuth.key.isEmpty()) {
+                label += " (" + basicAuth.key + ")";
+              }
+              return new DropdownProperty.DropdownChoice(label, type.id());
+            })
             .toList();
 
     return DropdownProperty.builder()
@@ -188,16 +187,15 @@ public class PropertyUtil {
     for (var authentication : authentications) {
       var authProperties =
           HttpAuthentication.getPropertyPrefabs(authentication).stream()
-              .map(
-                  builder ->
-                      builder
-                          .condition(
-                              new AllMatch(
-                                  new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
-                                  new OneOf(
-                                      OPERATION_DISCRIMINATOR_PROPERTY_ID,
-                                      operationsWithoutCustomAuth)))
-                          .build())
+              .map(builder ->
+                  builder
+                      .condition(
+                          new AllMatch(
+                              new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
+                              new OneOf(
+                                  OPERATION_DISCRIMINATOR_PROPERTY_ID,
+                                  operationsWithoutCustomAuth)))
+                      .build())
               .toList();
 
       properties.addAll(authProperties);
@@ -223,21 +221,20 @@ public class PropertyUtil {
       for (var authentication : operation.authenticationOverride()) {
         var authProperties =
             HttpAuthentication.getPropertyPrefabs(authentication).stream() // size1 = 4
-                .map(
-                    builder -> {
-                      String id = operation.id() + "_" + builder.getId();
-                      builder.id(id); // shade property ids
-                      if (addedDiscriminator) {
-                        builder.condition(
-                            new AllMatch(
-                                new Equals(authDiscriminator, authentication.id()),
-                                new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
-                      } else {
-                        builder.condition(
-                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
-                      }
-                      return builder.build();
-                    })
+                .map(builder -> {
+                  String id = operation.id() + "_" + builder.getId();
+                  builder.id(id); // shade property ids
+                  if (addedDiscriminator) {
+                    builder.condition(
+                        new AllMatch(
+                            new Equals(authDiscriminator, authentication.id()),
+                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
+                  } else {
+                    builder.condition(
+                        new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
+                  }
+                  return builder.build();
+                })
                 .toList();
         properties.addAll(authProperties); // here the duplicated are generated
       }

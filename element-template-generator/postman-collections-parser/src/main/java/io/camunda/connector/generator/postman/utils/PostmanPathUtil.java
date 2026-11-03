@@ -65,22 +65,20 @@ public class PostmanPathUtil {
     pathSegments.addAll(path);
     return pathSegments.stream()
         .map(s -> s.replace("+", "_"))
-        .map(
-            s -> {
-              if (s.startsWith(POSTMAN_VARIABLE_PREFIX_TAG)
-                  && s.endsWith(POSTMAN_VARIABLE_SUFFIX_TAG)) {
-                return s.replace(POSTMAN_VARIABLE_PREFIX_TAG, "{")
-                    .replace(POSTMAN_VARIABLE_SUFFIX_TAG, "}");
-              }
-              return s;
-            })
-        .map(
-            s -> {
-              if (s.startsWith(":")) {
-                return s.replace(":", "{").concat("}");
-              }
-              return s;
-            })
+        .map(s -> {
+          if (s.startsWith(POSTMAN_VARIABLE_PREFIX_TAG)
+              && s.endsWith(POSTMAN_VARIABLE_SUFFIX_TAG)) {
+            return s.replace(POSTMAN_VARIABLE_PREFIX_TAG, "{")
+                .replace(POSTMAN_VARIABLE_SUFFIX_TAG, "}");
+          }
+          return s;
+        })
+        .map(s -> {
+          if (s.startsWith(":")) {
+            return s.replace(":", "{").concat("}");
+          }
+          return s;
+        })
         .collect(Collectors.joining("/", "", ""));
   }
 }

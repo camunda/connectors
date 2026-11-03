@@ -232,12 +232,11 @@ class AgentResponseHandlerTest {
 
     @Test
     void throwsExceptionWhenJsonParsingFails() {
-      assertThatThrownBy(
-              () ->
-                  createResponse(
-                      new OutboundConnectorResponseConfiguration(
-                          new JsonResponseFormatConfiguration(null, null), false),
-                      assistantMessage(HAIKU_TEXT)))
+      assertThatThrownBy(() ->
+              createResponse(
+                  new OutboundConnectorResponseConfiguration(
+                      new JsonResponseFormatConfiguration(null, null), false),
+                  assistantMessage(HAIKU_TEXT)))
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
               ConnectorException.class,
@@ -319,14 +318,10 @@ class AgentResponseHandlerTest {
 
       // then - the executor refuses rather than returning "dGVzdA==" (base64("test")), which
       // would prove the function actually ran.
-      assertThatThrownBy(
-              () ->
-                  handlerWithDocumentModuleMapper()
-                      .createResponse(
-                          executionContext,
-                          AGENT_CONTEXT,
-                          assistantMessage(exploitJson),
-                          TOOL_CALLS))
+      assertThatThrownBy(() ->
+              handlerWithDocumentModuleMapper()
+                  .createResponse(
+                      executionContext, AGENT_CONTEXT, assistantMessage(exploitJson), TOOL_CALLS))
           .isInstanceOf(UnsupportedOperationException.class)
           .hasMessageContaining("Intrinsic function dispatch is disabled");
     }

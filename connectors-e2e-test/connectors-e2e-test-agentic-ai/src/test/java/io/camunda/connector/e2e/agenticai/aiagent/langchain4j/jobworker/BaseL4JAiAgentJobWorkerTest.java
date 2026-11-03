@@ -292,11 +292,10 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       List<ChatMessage> expectedConversation, boolean assertToolSpecifications) {
     await()
         .alias("Chat request with expected conversation")
-        .untilAsserted(
-            () -> {
-              assertThat(chatRequestCaptor.getValue().messages())
-                  .hasSize(expectedConversation.size() - 1);
-            });
+        .untilAsserted(() -> {
+          assertThat(chatRequestCaptor.getValue().messages())
+              .hasSize(expectedConversation.size() - 1);
+        });
 
     final var lastChatRequest = chatRequestCaptor.getValue();
 

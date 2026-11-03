@@ -145,41 +145,41 @@ public enum LlmModel {
 
   private static String getCommonSystemInstruction() {
     return """
-            You will receive extracted text from a PDF document. This text will be between the <DOCUMENT_TEXT> tags.
-            Your task is to extract certain variables from the text. The description how to extract the variables is
-            between the <EXTRACTION> tags. Every variable is represented by a <VAR> tag. Every variable has a name,
-            which is represented by the <NAME> tag, as well as instructions which data to extract, which is represented
-            by the <PROMPT> tag.
-      """;
+          You will receive extracted text from a PDF document. This text will be between the <DOCUMENT_TEXT> tags.
+          Your task is to extract certain variables from the text. The description how to extract the variables is
+          between the <EXTRACTION> tags. Every variable is represented by a <VAR> tag. Every variable has a name,
+          which is represented by the <NAME> tag, as well as instructions which data to extract, which is represented
+          by the <PROMPT> tag.
+    """;
   }
 
   private static String getCommonSystemPrompt() {
     return """
-            %s
+          %s
 
-            Respond in JSON format, without any preamble. Example response:
-            {
-              "name": "John Smith",
-              "age": 32
-            }
-      """
+          Respond in JSON format, without any preamble. Example response:
+          {
+            "name": "John Smith",
+            "age": 32
+          }
+    """
         .formatted(getCommonSystemInstruction());
   }
 
   private static String getCommonMessageTemplate() {
     return """
-            Here is the document text as well as your instructions on which variables to extract:
-            <DOCUMENT_TEXT>%s</DOCUMENT_TEXT>
-            <EXTRACTION>%s</EXTRACTION>
-      """
+          Here is the document text as well as your instructions on which variables to extract:
+          <DOCUMENT_TEXT>%s</DOCUMENT_TEXT>
+          <EXTRACTION>%s</EXTRACTION>
+    """
         .formatted(EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE, TAXONOMY_PLACEHOLDER_FOR_MESSAGE);
   }
 
   private static String getMultimodalMessageTemplate() {
     return """
-            Here is the instructions on which variables to extract:
-            <EXTRACTION>%s</EXTRACTION>
-      """
+          Here is the instructions on which variables to extract:
+          <EXTRACTION>%s</EXTRACTION>
+    """
         .formatted(TAXONOMY_PLACEHOLDER_FOR_MESSAGE);
   }
 }

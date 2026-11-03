@@ -774,10 +774,9 @@ class DocumentAiCallerTest {
   void extractKeyValuePairsWithConfidence_shouldRejectBlankRegion() {
     DocumentAiClientSupplier mockSupplier = mock(DocumentAiClientSupplier.class);
 
-    assertThatThrownBy(
-            () ->
-                new DocumentAiCaller(mockSupplier)
-                    .extractKeyValuePairsWithConfidence(mockRequestData(), gcpProvider(" ")))
+    assertThatThrownBy(() ->
+            new DocumentAiCaller(mockSupplier)
+                .extractKeyValuePairsWithConfidence(mockRequestData(), gcpProvider(" ")))
         .isInstanceOf(ConnectorInputException.class);
     verifyNoInteractions(mockSupplier);
   }

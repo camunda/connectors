@@ -172,16 +172,13 @@ public class ParameterUtil {
         visitedSchemas.add(schema);
 
         schema.getProperties().entrySet().stream()
-            .map(
-                entry ->
-                    Map.entry(
-                        entry.getKey(), getSchemaOrFromComponents(entry.getValue(), components)))
-            .forEach(
-                entry ->
-                    nested.put(
-                        entry.getKey(),
-                        generateFakeDataFromSchema(
-                            entry.getValue(), components, new HashSet<>(visitedSchemas))));
+            .map(entry ->
+                Map.entry(entry.getKey(), getSchemaOrFromComponents(entry.getValue(), components)))
+            .forEach(entry ->
+                nested.put(
+                    entry.getKey(),
+                    generateFakeDataFromSchema(
+                        entry.getValue(), components, new HashSet<>(visitedSchemas))));
         return nested;
       }
       case "array" -> {

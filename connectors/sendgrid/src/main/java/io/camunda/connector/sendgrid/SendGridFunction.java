@@ -103,13 +103,12 @@ public class SendGridFunction implements OutboundConnectorFunction {
 
   private void addAttachmentIfPresent(final Mail mail, List<Document> documents) {
     if (documents != null && !documents.isEmpty()) {
-      documents.forEach(
-          document -> {
-            Attachments attachments =
-                new Attachments.Builder(document.metadata().getFileName(), document.asInputStream())
-                    .build();
-            mail.addAttachments(attachments);
-          });
+      documents.forEach(document -> {
+        Attachments attachments =
+            new Attachments.Builder(document.metadata().getFileName(), document.asInputStream())
+                .build();
+        mail.addAttachments(attachments);
+      });
     }
   }
 

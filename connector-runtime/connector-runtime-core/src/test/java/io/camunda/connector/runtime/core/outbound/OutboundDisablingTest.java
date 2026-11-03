@@ -41,66 +41,60 @@ public class OutboundDisablingTest {
 
   @Test
   public void disablingWorksForDiscoveredConnectors() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_OUTBOUND_DISCOVERY_DISABLED", "true")
-              .execute(
-                  () -> {
-                    OutboundConnectorFactory factory =
-                        DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> factory.getInstance("io.camunda:annotated"),
-                        "Outbound connector should not be available when discovery is disabled");
-                    Assertions.assertInstanceOf(
-                        AnnotatedLocalFunction.class,
-                        factory.getInstance("io.camunda:local"),
-                        "Manual registration should still be available");
-                  });
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_OUTBOUND_DISCOVERY_DISABLED", "true")
+          .execute(() -> {
+            OutboundConnectorFactory factory =
+                DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> factory.getInstance("io.camunda:annotated"),
+                "Outbound connector should not be available when discovery is disabled");
+            Assertions.assertInstanceOf(
+                AnnotatedLocalFunction.class,
+                factory.getInstance("io.camunda:local"),
+                "Manual registration should still be available");
+          });
+    });
   }
 
   @Test
   public void namedDisablingForDiscoveredConnectors() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated")
-              .execute(
-                  () -> {
-                    OutboundConnectorFactory factory =
-                        DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> factory.getInstance("io.camunda:annotated"),
-                        "This connector was explicitly disabled by environment variable");
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:annotated")
+          .execute(() -> {
+            OutboundConnectorFactory factory =
+                DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> factory.getInstance("io.camunda:annotated"),
+                "This connector was explicitly disabled by environment variable");
 
-                    Assertions.assertInstanceOf(
-                        AnnotatedLocalFunction.class,
-                        factory.getInstance("io.camunda:local"),
-                        "Manual registration should still be available");
-                  });
-        });
+            Assertions.assertInstanceOf(
+                AnnotatedLocalFunction.class,
+                factory.getInstance("io.camunda:local"),
+                "Manual registration should still be available");
+          });
+    });
   }
 
   @Test
   public void namedDisablingForManuallyRegisteredConnectors() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:local")
-              .execute(
-                  () -> {
-                    OutboundConnectorFactory factory =
-                        DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
-                    Assertions.assertInstanceOf(
-                        SpiRegisteredFunction.class,
-                        factory.getInstance("io.camunda:annotated"),
-                        "Discovery should still be available");
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_OUTBOUND_DISABLED", "io.camunda:local")
+          .execute(() -> {
+            OutboundConnectorFactory factory =
+                DiscoveryUtils.getFactory(new AnnotatedLocalFunction());
+            Assertions.assertInstanceOf(
+                SpiRegisteredFunction.class,
+                factory.getInstance("io.camunda:annotated"),
+                "Discovery should still be available");
 
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> factory.getInstance("io.camunda:local"),
-                        "This connector was explicitly disabled by environment variable");
-                  });
-        });
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> factory.getInstance("io.camunda:local"),
+                "This connector was explicitly disabled by environment variable");
+          });
+    });
   }
 }

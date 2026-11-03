@@ -85,25 +85,23 @@ public class ConnectorResultHandler {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
-        .map(
-            expression -> {
-              var evaluatedJson =
-                  feelEngineWrapper.evaluateToJson(
-                      expression, responseContent, wrapResponse(responseContent), jobContext);
-              if (evaluatedJson != null) {
-                verifyNoForbiddenLiterals(evaluatedJson);
-              }
-              return evaluatedJson;
-            })
+        .map(expression -> {
+          var evaluatedJson =
+              feelEngineWrapper.evaluateToJson(
+                  expression, responseContent, wrapResponse(responseContent), jobContext);
+          if (evaluatedJson != null) {
+            verifyNoForbiddenLiterals(evaluatedJson);
+          }
+          return evaluatedJson;
+        })
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
-        .filter(
-            error -> {
-              if (error instanceof BpmnError bpmnError) {
-                return bpmnError.hasCode();
-              }
-              return true;
-            });
+        .filter(error -> {
+          if (error instanceof BpmnError bpmnError) {
+            return bpmnError.hasCode();
+          }
+          return true;
+        });
   }
 
   private <T> T parseJsonVarsAsTypeOrThrow(

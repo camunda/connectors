@@ -118,16 +118,14 @@ class Langchain4JMcpRemoteClientHandlerTest {
     when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
-            assertArg(
-                operation ->
-                    assertThat(operation)
-                        .isInstanceOfSatisfying(
-                            McpClientCallToolOperation.class,
-                            op -> {
-                              assertThat(op.params().name()).isEqualTo("test-tool");
-                              assertThat(op.params().arguments())
-                                  .containsExactlyEntriesOf(arguments);
-                            })),
+            assertArg(operation ->
+                assertThat(operation)
+                    .isInstanceOfSatisfying(
+                        McpClientCallToolOperation.class,
+                        op -> {
+                          assertThat(op.params().name()).isEqualTo("test-tool");
+                          assertThat(op.params().arguments()).containsExactlyEntriesOf(arguments);
+                        })),
             eq(EMPTY_FILTER)))
         .thenReturn(expectedResult);
 
@@ -138,11 +136,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   @Test
   void throwsExceptionOnInvalidOperation() {
-    assertThatThrownBy(
-            () ->
-                handler.handle(
-                    context,
-                    createRequest(new McpClientOperationConfiguration("invalid", Map.of()))))
+    assertThatThrownBy(() ->
+            handler.handle(
+                context, createRequest(new McpClientOperationConfiguration("invalid", Map.of()))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Could not resolve type id 'invalid'");
   }

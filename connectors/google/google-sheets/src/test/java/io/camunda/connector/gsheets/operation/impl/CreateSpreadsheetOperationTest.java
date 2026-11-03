@@ -72,10 +72,9 @@ class CreateSpreadsheetOperationTest extends BaseTest {
               .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedSheetsServiceSupplier.verify(
-          () ->
-              GoogleSheetsServiceSupplier.getGoogleSheetsService(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedSheetsServiceSupplier.verify(() ->
+          GoogleSheetsServiceSupplier.getGoogleSheetsService(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       mockedDriveUtil.verifyNoInteractions();
 
       assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
@@ -107,16 +106,14 @@ class CreateSpreadsheetOperationTest extends BaseTest {
               .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedSheetsServiceSupplier.verify(
-          () ->
-              GoogleSheetsServiceSupplier.getGoogleSheetsService(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
-      mockedDriveUtil.verify(
-          () ->
-              DriveUtil.moveFile(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null),
-                  PARENT,
-                  SPREADSHEET_ID));
+      mockedSheetsServiceSupplier.verify(() ->
+          GoogleSheetsServiceSupplier.getGoogleSheetsService(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedDriveUtil.verify(() ->
+          DriveUtil.moveFile(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null),
+              PARENT,
+              SPREADSHEET_ID));
 
       assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
       CreateSpreadSheetResponse operationResult = (CreateSpreadSheetResponse) resultObject;

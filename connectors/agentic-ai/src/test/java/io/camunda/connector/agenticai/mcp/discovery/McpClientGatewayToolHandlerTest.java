@@ -105,14 +105,13 @@ class McpClientGatewayToolHandlerTest {
       assertThatThrownBy(() -> handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions))
           .isInstanceOf(ConnectorException.class)
           .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
-          .satisfies(
-              e -> {
-                assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
-                assertThat(e.getMessage())
-                    .isEqualTo(
-                        "Invalid MCP client activity ID(s) detected: ['%s']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model."
-                            .formatted(invalidName));
-              });
+          .satisfies(e -> {
+            assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
+            assertThat(e.getMessage())
+                .isEqualTo(
+                    "Invalid MCP client activity ID(s) detected: ['%s']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model."
+                        .formatted(invalidName));
+          });
     }
 
     @Test
@@ -127,13 +126,12 @@ class McpClientGatewayToolHandlerTest {
       assertThatThrownBy(() -> handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions))
           .isInstanceOf(ConnectorException.class)
           .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
-          .satisfies(
-              e -> {
-                assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
-                assertThat(e.getMessage())
-                    .isEqualTo(
-                        "Invalid MCP client activity ID(s) detected: ['mcp___1', 'mcp___2']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model.");
-              });
+          .satisfies(e -> {
+            assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
+            assertThat(e.getMessage())
+                .isEqualTo(
+                    "Invalid MCP client activity ID(s) detected: ['mcp___1', 'mcp___2']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model.");
+          });
     }
 
     @Test

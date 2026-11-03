@@ -26,18 +26,17 @@ public class ImapServerProxy implements AutoCloseable {
     this.backendHost = backendHost;
     this.backendPort = backendPort;
     this.listen = new ServerSocket(listenPort);
-    pool.submit(
-        () -> {
-          while (!listen.isClosed()) {
-            final Socket client;
-            try {
-              client = listen.accept();
-            } catch (IOException e) {
-              throw new RuntimeException(e);
-            }
-            pool.submit(() -> handle(client));
-          }
-        });
+    pool.submit(() -> {
+      while (!listen.isClosed()) {
+        final Socket client;
+        try {
+          client = listen.accept();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        pool.submit(() -> handle(client));
+      }
+    });
   }
 
   private void handle(Socket client) {
@@ -53,24 +52,22 @@ public class ImapServerProxy implements AutoCloseable {
       backend.connect(new InetSocketAddress(backendHost, backendPort), 2000);
       Future<?> f1 =
           // All bytes coming from client are given to the server
-          pool.submit(
-              () -> {
-                try {
-                  pipeClientToServer(client.getInputStream(), backend.getOutputStream());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
+          pool.submit(() -> {
+            try {
+              pipeClientToServer(client.getInputStream(), backend.getOutputStream());
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
       Future<?> f2 =
           // All bytes coming from server are given to the client
-          pool.submit(
-              () -> {
-                try {
-                  pipeServerToClient(backend.getInputStream(), client.getOutputStream());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
+          pool.submit(() -> {
+            try {
+              pipeServerToClient(backend.getInputStream(), client.getOutputStream());
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
       try {
         f1.get();
       } catch (Exception ignored) {

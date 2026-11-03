@@ -64,7 +64,7 @@ abstract class BaseMultiInstancesTest {
   final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
+          path -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
           ConnectorsObjectMapperSupplier.getCopy());
 
   static final ExecutableId RANDOM_ID_1 = ExecutableId.fromDeduplicationId("theid1");
@@ -124,20 +124,19 @@ abstract class BaseMultiInstancesTest {
                 "spring.application.name=instance1",
                 "camunda.connector.hostname=instance1",
                 "camunda.connector.headless.serviceurl=http://whatever:8080")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(InboundExecutableRegistry.class, () -> executableRegistry1);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance1"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(InboundExecutableRegistry.class, () -> executableRegistry1);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance1"));
+            })
             .run();
 
     context2 =
@@ -147,20 +146,19 @@ abstract class BaseMultiInstancesTest {
                 "spring.application.name=instance2",
                 "camunda.connector.hostname=instance2",
                 "camunda.connector.headless.serviceurl=http://whatever:8080")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(InboundExecutableRegistry.class, () -> executableRegistry2);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance2"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(InboundExecutableRegistry.class, () -> executableRegistry2);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance2"));
+            })
             .run();
   }
 
@@ -246,33 +244,31 @@ abstract class BaseMultiInstancesTest {
                         Health.unknown("Test unknown key", "Test unknown value"),
                         List.of(RUNTIME1_ACTIVITY1, RUNTIME1_ACTIVITY2),
                         System.currentTimeMillis()))
-                .filter(
-                    response -> {
-                      var query = invocationOnMock.getArgument(0, ActiveExecutableQuery.class);
-                      var providedType = query.type();
-                      var elementId = query.elementId();
-                      var processId = query.bpmnProcessId();
-                      return switch (providedType) {
-                        case null -> {
-                          if (elementId != null && processId != null) {
-                            yield response.elements().stream()
-                                .anyMatch(
-                                    element ->
-                                        elementId.equals(element.element().elementId())
-                                            && processId.equals(element.element().bpmnProcessId()));
-                          } else {
-                            yield true;
-                          }
-                        }
-                        case TYPE_1 ->
-                            response.executableId().equals(RANDOM_ID_1)
-                                || response.executableId().equals(ONLY_IN_RUNTIME_1_ID);
-                        case TYPE_2 ->
-                            response.executableId().equals(RANDOM_ID_2)
-                                || response.executableId().equals(RANDOM_ID_3);
-                        default -> false;
-                      };
-                    })
+                .filter(response -> {
+                  var query = invocationOnMock.getArgument(0, ActiveExecutableQuery.class);
+                  var providedType = query.type();
+                  var elementId = query.elementId();
+                  var processId = query.bpmnProcessId();
+                  return switch (providedType) {
+                    case null -> {
+                      if (elementId != null && processId != null) {
+                        yield response.elements().stream()
+                            .anyMatch(element ->
+                                elementId.equals(element.element().elementId())
+                                    && processId.equals(element.element().bpmnProcessId()));
+                      } else {
+                        yield true;
+                      }
+                    }
+                    case TYPE_1 ->
+                        response.executableId().equals(RANDOM_ID_1)
+                            || response.executableId().equals(ONLY_IN_RUNTIME_1_ID);
+                    case TYPE_2 ->
+                        response.executableId().equals(RANDOM_ID_2)
+                            || response.executableId().equals(RANDOM_ID_3);
+                    default -> false;
+                  };
+                })
                 .toList();
   }
 
@@ -346,33 +342,31 @@ abstract class BaseMultiInstancesTest {
                         Health.up(),
                         List.of(RUNTIME2_ACTIVITY1, RUNTIME2_ACTIVITY2),
                         System.currentTimeMillis()))
-                .filter(
-                    response -> {
-                      var query = invocationOnMock.getArgument(0, ActiveExecutableQuery.class);
-                      var providedType = query.type();
-                      var elementId = query.elementId();
-                      var processId = query.bpmnProcessId();
-                      return switch (providedType) {
-                        case null -> {
-                          if (elementId != null && processId != null) {
-                            yield response.elements().stream()
-                                .anyMatch(
-                                    element ->
-                                        elementId.equals(element.element().elementId())
-                                            && processId.equals(element.element().bpmnProcessId()));
-                          } else {
-                            yield true;
-                          }
-                        }
-                        case TYPE_1 ->
-                            response.executableId().equals(RANDOM_ID_1)
-                                || response.executableId().equals(ONLY_IN_RUNTIME_2_ID);
-                        case TYPE_2 ->
-                            response.executableId().equals(RANDOM_ID_2)
-                                || response.executableId().equals(RANDOM_ID_3);
-                        default -> false;
-                      };
-                    })
+                .filter(response -> {
+                  var query = invocationOnMock.getArgument(0, ActiveExecutableQuery.class);
+                  var providedType = query.type();
+                  var elementId = query.elementId();
+                  var processId = query.bpmnProcessId();
+                  return switch (providedType) {
+                    case null -> {
+                      if (elementId != null && processId != null) {
+                        yield response.elements().stream()
+                            .anyMatch(element ->
+                                elementId.equals(element.element().elementId())
+                                    && processId.equals(element.element().bpmnProcessId()));
+                      } else {
+                        yield true;
+                      }
+                    }
+                    case TYPE_1 ->
+                        response.executableId().equals(RANDOM_ID_1)
+                            || response.executableId().equals(ONLY_IN_RUNTIME_2_ID);
+                    case TYPE_2 ->
+                        response.executableId().equals(RANDOM_ID_2)
+                            || response.executableId().equals(RANDOM_ID_3);
+                    default -> false;
+                  };
+                })
                 .toList();
   }
 }

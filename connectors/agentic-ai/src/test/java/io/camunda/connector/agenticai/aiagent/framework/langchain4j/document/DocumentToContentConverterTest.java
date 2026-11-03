@@ -91,10 +91,9 @@ class DocumentToContentConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(PdfFileContent.class))
-        .satisfies(
-            pdfFileContent -> {
-              assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE);
-            });
+        .satisfies(pdfFileContent -> {
+          assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE);
+        });
 
     verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();
@@ -110,12 +109,11 @@ class DocumentToContentConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(ImageContent.class))
-        .satisfies(
-            imageContent -> {
-              assertThat(imageContent.detailLevel()).isEqualTo(ImageContent.DetailLevel.AUTO);
-              assertThat(imageContent.image().mimeType()).isEqualTo(mediaType);
-              assertThat(imageContent.image().base64Data()).isEqualTo(DUMMY_B64_VALUE);
-            });
+        .satisfies(imageContent -> {
+          assertThat(imageContent.detailLevel()).isEqualTo(ImageContent.DetailLevel.AUTO);
+          assertThat(imageContent.image().mimeType()).isEqualTo(mediaType);
+          assertThat(imageContent.image().base64Data()).isEqualTo(DUMMY_B64_VALUE);
+        });
 
     verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();
@@ -131,10 +129,9 @@ class DocumentToContentConverterTest {
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(ImageContent.class))
-        .satisfies(
-            imageContent -> {
-              assertThat(imageContent.image().mimeType()).isEqualTo("image/png");
-            });
+        .satisfies(imageContent -> {
+          assertThat(imageContent.image().mimeType()).isEqualTo("image/png");
+        });
   }
 
   @Test

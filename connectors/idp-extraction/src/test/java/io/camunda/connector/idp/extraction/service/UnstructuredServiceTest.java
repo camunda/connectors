@@ -131,13 +131,13 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": "Camunda Inc."
-                                 }
-                   }
-               """);
+                {
+                  "response": {
+                                "sum": "$12.25",
+                                "supplier": "Camunda Inc."
+                              }
+                }
+            """);
 
     // when
     var result = unstructuredService.extract(request);
@@ -164,16 +164,16 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "sum": "$12.25",
-                     "supplier": {
-                                   "id": 12345,
-                                   "name": "Camunda Inc.",
-                                   "city": "Berlin",
-                                   "country": "Germany"
-                                 }
-                   }
-               """);
+                {
+                  "sum": "$12.25",
+                  "supplier": {
+                                "id": 12345,
+                                "name": "Camunda Inc.",
+                                "city": "Berlin",
+                                "country": "Germany"
+                              }
+                }
+            """);
 
     // when
     var result = unstructuredService.extract(request);
@@ -206,18 +206,18 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": {
-                                                 "id": 12345,
-                                                 "name": "Camunda Inc.",
-                                                 "city": "Berlin",
-                                                 "country": "Germany"
-                                               }
-                                 }
-                   }
-               """);
+                {
+                  "response": {
+                                "sum": "$12.25",
+                                "supplier": {
+                                              "id": 12345,
+                                              "name": "Camunda Inc.",
+                                              "city": "Berlin",
+                                              "country": "Germany"
+                                            }
+                              }
+                }
+            """);
 
     // when
     var result = unstructuredService.extract(request);
@@ -250,10 +250,10 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                   {
-                     "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
-                   }
-               """);
+                {
+                  "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
+                }
+            """);
 
     // when
     var result = unstructuredService.extract(request);
@@ -281,8 +281,8 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                        """);
+            {
+            """);
 
     // when & then
     assertThatThrownBy(() -> unstructuredService.extract(request))
@@ -301,8 +301,8 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        []
-                        """);
+            []
+            """);
 
     // when & then
     assertThatThrownBy(() -> unstructuredService.extract(request))
@@ -322,10 +322,10 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": "{"
-                        }
-                        """);
+            {
+              "response": "{"
+            }
+            """);
 
     // when & then
     assertThatThrownBy(() -> unstructuredService.extract(request))
@@ -345,10 +345,10 @@ public class UnstructuredServiceTest {
     when(bedrockCaller.call(any(), any(), any(), any()))
         .thenReturn(
             """
-                        {
-                          "response": []
-                        }
-                        """);
+            {
+              "response": []
+            }
+            """);
 
     // when & then
     assertThatThrownBy(() -> unstructuredService.extract(request))
@@ -367,10 +367,9 @@ public class UnstructuredServiceTest {
         .isNotNull()
         .isInstanceOf(ExtractionResult.class)
         .asInstanceOf(InstanceOfAssertFactories.type(ExtractionResult.class))
-        .satisfies(
-            extractionResult ->
-                assertThat(extractionResult.extractedFields())
-                    .containsExactlyInAnyOrderEntriesOf(expected));
+        .satisfies(extractionResult ->
+            assertThat(extractionResult.extractedFields())
+                .containsExactlyInAnyOrderEntriesOf(expected));
   }
 
   private ExtractionRequest prepareExtractionRequest() {

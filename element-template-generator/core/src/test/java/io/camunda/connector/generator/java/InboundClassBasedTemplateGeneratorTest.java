@@ -436,10 +436,9 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
             .getFirst();
 
     assertThat(template.properties())
-        .filteredOn(
-            p ->
-                p.getBinding().type().equals("zeebe:property")
-                    && ((ZeebeProperty) p.getBinding()).name().startsWith("myExtensionProperty"))
+        .filteredOn(p ->
+            p.getBinding().type().equals("zeebe:property")
+                && ((ZeebeProperty) p.getBinding()).name().startsWith("myExtensionProperty"))
         .hasSize(2)
         .satisfiesExactlyInAnyOrder(
             p -> {

@@ -141,7 +141,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
             e -> e,
             HAIKU_TEXT,
             true,
-            (agentResponse) ->
+            agentResponse ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(HAIKU_TEXT)
                     .hasResponseText(HAIKU_TEXT)
@@ -228,10 +228,11 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                 "Another Remote MCP Client result"),
             new AiMessage(
                 """
-                      I called some of my MCP tools and got the following results:
-                      MCP_A_MCP_Client___toolA: A MCP Client result
-                      MCP_A_Remote_MCP_Client___toolC: A Remote MCP Client result
-                      MCP_Another_Remote_MCP_Client___toolA: Another Remote MCP Client result"""),
+                I called some of my MCP tools and got the following results:
+                MCP_A_MCP_Client___toolA: A MCP Client result
+                MCP_A_Remote_MCP_Client___toolC: A Remote MCP Client result
+                MCP_Another_Remote_MCP_Client___toolA: Another Remote MCP Client result\
+                """),
             new UserMessage("Ok thanks, anything else?"),
             new AiMessage("No."));
 
@@ -294,32 +295,29 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
     verify(aMcpClient)
         .executeTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue\", \"paramA2\": 3}",
-                      toolExecutionRequest.arguments(),
-                      true);
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
+              JSONAssert.assertEquals(
+                  "{\"paramA1\": \"someValue\", \"paramA2\": 3}",
+                  toolExecutionRequest.arguments(),
+                  true);
+            }));
     verify(aRemoteMcpClient)
         .executeTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
-                  JSONAssert.assertEquals(
-                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
+              JSONAssert.assertEquals(
+                  "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
+            }));
     verify(anotherRemoteMcpClient)
         .executeTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue2\", \"paramA2\": 6}",
-                      toolExecutionRequest.arguments(),
-                      true);
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
+              JSONAssert.assertEquals(
+                  "{\"paramA1\": \"someValue2\", \"paramA2\": 6}",
+                  toolExecutionRequest.arguments(),
+                  true);
+            }));
 
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
   }
