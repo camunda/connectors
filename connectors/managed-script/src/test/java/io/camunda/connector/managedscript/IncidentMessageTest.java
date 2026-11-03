@@ -210,18 +210,42 @@ class IncidentMessageTest {
   }
 
   @Test
-  void removesControlCharactersFromTheLogsExceptNewlinesAndTabs() {
+  void leavesOutEachLineOfTheLogsWithAControlCharacterOtherThanATab() {
+    final var lines =
+        new String[] {
+          "a\u001b[31mred",
+          "nul\u0000",
+          "crlf\r",
+          "next\u0085line",
+          "del\u007f",
+          "line\u2028separator",
+          "bidi\u202eoverride",
+          "zero\u200bwidth",
+          "\tindented"
+        };
+
     final var text =
         IncidentMessage.format(
-            ErrorCode.SCRIPT_ERROR,
-            "m",
-            null,
-            null,
-            "a\u001b[31mred\u0000\r\n\tb\u0085\u007f\u2028c\u202ed",
-            false);
+            ErrorCode.SCRIPT_ERROR, "m", null, null, String.join("\n", lines), false);
 
     assertThat(text)
-        .isEqualTo("SCRIPT_ERROR: m\n" + IncidentMessage.LOGS_HEADER + "\na[31mred\n\tbcd");
+        .isEqualTo(
+            "SCRIPT_ERROR: m\n"
+                + IncidentMessage.LOGS_HEADER
+                + ("\n" + IncidentMessage.CONTROL_LINE).repeat(lines.length - 1)
+                + "\n\tindented");
+  }
+
+  @Test
+  void neverKeepsASecretWithAControlCharacterWithoutIt() {
+    for (var secret :
+        new String[] {SECRET + "\r", "\ufeff" + SECRET, "s3cr3t\u200b-value-0123456789"}) {
+      final var text =
+          IncidentMessage.format(
+              ErrorCode.SCRIPT_ERROR, "m", null, null, "before\n" + secret + "\r\nafter", false);
+
+      assertThat(text).doesNotContain("s3cr3t").doesNotContain("0123456789").endsWith("\nafter");
+    }
   }
 
   @Test

@@ -24,6 +24,8 @@ import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -245,6 +247,25 @@ class RunnerProviderTest {
     final var request = new ExecutionRequest("1", "x", Map.of(), Map.of(), 100);
 
     assertFailed(impatient.execute(ScriptLanguage.PYTHON, request), ErrorCode.PLATFORM_UNAVAILABLE);
+  }
+
+  @Test
+  void ignoresTheProxyOfTheJvm(WireMockRuntimeInfo wireMock) throws IOException {
+    stubAnswer(aResponse().withStatus(200).withBody(completed()));
+    final int closedPort;
+    try (var socket = new ServerSocket(0)) {
+      closedPort = socket.getLocalPort();
+    }
+    final var jvmProxy = ProxySelector.getDefault();
+    try {
+      ProxySelector.setDefault(ProxySelector.of(new InetSocketAddress("localhost", closedPort)));
+      final var response =
+          provider(wireMock.getHttpBaseUrl()).execute(ScriptLanguage.PYTHON, REQUEST);
+
+      assertThat(response.outcome()).isEqualTo(ExecutionResponse.COMPLETED);
+    } finally {
+      ProxySelector.setDefault(jvmProxy);
+    }
   }
 
   @Test

@@ -199,6 +199,8 @@ final class ManagedScriptJobHandler {
           null,
           language);
     }
+    // The runtime does not mask the values that the engine resolved before the job was activated,
+    // so a script that prints its input puts those secrets into the incident.
     final var text =
         IncidentMessage.format(
             code.get(),

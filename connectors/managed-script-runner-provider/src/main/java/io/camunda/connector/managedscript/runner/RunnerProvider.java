@@ -58,11 +58,12 @@ public final class RunnerProvider implements ManagedCodeProvider {
   private final Duration answerMargin;
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  // A redirect would send the token to the host that the answer names.
+  // A redirect or a proxy of the JVM would get the token and the script input in plain HTTP.
   private final HttpClient client =
       HttpClient.newBuilder()
           .version(HttpClient.Version.HTTP_1_1)
           .followRedirects(HttpClient.Redirect.NEVER)
+          .proxy(HttpClient.Builder.NO_PROXY)
           .connectTimeout(CONNECT_TIMEOUT)
           .build();
 

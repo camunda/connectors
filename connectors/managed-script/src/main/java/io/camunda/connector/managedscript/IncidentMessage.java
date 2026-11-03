@@ -9,16 +9,19 @@ package io.camunda.connector.managedscript;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
+import java.util.stream.Collectors;
 
 /**
  * Builds the error message of a failed job, which is also the incident message: {@code <code>:
- * <message>}, then the stack trace of the script when there is one, then the end of the script logs
- * when there are some.
+ * <message>}, then the stack trace of the script when there is one, then as much of the end of the
+ * script logs as fits.
  *
- * <p>The runtime masks resolved secrets in this text, but only whole ones. Cuts therefore fall
- * between words of the message and between lines of the stack trace and of the logs, so that a
- * secret is either kept whole or left out, never kept in part.
+ * <p>The runtime masks the secrets that it resolved in this text, but only whole ones. Cuts
+ * therefore fall between words of the message and between lines of the stack trace and of the logs,
+ * so that a secret with no space or line break in it is either kept whole or left out, never kept
+ * in part.
  */
 final class IncidentMessage {
 
@@ -35,12 +38,14 @@ final class IncidentMessage {
 
   static final String LOGS_HEADER = "Script logs:";
 
+  static final String CONTROL_LINE = "... (line with control characters left out)";
+
   private IncidentMessage() {}
 
   /**
    * The text of {@link #format(ErrorCode, String, String, ScriptLanguage)}, then the end of the
-   * logs in the room that it leaves, cut between lines and without control characters other than
-   * newlines and tabs. Logs that do not fit at all are left out.
+   * logs in the room that it leaves, cut between lines. A line with a control character other than
+   * a tab is replaced by {@link #CONTROL_LINE}. Logs that do not fit at all are left out.
    *
    * @param logs {@code null} when the executor sent none
    * @param logsTruncated whether the executor cut the start of the logs; their first line is then
@@ -58,7 +63,7 @@ final class IncidentMessage {
       return text;
     }
     final var room = MAX_LENGTH - text.length() - LOGS_HEADER.length() - 2;
-    final var end = endOfLogs(withoutControlCharacters(logs), logsTruncated, room);
+    final var end = endOfLogs(withoutControlLines(logs), logsTruncated, room);
     return end == null ? text : text + "\n" + LOGS_HEADER + "\n" + end;
   }
 
@@ -128,16 +133,14 @@ final class IncidentMessage {
     return kept.isEmpty() ? null : TRUNCATED + "\n" + String.join("\n", kept);
   }
 
-  /**
-   * Operate shows the incident message as text, where a control character, a line separator or a
-   * bidirectional override can hide or reorder what the script printed.
-   */
-  private static String withoutControlCharacters(String logs) {
-    final var kept = new StringBuilder(logs.length());
-    logs.codePoints()
-        .filter(c -> c == '\n' || c == '\t' || !isControl(c))
-        .forEach(kept::appendCodePoint);
-    return kept.toString();
+  private static String withoutControlLines(String logs) {
+    return Arrays.stream(logs.split("\n", -1))
+        // Operate shows the incident message as text, where a control character, a line separator
+        // or a bidirectional override can hide or reorder what the script printed. Masking matches
+        // each secret exactly, so a secret with one character removed stays readable.
+        .map(line ->
+            line.codePoints().anyMatch(c -> c != '\t' && isControl(c)) ? CONTROL_LINE : line)
+        .collect(Collectors.joining("\n"));
   }
 
   private static boolean isControl(int codePoint) {
