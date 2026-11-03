@@ -19,16 +19,29 @@ package io.camunda.connector.managedscript.api;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Map;
 
-/** Execution contract version 1 response. */
+/**
+ * Execution contract version 1 response.
+ *
+ * @param logs the end of what the script wrote to stderr, as platform metadata next to the contract
+ *     fields; {@code null} when the executor sends none
+ * @param logsTruncated whether the executor cut the start of the logs, so that their first line can
+ *     be a part of a line
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ExecutionResponse(
-    String contractVersion, String outcome, Map<String, Object> variables, Error error) {
+    String contractVersion,
+    String outcome,
+    Map<String, Object> variables,
+    Error error,
+    String logs,
+    boolean logsTruncated) {
 
   public static final String COMPLETED = "COMPLETED";
   public static final String FAILED = "FAILED";
 
   public static ExecutionResponse completed(Map<String, Object> variables) {
-    return new ExecutionResponse(ExecutionRequest.CONTRACT_VERSION, COMPLETED, variables, null);
+    return new ExecutionResponse(
+        ExecutionRequest.CONTRACT_VERSION, COMPLETED, variables, null, null, false);
   }
 
   /** A failure raised outside the script, so without a stack trace. */
@@ -37,7 +50,9 @@ public record ExecutionResponse(
         ExecutionRequest.CONTRACT_VERSION,
         FAILED,
         null,
-        new Error(code.name(), message, null, code.retryable(), false));
+        new Error(code.name(), message, null, code.retryable(), false),
+        null,
+        false);
   }
 
   public boolean isDeploymentMissing() {

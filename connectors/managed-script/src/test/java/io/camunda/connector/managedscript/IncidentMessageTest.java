@@ -107,6 +107,159 @@ class IncidentMessageTest {
         .isEqualTo("SCRIPT_ERROR: Managed script failed");
   }
 
+  @Test
+  void appendsShortLogsWholeAfterTheStackTrace() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR,
+            "KeyError: 'total'",
+            "Traceback\nKeyError: 'total'",
+            ScriptLanguage.PYTHON,
+            "loaded 3 order lines\n",
+            false);
+
+    assertThat(text)
+        .isEqualTo(
+            "SCRIPT_ERROR: KeyError: 'total'\nTraceback\nKeyError: 'total'\n"
+                + IncidentMessage.LOGS_HEADER
+                + "\nloaded 3 order lines\n");
+  }
+
+  @Test
+  void appendsLogsAfterTheMessageWhenThereIsNoStackTrace() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.TIMEOUT, "script exceeded 30000 ms", null, null, "step 1\nstep 2", false);
+
+    assertThat(text)
+        .isEqualTo(
+            "TIMEOUT: script exceeded 30000 ms\n"
+                + IncidentMessage.LOGS_HEADER
+                + "\nstep 1\nstep 2");
+  }
+
+  @Test
+  void appendsNothingForEmptyLogs() {
+    for (var logs : new String[] {null, "", " \n "}) {
+      assertThat(IncidentMessage.format(ErrorCode.TIMEOUT, "late", null, null, logs, false))
+          .isEqualTo("TIMEOUT: late");
+    }
+  }
+
+  @Test
+  void keepsWholeLinesAtTheEndOfLongLogs() {
+    final var logs = new StringBuilder();
+    for (int i = 1; i <= 1_000; i++) {
+      logs.append("line ").append(i).append(" of the script output\n");
+    }
+    logs.append("last");
+
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR,
+            "ValueError: x",
+            "ValueError: x",
+            ScriptLanguage.PYTHON,
+            logs.toString(),
+            false);
+
+    assertThat(text).hasSizeLessThanOrEqualTo(IncidentMessage.MAX_LENGTH);
+    assertThat(text)
+        .startsWith(
+            "SCRIPT_ERROR: ValueError: x\nValueError: x\n"
+                + IncidentMessage.LOGS_HEADER
+                + "\n"
+                + IncidentMessage.TRUNCATED
+                + "\n");
+    assertThat(text).endsWith("line 1000 of the script output\nlast");
+    assertThat(logLines(text)).allMatch(lines(logs.toString())::contains);
+  }
+
+  @Test
+  void givesTheLogsOnlyTheRoomThatTheStackTraceLeaves() {
+    final var traceback = "Traceback\n" + "  frame\n".repeat(1_000) + "ValueError: x";
+
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR,
+            "ValueError: x",
+            traceback,
+            ScriptLanguage.PYTHON,
+            "the logs\n".repeat(10),
+            false);
+
+    assertThat(text)
+        .isEqualTo(
+            IncidentMessage.format(
+                ErrorCode.SCRIPT_ERROR, "ValueError: x", traceback, ScriptLanguage.PYTHON));
+  }
+
+  @Test
+  void dropsTheFirstLineOfLogsThatTheExecutorCut() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR, "m", null, null, "rt of a line\nwhole line\nlast", true);
+
+    assertThat(text)
+        .isEqualTo(
+            "SCRIPT_ERROR: m\n"
+                + IncidentMessage.LOGS_HEADER
+                + "\n"
+                + IncidentMessage.TRUNCATED
+                + "\nwhole line\nlast");
+  }
+
+  @Test
+  void removesControlCharactersFromTheLogsExceptNewlinesAndTabs() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR,
+            "m",
+            null,
+            null,
+            "a\u001b[31mred\u0000\r\n\tb\u0085\u007f\u2028c\u202ed",
+            false);
+
+    assertThat(text)
+        .isEqualTo("SCRIPT_ERROR: m\n" + IncidentMessage.LOGS_HEADER + "\na[31mred\n\tbcd");
+  }
+
+  @Test
+  void neverKeepsPartOfASecretAcrossTheCutOfTheLogs() {
+    for (var truncated : new boolean[] {false, true}) {
+      for (int offset = 0; offset < 40; offset++) {
+        final var logs =
+            ("x".repeat(offset) + "\n" + ("printed " + SECRET + " here\n").repeat(400) + "last")
+                .strip();
+
+        final var text =
+            IncidentMessage.format(
+                ErrorCode.SCRIPT_ERROR, "m", "y".repeat(offset + 1), null, logs, truncated);
+
+        assertWholeOrAbsent(text);
+      }
+    }
+  }
+
+  @Test
+  void neverKeepsPartOfASecretThatTheExecutorCutAtTheStartOfTheLogs() {
+    for (int offset = 1; offset < SECRET.length(); offset++) {
+      final var text =
+          IncidentMessage.format(
+              ErrorCode.SCRIPT_ERROR, "m", null, null, SECRET.substring(offset) + "\nlast", true);
+
+      assertWholeOrAbsent(text);
+    }
+  }
+
+  private static List<String> logLines(String text) {
+    final var logs = text.substring(text.indexOf(IncidentMessage.LOGS_HEADER));
+    return Arrays.stream(logs.split("\n"))
+        .skip(1)
+        .filter(line -> !line.equals(IncidentMessage.TRUNCATED))
+        .toList();
+  }
+
   /** The secret is either kept whole, so that the runtime can mask it, or not at all. */
   private static void assertWholeOrAbsent(String text) {
     final var whole = text.split(Pattern.quote(SECRET), -1);

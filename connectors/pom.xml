@@ -30,6 +30,7 @@
     <module>jdbc</module>
     <module>kafka</module>
     <module>managed-script</module>
+    <module>managed-script-runner-provider</module>
     <module>microsoft/azure-blobstorage</module>
     <module>microsoft/common</module>
     <module>microsoft/email-inbound</module>

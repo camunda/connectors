@@ -199,13 +199,24 @@ final class ManagedScriptJobHandler {
           null,
           language);
     }
-    return failed(job, code.get(), error.message(), error.stackTrace(), language);
+    final var text =
+        IncidentMessage.format(
+            code.get(),
+            error.message(),
+            error.stackTrace(),
+            language,
+            response.logs(),
+            response.logsTruncated());
+    return failed(job, code.get(), text);
   }
 
   /** Fails the job with the retries that the error code calls for. */
   private Outcome.Failed failed(
       JobContext job, ErrorCode code, String message, String stackTrace, ScriptLanguage language) {
-    final var text = IncidentMessage.format(code, message, stackTrace, language);
+    return failed(job, code, IncidentMessage.format(code, message, stackTrace, language));
+  }
+
+  private Outcome.Failed failed(JobContext job, ErrorCode code, String text) {
     return switch (code.retries()) {
       case NONE_LEFT -> new Outcome.Failed(code.name(), text, 0, Duration.ZERO);
       // The modeler sets the backoff next to the retries a job consumes.
