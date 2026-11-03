@@ -78,12 +78,11 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
     final var listToolsOperation = mcpClientOperationAsMap(new McpClientListToolsOperation());
     List<ToolCall> discoveryToolCalls =
         mcpGatewayToolDefinitions.stream()
-            .map(
-                gatewayToolDefinition ->
-                    new ToolCall(
-                        MCP_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
-                        gatewayToolDefinition.name(),
-                        listToolsOperation))
+            .map(gatewayToolDefinition ->
+                new ToolCall(
+                    MCP_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
+                    gatewayToolDefinition.name(),
+                    listToolsOperation))
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
@@ -158,13 +157,12 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
     final var listToolsResult =
         objectMapper.convertValue(toolCallResult.content(), McpClientListToolsResult.class);
     return listToolsResult.toolDefinitions().stream()
-        .map(
-            toolDefinition ->
-                ToolDefinition.builder()
-                    .name(fullyQualifiedToolName(toolCallResult, toolDefinition))
-                    .description(toolDefinition.description())
-                    .inputSchema(toolDefinition.inputSchema())
-                    .build())
+        .map(toolDefinition ->
+            ToolDefinition.builder()
+                .name(fullyQualifiedToolName(toolCallResult, toolDefinition))
+                .description(toolDefinition.description())
+                .inputSchema(toolDefinition.inputSchema())
+                .build())
         .toList();
   }
 
@@ -182,21 +180,20 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   @Override
   public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
     return toolCalls.stream()
-        .map(
-            toolCall -> {
-              String toolCallName = toolCall.name();
-              if (McpToolCallIdentifier.isMcpToolCallIdentifier(toolCallName)) {
-                final var toolCallIdentifier = McpToolCallIdentifier.fromToolCallName(toolCallName);
-                return new ToolCall(
-                    toolCall.id(),
-                    toolCallIdentifier.elementName(),
-                    mcpClientOperationAsMap(
-                        McpClientCallToolOperation.create(
-                            toolCallIdentifier.mcpToolName(), toolCall.arguments())));
-              }
+        .map(toolCall -> {
+          String toolCallName = toolCall.name();
+          if (McpToolCallIdentifier.isMcpToolCallIdentifier(toolCallName)) {
+            final var toolCallIdentifier = McpToolCallIdentifier.fromToolCallName(toolCallName);
+            return new ToolCall(
+                toolCall.id(),
+                toolCallIdentifier.elementName(),
+                mcpClientOperationAsMap(
+                    McpClientCallToolOperation.create(
+                        toolCallIdentifier.mcpToolName(), toolCall.arguments())));
+          }
 
-              return toolCall;
-            })
+          return toolCall;
+        })
         .toList();
   }
 
@@ -206,14 +203,13 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
     final var mcpClientIds = getMcpClientIds(agentContext);
     return toolCallResults.stream()
-        .map(
-            toolCallResult -> {
-              if (!mcpClientIds.contains(toolCallResult.name())) {
-                return toolCallResult;
-              }
+        .map(toolCallResult -> {
+          if (!mcpClientIds.contains(toolCallResult.name())) {
+            return toolCallResult;
+          }
 
-              return toolCallResultFromMcpToolCall(toolCallResult);
-            })
+          return toolCallResultFromMcpToolCall(toolCallResult);
+        })
         .toList();
   }
 

@@ -41,18 +41,18 @@ public class EnvironmentSecretProvider implements SecretProvider {
     if (!StringUtils.hasText(prefix)) {
       LOG.warn(
           """
-                Connector secret environment variable prefix is not configured.
-                Currently, all environment variables will be exposed as connector secrets.
-                This is unsafe and will not be supported anymore in future releases.
+          Connector secret environment variable prefix is not configured.
+          Currently, all environment variables will be exposed as connector secrets.
+          This is unsafe and will not be supported anymore in future releases.
 
-                Please configure a valid prefix using
-                `camunda.connectors.secretprovider.environment.prefix`
-                or
-                `CAMUNDA_CONNECTORS_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
+          Please configure a valid prefix using
+          `camunda.connectors.secretprovider.environment.prefix`
+          or
+          `CAMUNDA_CONNECTORS_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
 
-                If `camunda.connector.secretprovider.environment.enabled` is set to true,
-                a prefix must be configured to avoid breaking changes in the future.
-                """);
+          If `camunda.connector.secretprovider.environment.enabled` is set to true,
+          a prefix must be configured to avoid breaking changes in the future.
+          """);
     } else {
       LOG.debug(
           "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",

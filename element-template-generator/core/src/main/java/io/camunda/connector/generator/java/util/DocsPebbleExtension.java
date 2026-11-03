@@ -41,13 +41,12 @@ public class DocsPebbleExtension extends AbstractExtension {
               var tableBuilder =
                   new Table.Builder().addRow("Name", "Type", "Required", "Description", "Example");
 
-              properties.forEach(
-                  p -> {
-                    var required = p.required() ? "Yes" : "No";
-                    var exampleValueCode = "```" + p.exampleValue() + "```";
-                    tableBuilder.addRow(
-                        p.label(), p.type(), required, p.description(), exampleValueCode);
-                  });
+              properties.forEach(p -> {
+                var required = p.required() ? "Yes" : "No";
+                var exampleValueCode = "```" + p.exampleValue() + "```";
+                tableBuilder.addRow(
+                    p.label(), p.type(), required, p.description(), exampleValueCode);
+              });
 
               return tableBuilder.build().serialize();
             }

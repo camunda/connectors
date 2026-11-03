@@ -120,7 +120,7 @@ class ChatModelFactoryTest {
 
       testAnthropicChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(ANTHROPIC_API_KEY);
             verify(builder).modelName(ANTHROPIC_MODEL);
@@ -143,7 +143,7 @@ class ChatModelFactoryTest {
 
       testAnthropicChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).baseUrl("https://my-custom-endpoint.local");
           });
     }
@@ -162,7 +162,7 @@ class ChatModelFactoryTest {
 
       testAnthropicChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).maxTokens(anyInt());
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
@@ -221,7 +221,7 @@ class ChatModelFactoryTest {
 
       testAzureOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(AZURE_OPENAI_API_KEY);
             verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
@@ -246,7 +246,7 @@ class ChatModelFactoryTest {
 
       testAzureOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).apiKey(any());
             verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
             verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
@@ -273,7 +273,7 @@ class ChatModelFactoryTest {
 
       testAzureOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).maxTokens(anyInt());
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
@@ -332,7 +332,7 @@ class ChatModelFactoryTest {
 
       testCreateBedrockChatModelWithCredentials(
           providerConfig,
-          (credentialsProvider) ->
+          credentialsProvider ->
               assertThat(credentialsProvider)
                   .isNotNull()
                   .isInstanceOf(DefaultCredentialsProvider.class));
@@ -351,7 +351,7 @@ class ChatModelFactoryTest {
 
       testCreateBedrockChatModelWithCredentials(
           providerConfig,
-          (credentialsProvider) -> {
+          credentialsProvider -> {
             assertThat(credentialsProvider)
                 .isNotNull()
                 .isInstanceOf(StaticCredentialsProvider.class);
@@ -368,7 +368,7 @@ class ChatModelFactoryTest {
         ThrowingConsumer<AwsCredentialsProvider> credentialsProviderAssertions) {
       testBedrockChatModelBuilder(
           providerConfig,
-          (builders) -> {
+          builders -> {
             verify(builders.clientBuilder).region(Region.EU_WEST_1);
             verify(builders.clientBuilder, never()).endpointOverride(any());
 
@@ -413,7 +413,7 @@ class ChatModelFactoryTest {
 
       testBedrockChatModelBuilder(
           providerConfig,
-          (builders) -> {
+          builders -> {
             verify(builders.clientBuilder)
                 .endpointOverride(URI.create("https://my-custom-endpoint.local"));
           });
@@ -433,7 +433,7 @@ class ChatModelFactoryTest {
 
       testBedrockChatModelBuilder(
           providerConfig,
-          (builders) -> {
+          builders -> {
             if (modelParameters == null) {
               verify(builders.chatModelBuilder, never()).defaultRequestParameters(any());
             } else {
@@ -512,7 +512,7 @@ class ChatModelFactoryTest {
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
-          (builders) -> {
+          builders -> {
             verify(builders.clientBuilder).vertexAI(true);
             verify(builders.clientBuilder).project(PROJECT_ID);
             verify(builders.clientBuilder).location(REGION);
@@ -545,7 +545,7 @@ class ChatModelFactoryTest {
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
-          (builders) -> {
+          builders -> {
             verify(builders.chatModelBuilder, never()).maxOutputTokens(anyInt());
             verify(builders.chatModelBuilder, never()).temperature(anyDouble());
             verify(builders.chatModelBuilder, never()).topP(anyDouble());
@@ -579,7 +579,7 @@ class ChatModelFactoryTest {
             .thenReturn(mockedSac);
 
         testGoogleVertexAiChatModelBuilder(
-            providerConfig, (builders) -> verify(builders.clientBuilder).credentials(scopedSac));
+            providerConfig, builders -> verify(builders.clientBuilder).credentials(scopedSac));
 
         staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
       }
@@ -597,7 +597,7 @@ class ChatModelFactoryTest {
                   new GoogleVertexAiModel(MODEL, null)));
 
       testGoogleVertexAiChatModelBuilder(
-          providerConfig, (builders) -> verify(builders.clientBuilder).location(region));
+          providerConfig, builders -> verify(builders.clientBuilder).location(region));
     }
 
     @Test
@@ -612,7 +612,7 @@ class ChatModelFactoryTest {
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
-          (builders) ->
+          builders ->
               assertThat(captureHttpOptions(builders).retryOptions())
                   .isPresent()
                   .get()
@@ -636,7 +636,7 @@ class ChatModelFactoryTest {
 
       testGoogleVertexAiChatModelBuilder(
           providerConfig,
-          (builders) ->
+          builders ->
               assertThat(captureHttpOptions(builders).timeout())
                   .isPresent()
                   .contains((int) EXPECTED_DEFAULT_TIMEOUT.toMillis()));
@@ -706,7 +706,7 @@ class ChatModelFactoryTest {
 
       testOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(OPEN_AI_API_KEY);
             verify(builder).modelName(OPEN_AI_MODEL);
@@ -737,7 +737,7 @@ class ChatModelFactoryTest {
 
       testOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).organizationId("MY_ORG_ID");
             verify(builder).projectId("MY_PROJECT_ID");
           });
@@ -755,7 +755,7 @@ class ChatModelFactoryTest {
 
       testOpenAiChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             if (modelParameters == null) {
               verify(builder, never()).defaultRequestParameters(any());
             } else {
@@ -820,7 +820,7 @@ class ChatModelFactoryTest {
 
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
@@ -857,7 +857,7 @@ class ChatModelFactoryTest {
 
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
             verify(builder, never()).apiKey(any());
@@ -881,7 +881,7 @@ class ChatModelFactoryTest {
 
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             if (modelParameters == null) {
               verify(builder, never()).defaultRequestParameters(any());
             } else {
@@ -912,7 +912,7 @@ class ChatModelFactoryTest {
 
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
-          (builder) -> {
+          builder -> {
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
             verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));

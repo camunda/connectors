@@ -36,11 +36,11 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                {
-                  "type": "describeTable",
-                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
-                }
-                """;
+        {
+          "type": "describeTable",
+          "tableName": "{{secrets.TABLE_NAME_KEY}}"
+        }
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     AwsInput request = context.bindVariables(AwsInput.class);
     // Then

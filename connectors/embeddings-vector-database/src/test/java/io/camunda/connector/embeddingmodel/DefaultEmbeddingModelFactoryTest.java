@@ -83,7 +83,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).organizationId(provider.openAi().organizationId());
             verify(builder).projectId(provider.openAi().projectId());
             verify(builder).dimensions(provider.openAi().dimensions());
@@ -102,7 +102,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).organizationId(anyString());
             verify(builder, never()).projectId(anyString());
             verify(builder, never()).dimensions(anyInt());
@@ -150,7 +150,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).dimensions(provider.azureOpenAi().dimensions());
             verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
             verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
@@ -171,7 +171,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).dimensions(anyInt());
             verify(builder, never()).maxRetries(anyInt());
             verify(builder, never()).customHeaders(anyMap());
@@ -195,7 +195,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).dimensions(provider.azureOpenAi().dimensions());
             verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
             verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
@@ -255,7 +255,7 @@ class DefaultEmbeddingModelFactoryTest {
                   MAX_RETRIES));
       testVertexAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).publisher(PUBLISHER);
             verify(builder).outputDimensionality(DIMENSIONS);
             verify(builder).maxRetries(MAX_RETRIES);
@@ -284,7 +284,7 @@ class DefaultEmbeddingModelFactoryTest {
 
         testVertexAiEmbeddingModelBuilder(
             provider,
-            (builder) -> {
+            builder -> {
               verify(builder).publisher(PUBLISHER);
               verify(builder).outputDimensionality(DIMENSIONS);
               verify(builder).maxRetries(MAX_RETRIES);
@@ -310,7 +310,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testVertexAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).publisher(VERTEX_AI_DEFAULT_PUBLISHER);
             verify(builder, never()).maxRetries(anyInt());
           });

@@ -137,14 +137,10 @@ public class InboundConnectorDiscoveryTest {
     DefaultInboundConnectorFactory factory = getFactory();
 
     // then
-    Assertions.assertThatThrownBy(
-            () ->
-                factory.registerConfiguration(
-                    new InboundConnectorConfiguration(
-                        "ANNOTATED",
-                        "io.camunda:annotated",
-                        NotAnnotatedExecutable.class,
-                        List.of())))
+    Assertions.assertThatThrownBy(() ->
+            factory.registerConfiguration(
+                new InboundConnectorConfiguration(
+                    "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class, List.of())))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining(
             "Duplicate inbound connector registration for type: io.camunda:annotated.");
@@ -180,14 +176,11 @@ public class InboundConnectorDiscoveryTest {
       List<String> deduplicationProperties) {
 
     Assertions.assertThatCollection(registrations)
-        .anyMatch(
-            registration ->
-                (registration.name().equals(name)
-                    && registration.type().equals(type)
-                    && registration.connectorClass().getName().equals(functionCls)
-                    && (deduplicationProperties == null
-                        || registration
-                            .deduplicationProperties()
-                            .equals(deduplicationProperties))));
+        .anyMatch(registration ->
+            (registration.name().equals(name)
+                && registration.type().equals(type)
+                && registration.connectorClass().getName().equals(functionCls)
+                && (deduplicationProperties == null
+                    || registration.deduplicationProperties().equals(deduplicationProperties))));
   }
 }

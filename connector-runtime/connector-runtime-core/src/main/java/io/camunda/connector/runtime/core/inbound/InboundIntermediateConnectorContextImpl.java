@@ -63,15 +63,14 @@ public class InboundIntermediateConnectorContextImpl
     var elements = connectorElements();
 
     return elements.stream()
-        .map(
-            elementInfo -> {
-              var elementId = elementInfo.element().elementId();
-              if (elementInfo.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
-                elementId = point.attachedTo().elementId();
-              }
-              return processInstanceClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-                  elementInfo.element().processDefinitionKey(), elementId);
-            })
+        .map(elementInfo -> {
+          var elementId = elementInfo.element().elementId();
+          if (elementInfo.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
+            elementId = point.attachedTo().elementId();
+          }
+          return processInstanceClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+              elementInfo.element().processDefinitionKey(), elementId);
+        })
         .flatMap(List::stream)
         .map(this::createProcessInstanceContext)
         .collect(Collectors.toList());

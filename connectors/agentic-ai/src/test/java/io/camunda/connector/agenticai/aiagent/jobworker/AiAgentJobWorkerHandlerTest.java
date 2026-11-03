@@ -178,19 +178,18 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobCompletionRequest(
-        request -> {
-          assertThat(request.getVariables()).isEmpty();
-          assertThat(request.getResult())
-              .isNotNull()
-              .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
-                  adHoc -> {
-                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
-                    assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
-                    assertThat(adHoc.getActivateElements()).isEmpty();
-                  });
-        });
+    assertJobCompletionRequest(request -> {
+      assertThat(request.getVariables()).isEmpty();
+      assertThat(request.getResult())
+          .isNotNull()
+          .isInstanceOfSatisfying(
+              JobResultAdHocSubProcess.class,
+              adHoc -> {
+                assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
+                assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
+                assertThat(adHoc.getActivateElements()).isEmpty();
+              });
+    });
   }
 
   @ParameterizedTest
@@ -206,22 +205,21 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobCompletionRequest(
-        request -> {
-          assertThat(request.getVariables())
-              .containsExactly(
-                  entry("agent", Map.of("responseText", AGENT_RESPONSE_VARIABLE.responseText())));
-          assertThat(request.getResult())
-              .isNotNull()
-              .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
-                  adHoc -> {
-                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
-                    assertThat(adHoc.getIsCancelRemainingInstances())
-                        .isEqualTo(cancelRemainingInstances);
-                    assertThat(adHoc.getActivateElements()).isEmpty();
-                  });
-        });
+    assertJobCompletionRequest(request -> {
+      assertThat(request.getVariables())
+          .containsExactly(
+              entry("agent", Map.of("responseText", AGENT_RESPONSE_VARIABLE.responseText())));
+      assertThat(request.getResult())
+          .isNotNull()
+          .isInstanceOfSatisfying(
+              JobResultAdHocSubProcess.class,
+              adHoc -> {
+                assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
+                assertThat(adHoc.getIsCancelRemainingInstances())
+                    .isEqualTo(cancelRemainingInstances);
+                assertThat(adHoc.getActivateElements()).isEmpty();
+              });
+    });
   }
 
   @ParameterizedTest
@@ -245,35 +243,33 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobCompletionRequest(
-        request -> {
-          assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
-          assertThat(request.getResult())
-              .isNotNull()
-              .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
-                  adHoc -> {
-                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
-                    assertThat(adHoc.getIsCancelRemainingInstances())
-                        .isEqualTo(cancelRemainingInstances);
-                    assertThat(adHoc.getActivateElements())
-                        .extracting(
-                            JobResultActivateElement::getElementId,
-                            JobResultActivateElement::getVariables)
-                        .containsExactly(
-                            tuple(
-                                "getWeather",
-                                Map.ofEntries(
-                                    Map.entry(
-                                        "toolCall", asMap(agentResponse.toolCalls().getFirst())),
-                                    Map.entry("toolCallResult", ""))),
-                            tuple(
-                                "getDateTime",
-                                Map.ofEntries(
-                                    Map.entry("toolCall", asMap(agentResponse.toolCalls().get(1))),
-                                    Map.entry("toolCallResult", ""))));
-                  });
-        });
+    assertJobCompletionRequest(request -> {
+      assertThat(request.getVariables()).containsOnlyKeys("agentContext", "toolCallResults");
+      assertThat(request.getResult())
+          .isNotNull()
+          .isInstanceOfSatisfying(
+              JobResultAdHocSubProcess.class,
+              adHoc -> {
+                assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
+                assertThat(adHoc.getIsCancelRemainingInstances())
+                    .isEqualTo(cancelRemainingInstances);
+                assertThat(adHoc.getActivateElements())
+                    .extracting(
+                        JobResultActivateElement::getElementId,
+                        JobResultActivateElement::getVariables)
+                    .containsExactly(
+                        tuple(
+                            "getWeather",
+                            Map.ofEntries(
+                                Map.entry("toolCall", asMap(agentResponse.toolCalls().getFirst())),
+                                Map.entry("toolCallResult", ""))),
+                        tuple(
+                            "getDateTime",
+                            Map.ofEntries(
+                                Map.entry("toolCall", asMap(agentResponse.toolCalls().get(1))),
+                                Map.entry("toolCallResult", ""))));
+              });
+    });
   }
 
   @Test
@@ -296,13 +292,12 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage())
-              .isEqualTo("The text 'Job error response' led to a job error");
-          assertThat(request.getVariables())
-              .containsExactly(entry("error", "The text 'Job error response' led to a job error"));
-        });
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage())
+          .isEqualTo("The text 'Job error response' led to a job error");
+      assertThat(request.getVariables())
+          .containsExactly(entry("error", "The text 'Job error response' led to a job error"));
+    });
   }
 
   @Test
@@ -325,13 +320,12 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobErrorRequest(
-        request -> {
-          assertThat(request.getErrorCode()).isEqualTo("RESPONSE_TEXT_BPMN_ERROR_CODE");
-          assertThat(request.getErrorMessage())
-              .isEqualTo("The text 'BPMN error response' led to an BPMN error");
-          assertThat(request.getVariables()).isEmpty();
-        });
+    assertJobErrorRequest(request -> {
+      assertThat(request.getErrorCode()).isEqualTo("RESPONSE_TEXT_BPMN_ERROR_CODE");
+      assertThat(request.getErrorMessage())
+          .isEqualTo("The text 'BPMN error response' led to an BPMN error");
+      assertThat(request.getVariables()).isEmpty();
+    });
   }
 
   @Test
@@ -379,18 +373,16 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
 
-          assertThat(request.getRetries()).isEqualTo(0);
-          assertThat(request.getRetryBackOff()).isZero();
+      assertThat(request.getRetries()).isEqualTo(0);
+      assertThat(request.getRetryBackOff()).isZero();
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of("type", "java.lang.RuntimeException", "message", "Execution failed"));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(Map.of("type", "java.lang.RuntimeException", "message", "Execution failed"));
+    });
   }
 
   @ParameterizedTest
@@ -404,19 +396,17 @@ class AiAgentJobWorkerHandlerTest {
 
     final var expectedExceptionMessage = exceptionMessage == null ? "" : exceptionMessage;
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).isEqualTo(expectedExceptionMessage);
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).isEqualTo(expectedExceptionMessage);
 
-          assertThat(request.getRetries()).isEqualTo(0);
-          assertThat(request.getRetryBackOff()).isZero();
+      assertThat(request.getRetries()).isEqualTo(0);
+      assertThat(request.getRetryBackOff()).isZero();
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of(
-                      "type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(
+              Map.of("type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
+    });
   }
 
   @Test
@@ -429,18 +419,16 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
 
-          assertThat(request.getRetries()).isEqualTo(2);
-          assertThat(request.getRetryBackOff()).isEqualTo(Duration.ofSeconds(10).toMillis());
+      assertThat(request.getRetries()).isEqualTo(2);
+      assertThat(request.getRetryBackOff()).isEqualTo(Duration.ofSeconds(10).toMillis());
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of("type", "java.lang.RuntimeException", "message", "Execution failed"));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(Map.of("type", "java.lang.RuntimeException", "message", "Execution failed"));
+    });
   }
 
   @Test
@@ -450,22 +438,21 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage())
-              .isEqualTo(
-                  "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, got: invalid");
-          assertThat(request.getRetryBackOff()).isZero();
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage())
+          .isEqualTo(
+              "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, got: invalid");
+      assertThat(request.getRetryBackOff()).isZero();
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of(
-                      "type",
-                      "io.camunda.connector.runtime.core.error.InvalidBackOffDurationException",
-                      "message",
-                      "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, got: invalid"));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(
+              Map.of(
+                  "type",
+                  "io.camunda.connector.runtime.core.error.InvalidBackOffDurationException",
+                  "message",
+                  "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, got: invalid"));
+    });
   }
 
   @Test
@@ -475,21 +462,20 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).isEqualTo("Execution failed");
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of(
-                      "code",
-                      "MY_ERROR_CODE",
-                      "type",
-                      "io.camunda.connector.api.error.ConnectorException",
-                      "message",
-                      "Execution failed"));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(
+              Map.of(
+                  "code",
+                  "MY_ERROR_CODE",
+                  "type",
+                  "io.camunda.connector.api.error.ConnectorException",
+                  "message",
+                  "Execution failed"));
+    });
   }
 
   @Test
@@ -501,12 +487,11 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).isEqualTo("Execution failed (job error)");
-          assertThat(request.getVariables())
-              .containsExactly(entry("error", "Execution failed (job error)"));
-        });
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).isEqualTo("Execution failed (job error)");
+      assertThat(request.getVariables())
+          .containsExactly(entry("error", "Execution failed (job error)"));
+    });
   }
 
   @Test
@@ -518,12 +503,11 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobErrorRequest(
-        request -> {
-          assertThat(request.getErrorCode()).isEqualTo("MY_BPMN_ERROR_CODE");
-          assertThat(request.getErrorMessage()).isEqualTo("Execution failed (BPMN error)");
-          assertThat(request.getVariables()).isEmpty();
-        });
+    assertJobErrorRequest(request -> {
+      assertThat(request.getErrorCode()).isEqualTo("MY_BPMN_ERROR_CODE");
+      assertThat(request.getErrorMessage()).isEqualTo("Execution failed (BPMN error)");
+      assertThat(request.getVariables()).isEmpty();
+    });
   }
 
   @Test
@@ -535,13 +519,12 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage()).startsWith("Failed to evaluate expression");
-          assertThat(request.getVariables().get("error"))
-              .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-              .containsEntry("type", "io.camunda.connector.feel.FeelEngineWrapperException");
-        });
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage()).startsWith("Failed to evaluate expression");
+      assertThat(request.getVariables().get("error"))
+          .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+          .containsEntry("type", "io.camunda.connector.feel.FeelEngineWrapperException");
+    });
   }
 
   @Test
@@ -554,18 +537,16 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage())
-              .isNotEqualTo(exceptionMessage)
-              .isEqualTo(expectedExceptionMessage);
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage())
+          .isNotEqualTo(exceptionMessage)
+          .isEqualTo(expectedExceptionMessage);
 
-          assertThat(request.getVariables()).containsOnlyKeys("error");
-          assertThat(request.getVariables().get("error"))
-              .isEqualTo(
-                  Map.of(
-                      "type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
-        });
+      assertThat(request.getVariables()).containsOnlyKeys("error");
+      assertThat(request.getVariables().get("error"))
+          .isEqualTo(
+              Map.of("type", "java.lang.RuntimeException", "message", expectedExceptionMessage));
+    });
   }
 
   @Test
@@ -579,13 +560,12 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage())
-              .isEqualTo("agent replied: token *** rejected")
-              .doesNotContain("super-secret");
-          assertThat(request.getVariables().toString()).doesNotContain("super-secret");
-        });
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage())
+          .isEqualTo("agent replied: token *** rejected")
+          .doesNotContain("super-secret");
+      assertThat(request.getVariables().toString()).doesNotContain("super-secret");
+    });
   }
 
   @Test
@@ -598,14 +578,13 @@ class AiAgentJobWorkerHandlerTest {
 
     var logged = logsOf(() -> handler.handle(camundaClient, job));
 
-    assertJobErrorRequest(
-        request -> {
-          // boundary events match on the code, so it reaches the command unredacted
-          assertThat(request.getErrorCode()).isEqualTo("MY_CODE");
-          assertThat(request.getErrorMessage())
-              .isEqualTo("agent replied: token *** rejected")
-              .doesNotContain("super-secret");
-        });
+    assertJobErrorRequest(request -> {
+      // boundary events match on the code, so it reaches the command unredacted
+      assertThat(request.getErrorCode()).isEqualTo("MY_CODE");
+      assertThat(request.getErrorMessage())
+          .isEqualTo("agent replied: token *** rejected")
+          .doesNotContain("super-secret");
+    });
     // the code is not redacted, so it stays out of the log
     assertThat(logged).noneMatch(message -> message.contains("MY_CODE"));
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
@@ -623,10 +602,9 @@ class AiAgentJobWorkerHandlerTest {
     assertJobFailRequest(
         request -> assertThat(request.getErrorMessage()).isEqualTo("api rejected ***"));
     assertThat(events)
-        .noneMatch(
-            event ->
-                event.getThrowableProxy() != null
-                    && throwableText(event.getThrowableProxy()).contains("super-secret"));
+        .noneMatch(event ->
+            event.getThrowableProxy() != null
+                && throwableText(event.getThrowableProxy()).contains("super-secret"));
     assertThat(events)
         .noneMatch(event -> event.getFormattedMessage().contains("super-secret"))
         .anyMatch(event -> event.getFormattedMessage().contains("api rejected ***"));
@@ -639,21 +617,19 @@ class AiAgentJobWorkerHandlerTest {
     namesSecret("rotated-value");
     when(executionContextFactory.createExecutionContext(
             eq(camundaClient), eq(job), any(SecretFilter.class), any(), any()))
-        .thenAnswer(
-            invocation -> {
-              invocation.<Consumer<List<String>>>getArgument(4).accept(List.of("bound-value"));
-              throw new RuntimeException("api rejected bound-value");
-            });
+        .thenAnswer(invocation -> {
+          invocation.<Consumer<List<String>>>getArgument(4).accept(List.of("bound-value"));
+          throw new RuntimeException("api rejected bound-value");
+        });
 
     handler.handle(camundaClient, job);
 
-    assertJobFailRequest(
-        request -> {
-          assertThat(request.getErrorMessage())
-              .isEqualTo("api rejected ***")
-              .doesNotContain("bound-value");
-          assertThat(request.getVariables().toString()).doesNotContain("bound-value");
-        });
+    assertJobFailRequest(request -> {
+      assertThat(request.getErrorMessage())
+          .isEqualTo("api rejected ***")
+          .doesNotContain("bound-value");
+      assertThat(request.getVariables().toString()).doesNotContain("bound-value");
+    });
   }
 
   /** Makes the job's input name a secret the provider resolves to {@code value}. */

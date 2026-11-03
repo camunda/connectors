@@ -59,14 +59,13 @@ public class ZeebeTest {
         .pollInSameThread()
         .await()
         .atMost(timeout)
-        .untilAsserted(
-            () -> {
-              final var topology = camundaClient.newTopologyRequest().send().join();
-              assertEquals(clusterSize, topology.getClusterSize());
-              assertEquals(clusterSize, topology.getBrokers().size());
-              assertEquals(partitionCount, topology.getPartitionsCount());
-              assertEquals(replicationFactor, topology.getReplicationFactor());
-            });
+        .untilAsserted(() -> {
+          final var topology = camundaClient.newTopologyRequest().send().join();
+          assertEquals(clusterSize, topology.getClusterSize());
+          assertEquals(clusterSize, topology.getBrokers().size());
+          assertEquals(partitionCount, topology.getPartitionsCount());
+          assertEquals(replicationFactor, topology.getReplicationFactor());
+        });
     return this;
   }
 

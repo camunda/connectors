@@ -86,12 +86,11 @@ public class SqsQueueConsumer implements Runnable {
       try {
         List<Message> messages = receiveMessageResponse.messages();
         for (Message message : messages) {
-          context.log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.INFO)
-                      .withTag(ActivityLogTag.MESSAGE)
-                      .withMessage("Received SQS Message with ID " + message.messageId()));
+          context.log(activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.MESSAGE)
+                  .withMessage("Received SQS Message with ID " + message.messageId()));
           var result =
               context.correlate(
                   CorrelationRequest.builder()
@@ -102,12 +101,11 @@ public class SqsQueueConsumer implements Runnable {
         }
       } catch (Exception e) {
         LOGGER.debug("NACK - unhandled exception", e);
-        context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.WARNING)
-                    .withTag(ActivityLogTag.MESSAGE)
-                    .withMessage("NACK - failed to correlate event : " + e.getMessage()));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.MESSAGE)
+                .withMessage("NACK - failed to correlate event : " + e.getMessage()));
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
@@ -121,13 +119,12 @@ public class SqsQueueConsumer implements Runnable {
           "Failed to receive messages from SQS queue {}, retrying with backoff",
           properties.getQueue().url(),
           e);
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Failed to receive messages from SQS queue", e)
-                  .andReportHealth(Health.down(e)));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Failed to receive messages from SQS queue", e)
+              .andReportHealth(Health.down(e)));
     } else {
       LOGGER.warn(
           "Still failing to receive messages from SQS queue {}, retrying in {}: {}",
@@ -146,13 +143,12 @@ public class SqsQueueConsumer implements Runnable {
 
   private void reportRecovered() {
     LOGGER.info("Resumed receiving messages from SQS queue {}", properties.getQueue().url());
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.CONSUMER)
-                .withMessage("Resumed receiving messages from SQS queue")
-                .andReportHealth(Health.up()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag(ActivityLogTag.CONSUMER)
+            .withMessage("Resumed receiving messages from SQS queue")
+            .andReportHealth(Health.up()));
   }
 
   private void handleCorrelationResult(Message message, CorrelationResult result) {
@@ -167,12 +163,11 @@ public class SqsQueueConsumer implements Runnable {
       }
 
       case Failure failure -> {
-        context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.WARNING)
-                    .withTag(ActivityLogTag.MESSAGE)
-                    .withMessage(failure.message()));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.MESSAGE)
+                .withMessage(failure.message()));
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored1 -> {
             LOGGER.debug("NACK (requeue) - message not correlated");

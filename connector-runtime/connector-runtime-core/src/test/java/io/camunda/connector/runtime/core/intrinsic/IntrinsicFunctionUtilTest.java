@@ -41,10 +41,9 @@ class IntrinsicFunctionUtilTest {
   void refusesACallNotInTheAllowList() {
     var tree = mapper.valueToTree(Map.of("body", exploitNode()));
 
-    assertThatThrownBy(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatThrownBy(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("createLink")
         .hasMessageContaining("body");
@@ -77,10 +76,9 @@ class IntrinsicFunctionUtilTest {
     var nested = Map.of("outer", Map.of("inner", exploitNode()));
     var tree = mapper.valueToTree(nested);
 
-    assertThatThrownBy(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatThrownBy(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("outer")
         .hasMessageContaining("inner");
@@ -90,10 +88,9 @@ class IntrinsicFunctionUtilTest {
   void findsACallInsideAnArray() {
     var tree = mapper.valueToTree(Map.of("items", List.of(exploitNode())));
 
-    assertThatThrownBy(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatThrownBy(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .isInstanceOf(ConnectorInputException.class);
   }
 
@@ -103,10 +100,9 @@ class IntrinsicFunctionUtilTest {
         mapper.valueToTree(
             Map.of("value", Map.of("camunda.document.type", "camunda", "documentId", "d")));
 
-    assertThatCode(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatCode(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .doesNotThrowAnyException();
   }
 
@@ -114,10 +110,9 @@ class IntrinsicFunctionUtilTest {
   void treeWithNoFunctionCallAtAllPassesEvenWithAnEmptyAllowList() {
     var tree = mapper.valueToTree(Map.of("status", "ok", "count", 3));
 
-    assertThatCode(
-            () ->
-                IntrinsicFunctionUtil.verifyAgainstAllowList(
-                    tree, IntrinsicFunctionAllowList.allowNone()))
+    assertThatCode(() ->
+            IntrinsicFunctionUtil.verifyAgainstAllowList(
+                tree, IntrinsicFunctionAllowList.allowNone()))
         .doesNotThrowAnyException();
   }
 }

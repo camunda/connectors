@@ -148,15 +148,15 @@ public final class MockOidcServer implements AutoCloseable {
       var keyPair = keyPairGenerator.generateKeyPair();
       var publicKey = (RSAPublicKey) keyPair.getPublic();
       return """
-          {
-            "kty": "RSA",
-            "kid": "test-key",
-            "use": "sig",
-            "alg": "RS256",
-            "n": "%s",
-            "e": "%s"
-          }
-          """
+      {
+        "kty": "RSA",
+        "kid": "test-key",
+        "use": "sig",
+        "alg": "RS256",
+        "n": "%s",
+        "e": "%s"
+      }
+      """
           .formatted(
               base64Url(publicKey.getModulus().toByteArray()),
               base64Url(publicKey.getPublicExponent().toByteArray()));

@@ -31,12 +31,11 @@ public class SharedExecutorService {
   private void addShutdownHook() {
     Runtime.getRuntime()
         .addShutdownHook(
-            new Thread(
-                () -> {
-                  executorService.shutdownNow();
-                  LOGGER.info("Shutdown hook activated, terminating executor service.");
-                  Thread.currentThread().interrupt();
-                }));
+            new Thread(() -> {
+              executorService.shutdownNow();
+              LOGGER.info("Shutdown hook activated, terminating executor service.");
+              Thread.currentThread().interrupt();
+            }));
   }
 
   public ScheduledExecutorService getExecutorService() {

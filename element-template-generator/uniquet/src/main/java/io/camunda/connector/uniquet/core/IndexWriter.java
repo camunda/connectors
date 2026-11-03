@@ -97,10 +97,8 @@ public class IndexWriter {
         (outputElementTemplates, outputElementTemplates2) ->
             Stream.concat(outputElementTemplates.stream(), outputElementTemplates2.stream())
                 .collect(
-                    Collectors.toCollection(
-                        () ->
-                            new TreeSet<>(
-                                Comparator.comparing(OutputElementTemplate::getVersion)
-                                    .reversed()))));
+                    Collectors.toCollection(() ->
+                        new TreeSet<>(
+                            Comparator.comparing(OutputElementTemplate::getVersion).reversed()))));
   }
 }

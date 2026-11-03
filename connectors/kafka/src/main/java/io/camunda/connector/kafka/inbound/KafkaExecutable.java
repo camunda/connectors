@@ -93,16 +93,15 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   @Override
   public void activate(InboundConnectorContext context) {
     try {
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage(
-                      "Subscription activation for process "
-                          + context.getDefinition().elements().stream()
-                              .map(ProcessElement::bpmnProcessId)
-                              .toList()));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage(
+                  "Subscription activation for process "
+                      + context.getDefinition().elements().stream()
+                          .map(ProcessElement::bpmnProcessId)
+                          .toList()));
 
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);
@@ -118,40 +117,36 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
                       .additionalProperties()
                       .containsKey(ConsumerConfig.GROUP_ID_CONFIG));
       if (!groupIdExplicitlySet) {
-        context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.WARNING)
-                    .withTag(ActivityLogTag.CONSUMER)
-                    .withMessage(
-                        "No consumer group ID configured — an auto-generated ID will be used. "
-                            + "This is not recommended: the generated ID may change across connector upgrades, "
-                            + "causing the connector to be treated as a new consumer group and potentially replay messages. "
-                            + "Set an explicit Consumer Group ID in the connector configuration."));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage(
+                    "No consumer group ID configured — an auto-generated ID will be used. "
+                        + "This is not recommended: the generated ID may change across connector upgrades, "
+                        + "causing the connector to be treated as a new consumer group and potentially replay messages. "
+                        + "Set an explicit Consumer Group ID in the connector configuration."));
       }
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Using consumer group ID: " + effectiveGroupId));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Using consumer group ID: " + effectiveGroupId));
 
       this.kafkaConnectorConsumer =
           new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Subscription activated successfully"));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Subscription activated successfully"));
     } catch (Exception ex) {
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Subscription activation failed: " + ex.getMessage()));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Subscription activation failed: " + ex.getMessage()));
       context.reportHealth(Health.down(ex));
       throw ex;
     }

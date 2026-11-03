@@ -37,10 +37,9 @@ public class DocumentHelper {
       case Map<?, ?> map ->
           map.entrySet().stream()
               .filter(e -> e.getValue() != null)
-              .map(
-                  (Map.Entry<?, ?> e) ->
-                      new AbstractMap.SimpleEntry<>(
-                          e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
+              .map((Map.Entry<?, ?> e) ->
+                  new AbstractMap.SimpleEntry<>(
+                      e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
               .collect(
                   Collectors.toMap(
                       AbstractMap.SimpleEntry::getKey,

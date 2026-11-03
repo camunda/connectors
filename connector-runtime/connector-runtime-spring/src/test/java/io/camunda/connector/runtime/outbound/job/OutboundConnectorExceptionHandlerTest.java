@@ -315,14 +315,13 @@ class OutboundConnectorExceptionHandlerTest {
                     + " `java.util.LinkedHashMap` from String value ('super-secret')"));
 
     var logged =
-        logsOf(
-            () ->
-                handlerOverMaskingStore.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"),
-                    job,
-                    Duration.ofSeconds(1),
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handlerOverMaskingStore.manageConnectorJobHandlerException(
+                new RuntimeException("boom"),
+                job,
+                Duration.ofSeconds(1),
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
@@ -655,12 +654,11 @@ class OutboundConnectorExceptionHandlerTest {
    */
   private void holdingOnly(Map<String, String> values) {
     when(maskingStore.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              requestedKeys.addAll(keys);
-              return keys.stream().map(values::get).filter(Objects::nonNull).toList();
-            });
+        .thenAnswer(invocation -> {
+          List<String> keys = invocation.getArgument(0);
+          requestedKeys.addAll(keys);
+          return keys.stream().map(values::get).filter(Objects::nonNull).toList();
+        });
   }
 
   /**

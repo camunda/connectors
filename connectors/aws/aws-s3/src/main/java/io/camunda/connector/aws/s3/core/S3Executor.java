@@ -104,12 +104,11 @@ public class S3Executor {
       }
     } else {
       return this.createDocument
-          .andThen(
-              document ->
-                  new DownloadResponse(
-                      downloadObject.bucket(),
-                      downloadObject.key(),
-                      new Element.DocumentContent(document)))
+          .andThen(document ->
+              new DownloadResponse(
+                  downloadObject.bucket(),
+                  downloadObject.key(),
+                  new Element.DocumentContent(document)))
           .apply(
               DocumentCreationRequest.from(getObjectResponse)
                   .contentType(getObjectResponse.response().contentType())

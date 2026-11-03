@@ -23,12 +23,12 @@ public class CsvConnectorTests {
 
   String csv =
       """
-        name,role
-        Simon,Engineering Manager
-        Nico,Principal Engineer
-        Mathias,Backend Engineer
-        Kalina,Product Manager
-        """
+      name,role
+      Simon,Engineering Manager
+      Nico,Principal Engineer
+      Mathias,Backend Engineer
+      Kalina,Product Manager
+      """
           .stripIndent();
 
   CsvConnector connector = new CsvConnector();
@@ -49,11 +49,11 @@ public class CsvConnectorTests {
 
   String productsCsv =
       """
-            name,price
-            Monitor,200
-            Macbook,1200
-            Mouse,10
-            """
+      name,price
+      Monitor,200
+      Macbook,1200
+      Mouse,10
+      """
           .stripIndent();
 
   @Test
@@ -135,11 +135,10 @@ public class CsvConnectorTests {
     var records = toList(result);
     assertNotNull(records);
     assertEquals(4, records.size());
-    records.forEach(
-        record -> {
-          assertTrue(record.containsKey("the_name"));
-          assertTrue(record.containsKey("the_role"));
-        });
+    records.forEach(record -> {
+      assertTrue(record.containsKey("the_name"));
+      assertTrue(record.containsKey("the_role"));
+    });
     assertEquals("Simon", records.getFirst().get("the_name"));
     assertEquals("Engineering Manager", records.getFirst().get("the_role"));
   }

@@ -446,16 +446,14 @@ class ChatMessageConverterTest {
 
     assertThat(result.content())
         .hasSize(1)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content)
-                  .isInstanceOf(
-                      io.camunda.connector.agenticai.model.message.content.TextContent.class);
-              assertThat(
-                      ((io.camunda.connector.agenticai.model.message.content.TextContent) content)
-                          .text())
-                  .isEqualTo("AI response");
-            });
+        .satisfiesExactly(content -> {
+          assertThat(content)
+              .isInstanceOf(io.camunda.connector.agenticai.model.message.content.TextContent.class);
+          assertThat(
+                  ((io.camunda.connector.agenticai.model.message.content.TextContent) content)
+                      .text())
+              .isEqualTo("AI response");
+        });
 
     assertThat(result.metadata()).containsKey("timestamp");
     assertThat((ZonedDateTime) result.metadata().get("timestamp"))
@@ -623,13 +621,11 @@ class ChatMessageConverterTest {
 
     assertThat(result)
         .hasSize(1)
-        .satisfiesExactly(
-            chatMessage -> {
-              assertThat(chatMessage)
-                  .isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
-              assertThat(((dev.langchain4j.data.message.SystemMessage) chatMessage).text())
-                  .isEqualTo("Test system message");
-            });
+        .satisfiesExactly(chatMessage -> {
+          assertThat(chatMessage).isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
+          assertThat(((dev.langchain4j.data.message.SystemMessage) chatMessage).text())
+              .isEqualTo("Test system message");
+        });
   }
 
   @Test

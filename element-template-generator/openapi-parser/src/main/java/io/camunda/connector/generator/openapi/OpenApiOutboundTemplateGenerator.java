@@ -146,17 +146,16 @@ public class OpenApiOutboundTemplateGenerator
     }
     var supportedOperations =
         operations.stream()
-            .filter(
-                op -> {
-                  if (op.supported()) {
-                    return true;
-                  }
-                  LOG.warn(
-                      "Operation {} is not supported, reason: {}. It will be skipped",
-                      op.id(),
-                      op.info());
-                  return false;
-                })
+            .filter(op -> {
+              if (op.supported()) {
+                return true;
+              }
+              LOG.warn(
+                  "Operation {} is not supported, reason: {}. It will be skipped",
+                  op.id(),
+                  op.info());
+              return false;
+            })
             .map(OperationParseResult::builder)
             .toList();
 
@@ -184,15 +183,14 @@ public class OpenApiOutboundTemplateGenerator
     elementTypes.stream()
         .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
         .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  String.format("Unsupported element type '%s'", t.elementType().getName())
-                      + " for OpenAPI generator. Supported element types: "
-                      + SUPPORTED_ELEMENT_TYPES.stream()
-                          .map(BpmnType::getName)
-                          .collect(Collectors.joining(", ")));
-            });
+        .ifPresent(t -> {
+          throw new IllegalArgumentException(
+              String.format("Unsupported element type '%s'", t.elementType().getName())
+                  + " for OpenAPI generator. Supported element types: "
+                  + SUPPORTED_ELEMENT_TYPES.stream()
+                      .map(BpmnType::getName)
+                      .collect(Collectors.joining(", ")));
+        });
     if (elementTypes.isEmpty()) {
       elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
     }

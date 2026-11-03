@@ -67,17 +67,16 @@ public class KafkaTestProducer {
       String topic, Object messageKey, String messageValue, Map<String, String> headers) {
     AtomicBoolean atomicBoolean = new AtomicBoolean(true);
     Thread thread =
-        new Thread(
-            () -> {
-              while (atomicBoolean.get()) {
-                try {
-                  sendMessage(topic, messageKey, messageValue, headers);
-                  Thread.sleep(1000);
-                } catch (Exception e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
+        new Thread(() -> {
+          while (atomicBoolean.get()) {
+            try {
+              sendMessage(topic, messageKey, messageValue, headers);
+              Thread.sleep(1000);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
     thread.setDaemon(true);
     thread.start();
     return atomicBoolean;
