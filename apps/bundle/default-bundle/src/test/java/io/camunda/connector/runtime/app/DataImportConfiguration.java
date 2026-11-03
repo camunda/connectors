@@ -50,28 +50,26 @@ public class DataImportConfiguration {
     try (ExecutorService executorService = Executors.newFixedThreadPool(10)) {
       List<CompletableFuture<Void>> futures =
           IntStream.range(0, PROCESS_NUMBER)
-              .mapToObj(
-                  i ->
-                      CompletableFuture.runAsync(
-                          () -> {
-                            System.out.println(
-                                "Deploying process versions for ID: process-" + i + "...");
-                            for (int j = 0; j < VERSIONS_PER_PROCESS; j++) {
-                              final String processId = "process-" + i;
+              .mapToObj(i ->
+                  CompletableFuture.runAsync(
+                      () -> {
+                        System.out.println(
+                            "Deploying process versions for ID: process-" + i + "...");
+                        for (int j = 0; j < VERSIONS_PER_PROCESS; j++) {
+                          final String processId = "process-" + i;
 
-                              // this is required to ensure that a new version is created
-                              String updatedProcess =
-                                  updateActivityId(i, processAsString, processId, j);
-                              deployProcess(updatedProcess, processId);
-                              if (i % 10 == 0) {
-                                // every 10th process deployment, wait for Zeebe to catch up
-                                letZeebeCatchup();
-                              }
-                            }
-                            System.out.println(
-                                "...Deployed all process versions for ID: process-" + i);
-                          },
-                          executorService))
+                          // this is required to ensure that a new version is created
+                          String updatedProcess =
+                              updateActivityId(i, processAsString, processId, j);
+                          deployProcess(updatedProcess, processId);
+                          if (i % 10 == 0) {
+                            // every 10th process deployment, wait for Zeebe to catch up
+                            letZeebeCatchup();
+                          }
+                        }
+                        System.out.println("...Deployed all process versions for ID: process-" + i);
+                      },
+                      executorService))
               .toList();
 
       // wait for all deployments to finish

@@ -100,17 +100,16 @@ public class KafkaConnectorConsumer {
         Failsafe.with(retryPolicy)
             .with(executorService)
             .getAsync(retryableFutureSupplier)
-            .exceptionally(
-                (e) -> {
-                  // Errors (e.g. OutOfMemoryError) are not retried and bypass the reportDown in
-                  // consume(), so the connector would otherwise stay UP while no longer consuming
-                  if (shouldLoop) {
-                    reportDown(e);
-                  }
-                  shouldLoop = false;
-                  throw new RuntimeException(
-                      "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
-                });
+            .exceptionally(e -> {
+              // Errors (e.g. OutOfMemoryError) are not retried and bypass the reportDown in
+              // consume(), so the connector would otherwise stay UP while no longer consuming
+              if (shouldLoop) {
+                reportDown(e);
+              }
+              shouldLoop = false;
+              throw new RuntimeException(
+                  "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
+            });
   }
 
   private Consumer<Object, Object> prepareConsumer() {
@@ -124,12 +123,11 @@ public class KafkaConnectorConsumer {
 
       return consumer;
     } catch (Exception ex) {
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Failed to initialize connector", ex));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage("Failed to initialize connector", ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
@@ -161,12 +159,11 @@ public class KafkaConnectorConsumer {
 
   private void handleMessage(ConsumerRecord<Object, Object> record) {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag(ActivityLogTag.MESSAGE)
-                .withMessage("Received message with key : " + record.key()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag(ActivityLogTag.MESSAGE)
+            .withMessage("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
     String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
@@ -188,13 +185,12 @@ public class KafkaConnectorConsumer {
                     + ". Offset will not be committed.");
           }
           case Ignore ignored ->
-              context.log(
-                  activity ->
-                      activity
-                          .withSeverity(Severity.INFO)
-                          .withTag(ActivityLogTag.MESSAGE)
-                          .withMessage(
-                              "Message not correlated, but the error is ignored. Offset will be committed"));
+              context.log(activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag(ActivityLogTag.MESSAGE)
+                      .withMessage(
+                          "Message not correlated, but the error is ignored. Offset will be committed"));
         }
       }
     }
@@ -222,16 +218,15 @@ public class KafkaConnectorConsumer {
     var newStatus = Health.up(details);
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withData(details)
-                  .withMessage(
-                      "Kafka Consumer status changed to UP, deduplication ID: "
-                          + context.getDefinition().deduplicationId())
-                  .andReportHealth(newStatus));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withData(details)
+              .withMessage(
+                  "Kafka Consumer status changed to UP, deduplication ID: "
+                      + context.getDefinition().deduplicationId())
+              .andReportHealth(newStatus));
     }
   }
 
@@ -239,16 +234,15 @@ public class KafkaConnectorConsumer {
     var newStatus = Health.down(error);
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage(
-                      "Kafka Consumer status changed to DOWN, deduplication ID: "
-                          + context.getDefinition().deduplicationId(),
-                      error)
-                  .andReportHealth(newStatus));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(ActivityLogTag.CONSUMER)
+              .withMessage(
+                  "Kafka Consumer status changed to DOWN, deduplication ID: "
+                      + context.getDefinition().deduplicationId(),
+                  error)
+              .andReportHealth(newStatus));
     }
   }
 }

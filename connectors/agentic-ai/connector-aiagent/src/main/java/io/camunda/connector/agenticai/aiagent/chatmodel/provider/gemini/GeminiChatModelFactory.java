@@ -233,15 +233,10 @@ public class GeminiChatModelFactory implements ChatModelFactory {
       // Only answers a proxy's 407 challenge once per request: if the prior attempt already
       // carried this header, OkHttp calls the authenticator again because the proxy rejected it a
       // second time, and returning the same credential again would retry forever.
-      builder.proxyAuthenticator(
-          (route, response) ->
-              response.request().header("Proxy-Authorization") != null
-                  ? null
-                  : response
-                      .request()
-                      .newBuilder()
-                      .header("Proxy-Authorization", credential)
-                      .build());
+      builder.proxyAuthenticator((route, response) ->
+          response.request().header("Proxy-Authorization") != null
+              ? null
+              : response.request().newBuilder().header("Proxy-Authorization", credential).build());
     }
   }
 

@@ -697,12 +697,11 @@ public class ProcessDefinitionIntrinsicFunctionAllowListCache {
     Collection<FlowElement> all = collectFlowElements(process.getFlowElements(), new HashSet<>());
     Collection<BaseElement> eligible = new HashSet<>();
     for (FlowElement element : all) {
-      OUTBOUND_ELIGIBLE_TYPES.forEach(
-          type -> {
-            if (type.isInstance(element)) {
-              eligible.add(element);
-            }
-          });
+      OUTBOUND_ELIGIBLE_TYPES.forEach(type -> {
+        if (type.isInstance(element)) {
+          eligible.add(element);
+        }
+      });
     }
     return eligible;
   }

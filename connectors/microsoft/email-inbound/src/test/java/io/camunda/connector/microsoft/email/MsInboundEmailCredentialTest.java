@@ -135,15 +135,14 @@ class MsInboundEmailCredentialTest {
 
   @Test
   void validationCascadesIntoTheBoundCredential() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {"authenticationConfiguration":{"authentication":{"type":"clientCredentials",\
-                    "clientId":"cred-client","tenantId":"","clientSecret":"cred-secret"}},\
-                    """
-                        + REST_OF_PROPERTIES
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {"authenticationConfiguration":{"authentication":{"type":"clientCredentials",\
+                "clientId":"cred-client","tenantId":"","clientSecret":"cred-secret"}},\
+                """
+                    + REST_OF_PROPERTIES
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("tenantId");
   }

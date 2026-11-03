@@ -153,20 +153,18 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       long elementInstanceKey, ProblemException e) {
     final String detail = e.details().getDetail();
     return parseExistingAgentInstanceKey(detail)
-        .map(
-            existingAgentInstanceKey -> {
-              LOGGER.debug(
-                  "Agent instance creation conflicted for element instance {}, reusing existing agent instance {}",
-                  elementInstanceKey,
-                  existingAgentInstanceKey);
-              return AgentInstanceKey.of(existingAgentInstanceKey);
-            })
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Agent instance creation for element instance %d conflicted (%d ALREADY_EXISTS), but the existing agent instance key could not be parsed from the response detail: %s"
-                        .formatted(elementInstanceKey, HTTP_STATUS_CONFLICT, detail),
-                    e));
+        .map(existingAgentInstanceKey -> {
+          LOGGER.debug(
+              "Agent instance creation conflicted for element instance {}, reusing existing agent instance {}",
+              elementInstanceKey,
+              existingAgentInstanceKey);
+          return AgentInstanceKey.of(existingAgentInstanceKey);
+        })
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "Agent instance creation for element instance %d conflicted (%d ALREADY_EXISTS), but the existing agent instance key could not be parsed from the response detail: %s"
+                    .formatted(elementInstanceKey, HTTP_STATUS_CONFLICT, detail),
+                e));
   }
 
   private Optional<Long> parseExistingAgentInstanceKey(@Nullable String detail) {

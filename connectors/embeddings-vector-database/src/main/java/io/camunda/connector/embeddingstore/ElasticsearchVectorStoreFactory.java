@@ -56,18 +56,17 @@ public class ElasticsearchVectorStoreFactory {
 
     proxyConfig
         .getProxyDetails(httpHost.getSchemeName())
-        .ifPresent(
-            proxyDetails -> {
-              HttpHost proxyHost =
-                  new HttpHost(proxyDetails.host(), proxyDetails.port(), proxyDetails.scheme());
+        .ifPresent(proxyDetails -> {
+          HttpHost proxyHost =
+              new HttpHost(proxyDetails.host(), proxyDetails.port(), proxyDetails.scheme());
 
-              httpClientConfigCallback.setProxyHost(proxyHost);
-              if (proxyDetails.hasCredentials()) {
-                httpClientConfigCallback.setCredentials(
-                    new AuthScope(proxyHost),
-                    new UsernamePasswordCredentials(proxyDetails.user(), proxyDetails.password()));
-              }
-            });
+          httpClientConfigCallback.setProxyHost(proxyHost);
+          if (proxyDetails.hasCredentials()) {
+            httpClientConfigCallback.setCredentials(
+                new AuthScope(proxyHost),
+                new UsernamePasswordCredentials(proxyDetails.user(), proxyDetails.password()));
+          }
+        });
 
     RestClient restClient = restClientBuilder.build();
     ElasticsearchEmbeddingStore embeddingStore =

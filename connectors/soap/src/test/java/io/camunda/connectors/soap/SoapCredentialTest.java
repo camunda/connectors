@@ -106,14 +106,13 @@ class SoapCredentialTest {
 
   @Test
   void rejectsKeystoreCertificateInCredential() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    "soapCredential": {"authentication": {"type": "keystore",
-                      "keystoreLocation": "/k.jks", "keystorePassword": "p",
-                      "alias": "a", "password": "p"}},
-                    """))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                "soapCredential": {"authentication": {"type": "keystore",
+                  "keystoreLocation": "/k.jks", "keystorePassword": "p",
+                  "alias": "a", "password": "p"}},
+                """))
         .hasMessageContaining("Could not resolve type id 'keystore'");
   }
 
@@ -133,13 +132,12 @@ class SoapCredentialTest {
 
   @Test
   void validatesCredentialAuthentication() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    "soapCredential": {"authentication": {"type": "signature",
-                      "certificate": "CERT"}},
-                    """))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                "soapCredential": {"authentication": {"type": "signature",
+                  "certificate": "CERT"}},
+                """))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("privateKey");
   }

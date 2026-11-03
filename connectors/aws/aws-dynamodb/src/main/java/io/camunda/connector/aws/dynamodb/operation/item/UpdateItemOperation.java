@@ -31,10 +31,9 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
     Map<String, AttributeValueUpdate> attributeUpdates = new LinkedHashMap<>();
     updateItemModel
         .keyAttributes()
-        .forEach(
-            (key, value) ->
-                attributeUpdates.put(
-                    key, createAttributeUpdate(value, updateItemModel.attributeAction())));
+        .forEach((key, value) ->
+            attributeUpdates.put(
+                key, createAttributeUpdate(value, updateItemModel.attributeAction())));
 
     UpdateItemResponse response =
         client.updateItem(

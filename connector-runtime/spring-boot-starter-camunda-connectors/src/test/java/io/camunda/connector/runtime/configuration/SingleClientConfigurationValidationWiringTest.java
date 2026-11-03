@@ -82,8 +82,7 @@ class SingleClientConfigurationValidationWiringTest {
   void validationStillGetsAClusterBackedEvaluator() {
     assertThat(evaluatorsByPhysicalTenantId())
         .hasSize(1)
-        .allSatisfy(
-            (physicalTenantId, evaluator) ->
-                assertThat(evaluator).isInstanceOf(CamundaClientFeelExpressionEvaluator.class));
+        .allSatisfy((physicalTenantId, evaluator) ->
+            assertThat(evaluator).isInstanceOf(CamundaClientFeelExpressionEvaluator.class));
   }
 }

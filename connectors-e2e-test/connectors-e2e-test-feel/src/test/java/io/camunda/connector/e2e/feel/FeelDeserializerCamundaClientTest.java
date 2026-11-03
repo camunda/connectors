@@ -247,20 +247,19 @@ public class FeelDeserializerCamundaClientTest {
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptionsMatching(
             e -> e instanceof ProblemException && e.getMessage().contains("404"))
-        .until(
-            () -> {
-              try {
-                var result =
-                    camundaClient
-                        .newEvaluateExpressionCommand()
-                        .expression("=camunda.vars.env." + variableName)
-                        .send()
-                        .join();
-                return result.getResult() != null;
-              } catch (Exception e) {
-                return false;
-              }
-            });
+        .until(() -> {
+          try {
+            var result =
+                camundaClient
+                    .newEvaluateExpressionCommand()
+                    .expression("=camunda.vars.env." + variableName)
+                    .send()
+                    .join();
+            return result.getResult() != null;
+          } catch (Exception e) {
+            return false;
+          }
+        });
   }
 
   // Target type records

@@ -64,10 +64,9 @@ class GatewayToolHandlerRegistryTest {
 
     @Test
     void throwsExceptionOnCreatingRegistry_whenHandlerHasDuplicateType() {
-      assertThatThrownBy(
-              () ->
-                  new GatewayToolHandlerRegistryImpl(
-                      List.of(gatewayToolHandler("A"), gatewayToolHandler("A"))))
+      assertThatThrownBy(() ->
+              new GatewayToolHandlerRegistryImpl(
+                  List.of(gatewayToolHandler("A"), gatewayToolHandler("A"))))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("Duplicate gateway tool handler type: 'A'");
     }
@@ -173,21 +172,19 @@ class GatewayToolHandlerRegistryTest {
         final var handlerAToolDiscoveryToolCall =
             ToolCall.builder().id("handlerA_discovery").name("GatewayA").build();
         when(handlerA.initiateToolDiscovery(any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-            .thenAnswer(
-                i ->
-                    new GatewayToolDiscoveryInitiationResult(
-                        i.getArgument(0, AgentContext.class).withProperty("handlerA", "was here"),
-                        List.of(handlerAToolDiscoveryToolCall)));
+            .thenAnswer(i ->
+                new GatewayToolDiscoveryInitiationResult(
+                    i.getArgument(0, AgentContext.class).withProperty("handlerA", "was here"),
+                    List.of(handlerAToolDiscoveryToolCall)));
 
         final var handlerBToolDiscoveryToolCall =
             ToolCall.builder().id("handlerB_discovery").name("GatewayB").build();
         when(handlerB.initiateToolDiscovery(any(AgentContext.class), eq(GATEWAY_TOOL_DEFINITIONS)))
-            .thenAnswer(
-                i ->
-                    new GatewayToolDiscoveryInitiationResult(
-                        i.getArgument(0, AgentContext.class)
-                            .withProperty("handlerB", "was here as well"),
-                        List.of(handlerBToolDiscoveryToolCall)));
+            .thenAnswer(i ->
+                new GatewayToolDiscoveryInitiationResult(
+                    i.getArgument(0, AgentContext.class)
+                        .withProperty("handlerB", "was here as well"),
+                    List.of(handlerBToolDiscoveryToolCall)));
 
         final var result = registry.initiateToolDiscovery(AGENT_CONTEXT, GATEWAY_TOOL_DEFINITIONS);
 
@@ -380,50 +377,46 @@ class GatewayToolHandlerRegistryTest {
 
       private void testTransformToolCalls(List<ToolCall> nonGatewayToolCalls) {
         when(handlerA.transformToolCalls(eq(AGENT_CONTEXT), anyList()))
-            .thenAnswer(
-                i -> {
-                  List<ToolCall> tc = i.getArgument(1);
-                  return tc.stream()
-                      .map(
-                          toolCall -> {
-                            if (toolCall.id().startsWith("GatewayA")) {
-                              return ToolCall.builder()
-                                  .id(toolCall.id())
-                                  .name(toolCall.name().split("_")[0]) // extract gateway name
-                                  .arguments(
-                                      Map.ofEntries(
-                                          Map.entry("toolName", toolCall.name().split("_")[1]),
-                                          Map.entry("arguments", toolCall.arguments())))
-                                  .build();
-                            } else {
-                              return toolCall;
-                            }
-                          })
-                      .toList();
-                });
+            .thenAnswer(i -> {
+              List<ToolCall> tc = i.getArgument(1);
+              return tc.stream()
+                  .map(toolCall -> {
+                    if (toolCall.id().startsWith("GatewayA")) {
+                      return ToolCall.builder()
+                          .id(toolCall.id())
+                          .name(toolCall.name().split("_")[0]) // extract gateway name
+                          .arguments(
+                              Map.ofEntries(
+                                  Map.entry("toolName", toolCall.name().split("_")[1]),
+                                  Map.entry("arguments", toolCall.arguments())))
+                          .build();
+                    } else {
+                      return toolCall;
+                    }
+                  })
+                  .toList();
+            });
 
         when(handlerB.transformToolCalls(eq(AGENT_CONTEXT), anyList()))
-            .thenAnswer(
-                i -> {
-                  List<ToolCall> tc = i.getArgument(1);
-                  return tc.stream()
-                      .map(
-                          toolCall -> {
-                            if (toolCall.id().startsWith("GatewayB")) {
-                              return ToolCall.builder()
-                                  .id(toolCall.id())
-                                  .name(toolCall.name().split("_")[0]) // extract gateway name
-                                  .arguments(
-                                      Map.ofEntries(
-                                          Map.entry("operation", toolCall.name().split("_")[1]),
-                                          Map.entry("params", toolCall.arguments())))
-                                  .build();
-                            } else {
-                              return toolCall;
-                            }
-                          })
-                      .toList();
-                });
+            .thenAnswer(i -> {
+              List<ToolCall> tc = i.getArgument(1);
+              return tc.stream()
+                  .map(toolCall -> {
+                    if (toolCall.id().startsWith("GatewayB")) {
+                      return ToolCall.builder()
+                          .id(toolCall.id())
+                          .name(toolCall.name().split("_")[0]) // extract gateway name
+                          .arguments(
+                              Map.ofEntries(
+                                  Map.entry("operation", toolCall.name().split("_")[1]),
+                                  Map.entry("params", toolCall.arguments())))
+                          .build();
+                    } else {
+                      return toolCall;
+                    }
+                  })
+                  .toList();
+            });
 
         final var toolCalls = new ArrayList<>(GATEWAY_TOOL_CALLS);
         toolCalls.addAll(nonGatewayToolCalls);
@@ -492,44 +485,40 @@ class GatewayToolHandlerRegistryTest {
 
       private void testTransformToolCallResults(List<ToolCallResult> nonGatewayToolCallResults) {
         when(handlerA.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
-            .thenAnswer(
-                i -> {
-                  List<ToolCallResult> tc = i.getArgument(1);
-                  return tc.stream()
-                      .map(
-                          toolCallResult -> {
-                            if (toolCallResult.id().startsWith("GatewayA")) {
-                              return ToolCallResult.builder()
-                                  .id(toolCallResult.id())
-                                  .name(toolCallResult.id().replace("_123456", ""))
-                                  .content(toolCallResult.content())
-                                  .build();
-                            } else {
-                              return toolCallResult;
-                            }
-                          })
-                      .toList();
-                });
+            .thenAnswer(i -> {
+              List<ToolCallResult> tc = i.getArgument(1);
+              return tc.stream()
+                  .map(toolCallResult -> {
+                    if (toolCallResult.id().startsWith("GatewayA")) {
+                      return ToolCallResult.builder()
+                          .id(toolCallResult.id())
+                          .name(toolCallResult.id().replace("_123456", ""))
+                          .content(toolCallResult.content())
+                          .build();
+                    } else {
+                      return toolCallResult;
+                    }
+                  })
+                  .toList();
+            });
 
         when(handlerB.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
-            .thenAnswer(
-                i -> {
-                  List<ToolCallResult> tc = i.getArgument(1);
-                  return tc.stream()
-                      .map(
-                          toolCallResult -> {
-                            if (toolCallResult.id().startsWith("GatewayB")) {
-                              return ToolCallResult.builder()
-                                  .id(toolCallResult.id())
-                                  .name(toolCallResult.id().replace("_123456", ""))
-                                  .content(Map.of("contentB", toolCallResult.content()))
-                                  .build();
-                            } else {
-                              return toolCallResult;
-                            }
-                          })
-                      .toList();
-                });
+            .thenAnswer(i -> {
+              List<ToolCallResult> tc = i.getArgument(1);
+              return tc.stream()
+                  .map(toolCallResult -> {
+                    if (toolCallResult.id().startsWith("GatewayB")) {
+                      return ToolCallResult.builder()
+                          .id(toolCallResult.id())
+                          .name(toolCallResult.id().replace("_123456", ""))
+                          .content(Map.of("contentB", toolCallResult.content()))
+                          .build();
+                    } else {
+                      return toolCallResult;
+                    }
+                  })
+                  .toList();
+            });
 
         final var toolCallResults = new ArrayList<>(GATEWAY_TOOL_CALL_RESULTS);
         toolCallResults.addAll(nonGatewayToolCallResults);

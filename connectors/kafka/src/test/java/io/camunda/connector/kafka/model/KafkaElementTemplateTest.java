@@ -101,11 +101,10 @@ class KafkaElementTemplateTest {
             "kafka-inbound-connector-intermediate",
             "kafka-inbound-connector-receive",
             "kafka-inbound-connector-start-message")
-        .flatMap(
-            name ->
-                Stream.of(
-                    Path.of("element-templates", name + ".json"),
-                    Path.of("element-templates", "hybrid", name + "-hybrid.json")));
+        .flatMap(name ->
+            Stream.of(
+                Path.of("element-templates", name + ".json"),
+                Path.of("element-templates", "hybrid", name + "-hybrid.json")));
   }
 
   private static JsonNode property(JsonNode properties, String id) {

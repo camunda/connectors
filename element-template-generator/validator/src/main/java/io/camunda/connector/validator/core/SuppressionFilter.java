@@ -84,11 +84,10 @@ public final class SuppressionFilter {
     }
     owningSuppressionFile(scanRoot)
         .filter(file -> !files.contains(file))
-        .ifPresent(
-            file -> {
-              files.add(file);
-              partialScope.add(file);
-            });
+        .ifPresent(file -> {
+          files.add(file);
+          partialScope.add(file);
+        });
 
     List<Finding> problems = new ArrayList<>();
     Map<Path, List<Suppression>> suppressionsByDir = new LinkedHashMap<>();

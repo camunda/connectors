@@ -36,13 +36,13 @@ class StepGroupShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [
-          { "name": "Table",
-            "description": "Table ops",
-            "steps": [ { "name": "Create", "presetId": "p", "keywords": ["x"] } ]
-          }
-        ] }
-        """);
+            { "steps": [
+              { "name": "Table",
+                "description": "Table ops",
+                "steps": [ { "name": "Create", "presetId": "p", "keywords": ["x"] } ]
+              }
+            ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -51,11 +51,11 @@ class StepGroupShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [
-          { "name": "g", "keywords": ["x"],
-            "steps": [ { "name": "leaf", "presetId": "p" } ] }
-        ] }
-        """);
+            { "steps": [
+              { "name": "g", "keywords": ["x"],
+                "steps": [ { "name": "leaf", "presetId": "p" } ] }
+            ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/keywords");
@@ -67,11 +67,11 @@ class StepGroupShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [
-          { "name": "g", "presetId": "p",
-            "steps": [ { "name": "leaf", "presetId": "p" } ] }
-        ] }
-        """);
+            { "steps": [
+              { "name": "g", "presetId": "p",
+                "steps": [ { "name": "leaf", "presetId": "p" } ] }
+            ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/presetId");
@@ -82,8 +82,8 @@ class StepGroupShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "g", "steps": [] } ] }
-        """);
+            { "steps": [ { "name": "g", "steps": [] } ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/steps");
@@ -95,8 +95,8 @@ class StepGroupShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "leaf", "presetId": "p", "keywords": ["x"] } ] }
-        """);
+            { "steps": [ { "name": "leaf", "presetId": "p", "keywords": ["x"] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 

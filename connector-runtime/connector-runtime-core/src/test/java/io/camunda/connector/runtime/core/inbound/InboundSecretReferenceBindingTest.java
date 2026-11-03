@@ -325,23 +325,21 @@ class InboundSecretReferenceBindingTest {
     var client = mock(CamundaClient.class, RETURNS_DEEP_STUBS);
     var step2 = mock(EvaluateExpressionCommandStep2.class, RETURNS_DEEP_STUBS);
     when(client.newEvaluateExpressionCommand().expression(any()))
-        .thenAnswer(
-            invocation -> {
-              String expression = invocation.getArgument(0);
-              var response = new StubEvaluation(expression);
-              when(step2.send().join()).thenReturn(response);
-              return step2;
-            });
+        .thenAnswer(invocation -> {
+          String expression = invocation.getArgument(0);
+          var response = new StubEvaluation(expression);
+          when(step2.send().join()).thenReturn(response);
+          return step2;
+        });
 
     var resolveCommand = mock(ResolveSecretsCommandStep1.class);
     var resolveFuture = mock(CamundaFuture.class);
     when(client.newResolveSecretsCommand()).thenReturn(resolveCommand);
     when(resolveCommand.references(org.mockito.ArgumentMatchers.anyList()))
-        .thenAnswer(
-            invocation -> {
-              resolveRequests.add(List.copyOf(invocation.<List<String>>getArgument(0)));
-              return resolveCommand;
-            });
+        .thenAnswer(invocation -> {
+          resolveRequests.add(List.copyOf(invocation.<List<String>>getArgument(0)));
+          return resolveCommand;
+        });
     when(resolveCommand.send()).thenReturn(resolveFuture);
     when(resolveFuture.join())
         .thenAnswer(invocation -> new StubResolution(resolveRequests.getLast(), secretStore));
@@ -426,19 +424,18 @@ class InboundSecretReferenceBindingTest {
     public List<ResolvedSecret> getResolved() {
       return batch.stream()
           .filter(store::containsKey)
-          .<ResolvedSecret>map(
-              reference ->
-                  new ResolvedSecret() {
-                    @Override
-                    public String getReference() {
-                      return reference;
-                    }
+          .<ResolvedSecret>map(reference ->
+              new ResolvedSecret() {
+                @Override
+                public String getReference() {
+                  return reference;
+                }
 
-                    @Override
-                    public String getValue() {
-                      return store.get(reference);
-                    }
-                  })
+                @Override
+                public String getValue() {
+                  return store.get(reference);
+                }
+              })
           .toList();
     }
 
@@ -446,24 +443,23 @@ class InboundSecretReferenceBindingTest {
     public List<ResolutionError> getErrors() {
       return batch.stream()
           .filter(reference -> !store.containsKey(reference))
-          .<ResolutionError>map(
-              reference ->
-                  new ResolutionError() {
-                    @Override
-                    public String getReference() {
-                      return reference;
-                    }
+          .<ResolutionError>map(reference ->
+              new ResolutionError() {
+                @Override
+                public String getReference() {
+                  return reference;
+                }
 
-                    @Override
-                    public SecretErrorCode getCode() {
-                      return SecretErrorCode.NOT_FOUND;
-                    }
+                @Override
+                public SecretErrorCode getCode() {
+                  return SecretErrorCode.NOT_FOUND;
+                }
 
-                    @Override
-                    public String getMessage() {
-                      return "not found";
-                    }
-                  })
+                @Override
+                public String getMessage() {
+                  return "not found";
+                }
+              })
           .toList();
     }
   }

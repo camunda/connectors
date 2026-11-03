@@ -28,26 +28,23 @@ class ModulePackageOwnershipArchTest {
 
   @ArchTest
   static final ArchRule PACKAGE_ROOTS_RESIDE_IN_THEIR_OWNING_MODULE =
-      allModules(
-          module ->
-              classes()
-                  .that(module.root())
-                  .should(beLoadedFrom(module))
-                  .because(
-                      "a package must not be split across modules; the package root "
-                          + module.layerName()
-                          + " belongs to "
-                          + module.artifactId()));
+      allModules(module ->
+          classes()
+              .that(module.root())
+              .should(beLoadedFrom(module))
+              .because(
+                  "a package must not be split across modules; the package root "
+                      + module.layerName()
+                      + " belongs to "
+                      + module.artifactId()));
 
   @ArchTest
   static final ArchRule MODULES_CONTAIN_ONLY_THEIR_OWN_PACKAGE_ROOT =
-      allModules(
-          module ->
-              classes()
-                  .that(module.loadedFromModule())
-                  .should(ArchCondition.from(module.root()))
-                  .because(
-                      module.artifactId() + " contains only the classes of its own package root"));
+      allModules(module ->
+          classes()
+              .that(module.loadedFromModule())
+              .should(ArchCondition.from(module.root()))
+              .because(module.artifactId() + " contains only the classes of its own package root"));
 
   private static ArchRule allModules(final Function<AgenticAiModules, ArchRule> ruleForModule) {
     final var rules = Arrays.stream(AgenticAiModules.values()).map(ruleForModule).toList();

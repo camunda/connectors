@@ -71,11 +71,10 @@ class ContentConverterTest {
 
       assertThat(content).isInstanceOf(dev.langchain4j.data.message.PdfFileContent.class);
       assertThat(((dev.langchain4j.data.message.PdfFileContent) content).pdfFile())
-          .satisfies(
-              pdfFile -> {
-                assertThat(pdfFile.mimeType()).isEqualTo("application/pdf");
-                assertThat(pdfFile.base64Data()).isEqualTo("PFBERiBDT05URU5UPg==");
-              });
+          .satisfies(pdfFile -> {
+            assertThat(pdfFile.mimeType()).isEqualTo("application/pdf");
+            assertThat(pdfFile.base64Data()).isEqualTo("PFBERiBDT05URU5UPg==");
+          });
     }
 
     @Test

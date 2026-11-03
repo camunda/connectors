@@ -117,12 +117,11 @@ class GeminiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleGeminiApi.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.backend.googleGeminiApi.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -140,12 +139,11 @@ class GeminiChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v ->
-                assertThat(v.getMessage())
-                    .isEqualTo(
-                        "thinking.thinkingBudget and thinking.thinkingLevel are mutually"
-                            + " exclusive"));
+        .anySatisfy(v ->
+            assertThat(v.getMessage())
+                .isEqualTo(
+                    "thinking.thinkingBudget and thinking.thinkingLevel are mutually"
+                        + " exclusive"));
   }
 
   @Test
@@ -176,12 +174,11 @@ class GeminiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.model.parameters.thinking.thinkingBudget");
-              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to -1");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.model.parameters.thinking.thinkingBudget");
+          assertThat(v.getMessage()).isEqualTo("must be greater than or equal to -1");
+        });
   }
 
   @Test
@@ -257,11 +254,10 @@ class GeminiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("googleGemini.model.model");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("googleGemini.model.model");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -367,18 +363,16 @@ class GeminiChatModelConfigurationTest {
                     backendWithBlanks, new GeminiModel("gemini-3-pro-preview", null), null)));
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.projectId");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.backend.googleVertexAi.projectId");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.backend.googleVertexAi.region");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -389,12 +383,11 @@ class GeminiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.backend.googleVertexAi.authentication.jsonKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -410,12 +403,11 @@ class GeminiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("googleGemini.backend.googleVertexAi.authentication");
-              assertThat(v.getMessage()).isEqualTo("must not be null");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("googleGemini.backend.googleVertexAi.authentication");
+          assertThat(v.getMessage()).isEqualTo("must not be null");
+        });
   }
 
   @Test

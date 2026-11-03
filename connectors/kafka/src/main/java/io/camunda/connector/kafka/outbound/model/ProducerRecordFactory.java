@@ -101,10 +101,8 @@ public class ProducerRecordFactory {
       case AVRO ->
           GENERIC_RECORD_CONVERTER.toGenericRecord(
               resolvedSchema
-                  .map(
-                      r ->
-                          ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema())
-                              .rawSchema())
+                  .map(r ->
+                      ((io.confluent.kafka.schemaregistry.avro.AvroSchema) r.schema()).rawSchema())
                   .orElseGet(() -> new Schema.Parser().parse(schemaString)),
               payload);
       case JSON ->

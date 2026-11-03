@@ -136,13 +136,12 @@ public class SecretReferenceResolver {
     response.getResolved().forEach(secret -> into.put(secret.getReference(), secret.getValue()));
     response
         .getErrors()
-        .forEach(
-            error ->
-                LOG.warn(
-                    "Secret reference '{}' could not be resolved: {} ({})",
-                    error.getReference(),
-                    error.getCode(),
-                    error.getMessage()));
+        .forEach(error ->
+            LOG.warn(
+                "Secret reference '{}' could not be resolved: {} ({})",
+                error.getReference(),
+                error.getCode(),
+                error.getMessage()));
     if (propagateFailure) {
       var inconclusive =
           response.getErrors().stream()

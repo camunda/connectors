@@ -271,12 +271,11 @@ class AgentResponseHandlerTest {
 
     @Test
     void throwsExceptionWhenJsonParsingFails() {
-      assertThatThrownBy(
-              () ->
-                  createResponse(
-                      new AgentTaskResponseConfiguration(
-                          new JsonResponseFormatConfiguration(null, null), false),
-                      assistantMessage(HAIKU_TEXT)))
+      assertThatThrownBy(() ->
+              createResponse(
+                  new AgentTaskResponseConfiguration(
+                      new JsonResponseFormatConfiguration(null, null), false),
+                  assistantMessage(HAIKU_TEXT)))
           .hasMessageStartingWith("Failed to parse response content as JSON")
           .isInstanceOfSatisfying(
               ConnectorException.class,

@@ -36,8 +36,8 @@ class UniqueGroupIdRuleTest {
     JsonNode template =
         read(
             """
-        { "groups": [ {"id":"a"}, {"id":"b"}, {"id":"c"} ] }
-        """);
+            { "groups": [ {"id":"a"}, {"id":"b"}, {"id":"c"} ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -46,8 +46,8 @@ class UniqueGroupIdRuleTest {
     JsonNode template =
         read(
             """
-        { "groups": [ {"id":"a"}, {"id":"b"}, {"id":"a"} ] }
-        """);
+            { "groups": [ {"id":"a"}, {"id":"b"}, {"id":"a"} ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);

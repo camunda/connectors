@@ -76,11 +76,10 @@ public class DocumentToContentConverterImpl implements DocumentToContentConverte
         .filter(StringUtils::isNotBlank)
         .map(s -> s.toLowerCase(Locale.ROOT))
         .map(ContentType::parse)
-        .orElseThrow(
-            () ->
-                new DocumentConversionException(
-                    "Content type is unset for document with reference '%s'"
-                        .formatted(camundaDocument.reference())));
+        .orElseThrow(() ->
+            new DocumentConversionException(
+                "Content type is unset for document with reference '%s'"
+                    .formatted(camundaDocument.reference())));
   }
 
   private boolean isCompatibleWithAnyOf(ContentType contentType, List<ContentType> contentTypes) {

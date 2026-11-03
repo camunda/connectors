@@ -35,12 +35,11 @@ public class PromptsMapper {
 
   public Object[] map(List<Object> prompts) {
     return prompts.stream()
-        .map(
-            prompt ->
-                Optional.ofNullable(prompt)
-                    .map(this::convertToStringsMap)
-                    .map(this::mapToMediaOrText)
-                    .orElseThrow(() -> createInvalidPromptException(EMPTY_PROMPT_MSG)))
+        .map(prompt ->
+            Optional.ofNullable(prompt)
+                .map(this::convertToStringsMap)
+                .map(this::mapToMediaOrText)
+                .orElseThrow(() -> createInvalidPromptException(EMPTY_PROMPT_MSG)))
         .toArray();
   }
 

@@ -79,14 +79,12 @@ final class BoxNetworkSession {
       return proxyConfiguration
           .getProxyDetails(request.url().scheme())
           .filter(ProxyDetails::hasCredentials)
-          .map(
-              details ->
-                  request
-                      .newBuilder()
-                      .header(
-                          "Proxy-Authorization",
-                          Credentials.basic(details.user(), details.password()))
-                      .build())
+          .map(details ->
+              request
+                  .newBuilder()
+                  .header(
+                      "Proxy-Authorization", Credentials.basic(details.user(), details.password()))
+                  .build())
           .orElse(null);
     };
   }

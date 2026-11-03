@@ -49,16 +49,14 @@ public class BoxUploadStreamTest {
         new BoxClient.Builder(new BoxDeveloperTokenAuth("token"))
             .networkSession(
                 new NetworkSession()
-                    .withNetworkClient(
-                        options -> {
-                          throw new IllegalStateException("authentication failed");
-                        }))
+                    .withNetworkClient(options -> {
+                      throw new IllegalStateException("authentication failed");
+                    }))
             .build();
 
-    assertThatThrownBy(
-            () ->
-                BoxOperations.uploadFile(
-                    new BoxRequest.Operation.UploadFile("/", document, "file.txt"), client))
+    assertThatThrownBy(() ->
+            BoxOperations.uploadFile(
+                new BoxRequest.Operation.UploadFile("/", document, "file.txt"), client))
         .isInstanceOf(IllegalStateException.class);
     assertThat(closed).isTrue();
   }

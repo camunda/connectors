@@ -68,11 +68,10 @@ class ProcessDefinitionSecretKeyCacheTest {
         .thenReturn(xmlRequest);
     lenient()
         .when(cache.get(any(), any(Callable.class)))
-        .thenAnswer(
-            invocation -> {
-              Callable<?> loader = invocation.getArgument(1);
-              return loader.call();
-            });
+        .thenAnswer(invocation -> {
+          Callable<?> loader = invocation.getArgument(1);
+          return loader.call();
+        });
   }
 
   @Test
@@ -485,10 +484,9 @@ class ProcessDefinitionSecretKeyCacheTest {
             cache);
     when(xmlRequest.execute()).thenThrow(new RuntimeException("still not found"));
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", DEADLINE)))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("still not found");
     // 1 initial attempt + 3 retries
@@ -501,11 +499,10 @@ class ProcessDefinitionSecretKeyCacheTest {
     // ProcessDefinitionSecretKeyCache instance backs with its own real (not mocked) Cache — a
     // real Cache wraps the loader's exception in its own ValueRetrievalException, so the
     // IllegalStateException may arrive directly or as that wrapper's cause.
-    assertThatThrownBy(
-            () ->
-                secretKeyCache.getSecretKeys(
-                    new SecretKeyContext(
-                        PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
+    assertThatThrownBy(() ->
+            secretKeyCache.getSecretKeys(
+                new SecretKeyContext(
+                    PROCESS_DEF_KEY, "service-task-1", Instant.now().plusSeconds(2))))
         .satisfiesAnyOf(
             e -> assertThat(e).isInstanceOf(IllegalStateException.class),
             e -> assertThat(e).hasCauseInstanceOf(IllegalStateException.class));
@@ -523,10 +520,9 @@ class ProcessDefinitionSecretKeyCacheTest {
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(300);
 
     long start = System.nanoTime();
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .satisfiesAnyOf(
             e -> assertThat(e).isInstanceOf(TimeoutExceededException.class),
             e -> assertThat(e).hasMessage("still not found"));
@@ -546,23 +542,21 @@ class ProcessDefinitionSecretKeyCacheTest {
             cache);
     String bpmnXml = loadBpmn("outbound-with-secrets.bpmn");
     when(xmlRequest.execute())
-        .thenAnswer(
-            invocation -> {
-              long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
-              while (System.nanoTime() < until) {
-                try {
-                  Thread.sleep(10);
-                } catch (InterruptedException ignored) {
-                }
-              }
-              return bpmnXml;
-            });
+        .thenAnswer(invocation -> {
+          long until = System.nanoTime() + Duration.ofMillis(250).toNanos();
+          while (System.nanoTime() < until) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException ignored) {
+            }
+          }
+          return bpmnXml;
+        });
     Instant deadline = Instant.now().plusSeconds(5).plusMillis(150);
 
-    assertThatThrownBy(
-            () ->
-                retryingCache.getSecretKeys(
-                    new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
+    assertThatThrownBy(() ->
+            retryingCache.getSecretKeys(
+                new SecretKeyContext(PROCESS_DEF_KEY, "service-task-1", deadline)))
         .isInstanceOf(TimeoutExceededException.class);
   }
 

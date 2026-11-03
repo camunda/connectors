@@ -57,10 +57,9 @@ record LinkedResources(long scriptResourceKey, Optional<Long> dependenciesResour
     }
     final var script =
         resourceKey(links, SCRIPT_LINK)
-            .orElseThrow(
-                () ->
-                    new InvalidJobException(
-                        "The '%s' header has no '%s' link".formatted(HEADER, SCRIPT_LINK)));
+            .orElseThrow(() ->
+                new InvalidJobException(
+                    "The '%s' header has no '%s' link".formatted(HEADER, SCRIPT_LINK)));
     return new LinkedResources(script, resourceKey(links, DEPENDENCIES_LINK));
   }
 

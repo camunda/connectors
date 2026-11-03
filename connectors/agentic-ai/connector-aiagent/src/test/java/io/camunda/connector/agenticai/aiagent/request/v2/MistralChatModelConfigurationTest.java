@@ -62,11 +62,10 @@ class MistralChatModelConfigurationTest {
     final var config = configuration("sk-test", "");
 
     assertThat(validator.validate(config))
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("mistral.model.model");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("mistral.model.model");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -77,12 +76,10 @@ class MistralChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("mistral.backend.mistral.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("mistral.backend.mistral.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -218,12 +215,10 @@ class MistralChatModelConfigurationTest {
                 null));
 
     assertThat(validator.validate(config))
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("mistral.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("mistral.backend.custom.endpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test

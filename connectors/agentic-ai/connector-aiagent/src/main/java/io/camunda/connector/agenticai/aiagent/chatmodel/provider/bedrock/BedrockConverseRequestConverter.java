@@ -296,11 +296,10 @@ public class BedrockConverseRequestConverter {
       final List<ContentBlock> content = messages.get(i).content();
       if (!content.isEmpty()
           && content.stream()
-              .noneMatch(
-                  block ->
-                      block.toolUse() != null
-                          || block.toolResult() != null
-                          || block.reasoningContent() != null)) {
+              .noneMatch(block ->
+                  block.toolUse() != null
+                      || block.toolResult() != null
+                      || block.reasoningContent() != null)) {
         return i;
       }
     }
@@ -355,15 +354,14 @@ public class BedrockConverseRequestConverter {
     final Map<String, String> queryParameters = connection.queryParameters();
     if ((headers != null && !headers.isEmpty())
         || (queryParameters != null && !queryParameters.isEmpty())) {
-      builder.overrideConfiguration(
-          c -> {
-            if (headers != null) {
-              headers.forEach(c::putHeader);
-            }
-            if (queryParameters != null) {
-              queryParameters.forEach(c::putRawQueryParameter);
-            }
-          });
+      builder.overrideConfiguration(c -> {
+        if (headers != null) {
+          headers.forEach(c::putHeader);
+        }
+        if (queryParameters != null) {
+          queryParameters.forEach(c::putRawQueryParameter);
+        }
+      });
     }
   }
 

@@ -45,13 +45,11 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
       String jobType, Optional<BrokerStreamsResult> brokerStreams) {
 
     Optional<List<List<RemoteJobStream>>> filteredStreamsByBroker =
-        brokerStreams.map(
-            data ->
-                data.streamsByBroker().stream()
-                    .map(
-                        perBroker ->
-                            perBroker.stream().filter(s -> jobType.equals(s.jobType())).toList())
-                    .toList());
+        brokerStreams.map(data ->
+            data.streamsByBroker().stream()
+                .map(perBroker ->
+                    perBroker.stream().filter(s -> jobType.equals(s.jobType())).toList())
+                .toList());
 
     BrokerConnectivityState brokerState =
         filteredStreamsByBroker
@@ -88,14 +86,11 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
 
     long brokersWithValidConsumer =
         filteredStreamsByBroker.stream()
-            .filter(
-                brokerStreams ->
-                    brokerStreams.stream()
-                        .anyMatch(
-                            remote ->
-                                remote.consumers() != null
-                                    && remote.consumers().stream()
-                                        .anyMatch(c -> c.get("id") != null)))
+            .filter(brokerStreams ->
+                brokerStreams.stream()
+                    .anyMatch(remote ->
+                        remote.consumers() != null
+                            && remote.consumers().stream().anyMatch(c -> c.get("id") != null)))
             .count();
 
     if (brokersWithValidConsumer == 0) {
@@ -111,16 +106,15 @@ public record StreamConnectivity(BrokerConnectivityState brokerState, List<Strin
       Optional<List<List<RemoteJobStream>>> streamsByBroker) {
     List<String> ids =
         streamsByBroker
-            .map(
-                perBroker ->
-                    perBroker.stream()
-                        .flatMap(List::stream)
-                        .filter(r -> r.consumers() != null)
-                        .flatMap(r -> r.consumers().stream())
-                        .map(c -> c.get("id"))
-                        .filter(Objects::nonNull)
-                        .distinct()
-                        .toList())
+            .map(perBroker ->
+                perBroker.stream()
+                    .flatMap(List::stream)
+                    .filter(r -> r.consumers() != null)
+                    .flatMap(r -> r.consumers().stream())
+                    .map(c -> c.get("id"))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList())
             .orElse(List.of());
     return ids.isEmpty() ? null : ids;
   }

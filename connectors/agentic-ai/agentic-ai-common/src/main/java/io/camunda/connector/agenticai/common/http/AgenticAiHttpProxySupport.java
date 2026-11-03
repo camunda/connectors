@@ -43,21 +43,19 @@ public class AgenticAiHttpProxySupport {
   public Optional<OkHttpProxy> okHttpProxy(String scheme) {
     return proxyConfiguration
         .getProxyDetails(scheme)
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}:{}]",
-                  scheme,
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              final var proxy =
-                  new Proxy(
-                      Proxy.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              return proxyDetails.hasCredentials()
-                  ? new OkHttpProxy(proxy, proxyDetails.user(), proxyDetails.password())
-                  : new OkHttpProxy(proxy, null, null);
-            });
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}:{}]",
+              scheme,
+              proxyDetails.host(),
+              proxyDetails.port());
+          final var proxy =
+              new Proxy(
+                  Proxy.Type.HTTP, new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          return proxyDetails.hasCredentials()
+              ? new OkHttpProxy(proxy, proxyDetails.user(), proxyDetails.password())
+              : new OkHttpProxy(proxy, null, null);
+        });
   }
 
   /** Proxy plus optional credentials in a form neutral to any OkHttp-based SDK. */

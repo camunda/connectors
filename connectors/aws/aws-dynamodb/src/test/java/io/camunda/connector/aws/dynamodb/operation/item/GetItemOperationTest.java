@@ -153,11 +153,12 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                     {
-                     "type": "getItem",
-                     "tableName": "{{secrets.TABLE_NAME_KEY}}",
-                     "primaryKeyComponents":{"id":"{{secrets.KEY_ATTRIBUTE_VALUE}}"}
-                     }""";
+        {
+        "type": "getItem",
+        "tableName": "{{secrets.TABLE_NAME_KEY}}",
+        "primaryKeyComponents":{"id":"{{secrets.KEY_ATTRIBUTE_VALUE}}"}
+        }\
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     AwsInput request = context.bindVariables(AwsInput.class);
     // Then

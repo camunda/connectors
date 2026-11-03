@@ -36,11 +36,11 @@ class EmptyGroupRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ {"id":"a"}, {"id":"b"} ],
-          "properties": [ { "group": "a" }, { "group": "b" } ]
-        }
-        """);
+            {
+              "groups": [ {"id":"a"}, {"id":"b"} ],
+              "properties": [ { "group": "a" }, { "group": "b" } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -49,11 +49,11 @@ class EmptyGroupRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ {"id":"a"}, {"id":"orphan"} ],
-          "properties": [ { "group": "a" } ]
-        }
-        """);
+            {
+              "groups": [ {"id":"a"}, {"id":"orphan"} ],
+              "properties": [ { "group": "a" } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/groups/1/id");

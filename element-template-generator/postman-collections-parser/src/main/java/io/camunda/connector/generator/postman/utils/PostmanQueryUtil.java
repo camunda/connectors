@@ -30,18 +30,17 @@ public class PostmanQueryUtil {
     Set<HttpOperationProperty> queryParams = new HashSet<>();
     Optional.ofNullable(endpoint.request().url().queryParams())
         .orElse(Collections.emptyList())
-        .forEach(
-            q ->
-                queryParams.add(
-                    HttpOperationProperty.createStringProperty(
-                        q.key(),
-                        Target.QUERY,
-                        "",
-                        true,
-                        Optional.ofNullable(q.value())
-                            .orElse("")
-                            .replace("{{", "")
-                            .replace("}}", ""))));
+        .forEach(q ->
+            queryParams.add(
+                HttpOperationProperty.createStringProperty(
+                    q.key(),
+                    Target.QUERY,
+                    "",
+                    true,
+                    Optional.ofNullable(q.value())
+                        .orElse("")
+                        .replace("{{", "")
+                        .replace("}}", ""))));
     return queryParams;
   }
 }

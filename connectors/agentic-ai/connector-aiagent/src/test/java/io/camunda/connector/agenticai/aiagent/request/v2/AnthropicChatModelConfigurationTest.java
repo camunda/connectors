@@ -237,24 +237,21 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.authentication.oauthTokenEndpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.authentication.clientId");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.authentication.clientSecret");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.custom.authentication.oauthTokenEndpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.custom.authentication.clientId");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.custom.authentication.clientSecret");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        });
   }
 
   @Test
@@ -328,12 +325,11 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.anthropic.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.anthropic.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -353,12 +349,11 @@ class AnthropicChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.model.parameters.thinking.budgetTokens");
-              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 1024");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.model.parameters.thinking.budgetTokens");
+          assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 1024");
+        });
   }
 
   @Test
@@ -381,10 +376,9 @@ class AnthropicChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v ->
-                assertThat(v.getMessage())
-                    .isEqualTo("thinking.budgetTokens must be less than maxTokens"));
+        .anySatisfy(v ->
+            assertThat(v.getMessage())
+                .isEqualTo("thinking.budgetTokens must be less than maxTokens"));
   }
 
   @Test
@@ -432,18 +426,15 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.custom.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("anthropic.backend.custom.endpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.custom.authentication.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -553,24 +544,21 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.accessKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.secretKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.awsBedrockMantle.region");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.accessKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.awsBedrockMantle.authentication.secretKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -584,12 +572,11 @@ class AnthropicChatModelConfigurationTest {
                 null));
 
     assertThat(validator.validate(config))
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.awsBedrockMantle");
-              assertThat(v.getMessage()).isEqualTo("must not be null");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.awsBedrockMantle");
+          assertThat(v.getMessage()).isEqualTo("must not be null");
+        });
   }
 
   @Test
@@ -711,18 +698,16 @@ class AnthropicChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.foundry.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("anthropic.backend.foundry.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.foundry.endpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("anthropic.backend.foundry.authentication.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test

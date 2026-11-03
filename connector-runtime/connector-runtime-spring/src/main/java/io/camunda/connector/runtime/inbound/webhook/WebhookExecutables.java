@@ -69,13 +69,12 @@ public class WebhookExecutables {
         inactiveExecutables.stream()
             .filter(e -> sameDefinitions(e, executable))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new RuntimeException(
-                        "Cannot deregister executable with definition: "
-                            + executable.context().getDefinition()
-                            + " as it is not registered for context: "
-                            + context));
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Cannot deregister executable with definition: "
+                        + executable.context().getDefinition()
+                        + " as it is not registered for context: "
+                        + context));
     inactiveExecutables.remove(foundExecutable);
     return true;
   }
@@ -127,15 +126,14 @@ public class WebhookExecutables {
   private void markAsDownAndLogActivity(String context, RegisteredExecutable.Activated executable) {
     executable
         .context()
-        .log(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.QUEUEING)
-                    .withMessage(
-                        "Webhook path \""
-                            + context
-                            + "\" is already in use. Executable registered in standby and will be activated when the path becomes available."));
+        .log(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.QUEUEING)
+                .withMessage(
+                    "Webhook path \""
+                        + context
+                        + "\" is already in use. Executable registered in standby and will be activated when the path becomes available."));
     executable.context().reportHealth(Health.down(new IllegalStateException(createErrorMessage())));
   }
 
@@ -144,15 +142,12 @@ public class WebhookExecutables {
       activeExecutable.executable().activate(activeExecutable.context());
       activeExecutable
           .context()
-          .log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.INFO)
-                      .withTag(ActivityLogTag.ACTIVATION)
-                      .withMessage(
-                          "Path \""
-                              + context
-                              + "\" is now available. executable has been activated."));
+          .log(activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.ACTIVATION)
+                  .withMessage(
+                      "Path \"" + context + "\" is now available. executable has been activated."));
     } catch (Exception e) {
       throw new RuntimeException("Could not activate connector: " + activeExecutable, e);
     }
@@ -169,11 +164,10 @@ public class WebhookExecutables {
       return;
     }
 
-    inactiveExecutables.forEach(
-        executable ->
-            executable
-                .context()
-                .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
+    inactiveExecutables.forEach(executable ->
+        executable
+            .context()
+            .reportHealth(Health.down(new IllegalStateException(createErrorMessage()))));
   }
 
   private String createErrorMessage() {

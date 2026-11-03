@@ -31,13 +31,12 @@ public class RegistrySchemaResolver {
   private final BiFunction<String, Map<String, Object>, SchemaRegistryClient> clientFactory;
 
   public RegistrySchemaResolver() {
-    this(
-        (url, configs) ->
-            new CachedSchemaRegistryClient(
-                url,
-                CLIENT_CACHE_CAPACITY,
-                List.<SchemaProvider>of(new AvroSchemaProvider(), new JsonSchemaProvider()),
-                configs));
+    this((url, configs) ->
+        new CachedSchemaRegistryClient(
+            url,
+            CLIENT_CACHE_CAPACITY,
+            List.<SchemaProvider>of(new AvroSchemaProvider(), new JsonSchemaProvider()),
+            configs));
   }
 
   public RegistrySchemaResolver(

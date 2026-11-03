@@ -168,7 +168,7 @@ public class FeelSupplierDeserializerTest {
     var json =
         """
         { "supplier": "= ctx.foo + ctx.bar" }
-                """;
+        """;
     var context = Map.of("ctx", Map.of("foo", "foo", "bar", "bar"));
 
     // when

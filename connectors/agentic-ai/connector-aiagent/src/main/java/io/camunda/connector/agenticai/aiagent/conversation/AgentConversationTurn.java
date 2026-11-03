@@ -78,12 +78,9 @@ public record AgentConversationTurn(
         .filter(ToolCallResultMessage.class::isInstance)
         .map(ToolCallResultMessage.class::cast)
         .flatMap(msg -> msg.results().stream())
-        .anyMatch(
-            result ->
-                result.properties() != null
-                    && Boolean.TRUE.equals(
-                        result
-                            .properties()
-                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
+        .anyMatch(result ->
+            result.properties() != null
+                && Boolean.TRUE.equals(
+                    result.properties().getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
   }
 }

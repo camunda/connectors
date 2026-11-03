@@ -614,27 +614,26 @@ class CodeInterpreterExecutorTest extends BaseTest {
       when(asyncClient.invokeCodeInterpreter(
               any(InvokeCodeInterpreterRequest.class),
               any(InvokeCodeInterpreterResponseHandler.class)))
-          .thenAnswer(
-              inv -> {
-                InvokeCodeInterpreterRequest req = inv.getArgument(0);
-                InvokeCodeInterpreterResponseHandler handler = inv.getArgument(1);
-                List<CodeInterpreterResult> results;
-                if (req.name() == ToolName.EXECUTE_CODE) {
-                  results = execEvents;
-                } else if (req.name() == ToolName.LIST_FILES) {
-                  results = listResponseEvents.isEmpty() ? List.of() : listResponseEvents.poll();
-                } else if (req.name() == ToolName.READ_FILES) {
-                  var path = req.arguments().paths().get(0);
-                  if (readFailures.containsKey(path)) {
-                    return CompletableFuture.failedFuture(readFailures.get(path));
-                  }
-                  results = readResponseEvents.getOrDefault(path, List.of());
-                } else {
-                  results = List.of();
-                }
-                handler.onEventStream(toPublisher(results));
-                return CompletableFuture.completedFuture(null);
-              });
+          .thenAnswer(inv -> {
+            InvokeCodeInterpreterRequest req = inv.getArgument(0);
+            InvokeCodeInterpreterResponseHandler handler = inv.getArgument(1);
+            List<CodeInterpreterResult> results;
+            if (req.name() == ToolName.EXECUTE_CODE) {
+              results = execEvents;
+            } else if (req.name() == ToolName.LIST_FILES) {
+              results = listResponseEvents.isEmpty() ? List.of() : listResponseEvents.poll();
+            } else if (req.name() == ToolName.READ_FILES) {
+              var path = req.arguments().paths().get(0);
+              if (readFailures.containsKey(path)) {
+                return CompletableFuture.failedFuture(readFailures.get(path));
+              }
+              results = readResponseEvents.getOrDefault(path, List.of());
+            } else {
+              results = List.of();
+            }
+            handler.onEventStream(toPublisher(results));
+            return CompletableFuture.completedFuture(null);
+          });
     }
   }
 }

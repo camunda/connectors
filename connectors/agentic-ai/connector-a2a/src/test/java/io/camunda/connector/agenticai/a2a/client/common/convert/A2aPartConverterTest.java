@@ -52,11 +52,10 @@ class A2aPartConverterTest {
     var result = converter.convert(List.of(textPart));
 
     assertThat(result)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content).isInstanceOf(A2aTextPart.class);
-              assertThat(content.metadata()).isEqualTo(metadata);
-            });
+        .satisfiesExactly(content -> {
+          assertThat(content).isInstanceOf(A2aTextPart.class);
+          assertThat(content.metadata()).isEqualTo(metadata);
+        });
   }
 
   @Test
@@ -80,11 +79,10 @@ class A2aPartConverterTest {
     var result = converter.convert(List.of(dataPart));
 
     assertThat(result)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content).isInstanceOf(A2aDataPart.class);
-              assertThat(content.metadata()).isEqualTo(metadata);
-            });
+        .satisfiesExactly(content -> {
+          assertThat(content).isInstanceOf(A2aDataPart.class);
+          assertThat(content.metadata()).isEqualTo(metadata);
+        });
   }
 
   @Test

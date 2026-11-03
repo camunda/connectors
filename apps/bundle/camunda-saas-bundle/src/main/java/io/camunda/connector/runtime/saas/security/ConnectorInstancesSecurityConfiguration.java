@@ -66,13 +66,12 @@ public class ConnectorInstancesSecurityConfiguration {
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        mappings.forEach(
-            mapping ->
-                registry
-                    .addMapping(mapping)
-                    .allowCredentials(allowCredentials)
-                    .allowedOrigins(allowedOrigins)
-                    .allowedMethods("*"));
+        mappings.forEach(mapping ->
+            registry
+                .addMapping(mapping)
+                .allowCredentials(allowCredentials)
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("*"));
       }
     };
   }
@@ -81,18 +80,15 @@ public class ConnectorInstancesSecurityConfiguration {
   @Order(2)
   public SecurityFilterChain connectorInstancesFilterChain(HttpSecurity http) throws Exception {
     http.cors(Customizer.withDefaults())
-        .csrf(
-            csrf ->
-                csrf.ignoringRequestMatchers(
-                    "/inbound-instances/**", "/outbound/**", "/configurations/**"))
-        .securityMatchers(
-            requestMatcherConfigurer ->
-                requestMatcherConfigurer.requestMatchers(
-                    "/inbound-instances/**", "/outbound/**", "/configurations/**"))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/inbound-instances/**", "/outbound/**", "/configurations/**")
-                    .authenticated())
+        .csrf(csrf ->
+            csrf.ignoringRequestMatchers(
+                "/inbound-instances/**", "/outbound/**", "/configurations/**"))
+        .securityMatchers(requestMatcherConfigurer ->
+            requestMatcherConfigurer.requestMatchers(
+                "/inbound-instances/**", "/outbound/**", "/configurations/**"))
+        .authorizeHttpRequests(auth ->
+            auth.requestMatchers("/inbound-instances/**", "/outbound/**", "/configurations/**")
+                .authenticated())
         .oauth2ResourceServer(
             oauth2 -> oauth2.jwt(jwt -> jwt.decoder(connectorInstancesJwtDecoder())));
     return http.build();

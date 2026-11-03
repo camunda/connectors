@@ -51,10 +51,9 @@ class GoogleCredentialValidatorTest {
   @ValueSource(ints = {400, 401, 403})
   void unauthorizedWhenGoogleRejectsAndDoesNotLeakDetail(int statusCode) {
     var validator =
-        new GoogleCredentialValidator(
-            authentication -> {
-              throw httpError(statusCode);
-            });
+        new GoogleCredentialValidator(authentication -> {
+          throw httpError(statusCode);
+        });
 
     var result = validator.validate(config(REFRESH));
 
@@ -66,10 +65,9 @@ class GoogleCredentialValidatorTest {
   @Test
   void unauthorizedWhenRejectionIsWrapped() {
     var validator =
-        new GoogleCredentialValidator(
-            authentication -> {
-              throw new IOException("wrapped", httpError(401));
-            });
+        new GoogleCredentialValidator(authentication -> {
+          throw new IOException("wrapped", httpError(401));
+        });
 
     var result = validator.validate(config(REFRESH));
 
@@ -80,10 +78,9 @@ class GoogleCredentialValidatorTest {
   @ValueSource(ints = {408, 429, 500, 503})
   void errorWhenFailureIsNotACredentialRejection(int statusCode) {
     var validator =
-        new GoogleCredentialValidator(
-            authentication -> {
-              throw httpError(statusCode);
-            });
+        new GoogleCredentialValidator(authentication -> {
+          throw httpError(statusCode);
+        });
 
     var result = validator.validate(config(BEARER));
 
@@ -94,10 +91,9 @@ class GoogleCredentialValidatorTest {
   @Test
   void errorWhenTransientNonHttpFailure() {
     var validator =
-        new GoogleCredentialValidator(
-            authentication -> {
-              throw new IOException("connection reset SENSITIVE-DETAIL");
-            });
+        new GoogleCredentialValidator(authentication -> {
+          throw new IOException("connection reset SENSITIVE-DETAIL");
+        });
 
     var result = validator.validate(config(REFRESH));
 

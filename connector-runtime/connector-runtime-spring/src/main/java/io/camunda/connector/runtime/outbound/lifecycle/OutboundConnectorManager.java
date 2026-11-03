@@ -145,17 +145,16 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
     Set<OutboundConnectorConfiguration> outboundConnectors =
         new TreeSet<>(new OutboundConnectorConfigurationComparator());
     outboundConnectors.addAll(connectorFactory.getActiveConfigurations());
-    outboundConnectors.forEach(
-        connector ->
-            openWorkerForOutboundConnector(
-                client,
-                clientName,
-                physicalTenantId,
-                documentFactory,
-                secretFilterFactory,
-                intrinsicFunctionAllowListFactory,
-                objectMapper,
-                connector));
+    outboundConnectors.forEach(connector ->
+        openWorkerForOutboundConnector(
+            client,
+            clientName,
+            physicalTenantId,
+            documentFactory,
+            secretFilterFactory,
+            intrinsicFunctionAllowListFactory,
+            objectMapper,
+            connector));
   }
 
   @Override

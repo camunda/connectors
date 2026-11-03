@@ -58,13 +58,12 @@ public class OperationBasedConnectorUtil {
           new DropdownProperty.DropdownPropertyBuilder()
               .choices(
                   methods.stream()
-                      .map(
-                          m -> {
-                            Operation operation = m.annotation();
-                            String operationName = getOperationName(operation);
-                            String operationId = getOperationId(operation);
-                            return new DropdownProperty.DropdownChoice(operationName, operationId);
-                          })
+                      .map(m -> {
+                        Operation operation = m.annotation();
+                        String operationName = getOperationName(operation);
+                        String operationId = getOperationId(operation);
+                        return new DropdownProperty.DropdownChoice(operationName, operationId);
+                      })
                       .toList());
     }
 
@@ -88,35 +87,30 @@ public class OperationBasedConnectorUtil {
     Operation operation = method.annotation();
     List<Parameter> parameters =
         method.parameters().stream()
-            .filter(
-                p ->
-                    !p.isSynthetic()
-                        && (p.isAnnotationPresent(Variable.class)
-                            || p.isAnnotationPresent(Header.class)))
+            .filter(p ->
+                !p.isSynthetic()
+                    && (p.isAnnotationPresent(Variable.class)
+                        || p.isAnnotationPresent(Header.class)))
             .toList();
 
     return parameters.stream()
-        .map(
-            parameter -> {
-              boolean shouldMapParameterBindings =
-                  TemplatePropertiesUtil.shouldMapBindingsForParameter(parameter);
-              Variable variable = parameter.getAnnotation(Variable.class);
-              if (variable != null) {
-                List<PropertyBuilder> properties =
-                    TemplatePropertiesUtil.extractTemplatePropertiesFromParameter(
-                        parameter, context);
-                return Stream.concat(
-                        properties.stream()
-                            .map(
-                                property ->
-                                    mapProperty(
-                                        property, operation, variable, shouldMapParameterBindings)),
-                        buildLinkedResourceProperties(parameter.getType(), operation).stream())
-                    .toList();
-              } else {
-                return List.of(buildHeaderProperty(operation, parameter));
-              }
-            })
+        .map(parameter -> {
+          boolean shouldMapParameterBindings =
+              TemplatePropertiesUtil.shouldMapBindingsForParameter(parameter);
+          Variable variable = parameter.getAnnotation(Variable.class);
+          if (variable != null) {
+            List<PropertyBuilder> properties =
+                TemplatePropertiesUtil.extractTemplatePropertiesFromParameter(parameter, context);
+            return Stream.concat(
+                    properties.stream()
+                        .map(property ->
+                            mapProperty(property, operation, variable, shouldMapParameterBindings)),
+                    buildLinkedResourceProperties(parameter.getType(), operation).stream())
+                .toList();
+          } else {
+            return List.of(buildHeaderProperty(operation, parameter));
+          }
+        })
         .flatMap(List::stream)
         .toList();
   }
