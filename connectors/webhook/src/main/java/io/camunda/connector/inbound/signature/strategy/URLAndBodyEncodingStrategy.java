@@ -13,10 +13,8 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
@@ -30,14 +28,8 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     // then this algo will be used
     // If not we will just return the object as a serialized String
     if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       Map<String, String> strMap =
-          Arrays.stream(bodyAsString.split("&"))
-              .filter(Objects::nonNull)
-              .map(param -> param.split("="))
-              .collect(
-                  Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+          HttpWebhookUtil.parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
       return extractSignatureFromMap(strMap);
     }
     Object o = mapBytesToObject(rawBody);
