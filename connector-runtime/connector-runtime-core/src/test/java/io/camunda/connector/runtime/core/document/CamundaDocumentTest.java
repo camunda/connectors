@@ -21,9 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.document.CamundaDocument;
+import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.zeebe.client.api.response.DocumentMetadata;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
