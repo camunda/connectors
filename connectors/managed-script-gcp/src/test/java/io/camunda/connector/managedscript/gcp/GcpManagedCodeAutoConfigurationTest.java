@@ -80,7 +80,7 @@ class GcpManagedCodeAutoConfigurationTest {
     gcp.run(context -> {
       final var properties = context.getBean(GcpManagedCodeProperties.class);
       assertThat(properties.memory()).isEqualTo("512Mi");
-      assertThat(properties.maxInstanceCount()).isEqualTo(100);
+      assertThat(properties.maxInstanceCount()).isEqualTo(1000);
       assertThat(properties.deployerServiceAccount()).isNull();
       assertThat(properties.location()).isEqualTo("projects/camunda-p/locations/europe-west1");
     });

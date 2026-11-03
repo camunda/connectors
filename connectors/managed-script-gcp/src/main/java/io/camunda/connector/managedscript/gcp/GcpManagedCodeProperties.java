@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     impersonate to create and call the executors; none to use them as they are
  * @param memory memory of an executor, in {@code Mi} or {@code Gi} (default {@code 512Mi})
  * @param maxInstanceCount most instances of an executor, hence most scripts of a language running
- *     at once (default 100)
+ *     at once (default 1000, the most Cloud Run allows without a quota increase)
  */
 @ConfigurationProperties(prefix = "camunda.connector.managed-code.gcp")
 public record GcpManagedCodeProperties(
@@ -36,7 +36,7 @@ public record GcpManagedCodeProperties(
     Integer maxInstanceCount) {
 
   private static final String DEFAULT_MEMORY = "512Mi";
-  private static final int DEFAULT_MAX_INSTANCE_COUNT = 100;
+  private static final int DEFAULT_MAX_INSTANCE_COUNT = 1000;
   private static final long MIB = 1024L * 1024;
   private static final long MIN_MEMORY_BYTES = 128 * MIB;
   private static final long MAX_MEMORY_BYTES = 32 * 1024 * MIB;

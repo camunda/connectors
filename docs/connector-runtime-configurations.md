@@ -216,7 +216,7 @@ camunda.connector.managed-code.gcp.region=europe-west1
 camunda.connector.managed-code.gcp.function-service-account=camunda-ms-executor@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.deployer-service-account=camunda-ms-deployer@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.memory=512Mi
-camunda.connector.managed-code.gcp.max-instance-count=100
+camunda.connector.managed-code.gcp.max-instance-count=1000
 ```
 
 - An executor is named `<deployment-name-prefix><py|js>-<12 hex of the wrapper digest>`. When it is
@@ -227,7 +227,8 @@ camunda.connector.managed-code.gcp.max-instance-count=100
 - A function serves one request at a time (request concurrency 1): after each call, the wrapper
   kills every process it did not start with, which would kill a concurrent script.
   `gcp.max-instance-count` is therefore the most scripts of a language that run at once (default
-  100); a call beyond it fails with `PLATFORM_THROTTLED`.
+  1000, the most Cloud Run allows without a quota increase); a call beyond it fails with
+  `PLATFORM_THROTTLED`. It also bounds what the executors of a cluster can cost at once.
 - The function timeout is `execution-timeout` plus 5 seconds, so that the wrapper reports `TIMEOUT`
   before Cloud Run stops it, and is passed to the wrapper in `EXECUTOR_FUNCTION_TIMEOUT_MS`. HTTP
   functions run for at most 3600 seconds, so startup fails when `execution-timeout` is above 3595
