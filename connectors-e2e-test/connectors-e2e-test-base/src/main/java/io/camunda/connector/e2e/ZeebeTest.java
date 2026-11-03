@@ -71,44 +71,41 @@ public class ZeebeTest {
         .pollInSameThread()
         .await()
         .atMost(timeout)
-        .untilAsserted(
-            () -> {
-              final var topology = camundaClient.newTopologyRequest().send().join();
-              assertEquals(clusterSize, topology.getClusterSize());
-              assertEquals(clusterSize, topology.getBrokers().size());
-              assertEquals(partitionCount, topology.getPartitionsCount());
-              assertEquals(replicationFactor, topology.getReplicationFactor());
+        .untilAsserted(() -> {
+          final var topology = camundaClient.newTopologyRequest().send().join();
+          assertEquals(clusterSize, topology.getClusterSize());
+          assertEquals(clusterSize, topology.getBrokers().size());
+          assertEquals(partitionCount, topology.getPartitionsCount());
+          assertEquals(replicationFactor, topology.getReplicationFactor());
 
-              // Every partition reported by any broker must be healthy.
-              final List<String> unhealthy =
-                  topology.getBrokers().stream()
-                      .flatMap(
-                          broker ->
-                              broker.getPartitions().stream()
-                                  .filter(p -> p.getHealth() != PartitionBrokerHealth.HEALTHY)
-                                  .map(
-                                      p ->
-                                          "broker "
-                                              + broker.getMemberId()
-                                              + " partition "
-                                              + p.getPartitionId()
-                                              + " = "
-                                              + p.getHealth()))
-                      .collect(Collectors.toList());
-              assertTrue(unhealthy.isEmpty(), () -> "partitions not healthy yet: " + unhealthy);
+          // Every partition reported by any broker must be healthy.
+          final List<String> unhealthy =
+              topology.getBrokers().stream()
+                  .flatMap(broker ->
+                      broker.getPartitions().stream()
+                          .filter(p -> p.getHealth() != PartitionBrokerHealth.HEALTHY)
+                          .map(p ->
+                              "broker "
+                                  + broker.getMemberId()
+                                  + " partition "
+                                  + p.getPartitionId()
+                                  + " = "
+                                  + p.getHealth()))
+                  .collect(Collectors.toList());
+          assertTrue(unhealthy.isEmpty(), () -> "partitions not healthy yet: " + unhealthy);
 
-              // Each partition must have a healthy leader so the broker can serve requests.
-              for (int partitionId = 1; partitionId <= partitionCount; partitionId++) {
-                final int pid = partitionId;
-                final boolean hasHealthyLeader =
-                    topology.getBrokers().stream()
-                        .flatMap(broker -> broker.getPartitions().stream())
-                        .filter(p -> p.getPartitionId() == pid)
-                        .filter(PartitionInfo::isLeader)
-                        .anyMatch(p -> p.getHealth() == PartitionBrokerHealth.HEALTHY);
-                assertTrue(hasHealthyLeader, "no healthy leader for partition " + pid + " yet");
-              }
-            });
+          // Each partition must have a healthy leader so the broker can serve requests.
+          for (int partitionId = 1; partitionId <= partitionCount; partitionId++) {
+            final int pid = partitionId;
+            final boolean hasHealthyLeader =
+                topology.getBrokers().stream()
+                    .flatMap(broker -> broker.getPartitions().stream())
+                    .filter(p -> p.getPartitionId() == pid)
+                    .filter(PartitionInfo::isLeader)
+                    .anyMatch(p -> p.getHealth() == PartitionBrokerHealth.HEALTHY);
+            assertTrue(hasHealthyLeader, "no healthy leader for partition " + pid + " yet");
+          }
+        });
     return this;
   }
 

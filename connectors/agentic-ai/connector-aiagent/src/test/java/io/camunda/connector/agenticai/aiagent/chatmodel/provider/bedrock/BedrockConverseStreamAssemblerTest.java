@@ -311,16 +311,15 @@ class BedrockConverseStreamAssemblerTest {
         MessageStartEvent.builder().role(ConversationRole.ASSISTANT).build());
     assembler.visitContentBlockStart(contentBlockStart(0));
 
-    assertThatThrownBy(
-            () ->
-                assembler.visitContentBlockDelta(
-                    ContentBlockDeltaEvent.builder()
-                        .contentBlockIndex(0)
-                        .delta(
-                            ContentBlockDelta.builder()
-                                .toolResult(ToolResultBlockDelta.builder().text("result").build())
-                                .build())
-                        .build()))
+    assertThatThrownBy(() ->
+            assembler.visitContentBlockDelta(
+                ContentBlockDeltaEvent.builder()
+                    .contentBlockIndex(0)
+                    .delta(
+                        ContentBlockDelta.builder()
+                            .toolResult(ToolResultBlockDelta.builder().text("result").build())
+                            .build())
+                    .build()))
         .isInstanceOf(ConnectorException.class);
   }
 

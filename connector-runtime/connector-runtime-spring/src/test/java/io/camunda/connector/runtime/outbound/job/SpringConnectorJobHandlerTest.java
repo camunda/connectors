@@ -268,13 +268,12 @@ class SpringConnectorJobHandlerTest {
     void convertsDocumentReturnAtRuntimeBoundary() throws Exception {
       // given a connector that returns a DocumentReturn and a job selecting the TEXT format
       var jobHandler =
-          newConnectorJobHandler(
-              ctx ->
-                  DocumentReturn.of(
-                      "hello".getBytes(StandardCharsets.UTF_8),
-                      "text/plain",
-                      "greeting.txt",
-                      (converted, choice) -> converted));
+          newConnectorJobHandler(ctx ->
+              DocumentReturn.of(
+                  "hello".getBytes(StandardCharsets.UTF_8),
+                  "text/plain",
+                  "greeting.txt",
+                  (converted, choice) -> converted));
 
       // when
       var result =
@@ -292,11 +291,10 @@ class SpringConnectorJobHandlerTest {
       // given a connector returning a DocumentReturn but a job with no documentReturnFormat
       var closed = new AtomicBoolean(false);
       var jobHandler =
-          newConnectorJobHandler(
-              ctx ->
-                  new DocumentReturn<>(
-                      RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
-                      (converted, choice) -> converted));
+          newConnectorJobHandler(ctx ->
+              new DocumentReturn<>(
+                  RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
+                  (converted, choice) -> converted));
 
       // when
       var result =
@@ -316,11 +314,10 @@ class SpringConnectorJobHandlerTest {
       // given a connector returning a DocumentReturn but a job with an invalid choice
       var closed = new AtomicBoolean(false);
       var jobHandler =
-          newConnectorJobHandler(
-              ctx ->
-                  new DocumentReturn<>(
-                      RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
-                      (converted, choice) -> converted));
+          newConnectorJobHandler(ctx ->
+              new DocumentReturn<>(
+                  RawPayload.of(trackingStream(closed), "text/plain", "f.txt"),
+                  (converted, choice) -> converted));
 
       // when
       var result =
@@ -362,7 +359,7 @@ class SpringConnectorJobHandlerTest {
       @ValueSource(strings = {" ", "\t", "\n"})
       void shouldNotSetWithBlankResultVariable(String variableName) throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler(context -> Map.of("hello", "world"));
 
         // when
         var result =
@@ -377,7 +374,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldHandleMap() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler(context -> Map.of("hello", "world"));
 
         // when
         var result =
@@ -392,7 +389,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldHandleNull() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((ctx) -> null);
+        var jobHandler = newConnectorJobHandler(ctx -> null);
         var expected = new HashMap<>();
         expected.put("result", null);
 
@@ -409,7 +406,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldHandleEmptyMap() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((ctx) -> Map.of());
+        var jobHandler = newConnectorJobHandler(ctx -> Map.of());
 
         // when
         var result =
@@ -424,7 +421,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldHandleScalarValue() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((ctx) -> 1);
+        var jobHandler = newConnectorJobHandler(ctx -> 1);
 
         // when
         var result =
@@ -443,7 +440,7 @@ class SpringConnectorJobHandlerTest {
             "x"
                 .repeat(
                     (int) io.camunda.connector.api.document.InlineSizeGuard.MAX_INLINE_BYTES + 1);
-        var jobHandler = newConnectorJobHandler((ctx) -> largeValue);
+        var jobHandler = newConnectorJobHandler(ctx -> largeValue);
 
         // when
         var result =
@@ -460,7 +457,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldCompleteJobWhenResultVariableBelowZeebeLimit() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((ctx) -> "small value");
+        var jobHandler = newConnectorJobHandler(ctx -> "small value");
 
         // when
         var result =
@@ -482,7 +479,7 @@ class SpringConnectorJobHandlerTest {
       @ValueSource(strings = {" ", "\t", "\n"})
       void shouldNotSetWithBlankResultExpression(String expression) throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler(context -> Map.of("hello", "world"));
 
         // when
         var result =
@@ -498,8 +495,7 @@ class SpringConnectorJobHandlerTest {
       void shouldHandleMap() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+            newConnectorJobHandler(context -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
         // when
@@ -517,14 +513,13 @@ class SpringConnectorJobHandlerTest {
       void shouldHandleMap_WithNullValues() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler(
-                (context) -> {
-                  var map = new HashMap<>();
-                  map.put("statusCode", 200);
-                  map.put("failure", null);
+            newConnectorJobHandler(context -> {
+              var map = new HashMap<>();
+              map.put("statusCode", 200);
+              map.put("failure", null);
 
-                  return Map.of("callStatus", map);
-                });
+              return Map.of("callStatus", map);
+            });
         var resultExpression = "= {\"processedOutput\": { status: callStatus.statusCode } }";
 
         // when
@@ -542,14 +537,13 @@ class SpringConnectorJobHandlerTest {
       void shouldHandleMap_MapNullValues() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler(
-                (context) -> {
-                  var map = new HashMap<>();
-                  map.put("statusCode", 200);
-                  map.put("failure", null);
+            newConnectorJobHandler(context -> {
+              var map = new HashMap<>();
+              map.put("statusCode", 200);
+              map.put("failure", null);
 
-                  return Map.of("callStatus", map);
-                });
+              return Map.of("callStatus", map);
+            });
         var resultExpression = "= {\"processedOutput\": { failure: callStatus.failure } }";
 
         var expected = new HashMap<>();
@@ -569,7 +563,7 @@ class SpringConnectorJobHandlerTest {
       void shouldHandlePojo_Mapped() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
+            newConnectorJobHandler(context -> new TestConnectorResponsePojo("responseValue"));
         var resultExpression = "{\"processedOutput\": response.value }";
 
         // when
@@ -585,7 +579,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldHandlePojo_NullValues() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
+        var jobHandler = newConnectorJobHandler(context -> new TestConnectorResponsePojo(null));
         var resultExpression = "{\"processedOutput\": response.value }";
         var expected = new HashMap<>();
         expected.put("processedOutput", null);
@@ -604,7 +598,7 @@ class SpringConnectorJobHandlerTest {
       void shouldHandlePojo_DirectAssignment() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
+            newConnectorJobHandler(context -> new TestConnectorResponsePojo("responseValue"));
         var resultExpression = "= response";
 
         // when
@@ -621,13 +615,12 @@ class SpringConnectorJobHandlerTest {
       void shouldHandleUnknownObject() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler(
-                (context) -> {
-                  var response = new HashMap<>();
-                  response.put("status", "COMPLETED");
-                  response.put("failure", new NonSerializable());
-                  return response;
-                });
+            newConnectorJobHandler(context -> {
+              var response = new HashMap<>();
+              response.put("status", "COMPLETED");
+              response.put("failure", new NonSerializable());
+              return response;
+            });
         var resultExpression =
             "{\"processedOutput\": response.status, \"ignoredOutput\": response.failure}";
 
@@ -645,7 +638,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldFail_MappingFromNull() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> null);
+        var jobHandler = newConnectorJobHandler(context -> null);
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
         // when
@@ -661,7 +654,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldNotFail_MappingNonExistingKeys() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of());
+        var jobHandler = newConnectorJobHandler(context -> Map.of());
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
         // when
@@ -677,7 +670,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldSucceed_MappingFromScalarToContext() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> "FOO");
+        var jobHandler = newConnectorJobHandler(context -> "FOO");
         var resultExpression = "{processedOutput: response}";
 
         // when
@@ -693,7 +686,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldFail_MappingFromScalar() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> "FOO");
+        var jobHandler = newConnectorJobHandler(context -> "FOO");
         var resultExpression = "= response";
 
         // when
@@ -711,7 +704,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldFail_ProducingScalar() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of("FOO", "BAR"));
+        var jobHandler = newConnectorJobHandler(context -> Map.of("FOO", "BAR"));
         var resultExpression = "= FOO";
 
         // when & then
@@ -732,7 +725,7 @@ class SpringConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() throws Exception {
         // given
-        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler(context -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
@@ -745,8 +738,7 @@ class SpringConnectorJobHandlerTest {
       void shouldSetBothResultVariableAndExpression() throws Exception {
         // given
         var jobHandler =
-            newConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+            newConnectorJobHandler(context -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
 
         var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
@@ -787,10 +779,9 @@ class SpringConnectorJobHandlerTest {
     void shouldProduceFailCommandWhenCallThrowsException() throws Exception {
       // given
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new NullPointerException("expected");
-              });
+          newConnectorJobHandler(context -> {
+            throw new NullPointerException("expected");
+          });
 
       // when
       var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
@@ -827,10 +818,9 @@ class SpringConnectorJobHandlerTest {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new IllegalArgumentException(veryLongMessage);
-              });
+          newConnectorJobHandler(context -> {
+            throw new IllegalArgumentException(veryLongMessage);
+          });
 
       // when
       var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
@@ -868,10 +858,9 @@ class SpringConnectorJobHandlerTest {
     void shouldNotRetry_OnConnectorInputException(Exception exception) throws Exception {
       // given
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw exception;
-              });
+          newConnectorJobHandler(context -> {
+            throw exception;
+          });
 
       // when
       var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
@@ -914,10 +903,9 @@ class SpringConnectorJobHandlerTest {
               .withRetries(initialRetries)
               .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "PT1M"));
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new RuntimeException("oops");
-              });
+          newConnectorJobHandler(context -> {
+            throw new RuntimeException("oops");
+          });
 
       // when
       jobBuilder.execute(jobHandler);
@@ -939,10 +927,9 @@ class SpringConnectorJobHandlerTest {
               .withRetries(initialRetries)
               .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "P1D"));
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new RuntimeException("oops");
-              });
+          newConnectorJobHandler(context -> {
+            throw new RuntimeException("oops");
+          });
 
       // when
       jobBuilder.execute(jobHandler);
@@ -984,10 +971,9 @@ class SpringConnectorJobHandlerTest {
       var jobBuilder = JobBuilder.create().useJobClient(jobClient).withRetries(initialRetries);
 
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new RuntimeException("oops");
-              });
+          newConnectorJobHandler(context -> {
+            throw new RuntimeException("oops");
+          });
 
       // when
       jobBuilder.execute(jobHandler);
@@ -1112,11 +1098,10 @@ class SpringConnectorJobHandlerTest {
       // already elapsed by the time it returns; the broker may already consider this worker's
       // lease gone, so the connector must not run
       when(updateTimeoutStep2.execute())
-          .thenAnswer(
-              invocation -> {
-                Thread.sleep(50);
-                return null;
-              });
+          .thenAnswer(invocation -> {
+            Thread.sleep(50);
+            return null;
+          });
       var connectorFunction = mock(OutboundConnectorFunction.class);
       var jobHandler = newConnectorJobHandler(connectorFunction, camundaClient);
       var jobBuilder =
@@ -1325,10 +1310,9 @@ class SpringConnectorJobHandlerTest {
     void shouldHandleConnectorRetryException_Default_Error() throws Exception {
       // given
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorRetryExceptionBuilder().message("Test retry exception").build();
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorRetryExceptionBuilder().message("Test retry exception").build();
+          });
 
       // when
       var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
@@ -1347,15 +1331,14 @@ class SpringConnectorJobHandlerTest {
       var customErrorCode = "customErrorCode";
       var errorMessage = "Test retry exception";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorRetryExceptionBuilder()
-                    .message(errorMessage)
-                    .errorCode(customErrorCode)
-                    .retries(policyRetries)
-                    .backoffDuration(policyBackoff)
-                    .build();
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorRetryExceptionBuilder()
+                .message(errorMessage)
+                .errorCode(customErrorCode)
+                .retries(policyRetries)
+                .backoffDuration(policyBackoff)
+                .build();
+          });
 
       // when
       var result =
@@ -1393,19 +1376,18 @@ class SpringConnectorJobHandlerTest {
       var basicErrorMessage = "Basic exception";
       var basicErrorCode = "basicErrorCode";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                if (occurrence.getAndIncrement() == 0) {
-                  throw new ConnectorRetryExceptionBuilder()
-                      .message(retryErrorMessage)
-                      .errorCode(customRetryErrorCode)
-                      .retries(policyRetries)
-                      .backoffDuration(policyBackoff)
-                      .build();
-                } else {
-                  throw new ConnectorException(basicErrorCode, basicErrorMessage);
-                }
-              });
+          newConnectorJobHandler(context -> {
+            if (occurrence.getAndIncrement() == 0) {
+              throw new ConnectorRetryExceptionBuilder()
+                  .message(retryErrorMessage)
+                  .errorCode(customRetryErrorCode)
+                  .retries(policyRetries)
+                  .backoffDuration(policyBackoff)
+                  .build();
+            } else {
+              throw new ConnectorException(basicErrorCode, basicErrorMessage);
+            }
+          });
 
       // when
       var result =
@@ -1446,11 +1428,10 @@ class SpringConnectorJobHandlerTest {
         })
     void shouldNotCreateBpmnErrorWithExpression(String expression) throws Exception {
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                // no error code provided
-                throw new ConnectorException(null, "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            // no error code provided
+            throw new ConnectorException(null, "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1464,11 +1445,10 @@ class SpringConnectorJobHandlerTest {
     @Test
     void shouldFail_BpmnErrorFunctionWithWrongArgument() throws Exception {
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                // no error code provided
-                throw new ConnectorException(null, "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            // no error code provided
+            throw new ConnectorException(null, "exception message");
+          });
       var errorExpression = "bpmnError(123, \"\")";
       // when
       var result =
@@ -1489,10 +1469,9 @@ class SpringConnectorJobHandlerTest {
               + "{ \"errorType\": \"bpmnError\", \"errorCode\": error.code, \"errorMessage\": \"Message: \" + error.message} "
               + "else {}";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1511,14 +1490,13 @@ class SpringConnectorJobHandlerTest {
               + "{ \"errorType\": \"bpmnError\", \"errorCode\": error.code, \"errorMessage\": \"Message: \" + error.message, \"variables\": error.variables} "
               + "else {}";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorExceptionBuilder()
-                    .errorCode("1013")
-                    .message("exception message")
-                    .errorVariables(Map.of("foo", "bar"))
-                    .build();
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorExceptionBuilder()
+                .errorCode("1013")
+                .message("exception message")
+                .errorVariables(Map.of("foo", "bar"))
+                .build();
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1536,10 +1514,9 @@ class SpringConnectorJobHandlerTest {
       var errorExpression =
           "if contains(error.code,\"10\") then " + "bpmnError(error.code) " + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1555,10 +1532,9 @@ class SpringConnectorJobHandlerTest {
       // given
       var errorMessage = "Something went wrong: bar is not the correct password";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new IllegalArgumentException(errorMessage);
-              });
+          newConnectorJobHandler(context -> {
+            throw new IllegalArgumentException(errorMessage);
+          });
 
       // when
       var result =
@@ -1575,11 +1551,10 @@ class SpringConnectorJobHandlerTest {
     void shouldHideSecretsInJsonProcessingError() throws Exception {
       // given
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException(
-                    "JSON_PROCESSING_ERROR, bar could not be parsed as JSON String");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException(
+                "JSON_PROCESSING_ERROR, bar could not be parsed as JSON String");
+          });
 
       // when
       var result =
@@ -1597,10 +1572,9 @@ class SpringConnectorJobHandlerTest {
       // given
       var errorMessage = "Something went wrong: bar is not the correct password";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new IllegalArgumentException(errorMessage);
-              });
+          newConnectorJobHandler(context -> {
+            throw new IllegalArgumentException(errorMessage);
+          });
 
       // when
       var result =
@@ -1617,14 +1591,13 @@ class SpringConnectorJobHandlerTest {
     void shouldCreateBpmnErro2r_UsingExceptionCodeAndErrorVariables() throws Exception {
       // given
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorExceptionBuilder()
-                    .errorCode("1013")
-                    .message("exception message")
-                    .errorVariables(Map.of("foo", "bar"))
-                    .build();
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorExceptionBuilder()
+                .errorCode("1013")
+                .message("exception message")
+                .errorVariables(Map.of("foo", "bar"))
+                .build();
+          });
       // when
       var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false, false);
       // then
@@ -1652,10 +1625,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1674,10 +1646,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1698,10 +1669,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(\"9999\", \"Message for foo value on test property\") "
               + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1725,10 +1695,9 @@ class SpringConnectorJobHandlerTest {
           else {}
           """;
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1791,10 +1760,9 @@ class SpringConnectorJobHandlerTest {
           jobError("MyError", {"myVar": "myVal"})
           """;
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("CONNECTION_ERROR", "connection failed");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("CONNECTION_ERROR", "connection failed");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1815,10 +1783,9 @@ class SpringConnectorJobHandlerTest {
           jobError("ActualError", {"error": "UserProvidedError", "otherVar": "value"})
           """;
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("CONNECTION_ERROR", "connection failed");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("CONNECTION_ERROR", "connection failed");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1842,10 +1809,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1867,10 +1833,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1892,10 +1857,9 @@ class SpringConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       // when
       var result =
           JobBuilder.create()
@@ -1977,14 +1941,10 @@ class SpringConnectorJobHandlerTest {
       var errorExpression =
           "if contains(error.code,\"10\") then " + "ignoreError(error.variables) " + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException(
-                    "1013",
-                    "exception message",
-                    new RuntimeException("Test"),
-                    Map.of("foo", "bar"));
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException(
+                "1013", "exception message", new RuntimeException("Test"), Map.of("foo", "bar"));
+          });
       // when
       var result =
           JobBuilder.create()
@@ -2001,14 +1961,10 @@ class SpringConnectorJobHandlerTest {
       // given
       var errorExpression = "if contains(error.code,\"10\") then " + "ignoreError() " + "else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException(
-                    "1013",
-                    "exception message",
-                    new RuntimeException("Test"),
-                    Map.of("foo", "bar"));
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException(
+                "1013", "exception message", new RuntimeException("Test"), Map.of("foo", "bar"));
+          });
       // when
       var result =
           JobBuilder.create()
@@ -2027,10 +1983,9 @@ class SpringConnectorJobHandlerTest {
       // observe it - mirroring a downstream connector call that returned after being interrupted
       var errorExpression = "if error != null then bpmnError(error.code, error.message) else null";
       var jobHandler =
-          newConnectorJobHandler(
-              context -> {
-                throw new ConnectorException("1013", "exception message");
-              });
+          newConnectorJobHandler(context -> {
+            throw new ConnectorException("1013", "exception message");
+          });
       var jobClient = mock(JobClient.class);
 
       // when
@@ -2156,10 +2111,9 @@ class SpringConnectorJobHandlerTest {
   void connectorRaiseAnExceptionContainingSecret() throws Exception {
     // given
     var jobHandler =
-        newConnectorJobHandler(
-            context -> {
-              throw new ConnectorException("test: bar");
-            });
+        newConnectorJobHandler(context -> {
+          throw new ConnectorException("test: bar");
+        });
 
     // when
     var result =
@@ -2175,10 +2129,9 @@ class SpringConnectorJobHandlerTest {
   void retrieveAllSecretsShouldNotThrowIfSecretNotFound() throws Exception {
     // given
     var jobHandler =
-        newConnectorJobHandler(
-            context -> {
-              throw new ConnectorException("test: bar");
-            });
+        newConnectorJobHandler(context -> {
+          throw new ConnectorException("test: bar");
+        });
 
     // when
     var result =
@@ -2197,13 +2150,12 @@ class SpringConnectorJobHandlerTest {
     Map<String, Object> errorVariables = Map.of("status", 400);
 
     var jobHandler =
-        newConnectorJobHandler(
-            context -> {
-              throw new ConnectorExceptionBuilder()
-                  .message(errorMessage)
-                  .errorVariables(errorVariables)
-                  .build();
-            });
+        newConnectorJobHandler(context -> {
+          throw new ConnectorExceptionBuilder()
+              .message(errorMessage)
+              .errorVariables(errorVariables)
+              .build();
+        });
 
     // when
     var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
@@ -2581,11 +2533,10 @@ class SpringConnectorJobHandlerTest {
           .filteredOn(
               event -> event.getFormattedMessage().startsWith("Exception while completing job"))
           .singleElement()
-          .satisfies(
-              event -> {
-                assertThat(event.getFormattedMessage()).doesNotContain("old-value");
-                assertThat(event.getThrowableProxy()).isNull();
-              });
+          .satisfies(event -> {
+            assertThat(event.getFormattedMessage()).doesNotContain("old-value");
+            assertThat(event.getThrowableProxy()).isNull();
+          });
     }
 
     @Test
@@ -3167,7 +3118,7 @@ class SpringConnectorJobHandlerTest {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
 
       // when the result expression extracts just that field via createDocument
@@ -3205,7 +3156,7 @@ class SpringConnectorJobHandlerTest {
           Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) ->
+              context ->
                   Map.of(
                       "body",
                       Map.of("connectorResultFunction", "createDocument", "value", attackerBase64)),
@@ -3235,7 +3186,7 @@ class SpringConnectorJobHandlerTest {
 
       // Job A: harvests its own evaluation's nonce via a legitimate field projection.
       var jobHandlerA =
-          newConnectorJobHandlerWithDocumentFactory((context) -> Map.of(), documentFactory);
+          newConnectorJobHandlerWithDocumentFactory(context -> Map.of(), documentFactory);
       var resultA =
           JobBuilder.create()
               .withResultExpressionHeader(
@@ -3250,7 +3201,7 @@ class SpringConnectorJobHandlerTest {
           Base64.getEncoder().encodeToString("attacker payload".getBytes(StandardCharsets.UTF_8));
       var jobHandlerB =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) ->
+              context ->
                   Map.of(
                       "body",
                       Map.of("connectorResultFunction", leakedNonce, "value", attackerBase64)),
@@ -3274,7 +3225,7 @@ class SpringConnectorJobHandlerTest {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
       var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
 
@@ -3290,10 +3241,9 @@ class SpringConnectorJobHandlerTest {
 
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
       await()
-          .untilAsserted(
-              () ->
-                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
-                      .isEqualTo(documentsBefore));
+          .untilAsserted(() ->
+              assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                  .isEqualTo(documentsBefore));
     }
 
     @Test
@@ -3301,7 +3251,7 @@ class SpringConnectorJobHandlerTest {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
       var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
 
@@ -3323,10 +3273,9 @@ class SpringConnectorJobHandlerTest {
       // cleanup visits documents in creation order, so once the discarded one is gone it has
       // already passed the kept one
       await()
-          .untilAsserted(
-              () ->
-                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
-                      .isEqualTo(documentsAfter));
+          .untilAsserted(() ->
+              assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                  .isEqualTo(documentsAfter));
       assertThat(kept.asByteArray()).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
     }
 
@@ -3336,7 +3285,7 @@ class SpringConnectorJobHandlerTest {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE));
       var documentsBefore = Set.copyOf(InMemoryDocumentStore.INSTANCE.getDocuments().keySet());
 
@@ -3353,10 +3302,9 @@ class SpringConnectorJobHandlerTest {
       // the submitted variables carry the message under "error", not the document
       assertThat(result.getVariables()).containsEntry("error", "failed");
       await()
-          .untilAsserted(
-              () ->
-                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
-                      .isEqualTo(documentsBefore));
+          .untilAsserted(() ->
+              assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                  .isEqualTo(documentsBefore));
     }
 
     @Test
@@ -3364,7 +3312,7 @@ class SpringConnectorJobHandlerTest {
       String base64 = Base64.getEncoder().encodeToString("hello".getBytes(StandardCharsets.UTF_8));
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE),
               new SecretProviderAggregator(List.of(new FooBarSecretProvider())) {
                 @Override
@@ -3388,10 +3336,9 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("FAILED");
       assertThat(result.getVariables()).isEmpty();
       await()
-          .untilAsserted(
-              () ->
-                  assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
-                      .isEqualTo(documentsBefore));
+          .untilAsserted(() ->
+              assertThat(InMemoryDocumentStore.INSTANCE.getDocuments().keySet())
+                  .isEqualTo(documentsBefore));
     }
 
     @Test
@@ -3430,7 +3377,7 @@ class SpringConnectorJobHandlerTest {
           };
       var jobHandler =
           newConnectorJobHandlerWithDocumentFactory(
-              (context) -> Map.of("body", Map.of("file", base64)),
+              context -> Map.of("body", Map.of("file", base64)),
               new DocumentFactoryImpl(storeWithPendingDelete));
 
       var result =

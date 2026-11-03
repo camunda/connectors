@@ -116,15 +116,14 @@ public class BaseKafkaTest {
         .join();
     Awaitility.await("Kafka credential available to FEEL")
         .atMost(Duration.ofSeconds(30))
-        .until(
-            () ->
-                camundaClient
-                        .newEvaluateExpressionCommand()
-                        .expression("=camunda.vars.env." + name)
-                        .send()
-                        .join()
-                        .getResult()
-                    != null);
+        .until(() ->
+            camundaClient
+                    .newEvaluateExpressionCommand()
+                    .expression("=camunda.vars.env." + name)
+                    .send()
+                    .join()
+                    .getResult()
+                != null);
     return "=camunda.vars.env." + name;
   }
 }

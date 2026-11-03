@@ -170,14 +170,13 @@ public class OutboundConnectorDiscoveryTest {
       Long timeout) {
 
     Assertions.assertThatCollection(registrations)
-        .anySatisfy(
-            s -> {
-              Assertions.assertThat(s.name()).isEqualTo(name);
-              Assertions.assertThat(s.type()).isEqualTo(type);
-              Assertions.assertThat(s.inputVariables()).containsExactly(inputVariables);
-              Assertions.assertThat(s.instanceSupplier().get().getClass().getName())
-                  .isEqualTo(functionCls);
-              Assertions.assertThat(s.timeout()).isEqualTo(timeout);
-            });
+        .anySatisfy(s -> {
+          Assertions.assertThat(s.name()).isEqualTo(name);
+          Assertions.assertThat(s.type()).isEqualTo(type);
+          Assertions.assertThat(s.inputVariables()).containsExactly(inputVariables);
+          Assertions.assertThat(s.instanceSupplier().get().getClass().getName())
+              .isEqualTo(functionCls);
+          Assertions.assertThat(s.timeout()).isEqualTo(timeout);
+        });
   }
 }

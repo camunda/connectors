@@ -56,12 +56,11 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
                 WAITER_OVERRIDE_CONFIGURATION)
             .matched()
             .response()
-            .orElseThrow(
-                () ->
-                    new RuntimeException(
-                        "Timed out waiting for table ["
-                            + createTableModel.tableName()
-                            + "] to become ACTIVE"));
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Timed out waiting for table ["
+                        + createTableModel.tableName()
+                        + "] to become ACTIVE"));
     return TableDescriptionResult.from(response.table());
   }
 

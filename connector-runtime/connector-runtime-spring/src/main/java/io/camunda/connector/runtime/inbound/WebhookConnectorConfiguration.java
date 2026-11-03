@@ -184,10 +184,9 @@ public class WebhookConnectorConfiguration {
         .forEach(result::add);
     filterRegistrations.stream()
         .filter(AbstractFilterRegistrationBean::isEnabled)
-        .filter(
-            registration ->
-                registrationCanAffectWebhookEndpoints(
-                    registration, dispatcherServletPath, servletRegistrations))
+        .filter(registration ->
+            registrationCanAffectWebhookEndpoints(
+                registration, dispatcherServletPath, servletRegistrations))
         .map(AbstractFilterRegistrationBean::getFilter)
         .filter(filter -> type.isInstance(filter))
         .forEach(result::add);
@@ -211,9 +210,8 @@ public class WebhookConnectorConfiguration {
               .toList();
       if (matchingServlets.isEmpty()
           || matchingServlets.stream()
-              .anyMatch(
-                  servletRegistration ->
-                      servletRegistration.getServlet() instanceof DispatcherServlet)) {
+              .anyMatch(servletRegistration ->
+                  servletRegistration.getServlet() instanceof DispatcherServlet)) {
         return true;
       }
     }
@@ -224,9 +222,8 @@ public class WebhookConnectorConfiguration {
 
     var dispatcherServletRegistrations =
         servletRegistrations.stream()
-            .filter(
-                servletRegistration ->
-                    servletRegistration.getServlet() instanceof DispatcherServlet)
+            .filter(servletRegistration ->
+                servletRegistration.getServlet() instanceof DispatcherServlet)
             .toList();
     var dispatcherMappings =
         dispatcherServletRegistrations.stream()
@@ -245,10 +242,9 @@ public class WebhookConnectorConfiguration {
         .map(path -> path + "/inbound")
         .forEach(webhookPaths::add);
     return registration.getUrlPatterns().stream()
-        .anyMatch(
-            pattern ->
-                webhookPaths.stream()
-                    .anyMatch(webhookPath -> urlPatternCanMatchWebhook(pattern, webhookPath)));
+        .anyMatch(pattern ->
+            webhookPaths.stream()
+                .anyMatch(webhookPath -> urlPatternCanMatchWebhook(pattern, webhookPath)));
   }
 
   private static boolean isKnownServletMapping(String mapping) {

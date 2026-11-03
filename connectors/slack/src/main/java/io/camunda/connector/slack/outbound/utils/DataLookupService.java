@@ -65,28 +65,25 @@ public class DataLookupService {
     List<String> usernames = new ArrayList<>();
     List<String> userIds = new ArrayList<>();
 
-    validatedUserList.forEach(
-        user -> {
-          if (isEmail(user)) {
-            emails.add(user);
-          } else if (user.startsWith("@")) {
-            usernames.add(user.substring(1));
-          } else {
-            userIds.add(user);
-          }
-        });
+    validatedUserList.forEach(user -> {
+      if (isEmail(user)) {
+        emails.add(user);
+      } else if (user.startsWith("@")) {
+        usernames.add(user.substring(1));
+      } else {
+        userIds.add(user);
+      }
+    });
 
     List<String> idListByEmail =
         emails.stream()
-            .map(
-                email -> {
-                  try {
-                    return getUserIdByEmail(email, methodsClient);
-                  } catch (Exception e) {
-                    throw new RuntimeException(
-                        "Unable to find user with name or email : " + email, e);
-                  }
-                })
+            .map(email -> {
+              try {
+                return getUserIdByEmail(email, methodsClient);
+              } catch (Exception e) {
+                throw new RuntimeException("Unable to find user with name or email : " + email, e);
+              }
+            })
             .collect(Collectors.toList());
 
     List<String> idListByUserName = getIdListByUserNameList(usernames, methodsClient);
@@ -105,12 +102,11 @@ public class DataLookupService {
         .filter(UsersLookupByEmailResponse::isOk)
         .map(UsersLookupByEmailResponse::getUser)
         .map(User::getId)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    "User with email "
-                        + email
-                        + " not found; or unable 'users:read.email' permission"));
+        .orElseThrow(() ->
+            new RuntimeException(
+                "User with email "
+                    + email
+                    + " not found; or unable 'users:read.email' permission"));
   }
 
   public static String getUserIdByUserName(String userName, MethodsClient methodsClient) {

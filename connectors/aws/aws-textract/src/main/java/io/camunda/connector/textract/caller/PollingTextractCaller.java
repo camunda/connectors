@@ -117,46 +117,43 @@ public class PollingTextractCaller
             .handleResultIf(Objects::isNull)
             .withDelay(pollDelay)
             .withMaxAttempts(maxAttempts)
-            .onRetry(
-                ev ->
-                    LOGGER.debug(
-                        "Polling Textract job {} attempt {} started.", jobId, ev.getAttemptCount()))
-            .onFailure(
-                ev ->
-                    LOGGER.warn(
-                        "Textract job {} not completed after {} attempts.",
-                        jobId,
-                        ev.getAttemptCount()))
+            .onRetry(ev ->
+                LOGGER.debug(
+                    "Polling Textract job {} attempt {} started.", jobId, ev.getAttemptCount()))
+            .onFailure(ev ->
+                LOGGER.warn(
+                    "Textract job {} not completed after {} attempts.",
+                    jobId,
+                    ev.getAttemptCount()))
             .build();
 
     GetDocumentAnalysisResponse response =
         Failsafe.with(retryPolicy)
-            .get(
-                () -> {
-                  LOGGER.debug("Textract polling job {} started", jobId);
-                  GetDocumentAnalysisResponse polled =
-                      textractClient
-                          .getDocumentAnalysis(
-                              GetDocumentAnalysisRequest.builder()
-                                  .jobId(jobId)
-                                  .maxResults(MAX_RESULT)
-                                  .build())
-                          .join();
+            .get(() -> {
+              LOGGER.debug("Textract polling job {} started", jobId);
+              GetDocumentAnalysisResponse polled =
+                  textractClient
+                      .getDocumentAnalysis(
+                          GetDocumentAnalysisRequest.builder()
+                              .jobId(jobId)
+                              .maxResults(MAX_RESULT)
+                              .build())
+                      .join();
 
-                  JobStatus status = polled.jobStatus();
+              JobStatus status = polled.jobStatus();
 
-                  if (status == JobStatus.SUCCEEDED || status == JobStatus.PARTIAL_SUCCESS) {
-                    // PARTIAL_SUCCESS is a terminal status too: the job finished but some pages
-                    // could not be analyzed. It still carries usable blocks (plus warnings), so it
-                    // must be treated as complete - otherwise the connector would poll a job that
-                    // will never reach SUCCEEDED until the polling window times out, discarding
-                    // the partial result.
-                    return polled;
-                  } else if (status == JobStatus.FAILED) {
-                    throw new ConnectorInputException("Textract polling job: " + polled);
-                  }
-                  return null;
-                });
+              if (status == JobStatus.SUCCEEDED || status == JobStatus.PARTIAL_SUCCESS) {
+                // PARTIAL_SUCCESS is a terminal status too: the job finished but some pages
+                // could not be analyzed. It still carries usable blocks (plus warnings), so it
+                // must be treated as complete - otherwise the connector would poll a job that
+                // will never reach SUCCEEDED until the polling window times out, discarding
+                // the partial result.
+                return polled;
+              } else if (status == JobStatus.FAILED) {
+                throw new ConnectorInputException("Textract polling job: " + polled);
+              }
+              return null;
+            });
 
     // Defect fix: when every attempt is exhausted while the job is still IN_PROGRESS,
     // `handleResultIf(Objects::isNull)` matched a RESULT (not an exception) on every attempt, so

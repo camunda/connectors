@@ -139,44 +139,42 @@ class EmailRequestTest {
 
   @Test
   void bindingFailsWhenNeitherSourceProvidesAuthentication() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "protocol": "smtp",
-                      "data": {
-                        "smtpConfig": {
-                          "smtpHost": "localhost",
-                          "smtpPort": 587,
-                          "smtpCryptographicProtocol": "TLS"
-                        },
-                        %s
-                      }
-                    }
-                    """
-                        .formatted(SEND_EMAIL_ACTION)))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "protocol": "smtp",
+                  "data": {
+                    "smtpConfig": {
+                      "smtpHost": "localhost",
+                      "smtpPort": 587,
+                      "smtpCryptographicProtocol": "TLS"
+                    },
+                    %s
+                  }
+                }
+                """
+                    .formatted(SEND_EMAIL_ACTION)))
         .hasMessageContaining(
             "No authentication provided by the credential or the element template");
   }
 
   @Test
   void bindingFailsWhenNeitherSourceProvidesServerSettings() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "protocol": "smtp",
-                      "authentication": {
-                        "type": "simple",
-                        "username": "inline-user",
-                        "password": "inline-pass"
-                      },
-                      "data": { %s }
-                    }
-                    """
-                        .formatted(SEND_EMAIL_ACTION)))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "protocol": "smtp",
+                  "authentication": {
+                    "type": "simple",
+                    "username": "inline-user",
+                    "password": "inline-pass"
+                  },
+                  "data": { %s }
+                }
+                """
+                    .formatted(SEND_EMAIL_ACTION)))
         .hasMessageContaining(
             "No email server settings provided by the credential or the element template");
   }
@@ -187,24 +185,23 @@ class EmailRequestTest {
    */
   @Test
   void bindingFailsWhenTheBoundAccountsProtocolDoesNotMatchTheTask() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "protocol": "imap",
-                      "emailAccountConfiguration": {
-                        "protocol": "smtp",
-                        "username": "account-user",
-                        "password": "account-pass",
-                        "smtpHost": "localhost"
-                      },
-                      "data": {
-                        "imapActionDiscriminator": "listEmailsImap",
-                        "imapAction": { "maxToBeRead": 10, "sortField": "RECEIVED_DATE", "sortOrder": "ASC" }
-                      }
-                    }
-                    """))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "protocol": "imap",
+                  "emailAccountConfiguration": {
+                    "protocol": "smtp",
+                    "username": "account-user",
+                    "password": "account-pass",
+                    "smtpHost": "localhost"
+                  },
+                  "data": {
+                    "imapActionDiscriminator": "listEmailsImap",
+                    "imapAction": { "maxToBeRead": 10, "sortField": "RECEIVED_DATE", "sortOrder": "ASC" }
+                  }
+                }
+                """))
         .hasMessageContaining(
             "No email server settings provided by the credential or the element template");
   }

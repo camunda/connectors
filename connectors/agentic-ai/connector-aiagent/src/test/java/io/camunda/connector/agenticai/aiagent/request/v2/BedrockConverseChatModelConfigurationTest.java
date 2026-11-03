@@ -154,23 +154,18 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.region");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.authentication.accessKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.authentication.secretKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.region");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.authentication.accessKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.authentication.secretKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -180,11 +175,10 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.authentication.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -204,11 +198,10 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.model.model");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.model.model");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -256,12 +249,11 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.model.parameters.temperature");
-              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 0.0");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("bedrock.model.parameters.temperature");
+          assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 0.0");
+        });
   }
 
   @Test
@@ -272,11 +264,10 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.model.parameters.topP");
-              assertThat(v.getMessage()).isEqualTo("must be less than or equal to 1.0");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("bedrock.model.parameters.topP");
+          assertThat(v.getMessage()).isEqualTo("must be less than or equal to 1.0");
+        });
   }
 
   @Test
@@ -287,12 +278,11 @@ class BedrockConverseChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("bedrock.model.parameters.maxTokens");
-              assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 1");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("bedrock.model.parameters.maxTokens");
+          assertThat(v.getMessage()).isEqualTo("must be greater than or equal to 1");
+        });
   }
 
   @Test

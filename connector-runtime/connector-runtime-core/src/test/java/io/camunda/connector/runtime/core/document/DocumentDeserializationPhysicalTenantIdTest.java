@@ -104,13 +104,11 @@ class DocumentDeserializationPhysicalTenantIdTest {
     var ref = createDocumentMock("Hello from an unknown tenant", null, storeA);
     var payload = Map.of("document", ref);
 
-    assertThatThrownBy(
-            () ->
-                objectMapper
-                    .reader()
-                    .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, "tenant-unknown")
-                    .readValue(
-                        objectMapper.valueToTree(payload).toString(), TargetTypeDocument.class))
+    assertThatThrownBy(() ->
+            objectMapper
+                .reader()
+                .withAttribute(DocumentFactory.PHYSICAL_TENANT_ID_ATTRIBUTE, "tenant-unknown")
+                .readValue(objectMapper.valueToTree(payload).toString(), TargetTypeDocument.class))
         .hasCauseInstanceOf(IllegalStateException.class)
         .cause()
         .hasMessageContaining("No DocumentFactory configured for physical tenant 'tenant-unknown'");

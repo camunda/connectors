@@ -28,8 +28,8 @@ import org.jspecify.annotations.Nullable;
  * <ul>
  *   <li>{@link CommandFailure} — Zeebe rejected or ignored the command we sent.
  *   <li>{@link ExecutionFailed} — the connector or runtime hit an error before/while producing a
- *       usable response (function exception, error-expression evaluation failure, runtime-
- *       synthesized rejection).
+ *       usable response (function exception, error-expression evaluation failure,
+ *       runtime-synthesized rejection).
  *   <li>{@link BpmnErrorThrown} / {@link JobErrorRaised} — the connector deliberately chose not to
  *       complete normally (via an error expression).
  * </ul>

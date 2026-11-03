@@ -137,42 +137,40 @@ class EmailInboundConnectorPropertiesTest {
 
   @Test
   void bindingFailsWhenNeitherSourceProvidesAuthentication() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "data": {
-                        "imapConfig": {
-                          "imapHost": "localhost",
-                          "imapPort": 993,
-                          "imapCryptographicProtocol": "TLS"
-                        },
-                        %s
-                      }
-                    }
-                    """
-                        .formatted(POLLING_CONFIG)))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "data": {
+                    "imapConfig": {
+                      "imapHost": "localhost",
+                      "imapPort": 993,
+                      "imapCryptographicProtocol": "TLS"
+                    },
+                    %s
+                  }
+                }
+                """
+                    .formatted(POLLING_CONFIG)))
         .hasMessageContaining(
             "No authentication provided by the credential or the element template");
   }
 
   @Test
   void bindingFailsWhenNeitherSourceProvidesServerSettings() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "authentication": {
-                        "type": "simple",
-                        "username": "inline-user",
-                        "password": "inline-pass"
-                      },
-                      "data": { %s }
-                    }
-                    """
-                        .formatted(POLLING_CONFIG)))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "authentication": {
+                    "type": "simple",
+                    "username": "inline-user",
+                    "password": "inline-pass"
+                  },
+                  "data": { %s }
+                }
+                """
+                    .formatted(POLLING_CONFIG)))
         .hasMessageContaining(
             "No email server settings provided by the credential or the element template");
   }
@@ -185,19 +183,18 @@ class EmailInboundConnectorPropertiesTest {
    */
   @Test
   void bindingFailsWhenTheBoundAccountIsMissingItsImapHost() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "emailAccountConfiguration": {
-                        "username": "account-user",
-                        "password": "account-pass"
-                      },
-                      "data": { %s }
-                    }
-                    """
-                        .formatted(POLLING_CONFIG)))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "emailAccountConfiguration": {
+                    "username": "account-user",
+                    "password": "account-pass"
+                  },
+                  "data": { %s }
+                }
+                """
+                    .formatted(POLLING_CONFIG)))
         .hasMessageContaining("imapHost");
   }
 

@@ -204,12 +204,11 @@ public class DefaultOutboundConnectorFactory
       Function<T, OutboundConnectorFunction> instanceProvider) {
     return elements
         .filter(e -> typeProvider.apply(e).isAnnotationPresent(OutboundConnector.class))
-        .map(
-            e -> {
-              final OutboundConnector outboundConnector =
-                  typeProvider.apply(e).getAnnotation(OutboundConnector.class);
-              return toConfiguration(outboundConnector, () -> instanceProvider.apply(e));
-            })
+        .map(e -> {
+          final OutboundConnector outboundConnector =
+              typeProvider.apply(e).getAnnotation(OutboundConnector.class);
+          return toConfiguration(outboundConnector, () -> instanceProvider.apply(e));
+        })
         .collect(Collectors.toList());
   }
 
@@ -231,10 +230,8 @@ public class DefaultOutboundConnectorFactory
   public OutboundConnectorFunction getInstance(String type) {
     return this.getActiveConfiguration(type)
         .map(this::getCachedInstance)
-        .orElseThrow(
-            () ->
-                new NoSuchElementException(
-                    "Outbound connector \"" + type + "\" is not registered"));
+        .orElseThrow(() ->
+            new NoSuchElementException("Outbound connector \"" + type + "\" is not registered"));
   }
 
   private OutboundConnectorFunction getCachedInstance(

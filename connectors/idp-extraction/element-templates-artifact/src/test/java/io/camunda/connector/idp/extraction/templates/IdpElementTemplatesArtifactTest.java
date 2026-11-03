@@ -70,14 +70,13 @@ class IdpElementTemplatesArtifactTest {
 
   @Test
   void everyTemplateHasIdVersionAndEngineRange() {
-    packaged.forEach(
-        (file, template) -> {
-          assertThat(template.path("id").isTextual()).as("%s: id", file).isTrue();
-          assertThat(template.path("version").isInt()).as("%s: version", file).isTrue();
-          assertThat(template.path("engines").path("camunda").isTextual())
-              .as("%s: engines.camunda", file)
-              .isTrue();
-        });
+    packaged.forEach((file, template) -> {
+      assertThat(template.path("id").isTextual()).as("%s: id", file).isTrue();
+      assertThat(template.path("version").isInt()).as("%s: version", file).isTrue();
+      assertThat(template.path("engines").path("camunda").isTextual())
+          .as("%s: engines.camunda", file)
+          .isTrue();
+    });
   }
 
   @Test

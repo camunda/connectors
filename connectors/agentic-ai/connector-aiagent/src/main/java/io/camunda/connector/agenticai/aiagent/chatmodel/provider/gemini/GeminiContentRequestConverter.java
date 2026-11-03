@@ -362,9 +362,8 @@ public class GeminiContentRequestConverter {
       List<Part> functionResponseParts, @Nullable String name, @Nullable String id) {
     final List<Object> outputs =
         functionResponseParts.stream()
-            .map(
-                part ->
-                    part.functionResponse().orElseThrow().response().orElseThrow().get("output"))
+            .map(part ->
+                part.functionResponse().orElseThrow().response().orElseThrow().get("output"))
             .toList();
     final Object output = outputs.size() == 1 ? outputs.get(0) : outputs;
 

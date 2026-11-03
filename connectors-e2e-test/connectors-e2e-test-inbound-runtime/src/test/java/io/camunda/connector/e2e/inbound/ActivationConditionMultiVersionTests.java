@@ -145,12 +145,11 @@ public class ActivationConditionMultiVersionTests {
   private void awaitHealthyExecutable(String processId) {
     Awaitility.await("process " + processId + " should have healthy executable")
         .atMost(AWAIT_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              var executables = queryExecutables(processId);
-              assertThat(executables).isNotEmpty();
-              assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
-            });
+        .untilAsserted(() -> {
+          var executables = queryExecutables(processId);
+          assertThat(executables).isNotEmpty();
+          assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+        });
   }
 
   private File getResourceFile(String resourceName) {
@@ -199,12 +198,11 @@ public class ActivationConditionMultiVersionTests {
     // Wait for executable to have both version elements
     Awaitility.await("executable should have elements from both versions")
         .atMost(AWAIT_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              var executables = queryExecutables(testProcessId);
-              assertThat(executables).hasSize(1);
-              assertThat(executables.getFirst().elements()).hasSize(2);
-            });
+        .untilAsserted(() -> {
+          var executables = queryExecutables(testProcessId);
+          assertThat(executables).hasSize(1);
+          assertThat(executables.getFirst().elements()).hasSize(2);
+        });
 
     // Start instance on v2 - creates another message subscription with different correlation key
     camundaClient

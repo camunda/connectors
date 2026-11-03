@@ -124,22 +124,20 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "body")
-                        && messageHasContentType(argument, "text/plain; charset=UTF-8");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && bodyContains(argument.getContent(), "body")
+                    && messageHasContentType(argument, "text/plain; charset=UTF-8");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
+            argThat(argument ->
+                Arrays.toString(argument).contains("to")
+                    && Arrays.toString(argument).contains("cc")
+                    && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test
@@ -180,22 +178,20 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "body")
-                        && messageHasContentType(argument, "text/html; charset=utf-8");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && bodyContains(argument.getContent(), "body")
+                    && messageHasContentType(argument, "text/html; charset=utf-8");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
+            argThat(argument ->
+                Arrays.toString(argument).contains("to")
+                    && Arrays.toString(argument).contains("cc")
+                    && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test
@@ -237,23 +233,21 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "body")
-                        && messageHasContentType(
-                            argument, "text/plain; charset=UTF-8", "text/html; charset=utf-8");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && bodyContains(argument.getContent(), "body")
+                    && messageHasContentType(
+                        argument, "text/plain; charset=UTF-8", "text/html; charset=utf-8");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
+            argThat(argument ->
+                Arrays.toString(argument).contains("to")
+                    && Arrays.toString(argument).contains("cc")
+                    && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test
@@ -306,23 +300,21 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "testFile")
-                        && messageHasContentType(argument, "text/plain; charset=UTF-8")
-                        && bodyContains(argument.getContent(), "body");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
-            argThat(
-                argument ->
-                    Arrays.toString(argument).contains("to")
-                        && Arrays.toString(argument).contains("cc")
-                        && Arrays.toString(argument).contains("bcc")));
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && bodyContains(argument.getContent(), "testFile")
+                    && messageHasContentType(argument, "text/plain; charset=UTF-8")
+                    && bodyContains(argument.getContent(), "body");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
+            argThat(argument ->
+                Arrays.toString(argument).contains("to")
+                    && Arrays.toString(argument).contains("cc")
+                    && Arrays.toString(argument).contains("bcc")));
   }
 
   @Test
@@ -363,17 +355,16 @@ class JakartaExecutorTest {
 
     verify(transport, times(1))
         .sendMessage(
-            argThat(
-                argument -> {
-                  try {
-                    return Arrays.stream(argument.getFrom())
-                            .allMatch(address -> address.toString().contains("myself"))
-                        && bodyContains(argument.getContent(), "body")
-                        && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
-                  } catch (MessagingException | IOException e) {
-                    throw new RuntimeException(e);
-                  }
-                }),
+            argThat(argument -> {
+              try {
+                return Arrays.stream(argument.getFrom())
+                        .allMatch(address -> address.toString().contains("myself"))
+                    && bodyContains(argument.getContent(), "body")
+                    && Arrays.stream(argument.getHeader("test")).toList().contains("header1");
+              } catch (MessagingException | IOException e) {
+                throw new RuntimeException(e);
+              }
+            }),
             argThat(argument -> Arrays.toString(argument).contains("to")));
   }
 

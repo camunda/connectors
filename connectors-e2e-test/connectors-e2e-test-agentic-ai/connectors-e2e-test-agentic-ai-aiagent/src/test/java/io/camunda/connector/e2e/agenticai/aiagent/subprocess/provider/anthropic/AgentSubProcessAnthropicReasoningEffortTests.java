@@ -58,12 +58,11 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template
-                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
+            .andThen(template ->
+                template
+                    .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
+                    .property(
+                        "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -85,12 +84,11 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template
-                        .property("provider.anthropic.model.parameters.thinking.mode", "adaptive")
-                        .property(
-                            "provider.anthropic.model.parameters.thinking.display", "summarized"));
+            .andThen(template ->
+                template
+                    .property("provider.anthropic.model.parameters.thinking.mode", "adaptive")
+                    .property(
+                        "provider.anthropic.model.parameters.thinking.display", "summarized"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -110,10 +108,8 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template.property(
-                        "provider.anthropic.model.parameters.thinking.mode", "disabled"));
+            .andThen(template ->
+                template.property("provider.anthropic.model.parameters.thinking.mode", "disabled"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -137,9 +133,8 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template.property("provider.anthropic.model.parameters.effort", "xhigh"));
+            .andThen(template ->
+                template.property("provider.anthropic.model.parameters.effort", "xhigh"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -174,12 +169,11 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template
-                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
+            .andThen(template ->
+                template
+                    .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
+                    .property(
+                        "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -219,12 +213,11 @@ class AgentSubProcessAnthropicReasoningEffortTests extends BaseAnthropicSubProce
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(REASONING_CAPABLE_MODEL)
-            .andThen(
-                template ->
-                    template
-                        .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
-                        .property(
-                            "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
+            .andThen(template ->
+                template
+                    .property("provider.anthropic.model.parameters.thinking.mode", "enabled")
+                    .property(
+                        "provider.anthropic.model.parameters.thinking.budgetTokens", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));

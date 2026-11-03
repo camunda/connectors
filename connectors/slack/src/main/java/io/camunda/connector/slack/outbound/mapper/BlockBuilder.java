@@ -55,9 +55,8 @@ public class BlockBuilder {
     if (blockContent != null && !blockContent.isNull()) {
       if (blockContent instanceof ArrayNode arrayNode) {
         StreamSupport.stream(arrayNode.spliterator(), false)
-            .map(
-                jsonNode ->
-                    GsonFactory.createSnakeCase().fromJson(jsonNode.toString(), LayoutBlock.class))
+            .map(jsonNode ->
+                GsonFactory.createSnakeCase().fromJson(jsonNode.toString(), LayoutBlock.class))
             .forEach(this.layoutBlockList::add);
       } else throw new ConnectorInputException("Block section must be an array");
     }

@@ -107,14 +107,13 @@ public final class KafkaPropertiesUtil {
 
     // Step 4: "From registry" must use exactly the resolved schema and never register, so these
     // win over additional properties
-    resolvedSchema.ifPresent(
-        resolved -> {
-          props.put("auto.register.schemas", false);
-          props.put("use.latest.version", false);
-          props.put("use.schema.id", resolved.id());
-          props.put("value.subject.name.strategy", FixedSubjectNameStrategy.class.getName());
-          props.put(FixedSubjectNameStrategy.SUBJECT_CONFIG, resolved.subject());
-        });
+    resolvedSchema.ifPresent(resolved -> {
+      props.put("auto.register.schemas", false);
+      props.put("use.latest.version", false);
+      props.put("use.schema.id", resolved.id());
+      props.put("value.subject.name.strategy", FixedSubjectNameStrategy.class.getName());
+      props.put(FixedSubjectNameStrategy.SUBJECT_CONFIG, resolved.subject());
+    });
 
     return props;
   }

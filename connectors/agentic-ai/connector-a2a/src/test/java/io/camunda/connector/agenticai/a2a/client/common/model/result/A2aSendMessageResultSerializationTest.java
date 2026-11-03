@@ -297,14 +297,14 @@ class A2aSendMessageResultSerializationTest {
   private static String documentJson(Document document, String contentType, String fileName) {
     var reference = (CamundaDocumentReference) document.reference();
     return """
-        {
-          "camunda.document.type": "camunda",
-          "storeId": "in-memory",
-          "documentId": "%s",
-          "contentHash": "%s",
-          "metadata": {"contentType": "%s", "fileName": "%s"}
-        }
-        """
+    {
+      "camunda.document.type": "camunda",
+      "storeId": "in-memory",
+      "documentId": "%s",
+      "contentHash": "%s",
+      "metadata": {"contentType": "%s", "fileName": "%s"}
+    }
+    """
         .formatted(reference.getDocumentId(), reference.getContentHash(), contentType, fileName);
   }
 }

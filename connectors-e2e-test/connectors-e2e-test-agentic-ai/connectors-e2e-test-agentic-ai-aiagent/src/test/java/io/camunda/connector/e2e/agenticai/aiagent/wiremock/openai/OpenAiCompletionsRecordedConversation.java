@@ -227,10 +227,9 @@ public final class OpenAiCompletionsRecordedConversation {
             toolCalls() == null
                 ? List.of()
                 : toolCalls().stream()
-                    .map(
-                        tc ->
-                            new RecordedMessage.RecordedToolCall(
-                                tc.id(), tc.function().name(), tc.function().arguments()))
+                    .map(tc ->
+                        new RecordedMessage.RecordedToolCall(
+                            tc.id(), tc.function().name(), tc.function().arguments()))
                     .toList();
 
         return new RecordedMessage(role(), content, contentParts, toolCallId(), toolCalls);

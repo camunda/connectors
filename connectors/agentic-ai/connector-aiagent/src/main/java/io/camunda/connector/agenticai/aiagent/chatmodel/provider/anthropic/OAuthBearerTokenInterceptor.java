@@ -26,19 +26,13 @@ public final class OAuthBearerTokenInterceptor {
       @Nullable String audience,
       String clientAuthentication,
       @Nullable String scopes) {
-    return Interceptor.syncOnly(
-        (client, request, requestOptions) -> {
-          final var accessToken =
-              tokenResolver.resolveAccessToken(
-                  oauthTokenEndpoint,
-                  clientId,
-                  clientSecret,
-                  audience,
-                  clientAuthentication,
-                  scopes);
-          final var authorizedRequest =
-              request.toBuilder().replaceHeaders("Authorization", "Bearer " + accessToken).build();
-          return client.execute(authorizedRequest, requestOptions);
-        });
+    return Interceptor.syncOnly((client, request, requestOptions) -> {
+      final var accessToken =
+          tokenResolver.resolveAccessToken(
+              oauthTokenEndpoint, clientId, clientSecret, audience, clientAuthentication, scopes);
+      final var authorizedRequest =
+          request.toBuilder().replaceHeaders("Authorization", "Bearer " + accessToken).build();
+      return client.execute(authorizedRequest, requestOptions);
+    });
   }
 }

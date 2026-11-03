@@ -80,7 +80,7 @@ public class AgentSubProcessA2aIntegrationTests extends BaseAgentSubProcessTest 
   @BeforeEach
   void setUp() {
     testSupport = new AgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
-    testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
+    testSupport.setUpWireMockStubs(wireMock, testFile -> testFileContent(testFile).get());
     // Unique webhook context per test so consecutive A2A tests/reruns don't collide on the same
     // inbound context in the shared per-class runtime. webhookUrl must match the registered path.
     webhookContext = "test-webhook-id-" + UUID.randomUUID();
@@ -115,7 +115,7 @@ public class AgentSubProcessA2aIntegrationTests extends BaseAgentSubProcessTest 
             Map.of("a2aServerUrl", wireMock.getHttpBaseUrl(), "webhookUrl", webhookUrl),
             HAIKU_TEXT,
             true,
-            (agentResponse) ->
+            agentResponse ->
                 AgentSubProcessResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(HAIKU_TEXT)
                     .hasResponseText(HAIKU_TEXT)

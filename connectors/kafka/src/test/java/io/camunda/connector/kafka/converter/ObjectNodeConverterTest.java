@@ -29,7 +29,6 @@ public class ObjectNodeConverterTest {
         Files.readString(
                 Paths.get(ClassLoader.getSystemResource("nested-json-schema.json").toURI()))
             .replaceAll("\\s+", "");
-    ;
   }
 
   @Test

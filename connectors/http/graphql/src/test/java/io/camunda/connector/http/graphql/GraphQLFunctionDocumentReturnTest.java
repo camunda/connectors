@@ -79,12 +79,11 @@ class GraphQLFunctionDocumentReturnTest {
 
     assertThatThrownBy(() -> documentReturn.wrap().apply(errorBody, DocumentReturnChoice.JSON))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            ex -> {
-              var ce = (ConnectorException) ex;
-              assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
-              assertThat(ce.getMessage()).isEqualTo("boom");
-            });
+        .satisfies(ex -> {
+          var ce = (ConnectorException) ex;
+          assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
+          assertThat(ce.getMessage()).isEqualTo("boom");
+        });
   }
 
   @Test
@@ -113,12 +112,11 @@ class GraphQLFunctionDocumentReturnTest {
 
     assertThatThrownBy(() -> documentReturn.wrap().apply(errorText, DocumentReturnChoice.TEXT))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            ex -> {
-              var ce = (ConnectorException) ex;
-              assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
-              assertThat(ce.getMessage()).isEqualTo("boom");
-            });
+        .satisfies(ex -> {
+          var ce = (ConnectorException) ex;
+          assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
+          assertThat(ce.getMessage()).isEqualTo("boom");
+        });
   }
 
   @Test

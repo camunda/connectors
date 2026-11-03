@@ -509,10 +509,9 @@ public class ConnectorsAutoConfiguration {
   VerifiedHostValidator verifiedHostValidator(ConnectorProperties connectorProperties) {
     var validation =
         Optional.ofNullable(connectorProperties.validation())
-            .orElseGet(
-                () ->
-                    new ConnectorProperties.Validation(
-                        new ConnectorProperties.Validation.Hosts(false, null, null, false, false)));
+            .orElseGet(() ->
+                new ConnectorProperties.Validation(
+                    new ConnectorProperties.Validation.Hosts(false, null, null, false, false)));
     var allowRanges =
         Optional.ofNullable(validation.hosts().allowRanges()).orElseGet(List::of).stream()
             .map(CidrRange::parse)

@@ -290,11 +290,10 @@ class RegistrySchemaResolverTest {
   void lookupClientUsesRegistryUrlOverriddenInAdditionalProperties() throws Exception {
     var urls = new ArrayList<String>();
     var capturing =
-        new RegistrySchemaResolver(
-            (url, configs) -> {
-              urls.add(url);
-              return client;
-            });
+        new RegistrySchemaResolver((url, configs) -> {
+          urls.add(url);
+          return client;
+        });
     var request =
         new KafkaConnectorRequest(
             null,
@@ -313,11 +312,10 @@ class RegistrySchemaResolverTest {
   void lookupClientGetsTheSameSaslSettingsAsTheProducer() throws Exception {
     var captured = new ArrayList<Map<String, Object>>();
     var capturing =
-        new RegistrySchemaResolver(
-            (url, configs) -> {
-              captured.add(configs);
-              return client;
-            });
+        new RegistrySchemaResolver((url, configs) -> {
+          captured.add(configs);
+          return client;
+        });
     var request =
         new KafkaConnectorRequest(
             new KafkaAuthentication("user", "secret"),
@@ -339,11 +337,10 @@ class RegistrySchemaResolverTest {
   void lookupClientAcceptsAListOfRegistryUrlsInAdditionalProperties() throws Exception {
     var urls = new ArrayList<String>();
     var capturing =
-        new RegistrySchemaResolver(
-            (url, configs) -> {
-              urls.add(url);
-              return client;
-            });
+        new RegistrySchemaResolver((url, configs) -> {
+          urls.add(url);
+          return client;
+        });
     var request =
         new KafkaConnectorRequest(
             null,

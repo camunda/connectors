@@ -87,8 +87,8 @@ public class JobHandlerContext extends AbstractConnectorContext
   }
 
   /**
-   * Exposes the {@link ObjectMapper} this context was built with (i.e. the correct per-physical-
-   * tenant mapper selected by {@code OutboundConnectorManager}), so that {@link
+   * Exposes the {@link ObjectMapper} this context was built with (i.e. the correct
+   * per-physical-tenant mapper selected by {@code OutboundConnectorManager}), so that {@link
    * io.camunda.connector.runtime.core.outbound.operation.OperationInvoker} can deserialize
    * {@code @Variable}/{@code @Header} parameters with it instead of a mapper captured once at
    * connector registration time.
@@ -198,13 +198,12 @@ public class JobHandlerContext extends AbstractConnectorContext
               .map(JsonMappingException.Reference::getFieldName)
               .reduce((s, s2) -> s.concat(", ").concat(s2))
               .map("Json object contains an invalid field: "::concat)
-              .map(
-                  s ->
-                      mappingException.getTargetType() == null
-                          ? s
-                          : s.concat(". It Must be `")
-                              .concat(mappingException.getTargetType().getSimpleName())
-                              .concat("`"))
+              .map(s ->
+                  mappingException.getTargetType() == null
+                      ? s
+                      : s.concat(". It Must be `")
+                          .concat(mappingException.getTargetType().getSimpleName())
+                          .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
       return new ConnectorInputException(errorMessage, e);
     }

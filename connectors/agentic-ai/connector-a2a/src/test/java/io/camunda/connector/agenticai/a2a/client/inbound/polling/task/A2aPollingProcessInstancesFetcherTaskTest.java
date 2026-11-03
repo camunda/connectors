@@ -101,10 +101,9 @@ class A2aPollingProcessInstancesFetcherTaskTest {
         .scheduleWithFixedDelay(any(Runnable.class), any(Duration.class));
     verify(context)
         .reportHealth(
-            argThat(
-                health ->
-                    health.getStatus() == Health.Status.UP
-                        && health.getDetails().get("Process instances").equals(0)));
+            argThat(health ->
+                health.getStatus() == Health.Status.UP
+                    && health.getDetails().get("Process instances").equals(0)));
   }
 
   @Test
@@ -127,10 +126,9 @@ class A2aPollingProcessInstancesFetcherTaskTest {
     assertThat(pollingTaskCaptor.getValue()).isInstanceOf(A2aPollingTask.class);
     verify(context)
         .reportHealth(
-            argThat(
-                health ->
-                    health.getStatus() == Health.Status.UP
-                        && health.getDetails().get("Process instances").equals(1)));
+            argThat(health ->
+                health.getStatus() == Health.Status.UP
+                    && health.getDetails().get("Process instances").equals(1)));
   }
 
   @Test
@@ -178,10 +176,9 @@ class A2aPollingProcessInstancesFetcherTaskTest {
 
       verify(context)
           .reportHealth(
-              argThat(
-                  health ->
-                      health.getStatus() == Health.Status.UP
-                          && health.getDetails().get("Process instances").equals(3)));
+              argThat(health ->
+                  health.getStatus() == Health.Status.UP
+                      && health.getDetails().get("Process instances").equals(3)));
     }
   }
 

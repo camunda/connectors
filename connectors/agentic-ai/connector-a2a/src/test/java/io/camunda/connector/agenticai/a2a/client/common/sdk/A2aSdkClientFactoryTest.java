@@ -178,13 +178,12 @@ class A2aSdkClientFactoryTest {
 
       verify(clientBuilder)
           .clientConfig(
-              assertArg(
-                  clientConfig -> {
-                    assertThat(clientConfig.isStreaming()).isFalse();
-                    assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
-                    assertThat(clientConfig.isPolling()).isEqualTo(!isBlocking);
-                    assertThat(clientConfig.getPushNotificationConfig()).isNull();
-                  }));
+              assertArg(clientConfig -> {
+                assertThat(clientConfig.isStreaming()).isFalse();
+                assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
+                assertThat(clientConfig.isPolling()).isEqualTo(!isBlocking);
+                assertThat(clientConfig.getPushNotificationConfig()).isNull();
+              }));
 
       assertThat(client).isNotNull();
       client.close();
@@ -217,25 +216,24 @@ class A2aSdkClientFactoryTest {
 
       verify(clientBuilder)
           .clientConfig(
-              assertArg(
-                  clientConfig -> {
-                    assertThat(clientConfig.isStreaming()).isFalse();
-                    assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
-                    assertThat(clientConfig.isPolling()).isTrue();
-                    var pushConfig = clientConfig.getPushNotificationConfig();
-                    assertThat(pushConfig).isNotNull();
-                    assertThat(pushConfig.url()).isEqualTo("https://example.com/webhook");
-                    assertThat(pushConfig.token()).isEqualTo("my-token");
-                    var authInfo = pushConfig.authentication();
-                    assertThat(authInfo).isNotNull();
-                    assertThat(authInfo.schemes()).containsExactlyElementsOf(authSchemes);
-                    var creds = authInfo.credentials();
-                    if (credentials != null) {
-                      assertThat(creds).isEqualTo(credentials);
-                    } else {
-                      assertThat(creds).isNull();
-                    }
-                  }));
+              assertArg(clientConfig -> {
+                assertThat(clientConfig.isStreaming()).isFalse();
+                assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
+                assertThat(clientConfig.isPolling()).isTrue();
+                var pushConfig = clientConfig.getPushNotificationConfig();
+                assertThat(pushConfig).isNotNull();
+                assertThat(pushConfig.url()).isEqualTo("https://example.com/webhook");
+                assertThat(pushConfig.token()).isEqualTo("my-token");
+                var authInfo = pushConfig.authentication();
+                assertThat(authInfo).isNotNull();
+                assertThat(authInfo.schemes()).containsExactlyElementsOf(authSchemes);
+                var creds = authInfo.credentials();
+                if (credentials != null) {
+                  assertThat(creds).isEqualTo(credentials);
+                } else {
+                  assertThat(creds).isNull();
+                }
+              }));
 
       assertThat(client).isNotNull();
       client.close();

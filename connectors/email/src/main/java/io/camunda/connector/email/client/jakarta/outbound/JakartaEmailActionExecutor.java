@@ -118,26 +118,24 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return Arrays.stream(messages)
             .findFirst()
             .map(this.jakartaUtils::createEmail)
-            .map(
-                email -> {
-                  LOG.debug("Email found - size: {}", email.size());
-                  return new ReadEmailResponse(
-                      email.messageId(),
-                      email.from(),
-                      email.headers(),
-                      email.subject(),
-                      email.size(),
-                      email.body().bodyAsPlainText(),
-                      email.body().bodyAsHtml(),
-                      this.createDocumentList(email.body().attachments(), connectorContext),
-                      email.receivedAt(),
-                      List.of());
-                })
-            .orElseThrow(
-                () -> {
-                  LOG.warn("Email not found for IMAP read operation");
-                  return new MessagingException("Could not find an email ID");
-                });
+            .map(email -> {
+              LOG.debug("Email found - size: {}", email.size());
+              return new ReadEmailResponse(
+                  email.messageId(),
+                  email.from(),
+                  email.headers(),
+                  email.subject(),
+                  email.size(),
+                  email.body().bodyAsPlainText(),
+                  email.body().bodyAsHtml(),
+                  this.createDocumentList(email.body().attachments(), connectorContext),
+                  email.receivedAt(),
+                  List.of());
+            })
+            .orElseThrow(() -> {
+              LOG.warn("Email not found for IMAP read operation");
+              return new MessagingException("Could not find an email ID");
+            });
       }
     } catch (MessagingException e) {
       LOG.error("IMAP read email failed", e);
@@ -179,13 +177,11 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Message message =
           Arrays.stream(messages)
               .findFirst()
-              .orElseThrow(
-                  () -> {
-                    LOG.warn("Email not found in folder for IMAP move operation");
-                    return new MessagingException(
-                        "Email with messageId %s does not exist"
-                            .formatted(imapMoveEmail.messageId()));
-                  });
+              .orElseThrow(() -> {
+                LOG.warn("Email not found in folder for IMAP move operation");
+                return new MessagingException(
+                    "Email with messageId %s does not exist".formatted(imapMoveEmail.messageId()));
+              });
       LOG.debug("Moving message to target folder");
       this.jakartaUtils.moveMessage(store, message, imapMoveEmail.toFolder());
       sourceImapFolder.close();
@@ -220,10 +216,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                 .sorted(
                     this.jakartaUtils.retrieveEmailComparator(
                         imapListEmails.sortField(), imapListEmails.sortOrder()))
-                .map(
-                    email ->
-                        new ListEmailsResponse(
-                            email.messageId(), email.from(), email.subject(), email.size()))
+                .map(email ->
+                    new ListEmailsResponse(
+                        email.messageId(), email.from(), email.subject(), email.size()))
                 .limit(imapListEmails.maxToBeRead())
                 .toList();
         LOG.debug("IMAP list emails completed, returning {} emails", results.size());
@@ -268,26 +263,24 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
           return Arrays.stream(messages)
               .findFirst()
               .map(this.jakartaUtils::createEmail)
-              .map(
-                  email -> {
-                    LOG.debug("Email found - size: {}", email.size());
-                    return new ReadEmailResponse(
-                        email.messageId(),
-                        email.from(),
-                        email.headers(),
-                        email.subject(),
-                        email.size(),
-                        email.body().bodyAsPlainText(),
-                        email.body().bodyAsHtml(),
-                        this.createDocumentList(email.body().attachments(), this.connectorContext),
-                        email.receivedAt(),
-                        List.of());
-                  })
-              .orElseThrow(
-                  () -> {
-                    LOG.warn("Email not found for POP3 read operation");
-                    return new MessagingException("No emails have been found with this ID");
-                  });
+              .map(email -> {
+                LOG.debug("Email found - size: {}", email.size());
+                return new ReadEmailResponse(
+                    email.messageId(),
+                    email.from(),
+                    email.headers(),
+                    email.subject(),
+                    email.size(),
+                    email.body().bodyAsPlainText(),
+                    email.body().bodyAsHtml(),
+                    this.createDocumentList(email.body().attachments(), this.connectorContext),
+                    email.receivedAt(),
+                    List.of());
+              })
+              .orElseThrow(() -> {
+                LOG.warn("Email not found for POP3 read operation");
+                return new MessagingException("No emails have been found with this ID");
+              });
         }
       }
     } catch (MessagingException e) {
@@ -317,10 +310,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                   .sorted(
                       this.jakartaUtils.retrieveEmailComparator(
                           pop3ListEmails.sortField(), pop3ListEmails.sortOrder()))
-                  .map(
-                      email ->
-                          new ListEmailsResponse(
-                              email.messageId(), email.from(), email.subject(), email.size()))
+                  .map(email ->
+                      new ListEmailsResponse(
+                          email.messageId(), email.from(), email.subject(), email.size()))
                   .limit(pop3ListEmails.maxToBeRead())
                   .toList();
           LOG.debug("POP3 list emails completed, returning {} emails", results.size());
@@ -364,11 +356,10 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
       if (bcc.isPresent()) message.setRecipients(Message.RecipientType.BCC, bcc.get());
-      headers.ifPresent(
-          stringObjectMap -> {
-            LOG.debug("Setting {} custom headers", stringObjectMap.size());
-            setMessageHeaders(stringObjectMap, message);
-          });
+      headers.ifPresent(stringObjectMap -> {
+        LOG.debug("Setting {} custom headers", stringObjectMap.size());
+        setMessageHeaders(stringObjectMap, message);
+      });
       message.setSubject(smtpSendEmail.subject());
       LOG.debug("Building multipart content for content type: {}", smtpSendEmail.contentType());
       Multipart multipart = getMultipart(smtpSendEmail);
@@ -395,15 +386,14 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private void setMessageHeaders(Map<String, String> stringObjectMap, Message message) {
     LOG.debug("Setting {} message headers", stringObjectMap.size());
-    stringObjectMap.forEach(
-        (key, value) -> {
-          try {
-            message.setHeader(key, value);
-          } catch (MessagingException e) {
-            LOG.error("Failed to set a message header", e);
-            throw new RuntimeException(e);
-          }
-        });
+    stringObjectMap.forEach((key, value) -> {
+      try {
+        message.setHeader(key, value);
+      } catch (MessagingException e) {
+        LOG.error("Failed to set a message header", e);
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   private Multipart getMultipart(SmtpSendEmail smtpSendEmail) throws MessagingException {
@@ -489,11 +479,10 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     Message message =
         Arrays.stream(messages)
             .findFirst()
-            .orElseThrow(
-                () -> {
-                  LOG.warn("Email not found for deletion");
-                  return new MessagingException("No emails have been found with this ID");
-                });
+            .orElseThrow(() -> {
+              LOG.warn("Email not found for deletion");
+              return new MessagingException("No emails have been found with this ID");
+            });
     LOG.debug("Marking message as deleted");
     this.jakartaUtils.markAsDeleted(message);
     LOG.debug("Email deleted successfully");
@@ -547,25 +536,24 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
     LOG.debug("Creating document list from {} attachment(s)", attachments.size());
     List<Document> documents =
         attachments.stream()
-            .map(
-                attachment -> {
-                  LOG.debug("Creating document for attachment '{}'", attachment.name());
-                  try {
-                    return connectorContext.create(
-                        DocumentCreationRequest.from(attachment.inputStream())
-                            .fileName(attachment.name())
-                            .contentType(attachment.contentType())
-                            .build());
-                  } catch (Exception e) {
-                    throw new RuntimeException(
-                        "Failed to upload attachment '%s' to document store (%s): %s"
-                            .formatted(
-                                attachment.name(),
-                                e.getClass().getSimpleName(),
-                                String.valueOf(e.getMessage())),
-                        e);
-                  }
-                })
+            .map(attachment -> {
+              LOG.debug("Creating document for attachment '{}'", attachment.name());
+              try {
+                return connectorContext.create(
+                    DocumentCreationRequest.from(attachment.inputStream())
+                        .fileName(attachment.name())
+                        .contentType(attachment.contentType())
+                        .build());
+              } catch (Exception e) {
+                throw new RuntimeException(
+                    "Failed to upload attachment '%s' to document store (%s): %s"
+                        .formatted(
+                            attachment.name(),
+                            e.getClass().getSimpleName(),
+                            String.valueOf(e.getMessage())),
+                    e);
+              }
+            })
             .toList();
     LOG.debug("Created {} document(s) from attachments", documents.size());
     return documents;

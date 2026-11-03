@@ -144,30 +144,27 @@ public class InMemoryBedrockAgentCoreClientFactory implements BedrockAgentCoreCl
             .filter(e -> e.memoryId().equals(request.memoryId()))
             .filter(e -> e.actorId().equals(request.actorId()))
             .filter(e -> e.sessionId().equals(request.sessionId()))
-            .filter(
-                e -> {
-                  if (requestedBranch == null) {
-                    // No branch filter: return events on the main timeline (no branch)
-                    return e.branchName() == null;
-                  }
-                  // Include events on any branch in the chain, plus main timeline events
-                  return branchSet.contains(e.branchName()) || e.branchName() == null;
-                })
-            .map(
-                e ->
-                    Event.builder()
-                        .eventId(e.eventId())
-                        .eventTimestamp(e.timestamp())
-                        .payload(e.payloads())
-                        .metadata(e.metadata())
-                        .build())
+            .filter(e -> {
+              if (requestedBranch == null) {
+                // No branch filter: return events on the main timeline (no branch)
+                return e.branchName() == null;
+              }
+              // Include events on any branch in the chain, plus main timeline events
+              return branchSet.contains(e.branchName()) || e.branchName() == null;
+            })
+            .map(e ->
+                Event.builder()
+                    .eventId(e.eventId())
+                    .eventTimestamp(e.timestamp())
+                    .payload(e.payloads())
+                    .metadata(e.metadata())
+                    .build())
             .toList();
 
     var iterable = mock(ListEventsIterable.class);
-    doAnswer(
-            inv ->
-                (software.amazon.awssdk.core.pagination.sync.SdkIterable<Event>)
-                    () -> matchingEvents.iterator())
+    doAnswer(inv ->
+            (software.amazon.awssdk.core.pagination.sync.SdkIterable<Event>)
+                () -> matchingEvents.iterator())
         .when(iterable)
         .events();
 

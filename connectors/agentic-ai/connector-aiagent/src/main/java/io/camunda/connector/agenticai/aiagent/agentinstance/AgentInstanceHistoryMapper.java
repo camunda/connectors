@@ -144,11 +144,10 @@ public class AgentInstanceHistoryMapper {
     }
     return Optional.ofNullable(toolCallsById.get(result.id()))
         .map(toolCall -> requireNonNullElse(toolCall.arguments(), Map.<String, Object>of()))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "No originating tool call found for tool call result with id '%s'"
-                        .formatted(result.id())));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                "No originating tool call found for tool call result with id '%s'"
+                    .formatted(result.id())));
   }
 
   public List<AgentInstanceHistoryContent> assistantContent(AssistantMessage assistantMessage) {
@@ -162,13 +161,12 @@ public class AgentInstanceHistoryMapper {
       return null;
     }
     return toolCalls.stream()
-        .map(
-            toolCall ->
-                new AgentInstanceHistoryToolCall()
-                    .toolCallId(toolCall.id())
-                    .toolName(toolCall.name())
-                    .elementId(elementIdFor(null, toolCall.name()))
-                    .arguments(toolCall.arguments()))
+        .map(toolCall ->
+            new AgentInstanceHistoryToolCall()
+                .toolCallId(toolCall.id())
+                .toolName(toolCall.name())
+                .elementId(elementIdFor(null, toolCall.name()))
+                .arguments(toolCall.arguments()))
         .toList();
   }
 

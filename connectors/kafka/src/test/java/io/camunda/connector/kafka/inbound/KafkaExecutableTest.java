@@ -120,11 +120,10 @@ public class KafkaExecutableTest {
 
     // Return and stop looping
     when(mockConsumer.poll(any()))
-        .then(
-            invocationOnMock -> {
-              kafkaExecutable.kafkaConnectorConsumer.shouldLoop = false;
-              return new ConsumerRecords<>(new HashMap<>());
-            });
+        .then(invocationOnMock -> {
+          kafkaExecutable.kafkaConnectorConsumer.shouldLoop = false;
+          return new ConsumerRecords<>(new HashMap<>());
+        });
 
     var groupMetadataMock = mock(ConsumerGroupMetadata.class);
     when(groupMetadataMock.groupId()).thenReturn("groupId");
@@ -171,11 +170,10 @@ public class KafkaExecutableTest {
             .validation(new DefaultValidationProvider())
             .build();
     when(mockConsumer.poll(any()))
-        .then(
-            invocation -> {
-              executable.kafkaConnectorConsumer.shouldLoop = false;
-              return ConsumerRecords.empty();
-            });
+        .then(invocation -> {
+          executable.kafkaConnectorConsumer.shouldLoop = false;
+          return ConsumerRecords.empty();
+        });
     var groupMetadata = mock(ConsumerGroupMetadata.class);
     when(groupMetadata.groupId()).thenReturn("task-group");
     when(groupMetadata.groupInstanceId()).thenReturn(Optional.empty());

@@ -54,12 +54,9 @@ public class ConnectorInstancesReducer implements Reducer<ConnectorInstances> {
     Map<ExecutableId, ActiveInboundConnectorResponse> mergedMap = new HashMap<>();
 
     Stream.concat(a.instances().stream(), b.instances().stream())
-        .forEach(
-            instance ->
-                mergedMap.merge(
-                    instance.executableId(),
-                    instance,
-                    activeInboundConnectorResponseReducer::reduce));
+        .forEach(instance ->
+            mergedMap.merge(
+                instance.executableId(), instance, activeInboundConnectorResponseReducer::reduce));
 
     return new ConnectorInstances(
         a.connectorId(), a.connectorName(), new ArrayList<>(mergedMap.values()));

@@ -96,10 +96,8 @@ class FeelPropertyDocumentInteropTest {
 
   @Test
   void anIntrinsicFunctionIsRefusedOnAStringPropertyOfTheInboundMapper() {
-    assertThatThrownBy(
-            () ->
-                inboundMapper()
-                    .convertValue(Map.of("value", intrinsicFunction()), StringProps.class))
+    assertThatThrownBy(() ->
+            inboundMapper().convertValue(Map.of("value", intrinsicFunction()), StringProps.class))
         .hasRootCauseInstanceOf(UnsupportedOperationException.class)
         .rootCause()
         .hasMessageContaining("Intrinsic function dispatch is disabled");

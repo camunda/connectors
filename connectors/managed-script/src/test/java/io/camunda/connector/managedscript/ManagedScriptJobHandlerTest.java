@@ -404,11 +404,10 @@ class ManagedScriptJobHandlerTest {
 
     assertThat(logs.list)
         .extracting(ILoggingEvent::getFormattedMessage)
-        .anyMatch(
-            message ->
-                message.matches(
-                    "Managed-script job 42: script resource %d, language python, outcome COMPLETED, \\d+ ms"
-                        .formatted(SCRIPT_KEY)));
+        .anyMatch(message ->
+            message.matches(
+                "Managed-script job 42: script resource %d, language python, outcome COMPLETED, \\d+ ms"
+                    .formatted(SCRIPT_KEY)));
   }
 
   private ManagedScriptJobHandler handler(Duration visibilityTimeout) {

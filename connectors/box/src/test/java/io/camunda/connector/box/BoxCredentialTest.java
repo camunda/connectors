@@ -82,29 +82,28 @@ class BoxCredentialTest {
   void bindsEveryCredentialVariant() {
     assertThat(
             bind("""
-                    "boxCredential": {"authentication": {"type": "clientCredentialsUser",
-                      "clientId": "c", "clientSecret": "s", "userId": "u"}},
-                    """)
+            "boxCredential": {"authentication": {"type": "clientCredentialsUser",
+              "clientId": "c", "clientSecret": "s", "userId": "u"}},
+            """)
                 .authentication())
         .isEqualTo(new Authentication.ClientCredentialsUser("c", "s", "u"));
     assertThat(
             bind("""
-                    "boxCredential": {"authentication": {"type": "jwtJsonConfig",
-                      "jsonConfig": "{}"}},
-                    """)
+            "boxCredential": {"authentication": {"type": "jwtJsonConfig",
+              "jsonConfig": "{}"}},
+            """)
                 .authentication())
         .isEqualTo(new Authentication.JWTJsonConfig("{}"));
   }
 
   @Test
   void rejectsDeveloperTokenInCredential() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    "boxCredential": {"authentication": {"type": "developerToken",
-                      "accessToken": "token"}},
-                    """))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                "boxCredential": {"authentication": {"type": "developerToken",
+                  "accessToken": "token"}},
+                """))
         .hasMessageContaining("Could not resolve type id 'developerToken'");
   }
 
@@ -118,13 +117,12 @@ class BoxCredentialTest {
 
   @Test
   void validatesCredentialAuthentication() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    "boxCredential": {"authentication": {"type": "clientCredentialsEnterprise",
-                      "clientId": "c", "clientSecret": "s"}},
-                    """))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                "boxCredential": {"authentication": {"type": "clientCredentialsEnterprise",
+                  "clientId": "c", "clientSecret": "s"}},
+                """))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("enterpriseId");
   }

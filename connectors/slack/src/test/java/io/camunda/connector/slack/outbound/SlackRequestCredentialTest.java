@@ -24,13 +24,13 @@ class SlackRequestCredentialTest {
 
   private static String variables(String slackCredential, String token) {
     return """
-        {
-          %s
-          %s
-          "method": "chat.postMessage",
-          "data": { "channel": "C123ABC456", "text": "hello" }
-        }
-        """
+    {
+      %s
+      %s
+      "method": "chat.postMessage",
+      "data": { "channel": "C123ABC456", "text": "hello" }
+    }
+    """
         .formatted(slackCredential, token);
   }
 

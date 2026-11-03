@@ -237,11 +237,10 @@ public class GeminiContentResponseConverter {
    */
   private @Nullable Map<String, Object> toolCallMetadata(Part part) {
     return part.thoughtSignature()
-        .<Map<String, Object>>map(
-            signature ->
-                Map.of(
-                    GOOGLE_GEMINI_ID,
-                    Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature))))
+        .<Map<String, Object>>map(signature ->
+            Map.of(
+                GOOGLE_GEMINI_ID,
+                Map.of(THOUGHT_SIGNATURE_METADATA_KEY, encodeSignature(signature))))
         .orElse(null);
   }
 

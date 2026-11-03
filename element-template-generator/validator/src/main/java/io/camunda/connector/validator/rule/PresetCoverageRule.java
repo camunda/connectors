@@ -258,12 +258,11 @@ public class PresetCoverageRule implements Rule {
     Map<String, String> assignment = new LinkedHashMap<>();
     properties
         .properties()
-        .forEach(
-            e -> {
-              if (e.getValue().isTextual()) {
-                assignment.put(e.getKey(), e.getValue().asText());
-              }
-            });
+        .forEach(e -> {
+          if (e.getValue().isTextual()) {
+            assignment.put(e.getKey(), e.getValue().asText());
+          }
+        });
     return assignment;
   }
 

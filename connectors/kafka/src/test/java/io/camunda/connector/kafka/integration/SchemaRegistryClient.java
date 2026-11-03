@@ -27,9 +27,8 @@ public class SchemaRegistryClient {
   public List<String> registerAll(
       List<SchemaWithTopic> schemaWithTopicList, String schemaRegistryHost) {
     return schemaWithTopicList.stream()
-        .map(
-            schemaWithTopic ->
-                register(schemaWithTopic.schema(), schemaRegistryHost, schemaWithTopic.topic()))
+        .map(schemaWithTopic ->
+            register(schemaWithTopic.schema(), schemaRegistryHost, schemaWithTopic.topic()))
         .toList();
   }
 

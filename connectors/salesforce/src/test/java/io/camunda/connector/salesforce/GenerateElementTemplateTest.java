@@ -110,13 +110,10 @@ class GenerateElementTemplateTest {
 
     assertThat(inlineAuthProperties)
         .isNotEmpty()
-        .allSatisfy(
-            p ->
-                assertThat(hidesWhenCredentialBound(p.getCondition()))
-                    .as(
-                        "property %s is gated on authenticationConfiguration being empty",
-                        p.getId())
-                    .isTrue());
+        .allSatisfy(p ->
+            assertThat(hidesWhenCredentialBound(p.getCondition()))
+                .as("property %s is gated on authenticationConfiguration being empty", p.getId())
+                .isTrue());
   }
 
   private static List<Property> authenticationProperties(ElementTemplate generated) {

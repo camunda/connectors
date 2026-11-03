@@ -382,11 +382,10 @@ class ChatMessageConverterTest {
 
     assertThat(result.content())
         .hasSize(1)
-        .satisfiesExactly(
-            content -> {
-              assertThat(content).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) content).text()).isEqualTo("AI response");
-            });
+        .satisfiesExactly(content -> {
+          assertThat(content).isInstanceOf(TextContent.class);
+          assertThat(((TextContent) content).text()).isEqualTo("AI response");
+        });
 
     assertThat(result.modelId()).isEqualTo("my-model");
     assertThat(result.messageId()).isEqualTo("chatcmpl-123");
@@ -644,13 +643,11 @@ class ChatMessageConverterTest {
 
     assertThat(result)
         .hasSize(1)
-        .satisfiesExactly(
-            chatMessage -> {
-              assertThat(chatMessage)
-                  .isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
-              assertThat(((dev.langchain4j.data.message.SystemMessage) chatMessage).text())
-                  .isEqualTo("Test system message");
-            });
+        .satisfiesExactly(chatMessage -> {
+          assertThat(chatMessage).isInstanceOf(dev.langchain4j.data.message.SystemMessage.class);
+          assertThat(((dev.langchain4j.data.message.SystemMessage) chatMessage).text())
+              .isEqualTo("Test system message");
+        });
   }
 
   @Test

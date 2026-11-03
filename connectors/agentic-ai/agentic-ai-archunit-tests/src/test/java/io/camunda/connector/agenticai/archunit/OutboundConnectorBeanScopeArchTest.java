@@ -59,12 +59,11 @@ class OutboundConnectorBeanScopeArchTest {
         final boolean prototype =
             method
                 .tryGetAnnotationOfType(SCOPE)
-                .map(
-                    scope ->
-                        Stream.concat(
-                                AnnotationProperties.strings(scope, "value").stream(),
-                                AnnotationProperties.strings(scope, "scopeName").stream())
-                            .anyMatch(PROTOTYPE::equals))
+                .map(scope ->
+                    Stream.concat(
+                            AnnotationProperties.strings(scope, "value").stream(),
+                            AnnotationProperties.strings(scope, "scopeName").stream())
+                        .anyMatch(PROTOTYPE::equals))
                 .orElse(false);
         if (!prototype) {
           events.add(

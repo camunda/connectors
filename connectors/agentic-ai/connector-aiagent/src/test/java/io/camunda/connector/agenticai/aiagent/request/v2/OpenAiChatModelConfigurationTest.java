@@ -60,11 +60,10 @@ class OpenAiChatModelConfigurationTest {
     final var config = configuration(responsesApi(), openAiApiBackend("sk-test"), "");
 
     assertThat(validator.validate(config))
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.model.model");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("openai.model.model");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -75,11 +74,10 @@ class OpenAiChatModelConfigurationTest {
         validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.openai.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.openai.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -87,12 +85,10 @@ class OpenAiChatModelConfigurationTest {
     final var config = configuration(completionsApi(), customBackend("ftp://nope"), "gpt-5.5");
 
     assertThat(validator.validate(config))
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("Must be an HTTP or HTTPS URL");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.custom.endpoint");
+          assertThat(v.getMessage()).isEqualTo("Must be an HTTP or HTTPS URL");
+        });
   }
 
   @Test
@@ -109,18 +105,15 @@ class OpenAiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.custom.endpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("openai.backend.custom.authentication.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test
@@ -397,24 +390,21 @@ class OpenAiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.authentication.oauthTokenEndpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.authentication.clientId");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.custom.authentication.clientSecret");
-              assertThat(v.getMessage()).isEqualTo("must not be empty");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("openai.backend.custom.authentication.oauthTokenEndpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("openai.backend.custom.authentication.clientId");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("openai.backend.custom.authentication.clientSecret");
+          assertThat(v.getMessage()).isEqualTo("must not be empty");
+        });
   }
 
   @Test
@@ -549,18 +539,15 @@ class OpenAiChatModelConfigurationTest {
     final var violations = validator.validate(config);
 
     assertThat(violations)
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.foundry.endpoint");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            })
-        .anySatisfy(
-            v -> {
-              assertThat(v.getPropertyPath().toString())
-                  .isEqualTo("openai.backend.foundry.authentication.apiKey");
-              assertThat(v.getMessage()).isEqualTo("must not be blank");
-            });
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString()).isEqualTo("openai.backend.foundry.endpoint");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        })
+        .anySatisfy(v -> {
+          assertThat(v.getPropertyPath().toString())
+              .isEqualTo("openai.backend.foundry.authentication.apiKey");
+          assertThat(v.getMessage()).isEqualTo("must not be blank");
+        });
   }
 
   @Test

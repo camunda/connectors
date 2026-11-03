@@ -76,12 +76,11 @@ class A2aClientAgenticToolAutoConfigurationTest {
   void disablesA2aAgentToolIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.a2a.client.agentic.tool.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, A2A_AGENT_TOOL_BEANS);
-              assertHasAllBeansOf(context, A2A_COMMON_BEANS);
-              assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, A2A_AGENT_TOOL_BEANS);
+          assertHasAllBeansOf(context, A2A_COMMON_BEANS);
+          assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
+        });
   }
 
   @Test

@@ -75,15 +75,14 @@ class AutomationAnywhereRequestTest {
 
   @Test
   void neitherCredentialNorConfigurationObject_failsNamingBothSources() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "authentication": { "type": "tokenBasedAuthentication", "token": "t" },
-                    """
-                        + OPERATION
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "authentication": { "type": "tokenBasedAuthentication", "token": "t" },
+                """
+                    + OPERATION
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining(
             "No Control Room URL provided by the credential or the element template");
@@ -130,14 +129,13 @@ class AutomationAnywhereRequestTest {
 
   @Test
   void neitherPresent_failsNamingBothSources() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    { "configuration": { "controlRoomUrl": "" },
-                    """
-                        + OPERATION
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                { "configuration": { "controlRoomUrl": "" },
+                """
+                    + OPERATION
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining(
             "No Control Room URL provided by the credential or the element template")
@@ -147,34 +145,32 @@ class AutomationAnywhereRequestTest {
 
   @Test
   void incompleteInlineAuthentication_withoutCredential_fails() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "authentication": { "type": "passwordBasedAuthentication" },
-                      "configuration": { "controlRoomUrl": "https://inline.example.com" },
-                    """
-                        + OPERATION
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "authentication": { "type": "passwordBasedAuthentication" },
+                  "configuration": { "controlRoomUrl": "https://inline.example.com" },
+                """
+                    + OPERATION
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("username");
   }
 
   @Test
   void incompleteCredential_fails() {
-    assertThatThrownBy(
-            () ->
-                bind(
-                    """
-                    {
-                      "authenticationConfiguration": {
-                        "authentication": { "type": "tokenBasedAuthentication", "token": "t" }
-                      },
-                      "configuration": { "controlRoomUrl": "https://inline.example.com" },
-                    """
-                        + OPERATION
-                        + "}"))
+    assertThatThrownBy(() ->
+            bind(
+                """
+                {
+                  "authenticationConfiguration": {
+                    "authentication": { "type": "tokenBasedAuthentication", "token": "t" }
+                  },
+                  "configuration": { "controlRoomUrl": "https://inline.example.com" },
+                """
+                    + OPERATION
+                    + "}"))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("controlRoomUrl");
   }

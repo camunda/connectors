@@ -80,13 +80,11 @@ public class SelfManagedApiSecurityAutoConfiguration {
           .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     } else {
       http.authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
-          .exceptionHandling(
-              exceptionHandling ->
-                  exceptionHandling
-                      .authenticationEntryPoint(
-                          SelfManagedApiSecurityAutoConfiguration::respondNotFound)
-                      .accessDeniedHandler(
-                          SelfManagedApiSecurityAutoConfiguration::respondNotFound));
+          .exceptionHandling(exceptionHandling ->
+              exceptionHandling
+                  .authenticationEntryPoint(
+                      SelfManagedApiSecurityAutoConfiguration::respondNotFound)
+                  .accessDeniedHandler(SelfManagedApiSecurityAutoConfiguration::respondNotFound));
     }
     return http.build();
   }

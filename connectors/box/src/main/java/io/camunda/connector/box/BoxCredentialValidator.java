@@ -39,9 +39,8 @@ public class BoxCredentialValidator implements ConfigurationValidator<BoxCredent
   private final CredentialCheck credentialCheck;
 
   public BoxCredentialValidator() {
-    this(
-        authentication ->
-            BoxOperations.connectToApi(authentication, BoxOperations.SESSION).users.getUserMe());
+    this(authentication ->
+        BoxOperations.connectToApi(authentication, BoxOperations.SESSION).users.getUserMe());
   }
 
   BoxCredentialValidator(CredentialCheck credentialCheck) {

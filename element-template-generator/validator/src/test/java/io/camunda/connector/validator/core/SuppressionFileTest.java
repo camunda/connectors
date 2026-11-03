@@ -34,11 +34,11 @@ class SuppressionFileTest {
     var result =
         parse(
             """
-        { "suppressions": [
-          { "rule": "empty-group", "template": "*.json", "property": "p", "reason": "Kept for X." },
-          { "rule": "empty-group", "template": "hybrid/*.json", "reason": "Kept for X." }
-        ] }
-        """);
+            { "suppressions": [
+              { "rule": "empty-group", "template": "*.json", "property": "p", "reason": "Kept for X." },
+              { "rule": "empty-group", "template": "hybrid/*.json", "reason": "Kept for X." }
+            ] }
+            """);
     assertThat(result.findings()).isEmpty();
     assertThat(result.suppressions())
         .extracting(Suppression::pointer, Suppression::property)
@@ -73,10 +73,10 @@ class SuppressionFileTest {
     var result =
         parse(
             """
-        { "suppressions": [
-          { "template": "*.json", "reason": " ", "property": 1, "ruleId": "x" }
-        ] }
-        """);
+            { "suppressions": [
+              { "template": "*.json", "reason": " ", "property": 1, "ruleId": "x" }
+            ] }
+            """);
     assertThat(result.suppressions()).isEmpty();
     assertThat(result.findings())
         .extracting(Finding::jsonPointer)
@@ -93,8 +93,8 @@ class SuppressionFileTest {
     var result =
         parse(
             """
-        { "suppressions": [ { "rule": "r", "template": "[a", "reason": "R." } ] }
-        """);
+            { "suppressions": [ { "rule": "r", "template": "[a", "reason": "R." } ] }
+            """);
     assertThat(result.findings())
         .extracting(Finding::jsonPointer)
         .containsExactly("/suppressions/0/template");
@@ -105,11 +105,11 @@ class SuppressionFileTest {
     var result =
         parse(
             """
-        { "suppressions": [
-          { "rule": "r", "template": "a.json", "reason": "One." },
-          { "rule": "r", "template": "a.json", "reason": "Two." }
-        ] }
-        """);
+            { "suppressions": [
+              { "rule": "r", "template": "a.json", "reason": "One." },
+              { "rule": "r", "template": "a.json", "reason": "Two." }
+            ] }
+            """);
     assertThat(result.suppressions()).hasSize(1);
     assertThat(result.findings())
         .extracting(Finding::jsonPointer)
@@ -121,11 +121,11 @@ class SuppressionFileTest {
     var result =
         parse(
             """
-        { "suppressions": [
-          { "rule": "r", "template": "a.json", "reason": "Whole template." },
-          { "rule": "r", "template": "a.json", "property": "null", "reason": "Property null." }
-        ] }
-        """);
+            { "suppressions": [
+              { "rule": "r", "template": "a.json", "reason": "Whole template." },
+              { "rule": "r", "template": "a.json", "property": "null", "reason": "Property null." }
+            ] }
+            """);
     assertThat(result.findings()).isEmpty();
     assertThat(result.suppressions()).hasSize(2);
   }

@@ -42,11 +42,10 @@ class MicrosoftEntraCredentialValidatorTest {
     var response = mock(HttpResponse.class);
     when(response.getStatusCode()).thenReturn(401);
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new ClientAuthenticationException(
-                  "AADSTS7000215: Invalid client secret SENSITIVE-DETAIL", response);
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new ClientAuthenticationException(
+              "AADSTS7000215: Invalid client secret SENSITIVE-DETAIL", response);
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 
@@ -58,10 +57,9 @@ class MicrosoftEntraCredentialValidatorTest {
   @Test
   void errorWhenClientAuthenticationExceptionCarriesNoResponse() {
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new ClientAuthenticationException("no response", (HttpResponse) null);
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new ClientAuthenticationException("no response", (HttpResponse) null);
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 
@@ -72,12 +70,11 @@ class MicrosoftEntraCredentialValidatorTest {
   @ValueSource(ints = {400, 401, 403})
   void unauthorizedWhenEntraRejectsWithMsalServiceExceptionWrappedByTheSdk(int statusCode) {
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new RuntimeException(
-                  new ExecutionException(
-                      msal("AADSTS7000215: Invalid client secret SENSITIVE-DETAIL", statusCode)));
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new RuntimeException(
+              new ExecutionException(
+                  msal("AADSTS7000215: Invalid client secret SENSITIVE-DETAIL", statusCode)));
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 
@@ -91,11 +88,10 @@ class MicrosoftEntraCredentialValidatorTest {
   @ValueSource(ints = {408, 429, 500, 503})
   void errorWhenMsalFailureIsNotACredentialRejection(Integer statusCode) {
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new RuntimeException(
-                  new ExecutionException(msal("connect timed out SENSITIVE-DETAIL", statusCode)));
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new RuntimeException(
+              new ExecutionException(msal("connect timed out SENSITIVE-DETAIL", statusCode)));
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 
@@ -106,10 +102,9 @@ class MicrosoftEntraCredentialValidatorTest {
   @Test
   void errorWhenCredentialIsUnavailable() {
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new CredentialUnavailableException("unavailable SENSITIVE-DETAIL");
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new CredentialUnavailableException("unavailable SENSITIVE-DETAIL");
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 
@@ -120,10 +115,9 @@ class MicrosoftEntraCredentialValidatorTest {
   @Test
   void errorOnOtherFailuresAndDoesNotLeakMessage() {
     var validator =
-        new MicrosoftEntraCredentialValidator(
-            authentication -> {
-              throw new RuntimeException("boom SENSITIVE-DETAIL");
-            });
+        new MicrosoftEntraCredentialValidator(authentication -> {
+          throw new RuntimeException("boom SENSITIVE-DETAIL");
+        });
 
     var result = validator.validate(new MicrosoftEntraConfiguration(VALID));
 

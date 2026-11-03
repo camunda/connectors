@@ -141,11 +141,9 @@ class EmbeddingsCredentialChooserTest {
       assertThat(cfg.authentication())
           .isInstanceOf(
               AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication.class)
-          .extracting(
-              a ->
-                  ((AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication)
-                          a)
-                      .apiKey())
+          .extracting(a ->
+              ((AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication) a)
+                  .apiKey())
           .isEqualTo("CRED_KEY");
     }
 

@@ -44,12 +44,12 @@ public final class ResponseMappers {
   }
 
   public static ResponseMapper<JsonNode> asJsonNode(Supplier<ObjectMapper> objectMapperSupplier) {
-    return (response) -> asJson(response, objectMapperSupplier.get());
+    return response -> asJson(response, objectMapperSupplier.get());
   }
 
   public static <T> ResponseMapper<T> asObject(
       Supplier<ObjectMapper> objectMapperSupplier, Class<T> valueType) {
-    return (response) -> {
+    return response -> {
       var mapper = objectMapperSupplier.get();
       try {
         return mapper.readValue(asString(response), valueType);
@@ -61,7 +61,7 @@ public final class ResponseMappers {
   }
 
   public static ResponseMapper<Void> asVoid() {
-    return (response) -> null;
+    return response -> null;
   }
 
   /**

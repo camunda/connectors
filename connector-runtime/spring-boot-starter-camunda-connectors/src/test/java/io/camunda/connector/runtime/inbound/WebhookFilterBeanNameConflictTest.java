@@ -44,15 +44,14 @@ class WebhookFilterBeanNameConflictTest {
   void customFormContentFilterReachesSecurityConflictCheck() {
     contextRunner
         .withUserConfiguration(CustomFormContentFilterConfiguration.class)
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context.getStartupFailure())
-                  .hasRootCauseInstanceOf(IllegalStateException.class)
-                  .rootCause()
-                  .hasMessageContaining("Found FormContentFilter(s)")
-                  .hasMessageContaining("WebhookExcludingFormContentFilter");
-            });
+        .run(context -> {
+          assertThat(context).hasFailed();
+          assertThat(context.getStartupFailure())
+              .hasRootCauseInstanceOf(IllegalStateException.class)
+              .rootCause()
+              .hasMessageContaining("Found FormContentFilter(s)")
+              .hasMessageContaining("WebhookExcludingFormContentFilter");
+        });
   }
 
   @Test
@@ -60,39 +59,36 @@ class WebhookFilterBeanNameConflictTest {
     contextRunner
         .withPropertyValues("spring.mvc.hiddenmethod.filter.enabled=true")
         .withUserConfiguration(CustomHiddenHttpMethodFilterConfiguration.class)
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context.getStartupFailure())
-                  .hasRootCauseInstanceOf(IllegalStateException.class)
-                  .rootCause()
-                  .hasMessageContaining("Found HiddenHttpMethodFilter(s)")
-                  .hasMessageContaining("WebhookExcludingHiddenHttpMethodFilter");
-            });
+        .run(context -> {
+          assertThat(context).hasFailed();
+          assertThat(context.getStartupFailure())
+              .hasRootCauseInstanceOf(IllegalStateException.class)
+              .rootCause()
+              .hasMessageContaining("Found HiddenHttpMethodFilter(s)")
+              .hasMessageContaining("WebhookExcludingHiddenHttpMethodFilter");
+        });
   }
 
   @Test
   void mappedFormContentFilterReachesSecurityConflictCheckWithCustomDispatcherPath() {
     contextRunner
         .withUserConfiguration(CustomMappedFormContentFilterConfiguration.class)
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context.getStartupFailure())
-                  .hasRootCauseInstanceOf(IllegalStateException.class)
-                  .rootCause()
-                  .hasMessageContaining("Found FormContentFilter(s)")
-                  .hasMessageContaining("WebhookExcludingFormContentFilter");
-            });
+        .run(context -> {
+          assertThat(context).hasFailed();
+          assertThat(context.getStartupFailure())
+              .hasRootCauseInstanceOf(IllegalStateException.class)
+              .rootCause()
+              .hasMessageContaining("Found FormContentFilter(s)")
+              .hasMessageContaining("WebhookExcludingFormContentFilter");
+        });
   }
 
   @Test
   void defaultMultipartResolverIsWebhookAware() {
-    contextRunner.run(
-        context ->
-            assertThat(context)
-                .hasSingleBean(WebhookAwareStandardServletMultipartResolver.class)
-                .hasBean("multipartResolver"));
+    contextRunner.run(context ->
+        assertThat(context)
+            .hasSingleBean(WebhookAwareStandardServletMultipartResolver.class)
+            .hasBean("multipartResolver"));
   }
 
   @Test
@@ -106,30 +102,28 @@ class WebhookFilterBeanNameConflictTest {
   void multipartResolverPreservesStrictServletCompliance() {
     contextRunner
         .withPropertyValues("spring.servlet.multipart.strict-servlet-compliance=true")
-        .run(
-            context -> {
-              var resolver = context.getBean(WebhookAwareStandardServletMultipartResolver.class);
-              var request = new MockHttpServletRequest();
-              request.setRequestURI("/management/import");
-              request.setContentType("multipart/related; boundary=x");
+        .run(context -> {
+          var resolver = context.getBean(WebhookAwareStandardServletMultipartResolver.class);
+          var request = new MockHttpServletRequest();
+          request.setRequestURI("/management/import");
+          request.setContentType("multipart/related; boundary=x");
 
-              assertThat(resolver.isMultipart(request)).isFalse();
-            });
+          assertThat(resolver.isMultipart(request)).isFalse();
+        });
   }
 
   @Test
   void customMultipartResolverReachesSecurityConflictCheck() {
     contextRunner
         .withUserConfiguration(CustomMultipartResolverConfiguration.class)
-        .run(
-            context -> {
-              assertThat(context).hasFailed();
-              assertThat(context.getStartupFailure())
-                  .hasRootCauseInstanceOf(IllegalStateException.class)
-                  .rootCause()
-                  .hasMessageContaining("multipartResolver")
-                  .hasMessageContaining(StandardServletMultipartResolver.class.getName());
-            });
+        .run(context -> {
+          assertThat(context).hasFailed();
+          assertThat(context.getStartupFailure())
+              .hasRootCauseInstanceOf(IllegalStateException.class)
+              .rootCause()
+              .hasMessageContaining("multipartResolver")
+              .hasMessageContaining(StandardServletMultipartResolver.class.getName());
+        });
   }
 
   @Configuration(proxyBeanMethods = false)
