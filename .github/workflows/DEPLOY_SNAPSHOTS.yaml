@@ -69,6 +69,10 @@ jobs:
             secret/data/products/connectors/ci/nexus PASSWORD | CI_NEXUS_PSW;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: the cache is written from main by WARM_MAVEN_CACHE.yml so that
       # this job doesn't save a second ~1 GB copy. Keep the key in sync with that workflow.
       - name: Restore cache
@@ -76,9 +80,9 @@ jobs:
         continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution

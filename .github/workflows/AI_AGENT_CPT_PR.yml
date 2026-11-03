@@ -231,15 +231,35 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!shibboleth,!confluent", "name": "camunda Nexus"}]'
 
+      # Inlined rather than using .github/actions/maven-cache-key: this job checks out the
+      # PR head, which may predate that action. Keep the line derivation in sync with it.
+      - name: Compute Maven cache key
+        if: needs.setup.outputs.ai == 'true'
+        id: maven-cache-key
+        env:
+          REF: ${{ github.event.merge_group.base_ref || github.base_ref || github.ref_name }}
+          SUFFIX: internal
+          HASH: ${{ hashFiles('**/pom.xml') }}
+        run: |
+          ref="${REF#refs/heads/}"
+          if [[ "$ref" =~ ^(stable/|release-)?([0-9]+\.[0-9]+) ]]; then
+            line="${BASH_REMATCH[2]}"
+          else
+            line=8.10
+          fi
+          prefix="${RUNNER_OS}-maven-${line}-"
+          echo "restore-prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=${prefix}${HASH}-${SUFFIX}" >> "$GITHUB_OUTPUT"
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore Maven cache
         if: needs.setup.outputs.ai == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
