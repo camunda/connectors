@@ -88,6 +88,12 @@ class ManagedCodeAutoConfigurationTest {
   }
 
   @Test
+  void keepsTheProviderNameAsWrittenSoThatAnErrorQuotesIt() {
+    assertThat(new ManagedCodeProperties(true, "local ", null, null, null).provider())
+        .isEqualTo("local ");
+  }
+
+  @Test
   void keepsTheWrapperFilesOfTheLocalProviderInTheDirectoryOfTheUser() {
     assertThat(new LocalManagedCodeProperties(null).directory())
         .isEqualTo(Path.of(System.getProperty("user.home"), ".camunda", "managed-script"));

@@ -419,7 +419,17 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   private static int runtimeUid() throws IOException {
     var current = runtimeUid;
     if (current == null) {
-      final var probe = Files.createTempFile("managed-script-uid", ".tmp");
+      final Path probe;
+      try {
+        probe = Files.createTempFile("managed-script-uid", ".tmp");
+      } catch (IOException e) {
+        // Not a problem of the directory being checked: the caller would say it cannot create it.
+        throw new ProvisioningException(
+            ErrorCode.PLATFORM_REJECTED,
+            "Cannot find the user of the runtime: no file can be created in java.io.tmpdir (%s): %s"
+                .formatted(System.getProperty("java.io.tmpdir"), e.getMessage()),
+            e);
+      }
       try {
         current = uid(probe);
       } finally {
