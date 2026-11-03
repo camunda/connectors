@@ -36,20 +36,20 @@ Deep architecture lives in the reference docs, linked instead of copied:
 The module is split into Maven modules with a fixed dependency direction
 ([ADR 015](docs/adr/015-split-agentic-ai-into-modules.md)):
 
-| Module                          | Package root                         | Contents                                                       | Depends on (agentic AI modules)   |
-|---------------------------------|--------------------------------------|----------------------------------------------------------------|-----------------------------------|
-| `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                              |
-| `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                 | common                            |
-| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts) | model, common                     |
-| `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                 | api, model, common                |
-| `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                  | tools-schema                      |
-| `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                          | common                            |
-| `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                            | connector-mcp, api, model, common |
-| `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                          | common                            |
-| `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                            | connector-a2a, api, model, common |
-| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client  | tools-schema, api, model, common  |
-| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes     | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
-| `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped          | all modules, in test scope        |
+| Module                          | Package root                         | Contents                                                                                        | Depends on (agentic AI modules)                                       |
+| ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `agentic-ai-common`             | `common`                             | Shared helpers grouped by topic (`json`, `retry`, `http`, `validation`, ...), common properties | none                                                                  |
+| `aiagent-model`                 | `aiagent.model`                      | Agent model referenced by the extension points                                                  | common                                                                |
+| `aiagent-api`                   | `aiagent.api`                        | Extension points (gateway tools, chat model, storage, prompts)                                  | model, common                                                         |
+| `aiagent-tools-schema`          | `tools.schema`                       | Ad-hoc tools schema resolution                                                                  | api, model, common                                                    |
+| `connector-ad-hoc-tools-schema` | `adhoctoolsschema`                   | Ad-hoc tools schema connector                                                                   | tools-schema                                                          |
+| `connector-mcp`                 | `mcp.client`                         | MCP client connectors                                                                           | common                                                                |
+| `aiagent-mcp-integration`       | `mcp.integration`                    | MCP client as AI Agent gateway tool                                                             | connector-mcp, api, model, common                                     |
+| `connector-a2a`                 | `a2a.client`                         | A2A client connectors                                                                           | common                                                                |
+| `aiagent-a2a-integration`       | `a2a.integration`                    | A2A client as AI Agent gateway tool                                                             | connector-a2a, api, model, common                                     |
+| `connector-aiagent`             | `aiagent` (except `model` and `api`) | AI Agent connectors, providers, stores, agent instance client                                   | tools-schema, api, model, common                                      |
+| `agentic-ai-bundle`             | none (`pom` packaging)               | All connectors and gateway tool integrations, for runtimes                                      | aiagent, ad-hoc tools schema, MCP and A2A connectors and integrations |
+| `agentic-ai-archunit-tests`     | none (test-only)                     | Architecture tests for the modules above, not shipped                                           | all modules, in test scope                                            |
 
 Client connectors never depend on AI Agent code, and `connector-aiagent` never depends on the clients
 or integrations. Package roots are relative to `io.camunda.connector.agenticai`;
@@ -124,7 +124,7 @@ and not your changes. `./mvnw clean install -f connectors/agentic-ai/pom.xml` ru
 > **`ai-agent.md` is a long reference.** Use the table below to locate the exact section, then read it by anchor or `Read` with `offset`/`limit`. Do not ingest the whole file.
 
 | Working on…                                                              | Read                                                                                    |
-|--------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | The distributed agent loop / execution model                             | [§3](docs/reference/ai-agent.md#3-the-agentic-loop)                                     |
 | Agent state machine & initialization (INITIALIZING/TOOL_DISCOVERY/READY) | [§4](docs/reference/ai-agent.md#4-agent-state-machine)                                  |
 | Data model (`AgentContext`, `AgentResponse`, `ToolCallProcessVariable`)  | [§5](docs/reference/ai-agent.md#5-data-model)                                           |
@@ -175,7 +175,7 @@ These terms are overloaded; the three `*Context` types are the usual confusion. 
 conversation and turn types (everything else below).
 
 | Term                                  | One-line meaning                                                                                                         |
-|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | **Turn** (`AgentConversationTurn`)    | one LLM call (input messages, assistant response, per-turn metrics); pending when `assistantMessage == null`             |
 | **Iteration** / `iterationKey`        | 1-based counter across the agent's lifetime identifying a turn                                                           |
 | **AgentContext**                      | durable persisted state (state, metrics, tool definitions, conversation pointer); the `agentContext` process variable    |
@@ -222,59 +222,17 @@ High-frequency traps (detail behind each link):
 
 ## Architectural invariants
 
-Do not break these (full statement and rationale in
-[§24](docs/reference/ai-agent.md#24-architectural-invariants)). The
-[architecture tests](#architecture-tests) enforce the first three:
-
-- **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
-  framework-neutral.
-- **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
-  (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
-  converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
-  [§12](docs/reference/ai-agent.md#12-framework-abstraction).
-- **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
-  (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
-  `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
-  named `FooImpl` implements the interface `Foo`; review checks the rest.
-- **SPIs are plug-in points.** Add an LLM provider, system-prompt contributor, conversation store, or
-  gateway tool by implementing the SPI and registering a bean. See
-  [§25](docs/reference/ai-agent.md#25-extension-playbooks).
-
-### Rules for changes that are hard to undo
-
-Four things ship once and then stay: stored shapes, names, defaults and limits. An AI that works alone must not decide them silently. Each rule starts with the outcome that a customer gets.
-
-1. **A customer can roll back to the previous version.** The older version can raise an incident on state that it does not understand. The incident names the cause. The customer recovers without losing data, for example by upgrading again. The older version never overwrites state that it cannot read.
-   - Ways to meet this:
-     1. Turn new behavior on only after the upgrade is final.
-     2. Stamp new state with a version.
-     3. Write a release note.
-     4. Keep sample state from each release as a test input.
-   - Example: Kafka keeps the old protocol version pinned while brokers upgrade one by one. Raising the version is the point of no return, so rollback stays possible until then.
-2. **A name matches the interface where it appears.** A person approves each new name. Six rules apply, and two tiers decide which rules lead.
-   1. User-facing tier: a name that a user sees follows the user-facing UI.
-      1. Direction words follow the vocabulary of the UI.
-      2. Use product terms.
-      3. A name that a user must type needs help in the UI (rule 5).
-   2. System tier: a name that only the system sees follows the system interface. Tool names, configuration keys, error codes and tags are examples.
-      1. Follow the existing patterns of the module.
-      2. The verb says the effect.
-   3. Both tiers: one noun and one verb per thing.
-   - Example: Git split `checkout`, which did two jobs, into `switch` for branches and `restore` for files. Each verb now says its effect.
-3. **A customer can see why a default or limit applied, and can change it.** A person approves each new default or limit. Defaults are conservative. The PR states the value, the reason, how to see a hit and how to change it. An error message names the limit and every configuration option that must change with it.
-   - Example: Kafka's "record too large" error names the setting `max.request.size`. The full fix needs other size options to match, so a good message names all of them.
-4. **A capability is complete after a customer can see it work and test it.** Anything automated that changes the result appears in a log, a history or an incident.
-   - Each user-facing capability has one test. The test uses only what a customer has.
-   - Example: Kubernetes asks for end-to-end tests, documentation and a production readiness review before a feature reaches beta and general availability.
-5. **An author can reach every concept.** Each concept that an author sets has help: a button, a quick fix, a labeled field, or a docs example.
-   - Example: an editor offers a quick fix next to a warning, so the author does not need to know the fix first.
+Before changing module structure or extension points, read the
+[architectural invariants](docs/design-guidelines.md#architectural-invariants).
 
 ## Working in this module
 
 General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
 lives in [`docs/coding-guidelines.md`](docs/coding-guidelines.md). The rules below are the module
 specifics.
+
+When designing stored shapes, names, defaults, limits or observability, read
+[`docs/design-guidelines.md`](docs/design-guidelines.md).
 
 ### Building & testing
 
@@ -284,42 +242,9 @@ mvn clean install -DskipTests -f connectors/agentic-ai/pom.xml   # build the mod
 mvn test -f connectors/agentic-ai/pom.xml                        # unit / integration tests
 ```
 
-Unit tests use JUnit 5, Mockito, and AssertJ. In this module use unit tests only, apart from the few
-existing Spring Boot tests and the e2e suite. For repo-wide build/commit/PR/CI/spotless/license rules,
-see the repo-root [`AGENTS.md`](../../AGENTS.md). Do not duplicate them here.
-
-E2E tests live in `connectors-e2e-test/connectors-e2e-test-agentic-ai/` (Camunda Process Test scenarios
-plus WireMock LLM stubs, and acceptance tests against real LLM providers). Its
-[`AGENTS.md`](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md) describes the e2e
-modules, their prerequisites, how to run them, where new tests go, and the real-LLM CPT coverage.
-The [E2E runbook](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/README.md) covers test
-ownership, local commands, paid-provider authorization, and how to verify that tests ran.
-Whether a change needs an e2e test is decided by the rule [below](#choosing-e2e-vs-unit-tests-mandatory-decision).
-
-**Test approach**: follow TDD (red, green, refactor) wherever possible. E2e tests can be written
-implementation-independently first: express the behavior, watch it fail, implement, then confirm it
-passes. Tests should be usecase- and behavior-driven, asserting real behavior. Avoid tests that exist
-only to close coverage gaps in a per-class equivalence suite.
-
-### Choosing e2e vs unit tests (mandatory decision)
-
-For every code change, explicitly decide whether an e2e test is warranted, using this rule. If you add
-none for a change that touches the element template or behavioral characteristics, say why. If you are unsure, ask before
-starting a change. The examples below are illustrative, not exhaustive; when a case is not
-listed, reason from the principle (does correctness depend on the engine and BPMN wiring?).
-
-- **E2E test required** when the change touches the distributed / BPMN contract:
-    - job completion semantics or ad-hoc sub-process directives
-    - element activation from tool calls
-    - variable flow to/from Zeebe (`toolCallResults`, `agentContext`, `toolCall`, `toolCallResult`)
-    - conversation memory persistence across job boundaries
-    - event handling (interrupt / wait behaviors)
-    - the full request → LLM → response cycle
-    - element-template behavior
-- **Unit-test-only is sufficient** when the change is internal to a single class/converter and provable
-  without the engine:
-    - prompt composition, schema generation, content/tool conversion
-    - response formatting, error messages, pure transformations
+For every code change, follow [`docs/acceptance-testing.md`](docs/acceptance-testing.md) to choose
+the test level and establish feature acceptance. Repo-wide build/commit/PR/CI/spotless/license rules
+live in the repo-root [`AGENTS.md`](../../AGENTS.md).
 
 ### Null safety
 
@@ -353,11 +278,8 @@ Before claiming a change is complete:
 - [ ] Module builds (`mvn clean install -f connectors/agentic-ai/pom.xml`).
    - [ ] If deviating from the `mvn install` command, ensure `mvn spotless:apply` and `mvn license:format` run clean (pre-commit hooks enforce these).
 - [ ] Unit tests added/updated and passing.
-- [ ] E2E test decision made per the rule above (test added, or reason stated, or question asked).
-- [ ] Real-provider changes update the `RealProviderApiSmokeSupport` provider/capability matrix and
-  `RealProviderSelectionTest` where applicable, plus the corresponding `ci: true` registry row or an
-  explicit manual-only decision in `requiredCiCapabilities` (see
-  [Real-LLM CPT coverage](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#real-llm-cpt-coverage)).
+- [ ] E2E test decision and feature acceptance meet the [testing rules](docs/acceptance-testing.md).
+- [ ] Real-provider changes meet the [coverage requirements](docs/acceptance-testing.md#real-provider-coverage).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
@@ -365,8 +287,6 @@ Before claiming a change is complete:
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
   `api-changes.json` with a link to its `breaking-changes.md` anchor
   ([API compatibility check](../../docs/api-compatibility.md)).
-- [ ] A change that adds a name, a stored shape, a default or a limit is labeled in the PR, and a named person signed off
-  (see [Rules for changes that are hard to undo](#rules-for-changes-that-are-hard-to-undo)).
 
 ## Extension points
 
@@ -444,7 +364,7 @@ carried an unrelated legacy `"deprecated": true` boolean flag and were left unto
 ## Key entry points
 
 | File                                        | Purpose                                    |
-|---------------------------------------------|--------------------------------------------|
+| ------------------------------------------- | ------------------------------------------ |
 | `AgentTaskV1Function.java`                  | Connector (Task) entry point               |
 | `AgentSubProcessV1Function.java`            | Job worker (Sub-process) entry point       |
 | `BaseAgentRequestHandler.java`              | Core orchestrator (shared by both flavors) |
@@ -454,50 +374,8 @@ Full code-path reference and class diagram: `ai-agent.md` §18.
 
 ## Architecture decision records
 
-ADRs in [`docs/adr/`](docs/adr/) capture significant technical decisions (context, alternatives,
-rationale). Write an ADR when a change chooses between meaningful alternatives, such as replacing a
-framework, restructuring a core subsystem, or changing a storage strategy. Routine bug fixes,
-refactors, and pattern-following feature additions do not need one.
-
-**Write the ADR before implementation.** It is the primary artifact of the planning phase and the
-major context for it: capture the decision and its drivers up front, so review happens on the decision
-rather than after the code exists.
-
-**An ADR is immutable once merged.** It may still be revised within the scope of the PR that
-introduces it. After it lands on `main`, leave it as-is: supersede or extend it with a new ADR, marking
-the old one's Status as `Superseded` and linking the replacement.
-
-Follow the structure of existing ADRs (see [ADR 001](docs/adr/001-replace-mcp-client-framework.md)):
-Title, Deciders/Date, Status, Context & Problem, Decision Drivers, Considered Options, Decision
-Outcome.
-
-**Keep it at decision altitude.** An ADR states the problem, the drivers, the options, and the
-choice. It is not a mechanism walkthrough: no code excerpts, no line-number citations, no
-class-by-class narration of how the implementation works. That level of detail belongs in the code
-itself or in the reference docs, and it rots as the code changes while the decision doesn't. If a
-paragraph explains *how* something works rather than *why* it was chosen this way, cut it.
-
-**ADRs own the why; reference docs own the current state.** `ai-agent.md` and friends describe the
-system as it is today, not how it got there. Don't write "this used to be a no-op, but now..." in a
-reference doc — state the current behavior plainly and, if the history matters, link to the ADR
-that made the change. Conversely, don't restate current implementation detail in the ADR beyond
-what's needed to justify the decision.
-
-**Known gaps get a named Follow-up, not a repeated disclaimer.** If a decision leaves a rough edge
-(a duplicate write, a cosmetic divergence, a missing feature blocked on something external), say so
-once, in a `## Follow-up` section, with the concrete condition and mechanism that closes it. Don't
-scatter "accepted as a tradeoff until X" across every file the change touches — state the fact where
-it's observed, and point once at the ADR for the reasoning.
-
-**Code comments and javadoc state their own contract, not another module's rationale.** A method's
-doc should describe what it does and what it requires of its own parameters, including the precise
-state or trigger a caller must observe — even when a sibling type in the same package expresses that
-most precisely (e.g. `handleNoInput`'s link to `CompositionResult.NoInput`). Draw the line at the
-package/module boundary: don't pull in a different module's internal types or decision history just
-to justify a precondition (e.g. an `agentinstance`-package method explaining its own contract via
-the `agent`-package composer's internals). If a precondition can only be understood by reading a
-caller in a different module, that coupling belongs in the ADR or the reference doc, not the method
-signature's javadoc.
+When planning a significant technical decision or writing an ADR, follow the
+[ADR guidelines](docs/design-guidelines.md#architecture-decision-records).
 
 ## Keeping documentation up to date
 
