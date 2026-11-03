@@ -256,23 +256,6 @@
       "value" : "JWT"
     } ]
   }, {
-    "id" : "inbound.auth.basicCredential",
-    "label" : "Basic credential",
-    "description" : "Choose a reusable Basic authorization credential, or configure one-time parameters below.",
-    "optional" : true,
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.basicCredential",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "BASIC",
-      "type" : "simple"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:webhook-basic-auth:1"
-  }, {
     "id" : "inbound.auth.username",
     "label" : "Username",
     "description" : "Username for basic authentication",
@@ -284,15 +267,9 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.basicCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "BASIC",
-        "type" : "simple"
-      } ]
+      "property" : "inbound.auth.type",
+      "equals" : "BASIC",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -307,34 +284,11 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.basicCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "BASIC",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.auth.apiKeyCredential",
-    "label" : "API key credential",
-    "description" : "Choose a reusable API key credential, or configure a one-time API key below.",
-    "optional" : true,
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.apiKeyCredential",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
       "property" : "inbound.auth.type",
-      "equals" : "APIKEY",
+      "equals" : "BASIC",
       "type" : "simple"
     },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:webhook-api-key:1"
+    "type" : "String"
   }, {
     "id" : "inbound.auth.apiKey",
     "label" : "API key",
@@ -347,15 +301,9 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.apiKeyCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "APIKEY",
-        "type" : "simple"
-      } ]
+      "property" : "inbound.auth.type",
+      "equals" : "APIKEY",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -380,23 +328,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "inbound.auth.jwt.jwtCredential",
-    "label" : "JWT credential",
-    "description" : "Choose a reusable JWT authorization credential, or configure one-time parameters below.",
-    "optional" : true,
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.jwt.jwtCredential",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "JWT",
-      "type" : "simple"
-    },
-    "type" : "Configuration",
-    "configurationTemplate" : "io.camunda.connectors:webhook-jwt:1"
-  }, {
     "id" : "inbound.auth.jwt.jwkUrl",
     "label" : "JWK URL",
     "description" : "Well-known URL of JWKs",
@@ -408,15 +339,9 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.jwt.jwtCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "JWT",
-        "type" : "simple"
-      } ]
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -434,15 +359,9 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.jwt.jwtCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "JWT",
-        "type" : "simple"
-      } ]
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -460,15 +379,9 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "allMatch" : [ {
-        "property" : "inbound.auth.jwt.jwtCredential",
-        "isEmpty" : true,
-        "type" : "simple"
-      }, {
-        "property" : "inbound.auth.type",
-        "equals" : "JWT",
-        "type" : "simple"
-      } ]
+      "property" : "inbound.auth.type",
+      "equals" : "JWT",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
