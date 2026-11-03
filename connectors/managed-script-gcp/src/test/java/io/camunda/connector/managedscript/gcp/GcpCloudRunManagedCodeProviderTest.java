@@ -275,6 +275,26 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @Test
+  void movesAllTrafficOfAnAdoptedFunctionToItsLatestRevision() {
+    when(functions.getFunction(anyString()))
+        .thenReturn(
+            function(
+                Function.State.ACTIVE, settings().setAllTrafficOnLatestRevision(false).build()),
+            active());
+    when(update.call(any(UpdateFunctionRequest.class))).thenReturn(operation("update", true));
+    when(operations.getOperation("update")).thenReturn(operation("update", true));
+
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+
+    final var updated = ArgumentCaptor.forClass(UpdateFunctionRequest.class);
+    verify(update).call(updated.capture());
+    assertThat(updated.getValue().getFunction().getServiceConfig().getAllTrafficOnLatestRevision())
+        .isTrue();
+    assertThat(updated.getValue().getUpdateMask().getPathsList())
+        .contains("service_config.all_traffic_on_latest_revision");
+  }
+
+  @Test
   void comparesTheMemoryInBytes() {
     when(functions.getFunction(anyString()))
         .thenReturn(function(Function.State.ACTIVE, settings().setAvailableMemory("536870912")));
@@ -539,7 +559,14 @@ class GcpCloudRunManagedCodeProviderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"<html>Service Unavailable</html>", "{}", "[]"})
+  @ValueSource(
+      strings = {
+        "<html>Service Unavailable</html>",
+        "{}",
+        "[]",
+        "{\"outcome\":\"COMPLETED\"}",
+        "{\"contractVersion\":\"1\",\"outcome\":\"FAILED\"}"
+      })
   void reportsAnAnswerOutsideTheContractAsAPlatformExecutionFailure(String body) {
     ready(ScriptLanguage.PYTHON);
     stubFor(post("/executor").willReturn(ok(body)));
@@ -667,6 +694,7 @@ class GcpCloudRunManagedCodeProviderTest {
         .setMaxInstanceCount(10)
         .setMaxInstanceRequestConcurrency(1)
         .setServiceAccountEmail(SERVICE_ACCOUNT)
+        .setAllTrafficOnLatestRevision(true)
         .putEnvironmentVariables("LOG_EXECUTION_ID", "true")
         .putEnvironmentVariables("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000");
   }

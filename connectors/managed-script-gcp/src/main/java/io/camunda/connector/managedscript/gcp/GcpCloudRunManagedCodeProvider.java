@@ -107,7 +107,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
           "service_config.max_instance_count",
           "service_config.max_instance_request_concurrency",
           "service_config.service_account_email",
-          "service_config.environment_variables");
+          "service_config.environment_variables",
+          "service_config.all_traffic_on_latest_revision");
 
   private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
   private static final Duration UPLOAD_TIMEOUT = Duration.ofMinutes(1);
@@ -388,7 +389,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                     .setEntryPoint(executor.entryPoint())
                     .setServiceAccount(buildServiceAccount)
                     .setSource(Source.newBuilder().setStorageSource(upload.getStorageSource())))
-            .setServiceConfig(serviceConfig(Map.of()).setAllTrafficOnLatestRevision(true))
+            .setServiceConfig(serviceConfig(Map.of()))
             .build();
     try {
       final var operation =
@@ -577,6 +578,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         .setMaxInstanceCount(maxInstanceCount)
         .setMaxInstanceRequestConcurrency(1)
         .setServiceAccountEmail(functionServiceAccount)
+        // Over any traffic split of an adopted function, so that every call gets these settings.
+        .setAllTrafficOnLatestRevision(true)
         .putAllEnvironmentVariables(environment)
         .putEnvironmentVariables(FUNCTION_TIMEOUT_VARIABLE, functionTimeoutMillis());
   }
@@ -587,6 +590,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
         && settings.getMaxInstanceCount() == maxInstanceCount
         && settings.getMaxInstanceRequestConcurrency() == 1
         && functionServiceAccount.equals(settings.getServiceAccountEmail())
+        && settings.getAllTrafficOnLatestRevision()
         && functionTimeoutMillis()
             .equals(settings.getEnvironmentVariablesOrDefault(FUNCTION_TIMEOUT_VARIABLE, null));
   }
@@ -609,7 +613,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     if (status == 200) {
       try {
         final var result = mapper.readValue(body, ExecutionResponse.class);
-        if (result != null && result.outcome() != null) {
+        if (result != null && result.wellFormed()) {
           return result;
         }
       } catch (IOException e) {

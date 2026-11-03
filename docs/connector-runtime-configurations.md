@@ -234,9 +234,9 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   before Cloud Run stops it, and is passed to the wrapper in `EXECUTOR_FUNCTION_TIMEOUT_MS`. HTTP
   functions run for at most 3600 seconds, so startup fails when `execution-timeout` is above 3595
   seconds.
-- Memory, function timeout, `max-instance-count`, function service account and request concurrency
-  are compared whenever the provider makes an executor ready, and updated in place, as a new
-  revision of the same function, when they differ. A configuration change therefore creates no
+- Memory, function timeout, `max-instance-count`, function service account, request concurrency and
+  all traffic on the latest revision are compared whenever the provider makes an executor ready,
+  and updated in place, as a new revision of the same function, when they differ. A configuration change therefore creates no
   function and leaves none behind.
 - `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory` is between `128Mi` and
   `32Gi`, in `Mi` or `Gi` (default `512Mi`).
