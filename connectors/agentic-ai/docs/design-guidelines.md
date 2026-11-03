@@ -8,15 +8,11 @@ in the PR description.
 
 Do not break these (full statement and rationale in
 [§24](reference/ai-agent.md#24-architectural-invariants)). The
-[architecture tests](../AGENTS.md#architecture-tests) enforce the first three:
+[architecture tests](../AGENTS.md#architecture-tests) enforce framework isolation and interface naming;
+review checks the rest.
 
-- **Framework-agnostic core.** Only `aiagent/chatmodel/provider/langchain4j/**` may import `dev.langchain4j.*`.
-  The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
+- **Framework-agnostic core.** The agent core (`aiagent/agent`, `aiagent/model`, `aiagent/memory`, the root `model/`) stays
   framework-neutral.
-- **Domain types never leak framework types.** The domain `Message` / `ToolCall` / `Content` model
-  (`io.camunda.connector.agenticai.aiagent.model.*`) is translated to/from LangChain4j only through the
-  converter chain (`ChatMessageConverter`, `ToolSpecificationConverter`, and friends).
-  [§12](reference/ai-agent.md#12-framework-abstraction).
 - **Interface in package root, `*Impl` alongside.** Public collaborators are interfaces
   (`AgentToolsResolver`, `ConversationStoreRegistry`, `SystemPromptComposer`, and others), usually with one
   `*Impl`. Wire impls as Spring beans, depend on the interface. The architecture tests check that a class
