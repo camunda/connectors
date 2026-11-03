@@ -132,7 +132,7 @@ limitations under the License.</license.inlineheader>
          Tika (tika-parser-code-module / tika-parser-html-module). Remove once the Tika version in
          connectors/embeddings-vector-database pulls jsoup >= 1.23.2. The enforcer reminder for this
          override lives in that module's pom, because version.apache-tika is declared there. -->
-    <version.jsoup>1.23.2</version.jsoup>
+    <version.jsoup>1.24.1</version.jsoup>
 
     <version.google-api-client>2.9.2</version.google-api-client>
 
