@@ -80,4 +80,29 @@ class HttpWebhookUtilTest {
 
     assertThat(result).isEqualTo(Map.of());
   }
+
+  private static Object form(String body) {
+    return HttpWebhookUtil.transformRawBodyToObject(
+        body.getBytes(StandardCharsets.UTF_8), "application/x-www-form-urlencoded");
+  }
+
+  @Test
+  void formBody_encodedSeparatorsInValue_arePreserved() {
+    assertThat(form("a=Tom+%26+Jerry&b=x%3Dy")).isEqualTo(Map.of("a", "Tom & Jerry", "b", "x=y"));
+  }
+
+  @Test
+  void formBody_literalEqualsInValue_isPreserved() {
+    assertThat(form("sig=abc==&k=v")).isEqualTo(Map.of("sig", "abc==", "k", "v"));
+  }
+
+  @Test
+  void formBody_encodedKey_emptyValueBareKeyAndEmptySegments() {
+    assertThat(form("a%26b=1&k=&bare&&")).isEqualTo(Map.of("a&b", "1", "k", "", "bare", ""));
+  }
+
+  @Test
+  void formBody_repeatedKey_firstValueWinsWithoutThrowing() {
+    assertThat(form("a=1&a=2")).isEqualTo(Map.of("a", "1"));
+  }
 }
