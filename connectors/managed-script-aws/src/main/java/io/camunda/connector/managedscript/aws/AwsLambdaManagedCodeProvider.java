@@ -283,7 +283,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     }
     try {
       final var result = body == null ? null : mapper.readValue(body, ExecutionResponse.class);
-      if (result != null) {
+      if (result != null && result.wellFormed()) {
         return result;
       }
     } catch (IOException e) {

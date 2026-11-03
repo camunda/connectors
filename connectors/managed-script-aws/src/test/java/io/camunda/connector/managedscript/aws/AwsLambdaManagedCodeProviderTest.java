@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -510,13 +512,19 @@ class AwsLambdaManagedCodeProviderTest {
     assertThat(response.error().retryable()).isFalse();
   }
 
-  @Test
-  void reportsAResponseOutsideTheContractAsAPlatformExecutionFailure() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "not json",
+        "{\"outcome\":\"COMPLETED\"}",
+        "{\"contractVersion\":\"1\",\"outcome\":\"FAILED\"}"
+      })
+  void reportsAResponseOutsideTheContractAsAPlatformExecutionFailure(String body) {
     when(invoker.invoke(any(InvokeRequest.class)))
         .thenReturn(
             InvokeResponse.builder()
                 .statusCode(200)
-                .payload(SdkBytes.fromUtf8String("not json"))
+                .payload(SdkBytes.fromUtf8String(body))
                 .build());
 
     final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
