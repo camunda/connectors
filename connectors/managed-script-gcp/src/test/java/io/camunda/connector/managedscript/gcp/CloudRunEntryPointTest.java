@@ -36,6 +36,7 @@ class CloudRunEntryPointTest {
   @TempDir Path source;
   @TempDir Path stubs;
   @TempDir Path tmp;
+  @TempDir Path logs;
 
   @ParameterizedTest
   @EnumSource(ScriptLanguage.class)
@@ -131,10 +132,16 @@ class CloudRunEntryPointTest {
     builder.environment().put("EXECUTOR_TMP", tmp.toString());
     builder.environment().put("PYTHONPATH", stubs.toString());
     builder.environment().putAll(environment);
-    final var process = builder.start();
-    final var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
-    return new Result(process.exitValue(), output);
+    // To a file, so that the deadline applies to an adapter that hangs: reading a pipe to its end
+    // waits as long as the process does.
+    final var log = Files.createTempFile(logs, "adapter", ".log");
+    final var process = builder.redirectOutput(log.toFile()).start();
+    try {
+      assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+      return new Result(process.exitValue(), Files.readString(log, StandardCharsets.UTF_8));
+    } finally {
+      process.destroyForcibly();
+    }
   }
 
   private boolean runs(String interpreter) {
@@ -143,9 +150,13 @@ class CloudRunEntryPointTest {
           new ProcessBuilder(interpreter, "--version")
               .directory(source.toFile())
               .redirectErrorStream(true)
+              .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();
-      process.getInputStream().readAllBytes();
-      return process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0;
+      try {
+        return process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0;
+      } finally {
+        process.destroyForcibly();
+      }
     } catch (IOException | InterruptedException e) {
       return false;
     }

@@ -69,6 +69,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -523,6 +525,30 @@ class GcpCloudRunManagedCodeProviderTest {
     assertThat(provider.execute(ScriptLanguage.PYTHON, request("s")).isDeploymentMissing())
         .isTrue();
     WireMock.verify(1, postRequestedFor(urlEqualTo("/executor")));
+  }
+
+  @Test
+  void keepsTheUrlMadeReadyAgainWhenALateMissingFunctionAnswers() throws Exception {
+    ready(ScriptLanguage.PYTHON);
+    stubFor(post("/executor").willReturn(aResponse().withStatus(404).withFixedDelay(1_000)));
+    final var late =
+        CompletableFuture.supplyAsync(() -> provider.execute(ScriptLanguage.PYTHON, request("s")));
+    final long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+    while (WireMock.findAll(postRequestedFor(urlEqualTo("/executor"))).isEmpty()
+        && System.nanoTime() < deadline) {
+      Thread.onSpinWait();
+    }
+
+    // Another job got its own 404 meanwhile, and the executor was made ready again, at the same
+    // URL.
+    provider.ensureExecutors(ScriptLanguage.PYTHON);
+    assertThat(late).isNotDone();
+    assertThat(late.get(5, TimeUnit.SECONDS).isDeploymentMissing()).isTrue();
+    stubFor(post("/executor").willReturn(ok(CONTRACT_RESPONSE)));
+
+    assertThat(provider.execute(ScriptLanguage.PYTHON, request("s")).outcome())
+        .isEqualTo(ExecutionResponse.COMPLETED);
+    WireMock.verify(2, postRequestedFor(urlEqualTo("/executor")));
   }
 
   @ParameterizedTest

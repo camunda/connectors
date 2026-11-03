@@ -122,7 +122,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
 
   private final Map<ScriptLanguage, CloudRunExecutor> executors =
       new EnumMap<>(ScriptLanguage.class);
-  private final Map<ScriptLanguage, String> urls = new ConcurrentHashMap<>();
+  private final Map<ScriptLanguage, Endpoint> endpoints = new ConcurrentHashMap<>();
   private final Map<String, IdTokenCredentials> idTokens = new ConcurrentHashMap<>();
   private final FunctionServiceClient functions;
   private final HttpClient http;
@@ -225,7 +225,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     try {
       final var existing = read(name);
       final var creation = existing == null ? create(executor, name) : null;
-      urls.put(language, converge(name, creation, existing));
+      endpoints.put(language, new Endpoint(converge(name, creation, existing)));
     } catch (ApiException e) {
       throw failure(name, code(e), message(e), e);
     } catch (IOException e) {
@@ -254,12 +254,13 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   @Override
   public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
     final var name = executors.get(language).functionName(prefix);
-    final var url = urls.get(language);
-    if (url == null) {
+    final var endpoint = endpoints.get(language);
+    if (endpoint == null) {
       return ExecutionResponse.failed(
           ErrorCode.DEPLOYMENT_MISSING,
           "The URL of Cloud Run executor '%s' is not known: it was not made ready".formatted(name));
     }
+    final var url = endpoint.url();
     final byte[] payload;
     try {
       payload = mapper.writeValueAsBytes(request.payload());
@@ -320,7 +321,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
           ErrorCode.PLATFORM_INTERRUPTED,
           "Interrupted while calling Cloud Run executor '%s'".formatted(name));
     }
-    return response(language, name, url, response);
+    return response(language, name, endpoint, response);
   }
 
   @Override
@@ -601,7 +602,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
 
   /** The response of the wrapper, or the failure of the platform that answered instead. */
   private ExecutionResponse response(
-      ScriptLanguage language, String name, String url, HttpResponse<String> response) {
+      ScriptLanguage language, String name, Endpoint endpoint, HttpResponse<String> response) {
     final int status = response.statusCode();
     final var body = response.body() == null ? "" : response.body();
     if (status == 401 || status == 403) {
@@ -628,7 +629,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     }
     return switch (status) {
       case 404 -> {
-        urls.remove(language, url);
+        // Only the endpoint this call used: a late 404 must not drop one made ready since.
+        endpoints.remove(language, endpoint);
         yield ExecutionResponse.failed(
             ErrorCode.DEPLOYMENT_MISSING, "Cloud Run executor '%s' does not exist".formatted(name));
       }
@@ -778,5 +780,21 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   @FunctionalInterface
   interface Sleeper {
     void sleep(Duration duration) throws InterruptedException;
+  }
+
+  /**
+   * The URL of an executor, as one round of making it ready found it. Compared by identity: a
+   * function created again keeps its URL, and a 404 of an earlier call removes only its own round.
+   */
+  private static final class Endpoint {
+    private final String url;
+
+    Endpoint(String url) {
+      this.url = url;
+    }
+
+    String url() {
+      return url;
+    }
   }
 }
