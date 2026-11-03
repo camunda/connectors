@@ -1,96 +1,47 @@
 #!/usr/bin/env groovy
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
+def T = new GroovyClassLoader(getClass().classLoader)
+    .parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
 
-def sourceFile = sourceFile
-if (!sourceFile) {
-    System.err.println("Error: Source file path required as property")
-    System.exit(1)
-}
-
-def outputFile = outputFile
-if (!outputFile) {
-    System.err.println("Error: Output file path required as property")
-    System.exit(1)
-}
+def file = T.existingFile(T.requiredProperty(binding, 'sourceFile'))
+def outputFile = new File(T.requiredProperty(binding, 'outputFile'))
 
 // optional: agentType for the zeebe:agentDefinition marker; unset means no marker is added
-def agentType = binding.hasVariable('agentType') ? agentType : null
+def agentType = T.optionalProperty(binding, 'agentType')
 
 // optional: mark the template as deprecated; unset means no "deprecated" block is added
-def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
-def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
+def deprecationMessage = T.optionalProperty(binding, 'deprecationMessage')
+def deprecationDocumentationRef = T.optionalProperty(binding, 'deprecationDocumentationRef')
 
 // optional: "templateId=file" tuples (one per line) of default-system-prompt deviations, keyed by
 // the generated template's own id; a template whose id has no entry keeps the generator's own
-// default. Duplicated in transform-ai-agent-sub-process-template.groovy since each script is
-// invoked as a standalone gmavenplus execution.
-def systemPromptOverrides = binding.hasVariable('systemPromptOverrides') ? systemPromptOverrides : null
-def systemPromptOverrideFileById = [:]
-((String) (systemPromptOverrides ?: "")).eachLine { line ->
-    line = line.trim()
-    if (!line) return
-    def parts = line.split('=', 2)
-    if (parts.length == 2) {
-        systemPromptOverrideFileById[parts[0].trim()] = parts[1].trim()
-    }
-}
+// default
+def systemPromptOverrides = T.optionalProperty(binding, 'systemPromptOverrides')
 
-def file = new File((String) sourceFile)
-if (!file.exists()) {
-    System.err.println("Error: Source file ${sourceFile} not found")
-    System.exit(1)
-}
+// optional: "true" for templates whose OpenAI provider has per-API-family effort properties
+def moveOpenAiEffortAfterModel = T.optionalProperty(binding, 'moveOpenAiEffortAfterModel')?.toString()?.toBoolean()
 
-def mapper = new ObjectMapper()
-mapper.enable(SerializationFeature.INDENT_OUTPUT)
-
-def json = mapper.readValue(file, Map.class)
+def json = T.readJson(file)
+List properties = (List) json.get('properties')
 
 // this script never changes a template's own id, so it is the stable lookup key
-def systemPromptOverrideFile = systemPromptOverrideFileById[(String) json.id]
-def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
-
-if (deprecationMessage) {
-    def orderedJson = new LinkedHashMap()
-    json.each { key, value ->
-        orderedJson.put(key, value)
-        if (key == "keywords") {
-            orderedJson.put("deprecated", [
-                message         : (String) deprecationMessage,
-                documentationRef: (String) deprecationDocumentationRef
-            ])
-        }
-    }
-    json = orderedJson
-    if (!json.name?.toString()?.endsWith(" (Deprecated)")) {
-        json.name += " (Deprecated)"
-    }
-} else {
-    // never carry over a marker from the source template if this run doesn't want one
-    json.remove("deprecated")
+def systemPromptDefault = T.systemPromptOverride(systemPromptOverrides, (String) json.id)
+if (systemPromptDefault) {
+    T.requireIds(properties, ["data.systemPrompt.prompt"], "System prompt property")
+}
+if (agentType) {
+    T.requireTaskDefinitionType(properties)
 }
 
-// Moves the given property ids to sit right after another property id. No-op if either side
-// isn't found.
-static def moveAfter(List properties, List idsToMove, String afterId) {
-    def moving = properties.findAll { it.id in idsToMove }
-    if (moving.isEmpty()) {
-        return properties
-    }
-    def remaining = properties.findAll { !(it.id in idsToMove) }
-    def anchorIndex = remaining.findIndexOf { it.id == afterId }
-    if (anchorIndex < 0) {
-        return properties
-    }
-    remaining.addAll(anchorIndex + 1, moving)
-    return remaining
+// never carry over a marker from the source template if this run doesn't want one
+json = T.applyDeprecation(json, deprecationMessage, deprecationDocumentationRef)
+if (deprecationMessage && !json.name?.toString()?.endsWith(" (Deprecated)")) {
+    json.name += " (Deprecated)"
 }
 
 def updatedProperties = []
 
-((List) json.get('properties')).each { property ->
+properties.each { property ->
     // never carry over a marker from the source template; this script adds its own below
     if (property.binding?.type == "zeebe:agentDefinition") {
         return
@@ -104,7 +55,7 @@ def updatedProperties = []
 
     // Mark the element as a native agent definition so the engine creates an agent-definition
     // record at deploy time.
-    if (agentType && property.binding?.type == "zeebe:taskDefinition" && property.binding?.property == "type") {
+    if (agentType && T.isTaskDefinitionType(property)) {
         updatedProperties.add([
             value: (String) agentType,
             binding: [
@@ -116,13 +67,9 @@ def updatedProperties = []
     }
 }
 
-// OpenAI's Effort is declared per API family (a sibling of Model, like the other per-family
-// request parameters), so it's emitted before Model. Move it after, matching Anthropic/Bedrock.
-updatedProperties = moveAfter(
-    updatedProperties,
-    ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
-    "provider.openai.model.model"
-)
+if (moveOpenAiEffortAfterModel) {
+    updatedProperties = T.moveOpenAiEffortAfterModel(updatedProperties)
+}
 
 json.put('properties', updatedProperties)
-mapper.writeValue(new File((String) outputFile), json)
+T.writeJson(outputFile, json)

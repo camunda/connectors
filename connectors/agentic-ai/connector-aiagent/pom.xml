@@ -694,6 +694,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -736,6 +740,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -765,6 +773,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>
@@ -799,6 +811,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>
