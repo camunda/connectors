@@ -886,4 +886,120 @@ class A2aClientWebhookExecutableTest {
     assertThat(request.headers()).isEqualTo(headers);
     assertThat(request.params()).isEqualTo(params);
   }
+
+  private static InboundConnectorContext contextWithAuth(Map<String, Object> auth) {
+    return InboundConnectorContextBuilder.create()
+        .properties(
+            Map.of(
+                "inbound",
+                Map.of(
+                    "context", "a2aWebhookContext",
+                    "clientResponse", "=task",
+                    "auth", auth)))
+        .build();
+  }
+
+  private static WebhookProcessingPayload payloadWithAuthorization(String authorization) {
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.method()).thenReturn(HttpMethods.post.name());
+    when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.JSON_UTF_8.toString(),
+                HttpHeaders.AUTHORIZATION,
+                authorization));
+    when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
+    return payload;
+  }
+
+  @Test
+  void triggerWebhook_BasicAuthCredential_ValidCredentials_Success() {
+    var ctx =
+        contextWithAuth(
+            Map.of(
+                "type",
+                "BASIC",
+                "basicCredential",
+                Map.of("username", "cred-user", "password", "cred-pass")));
+    var basicAuth = "Basic " + Base64.getEncoder().encodeToString("cred-user:cred-pass".getBytes());
+
+    webhookExecutable.activate(ctx);
+    var result = webhookExecutable.triggerWebhook(payloadWithAuthorization(basicAuth));
+
+    assertThat(result.request().body()).isInstanceOf(A2aTask.class);
+  }
+
+  @Test
+  void triggerWebhook_BasicAuthCredential_WinsOverInlineValues() {
+    var ctx =
+        contextWithAuth(
+            Map.of(
+                "type",
+                "BASIC",
+                "username",
+                "inline-user",
+                "password",
+                "inline-pass",
+                "basicCredential",
+                Map.of("username", "cred-user", "password", "cred-pass")));
+    var inlineAuth =
+        "Basic " + Base64.getEncoder().encodeToString("inline-user:inline-pass".getBytes());
+
+    webhookExecutable.activate(ctx);
+
+    var exception =
+        catchException(
+            () -> webhookExecutable.triggerWebhook(payloadWithAuthorization(inlineAuth)));
+    assertThat(exception).isInstanceOf(WebhookSecurityException.class);
+  }
+
+  @Test
+  void activate_ApiKeyCredential_WithoutInlineKey_Activates() {
+    // The test context does not evaluate the FEEL locator, so only binding and activation of the
+    // credential are checked here; the key comparison itself is covered by the webhook module.
+    var ctx =
+        contextWithAuth(
+            Map.of(
+                "type",
+                "APIKEY",
+                "apiKeyLocator",
+                "=split(request.headers.authorization, \" \")[2]",
+                "apiKeyCredential",
+                Map.of("apiKey", "cred-key")));
+
+    webhookExecutable.activate(ctx);
+
+    var exception =
+        catchException(
+            () -> webhookExecutable.triggerWebhook(payloadWithAuthorization("Bearer wrong")));
+    assertThat(exception).isInstanceOf(WebhookSecurityException.class);
+  }
+
+  @Test
+  void triggerWebhook_JwtCredential_RejectsAnInvalidToken() {
+    var ctx =
+        contextWithAuth(
+            Map.of(
+                "type",
+                "JWT",
+                "jwt",
+                Map.of(
+                    "jwtCredential",
+                    Map.of(
+                        "jwkUrl", "https://example.com/.well-known/jwks.json",
+                        "issuer", "https://idp.example",
+                        "audience", "a2a"),
+                    "permissionsExpression",
+                    "=roles",
+                    "requiredPermissions",
+                    List.of())));
+
+    webhookExecutable.activate(ctx);
+
+    var exception =
+        catchException(
+            () -> webhookExecutable.triggerWebhook(payloadWithAuthorization("Bearer not-a-jwt")));
+    assertThat(exception).isInstanceOf(WebhookSecurityException.class);
+  }
 }

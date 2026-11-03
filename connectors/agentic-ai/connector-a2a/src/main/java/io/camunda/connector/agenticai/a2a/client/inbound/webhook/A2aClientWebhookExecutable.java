@@ -32,6 +32,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.HMACScope;
+import io.camunda.connector.inbound.model.WebhookApiKeyConfiguration;
+import io.camunda.connector.inbound.model.WebhookBasicAuthConfiguration;
+import io.camunda.connector.inbound.model.WebhookJwtConfiguration;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
 import java.time.Duration;
@@ -44,16 +47,21 @@ import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.webhook.v0",
-    version = 1,
+    version = 2,
     name = "A2A Client Webhook Connector (early access)",
     description =
         "Agent-to-Agent (A2A) webhook inbound connector that can be used to receive callbacks from remote A2A servers.",
     documentationRef =
         "https://docs.camunda.io/docs/8.10/components/early-access/alpha/a2a-client/a2a-client-webhook-connector/",
     icon = "a2a-client.svg",
-    engineVersion = "^8.9",
+    engineVersion = "^8.11",
     category = @ElementTemplate.Category(id = "aiTools", name = "AI Tools"),
     inputDataClass = A2aWebhookPropertiesWrapper.class,
+    configurations = {
+      WebhookBasicAuthConfiguration.class,
+      WebhookApiKeyConfiguration.class,
+      WebhookJwtConfiguration.class
+    },
     defaultResultExpression = "={response: request.body}",
     propertyGroups = {
       @PropertyGroup(id = "endpoint", label = "Webhook configuration"),
