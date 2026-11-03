@@ -41,14 +41,18 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
+      - name: Compute Maven cache key
+        id: maven-cache-key
+        uses: ./.github/actions/maven-cache-key
+
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       # Kept separate from ~/.m2/repository: changing that entry's paths would invalidate it.
       - name: Cache Maven wrapper distribution
