@@ -1,49 +1,22 @@
 #!/usr/bin/env groovy
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
+def T = new GroovyClassLoader(getClass().classLoader)
+    .parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
 
-import java.nio.file.Files
+def file = T.existingFile(T.requiredProperty(binding, 'sourceFile'))
+def outputFilePath = new File(T.requiredProperty(binding, 'outputFile'))
 
-def sourceFile = sourceFile
-if (!sourceFile) {
-    System.err.println("Error: Source file path required as property")
-    System.exit(1)
-}
+def json = T.readJson(file)
 
-def outputFile = outputFile
-if (!outputFile) {
-    System.err.println("Error: Output file path required as property")
-    System.exit(1)
-}
-def outputFilePath = new File((String) outputFile)
-
-def file = new File((String) sourceFile)
-if (!file.exists()) {
-    System.err.println("Error: Source file ${sourceFile} not found")
-    System.exit(1)
-}
-
-def mapper = new ObjectMapper()
-mapper.enable(SerializationFeature.INDENT_OUTPUT)
-
-def json = mapper.readValue(file, Map.class)
+// every id this script looks up must exist, so a rename in the source template fails the build
+T.requireIds(
+    (List) json.get('properties'),
+    ["inbound.clientResponse", "activationCondition", "correlationKeyProcess", "correlationKeyPayload"],
+    "Properties in ${file}"
+)
 
 // copy existing file to versioned directory if version was updated
-if (outputFilePath.exists()) {
-    def existingJson = mapper.readValue(outputFilePath, Map.class)
-    def existingVersion = existingJson.version as Integer
-    def sourceVersion = json.version as Integer
-
-    if (sourceVersion > existingVersion) {
-        def baseName = outputFilePath.name.replaceFirst(/\.json$/, "")
-        def versionedDir = new File(outputFilePath.parent, "versioned")
-        def versionedFile = new File(versionedDir, "${baseName}-${existingVersion}.json")
-
-        Files.copy(outputFilePath.toPath(), versionedFile.toPath())
-        println("Backed up existing job worker template version ${existingVersion} to: ${versionedFile.path}")
-    }
-}
+T.backupIfVersionBumped(outputFilePath, json)
 
 // Transform properties
 def updatedProperties = []
@@ -89,4 +62,4 @@ def updatedProperties = []
 }
 
 json.put('properties', updatedProperties)
-mapper.writeValue(outputFilePath, json)
+T.writeJson(outputFilePath, json)
