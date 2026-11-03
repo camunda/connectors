@@ -20,16 +20,15 @@ final class AnnotationProperties {
     final List<String> values = new ArrayList<>();
     annotation
         .tryGetExplicitlyDeclaredProperty(attribute)
-        .ifPresent(
-            value -> {
-              if (value instanceof final Object[] array) {
-                for (final Object element : array) {
-                  values.add(String.valueOf(element));
-                }
-              } else {
-                values.add(String.valueOf(value));
-              }
-            });
+        .ifPresent(value -> {
+          if (value instanceof final Object[] array) {
+            for (final Object element : array) {
+              values.add(String.valueOf(element));
+            }
+          } else {
+            values.add(String.valueOf(value));
+          }
+        });
     return values;
   }
 

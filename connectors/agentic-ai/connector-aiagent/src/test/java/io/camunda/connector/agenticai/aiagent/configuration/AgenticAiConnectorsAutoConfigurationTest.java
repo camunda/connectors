@@ -192,44 +192,42 @@ class AgenticAiConnectorsAutoConfigurationTest {
   void whenAgentTaskConnectorDisabled_thenNoAgentTaskFunctionIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.outbound-connector.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              AgentTaskRequestHandler.class,
-                              AgentTaskV1Function.class,
-                              AgentTaskV2Function.class))
-                      .toList());
-              assertThat(context)
-                  .doesNotHaveBean(AgentTaskRequestHandler.class)
-                  .doesNotHaveBean(AgentTaskV1Function.class)
-                  .doesNotHaveBean(AgentTaskV2Function.class);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(
+              context,
+              ALL_BEANS.stream()
+                  .filter(
+                      notAnyOf(
+                          AgentTaskRequestHandler.class,
+                          AgentTaskV1Function.class,
+                          AgentTaskV2Function.class))
+                  .toList());
+          assertThat(context)
+              .doesNotHaveBean(AgentTaskRequestHandler.class)
+              .doesNotHaveBean(AgentTaskV1Function.class)
+              .doesNotHaveBean(AgentTaskV2Function.class);
+        });
   }
 
   @Test
   void whenAgentSubProcessConnectorDisabled_thenNoAgentSubProcessFunctionIsCreated() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.aiagent.job-worker.enabled=false")
-        .run(
-            context -> {
-              assertHasAllBeansOf(
-                  context,
-                  ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              AgentSubProcessRequestHandler.class,
-                              AgentSubProcessV1Function.class,
-                              AgentSubProcessV2Function.class))
-                      .toList());
-              assertThat(context)
-                  .doesNotHaveBean(AgentSubProcessRequestHandler.class)
-                  .doesNotHaveBean(AgentSubProcessV1Function.class)
-                  .doesNotHaveBean(AgentSubProcessV2Function.class);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(
+              context,
+              ALL_BEANS.stream()
+                  .filter(
+                      notAnyOf(
+                          AgentSubProcessRequestHandler.class,
+                          AgentSubProcessV1Function.class,
+                          AgentSubProcessV2Function.class))
+                  .toList());
+          assertThat(context)
+              .doesNotHaveBean(AgentSubProcessRequestHandler.class)
+              .doesNotHaveBean(AgentSubProcessV1Function.class)
+              .doesNotHaveBean(AgentSubProcessV2Function.class);
+        });
   }
 
   @Test
@@ -237,11 +235,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.enabled=false")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
-                    .isInstanceOf(CamundaClientProcessDefinitionAdHocToolElementsResolver.class));
+        .run(context ->
+            assertThat(context)
+                .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                .isInstanceOf(CamundaClientProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test
@@ -249,11 +246,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.enabled=true")
-        .run(
-            context ->
-                assertThat(context)
-                    .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
-                    .isInstanceOf(CachingProcessDefinitionAdHocToolElementsResolver.class));
+        .run(context ->
+            assertThat(context)
+                .getBean(ProcessDefinitionAdHocToolElementsResolver.class)
+                .isInstanceOf(CachingProcessDefinitionAdHocToolElementsResolver.class));
   }
 
   @Test
@@ -261,74 +257,68 @@ class AgenticAiConnectorsAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.tools.process-definition.cache.maximum-size=-10")
-        .run(
-            context ->
-                assertThat(context)
-                    .hasFailed()
-                    .getFailure()
-                    .hasRootCauseInstanceOf(BindValidationException.class)
-                    .rootCause()
-                    .isInstanceOfSatisfying(
-                        BindValidationException.class,
-                        e -> {
-                          assertThat(e.getValidationErrors().getAllErrors())
-                              .hasSize(1)
-                              .first(InstanceOfAssertFactories.type(FieldError.class))
-                              .extracting(
-                                  FieldError::getObjectName,
-                                  FieldError::getField,
-                                  FieldError::getRejectedValue,
-                                  FieldError::getDefaultMessage)
-                              .containsExactly(
-                                  "camunda.connector.agenticai.tools",
-                                  "processDefinition.cache.maximumSize",
-                                  -10L,
-                                  "must be greater than or equal to 0");
-                        }));
+        .run(context ->
+            assertThat(context)
+                .hasFailed()
+                .getFailure()
+                .hasRootCauseInstanceOf(BindValidationException.class)
+                .rootCause()
+                .isInstanceOfSatisfying(
+                    BindValidationException.class,
+                    e -> {
+                      assertThat(e.getValidationErrors().getAllErrors())
+                          .hasSize(1)
+                          .first(InstanceOfAssertFactories.type(FieldError.class))
+                          .extracting(
+                              FieldError::getObjectName,
+                              FieldError::getField,
+                              FieldError::getRejectedValue,
+                              FieldError::getDefaultMessage)
+                          .containsExactly(
+                              "camunda.connector.agenticai.tools",
+                              "processDefinition.cache.maximumSize",
+                              -10L,
+                              "must be greater than or equal to 0");
+                    }));
   }
 
   @Test
   void whenProxySupportEnabled_thenAgenticAiHttpProxySupportUsesEnvironmentProxyConfiguration() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
-          var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
-          assertThat(httpProxySupport.getProxyConfiguration())
-              .isInstanceOf(EnvironmentProxyConfiguration.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
+      var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
+      assertThat(httpProxySupport.getProxyConfiguration())
+          .isInstanceOf(EnvironmentProxyConfiguration.class);
+    });
   }
 
   @Test
   void whenProxySupportDisabled_thenAgenticAiHttpProxySupportUsesNoProxyConfiguration() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.http.proxy-support.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
-              var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
+        .run(context -> {
+          assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
+          var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
 
-              final var proxyConfiguration = httpProxySupport.getProxyConfiguration();
-              assertThat(proxyConfiguration).isNotInstanceOf(EnvironmentProxyConfiguration.class);
+          final var proxyConfiguration = httpProxySupport.getProxyConfiguration();
+          assertThat(proxyConfiguration).isNotInstanceOf(EnvironmentProxyConfiguration.class);
 
-              assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("http"))
-                  .isEmpty();
-              assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https"))
-                  .isEmpty();
-            });
+          assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("http")).isEmpty();
+          assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https")).isEmpty();
+        });
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("chatModelResolutionCases")
   void resolvesChatModelForConfiguration(ChatModelResolutionCase resolutionCase) {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(resolutionCase.factoryClass());
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(resolutionCase.factoryClass());
 
-          final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
-          try (var chatModel = chatModelRegistry.resolve(resolutionCase.configuration())) {
-            assertThat(chatModel).isNotNull();
-          }
-        });
+      final var chatModelRegistry = context.getBean(ChatModelRegistry.class);
+      try (var chatModel = chatModelRegistry.resolve(resolutionCase.configuration())) {
+        assertThat(chatModel).isNotNull();
+      }
+    });
   }
 
   // A throwaway, self-signed key never used against a real Google account - only needed so
@@ -468,14 +458,13 @@ class AgenticAiConnectorsAutoConfigurationTest {
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class, override.configurationClass())
           .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS)
-          .run(
-              context -> {
-                final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
-                assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
+          .run(context -> {
+            final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
+            assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
 
-                assertThat(context.getBean(beanNamesForType[0]))
-                    .isInstanceOf(override.customFactoryClass());
-              });
+            assertThat(context.getBean(beanNamesForType[0]))
+                .isInstanceOf(override.customFactoryClass());
+          });
     }
 
     static Stream<FactoryOverrideCase> factoryOverrideCases() {
@@ -699,14 +688,13 @@ class AgenticAiConnectorsAutoConfigurationTest {
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class, override.configurationClass())
           .withConfiguration(TestConfig.ALL_AUTO_CONFIGURATIONS)
-          .run(
-              context -> {
-                final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
-                assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
+          .run(context -> {
+            final var beanNamesForType = context.getBeanNamesForType(override.factoryClass());
+            assertThat(beanNamesForType).hasSize(1).containsExactly(override.beanName());
 
-                assertThat(context.getBean(beanNamesForType[0]))
-                    .isInstanceOf(override.customFactoryClass());
-              });
+            assertThat(context.getBean(beanNamesForType[0]))
+                .isInstanceOf(override.customFactoryClass());
+          });
     }
 
     static Stream<NativeFactoryOverrideCase> nativeFactoryOverrideCases() {

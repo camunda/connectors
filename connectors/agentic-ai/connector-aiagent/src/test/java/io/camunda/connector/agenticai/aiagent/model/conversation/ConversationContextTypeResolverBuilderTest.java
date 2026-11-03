@@ -129,11 +129,9 @@ class ConversationContextTypeResolverBuilderTest {
   void failsOnUnknownTypeIdListingKnownTypeIds(Supplier<ObjectMapper> mapperSupplier) {
     var objectMapper = mapperSupplier.get();
 
-    assertThatThrownBy(
-            () ->
-                objectMapper.readValue(
-                    "{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}",
-                    ConversationContext.class))
+    assertThatThrownBy(() ->
+            objectMapper.readValue(
+                "{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}", ConversationContext.class))
         .isInstanceOf(InvalidTypeIdException.class)
         .hasMessageContaining("Could not resolve type id 'my-store' as a subtype of")
         .hasMessageContaining(ConversationContext.class.getName())
@@ -145,11 +143,10 @@ class ConversationContextTypeResolverBuilderTest {
   void failsOnUnknownTypeIdNestedInAgentContext() {
     var objectMapper = new ObjectMapper();
 
-    assertThatThrownBy(
-            () ->
-                objectMapper.readValue(
-                    "{\"conversation\":{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}}",
-                    AgentContext.class))
+    assertThatThrownBy(() ->
+            objectMapper.readValue(
+                "{\"conversation\":{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}}",
+                AgentContext.class))
         .isInstanceOf(InvalidTypeIdException.class)
         .hasMessageContaining("Could not resolve type id 'my-store'")
         .hasMessageContaining("known type ids = " + BUILT_IN_TYPE_IDS)
@@ -358,9 +355,8 @@ class ConversationContextTypeResolverBuilderTest {
         assertThat(logs)
             .extracting(ILoggingEvent::getFormattedMessage)
             .anySatisfy(message -> assertThat(message).contains("com.example.DoesNotExist"))
-            .anySatisfy(
-                message ->
-                    assertThat(message).contains(FailingConstructorProvider.class.getName()));
+            .anySatisfy(message ->
+                assertThat(message).contains(FailingConstructorProvider.class.getName()));
       }
     }
   }
@@ -376,11 +372,10 @@ class ConversationContextTypeResolverBuilderTest {
       assertThat(result).isEmpty();
 
       assertRoundTrip(objectMapper, inProcess, "in-process");
-      assertThatCode(
-              () ->
-                  objectMapper.readValue(
-                      "{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}",
-                      ConversationContext.class))
+      assertThatCode(() ->
+              objectMapper.readValue(
+                  "{\"type\":\"my-store\",\"conversationId\":\"conv-1\"}",
+                  ConversationContext.class))
           .isInstanceOf(InvalidTypeIdException.class);
     }
   }

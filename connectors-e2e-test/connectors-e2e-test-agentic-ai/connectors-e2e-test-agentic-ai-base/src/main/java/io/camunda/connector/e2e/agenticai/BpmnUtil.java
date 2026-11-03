@@ -35,12 +35,11 @@ public class BpmnUtil {
   public static List<ServiceTask> serviceTasksByType(
       BpmnModelInstance bpmnModel, Predicate<String> typePredicate) {
     return bpmnModel.getModelElementsByType(ServiceTask.class).stream()
-        .filter(
-            st -> {
-              var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
-              var type = taskDefinition.getType();
-              return type != null && typePredicate.test(type);
-            })
+        .filter(st -> {
+          var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
+          var type = taskDefinition.getType();
+          return type != null && typePredicate.test(type);
+        })
         .toList();
   }
 
@@ -65,10 +64,9 @@ public class BpmnUtil {
             .orElseGet(
                 () -> element.getExtensionElements().addExtensionElement(ZeebeIoMapping.class));
 
-    inputMappings.forEach(
-        (target, source) -> {
-          getOrCreateInputMapping(bpmnModel, ioMapping, target).setSource(source);
-        });
+    inputMappings.forEach((target, source) -> {
+      getOrCreateInputMapping(bpmnModel, ioMapping, target).setSource(source);
+    });
   }
 
   public static ZeebeInput getOrCreateInputMapping(
@@ -76,12 +74,11 @@ public class BpmnUtil {
     return ioMapping.getChildElementsByType(ZeebeInput.class).stream()
         .filter(input -> target.equals(input.getTarget()))
         .findFirst()
-        .orElseGet(
-            () -> {
-              final var im = bpmnModel.newInstance(ZeebeInput.class);
-              im.setTarget(target);
-              ioMapping.addChildElement(im);
-              return im;
-            });
+        .orElseGet(() -> {
+          final var im = bpmnModel.newInstance(ZeebeInput.class);
+          im.setTarget(target);
+          ioMapping.addChildElement(im);
+          return im;
+        });
   }
 }

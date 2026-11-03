@@ -211,13 +211,14 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                     {
-                     "type": "updateItem",
-                     "tableName": "secrets.TABLE_NAME_KEY",
-                     "primaryKeyComponents":{"id":"secrets.KEY_ATTRIBUTE_VALUE"},
-                     "keyAttributes":{"keyAttribute":"secrets.KEY_ATTRIBUTE_VALUE"},
-                     "attributeAction":"PUT"
-                     }""";
+        {
+        "type": "updateItem",
+        "tableName": "secrets.TABLE_NAME_KEY",
+        "primaryKeyComponents":{"id":"secrets.KEY_ATTRIBUTE_VALUE"},
+        "keyAttributes":{"keyAttribute":"secrets.KEY_ATTRIBUTE_VALUE"},
+        "attributeAction":"PUT"
+        }\
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     // When
     AwsInput request = context.bindVariables(AwsInput.class);

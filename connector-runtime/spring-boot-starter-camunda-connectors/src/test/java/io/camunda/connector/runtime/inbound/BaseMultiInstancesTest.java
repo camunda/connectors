@@ -67,7 +67,7 @@ abstract class BaseMultiInstancesTest {
   final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
+          path -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
           ConnectorsObjectMapperSupplier.getCopy());
 
   static final ExecutableId UNKNOWN_ID = ExecutableId.fromHashedId("abcdef");
@@ -157,20 +157,19 @@ abstract class BaseMultiInstancesTest {
                 "camunda.connector.headless.serviceurl=http://whatever:8080",
                 "camunda.connector.polling.enabled=false",
                 "camunda.connector.webhook.enabled=false")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(InboundExecutableRegistry.class, () -> executableRegistry1);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance1"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(InboundExecutableRegistry.class, () -> executableRegistry1);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance1"));
+            })
             .run();
 
     context2 =
@@ -182,20 +181,19 @@ abstract class BaseMultiInstancesTest {
                 "camunda.connector.headless.serviceurl=http://whatever:8080",
                 "camunda.connector.polling.enabled=false",
                 "camunda.connector.webhook.enabled=false")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(InboundExecutableRegistry.class, () -> executableRegistry2);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance2"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(InboundExecutableRegistry.class, () -> executableRegistry2);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance2"));
+            })
             .run();
   }
 

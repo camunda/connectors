@@ -76,12 +76,10 @@ class PolymorphicJsonArchTest {
               .filter(use -> use instanceof JavaEnumConstant)
               .map(use -> ((JavaEnumConstant) use).name())
               .filter(CLASS_BASED_IDS::contains)
-              .ifPresent(
-                  id ->
-                      events.add(
-                          SimpleConditionEvent.violated(
-                              item,
-                              item.getFullName() + " uses @JsonTypeInfo(use = Id." + id + ")")));
+              .ifPresent(id ->
+                  events.add(
+                      SimpleConditionEvent.violated(
+                          item, item.getFullName() + " uses @JsonTypeInfo(use = Id." + id + ")")));
         }
       }
     };

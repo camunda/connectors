@@ -156,9 +156,8 @@ public class TopicRequestData {
     }
 
     final Map<String, MessageAttributeValue> snsNativeMessageAttributes = new HashMap<>();
-    messageAttributes.forEach(
-        (key, value) ->
-            snsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
+    messageAttributes.forEach((key, value) ->
+        snsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
 
     return snsNativeMessageAttributes;
   }

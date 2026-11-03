@@ -118,7 +118,8 @@ public final class MockOidcServer implements AutoCloseable {
     public String sign() {
       var header =
           """
-          {"alg":"RS256","typ":"JWT","kid":"%s"}"""
+          {"alg":"RS256","typ":"JWT","kid":"%s"}\
+          """
               .formatted(KEY_ID);
       var claims = new ArrayList<String>();
       claims.add("\"iss\":\"%s\"".formatted(issuer));
@@ -244,15 +245,15 @@ public final class MockOidcServer implements AutoCloseable {
   private String jwk() {
     var publicKey = (RSAPublicKey) signingKeyPair.getPublic();
     return """
-        {
-          "kty": "RSA",
-          "kid": "%s",
-          "use": "sig",
-          "alg": "RS256",
-          "n": "%s",
-          "e": "%s"
-        }
-        """
+    {
+      "kty": "RSA",
+      "kid": "%s",
+      "use": "sig",
+      "alg": "RS256",
+      "n": "%s",
+      "e": "%s"
+    }
+    """
         .formatted(
             KEY_ID,
             base64UrlMagnitude(publicKey.getModulus()),

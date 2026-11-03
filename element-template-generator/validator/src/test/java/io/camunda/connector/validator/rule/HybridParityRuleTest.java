@@ -39,14 +39,14 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "groups": [{"id":"g1"}], "properties": [{"id":"p1"},{"id":"p2"}] }
-        """));
+            { "groups": [{"id":"g1"}], "properties": [{"id":"p1"},{"id":"p2"}] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
         read(
             """
-        { "groups": [{"id":"g1"}], "properties": [{"id":"p2"},{"id":"p1"}] }
-        """));
+            { "groups": [{"id":"g1"}], "properties": [{"id":"p2"},{"id":"p1"}] }
+            """));
     assertThat(rule.apply(templates)).isEmpty();
   }
 
@@ -57,14 +57,14 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "properties": [{"id":"p1"}] }
-        """));
+            { "properties": [{"id":"p1"}] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
         read(
             """
-        { "properties": [{"id":"p1"},{"id":"extra"}] }
-        """));
+            { "properties": [{"id":"p1"},{"id":"extra"}] }
+            """));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).message()).contains("extra");
@@ -77,14 +77,14 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "properties": [{"id":"p1"},{"id":"p2"}] }
-        """));
+            { "properties": [{"id":"p1"},{"id":"p2"}] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
         read(
             """
-        { "properties": [{"id":"p1"}] }
-        """));
+            { "properties": [{"id":"p1"}] }
+            """));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).message()).contains("p2");
@@ -97,8 +97,8 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/hybrid/orphan-hybrid.json"),
         read(
             """
-        { "properties": [] }
-        """));
+            { "properties": [] }
+            """));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).message()).contains("no matching non-hybrid sibling");
@@ -111,14 +111,14 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "properties": [{"id":"p1"}] }
-        """));
+            { "properties": [{"id":"p1"}] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/hybrid-foo-hybrid.json"),
         read(
             """
-        { "properties": [{"id":"p1"}] }
-        """));
+            { "properties": [{"id":"p1"}] }
+            """));
     assertThat(rule.apply(templates)).isEmpty();
   }
 
@@ -129,14 +129,14 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "groups": [{"id":"a"}], "properties": [] }
-        """));
+            { "groups": [{"id":"a"}], "properties": [] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
         read(
             """
-        { "groups": [{"id":"b"}], "properties": [] }
-        """));
+            { "groups": [{"id":"b"}], "properties": [] }
+            """));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).hasSize(2);
     assertThat(findings).extracting(Finding::jsonPointer).containsExactly("/groups", "/groups");
@@ -163,18 +163,18 @@ class HybridParityRuleTest {
         Path.of("connectors/foo/element-templates/foo.json"),
         read(
             """
-        { "groups": [], "properties": [],
-          "steps":  [ { "presetId": "p" } ],
-          "presets": [ { "id": "p", "properties": {} } ] }
-        """));
+            { "groups": [], "properties": [],
+              "steps":  [ { "presetId": "p" } ],
+              "presets": [ { "id": "p", "properties": {} } ] }
+            """));
     templates.put(
         Path.of("connectors/foo/element-templates/hybrid/foo-hybrid.json"),
         read(
             """
-        { "groups": [], "properties": [],
-          "steps":  [ { "presetId": "other" } ],
-          "presets": [ { "id": "p", "properties": {} } ] }
-        """));
+            { "groups": [], "properties": [],
+              "steps":  [ { "presetId": "other" } ],
+              "presets": [ { "id": "p", "properties": {} } ] }
+            """));
     List<Finding> findings = rule.apply(templates);
     assertThat(findings).extracting(Finding::jsonPointer).contains("/steps");
   }

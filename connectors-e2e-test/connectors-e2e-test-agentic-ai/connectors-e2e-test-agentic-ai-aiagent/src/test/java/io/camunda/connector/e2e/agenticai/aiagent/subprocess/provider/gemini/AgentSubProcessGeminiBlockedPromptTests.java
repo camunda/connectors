@@ -161,19 +161,18 @@ class AgentSubProcessGeminiBlockedPromptTests extends BaseGeminiNativeSubProcess
                 .isReady()
                 .hasResponseMessageText(truncatedText)
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20), 0))
-                .hasResponseMessageSatisfying(
-                    message -> {
-                      assertThat(message.stopReason())
-                          .as("MAX_TOKENS maps to LENGTH, which is not terminal")
-                          .isEqualTo(StopReason.LENGTH);
-                      // The raw vendor value is preserved under the provider metadata namespace
-                      // regardless of how it was mapped.
-                      assertThat(message.metadata())
-                          .extractingByKey("google-gemini")
-                          .asInstanceOf(
-                              org.assertj.core.api.InstanceOfAssertFactories.map(
-                                  String.class, Object.class))
-                          .containsEntry("finishReason", "MAX_TOKENS");
-                    }));
+                .hasResponseMessageSatisfying(message -> {
+                  assertThat(message.stopReason())
+                      .as("MAX_TOKENS maps to LENGTH, which is not terminal")
+                      .isEqualTo(StopReason.LENGTH);
+                  // The raw vendor value is preserved under the provider metadata namespace
+                  // regardless of how it was mapped.
+                  assertThat(message.metadata())
+                      .extractingByKey("google-gemini")
+                      .asInstanceOf(
+                          org.assertj.core.api.InstanceOfAssertFactories.map(
+                              String.class, Object.class))
+                      .containsEntry("finishReason", "MAX_TOKENS");
+                }));
   }
 }

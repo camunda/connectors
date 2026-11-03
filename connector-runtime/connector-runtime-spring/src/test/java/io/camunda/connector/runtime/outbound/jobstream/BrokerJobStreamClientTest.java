@@ -117,8 +117,8 @@ class BrokerJobStreamClientTest {
             .willReturn(
                 okJson(
                     """
-            {"remote": [], "client": []}
-            """)));
+                    {"remote": [], "client": []}
+                    """)));
     var client = clientWithAddresses(wmRuntimeInfo.getHttpPort(), "localhost");
 
     var result = client.fetchRemoteStreams();
@@ -182,12 +182,11 @@ class BrokerJobStreamClientTest {
     Topology topology = mock(Topology.class);
     List<BrokerInfo> brokers =
         Arrays.stream(hosts)
-            .map(
-                host -> {
-                  BrokerInfo broker = mock(BrokerInfo.class);
-                  when(broker.getHost()).thenReturn(host);
-                  return broker;
-                })
+            .map(host -> {
+              BrokerInfo broker = mock(BrokerInfo.class);
+              when(broker.getHost()).thenReturn(host);
+              return broker;
+            })
             .toList();
     when(topology.getBrokers()).thenReturn(brokers);
     when(camundaClient.newTopologyRequest().send().join()).thenReturn(topology);

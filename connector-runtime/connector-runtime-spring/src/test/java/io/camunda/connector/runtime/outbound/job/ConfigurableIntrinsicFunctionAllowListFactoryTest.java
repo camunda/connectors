@@ -98,10 +98,8 @@ class ConfigurableIntrinsicFunctionAllowListFactoryTest {
                 IntrinsicFunctionAllowListMode.ENABLED, allowListCache)
             .create(context);
 
-    assertThatThrownBy(
-            () ->
-                allowList.isAllowed(
-                    new IntrinsicFunctionAllowList.Call("createLink", List.of("body"))))
+    assertThatThrownBy(() ->
+            allowList.isAllowed(new IntrinsicFunctionAllowList.Call("createLink", List.of("body"))))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("BPMN fetch failed");
   }

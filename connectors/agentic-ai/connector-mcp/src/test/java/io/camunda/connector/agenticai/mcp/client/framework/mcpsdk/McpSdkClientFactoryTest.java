@@ -152,16 +152,15 @@ class McpSdkClientFactoryTest {
 
     await()
         .atMost(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              WireMock.verify(
-                  1,
-                  postRequestedFor(urlPathEqualTo(endpoint))
-                      .withHeader("Content-Type", containing("application/json"))
-                      .withHeader("Accept", equalTo("application/json, text/event-stream"))
-                      .withHeader("Authorization", equalTo("Bearer test-token"))
-                      .withHeader("X-Dummy", equalTo("Test")));
-            });
+        .untilAsserted(() -> {
+          WireMock.verify(
+              1,
+              postRequestedFor(urlPathEqualTo(endpoint))
+                  .withHeader("Content-Type", containing("application/json"))
+                  .withHeader("Accept", equalTo("application/json, text/event-stream"))
+                  .withHeader("Authorization", equalTo("Bearer test-token"))
+                  .withHeader("X-Dummy", equalTo("Test")));
+        });
   }
 
   @ParameterizedTest
@@ -183,15 +182,14 @@ class McpSdkClientFactoryTest {
 
     await()
         .atMost(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              WireMock.verify(
-                  1,
-                  getRequestedFor(urlPathEqualTo(endpoint))
-                      .withHeader("Accept", equalTo("text/event-stream"))
-                      .withHeader("Authorization", equalTo("Bearer test-token"))
-                      .withHeader("X-Dummy", equalTo("Test")));
-            });
+        .untilAsserted(() -> {
+          WireMock.verify(
+              1,
+              getRequestedFor(urlPathEqualTo(endpoint))
+                  .withHeader("Accept", equalTo("text/event-stream"))
+                  .withHeader("Authorization", equalTo("Bearer test-token"))
+                  .withHeader("X-Dummy", equalTo("Test")));
+        });
   }
 
   @Test

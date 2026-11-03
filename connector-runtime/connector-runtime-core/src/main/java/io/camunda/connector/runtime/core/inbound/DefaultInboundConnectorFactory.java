@@ -67,10 +67,8 @@ public class DefaultInboundConnectorFactory
   public InboundConnectorExecutable<InboundConnectorContext> getInstance(String type) {
     var configuration =
         this.getActiveConfiguration(type)
-            .orElseThrow(
-                () ->
-                    new NoSuchElementException(
-                        "Inbound connector \"" + type + "\" is not registered"));
+            .orElseThrow(() ->
+                new NoSuchElementException("Inbound connector \"" + type + "\" is not registered"));
 
     return createInstance(configuration);
   }

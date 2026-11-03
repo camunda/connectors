@@ -165,15 +165,14 @@ class GeminiChatModelTest {
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              final var connectorException = (ConnectorException) e;
-              assertThat(connectorException.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(connectorException.getMessage())
-                  .contains("429")
-                  .contains("RESOURCE_EXHAUSTED")
-                  .contains("slow down");
-            });
+        .satisfies(e -> {
+          final var connectorException = (ConnectorException) e;
+          assertThat(connectorException.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+          assertThat(connectorException.getMessage())
+              .contains("429")
+              .contains("RESOURCE_EXHAUSTED")
+              .contains("slow down");
+        });
   }
 
   @Test
@@ -191,12 +190,11 @@ class GeminiChatModelTest {
 
     assertThatThrownBy(() -> api.execute(request))
         .isInstanceOf(ContextWindowExceededException.class)
-        .satisfies(
-            e -> {
-              final var cwe = (ContextWindowExceededException) e;
-              assertThat(cwe.partialResult()).isNull();
-              assertThat(cwe.getCause()).isInstanceOf(ClientException.class);
-            });
+        .satisfies(e -> {
+          final var cwe = (ContextWindowExceededException) e;
+          assertThat(cwe.partialResult()).isNull();
+          assertThat(cwe.getCause()).isInstanceOf(ClientException.class);
+        });
   }
 
   @Test
@@ -232,10 +230,9 @@ class GeminiChatModelTest {
     verify(client).close();
     assertThat(events)
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage()).isEqualTo("Failed to close Gemini Client");
-            });
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage()).isEqualTo("Failed to close Gemini Client");
+        });
   }
 }

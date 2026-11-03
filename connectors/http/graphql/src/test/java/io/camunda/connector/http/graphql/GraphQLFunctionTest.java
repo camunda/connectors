@@ -324,17 +324,16 @@ public class GraphQLFunctionTest extends BaseTest {
 
     assertThatThrownBy(() -> functionUnderTest.execute(context))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            ex -> {
-              var ce = (ConnectorException) ex;
-              assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
-              assertThat(ce.getMessage())
-                  .isEqualTo("Cannot query field 'unknownField' on type 'Query'");
-              @SuppressWarnings("unchecked")
-              var response = (java.util.Map<String, Object>) ce.getErrorVariables().get("response");
-              assertThat(response).containsKey("body");
-              assertThat(response).containsKey("headers");
-            });
+        .satisfies(ex -> {
+          var ce = (ConnectorException) ex;
+          assertThat(ce.getErrorCode()).isEqualTo(GRAPHQL_ERROR_CODE);
+          assertThat(ce.getMessage())
+              .isEqualTo("Cannot query field 'unknownField' on type 'Query'");
+          @SuppressWarnings("unchecked")
+          var response = (java.util.Map<String, Object>) ce.getErrorVariables().get("response");
+          assertThat(response).containsKey("body");
+          assertThat(response).containsKey("headers");
+        });
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

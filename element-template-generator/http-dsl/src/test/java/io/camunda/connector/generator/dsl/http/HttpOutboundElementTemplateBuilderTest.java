@@ -404,14 +404,13 @@ public class HttpOutboundElementTemplateBuilderTest {
 
   private Property findByBindingName(String name, List<Property> properties) {
     return properties.stream()
-        .filter(
-            p -> {
-              Object binding = p.getBinding();
-              return (binding instanceof ZeebeInput
-                      && ((ZeebeInput) p.getBinding()).name().equals(name))
-                  || (binding instanceof ZeebeProperty
-                      && ((ZeebeProperty) p.getBinding()).name().equals(name));
-            })
+        .filter(p -> {
+          Object binding = p.getBinding();
+          return (binding instanceof ZeebeInput
+                  && ((ZeebeInput) p.getBinding()).name().equals(name))
+              || (binding instanceof ZeebeProperty
+                  && ((ZeebeProperty) p.getBinding()).name().equals(name));
+        })
         .findFirst()
         .get();
   }

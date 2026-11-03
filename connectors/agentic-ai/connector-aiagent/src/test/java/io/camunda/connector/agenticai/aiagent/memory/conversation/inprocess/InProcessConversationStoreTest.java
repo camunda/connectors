@@ -90,11 +90,10 @@ class InProcessConversationStoreTest {
 
       assertThat(updatedAgentContext.conversation())
           .asInstanceOf(InstanceOfAssertFactories.type(InProcessConversationContext.class))
-          .satisfies(
-              conversation -> {
-                assertThat(conversation.conversationId()).isNotEmpty();
-                assertThat(conversation.messages()).containsExactlyElementsOf(TEST_MESSAGES);
-              });
+          .satisfies(conversation -> {
+            assertThat(conversation.conversationId()).isNotEmpty();
+            assertThat(conversation.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+          });
     }
   }
 
@@ -119,15 +118,14 @@ class InProcessConversationStoreTest {
 
       assertThat(updatedAgentContext.conversation())
           .asInstanceOf(InstanceOfAssertFactories.type(InProcessConversationContext.class))
-          .satisfies(
-              conversation -> {
-                final var expectedMessages = new ArrayList<>(TEST_MESSAGES);
-                expectedMessages.add(userMessage);
+          .satisfies(conversation -> {
+            final var expectedMessages = new ArrayList<>(TEST_MESSAGES);
+            expectedMessages.add(userMessage);
 
-                assertThat(conversation.conversationId())
-                    .isEqualTo(previousConversationContext.conversationId());
-                assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
-              });
+            assertThat(conversation.conversationId())
+                .isEqualTo(previousConversationContext.conversationId());
+            assertThat(conversation.messages()).containsExactlyElementsOf(expectedMessages);
+          });
     }
   }
 }

@@ -102,10 +102,8 @@ class ElasticsearchVectorStoreFactoryTest {
           // Verify proxy route planner was set (proxy host configured)
           verify(httpClientBuilder)
               .setRoutePlanner(
-                  argThat(
-                      routePlanner ->
-                          routePlanner
-                              instanceof ElasticsearchVectorStoreFactory.ProxyRoutePlanner));
+                  argThat(routePlanner ->
+                      routePlanner instanceof ElasticsearchVectorStoreFactory.ProxyRoutePlanner));
         });
   }
 
@@ -151,10 +149,8 @@ class ElasticsearchVectorStoreFactoryTest {
           // Verify proxy route planner was set
           verify(httpClientBuilder)
               .setRoutePlanner(
-                  argThat(
-                      routePlanner ->
-                          routePlanner
-                              instanceof ElasticsearchVectorStoreFactory.ProxyRoutePlanner));
+                  argThat(routePlanner ->
+                      routePlanner instanceof ElasticsearchVectorStoreFactory.ProxyRoutePlanner));
         });
   }
 
@@ -168,6 +164,7 @@ class ElasticsearchVectorStoreFactoryTest {
         new ElasticsearchVectorStore(
             new ElasticsearchVectorStore.Configuration(
                 "https://" + ELASTICSEARCH_HOST + ":" + ELASTICSEARCH_PORT,
+                null,
                 null,
                 null,
                 "embeddings_idx")),

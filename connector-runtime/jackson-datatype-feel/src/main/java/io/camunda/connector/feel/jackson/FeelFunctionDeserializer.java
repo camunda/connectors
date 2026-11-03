@@ -46,7 +46,7 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   @SuppressWarnings("unchecked")
   protected Function<IN, OUT> doDeserialize(
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
-    return (input) -> {
+    return input -> {
       try {
         JsonNode jsonNode =
             BLANK_OBJECT_MAPPER.valueToTree(

@@ -37,19 +37,19 @@ public class SecurityUtilTest {
     // language=yaml
     String yaml =
         """
-      openapi: 3.0.0
-      info:
-        title: test
-        version: 1.0.0
-      servers:
-        - url: https://example.com
-      paths:
-        /health:
-          get:
-            summary: Health check, no auth
-            responses:
-              '200': { description: OK }
-      """;
+        openapi: 3.0.0
+        info:
+          title: test
+          version: 1.0.0
+        servers:
+          - url: https://example.com
+        paths:
+          /health:
+            get:
+              summary: Health check, no auth
+              responses:
+                '200': { description: OK }
+        """;
 
     SwaggerParseResult result = new OpenAPIV3Parser().readContents(yaml, null, null);
     OpenAPI openAPI = result.getOpenAPI();
@@ -68,27 +68,27 @@ public class SecurityUtilTest {
     // language=yaml
     String yaml =
         """
-      openapi: 3.0.0
-      info:
-        title: test
-        version: 1.0.0
-      servers:
-        - url: https://example.com
-      paths:
-        /secure:
-          get:
-            summary: Returns a greeting
-            security:
-              - bearerAuth: []
-            responses:
-              '200': { description: OK }
-      components:
-        securitySchemes:
-          bearerAuth:
-            type: http
-            scheme: bearer
-            bearerFormat: JWT
-      """;
+        openapi: 3.0.0
+        info:
+          title: test
+          version: 1.0.0
+        servers:
+          - url: https://example.com
+        paths:
+          /secure:
+            get:
+              summary: Returns a greeting
+              security:
+                - bearerAuth: []
+              responses:
+                '200': { description: OK }
+        components:
+          securitySchemes:
+            bearerAuth:
+              type: http
+              scheme: bearer
+              bearerFormat: JWT
+        """;
 
     SwaggerParseResult result = new OpenAPIV3Parser().readContents(yaml, null, null);
     OpenAPI openAPI = result.getOpenAPI();
@@ -107,27 +107,27 @@ public class SecurityUtilTest {
     // language=yaml
     String yaml =
         """
-      openapi: 3.0.0
-      info:
-        title: test
-        version: 1.0.0
-      servers:
-        - url: https://example.com
-      paths:
-        /secure:
-          get:
-            summary: Returns a greeting
-            responses:
-              '200': { description: OK }
-      security:
-        - bearerAuth: []
-      components:
-        securitySchemes:
-          bearerAuth:
-            type: http
-            scheme: bearer
-            bearerFormat: JWT
-      """;
+        openapi: 3.0.0
+        info:
+          title: test
+          version: 1.0.0
+        servers:
+          - url: https://example.com
+        paths:
+          /secure:
+            get:
+              summary: Returns a greeting
+              responses:
+                '200': { description: OK }
+        security:
+          - bearerAuth: []
+        components:
+          securitySchemes:
+            bearerAuth:
+              type: http
+              scheme: bearer
+              bearerFormat: JWT
+        """;
 
     SwaggerParseResult result = new OpenAPIV3Parser().readContents(yaml, null, null);
     OpenAPI openAPI = result.getOpenAPI();
@@ -146,32 +146,32 @@ public class SecurityUtilTest {
     // language=yaml
     String yaml =
         """
-      openapi: 3.0.0
-      info:
-        title: test
-        version: 1.0.0
-      servers:
-        - url: https://example.com
-      components:
-        securitySchemes:
-          bearerAuth:
-            type: http
-            scheme: bearer
-      security:
-        - bearerAuth: []
-      paths:
-        /secure:
-          get:
-            summary: Needs token
-            responses:
-              '200': { description: OK }
-        /health:
-          get:
-            summary: Health check, no auth
-            security: []
-            responses:
-              '200': { description: OK }
-      """;
+        openapi: 3.0.0
+        info:
+          title: test
+          version: 1.0.0
+        servers:
+          - url: https://example.com
+        components:
+          securitySchemes:
+            bearerAuth:
+              type: http
+              scheme: bearer
+        security:
+          - bearerAuth: []
+        paths:
+          /secure:
+            get:
+              summary: Needs token
+              responses:
+                '200': { description: OK }
+          /health:
+            get:
+              summary: Health check, no auth
+              security: []
+              responses:
+                '200': { description: OK }
+        """;
 
     SwaggerParseResult result = new OpenAPIV3Parser().readContents(yaml, null, null);
     OpenAPI openAPI = result.getOpenAPI();

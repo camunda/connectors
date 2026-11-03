@@ -53,10 +53,8 @@ final class OpenAiResponsesV2RecordedChatRequestAdapter implements RecordedChatR
   public Optional<RecordedResponseFormat> responseFormat() {
     return delegate
         .responseFormat()
-        .map(
-            format ->
-                new RecordedResponseFormat(
-                    format.type(), format.schemaName(), format.jsonSchema()));
+        .map(format ->
+            new RecordedResponseFormat(format.type(), format.schemaName(), format.jsonSchema()));
   }
 
   private record MessageAdapter(OpenAiResponsesV2RecordedConversation.RecordedMessage delegate)
@@ -73,19 +71,18 @@ final class OpenAiResponsesV2RecordedChatRequestAdapter implements RecordedChatR
         return List.of(new RecordedContentPart("text", delegate.content()));
       }
       return delegate.contentParts().stream()
-          .map(
-              part -> {
-                // The raw wire kind (e.g. "input_text"/"output_text"/"input_image"/"input_file")
-                // is kept as-is, not normalized to a provider-neutral "text" -
-                // RecordedContentPart#isText() already recognizes both "input_text" (user/tool
-                // messages) and "output_text" (assistant messages) for
-                // RecordedMessage#textContent() to keep working, and keeping the raw kind is what
-                // lets ProviderWireFormatExpectedMessage catch an input_*-typed part landing on an
-                // assistant-role message (only output_text/refusal are valid there).
-                final var kind = part.path("type").asText();
-                final var isText = "input_text".equals(kind) || "output_text".equals(kind);
-                return new RecordedContentPart(kind, isText ? part.path("text").asText() : null);
-              })
+          .map(part -> {
+            // The raw wire kind (e.g. "input_text"/"output_text"/"input_image"/"input_file")
+            // is kept as-is, not normalized to a provider-neutral "text" -
+            // RecordedContentPart#isText() already recognizes both "input_text" (user/tool
+            // messages) and "output_text" (assistant messages) for
+            // RecordedMessage#textContent() to keep working, and keeping the raw kind is what
+            // lets ProviderWireFormatExpectedMessage catch an input_*-typed part landing on an
+            // assistant-role message (only output_text/refusal are valid there).
+            final var kind = part.path("type").asText();
+            final var isText = "input_text".equals(kind) || "output_text".equals(kind);
+            return new RecordedContentPart(kind, isText ? part.path("text").asText() : null);
+          })
           .toList();
     }
 

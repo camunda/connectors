@@ -12,18 +12,38 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
+import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingCredential;
+import io.camunda.connector.model.embedding.models.BedrockEmbeddingCredential;
+import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingCredential;
+import io.camunda.connector.model.embedding.models.OpenAiEmbeddingCredential;
+import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchCredential;
+import io.camunda.connector.model.embedding.vector.store.AzureAiSearchCredential;
+import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlCredential;
+import io.camunda.connector.model.embedding.vector.store.ElasticsearchCredential;
+import io.camunda.connector.model.embedding.vector.store.OpenSearchCredential;
 
 @OutboundConnector(
     name = "Embeddings Vector Database Connector",
     inputVariables = {"vectorDatabaseConnectorOperation", "embeddingModelProvider", "vectorStore"},
     type = "io.camunda:embeddings-vector-database:1")
 @ElementTemplate(
-    engineVersion = "^8.8",
+    engineVersion = "^8.11",
     id = "io.camunda.connectors.EmbeddingsVectorDB.v1",
     name = "Embeddings Vector DB Outbound Connector",
     description = "Embed and download documents with vector databases",
     inputDataClass = EmbeddingsVectorDBRequest.class,
-    version = 3,
+    configurations = {
+      OpenAiEmbeddingCredential.class,
+      AzureOpenAiEmbeddingCredential.class,
+      GoogleVertexAiEmbeddingCredential.class,
+      BedrockEmbeddingCredential.class,
+      AzureAiSearchCredential.class,
+      AzureCosmosDbNoSqlCredential.class,
+      AmazonManagedOpenSearchCredential.class,
+      OpenSearchCredential.class,
+      ElasticsearchCredential.class
+    },
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "query", label = "Query"),

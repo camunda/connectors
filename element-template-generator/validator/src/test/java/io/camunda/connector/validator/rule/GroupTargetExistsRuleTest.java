@@ -36,11 +36,11 @@ class GroupTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "auth" }, { "id": "operation" } ],
-          "properties": [ { "id": "x", "group": "auth" } ]
-        }
-        """);
+            {
+              "groups": [ { "id": "auth" }, { "id": "operation" } ],
+              "properties": [ { "id": "x", "group": "auth" } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -49,11 +49,11 @@ class GroupTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "auth" } ],
-          "properties": [ { "id": "x", "group": "operatoin" } ]
-        }
-        """);
+            {
+              "groups": [ { "id": "auth" } ],
+              "properties": [ { "id": "x", "group": "operatoin" } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -67,8 +67,8 @@ class GroupTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        { "groups": [], "properties": [ { "id": "x" } ] }
-        """);
+            { "groups": [], "properties": [ { "id": "x" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 

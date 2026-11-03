@@ -35,33 +35,30 @@ class McpClientAgenticToolAutoConfigurationTest {
 
   @Test
   void enablesMcpAgentToolByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
-          assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
+      assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
+    });
   }
 
   @Test
   void disablesMcpAgentToolIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.client.agentic.tool.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
+        });
   }
 
   @Test
   void disablesMcpAgentToolIfConfiguredWithDeprecatedProperty() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.discovery.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
+        });
   }
 
   @Test
@@ -70,22 +67,20 @@ class McpClientAgenticToolAutoConfigurationTest {
         .withPropertyValues(
             "camunda.connector.agenticai.mcp.client.agentic.tool.enabled=true",
             "camunda.connector.agenticai.mcp.discovery.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
+        });
   }
 
   @Test
   void enablesMcpAgentToolIfDeprecatedPropertyIsTrue() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.discovery.enabled=true")
-        .run(
-            context -> {
-              assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
-            });
+        .run(context -> {
+          assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
+          assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
+        });
   }
 
   static class TestConfig {

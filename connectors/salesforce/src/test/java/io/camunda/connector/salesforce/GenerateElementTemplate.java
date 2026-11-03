@@ -168,12 +168,11 @@ public class GenerateElementTemplate {
             httpJsonTemplate.properties().stream()
                 .filter(GenerateElementTemplate::isAuthTypeDropdown)
                 .findFirst()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "HTTP JSON's generated template no longer has an "
-                                + "\"authentication.type\" dropdown property -- has it been renamed"
-                                + " or removed?"));
+                .orElseThrow(() ->
+                    new IllegalStateException(
+                        "HTTP JSON's generated template no longer has an "
+                            + "\"authentication.type\" dropdown property -- has it been renamed"
+                            + " or removed?"));
 
     ElementTemplateBuilder builder =
         ElementTemplateBuilder.from(httpJsonTemplate)
@@ -182,12 +181,11 @@ public class GenerateElementTemplate {
             // Salesforce-specific and rebuilt from scratch below. Groups are dropped entirely and
             // re-declared below.
             .removePropertyGroups(g -> true)
-            .removeProperties(
-                p ->
-                    !(isAuthenticationConfiguration(p)
-                        || isAuthTypeDropdown(p)
-                        || idIn(p, KEPT_AUTH_PROPERTY_IDS)
-                        || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
+            .removeProperties(p ->
+                !(isAuthenticationConfiguration(p)
+                    || isAuthTypeDropdown(p)
+                    || idIn(p, KEPT_AUTH_PROPERTY_IDS)
+                    || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
             .removeConfigurationTemplates(ct -> true)
             .configurationTemplates(List.of(salesforceCredential(httpJsonTemplate)))
             .replaceProperty(salesforceCredentialChooser(httpJsonTemplate))
@@ -395,20 +393,17 @@ public class GenerateElementTemplate {
         httpJsonTemplate.configurationTemplates().stream()
             .filter(ct -> REST_AUTHENTICATION_CONFIGURATION_ID.equals(ct.id()))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "HTTP JSON's generated template no longer embeds the \""
-                            + REST_AUTHENTICATION_CONFIGURATION_ID
-                            + "\" configuration template -- has it been renamed or removed?"));
+            .orElseThrow(() ->
+                new IllegalStateException(
+                    "HTTP JSON's generated template no longer embeds the \""
+                        + REST_AUTHENTICATION_CONFIGURATION_ID
+                        + "\" configuration template -- has it been renamed or removed?"));
     List<Property> properties =
         restAuthentication.properties().stream()
-            .filter(
-                p ->
-                    isAuthTypeDropdown(p)
-                        || isCredentialUrl(p)
-                        || (isConditionedOnKeptAuthType(p)
-                            && !idIn(p, UNSUPPORTED_AUTH_PROPERTY_IDS)))
+            .filter(p ->
+                isAuthTypeDropdown(p)
+                    || isCredentialUrl(p)
+                    || (isConditionedOnKeptAuthType(p) && !idIn(p, UNSUPPORTED_AUTH_PROPERTY_IDS)))
             .map(GenerateElementTemplate::forSalesforceCredential)
             .toList();
     return new ConfigurationTemplate(
@@ -462,12 +457,11 @@ public class GenerateElementTemplate {
             .filter(ConfigurationProperty.class::isInstance)
             .map(ConfigurationProperty.class::cast)
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "HTTP JSON's generated template no longer has an \""
-                            + AUTHENTICATION_CONFIGURATION_PROPERTY_ID
-                            + "\" credential chooser -- has it been renamed or removed?"));
+            .orElseThrow(() ->
+                new IllegalStateException(
+                    "HTTP JSON's generated template no longer has an \""
+                        + AUTHENTICATION_CONFIGURATION_PROPERTY_ID
+                        + "\" credential chooser -- has it been renamed or removed?"));
     return original.toBuilder()
         .configurationTemplate(SALESFORCE_CREDENTIAL_ID)
         .description(AUTHENTICATION_CONFIGURATION_DESCRIPTION)

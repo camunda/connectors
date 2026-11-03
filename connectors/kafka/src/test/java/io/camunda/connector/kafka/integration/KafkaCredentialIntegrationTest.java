@@ -182,14 +182,13 @@ class KafkaCredentialIntegrationTest {
     try {
       KAFKA.stop();
     } finally {
-      ORIGINAL_TRUSTSTORE_PROPERTIES.forEach(
-          (property, originalValue) -> {
-            if (originalValue == null) {
-              System.clearProperty(property);
-            } else {
-              System.setProperty(property, originalValue);
-            }
-          });
+      ORIGINAL_TRUSTSTORE_PROPERTIES.forEach((property, originalValue) -> {
+        if (originalValue == null) {
+          System.clearProperty(property);
+        } else {
+          System.setProperty(property, originalValue);
+        }
+      });
       if (tlsDirectory != null) {
         try (var files = Files.walk(tlsDirectory)) {
           for (var file : files.sorted(Comparator.reverseOrder()).toList()) {
@@ -274,11 +273,10 @@ class KafkaCredentialIntegrationTest {
         if (!records.isEmpty()) {
           assertThat(records.records(topic))
               .singleElement()
-              .satisfies(
-                  record -> {
-                    assertThat(record.key()).isEqualTo("credential-key");
-                    assertThat(record.value()).isEqualTo("authenticated-message");
-                  });
+              .satisfies(record -> {
+                assertThat(record.key()).isEqualTo("credential-key");
+                assertThat(record.value()).isEqualTo("authenticated-message");
+              });
           return;
         }
       }

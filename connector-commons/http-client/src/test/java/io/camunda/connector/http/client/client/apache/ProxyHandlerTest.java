@@ -46,11 +46,10 @@ public class ProxyHandlerTest {
 
     assertThat(handler.getProxyDetails(protocol))
         .isPresent()
-        .hasValueSatisfying(
-            d -> {
-              assertThat(d.host()).isEqualTo("proxy.example.com");
-              assertThat(d.port()).isEqualTo(3128);
-            });
+        .hasValueSatisfying(d -> {
+          assertThat(d.host()).isEqualTo("proxy.example.com");
+          assertThat(d.port()).isEqualTo(3128);
+        });
   }
 
   @ParameterizedTest
@@ -77,11 +76,10 @@ public class ProxyHandlerTest {
                 .getCredentialsProvider(protocol)
                 .getCredentials(new AuthScope("proxy.example.com", 3128), null))
         .isNotNull()
-        .satisfies(
-            creds -> {
-              assertThat(creds.getUserPrincipal().getName()).isEqualTo("myuser");
-              assertThat(new String(creds.getPassword())).isEqualTo("mypass");
-            });
+        .satisfies(creds -> {
+          assertThat(creds.getUserPrincipal().getName()).isEqualTo("myuser");
+          assertThat(new String(creds.getPassword())).isEqualTo("mypass");
+        });
   }
 
   @ParameterizedTest
@@ -141,11 +139,10 @@ public class ProxyHandlerTest {
 
     assertThat(handler.getProxyDetails("http"))
         .isPresent()
-        .hasValueSatisfying(
-            d -> {
-              assertThat(d.host()).isEqualTo("standard-proxy.example.com");
-              assertThat(d.port()).isEqualTo(8080);
-            });
+        .hasValueSatisfying(d -> {
+          assertThat(d.host()).isEqualTo("standard-proxy.example.com");
+          assertThat(d.port()).isEqualTo(8080);
+        });
   }
 
   private String envVar(String protocol, String suffix) {

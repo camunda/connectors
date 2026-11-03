@@ -42,25 +42,24 @@ public class AwsSdkHttpProxySupport {
 
     proxyConfiguration
         .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .endpoint(toUri(proxyDetails))
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+        .ifPresent(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}://{}:{}]",
+              schemeName,
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
+          awsProxyConfigBuilder
+              .scheme(proxyDetails.scheme())
+              .endpoint(toUri(proxyDetails))
+              .nonProxyHosts(
+                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
+          if (proxyDetails.hasCredentials()) {
+            awsProxyConfigBuilder.username(proxyDetails.user());
+            awsProxyConfigBuilder.password(proxyDetails.password());
+          }
+        });
 
     return awsProxyConfigBuilder.build();
   }
@@ -93,26 +92,25 @@ public class AwsSdkHttpProxySupport {
 
     proxyConfiguration
         .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .host(proxyDetails.host())
-                  .port(proxyDetails.port())
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+        .ifPresent(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}://{}:{}]",
+              schemeName,
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
+          awsProxyConfigBuilder
+              .scheme(proxyDetails.scheme())
+              .host(proxyDetails.host())
+              .port(proxyDetails.port())
+              .nonProxyHosts(
+                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
+          if (proxyDetails.hasCredentials()) {
+            awsProxyConfigBuilder.username(proxyDetails.user());
+            awsProxyConfigBuilder.password(proxyDetails.password());
+          }
+        });
 
     return awsProxyConfigBuilder.build();
   }

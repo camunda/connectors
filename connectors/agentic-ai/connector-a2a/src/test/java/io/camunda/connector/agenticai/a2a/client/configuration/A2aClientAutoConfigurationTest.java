@@ -65,26 +65,24 @@ class A2aClientAutoConfigurationTest {
 
   @Test
   void enablesAllA2aClientIntegrationByDefault() {
-    contextRunner.run(
-        context -> {
-          assertHasAllBeansOf(context, A2A_COMMON_BEANS);
-          assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
-          assertHasAllBeansOf(context, A2A_POLLING_BEANS);
-          assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
-        });
+    contextRunner.run(context -> {
+      assertHasAllBeansOf(context, A2A_COMMON_BEANS);
+      assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
+      assertHasAllBeansOf(context, A2A_POLLING_BEANS);
+      assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
+    });
   }
 
   @Test
   void disablesA2aOutboundClientIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.a2a.client.outbound.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
-              assertHasAllBeansOf(context, A2A_COMMON_BEANS);
-              assertHasAllBeansOf(context, A2A_POLLING_BEANS);
-              assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
+          assertHasAllBeansOf(context, A2A_COMMON_BEANS);
+          assertHasAllBeansOf(context, A2A_POLLING_BEANS);
+          assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
+        });
   }
 
   @Test
@@ -94,12 +92,11 @@ class A2aClientAutoConfigurationTest {
             "camunda.connector.agenticai.a2a.client.outbound.enabled=false",
             "camunda.connector.agenticai.a2a.client.polling.enabled=false",
             "camunda.connector.agenticai.a2a.client.webhook.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, A2A_COMMON_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, A2A_POLLING_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, A2A_COMMON_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, A2A_POLLING_BEANS);
+        });
   }
 
   private static void assertHasAllBeansOf(

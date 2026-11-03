@@ -103,9 +103,8 @@ enum AgenticAiModules {
     return javaClass
         .getSource()
         .map(source -> source.getUri().toString())
-        .flatMap(
-            location ->
-                Arrays.stream(values()).filter(module -> module.isLocatedIn(location)).findFirst());
+        .flatMap(location ->
+            Arrays.stream(values()).filter(module -> module.isLocatedIn(location)).findFirst());
   }
 
   boolean isLocatedIn(final String location) {

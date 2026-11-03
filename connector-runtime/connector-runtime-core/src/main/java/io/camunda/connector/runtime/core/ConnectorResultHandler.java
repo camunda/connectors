@@ -184,34 +184,26 @@ public class ConnectorResultHandler {
       // it before this filter could orphan a document for an error expression result that's about
       // to be discarded entirely.
       return Optional.ofNullable(evaluatedJson)
-          .filter(
-              json ->
-                  !parseJsonVarsAsTypeOrThrow(
-                          json, Map.class, errorExpression, "Error expression", physicalTenantId)
-                      .isEmpty())
-          .map(
-              json ->
-                  resolveDocumentsAsJson(
-                      json,
-                      errorExpression,
-                      "Error expression",
-                      physicalTenantId,
-                      new ArrayList<>()))
-          .map(
-              json ->
-                  parseJsonVarsAsTypeOrThrow(
-                      json,
-                      ConnectorError.class,
-                      errorExpression,
-                      "Error expression",
-                      physicalTenantId))
-          .filter(
-              error -> {
-                if (error instanceof BpmnError bpmnError) {
-                  return bpmnError.hasCode();
-                }
-                return true;
-              });
+          .filter(json ->
+              !parseJsonVarsAsTypeOrThrow(
+                      json, Map.class, errorExpression, "Error expression", physicalTenantId)
+                  .isEmpty())
+          .map(json ->
+              resolveDocumentsAsJson(
+                  json, errorExpression, "Error expression", physicalTenantId, new ArrayList<>()))
+          .map(json ->
+              parseJsonVarsAsTypeOrThrow(
+                  json,
+                  ConnectorError.class,
+                  errorExpression,
+                  "Error expression",
+                  physicalTenantId))
+          .filter(error -> {
+            if (error instanceof BpmnError bpmnError) {
+              return bpmnError.hasCode();
+            }
+            return true;
+          });
     } finally {
       FeelConnectorFunctionProvider.endCreateDocumentEvaluationScope();
     }

@@ -102,9 +102,8 @@ public class IntrinsicFunctionsTests {
 
   @BeforeEach
   void stubGenerateLink() {
-    doAnswer(
-            inv ->
-                TEST_LINK_PREFIX + ((CamundaDocumentReference) inv.getArgument(0)).getDocumentId())
+    doAnswer(inv ->
+            TEST_LINK_PREFIX + ((CamundaDocumentReference) inv.getArgument(0)).getDocumentId())
         .when(documentStore)
         .generateLink(any(), any());
   }

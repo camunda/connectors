@@ -322,16 +322,15 @@ public class ElementTemplateBuilder {
    */
   public ElementTemplateBuilder reorderPropertiesByGroup(List<String> groupOrder) {
     properties.sort(
-        Comparator.comparingInt(
-            p -> {
-              // groupOrder.indexOf(null) would throw: List.of(...)'s indexOf rejects a null
-              // query arg outright, unlike ArrayList's.
-              if (p.group == null) {
-                return Integer.MAX_VALUE;
-              }
-              int rank = groupOrder.indexOf(p.group);
-              return rank < 0 ? Integer.MAX_VALUE : rank;
-            }));
+        Comparator.comparingInt(p -> {
+          // groupOrder.indexOf(null) would throw: List.of(...)'s indexOf rejects a null
+          // query arg outright, unlike ArrayList's.
+          if (p.group == null) {
+            return Integer.MAX_VALUE;
+          }
+          int rank = groupOrder.indexOf(p.group);
+          return rank < 0 ? Integer.MAX_VALUE : rank;
+        }));
     return this;
   }
 

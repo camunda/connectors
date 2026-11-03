@@ -105,10 +105,9 @@ class LegacySecretModeGuardTest {
           }
         };
 
-    assertThatThrownBy(
-            () ->
-                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                    bypassing, LegacySecretMode.OFF))
+    assertThatThrownBy(() ->
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                bypassing, LegacySecretMode.OFF))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF");
   }
@@ -124,10 +123,9 @@ class LegacySecretModeGuardTest {
           }
         };
 
-    assertThatThrownBy(
-            () ->
-                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                    bypassing, LegacySecretMode.OFF))
+    assertThatThrownBy(() ->
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                bypassing, LegacySecretMode.OFF))
         .isInstanceOf(IllegalStateException.class);
   }
 
@@ -149,10 +147,9 @@ class LegacySecretModeGuardTest {
     SecretProviderAggregator customAggregator =
         new SecretProviderAggregator(List.of(mock(SecretProvider.class)));
 
-    assertThatThrownBy(
-            () ->
-                autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
-                    customAggregator, LegacySecretMode.OFF))
+    assertThatThrownBy(() ->
+            autoConfiguration.checkSecretProviderAggregatorLegacySwitch(
+                customAggregator, LegacySecretMode.OFF))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("camunda.connector.secret-resolver.legacy.mode=OFF");
   }

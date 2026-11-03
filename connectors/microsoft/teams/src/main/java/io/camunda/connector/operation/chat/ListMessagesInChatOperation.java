@@ -18,20 +18,19 @@ public record ListMessagesInChatOperation(ListMessagesInChat model) implements C
         .chats()
         .byChatId(model.chatId())
         .messages()
-        .get(
-            getRequestConfiguration -> {
-              if (getRequestConfiguration.queryParameters != null) {
-                var params = getRequestConfiguration.queryParameters;
-                if (model.orderBy() != OrderBy.withoutOrdering) {
-                  params.orderby = new String[] {model.orderBy().getValue()};
-                }
-                if (model.filter() != null) {
-                  params.filter = model.filter();
-                }
-                if (model.top() != null) {
-                  params.top = Integer.parseInt(model.top());
-                }
-              }
-            });
+        .get(getRequestConfiguration -> {
+          if (getRequestConfiguration.queryParameters != null) {
+            var params = getRequestConfiguration.queryParameters;
+            if (model.orderBy() != OrderBy.withoutOrdering) {
+              params.orderby = new String[] {model.orderBy().getValue()};
+            }
+            if (model.filter() != null) {
+              params.filter = model.filter();
+            }
+            if (model.top() != null) {
+              params.top = Integer.parseInt(model.top());
+            }
+          }
+        });
   }
 }

@@ -114,10 +114,9 @@ public class OutboundConnectorsService {
     var brokerStreams = queryBrokerStreams(physicalTenantIdFilter);
     var configurations = connectorFactory.getRuntimeConfigurations();
     var results = new ArrayList<OutboundConnectorResponse>();
-    brokerStreams.forEach(
-        (physicalTenantId, streams) ->
-            configurations.forEach(
-                config -> results.add(toResponse(config, runtimeId, physicalTenantId, streams))));
+    brokerStreams.forEach((physicalTenantId, streams) ->
+        configurations.forEach(
+            config -> results.add(toResponse(config, runtimeId, physicalTenantId, streams))));
     return results;
   }
 

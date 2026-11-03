@@ -38,10 +38,9 @@ class AgenticAiCommonAutoConfigurationTest {
     // applications depending only on the model or the API exclude the HTTP client
     contextRunner
         .withClassLoader(new FilteredClassLoader("io.camunda.connector.http.client"))
-        .run(
-            context -> {
-              assertThat(context).hasNotFailed();
-              assertThat(context).doesNotHaveBean(AgenticAiHttpProxySupport.class);
-            });
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).doesNotHaveBean(AgenticAiHttpProxySupport.class);
+        });
   }
 }

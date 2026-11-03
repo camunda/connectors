@@ -65,18 +65,17 @@ public final class TurnReconstructor {
 
     var turns =
         IntStream.range(0, assistantIndices.size())
-            .mapToObj(
-                n -> {
-                  int end = assistantIndices.get(n);
-                  int start = n == 0 ? 0 : assistantIndices.get(n - 1) + 1;
-                  int iterationKey = n + 1;
-                  return new AgentConversationTurn(
-                      iterationKey,
-                      List.copyOf(body.subList(start, end)),
-                      (AssistantMessage) body.get(end),
-                      AgentMetrics.empty(),
-                      metadata != null ? metadata.configurationFingerprintAt(iterationKey) : null);
-                })
+            .mapToObj(n -> {
+              int end = assistantIndices.get(n);
+              int start = n == 0 ? 0 : assistantIndices.get(n - 1) + 1;
+              int iterationKey = n + 1;
+              return new AgentConversationTurn(
+                  iterationKey,
+                  List.copyOf(body.subList(start, end)),
+                  (AssistantMessage) body.get(end),
+                  AgentMetrics.empty(),
+                  metadata != null ? metadata.configurationFingerprintAt(iterationKey) : null);
+            })
             .toList();
 
     return new PreviousConversation(systemMessage, turns);

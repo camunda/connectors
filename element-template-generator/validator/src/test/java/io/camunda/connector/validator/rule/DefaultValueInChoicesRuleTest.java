@@ -36,13 +36,13 @@ class DefaultValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "x", "type": "Dropdown", "value": "a",
-              "choices": [{"value":"a"},{"value":"b"}] }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "x", "type": "Dropdown", "value": "a",
+                  "choices": [{"value":"a"},{"value":"b"}] }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -51,13 +51,13 @@ class DefaultValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "x", "type": "Dropdown", "value": "c",
-              "choices": [{"value":"a"},{"value":"b"}] }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "x", "type": "Dropdown", "value": "c",
+                  "choices": [{"value":"a"},{"value":"b"}] }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -71,12 +71,12 @@ class DefaultValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "x", "type": "String", "value": "literally anything" }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "x", "type": "String", "value": "literally anything" }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -85,12 +85,12 @@ class DefaultValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "x", "type": "Dropdown", "choices": [{"value":"a"}] }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "x", "type": "Dropdown", "choices": [{"value":"a"}] }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 

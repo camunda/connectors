@@ -101,10 +101,10 @@ class PhysicalTenantIdRoutingInboundConnectorContextFactoryTest {
 
     var resultA =
         routingFactory.createContext(
-            detailsFor("physical-tenant-a"), t -> {}, InboundConnectorExecutable.class, (a) -> {});
+            detailsFor("physical-tenant-a"), t -> {}, InboundConnectorExecutable.class, a -> {});
     var resultB =
         routingFactory.createContext(
-            detailsFor("physical-tenant-b"), t -> {}, InboundConnectorExecutable.class, (a) -> {});
+            detailsFor("physical-tenant-b"), t -> {}, InboundConnectorExecutable.class, a -> {});
 
     assertThat(resultA).isSameAs(contextA);
     assertThat(resultB).isSameAs(contextB);
@@ -119,10 +119,9 @@ class PhysicalTenantIdRoutingInboundConnectorContextFactoryTest {
 
     var details = detailsFor("physical-tenant-unknown");
 
-    assertThatThrownBy(
-            () ->
-                routingFactory.createContext(
-                    details, t -> {}, InboundConnectorExecutable.class, (a) -> {}))
+    assertThatThrownBy(() ->
+            routingFactory.createContext(
+                details, t -> {}, InboundConnectorExecutable.class, a -> {}))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("physical-tenant-unknown");
   }

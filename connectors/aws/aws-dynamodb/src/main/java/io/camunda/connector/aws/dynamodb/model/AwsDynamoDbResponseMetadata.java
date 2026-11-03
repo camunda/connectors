@@ -48,9 +48,8 @@ public final class AwsDynamoDbResponseMetadata {
       }
       Map<String, List<String>> allHttpHeaders = new LinkedHashMap<>(httpResponse.headers());
       Map<String, String> httpHeaders = new LinkedHashMap<>();
-      allHttpHeaders.forEach(
-          (name, values) ->
-              httpHeaders.put(name, values == null || values.isEmpty() ? null : values.get(0)));
+      allHttpHeaders.forEach((name, values) ->
+          httpHeaders.put(name, values == null || values.isEmpty() ? null : values.get(0)));
       return new SdkHttpMetadata(httpHeaders, httpResponse.statusCode(), allHttpHeaders);
     }
   }

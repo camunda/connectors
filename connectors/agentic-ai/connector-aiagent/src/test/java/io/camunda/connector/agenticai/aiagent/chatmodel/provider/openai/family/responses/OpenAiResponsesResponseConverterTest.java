@@ -588,11 +588,10 @@ class OpenAiResponsesResponseConverterTest {
     assertThat(content)
         .filteredOn(ReasoningContent.class::isInstance)
         .singleElement()
-        .satisfies(
-            c ->
-                assertThat((Map<String, Object>) ((ReasoningContent) c).payload())
-                    .containsKey("encrypted_content")
-                    .doesNotContainKey("valid"));
+        .satisfies(c ->
+            assertThat((Map<String, Object>) ((ReasoningContent) c).payload())
+                .containsKey("encrypted_content")
+                .doesNotContainKey("valid"));
   }
 
   @Test
@@ -804,12 +803,11 @@ class OpenAiResponsesResponseConverterTest {
 
     assertThatThrownBy(() -> converter.toResult(response, Duration.ofSeconds(1)))
         .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
-        .satisfies(
-            e -> {
-              assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
-              assertThat(e.getMessage())
-                  .isEqualTo("OpenAI response failed: server_error: the model produced no output");
-            });
+        .satisfies(e -> {
+          assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_MODEL_CALL);
+          assertThat(e.getMessage())
+              .isEqualTo("OpenAI response failed: server_error: the model produced no output");
+        });
   }
 
   @Test

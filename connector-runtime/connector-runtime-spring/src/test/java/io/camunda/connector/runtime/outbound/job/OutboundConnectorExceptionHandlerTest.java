@@ -334,13 +334,12 @@ class OutboundConnectorExceptionHandlerTest {
     when(secretProvider.fetchAll(any(), any())).thenReturn(List.of("super-secret"));
 
     var logged =
-        logsOf(
-            () ->
-                handler.handleFinalResultException(
-                    new RuntimeException("failed talking to https://api?key=super-secret"),
-                    job,
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handler.handleFinalResultException(
+                new RuntimeException("failed talking to https://api?key=super-secret"),
+                job,
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("***"));
@@ -353,13 +352,12 @@ class OutboundConnectorExceptionHandlerTest {
     when(secretProvider.fetchAll(any(), any())).thenThrow(new RuntimeException("timed out"));
 
     var logged =
-        logsOf(
-            () ->
-                handler.handleFinalResultException(
-                    new RuntimeException("failed talking to https://api?key=super-secret"),
-                    job,
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handler.handleFinalResultException(
+                new RuntimeException("failed talking to https://api?key=super-secret"),
+                job,
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
@@ -379,14 +377,13 @@ class OutboundConnectorExceptionHandlerTest {
                     + " `java.util.LinkedHashMap` from String value ('super-secret')"));
 
     var logged =
-        logsOf(
-            () ->
-                handler.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"),
-                    job,
-                    Duration.ofSeconds(1),
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handler.manageConnectorJobHandlerException(
+                new RuntimeException("boom"),
+                job,
+                Duration.ofSeconds(1),
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged).noneMatch(message -> message.contains("super-secret"));
     assertThat(logged).anyMatch(message -> message.contains("java.lang.RuntimeException"));
@@ -402,14 +399,13 @@ class OutboundConnectorExceptionHandlerTest {
         .thenThrow(new SecretLookupRefusedException("Legacy secret resolution is switched off"));
 
     var logged =
-        logsOf(
-            () ->
-                handler.manageConnectorJobHandlerException(
-                    new RuntimeException("boom"),
-                    job,
-                    Duration.ofSeconds(1),
-                    SecretFilter.allowAll(),
-                    List.of()));
+        logsOf(() ->
+            handler.manageConnectorJobHandlerException(
+                new RuntimeException("boom"),
+                job,
+                Duration.ofSeconds(1),
+                SecretFilter.allowAll(),
+                List.of()));
 
     assertThat(logged)
         .anyMatch(message -> message.contains("Legacy secret resolution is switched off"));
@@ -617,14 +613,13 @@ class OutboundConnectorExceptionHandlerTest {
     var job = jobNaming("{\"a\": \"{{secrets.FOO}}\", \"b\": \"camunda.secrets.DB\"}");
     when(job.getRetries()).thenReturn(3);
     when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              if (keys.contains("DB")) {
-                throw new RuntimeException("cluster unreachable");
-              }
-              return List.of("foo-value");
-            });
+        .thenAnswer(invocation -> {
+          List<String> keys = invocation.getArgument(0);
+          if (keys.contains("DB")) {
+            throw new RuntimeException("cluster unreachable");
+          }
+          return List.of("foo-value");
+        });
 
     var result =
         handler.manageConnectorJobHandlerException(
@@ -647,16 +642,15 @@ class OutboundConnectorExceptionHandlerTest {
     var job = jobNaming("{\"b\": \"camunda.secrets.DB\"}");
     when(job.getRetries()).thenReturn(3);
     when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              if (keys.isEmpty()) {
-                return List.of();
-              }
-              throw new SecretLookupRefusedException(
-                  "Legacy secret resolution is disabled"
-                      + " (camunda.connector.secret-resolver.legacy.mode=OFF)");
-            });
+        .thenAnswer(invocation -> {
+          List<String> keys = invocation.getArgument(0);
+          if (keys.isEmpty()) {
+            return List.of();
+          }
+          throw new SecretLookupRefusedException(
+              "Legacy secret resolution is disabled"
+                  + " (camunda.connector.secret-resolver.legacy.mode=OFF)");
+        });
 
     var result =
         handler.manageConnectorJobHandlerException(
@@ -705,12 +699,11 @@ class OutboundConnectorExceptionHandlerTest {
    */
   private void holdingOnly(Map<String, String> values) {
     when(secretProvider.fetchAll(any(), any()))
-        .thenAnswer(
-            invocation -> {
-              List<String> keys = invocation.getArgument(0);
-              requestedKeys.addAll(keys);
-              return keys.stream().map(values::get).filter(java.util.Objects::nonNull).toList();
-            });
+        .thenAnswer(invocation -> {
+          List<String> keys = invocation.getArgument(0);
+          requestedKeys.addAll(keys);
+          return keys.stream().map(values::get).filter(java.util.Objects::nonNull).toList();
+        });
   }
 
   @Test

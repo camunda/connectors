@@ -121,10 +121,8 @@ class SecretReferenceResolverTest {
     when(command.send()).thenReturn(future);
     when(future.join()).thenThrow(new IllegalStateException("cluster unreachable"));
 
-    assertThatThrownBy(
-            () ->
-                new SecretReferenceResolver(camundaClient)
-                    .resolveOrFail(List.of("camunda.secrets.A")))
+    assertThatThrownBy(() ->
+            new SecretReferenceResolver(camundaClient).resolveOrFail(List.of("camunda.secrets.A")))
         .isInstanceOf(SecretReferenceResolver.SecretResolutionFailedException.class)
         // Neither the message nor a cause may carry the client's own, which can echo the response
         // body — and the type decides whether the job is retried, so it must not be a fatal one.
@@ -218,11 +216,10 @@ class SecretReferenceResolverTest {
     var future = mock(CamundaFuture.class);
     when(camundaClient.newResolveSecretsCommand()).thenReturn(command);
     when(command.references(anyList()))
-        .thenAnswer(
-            invocation -> {
-              sentBatches.add(List.copyOf(invocation.<List<String>>getArgument(0)));
-              return command;
-            });
+        .thenAnswer(invocation -> {
+          sentBatches.add(List.copyOf(invocation.<List<String>>getArgument(0)));
+          return command;
+        });
     when(command.send()).thenReturn(future);
     when(future.join())
         .thenAnswer(invocation -> new StubResponse(sentBatches.getLast(), values, errors));

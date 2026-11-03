@@ -157,7 +157,7 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
             Map.of(),
             HAIKU_TEXT,
             true,
-            (agentResponse) ->
+            agentResponse ->
                 AgentSubProcessResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(HAIKU_TEXT)
                     .hasResponseText(HAIKU_TEXT)
@@ -230,7 +230,8 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
         I called some of my MCP tools and got the following results:
         MCP_A_MCP_Client___toolA: A MCP Client result
         MCP_A_HTTP_Remote_MCP_Client___toolC: A HTTP Remote MCP Client result
-        MCP_A_SSE_Remote_MCP_Client___toolA: A SSE Remote MCP Client result""";
+        MCP_A_SSE_Remote_MCP_Client___toolA: A SSE Remote MCP Client result\
+        """;
     final var finalAiText = "No.";
 
     OpenAiCompletionsChatModelStubs.stubConversation(
@@ -296,33 +297,30 @@ public class AgentSubProcessMcpIntegrationTests extends BaseAgentSubProcessTest 
 
     verify(aMcpClient)
         .callTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  assertThat(toolExecutionRequest.arguments())
-                      .containsOnly(entry("paramA1", "someValue"), entry("paramA2", 3));
-                  assertThat(toolExecutionRequest.meta())
-                      .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
+              assertThat(toolExecutionRequest.arguments())
+                  .containsOnly(entry("paramA1", "someValue"), entry("paramA2", 3));
+              assertThat(toolExecutionRequest.meta())
+                  .containsExactly(entry("exampleMetaKey", "exampleMetaValue"));
+            }));
     verify(aHttpRemoteMcpClient)
         .callTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
-                  assertThat(toolExecutionRequest.arguments())
-                      .containsExactly(entry("paramC1", "someOtherValue"));
-                  // A_HTTP_Remote_MCP_Client never configures `meta` - proves the
-                  // backwards-compatible default (no `_meta` sent when unconfigured).
-                  assertThat(toolExecutionRequest.meta()).isNull();
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
+              assertThat(toolExecutionRequest.arguments())
+                  .containsExactly(entry("paramC1", "someOtherValue"));
+              // A_HTTP_Remote_MCP_Client never configures `meta` - proves the
+              // backwards-compatible default (no `_meta` sent when unconfigured).
+              assertThat(toolExecutionRequest.meta()).isNull();
+            }));
     verify(aSseRemoteMcpClient)
         .callTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  assertThat(toolExecutionRequest.arguments())
-                      .containsOnly(entry("paramA1", "someValue2"), entry("paramA2", 6));
-                }));
+            assertArg(toolExecutionRequest -> {
+              assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
+              assertThat(toolExecutionRequest.arguments())
+                  .containsOnly(entry("paramA1", "someValue2"), entry("paramA2", 6));
+            }));
   }
 
   @Test

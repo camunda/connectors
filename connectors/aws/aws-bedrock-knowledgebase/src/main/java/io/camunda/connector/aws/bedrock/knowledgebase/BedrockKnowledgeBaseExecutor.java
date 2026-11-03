@@ -62,29 +62,28 @@ public class BedrockKnowledgeBaseExecutor {
       var results =
           sdkResponse.retrievalResults().stream()
               .filter(r -> r.content() != null && r.content().text() != null)
-              .map(
-                  r -> {
-                    var content = r.content().text();
-                    var doc =
-                        documentFactory.create(
-                            DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
-                                .contentType("text/plain")
-                                .build());
-                    return new RetrievalResultEntry(
-                        doc.reference(),
-                        content,
-                        r.score(),
-                        r.location() != null && r.location().s3Location() != null
-                            ? r.location().s3Location().uri()
-                            : null,
-                        r.hasMetadata()
-                            ? r.metadata().entrySet().stream()
-                                .collect(
-                                    Collectors.toMap(
-                                        Map.Entry::getKey,
-                                        e -> e.getValue() != null ? e.getValue().unwrap() : ""))
-                            : Map.of());
-                  })
+              .map(r -> {
+                var content = r.content().text();
+                var doc =
+                    documentFactory.create(
+                        DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+                            .contentType("text/plain")
+                            .build());
+                return new RetrievalResultEntry(
+                    doc.reference(),
+                    content,
+                    r.score(),
+                    r.location() != null && r.location().s3Location() != null
+                        ? r.location().s3Location().uri()
+                        : null,
+                    r.hasMetadata()
+                        ? r.metadata().entrySet().stream()
+                            .collect(
+                                Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    e -> e.getValue() != null ? e.getValue().unwrap() : ""))
+                        : Map.of());
+              })
               .toList();
 
       return new KnowledgeBaseRetrievalResult(results, results.size(), sdkResponse.nextToken());

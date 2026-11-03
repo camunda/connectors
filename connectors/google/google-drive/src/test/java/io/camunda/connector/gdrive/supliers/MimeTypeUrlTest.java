@@ -21,12 +21,11 @@ class MimeTypeUrlTest {
     // Given
     Map<String, String> values = MimeTypeUrl.getValues();
     String ID = "123456";
-    values.forEach(
-        (type, url) -> {
-          // When
-          String resourceUrl = MimeTypeUrl.getResourceUrl(type, ID);
-          // Then
-          assertThat(resourceUrl).isEqualTo(String.format(url, ID));
-        });
+    values.forEach((type, url) -> {
+      // When
+      String resourceUrl = MimeTypeUrl.getResourceUrl(type, ID);
+      // Then
+      assertThat(resourceUrl).isEqualTo(String.format(url, ID));
+    });
   }
 }

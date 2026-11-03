@@ -42,16 +42,15 @@ public class AgentCoreMemoryExecutor {
               .builder()
               .memoryId(request.getMemoryId())
               .namespace(request.getNamespace())
-              .searchCriteria(
-                  sc -> {
-                    sc.searchQuery(op.query());
-                    if (op.memoryStrategyId() != null && !op.memoryStrategyId().isBlank()) {
-                      sc.memoryStrategyId(op.memoryStrategyId());
-                    }
-                    if (op.maxResults() != null) {
-                      sc.topK(op.maxResults());
-                    }
-                  });
+              .searchCriteria(sc -> {
+                sc.searchQuery(op.query());
+                if (op.memoryStrategyId() != null && !op.memoryStrategyId().isBlank()) {
+                  sc.memoryStrategyId(op.memoryStrategyId());
+                }
+                if (op.maxResults() != null) {
+                  sc.topK(op.maxResults());
+                }
+              });
 
       if (op.nextToken() != null && !op.nextToken().isBlank()) {
         builder.nextToken(op.nextToken());

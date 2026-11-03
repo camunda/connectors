@@ -75,14 +75,13 @@ public class TestImapMessage extends IMAPMessage {
   @Override
   public Address[] getRecipients(Message.RecipientType type) {
     return to.stream()
-        .map(
-            s -> {
-              try {
-                return new InternetAddress(s);
-              } catch (AddressException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(s -> {
+          try {
+            return new InternetAddress(s);
+          } catch (AddressException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .toArray(Address[]::new);
   }
 
