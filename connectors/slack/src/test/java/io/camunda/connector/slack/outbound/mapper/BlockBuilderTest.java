@@ -74,16 +74,16 @@ class BlockBuilderTest {
     ObjectMapper mapper = new ObjectMapper();
     String json =
         """
-      [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Block from JSON"
+        [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "Block from JSON"
+            }
           }
-        }
-      ]
-      """;
+        ]
+        """;
     ArrayNode arrayNode = (ArrayNode) mapper.readTree(json);
 
     // When

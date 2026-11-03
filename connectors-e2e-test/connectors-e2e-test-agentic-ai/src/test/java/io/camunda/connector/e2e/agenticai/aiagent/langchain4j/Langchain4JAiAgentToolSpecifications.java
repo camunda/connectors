@@ -235,7 +235,8 @@ public interface Langchain4JAiAgentToolSpecifications {
               .description(
                   """
                   This tool allows interaction with the remote A2A agent represented by the following agent card:
-                  {"name":"Travel agent","description":"Helps with travel bookings","skills":[{"id":"hotel-booking","name":"Hotel Booking","description":"Book a hotel room","tags":["booking","hotel"],"examples":["Book a single room","Book a double room"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+                  {"name":"Travel agent","description":"Helps with travel bookings","skills":[{"id":"hotel-booking","name":"Hotel Booking","description":"Book a hotel room","tags":["booking","hotel"],"examples":["Book a single room","Book a double room"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}\
+                  """)
               .parameters(A2A_JSON_OBJECT_SCHEMA)
               .build(),
           ToolSpecification.builder()
@@ -243,7 +244,8 @@ public interface Langchain4JAiAgentToolSpecifications {
               .description(
                   """
                   This tool allows interaction with the remote A2A agent represented by the following agent card:
-                  {"name":"Weather agent","description":"Helps with weather information","skills":[{"id":"weather-forecast","name":"Weather Forecast","description":"Get weather forecast information","tags":["forecast","weather"],"examples":["What's the weather like today?","Will it rain tomorrow?"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+                  {"name":"Weather agent","description":"Helps with weather information","skills":[{"id":"weather-forecast","name":"Weather Forecast","description":"Get weather forecast information","tags":["forecast","weather"],"examples":["What's the weather like today?","Will it rain tomorrow?"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}\
+                  """)
               .parameters(A2A_JSON_OBJECT_SCHEMA)
               .build(),
           ToolSpecification.builder()
@@ -251,7 +253,8 @@ public interface Langchain4JAiAgentToolSpecifications {
               .description(
                   """
                   This tool allows interaction with the remote A2A agent represented by the following agent card:
-                  {"name":"Exchange rate agent","description":"Helps with exchanging currency rates","skills":[{"id":"currency-exchange","name":"Currency Exchange","description":"Get currency exchange rates","tags":["currency","exchange"],"examples":["What's the exchange rate from USD to EUR?","Convert 100 GBP to JPY."],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+                  {"name":"Exchange rate agent","description":"Helps with exchanging currency rates","skills":[{"id":"currency-exchange","name":"Currency Exchange","description":"Get currency exchange rates","tags":["currency","exchange"],"examples":["What's the exchange rate from USD to EUR?","Convert 100 GBP to JPY."],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}\
+                  """)
               .parameters(A2A_JSON_OBJECT_SCHEMA)
               .build());
 

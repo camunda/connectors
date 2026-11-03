@@ -514,9 +514,8 @@ public class HttpTests {
         .await()
         .atMost(Duration.ofSeconds(10))
         .pollDelay(Duration.ZERO)
-        .untilAsserted(
-            () ->
-                assertThat(bpmnTest.getProcessInstanceEvent()).hasActiveElements("Event_13sti90"));
+        .untilAsserted(() ->
+            assertThat(bpmnTest.getProcessInstanceEvent()).hasActiveElements("Event_13sti90"));
 
     ClassPathResource textFile = new ClassPathResource("files/text.txt");
     ClassPathResource imageFile = new ClassPathResource("files/camunda1.png");

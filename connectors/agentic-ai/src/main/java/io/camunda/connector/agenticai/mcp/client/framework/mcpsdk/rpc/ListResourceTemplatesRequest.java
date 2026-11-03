@@ -57,14 +57,9 @@ final class ListResourceTemplatesRequest {
     var result =
         new McpClientListResourceTemplatesResult(
             filteredResources.stream()
-                .map(
-                    fr ->
-                        new ResourceTemplate(
-                            fr.uriTemplate(),
-                            fr.name(),
-                            fr.title(),
-                            fr.description(),
-                            fr.mimeType()))
+                .map(fr ->
+                    new ResourceTemplate(
+                        fr.uriTemplate(), fr.name(), fr.title(), fr.description(), fr.mimeType()))
                 .toList());
 
     LOGGER.debug(

@@ -87,19 +87,17 @@ public class InboundConnectorRestController {
     return result.stream()
         .map(ActiveExecutableResponse::logs)
         .filter(Predicate.not(Collection::isEmpty))
-        .map(
-            activities ->
-                activities.stream()
-                    .map(
-                        activity -> {
-                          return new InstanceAwareModel.InstanceAwareActivity(
-                              activity.severity(),
-                              activity.tag(),
-                              activity.timestamp(),
-                              activity.message(),
-                              hostname);
-                        })
-                    .toList())
+        .map(activities ->
+            activities.stream()
+                .map(activity -> {
+                  return new InstanceAwareModel.InstanceAwareActivity(
+                      activity.severity(),
+                      activity.tag(),
+                      activity.timestamp(),
+                      activity.message(),
+                      hostname);
+                })
+                .toList())
         .collect(Collectors.toList());
   }
 
@@ -108,10 +106,9 @@ public class InboundConnectorRestController {
     return executableRegistry
         .query(new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
         .stream()
-        .map(
-            response ->
-                connectorDataMapper.createActiveInboundConnectorResponse(
-                    response, ConnectorDataMapper.WEBHOOK_MAPPER))
+        .map(response ->
+            connectorDataMapper.createActiveInboundConnectorResponse(
+                response, ConnectorDataMapper.WEBHOOK_MAPPER))
         .collect(Collectors.toList());
   }
 }

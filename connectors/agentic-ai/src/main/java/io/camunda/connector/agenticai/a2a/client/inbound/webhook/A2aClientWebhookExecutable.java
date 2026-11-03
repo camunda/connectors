@@ -210,12 +210,11 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
       A2aTask a2aTask = a2aSdkObjectConverter.convert(task);
       return new MappedHttpRequest(a2aTask, payload.headers(), payload.params());
     } catch (IOException e) {
-      this.context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("a2a-webhook-request")
-                  .withMessage("Error deserializing A2A Webhook payload: " + e.getMessage()));
+      this.context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("a2a-webhook-request")
+              .withMessage("Error deserializing A2A Webhook payload: " + e.getMessage()));
       throw new RuntimeException(e);
     }
   }

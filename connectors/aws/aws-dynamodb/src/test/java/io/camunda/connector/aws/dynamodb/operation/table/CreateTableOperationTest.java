@@ -245,18 +245,18 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                {
-                  "type": "createTable",
-                  "partitionKey": "{{secrets.PARTITION_KEY}}",
-                  "partitionKeyRole": "{{secrets.PARTITION_KEY}}",
-                  "partitionKeyType": "{{secrets.PARTITION_KEY}}",
-                  "sortKey": "{{secrets.SORT_KEY}}",
-                  "tableName": "{{secrets.TABLE_NAME_KEY}}",
-                  "billingModeStr": "PAY_PER_REQUEST",
-                  "readCapacityUnits":"1",
-                  "writeCapacityUnits":"1"
-                }
-                """;
+        {
+          "type": "createTable",
+          "partitionKey": "{{secrets.PARTITION_KEY}}",
+          "partitionKeyRole": "{{secrets.PARTITION_KEY}}",
+          "partitionKeyType": "{{secrets.PARTITION_KEY}}",
+          "sortKey": "{{secrets.SORT_KEY}}",
+          "tableName": "{{secrets.TABLE_NAME_KEY}}",
+          "billingModeStr": "PAY_PER_REQUEST",
+          "readCapacityUnits":"1",
+          "writeCapacityUnits":"1"
+        }
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     AwsInput request = context.bindVariables(AwsInput.class);
     // Then

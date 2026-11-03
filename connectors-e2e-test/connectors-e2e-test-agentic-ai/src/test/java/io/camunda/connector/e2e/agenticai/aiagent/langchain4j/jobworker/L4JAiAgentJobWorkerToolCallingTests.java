@@ -49,7 +49,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
             e -> e,
             FEEDBACK_LOOP_RESPONSE_TEXT,
             true,
-            (agentResponse) ->
+            agentResponse ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
                     .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)

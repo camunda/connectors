@@ -63,9 +63,8 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
   private Map<String, String> sanitizedHeaders(HttpClientRequest request) {
     var headers = request.getHeaders().map(HashMap::new).orElse(new HashMap<>());
     headers.entrySet().stream()
-        .filter(
-            entry ->
-                Objects.isNull(entry.getValue()) && Objects.equals(entry.getKey(), CONTENT_TYPE))
+        .filter(entry ->
+            Objects.isNull(entry.getValue()) && Objects.equals(entry.getKey(), CONTENT_TYPE))
         .findFirst()
         .ifPresent(entry -> headers.remove(entry.getKey()));
     return headers;

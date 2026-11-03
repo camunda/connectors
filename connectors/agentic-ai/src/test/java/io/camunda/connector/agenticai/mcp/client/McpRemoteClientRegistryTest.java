@@ -244,24 +244,22 @@ class McpRemoteClientRegistryTest {
 
     final var resolvedClients =
         IntStream.range(1, 6)
-            .mapToObj(
-                i ->
-                    registry.getClient(
-                        new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, "client-" + i),
-                        STREAMABLE_HTTP_TRANSPORT_CONFIG,
-                        true))
+            .mapToObj(i ->
+                registry.getClient(
+                    new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, "client-" + i),
+                    STREAMABLE_HTTP_TRANSPORT_CONFIG,
+                    true))
             .toList();
 
     assertThat(resolvedClients).hasSize(5).containsExactlyElementsOf(mockClients);
 
     await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(
-            () -> {
-              assertThat(mockClients)
-                  .filteredOnAssertions(client -> verify(client).close())
-                  .hasSize(2); // max cache size is configured to 3
-            });
+        .untilAsserted(() -> {
+          assertThat(mockClients)
+              .filteredOnAssertions(client -> verify(client).close())
+              .hasSize(2); // max cache size is configured to 3
+        });
   }
 
   @Test

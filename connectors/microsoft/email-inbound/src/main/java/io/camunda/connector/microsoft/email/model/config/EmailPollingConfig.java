@@ -23,7 +23,7 @@ public record EmailPollingConfig(
         @NotBlank
         @FEEL
         String userId,
-    @NestedProperties() @Valid Folder folder,
+    @NestedProperties @Valid Folder folder,
     @TemplateProperty(
             id = "pollingInterval",
             label = "Polling interval",
@@ -34,7 +34,7 @@ public record EmailPollingConfig(
             feel = FeelMode.optional)
         @FEEL
         Duration pollingInterval,
-    @NestedProperties() @Valid FilterCriteria filterCriteria) {
+    @NestedProperties @Valid FilterCriteria filterCriteria) {
   public String getFilter() {
 
     return filterCriteria.getFilterString();

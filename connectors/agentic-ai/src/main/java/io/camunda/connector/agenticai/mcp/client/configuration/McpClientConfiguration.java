@@ -59,17 +59,16 @@ public class McpClientConfiguration {
     final var registry = new McpClientRegistry();
     configuration
         .clients()
-        .forEach(
-            (id, clientConfig) -> {
-              if (clientConfig.enabled()) {
-                registry.register(
-                    id,
-                    () -> {
-                      LOGGER.info("Creating MCP client with ID '{}'", id);
-                      return clientFactory.createClient(id, clientConfig);
-                    });
-              }
-            });
+        .forEach((id, clientConfig) -> {
+          if (clientConfig.enabled()) {
+            registry.register(
+                id,
+                () -> {
+                  LOGGER.info("Creating MCP client with ID '{}'", id);
+                  return clientFactory.createClient(id, clientConfig);
+                });
+          }
+        });
 
     return registry;
   }

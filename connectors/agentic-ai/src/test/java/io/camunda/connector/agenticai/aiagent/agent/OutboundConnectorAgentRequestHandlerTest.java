@@ -145,14 +145,13 @@ class OutboundConnectorAgentRequestHandlerTest {
         .thenAnswer(i -> i.getArgument(1));
     when(responseHandler.createResponse(
             eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
-        .thenAnswer(
-            i ->
-                AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
-                    .responseText(assistantMessageText)
-                    .toolCalls(i.getArgument(3))
-                    .build());
+        .thenAnswer(i ->
+            AgentResponse.builder()
+                .context(i.getArgument(1, AgentContext.class))
+                .responseMessage(i.getArgument(2, AssistantMessage.class))
+                .responseText(assistantMessageText)
+                .toolCalls(i.getArgument(3))
+                .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
@@ -196,21 +195,19 @@ class OutboundConnectorAgentRequestHandlerTest {
         toolCall -> toolCall.withId(toolCall.id() + "_transformed");
 
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
-        .thenAnswer(
-            i -> {
-              List<ToolCall> toolCalls = i.getArgument(1);
-              return toolCalls.stream().map(toolCallTransformer).toList();
-            });
+        .thenAnswer(i -> {
+          List<ToolCall> toolCalls = i.getArgument(1);
+          return toolCalls.stream().map(toolCallTransformer).toList();
+        });
 
     when(responseHandler.createResponse(
             eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
-        .thenAnswer(
-            i ->
-                AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
-                    .toolCalls(i.getArgument(3))
-                    .build());
+        .thenAnswer(i ->
+            AgentResponse.builder()
+                .context(i.getArgument(1, AgentContext.class))
+                .responseMessage(i.getArgument(2, AssistantMessage.class))
+                .toolCalls(i.getArgument(3))
+                .build());
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
@@ -376,18 +373,17 @@ class OutboundConnectorAgentRequestHandlerTest {
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
     when(framework.executeChatRequest(
             eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
-        .thenAnswer(
-            i -> {
-              final var agentContext = i.getArgument(1, AgentContext.class);
-              return new TestFrameworkChatResponse(
-                  agentContext.withMetrics(
-                      agentContext
-                          .metrics()
-                          .incrementModelCalls(1)
-                          .incrementTokenUsage(new TokenUsage(10, 20))),
-                  assistantMessage,
-                  Map.of("message", assistantMessage.content()));
-            });
+        .thenAnswer(i -> {
+          final var agentContext = i.getArgument(1, AgentContext.class);
+          return new TestFrameworkChatResponse(
+              agentContext.withMetrics(
+                  agentContext
+                      .metrics()
+                      .incrementModelCalls(1)
+                      .incrementTokenUsage(new TokenUsage(10, 20))),
+              assistantMessage,
+              Map.of("message", assistantMessage.content()));
+        });
   }
 
   private record TestFrameworkChatResponse(

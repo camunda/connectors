@@ -44,7 +44,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
         e -> e,
         HAIKU_TEXT,
         true,
-        (agentResponse) ->
+        agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(HAIKU_TEXT)
                 .hasResponseText(HAIKU_TEXT)
@@ -67,7 +67,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
         },
         HAIKU_TEXT,
         false,
-        (agentResponse) ->
+        agentResponse ->
             // defaults to text
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .hasNoResponseMessage()

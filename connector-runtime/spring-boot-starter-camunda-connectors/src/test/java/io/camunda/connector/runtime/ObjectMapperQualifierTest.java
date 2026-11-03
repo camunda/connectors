@@ -68,7 +68,8 @@ public class ObjectMapperQualifierTest {
         {
          "name": "= \\"test \\" + \\"User\\" ",
          "greetingSupplier": "= \\"Hello World\\""
-        }""";
+        }\
+        """;
 
     var feelObject = connectorObjectMapper.readValue(json, TestFeelClass.class);
     assertThat(feelObject.name).isEqualTo("test User");
@@ -83,7 +84,8 @@ public class ObjectMapperQualifierTest {
         {
          "name": "test",
          "greetingSupplier": "= \\"Hello World\\""
-        }""";
+        }\
+        """;
 
     var feelObject = connectorObjectMapper.readValue(json, TestFeelClass.class);
     // FEEL function is evaluated - calling get() returns the evaluated value
@@ -100,7 +102,8 @@ public class ObjectMapperQualifierTest {
         {
          "name": "= \\"test \\" + \\"User\\" ",
          "greetingSupplier": "= \\"Hello World\\""
-        }""";
+        }\
+        """;
 
     var feelObject = outboundConnectorObjectMapper.readValue(json, TestFeelClass.class);
     // @FEEL annotation does NOT work - the FEEL expression is NOT evaluated
@@ -117,7 +120,8 @@ public class ObjectMapperQualifierTest {
         {
          "name": "test",
          "greetingSupplier": "= \\"Hello World\\""
-        }""";
+        }\
+        """;
 
     var feelObject = outboundConnectorObjectMapper.readValue(json, TestFeelClass.class);
     // FEEL function is NOT evaluated - calling get() returns the evaluated value
@@ -133,7 +137,8 @@ public class ObjectMapperQualifierTest {
         """
         {
          "name": "= \\"test \\" + \\"User\\" "
-        }""";
+        }\
+        """;
 
     var simpleObject = defaultObjectMapper.readValue(json, SimpleClass.class);
     // Without FEEL module, it reads the literal string including the FEEL expression syntax

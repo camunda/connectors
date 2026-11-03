@@ -82,7 +82,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
   @BeforeEach
   void setUp(WireMockRuntimeInfo wireMock) {
     testSupport = new L4JAiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
-    testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
+    testSupport.setUpWireMockStubs(wireMock, testFile -> testFileContent(testFile).get());
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
 
     // clear process definition caches & reset executables from previous tests
@@ -106,14 +106,13 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
             process, elementTemplateModifier, responseText, extraProcessVariables);
     List<ChatMessage> conversation =
         conversationAndTest.getLeft().stream()
-            .map(
-                msg -> {
-                  // inject the A2A system prompt into the system message
-                  if (msg instanceof SystemMessage systemMessage) {
-                    return testSupport.systemMessage(systemMessage.text());
-                  }
-                  return msg;
-                })
+            .map(msg -> {
+              // inject the A2A system prompt into the system message
+              if (msg instanceof SystemMessage systemMessage) {
+                return testSupport.systemMessage(systemMessage.text());
+              }
+              return msg;
+            })
             .toList();
     return Pair.of(conversation, conversationAndTest.getRight());
   }
@@ -127,7 +126,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
             HAIKU_TEXT,
             Map.of("a2aServerUrl", wireMock.getHttpBaseUrl(), "webhookUrl", webhookUrl),
             true,
-            (agentResponse) ->
+            agentResponse ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(HAIKU_TEXT)
                     .hasResponseText(HAIKU_TEXT)

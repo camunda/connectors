@@ -128,20 +128,19 @@ public class TemplatePropertiesUtil {
           // analyze recursively
           var nestedProperties =
               extractTemplatePropertiesFromType(field.getType(), context).stream()
-                  .peek(
-                      builder -> {
-                        if (hasPathPrefix) {
-                          addPathPrefixToBuilder(builder, field.getName(), context);
-                        }
-                        if (hasConditionOverride) {
-                          builder.condition(
-                              TemplatePropertyAnnotationProcessor.transformToCondition(
-                                  nestedPropertiesAnnotation.condition()));
-                        }
-                        if (hasGroupOverride) {
-                          builder.group(nestedPropertiesAnnotation.group());
-                        }
-                      })
+                  .peek(builder -> {
+                    if (hasPathPrefix) {
+                      addPathPrefixToBuilder(builder, field.getName(), context);
+                    }
+                    if (hasConditionOverride) {
+                      builder.condition(
+                          TemplatePropertyAnnotationProcessor.transformToCondition(
+                              nestedPropertiesAnnotation.condition()));
+                    }
+                    if (hasGroupOverride) {
+                      builder.group(nestedPropertiesAnnotation.group());
+                    }
+                  })
                   .toList();
           properties.addAll(nestedProperties);
         } catch (StackOverflowError e) {
@@ -176,12 +175,11 @@ public class TemplatePropertiesUtil {
         .collect(Collectors.groupingBy(Property::getGroup))
         .entrySet()
         .stream()
-        .map(
-            entry ->
-                PropertyGroup.builder()
-                    .id(entry.getKey())
-                    .label(transformIdIntoLabel(entry.getKey()))
-                    .properties(entry.getValue()))
+        .map(entry ->
+            PropertyGroup.builder()
+                .id(entry.getKey())
+                .label(transformIdIntoLabel(entry.getKey()))
+                .properties(entry.getValue()))
         .toList();
   }
 
@@ -271,10 +269,8 @@ public class TemplatePropertiesUtil {
     if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
       discriminatorPropertyBuilder
           .getDependantProperties()
-          .forEach(
-              dependant ->
-                  dependant.condition(
-                      addConditionPrefix(dependant.getCondition(), path, originalId)));
+          .forEach(dependant ->
+              dependant.condition(addConditionPrefix(dependant.getCondition(), path, originalId)));
     }
   }
 
@@ -306,24 +302,22 @@ public class TemplatePropertiesUtil {
 
   private static List<DropdownModel> createDropdownModelList(Class<?> enumType) {
     return Arrays.stream(enumType.getEnumConstants())
-        .map(
-            enumConstant -> {
-              try {
-                Field enumValue = enumType.getField(((Enum<?>) enumConstant).name());
-                if (enumValue.isAnnotationPresent(DropdownItem.class)) {
-                  DropdownItem enumLabel = enumValue.getAnnotation(DropdownItem.class);
-                  return new DropdownModel(
-                      enumLabel.label(), enumValue.getName(), enumLabel.order());
-                } else {
-                  return new DropdownModel(
-                      transformIdIntoLabel(((Enum<?>) enumConstant).name()),
-                      ((Enum<?>) enumConstant).name(),
-                      0);
-                }
-              } catch (NoSuchFieldException e) {
-                throw new RuntimeException(e);
-              }
-            })
+        .map(enumConstant -> {
+          try {
+            Field enumValue = enumType.getField(((Enum<?>) enumConstant).name());
+            if (enumValue.isAnnotationPresent(DropdownItem.class)) {
+              DropdownItem enumLabel = enumValue.getAnnotation(DropdownItem.class);
+              return new DropdownModel(enumLabel.label(), enumValue.getName(), enumLabel.order());
+            } else {
+              return new DropdownModel(
+                  transformIdIntoLabel(((Enum<?>) enumConstant).name()),
+                  ((Enum<?>) enumConstant).name(),
+                  0);
+            }
+          } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+          }
+        })
         .toList();
   }
 
@@ -364,10 +358,9 @@ public class TemplatePropertiesUtil {
       if (annotation.choices().length > 0) {
         dropdownChoices =
             Arrays.stream(annotation.choices())
-                .map(
-                    dropdownPropertyChoice ->
-                        new DropdownModel(
-                            dropdownPropertyChoice.label(), dropdownPropertyChoice.value(), 0))
+                .map(dropdownPropertyChoice ->
+                    new DropdownModel(
+                        dropdownPropertyChoice.label(), dropdownPropertyChoice.value(), 0))
                 .toList();
       }
     }
@@ -409,11 +402,10 @@ public class TemplatePropertiesUtil {
       Class<?> type, TemplateGenerationContext context) {
     var subTypes =
         Arrays.stream(type.getPermittedSubclasses())
-            .filter(
-                subType -> {
-                  var annotation = subType.getAnnotation(TemplateSubType.class);
-                  return annotation == null || !annotation.ignore();
-                })
+            .filter(subType -> {
+              var annotation = subType.getAnnotation(TemplateSubType.class);
+              return annotation == null || !annotation.ignore();
+            })
             .toList();
     var properties = new ArrayList<PropertyBuilder>();
 
@@ -440,30 +432,27 @@ public class TemplatePropertiesUtil {
 
       var currentSubTypeProperties =
           extractTemplatePropertiesFromType(subType, context).stream()
-              .peek(
-                  property -> {
-                    if (property.getCondition() == null) {
-                      var condition =
-                          new Equals(discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey());
-                      property.condition(condition);
-                    } else {
-                      if (property.getCondition() instanceof AllMatch allMatch) {
-                        var conditions = new ArrayList<>(allMatch.allMatch());
-                        conditions.add(
-                            new Equals(
-                                discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey()));
-                        property.condition(new AllMatch(conditions));
-                      } else {
-                        property.condition(
-                            new AllMatch(
-                                List.of(
-                                    property.getCondition(),
-                                    new Equals(
-                                        discriminatorIdAndLabel.getKey(),
-                                        subTypeIdAndName.getKey()))));
-                      }
-                    }
-                  })
+              .peek(property -> {
+                if (property.getCondition() == null) {
+                  var condition =
+                      new Equals(discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey());
+                  property.condition(condition);
+                } else {
+                  if (property.getCondition() instanceof AllMatch allMatch) {
+                    var conditions = new ArrayList<>(allMatch.allMatch());
+                    conditions.add(
+                        new Equals(discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey()));
+                    property.condition(new AllMatch(conditions));
+                  } else {
+                    property.condition(
+                        new AllMatch(
+                            List.of(
+                                property.getCondition(),
+                                new Equals(
+                                    discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey()))));
+                  }
+                }
+              })
               .toList();
 
       properties.addAll(currentSubTypeProperties);

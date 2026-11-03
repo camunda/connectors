@@ -79,16 +79,15 @@ class GetPromptRequestTest {
               assertThat(res.messages())
                   .hasSize(1)
                   .first()
-                  .satisfies(
-                      promptMessage -> {
-                        assertThat(promptMessage.role()).isEqualTo("user");
-                        assertThat(promptMessage.content())
-                            .isInstanceOfSatisfying(
-                                McpClientGetPromptResult.TextMessage.class,
-                                textMessage ->
-                                    assertThat(textMessage.text())
-                                        .isEqualTo("Please review the following code snippet."));
-                      });
+                  .satisfies(promptMessage -> {
+                    assertThat(promptMessage.role()).isEqualTo("user");
+                    assertThat(promptMessage.content())
+                        .isInstanceOfSatisfying(
+                            McpClientGetPromptResult.TextMessage.class,
+                            textMessage ->
+                                assertThat(textMessage.text())
+                                    .isEqualTo("Please review the following code snippet."));
+                  });
             });
   }
 

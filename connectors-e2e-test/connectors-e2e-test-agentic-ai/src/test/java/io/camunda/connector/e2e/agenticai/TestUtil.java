@@ -41,23 +41,22 @@ public final class TestUtil {
   public static void postWithDelay(
       String url, String payload, Map<String, String> headers, long delayInMillis) {
     CompletableFuture.delayedExecutor(delayInMillis, TimeUnit.MILLISECONDS)
-        .execute(
-            () -> {
-              try (var client = HttpClient.newHttpClient()) {
-                HttpRequest.Builder builder =
-                    HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(payload));
-                if (MapUtils.isNotEmpty(headers)) {
-                  headers.forEach(builder::header);
-                }
-                var request = builder.build();
-                client.send(request, HttpResponse.BodyHandlers.discarding());
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
+        .execute(() -> {
+          try (var client = HttpClient.newHttpClient()) {
+            HttpRequest.Builder builder =
+                HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload));
+            if (MapUtils.isNotEmpty(headers)) {
+              headers.forEach(builder::header);
+            }
+            var request = builder.build();
+            client.send(request, HttpResponse.BodyHandlers.discarding());
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   public static void waitForElementActivation(ZeebeTest zeebeTest, String elementId) {
@@ -65,10 +64,9 @@ public final class TestUtil {
         .pollInSameThread()
         .await()
         .atMost(20, TimeUnit.SECONDS)
-        .untilAsserted(
-            () ->
-                CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-                    .hasActiveElement(elementId, 1));
+        .untilAsserted(() ->
+            CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+                .hasActiveElement(elementId, 1));
   }
 
   /**

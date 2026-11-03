@@ -114,12 +114,11 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
         Optional.ofNullable(jsonNode.findValue(OAuthConstants.ACCESS_TOKEN))
             .map(JsonNode::asText)
             .filter(t -> !t.isBlank())
-            .orElseThrow(
-                () ->
-                    new ConnectorException(
-                        ERROR_CODE_INVALID_OAUTH_RESPONSE,
-                        "Invalid OAuth token response. Missing '%s' field."
-                            .formatted(OAuthConstants.ACCESS_TOKEN)));
+            .orElseThrow(() ->
+                new ConnectorException(
+                    ERROR_CODE_INVALID_OAUTH_RESPONSE,
+                    "Invalid OAuth token response. Missing '%s' field."
+                        .formatted(OAuthConstants.ACCESS_TOKEN)));
 
     final var expiresIn =
         Optional.ofNullable(jsonNode.findValue(OAuthConstants.EXPIRES_IN))

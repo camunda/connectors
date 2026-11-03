@@ -31,18 +31,17 @@ public class ImapServerProxy implements AutoCloseable {
     this.listen = new ServerSocket();
     this.listen.setReuseAddress(true);
     this.listen.bind(new InetSocketAddress(listenPort));
-    pool.submit(
-        () -> {
-          while (!listen.isClosed()) {
-            final Socket client;
-            try {
-              client = listen.accept();
-            } catch (IOException e) {
-              throw new RuntimeException(e);
-            }
-            pool.submit(() -> handle(client));
-          }
-        });
+    pool.submit(() -> {
+      while (!listen.isClosed()) {
+        final Socket client;
+        try {
+          client = listen.accept();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        pool.submit(() -> handle(client));
+      }
+    });
   }
 
   private void handle(Socket client) {
@@ -62,24 +61,22 @@ public class ImapServerProxy implements AutoCloseable {
       try {
         Future<?> f1 =
             // All bytes coming from client are given to the server
-            pool.submit(
-                () -> {
-                  try {
-                    pipeClientToServer(client.getInputStream(), backend.getOutputStream());
-                  } catch (IOException ignored) {
-                    // Ignore
-                  }
-                });
+            pool.submit(() -> {
+              try {
+                pipeClientToServer(client.getInputStream(), backend.getOutputStream());
+              } catch (IOException ignored) {
+                // Ignore
+              }
+            });
         Future<?> f2 =
             // All bytes coming from server are given to the client
-            pool.submit(
-                () -> {
-                  try {
-                    pipeServerToClient(backend.getInputStream(), client.getOutputStream());
-                  } catch (IOException ignored) {
-                    // Ignore
-                  }
-                });
+            pool.submit(() -> {
+              try {
+                pipeServerToClient(backend.getInputStream(), client.getOutputStream());
+              } catch (IOException ignored) {
+                // Ignore
+              }
+            });
         try {
           f1.get();
         } catch (Exception ignored) {
@@ -131,17 +128,16 @@ public class ImapServerProxy implements AutoCloseable {
 
   public void cutConnection() {
     successMode.set(false);
-    activePairs.forEach(
-        pair -> {
-          // Only close the client socket. The pipe threads will detect the closed client,
-          // exit, and their try-with-resources will close the output streams to the backend.
-          // This sends a FIN to GreenMail, allowing it to gracefully detect EOF on its read
-          // instead of getting a "Broken pipe" when it tries to write/flush/close.
-          try {
-            pair.client.close();
-          } catch (IOException ignored) {
-          }
-        });
+    activePairs.forEach(pair -> {
+      // Only close the client socket. The pipe threads will detect the closed client,
+      // exit, and their try-with-resources will close the output streams to the backend.
+      // This sends a FIN to GreenMail, allowing it to gracefully detect EOF on its read
+      // instead of getting a "Broken pipe" when it tries to write/flush/close.
+      try {
+        pair.client.close();
+      } catch (IOException ignored) {
+      }
+    });
   }
 
   public void setOkProxy() {
@@ -153,30 +149,28 @@ public class ImapServerProxy implements AutoCloseable {
     // Gracefully shut down the backend (GreenMail-side) sockets:
     // 1. Shutdown output → sends FIN to GreenMail → GreenMail reads EOF → handler exits cleanly
     // 2. Then close the sockets
-    activePairs.forEach(
-        pair -> {
-          try {
-            if (!pair.backend.isOutputShutdown() && !pair.backend.isClosed()) {
-              pair.backend.shutdownOutput();
-            }
-          } catch (IOException ignored) {
-          }
-        });
+    activePairs.forEach(pair -> {
+      try {
+        if (!pair.backend.isOutputShutdown() && !pair.backend.isClosed()) {
+          pair.backend.shutdownOutput();
+        }
+      } catch (IOException ignored) {
+      }
+    });
 
     // Give GreenMail handlers a moment to detect the EOF and close gracefully
     Thread.sleep(200);
 
-    activePairs.forEach(
-        pair -> {
-          try {
-            pair.client.close();
-          } catch (IOException ignored) {
-          }
-          try {
-            pair.backend.close();
-          } catch (IOException ignored) {
-          }
-        });
+    activePairs.forEach(pair -> {
+      try {
+        pair.client.close();
+      } catch (IOException ignored) {
+      }
+      try {
+        pair.backend.close();
+      } catch (IOException ignored) {
+      }
+    });
     listen.close();
     pool.shutdownNow();
     pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);

@@ -78,13 +78,12 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
         Map.of("operation", FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID);
     List<ToolCall> discoveryToolCalls =
         a2aGatewayToolDefinitions.stream()
-            .map(
-                gatewayToolDefinition ->
-                    new ToolCall(
-                        A2A_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
-                        gatewayToolDefinition.name(),
-                        fetchAgentCardOperation,
-                        Map.of()))
+            .map(gatewayToolDefinition ->
+                new ToolCall(
+                    A2A_TOOLS_DISCOVERY_PREFIX + gatewayToolDefinition.name(),
+                    gatewayToolDefinition.name(),
+                    fetchAgentCardOperation,
+                    Map.of()))
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
@@ -169,25 +168,24 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   @Override
   public List<ToolCall> transformToolCalls(AgentContext agentContext, List<ToolCall> toolCalls) {
     return toolCalls.stream()
-        .map(
-            toolCall -> {
-              String toolCallName = toolCall.name();
-              if (isGatewayManaged(toolCallName)) {
-                final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
-                return new ToolCall(
-                    toolCall.id(),
-                    toolCallIdentifier.elementName(),
-                    Map.of(
-                        "operation",
-                        A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration
-                            .SEND_MESSAGE_ID,
-                        "params",
-                        toolCall.arguments()),
-                    Map.of());
-              }
+        .map(toolCall -> {
+          String toolCallName = toolCall.name();
+          if (isGatewayManaged(toolCallName)) {
+            final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
+            return new ToolCall(
+                toolCall.id(),
+                toolCallIdentifier.elementName(),
+                Map.of(
+                    "operation",
+                    A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration
+                        .SEND_MESSAGE_ID,
+                    "params",
+                    toolCall.arguments()),
+                Map.of());
+          }
 
-              return toolCall;
-            })
+          return toolCall;
+        })
         .toList();
   }
 
@@ -197,14 +195,13 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
 
     final var a2aClientIds = getA2aClientIds(agentContext);
     return toolCallResults.stream()
-        .map(
-            toolCallResult -> {
-              if (!a2aClientIds.contains(toolCallResult.name())) {
-                return toolCallResult;
-              }
+        .map(toolCallResult -> {
+          if (!a2aClientIds.contains(toolCallResult.name())) {
+            return toolCallResult;
+          }
 
-              return toolCallResultFromA2aSendMessage(toolCallResult);
-            })
+          return toolCallResultFromA2aSendMessage(toolCallResult);
+        })
         .toList();
   }
 

@@ -78,14 +78,13 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
   public Map<String, GatewayToolDefinitionUpdates> resolveUpdatedGatewayToolDefinitions(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var updateSummary = new LinkedHashMap<String, GatewayToolDefinitionUpdates>();
-    handlers.forEach(
-        (type, handler) -> {
-          final var updates =
-              handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
-          if (!updates.isEmpty()) {
-            updateSummary.put(type, updates);
-          }
-        });
+    handlers.forEach((type, handler) -> {
+      final var updates =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+      if (!updates.isEmpty()) {
+        updateSummary.put(type, updates);
+      }
+    });
 
     return updateSummary;
   }
@@ -108,13 +107,12 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
     List<ToolDefinition> mergedToolDefinitions = new ArrayList<>(agentContext.toolDefinitions());
     groupedByGateway.entrySet().stream()
         .filter(entry -> !entry.getKey().equals(DEFAULT_TYPE))
-        .forEach(
-            entry -> {
-              final var handler = handlers.get(entry.getKey());
-              final var gatewayToolDefinitions =
-                  handler.handleToolDiscoveryResults(agentContext, entry.getValue());
-              mergedToolDefinitions.addAll(gatewayToolDefinitions);
-            });
+        .forEach(entry -> {
+          final var handler = handlers.get(entry.getKey());
+          final var gatewayToolDefinitions =
+              handler.handleToolDiscoveryResults(agentContext, entry.getValue());
+          mergedToolDefinitions.addAll(gatewayToolDefinitions);
+        });
 
     // remaining tool call results not being part of tool discovery
     final var nonGatewayToolCallResults =
@@ -128,16 +126,15 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
       final List<ToolCallResult> toolCallResults) {
     return toolCallResults.stream()
         .collect(
-            Collectors.groupingBy(
-                toolCallResult -> {
-                  for (GatewayToolHandler gatewayToolHandler : handlers.values()) {
-                    if (gatewayToolHandler.handlesToolDiscoveryResult(toolCallResult)) {
-                      return gatewayToolHandler.type();
-                    }
-                  }
+            Collectors.groupingBy(toolCallResult -> {
+              for (GatewayToolHandler gatewayToolHandler : handlers.values()) {
+                if (gatewayToolHandler.handlesToolDiscoveryResult(toolCallResult)) {
+                  return gatewayToolHandler.type();
+                }
+              }
 
-                  return DEFAULT_TYPE;
-                }));
+              return DEFAULT_TYPE;
+            }));
   }
 
   @Override

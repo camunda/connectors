@@ -219,9 +219,8 @@ public class ActivationConditionEvaluator {
       // Different versions - list elements with their versions
       var elementsWithVersions =
           elements.stream()
-              .map(
-                  e ->
-                      "'%s' (version %d)".formatted(e.element().elementId(), e.element().version()))
+              .map(e ->
+                  "'%s' (version %d)".formatted(e.element().elementId(), e.element().version()))
               .distinct()
               .collect(java.util.stream.Collectors.joining(", "));
       return "Elements %s have incompatible properties: %s"

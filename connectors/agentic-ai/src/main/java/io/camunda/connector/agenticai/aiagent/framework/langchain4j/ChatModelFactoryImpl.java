@@ -257,10 +257,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     proxySupport
         .createGoogleGenAiProxyOptions(connection.endpoint(), connection.region())
-        .ifPresent(
-            proxyOptions ->
-                clientBuilder.clientOptions(
-                    ClientOptions.builder().proxyOptions(proxyOptions).build()));
+        .ifPresent(proxyOptions ->
+            clientBuilder.clientOptions(
+                ClientOptions.builder().proxyOptions(proxyOptions).build()));
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));
@@ -353,18 +352,17 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
         .filter(StringUtils::isNotBlank)
-        .ifPresent(
-            apiKey -> {
-              builder.apiKey(apiKey);
-              if (connection.headers() != null) {
-                if (connection.headers().keySet().stream()
-                    .anyMatch("Authorization"::equalsIgnoreCase)) {
-                  LOGGER.warn(
-                      "Both API key and Authorization header are set. The API key will be ignored.");
-                  builder.apiKey(null);
-                }
-              }
-            });
+        .ifPresent(apiKey -> {
+          builder.apiKey(apiKey);
+          if (connection.headers() != null) {
+            if (connection.headers().keySet().stream()
+                .anyMatch("Authorization"::equalsIgnoreCase)) {
+              LOGGER.warn(
+                  "Both API key and Authorization header are set. The API key will be ignored.");
+              builder.apiKey(null);
+            }
+          }
+        });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
     Optional.ofNullable(connection.queryParameters()).ifPresent(builder::customQueryParams);
 

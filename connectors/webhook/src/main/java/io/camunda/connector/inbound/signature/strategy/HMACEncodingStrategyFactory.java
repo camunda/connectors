@@ -45,14 +45,13 @@ public class HMACEncodingStrategyFactory {
         .filter(entry -> entry.getKey().test(hmacScopes, method))
         .map(Map.Entry::getValue)
         .findFirst()
-        .orElseThrow(
-            () ->
-                new UnsupportedOperationException(
-                    "The current pattern of HMAC scopes "
-                        + Arrays.toString(hmacScopes)
-                        + " and method "
-                        + method
-                        + " is not supported"));
+        .orElseThrow(() ->
+            new UnsupportedOperationException(
+                "The current pattern of HMAC scopes "
+                    + Arrays.toString(hmacScopes)
+                    + " and method "
+                    + method
+                    + " is not supported"));
   }
 
   private static boolean checkAllMatch(final HMACScope[] hmacScopes, final HMACScope... scopes) {

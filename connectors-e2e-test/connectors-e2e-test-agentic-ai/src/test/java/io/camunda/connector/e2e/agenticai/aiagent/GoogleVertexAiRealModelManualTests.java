@@ -144,21 +144,20 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
                 .isReady()
                 .hasNoToolCalls()
                 .hasResponseTestSatisfying(responseText -> assertThat(responseText).contains("36"))
-                .satisfies(
-                    response -> {
-                      final var conversation =
-                          (InProcessConversationContext) response.context().conversation();
-                      final var toolCallsMade =
-                          conversation.messages().stream()
-                              .filter(AssistantMessage.class::isInstance)
-                              .map(AssistantMessage.class::cast)
-                              .mapToInt(message -> message.toolCalls().size())
-                              .sum();
+                .satisfies(response -> {
+                  final var conversation =
+                      (InProcessConversationContext) response.context().conversation();
+                  final var toolCallsMade =
+                      conversation.messages().stream()
+                          .filter(AssistantMessage.class::isInstance)
+                          .map(AssistantMessage.class::cast)
+                          .mapToInt(message -> message.toolCalls().size())
+                          .sum();
 
-                      // exactly one tool call proves the round trip happened without retries
-                      assertThat(toolCallsMade).isEqualTo(1);
-                      assertThat(response.context().metrics().modelCalls()).isGreaterThan(1);
-                    }));
+                  // exactly one tool call proves the round trip happened without retries
+                  assertThat(toolCallsMade).isEqualTo(1);
+                  assertThat(response.context().metrics().modelCalls()).isGreaterThan(1);
+                }));
   }
 
   private ZeebeTest runPrompt(VertexTarget target, AuthMode authMode, String userPrompt)
@@ -194,10 +193,9 @@ public class GoogleVertexAiRealModelManualTests extends BaseAiAgentConnectorTest
    */
   private void completeUserFeedbackAsSatisfied() {
     processTestContext
-        .when(
-            () ->
-                assertThatProcessInstance(byProcessId("Agentic_AI_Connectors"))
-                    .hasActiveElements("User_Feedback"))
+        .when(() ->
+            assertThatProcessInstance(byProcessId("Agentic_AI_Connectors"))
+                .hasActiveElements("User_Feedback"))
         .as("approve agent response")
         .then(() -> processTestContext.completeJob("user_feedback", userSatisfiedFeedback()));
   }

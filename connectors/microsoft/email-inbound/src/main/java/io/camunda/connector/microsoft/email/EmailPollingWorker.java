@@ -48,12 +48,11 @@ public class EmailPollingWorker implements Runnable {
       context.reportHealth(Health.up());
     } catch (Exception e) {
       LOGGER.error("Uncaught exception in Microsoft Inbound Mail connector", e);
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("polling-error")
-                  .withMessage("Error polling emails", e));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("polling-error")
+              .withMessage("Error polling emails", e));
       context.reportHealth(Health.down(e));
     }
   }

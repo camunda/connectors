@@ -140,9 +140,10 @@ class AgentToolsResolverTest {
               "errorCode", AgentErrorCodes.ERROR_CODE_MIGRATION_MISSING_TOOLS)
           .hasMessage(
               """
-                  The AI Agent references tools that are no longer defined, most likely due to a process migration.
-                  Removing or renaming existing tools is currently not supported.
-                  Please re-add the following tools to continue agent execution: tool2""");
+              The AI Agent references tools that are no longer defined, most likely due to a process migration.
+              Removing or renaming existing tools is currently not supported.
+              Please re-add the following tools to continue agent execution: tool2\
+              """);
     }
 
     @Test
@@ -174,10 +175,11 @@ class AgentToolsResolverTest {
               "errorCode", AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED)
           .hasMessage(
               """
-                  Gateway tool definitions have changed, most likely due to a process migration.
-                  Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
-                  Please restore gateway tool definitions to the previous state to continue agent execution.
-                  Changes: mcpClient [added: newMcpClient]""");
+              Gateway tool definitions have changed, most likely due to a process migration.
+              Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
+              Please restore gateway tool definitions to the previous state to continue agent execution.
+              Changes: mcpClient [added: newMcpClient]\
+              """);
     }
 
     @Test
@@ -202,10 +204,11 @@ class AgentToolsResolverTest {
               "errorCode", AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED)
           .hasMessage(
               """
-                  Gateway tool definitions have changed, most likely due to a process migration.
-                  Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
-                  Please restore gateway tool definitions to the previous state to continue agent execution.
-                  Changes: mcpClient [removed: mcpClient]""");
+              Gateway tool definitions have changed, most likely due to a process migration.
+              Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
+              Please restore gateway tool definitions to the previous state to continue agent execution.
+              Changes: mcpClient [removed: mcpClient]\
+              """);
     }
 
     @Test
@@ -239,10 +242,11 @@ class AgentToolsResolverTest {
               "errorCode", AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED)
           .hasMessage(
               """
-                  Gateway tool definitions have changed, most likely due to a process migration.
-                  Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
-                  Please restore gateway tool definitions to the previous state to continue agent execution.
-                  Changes: mcpClient [added: renamedMcpClient; removed: mcpClient]""");
+              Gateway tool definitions have changed, most likely due to a process migration.
+              Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
+              Please restore gateway tool definitions to the previous state to continue agent execution.
+              Changes: mcpClient [added: renamedMcpClient; removed: mcpClient]\
+              """);
     }
 
     @Test
@@ -277,10 +281,11 @@ class AgentToolsResolverTest {
               "errorCode", AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED)
           .hasMessage(
               """
-                  Gateway tool definitions have changed, most likely due to a process migration.
-                  Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
-                  Please restore gateway tool definitions to the previous state to continue agent execution.
-                  Changes: mcpClient [removed: mcpClient], a2aClient [added: mcpClient]""");
+              Gateway tool definitions have changed, most likely due to a process migration.
+              Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
+              Please restore gateway tool definitions to the previous state to continue agent execution.
+              Changes: mcpClient [removed: mcpClient], a2aClient [added: mcpClient]\
+              """);
     }
 
     @Test

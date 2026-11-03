@@ -71,27 +71,22 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
             type ->
                 type.equals("io.camunda.agenticai:mcpclient:1")
                     || type.equals("io.camunda.agenticai:mcpremoteclient:1"))
-        .forEach(
-            serviceTask ->
-                serviceTask.getSingleExtensionElement(ZeebeTaskDefinition.class).setRetries("1"));
+        .forEach(serviceTask ->
+            serviceTask.getSingleExtensionElement(ZeebeTaskDefinition.class).setRetries("1"));
 
     // MCP Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpclient"))
-        .forEach(
-            st ->
-                updateInputMappings(
-                    bpmnModel,
-                    st,
-                    Map.of("data.client.clientId", "an-unauthenticated-mcp-client")));
+        .forEach(st ->
+            updateInputMappings(
+                bpmnModel, st, Map.of("data.client.clientId", "an-unauthenticated-mcp-client")));
 
     // MCP Remote Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
-        .forEach(
-            st ->
-                updateInputMappings(
-                    bpmnModel,
-                    st,
-                    remoteClientProperties.mcpRemoteClientInputMappings(Map.of(), false)));
+        .forEach(st ->
+            updateInputMappings(
+                bpmnModel,
+                st,
+                remoteClientProperties.mcpRemoteClientInputMappings(Map.of(), false)));
 
     ZeebeTest zeebeTest = createProcessInstance(bpmnModel, Map.of("path", "tools"));
 
@@ -99,30 +94,26 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
         .pollInSameThread()
         .await()
         .atMost(20, TimeUnit.SECONDS)
-        .untilAsserted(
-            () -> {
-              final var incidents =
-                  camundaClient
-                      .newIncidentSearchRequest()
-                      .filter(
-                          filter ->
-                              filter.processInstanceKey(
-                                  zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
-                      .send()
-                      .join();
+        .untilAsserted(() -> {
+          final var incidents =
+              camundaClient
+                  .newIncidentSearchRequest()
+                  .filter(filter ->
+                      filter.processInstanceKey(
+                          zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
+                  .send()
+                  .join();
 
-              assertThat(incidents.items())
-                  .hasSize(2)
-                  .extracting(Incident::getElementId)
-                  .containsExactlyInAnyOrder("Client_List_Tools", "Remote_Client_List_Tools");
+          assertThat(incidents.items())
+              .hasSize(2)
+              .extracting(Incident::getElementId)
+              .containsExactlyInAnyOrder("Client_List_Tools", "Remote_Client_List_Tools");
 
-              assertThat(incidents.items())
-                  .extracting(Incident::getErrorMessage)
-                  .allSatisfy(
-                      errorMessage ->
-                          assertThat(errorMessage)
-                              .startsWith("Client failed to initialize listing tools"));
-            });
+          assertThat(incidents.items())
+              .extracting(Incident::getErrorMessage)
+              .allSatisfy(errorMessage ->
+                  assertThat(errorMessage).startsWith("Client failed to initialize listing tools"));
+        });
   }
 
   @Test
@@ -131,14 +122,13 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
     // MCP Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpclient"))
-        .forEach(
-            st ->
-                updateInputMappings(
-                    bpmnModel,
-                    st,
-                    Map.of(
-                        "data.connectorMode.standaloneModeFilters.tools.excluded",
-                        "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\"]")));
+        .forEach(st ->
+            updateInputMappings(
+                bpmnModel,
+                st,
+                Map.of(
+                    "data.connectorMode.standaloneModeFilters.tools.excluded",
+                    "=[\"add\", \"base64Encode\", \"base64Decode\", \"divide\", \"multiply\", \"subtract\", \"failTool\"]")));
 
     updateInputMappings(
         bpmnModel,
@@ -149,15 +139,14 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
     // MCP Remote Client
     serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
-        .forEach(
-            st ->
-                updateInputMappings(
-                    bpmnModel,
-                    st,
-                    remoteClientProperties.mcpRemoteClientInputMappings(
-                        Map.of(
-                            "data.connectorMode.standaloneModeFilters.tools.excluded",
-                            "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\"]"))));
+        .forEach(st ->
+            updateInputMappings(
+                bpmnModel,
+                st,
+                remoteClientProperties.mcpRemoteClientInputMappings(
+                    Map.of(
+                        "data.connectorMode.standaloneModeFilters.tools.excluded",
+                        "=[\"uppercase\", \"lowercase\", \"divide\", \"multiply\", \"subtract\", \"failTool\", \"echoMeta\"]"))));
 
     updateInputMappings(
         bpmnModel,

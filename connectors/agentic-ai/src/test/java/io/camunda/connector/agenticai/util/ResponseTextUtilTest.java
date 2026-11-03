@@ -92,7 +92,8 @@ class ResponseTextUtilTest {
           "address": {
             "city": "New York"
           }
-        }""";
+        }\
+        """;
 
     // when
     String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);
@@ -138,7 +139,8 @@ class ResponseTextUtilTest {
     String input =
         """
         ```json
-        {"incomplete": "block"}""";
+        {"incomplete": "block"}\
+        """;
 
     // when
     String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);
@@ -192,7 +194,8 @@ class ResponseTextUtilTest {
               {"id": 2, "name": "Item 2"}
             ]
           }
-        }""";
+        }\
+        """;
 
     // when
     String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);

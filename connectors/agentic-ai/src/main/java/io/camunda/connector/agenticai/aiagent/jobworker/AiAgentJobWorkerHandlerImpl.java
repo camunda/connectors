@@ -227,38 +227,37 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     return jobClient
         .newCompleteCommand(job)
         .variables(completion.variables())
-        .withResult(
-            result -> {
-              var adHocSubProcess =
-                  result
-                      .forAdHocSubProcess()
-                      .completionConditionFulfilled(completion.completionConditionFulfilled())
-                      .cancelRemainingInstances(completion.cancelRemainingInstances());
+        .withResult(result -> {
+          var adHocSubProcess =
+              result
+                  .forAdHocSubProcess()
+                  .completionConditionFulfilled(completion.completionConditionFulfilled())
+                  .cancelRemainingInstances(completion.cancelRemainingInstances());
 
-              if (completion.agentResponse() != null) {
-                final var agentResponse = completion.agentResponse();
-                for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
-                  if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
-                  } else {
-                    LOGGER.debug("Activating tool {}", toolCall.metadata().name());
-                  }
-
-                  adHocSubProcess =
-                      adHocSubProcess
-                          .activateElement(toolCall.metadata().name())
-                          .variables(
-                              Map.ofEntries(
-                                  Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
-                                  // Creating empty toolCallResult variable to avoid variable
-                                  // to bubble up in the upper scopes while merging variables on
-                                  // ad-hoc sub-process inner instance completion.
-                                  Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
-                }
+          if (completion.agentResponse() != null) {
+            final var agentResponse = completion.agentResponse();
+            for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
+              if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
+              } else {
+                LOGGER.debug("Activating tool {}", toolCall.metadata().name());
               }
 
-              return adHocSubProcess;
-            });
+              adHocSubProcess =
+                  adHocSubProcess
+                      .activateElement(toolCall.metadata().name())
+                      .variables(
+                          Map.ofEntries(
+                              Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
+                              // Creating empty toolCallResult variable to avoid variable
+                              // to bubble up in the upper scopes while merging variables on
+                              // ad-hoc sub-process inner instance completion.
+                              Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
+            }
+          }
+
+          return adHocSubProcess;
+        });
   }
 
   private void failJob(

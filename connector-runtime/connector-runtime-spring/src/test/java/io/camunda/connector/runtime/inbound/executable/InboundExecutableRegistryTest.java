@@ -553,13 +553,12 @@ public class InboundExecutableRegistryTest {
     assertThat(result.getFirst().logs())
         .hasSize(1)
         .first()
-        .satisfies(
-            log -> {
-              assertThat(log.severity()).isEqualTo(Severity.INFO);
-              assertThat(log.tag()).isEqualTo(ActivityLogTag.LIFECYCLE);
-              assertThat(log.message()).contains("Activated inbound connector");
-              assertThat(log.message()).contains("type1");
-            });
+        .satisfies(log -> {
+          assertThat(log.severity()).isEqualTo(Severity.INFO);
+          assertThat(log.tag()).isEqualTo(ActivityLogTag.LIFECYCLE);
+          assertThat(log.message()).contains("Activated inbound connector");
+          assertThat(log.message()).contains("type1");
+        });
   }
 
   @Test
@@ -649,10 +648,9 @@ public class InboundExecutableRegistryTest {
     // then - the deactivation lifecycle entry was logged before being removed
     verify(spyRegistry)
         .log(
-            argThat(
-                entry ->
-                    ActivityLogTag.LIFECYCLE.equals(entry.activity().tag())
-                        && entry.activity().message().contains("Deactivated")));
+            argThat(entry ->
+                ActivityLogTag.LIFECYCLE.equals(entry.activity().tag())
+                    && entry.activity().message().contains("Deactivated")));
   }
 
   @Test
@@ -687,11 +685,10 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     doAnswer(
             invocation -> {
-              realContext.log(
-                  a ->
-                      a.withSeverity(Severity.DEBUG)
-                          .withTag(ActivityLogTag.CONSUMER)
-                          .withMessage("Custom connector log entry"));
+              realContext.log(a ->
+                  a.withSeverity(Severity.DEBUG)
+                      .withTag(ActivityLogTag.CONSUMER)
+                      .withMessage("Custom connector log entry"));
               return null;
             })
         .when(executable)

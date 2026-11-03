@@ -115,20 +115,18 @@ class OutboundRegistryTest {
   private void runTest(
       ApplicationContextRunner configuredContextRunner,
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
-    configuredContextRunner.run(
-        context -> {
-          var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
-          Assertions.assertThatStream(outboundConnectorRegistry.getConfigurations().stream())
-              .anyMatch(
-                  e -> {
-                    try {
-                      configurationAssertions.accept(e);
-                      return true;
-                    } catch (Exception ex) {
-                      return false;
-                    }
-                  });
-        });
+    configuredContextRunner.run(context -> {
+      var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
+      Assertions.assertThatStream(outboundConnectorRegistry.getConfigurations().stream())
+          .anyMatch(e -> {
+            try {
+              configurationAssertions.accept(e);
+              return true;
+            } catch (Exception ex) {
+              return false;
+            }
+          });
+    });
   }
 }
 

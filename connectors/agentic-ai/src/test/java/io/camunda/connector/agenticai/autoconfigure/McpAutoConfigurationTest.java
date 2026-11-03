@@ -48,43 +48,39 @@ public class McpAutoConfigurationTest {
 
   @Test
   void enablesMcpDiscoveryByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
-          assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(McpClientGatewayToolDefinitionResolver.class);
+      assertThat(context).hasSingleBean(McpClientGatewayToolHandler.class);
+    });
   }
 
   @Test
   void disablesMcpDiscoveryIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.discovery.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolDefinitionResolver.class);
+          assertThat(context).doesNotHaveBean(McpClientGatewayToolHandler.class);
+        });
   }
 
   @Test
   void enablesRemoteMcpClientIntegrationByDefault() {
-    contextRunner.run(
-        context -> {
-          assertHasAllBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-          assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-        });
+    contextRunner.run(context -> {
+      assertHasAllBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+      assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+    });
   }
 
   @Test
   void disablesRemoteMcpClientIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -96,11 +92,10 @@ public class McpAutoConfigurationTest {
   void enablesRuntimeMcpClientIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.client.enabled=true")
-        .run(
-            context -> {
-              assertHasAllBeansOfAtLeastOnce(context, SHARED_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOfAtLeastOnce(context, SHARED_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -109,12 +104,11 @@ public class McpAutoConfigurationTest {
         .withPropertyValues(
             "camunda.connector.agenticai.mcp.client.enabled=false",
             "camunda.connector.agenticai.mcp.remote-client.enabled=false")
-        .run(
-            context -> {
-              assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-              assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+          assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
@@ -124,21 +118,19 @@ public class McpAutoConfigurationTest {
             "camunda.connector.agenticai.mcp.client.enabled=true",
             "camunda.connector.agenticai.mcp.remote-client.enabled=false",
             "camunda.connector.agenticai.mcp.client.framework=mcpsdk")
-        .run(
-            context -> {
-              assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+        });
   }
 
   @Test
   void enablesMcpSdkRemoteIntegrationIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk")
-        .run(
-            context -> {
-              assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
-              assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
-            });
+        .run(context -> {
+          assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
+          assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
+        });
   }
 }
