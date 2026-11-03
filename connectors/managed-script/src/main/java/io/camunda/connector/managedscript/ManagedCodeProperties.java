@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.managedscript;
 
+import io.camunda.connector.managedscript.api.ManagedCodeSettings;
 import java.time.Duration;
-import java.util.regex.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -35,18 +35,6 @@ public record ManagedCodeProperties(
     Duration grantPropagationWindow,
     Duration provisioningRetryBackoff) {
 
-  static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
-
-  /** {@code <py|js>-} and the 12 hexadecimal characters of the wrapper digest. */
-  static final int EXECUTOR_NAME_SUFFIX_LENGTH = 15;
-
-  /** Cloud Run function ids have at most 63 characters, Lambda function names 64. */
-  private static final int MAX_DEPLOYMENT_NAME_PREFIX_LENGTH = 63 - EXECUTOR_NAME_SUFFIX_LENGTH;
-
-  private static final Pattern DEPLOYMENT_NAME_PREFIX =
-      Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
-
-  private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
   // IAM grants took 66 to 98 seconds to apply, measured once.
   private static final Duration DEFAULT_GRANT_PROPAGATION_WINDOW = Duration.ofMinutes(2);
@@ -54,17 +42,10 @@ public record ManagedCodeProperties(
 
   public ManagedCodeProperties {
     provider = provider == null ? "" : provider;
-    deploymentNamePrefix =
-        deploymentNamePrefix == null || deploymentNamePrefix.isBlank()
-            ? DEFAULT_DEPLOYMENT_NAME_PREFIX
-            : deploymentNamePrefix.strip();
-    if (!DEPLOYMENT_NAME_PREFIX.matcher(deploymentNamePrefix).matches()) {
-      throw new IllegalArgumentException(
-          ("camunda.connector.managed-code.deployment-name-prefix '%s' must start with a lowercase"
-                  + " letter and contain at most %d lowercase letters, digits and hyphens")
-              .formatted(deploymentNamePrefix, MAX_DEPLOYMENT_NAME_PREFIX_LENGTH));
-    }
-    executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
+    // Read by the providers too: their defaults and validation are those of the API.
+    final var settings = new ManagedCodeSettings(deploymentNamePrefix, executionTimeout);
+    deploymentNamePrefix = settings.deploymentNamePrefix();
+    executionTimeout = settings.executionTimeout();
     provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
     grantPropagationWindow =
         grantPropagationWindow == null || grantPropagationWindow.isNegative()
