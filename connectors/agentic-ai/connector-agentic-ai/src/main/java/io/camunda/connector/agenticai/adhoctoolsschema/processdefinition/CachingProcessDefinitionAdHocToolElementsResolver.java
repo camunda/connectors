@@ -39,10 +39,9 @@ public class CachingProcessDefinitionAdHocToolElementsResolver
     Optional.ofNullable(config.maximumSize()).ifPresent(builder::maximumSize);
     Optional.ofNullable(config.expireAfterWrite()).ifPresent(builder::expireAfterWrite);
 
-    return builder.build(
-        id ->
-            delegate.resolveToolElements(
-                id.physicalTenantId(), id.processDefinitionKey(), id.adHocSubProcessId()));
+    return builder.build(id ->
+        delegate.resolveToolElements(
+            id.physicalTenantId(), id.processDefinitionKey(), id.adHocSubProcessId()));
   }
 
   /**

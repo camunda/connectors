@@ -53,7 +53,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .withoutPropertyValueStartingWith("data.response.format."),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -69,7 +69,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.includeAssistantMessage", "=false"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasNoResponseMessage()
                   .hasResponseText(HAIKU_TEXT)
@@ -85,7 +85,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_TEXT)
                   .hasResponseText(HAIKU_TEXT)
@@ -101,7 +101,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_JSON)
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -116,7 +116,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.format.parseJson", "=true"),
           HAIKU_TEXT,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasResponseText(HAIKU_TEXT)
                   .hasNoResponseJson());
@@ -170,7 +170,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
           elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasNoResponseText()
                   .hasResponseJsonSatisfying(HAIKU_JSON_ASSERTIONS));
@@ -185,7 +185,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.includeAssistantMessage", "=true"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()
@@ -220,7 +220,7 @@ public class AgentSubProcessResponseHandlingTests extends BaseAgentSubProcessTes
                   .property("data.response.format.schemaName", "HaikuSchema"),
           HAIKU_JSON,
           true,
-          (agentResponse) ->
+          agentResponse ->
               AgentSubProcessResponseAssert.assertThat(agentResponse)
                   .hasResponseMessageText(HAIKU_JSON)
                   .hasNoResponseText()

@@ -59,7 +59,7 @@ abstract class BaseOutboundMultiInstancesTest {
   final InstanceForwardingHttpClient instanceForwardingHttpClient =
       new InstanceForwardingHttpClient(
           HttpClient.newHttpClient(),
-          (path) -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
+          path -> List.of("http://localhost:" + port1 + path, "http://localhost:" + port2 + path),
           ConnectorsObjectMapperSupplier.getCopy());
 
   final TestRestTemplate restTemplate =
@@ -90,20 +90,19 @@ abstract class BaseOutboundMultiInstancesTest {
                 "camunda.connector.broker.monitoring.enabled=false",
                 "camunda.connector.polling.enabled=false",
                 "camunda.connector.webhook.enabled=false")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(OutboundConnectorFactory.class, () -> connectorFactory1);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance1"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(OutboundConnectorFactory.class, () -> connectorFactory1);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance1"));
+            })
             .run();
 
     context2 =
@@ -116,20 +115,19 @@ abstract class BaseOutboundMultiInstancesTest {
                 "camunda.connector.broker.monitoring.enabled=false",
                 "camunda.connector.polling.enabled=false",
                 "camunda.connector.webhook.enabled=false")
-            .initializers(
-                ctx -> {
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(OutboundConnectorFactory.class, () -> connectorFactory2);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
-                  ((GenericApplicationContext) ctx)
-                      .registerBean(
-                          InstanceForwardingService.class,
-                          () ->
-                              new DefaultInstanceForwardingService(
-                                  instanceForwardingHttpClient, "instance2"));
-                })
+            .initializers(ctx -> {
+              ((GenericApplicationContext) ctx)
+                  .registerBean(OutboundConnectorFactory.class, () -> connectorFactory2);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingHttpClient.class, () -> instanceForwardingHttpClient);
+              ((GenericApplicationContext) ctx)
+                  .registerBean(
+                      InstanceForwardingService.class,
+                      () ->
+                          new DefaultInstanceForwardingService(
+                              instanceForwardingHttpClient, "instance2"));
+            })
             .run();
   }
 

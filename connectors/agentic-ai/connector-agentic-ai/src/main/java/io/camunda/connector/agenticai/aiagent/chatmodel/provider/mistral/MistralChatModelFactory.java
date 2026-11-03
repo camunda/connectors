@@ -118,13 +118,12 @@ public class MistralChatModelFactory implements ChatModelFactory {
     final String scheme = URI.create(configuredEndpoint(backend)).getScheme();
     httpProxySupport
         .okHttpProxy(scheme)
-        .ifPresent(
-            p -> {
-              builder.proxy(p.proxy());
-              if (p.hasCredentials()) {
-                builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
-              }
-            });
+        .ifPresent(p -> {
+          builder.proxy(p.proxy());
+          if (p.hasCredentials()) {
+            builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
+          }
+        });
     return builder.build();
   }
 
@@ -148,15 +147,14 @@ public class MistralChatModelFactory implements ChatModelFactory {
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
           builder.credential(
-              BearerTokenCredential.create(
-                  () ->
-                      oAuthClientCredentialsTokenResolver.resolveAccessToken(
-                          oauth.oauthTokenEndpoint(),
-                          oauth.clientId(),
-                          oauth.clientSecret(),
-                          oauth.audience(),
-                          oauth.clientAuthentication().oauthConstant(),
-                          oauth.scopes())));
+              BearerTokenCredential.create(() ->
+                  oAuthClientCredentialsTokenResolver.resolveAccessToken(
+                      oauth.oauthTokenEndpoint(),
+                      oauth.clientId(),
+                      oauth.clientSecret(),
+                      oauth.audience(),
+                      oauth.clientAuthentication().oauthConstant(),
+                      oauth.scopes())));
     }
   }
 

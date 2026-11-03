@@ -45,14 +45,13 @@ final class ListToolsRequest {
             .toList();
     final var filteredToolDefinitions =
         filteredToolSpecifications.stream()
-            .map(
-                tool ->
-                    McpToolDefinitionBuilder.builder()
-                        .name(tool.name())
-                        .title(tool.title())
-                        .description(tool.description())
-                        .inputSchema(tool.inputSchema())
-                        .build())
+            .map(tool ->
+                McpToolDefinitionBuilder.builder()
+                    .name(tool.name())
+                    .title(tool.title())
+                    .description(tool.description())
+                    .inputSchema(tool.inputSchema())
+                    .build())
             .toList();
 
     if (filteredToolDefinitions.isEmpty()) {

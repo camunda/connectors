@@ -123,29 +123,25 @@ public final class ConnectorConfigurationUtil {
 
   public static Set<String> getInputVariables(List<MethodWithAnnotation<Operation>> operations) {
     Set<String> variables = new HashSet<>();
-    operations.forEach(
-        method -> {
-          method.parameters().stream()
-              .filter(
-                  (p) ->
-                      p.getAnnotation(io.camunda.connector.api.annotation.Variable.class) != null)
-              .forEach(
-                  parameter -> {
-                    Variable variable =
-                        parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
-                    String variableName = getVariableName(variable);
-                    if (variableName == null || variableName.isEmpty()) {
-                      // When the variable name is empty, we assume that the variables are mapped
-                      // from the root
-                      for (Field declaredField : parameter.getType().getDeclaredFields()) {
-                        String fieldName = declaredField.getName();
-                        variables.add(fieldName);
-                      }
-                    } else {
-                      variables.add(variableName);
-                    }
-                  });
-        });
+    operations.forEach(method -> {
+      method.parameters().stream()
+          .filter(p -> p.getAnnotation(io.camunda.connector.api.annotation.Variable.class) != null)
+          .forEach(parameter -> {
+            Variable variable =
+                parameter.getAnnotation(io.camunda.connector.api.annotation.Variable.class);
+            String variableName = getVariableName(variable);
+            if (variableName == null || variableName.isEmpty()) {
+              // When the variable name is empty, we assume that the variables are mapped
+              // from the root
+              for (Field declaredField : parameter.getType().getDeclaredFields()) {
+                String fieldName = declaredField.getName();
+                variables.add(fieldName);
+              }
+            } else {
+              variables.add(variableName);
+            }
+          });
+    });
     return variables;
   }
 

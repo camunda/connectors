@@ -169,13 +169,9 @@ class ToolCallRequestTest {
   void throwsException_whenToolNameIsNotPresent() {
     reset(mcpClient);
 
-    assertThatThrownBy(
-            () ->
-                testee.execute(
-                    mcpClient,
-                    EMPTY_FILTER,
-                    Map.of("arguments", Map.of("arg1", "value1")),
-                    Map.of()))
+    assertThatThrownBy(() ->
+            testee.execute(
+                mcpClient, EMPTY_FILTER, Map.of("arguments", Map.of("arg1", "value1")), Map.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Tool name must not be null");
   }
@@ -206,13 +202,12 @@ class ToolCallRequestTest {
 
   @Test
   void throwsException_whenInvalidCallToolOperationParamsProvided() {
-    assertThatThrownBy(
-            () ->
-                testee.execute(
-                    mcpClient,
-                    EMPTY_FILTER,
-                    Map.of("name", List.of("foo", "bar"), "something", "else"),
-                    Map.of()))
+    assertThatThrownBy(() ->
+            testee.execute(
+                mcpClient,
+                EMPTY_FILTER,
+                Map.of("name", List.of("foo", "bar"), "something", "else"),
+                Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             ex -> {

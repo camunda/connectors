@@ -124,13 +124,11 @@ public abstract class BaseAgentTest extends BaseAgenticAiTest {
   void mockUserFeedbackJobWorker() {
     processTestContext
         .mockJobWorker("user_feedback")
-        .withHandler(
-            (client, job) -> {
-              var nextFeedback =
-                  userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
-              userFeedbackJobWorkerCounter.incrementAndGet();
-              client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
-            });
+        .withHandler((client, job) -> {
+          var nextFeedback = userFeedback.isEmpty() ? Collections.emptyMap() : userFeedback.poll();
+          userFeedbackJobWorkerCounter.incrementAndGet();
+          client.newCompleteCommand(job.getKey()).variables(nextFeedback).execute();
+        });
   }
 
   @BeforeEach

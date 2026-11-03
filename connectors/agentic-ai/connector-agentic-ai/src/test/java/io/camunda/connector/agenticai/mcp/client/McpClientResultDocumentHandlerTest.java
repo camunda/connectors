@@ -58,16 +58,14 @@ class McpClientResultDocumentHandlerTest {
       McpClientResult givenResult, McpClientResult expectedAfterTransformation) {
     var callCount = new AtomicInteger(0);
     when(documentFactory.create(any()))
-        .thenAnswer(
-            i -> {
-              var request = i.getArgument(0, DocumentCreationRequest.class);
+        .thenAnswer(i -> {
+          var request = i.getArgument(0, DocumentCreationRequest.class);
 
-              try (var is = request.content()) {
-                var id = "doc-id-" + callCount.getAndIncrement();
-                return new TestDocument(
-                    is.readAllBytes(), createDocumentMetadata(request), null, id);
-              }
-            });
+          try (var is = request.content()) {
+            var id = "doc-id-" + callCount.getAndIncrement();
+            return new TestDocument(is.readAllBytes(), createDocumentMetadata(request), null, id);
+          }
+        });
 
     final var transformedResult = testee.convertBinariesToDocumentsIfPresent(givenResult);
 

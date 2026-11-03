@@ -92,17 +92,16 @@ public class JdkProxySelectorTest {
     var config =
         configWith("http", new ProxyDetails("http", "proxy.example.com", 8080, null, null));
     withEnvironmentVariables("CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|localhost")
-        .execute(
-            () -> {
-              var selector = new JdkProxySelector(config);
+        .execute(() -> {
+          var selector = new JdkProxySelector(config);
 
-              assertThat(selector.select(URI.create("http://api.internal.com")).getFirst().type())
-                  .isEqualTo(Proxy.Type.DIRECT);
-              assertThat(selector.select(URI.create("http://localhost")).getFirst().type())
-                  .isEqualTo(Proxy.Type.DIRECT);
-              assertThat(selector.select(URI.create("http://external.com")).getFirst().type())
-                  .isEqualTo(Proxy.Type.HTTP);
-            });
+          assertThat(selector.select(URI.create("http://api.internal.com")).getFirst().type())
+              .isEqualTo(Proxy.Type.DIRECT);
+          assertThat(selector.select(URI.create("http://localhost")).getFirst().type())
+              .isEqualTo(Proxy.Type.DIRECT);
+          assertThat(selector.select(URI.create("http://external.com")).getFirst().type())
+              .isEqualTo(Proxy.Type.HTTP);
+        });
   }
 
   @Test
@@ -133,17 +132,16 @@ public class JdkProxySelectorTest {
     var config =
         configWith("http", new ProxyDetails("http", "proxy.example.com", 8080, null, null));
     withEnvironmentVariables("CONNECTOR_HTTP_NON_PROXY_HOSTS", nonProxyHosts)
-        .execute(
-            () -> {
-              var selector = new JdkProxySelector(config);
-              var proxies = selector.select(URI.create(requestUrl));
+        .execute(() -> {
+          var selector = new JdkProxySelector(config);
+          var proxies = selector.select(URI.create(requestUrl));
 
-              if (skipProxy) {
-                assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.DIRECT);
-              } else {
-                assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.HTTP);
-              }
-            });
+          if (skipProxy) {
+            assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.DIRECT);
+          } else {
+            assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.HTTP);
+          }
+        });
   }
 
   private static ProxyConfiguration configWith(String protocol, ProxyDetails details) {

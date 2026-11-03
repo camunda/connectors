@@ -92,8 +92,8 @@ public final class CptReportExtension
     return String.format(
         Locale.ROOT,
         """
-            {"class":"%s","method":"%s","displayName":"%s","tags":"%s","status":"%s","durationSeconds":%.3f,"failureClass":"%s"}\
-            """,
+        {"class":"%s","method":"%s","displayName":"%s","tags":"%s","status":"%s","durationSeconds":%.3f,"failureClass":"%s"}\
+        """,
         jsonEscape(context.getRequiredTestClass().getSimpleName()),
         jsonEscape(context.getRequiredTestMethod().getName()),
         jsonEscape(context.getDisplayName()),

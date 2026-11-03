@@ -59,10 +59,9 @@ class AgentSubProcessGeminiThinkingConfigTests extends BaseGeminiNativeSubProces
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(THINKING_BUDGET_MODEL)
-            .andThen(
-                template ->
-                    template.property(
-                        "provider.googleGemini.model.parameters.thinking.thinkingBudget", "=2048"));
+            .andThen(template ->
+                template.property(
+                    "provider.googleGemini.model.parameters.thinking.thinkingBudget", "=2048"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));
@@ -95,10 +94,9 @@ class AgentSubProcessGeminiThinkingConfigTests extends BaseGeminiNativeSubProces
 
     final Function<ElementTemplate, ElementTemplate> elementTemplateModifier =
         model(THINKING_LEVEL_MODEL)
-            .andThen(
-                template ->
-                    template.property(
-                        "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"));
+            .andThen(template ->
+                template.property(
+                    "provider.googleGemini.model.parameters.thinking.thinkingLevel", "high"));
 
     awaitProcessCompletion(
         createProcessInstance(elementTemplateModifier, Map.of("userPrompt", userPrompt)));

@@ -704,13 +704,12 @@ class OpenAiCompletionsRequestConverterTest {
   void rejectsSpecWithBothMaxCompletionTokensAndMaxTokensSet() {
     final var snapshot = new ConversationSnapshot(List.of(), List.of());
 
-    assertThatThrownBy(
-            () ->
-                converter.toRequest(
-                    new CompletionsRequestSpec(
-                        "gpt-4o", 100L, 200L, null, null, null, NO_CUSTOMIZATIONS),
-                    null,
-                    snapshot))
+    assertThatThrownBy(() ->
+            converter.toRequest(
+                new CompletionsRequestSpec(
+                    "gpt-4o", 100L, 200L, null, null, null, NO_CUSTOMIZATIONS),
+                null,
+                snapshot))
         .isInstanceOf(IllegalArgumentException.class);
   }
 

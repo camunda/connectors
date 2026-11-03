@@ -78,11 +78,10 @@ public class InboundConnectorTestConfiguration {
     public void awaitNoActiveInboundExecutables(Duration waitDuration) {
       await("all executables should be cleaned up from previous tests")
           .atMost(waitDuration)
-          .untilAsserted(
-              () -> {
-                var allExecutables = executableRegistry.query(f -> {});
-                assertThat(allExecutables).isEmpty();
-              });
+          .untilAsserted(() -> {
+            var allExecutables = executableRegistry.query(f -> {});
+            assertThat(allExecutables).isEmpty();
+          });
     }
 
     /**
@@ -100,21 +99,19 @@ public class InboundConnectorTestConfiguration {
     public void awaitActiveInboundExecutable(String elementId, Duration waitDuration) {
       await("inbound executable for element '" + elementId + "' should be active and healthy")
           .atMost(waitDuration)
-          .untilAsserted(
-              () -> {
-                var executables = executableRegistry.query(f -> f.elementId(elementId));
-                assertThat(executables)
-                    .as("executable for element '%s' should be registered", elementId)
-                    .isNotEmpty();
-                assertThat(executables)
-                    .allSatisfy(
-                        executable ->
-                            assertThat(executable.health().getStatus())
-                                .as(
-                                    "executable for element '%s' should be UP, got: %s",
-                                    elementId, executable.health())
-                                .isEqualTo(Health.Status.UP));
-              });
+          .untilAsserted(() -> {
+            var executables = executableRegistry.query(f -> f.elementId(elementId));
+            assertThat(executables)
+                .as("executable for element '%s' should be registered", elementId)
+                .isNotEmpty();
+            assertThat(executables)
+                .allSatisfy(executable ->
+                    assertThat(executable.health().getStatus())
+                        .as(
+                            "executable for element '%s' should be UP, got: %s",
+                            elementId, executable.health())
+                        .isEqualTo(Health.Status.UP));
+          });
     }
   }
 }

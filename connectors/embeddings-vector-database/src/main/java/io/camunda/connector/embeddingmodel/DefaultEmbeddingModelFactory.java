@@ -107,23 +107,20 @@ public class DefaultEmbeddingModelFactory {
     // properties for proxy configuration.
     proxyConfig
         .getProxyDetails(uri.getScheme())
-        .ifPresent(
-            proxyDetails -> {
-              ProxyOptions proxyOptions =
-                  new ProxyOptions(
-                      ProxyOptions.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              // Non-proxy hosts patterns are sanitized inside ProxyOptions
-              proxyOptions.setNonProxyHosts(
-                  NonProxyHosts.getNonProxyHostsPatterns()
-                      .distinct()
-                      .collect(Collectors.joining("|")));
-              if (proxyDetails.hasCredentials()) {
-                proxyOptions.setCredentials(proxyDetails.user(), proxyDetails.password());
-              }
+        .ifPresent(proxyDetails -> {
+          ProxyOptions proxyOptions =
+              new ProxyOptions(
+                  ProxyOptions.Type.HTTP,
+                  new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          // Non-proxy hosts patterns are sanitized inside ProxyOptions
+          proxyOptions.setNonProxyHosts(
+              NonProxyHosts.getNonProxyHostsPatterns().distinct().collect(Collectors.joining("|")));
+          if (proxyDetails.hasCredentials()) {
+            proxyOptions.setCredentials(proxyDetails.user(), proxyDetails.password());
+          }
 
-              builder.proxyOptions(proxyOptions);
-            });
+          builder.proxyOptions(proxyOptions);
+        });
   }
 
   private EmbeddingModel createBedrockEmbeddingModel(

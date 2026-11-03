@@ -73,9 +73,8 @@ public class OpenSearchVectorStoreFactory {
     }
     return ApacheHttpClient5TransportBuilder.builder(openSearchHost)
         .setMapper(new JacksonJsonpMapper())
-        .setHttpClientConfigCallback(
-            httpClientBuilder ->
-                configureHttpAsyncClientBuilder(httpClientBuilder, openSearchHost, openSearch))
+        .setHttpClientConfigCallback(httpClientBuilder ->
+            configureHttpAsyncClientBuilder(httpClientBuilder, openSearchHost, openSearch))
         .build();
   }
 
@@ -105,20 +104,19 @@ public class OpenSearchVectorStoreFactory {
 
     proxyConfig
         .getProxyDetails(openSearchHost.getSchemeName())
-        .ifPresent(
-            proxyDetails -> {
-              HttpHost proxyHost =
-                  new HttpHost(proxyDetails.scheme(), proxyDetails.host(), proxyDetails.port());
+        .ifPresent(proxyDetails -> {
+          HttpHost proxyHost =
+              new HttpHost(proxyDetails.scheme(), proxyDetails.host(), proxyDetails.port());
 
-              if (proxyDetails.hasCredentials()) {
-                credentialsProvider.setCredentials(
-                    new AuthScope(proxyHost),
-                    new UsernamePasswordCredentials(
-                        proxyDetails.user(), proxyDetails.password().toCharArray()));
-              }
+          if (proxyDetails.hasCredentials()) {
+            credentialsProvider.setCredentials(
+                new AuthScope(proxyHost),
+                new UsernamePasswordCredentials(
+                    proxyDetails.user(), proxyDetails.password().toCharArray()));
+          }
 
-              httpClientBuilder.setRoutePlanner(new ProxyRoutePlanner(proxyHost));
-            });
+          httpClientBuilder.setRoutePlanner(new ProxyRoutePlanner(proxyHost));
+        });
 
     return httpClientBuilder;
   }

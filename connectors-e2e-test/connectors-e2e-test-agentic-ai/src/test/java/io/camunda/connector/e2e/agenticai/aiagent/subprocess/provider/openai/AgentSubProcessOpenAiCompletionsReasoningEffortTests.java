@@ -100,11 +100,10 @@ class AgentSubProcessOpenAiCompletionsReasoningEffortTests
                 .hasResponseText(responseText)
                 // No ReasoningContent is ever emitted by the Completions converter - only the
                 // token count is surfaced.
-                .hasResponseMessageSatisfying(
-                    message ->
-                        assertThat(message.content())
-                            .as("assistant content - no ReasoningContent is ever emitted")
-                            .noneMatch(ReasoningContent.class::isInstance))
+                .hasResponseMessageSatisfying(message ->
+                    assertThat(message.content())
+                        .as("assistant content - no ReasoningContent is ever emitted")
+                        .noneMatch(ReasoningContent.class::isInstance))
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20, 0, 0, 7), 0)));
   }
 }

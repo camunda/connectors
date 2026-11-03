@@ -339,10 +339,8 @@ class DocumentReturnProcessorTest {
 
     DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
 
-    assertThatThrownBy(
-            () ->
-                processor.process(
-                    ret, format(DocumentReturnChoice.TEXT, "definitely-not-a-charset")))
+    assertThatThrownBy(() ->
+            processor.process(ret, format(DocumentReturnChoice.TEXT, "definitely-not-a-charset")))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported charset");
   }

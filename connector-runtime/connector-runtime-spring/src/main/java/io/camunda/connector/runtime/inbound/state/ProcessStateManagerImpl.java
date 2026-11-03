@@ -193,14 +193,13 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
 
     var filtered =
         elements.stream()
-            .filter(
-                element -> {
-                  var correlationPoint = element.correlationPoint();
-                  // Filter out start events (both plain and message-based)
-                  return !(correlationPoint instanceof StartEventCorrelationPoint)
-                      && !(correlationPoint instanceof MessageStartEventCorrelationPoint);
-                  // Keep intermediate catch events and boundary events
-                })
+            .filter(element -> {
+              var correlationPoint = element.correlationPoint();
+              // Filter out start events (both plain and message-based)
+              return !(correlationPoint instanceof StartEventCorrelationPoint)
+                  && !(correlationPoint instanceof MessageStartEventCorrelationPoint);
+              // Keep intermediate catch events and boundary events
+            })
             .toList();
 
     if (filtered.size() < elements.size()) {

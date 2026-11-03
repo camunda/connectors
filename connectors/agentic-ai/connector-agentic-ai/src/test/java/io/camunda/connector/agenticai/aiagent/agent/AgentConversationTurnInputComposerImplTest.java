@@ -339,11 +339,10 @@ class AgentConversationTurnInputComposerImplTest {
     // the registry is also responsible for annotating elementId; mock returns results with it set
     var transformedResults =
         TOOL_CALL_RESULTS.stream()
-            .map(
-                r ->
-                    r.name().equals("getWeather")
-                        ? r.withContent("TRANSFORMED: " + r.content()).withElementId(r.name())
-                        : r.withElementId(r.name()))
+            .map(r ->
+                r.name().equals("getWeather")
+                    ? r.withContent("TRANSFORMED: " + r.content()).withElementId(r.name())
+                    : r.withElementId(r.name()))
             .toList();
     when(gatewayToolHandlers.transformToolCallResults(CTX_WITH_CONVERSATION, TOOL_CALL_RESULTS))
         .thenReturn(transformedResults);
@@ -439,10 +438,8 @@ class AgentConversationTurnInputComposerImplTest {
     assertThat(toolCallResultMessage.results())
         .filteredOn(r -> "abcdef".equals(r.id()))
         .first()
-        .satisfies(
-            r ->
-                assertThat(r.content())
-                    .containsExactly(DocumentContent.documentContent(weatherDoc)));
+        .satisfies(r ->
+            assertThat(r.content()).containsExactly(DocumentContent.documentContent(weatherDoc)));
     assertThat(messages.get(1))
         .isInstanceOfSatisfying(
             UserMessage.class,

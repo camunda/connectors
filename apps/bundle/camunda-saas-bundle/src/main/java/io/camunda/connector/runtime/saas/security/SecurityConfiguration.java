@@ -53,15 +53,14 @@ public class SecurityConfiguration {
   @Order(0)
   public SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
     return http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
-        .securityMatchers(
-            requestMatcherConfigurer ->
-                requestMatcherConfigurer
-                    .requestMatchers(HttpMethod.GET, "/inbound/*")
-                    .requestMatchers(HttpMethod.HEAD, "/inbound/*")
-                    .requestMatchers(HttpMethod.POST, "/inbound/*")
-                    .requestMatchers(HttpMethod.PUT, "/inbound/*")
-                    .requestMatchers(HttpMethod.DELETE, "/inbound/*")
-                    .requestMatchers("/actuator/**"))
+        .securityMatchers(requestMatcherConfigurer ->
+            requestMatcherConfigurer
+                .requestMatchers(HttpMethod.GET, "/inbound/*")
+                .requestMatchers(HttpMethod.HEAD, "/inbound/*")
+                .requestMatchers(HttpMethod.POST, "/inbound/*")
+                .requestMatchers(HttpMethod.PUT, "/inbound/*")
+                .requestMatchers(HttpMethod.DELETE, "/inbound/*")
+                .requestMatchers("/actuator/**"))
         .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
         .build();
   }
@@ -78,15 +77,11 @@ public class SecurityConfiguration {
   @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
-        .securityMatchers(
-            requestMatcherConfigurer ->
-                requestMatcherConfigurer
-                    .requestMatchers("/inbound/**")
-                    .requestMatchers("/tenants/**"))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
-                    .hasAuthority("SCOPE_inbound:read"))
+        .securityMatchers(requestMatcherConfigurer ->
+            requestMatcherConfigurer.requestMatchers("/inbound/**").requestMatchers("/tenants/**"))
+        .authorizeHttpRequests(auth ->
+            auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
+                .hasAuthority("SCOPE_inbound:read"))
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
   }

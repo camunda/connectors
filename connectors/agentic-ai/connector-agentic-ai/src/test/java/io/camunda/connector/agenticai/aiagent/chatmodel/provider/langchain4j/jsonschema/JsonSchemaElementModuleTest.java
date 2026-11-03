@@ -90,10 +90,9 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsOnlyKeys("message");
           assertThat(schema.properties().get("message"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-              .satisfies(
-                  stringSchema -> {
-                    assertThat(stringSchema.description()).isEqualTo("Message to echo");
-                  });
+              .satisfies(stringSchema -> {
+                assertThat(stringSchema.description()).isEqualTo("Message to echo");
+              });
           assertThat(schema.required()).containsExactly("message");
           assertThat(schema.additionalProperties()).isFalse();
         });
@@ -180,98 +179,82 @@ class JsonSchemaElementModuleTest {
 
           assertThat(schema.properties().get("type"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonEnumSchema.class))
-              .satisfies(
-                  enumSchema -> {
-                    assertThat(enumSchema.enumValues()).contains("edit", "overwrite");
-                    assertThat(enumSchema.description()).isEqualTo("Type of edit");
-                  });
+              .satisfies(enumSchema -> {
+                assertThat(enumSchema.enumValues()).contains("edit", "overwrite");
+                assertThat(enumSchema.description()).isEqualTo("Type of edit");
+              });
 
           assertThat(schema.properties().get("path"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-              .satisfies(
-                  stringSchema -> {
-                    assertThat(stringSchema.description()).isNull();
-                  });
+              .satisfies(stringSchema -> {
+                assertThat(stringSchema.description()).isNull();
+              });
 
           assertThat(schema.properties().get("edits"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
-              .satisfies(
-                  arraySchema -> {
-                    assertThat(arraySchema.description()).isEqualTo("The edits to apply");
-                    assertThat(arraySchema.items())
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
-                        .satisfies(
-                            objectSchema -> {
-                              assertThat(objectSchema.properties())
-                                  .containsOnlyKeys("oldText", "newText");
-                              assertThat(objectSchema.properties().get("oldText"))
-                                  .asInstanceOf(
-                                      InstanceOfAssertFactories.type(JsonStringSchema.class))
-                                  .satisfies(
-                                      stringSchema -> {
-                                        assertThat(stringSchema.description())
-                                            .isEqualTo("Text to search for - must match exactly");
-                                      });
-                              assertThat(objectSchema.properties().get("newText"))
-                                  .asInstanceOf(
-                                      InstanceOfAssertFactories.type(JsonStringSchema.class))
-                                  .satisfies(
-                                      stringSchema -> {
-                                        assertThat(stringSchema.description())
-                                            .isEqualTo("Text to replace with");
-                                      });
-                              assertThat(objectSchema.required())
-                                  .containsExactly("oldText", "newText");
-                              assertThat(objectSchema.additionalProperties()).isTrue();
-                            });
-                  });
+              .satisfies(arraySchema -> {
+                assertThat(arraySchema.description()).isEqualTo("The edits to apply");
+                assertThat(arraySchema.items())
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
+                    .satisfies(objectSchema -> {
+                      assertThat(objectSchema.properties()).containsOnlyKeys("oldText", "newText");
+                      assertThat(objectSchema.properties().get("oldText"))
+                          .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                          .satisfies(stringSchema -> {
+                            assertThat(stringSchema.description())
+                                .isEqualTo("Text to search for - must match exactly");
+                          });
+                      assertThat(objectSchema.properties().get("newText"))
+                          .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                          .satisfies(stringSchema -> {
+                            assertThat(stringSchema.description())
+                                .isEqualTo("Text to replace with");
+                          });
+                      assertThat(objectSchema.required()).containsExactly("oldText", "newText");
+                      assertThat(objectSchema.additionalProperties()).isTrue();
+                    });
+              });
 
           assertThat(schema.properties().get("maxLines"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonNumberSchema.class))
-              .satisfies(
-                  numberSchema -> {
-                    assertThat(numberSchema.description())
-                        .isEqualTo("The maximum number of lines to edit");
-                  });
+              .satisfies(numberSchema -> {
+                assertThat(numberSchema.description())
+                    .isEqualTo("The maximum number of lines to edit");
+              });
 
           assertThat(schema.properties().get("startLine"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonIntegerSchema.class))
-              .satisfies(
-                  integerSchema -> {
-                    assertThat(integerSchema.description())
-                        .isEqualTo("Do not edit lines before this line number");
-                  });
+              .satisfies(integerSchema -> {
+                assertThat(integerSchema.description())
+                    .isEqualTo("Do not edit lines before this line number");
+              });
 
           assertThat(schema.properties().get("dryRun"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonBooleanSchema.class))
-              .satisfies(
-                  booleanSchema -> {
-                    assertThat(booleanSchema.description())
-                        .isEqualTo("Preview changes using git-style diff format");
-                  });
+              .satisfies(booleanSchema -> {
+                assertThat(booleanSchema.description())
+                    .isEqualTo("Preview changes using git-style diff format");
+              });
 
           assertThat(schema.properties().get("encoding"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonAnyOfSchema.class))
-              .satisfies(
-                  anyOfSchema -> {
-                    assertThat(anyOfSchema.anyOf()).hasSize(2);
+              .satisfies(anyOfSchema -> {
+                assertThat(anyOfSchema.anyOf()).hasSize(2);
 
-                    assertThat(anyOfSchema.anyOf().get(0))
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-                        .satisfies(
-                            stringSchema -> {
-                              assertThat(stringSchema.description())
-                                  .isEqualTo("Encoding string, e.g. 'utf-8', 'ascii', etc.");
-                            });
+                assertThat(anyOfSchema.anyOf().get(0))
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                    .satisfies(stringSchema -> {
+                      assertThat(stringSchema.description())
+                          .isEqualTo("Encoding string, e.g. 'utf-8', 'ascii', etc.");
+                    });
 
-                    assertThat(anyOfSchema.anyOf().get(1))
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonNumberSchema.class))
-                        .satisfies(
-                            numberSchema -> {
-                              assertThat(numberSchema.description())
-                                  .isEqualTo("Encoding codepage, e.g. 65001 for UTF-8");
-                            });
-                  });
+                assertThat(anyOfSchema.anyOf().get(1))
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonNumberSchema.class))
+                    .satisfies(numberSchema -> {
+                      assertThat(numberSchema.description())
+                          .isEqualTo("Encoding codepage, e.g. 65001 for UTF-8");
+                    });
+              });
 
           assertThat(schema.required()).containsExactly("path", "edits");
           assertThat(schema.additionalProperties()).isFalse();
@@ -311,19 +294,17 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsKeys("messageType", "includeImage");
           assertThat(schema.properties().get("messageType"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonEnumSchema.class))
-              .satisfies(
-                  enumSchema -> {
-                    assertThat(enumSchema.enumValues()).contains("error", "success", "debug");
-                    assertThat(enumSchema.description())
-                        .isEqualTo("Type of message to demonstrate different annotation patterns");
-                  });
+              .satisfies(enumSchema -> {
+                assertThat(enumSchema.enumValues()).contains("error", "success", "debug");
+                assertThat(enumSchema.description())
+                    .isEqualTo("Type of message to demonstrate different annotation patterns");
+              });
           assertThat(schema.properties().get("includeImage"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonBooleanSchema.class))
-              .satisfies(
-                  booleanSchema -> {
-                    assertThat(booleanSchema.description())
-                        .isEqualTo("Whether to include an example image");
-                  });
+              .satisfies(booleanSchema -> {
+                assertThat(booleanSchema.description())
+                    .isEqualTo("Whether to include an example image");
+              });
           assertThat(schema.required()).containsExactly("messageType");
           assertThat(schema.additionalProperties()).isFalse();
         });
@@ -357,16 +338,14 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsKey("myItems");
           assertThat(schema.properties().get("myItems"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
-              .satisfies(
-                  arraySchema -> {
-                    assertThat(arraySchema.description()).isEqualTo("Array description");
-                    assertThat(arraySchema.items())
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-                        .satisfies(
-                            stringSchema -> {
-                              assertThat(stringSchema.description()).isEqualTo("Item description");
-                            });
-                  });
+              .satisfies(arraySchema -> {
+                assertThat(arraySchema.description()).isEqualTo("Array description");
+                assertThat(arraySchema.items())
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                    .satisfies(stringSchema -> {
+                      assertThat(stringSchema.description()).isEqualTo("Item description");
+                    });
+              });
           assertThat(schema.required()).containsExactly("myItems");
           assertThat(schema.additionalProperties()).isNull();
         });
@@ -403,18 +382,16 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsKey("myProperty");
           assertThat(schema.properties().get("myProperty"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonAnyOfSchema.class))
-              .satisfies(
-                  anyOfSchema -> {
-                    assertThat(anyOfSchema.anyOf())
-                        .hasSize(2)
-                        .satisfiesExactly(
-                            stringSchema ->
-                                assertThat(stringSchema).isInstanceOf(JsonStringSchema.class),
-                            nullSchema ->
-                                assertThat(nullSchema).isInstanceOf(JsonNullSchema.class));
+              .satisfies(anyOfSchema -> {
+                assertThat(anyOfSchema.anyOf())
+                    .hasSize(2)
+                    .satisfiesExactly(
+                        stringSchema ->
+                            assertThat(stringSchema).isInstanceOf(JsonStringSchema.class),
+                        nullSchema -> assertThat(nullSchema).isInstanceOf(JsonNullSchema.class));
 
-                    assertThat(anyOfSchema.description()).isEqualTo("My nullable property");
-                  });
+                assertThat(anyOfSchema.description()).isEqualTo("My nullable property");
+              });
           assertThat(schema.required()).containsExactly("myProperty");
           assertThat(schema.additionalProperties()).isNull();
         });
@@ -471,10 +448,9 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsKey("user");
           assertThat(schema.properties().get("user"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonReferenceSchema.class))
-              .satisfies(
-                  referenceSchema -> {
-                    assertThat(referenceSchema.reference()).isEqualTo("#/$defs/User");
-                  });
+              .satisfies(referenceSchema -> {
+                assertThat(referenceSchema.reference()).isEqualTo("#/$defs/User");
+              });
 
           assertThat(schema.required()).containsExactly("user");
           assertThat(schema.additionalProperties()).isFalse();
@@ -482,42 +458,34 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.definitions()).containsKey("User");
           assertThat(schema.definitions().get("User"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonObjectSchema.class))
-              .satisfies(
-                  userSchema -> {
-                    assertThat(userSchema.description()).isEqualTo("User object");
-                    assertThat(userSchema.properties()).containsOnlyKeys("name", "age", "friends");
+              .satisfies(userSchema -> {
+                assertThat(userSchema.description()).isEqualTo("User object");
+                assertThat(userSchema.properties()).containsOnlyKeys("name", "age", "friends");
 
-                    assertThat(userSchema.properties().get("name"))
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-                        .satisfies(
-                            stringSchema -> {
-                              assertThat(stringSchema.description()).isEqualTo("User's name");
-                            });
+                assertThat(userSchema.properties().get("name"))
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
+                    .satisfies(stringSchema -> {
+                      assertThat(stringSchema.description()).isEqualTo("User's name");
+                    });
 
-                    assertThat(userSchema.properties().get("age"))
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonIntegerSchema.class))
-                        .satisfies(
-                            integerSchema -> {
-                              assertThat(integerSchema.description()).isEqualTo("User's age");
-                            });
+                assertThat(userSchema.properties().get("age"))
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonIntegerSchema.class))
+                    .satisfies(integerSchema -> {
+                      assertThat(integerSchema.description()).isEqualTo("User's age");
+                    });
 
-                    assertThat(userSchema.properties().get("friends"))
-                        .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
-                        .satisfies(
-                            arraySchema -> {
-                              assertThat(arraySchema.description())
-                                  .isEqualTo("List of user's friends");
-                              assertThat(arraySchema.items())
-                                  .asInstanceOf(
-                                      InstanceOfAssertFactories.type(JsonReferenceSchema.class))
-                                  .satisfies(
-                                      itemReference ->
-                                          assertThat(itemReference.reference())
-                                              .isEqualTo("#/$defs/User"));
-                            });
+                assertThat(userSchema.properties().get("friends"))
+                    .asInstanceOf(InstanceOfAssertFactories.type(JsonArraySchema.class))
+                    .satisfies(arraySchema -> {
+                      assertThat(arraySchema.description()).isEqualTo("List of user's friends");
+                      assertThat(arraySchema.items())
+                          .asInstanceOf(InstanceOfAssertFactories.type(JsonReferenceSchema.class))
+                          .satisfies(itemReference ->
+                              assertThat(itemReference.reference()).isEqualTo("#/$defs/User"));
+                    });
 
-                    assertThat(userSchema.required()).containsExactly("name", "age");
-                  });
+                assertThat(userSchema.required()).containsExactly("name", "age");
+              });
         });
   }
 
@@ -548,10 +516,9 @@ class JsonSchemaElementModuleTest {
           assertThat(schema.properties()).containsKey("message");
           assertThat(schema.properties().get("message"))
               .asInstanceOf(InstanceOfAssertFactories.type(JsonStringSchema.class))
-              .satisfies(
-                  stringSchema -> {
-                    assertThat(stringSchema.description()).isEqualTo("Message to echo");
-                  });
+              .satisfies(stringSchema -> {
+                assertThat(stringSchema.description()).isEqualTo("Message to echo");
+              });
           assertThat(schema.required()).contains("message");
           assertThat(schema.additionalProperties()).isFalse();
         },

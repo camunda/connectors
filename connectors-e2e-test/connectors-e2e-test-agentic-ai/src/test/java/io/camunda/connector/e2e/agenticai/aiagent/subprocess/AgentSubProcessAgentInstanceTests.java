@@ -78,9 +78,8 @@ class AgentSubProcessAgentInstanceTests extends BaseAgentSubProcessTest {
         .applyToolCallResults(
             any(AgentExecutionContext.class),
             any(AgentInstanceKey.class),
-            argThat(
-                (List<ToolCallResult> results) ->
-                    results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
+            argThat((List<ToolCallResult> results) ->
+                results.size() == 1 && fastToolCallId.equals(results.getFirst().id())),
             any(AgentConversationTurn.class));
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent()).hasActiveElements(SLOW_TOOL_ID);
   }

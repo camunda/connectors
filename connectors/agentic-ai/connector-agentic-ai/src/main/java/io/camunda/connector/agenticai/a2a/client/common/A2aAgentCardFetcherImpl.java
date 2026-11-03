@@ -60,23 +60,22 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
   private A2aAgentCard convertAgentCard(AgentCard agentCard) {
     final var agentSkills =
         agentCard.skills().stream()
-            .map(
-                skill ->
-                    A2aAgentCard.AgentSkill.builder()
-                        .id(skill.id())
-                        .name(skill.name())
-                        .description(skill.description())
-                        .tags(skill.tags())
-                        .examples(skill.examples())
-                        .inputModes(
-                            CollectionUtils.isEmpty(skill.inputModes())
-                                ? agentCard.defaultInputModes()
-                                : skill.inputModes())
-                        .outputModes(
-                            CollectionUtils.isEmpty(skill.outputModes())
-                                ? agentCard.defaultOutputModes()
-                                : skill.outputModes())
-                        .build())
+            .map(skill ->
+                A2aAgentCard.AgentSkill.builder()
+                    .id(skill.id())
+                    .name(skill.name())
+                    .description(skill.description())
+                    .tags(skill.tags())
+                    .examples(skill.examples())
+                    .inputModes(
+                        CollectionUtils.isEmpty(skill.inputModes())
+                            ? agentCard.defaultInputModes()
+                            : skill.inputModes())
+                    .outputModes(
+                        CollectionUtils.isEmpty(skill.outputModes())
+                            ? agentCard.defaultOutputModes()
+                            : skill.outputModes())
+                    .build())
             .toList();
     return new A2aAgentCard(agentCard.name(), agentCard.description(), agentSkills);
   }

@@ -159,11 +159,10 @@ class InboundWebhookRestControllerTest {
     var webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenAnswer(
-            inv -> {
-              rawBodyCaptor.set(((WebhookProcessingPayload) inv.getArgument(0)).rawBody());
-              return webhookResult;
-            });
+        .thenAnswer(inv -> {
+          rawBodyCaptor.set(((WebhookProcessingPayload) inv.getArgument(0)).rawBody());
+          return webhookResult;
+        });
 
     var correlationHandler = mock(InboundCorrelationHandler.class);
     when(correlationHandler.correlate(anyList(), any()))

@@ -271,14 +271,12 @@ public class CodeInterpreterExecutor {
     var results = new ArrayList<CodeInterpreterResult>();
     var handler =
         InvokeCodeInterpreterResponseHandler.builder()
-            .onEventStream(
-                publisher ->
-                    publisher.subscribe(
-                        event ->
-                            event.accept(
-                                InvokeCodeInterpreterResponseHandler.Visitor.builder()
-                                    .onResult(results::add)
-                                    .build())))
+            .onEventStream(publisher ->
+                publisher.subscribe(event ->
+                    event.accept(
+                        InvokeCodeInterpreterResponseHandler.Visitor.builder()
+                            .onResult(results::add)
+                            .build())))
             .onResponse(ignored -> {})
             .build();
 

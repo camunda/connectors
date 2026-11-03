@@ -44,28 +44,25 @@ public class HttpRequestTask implements Runnable {
             pollingRequestMapper.toHttpCommonRequest(pollingRuntimeProperties);
         HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpCommonRequest);
         processInstanceContext.correlate(httpResponse);
-        this.context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(pollingRuntimeProperties.getMethod().toString())
-                    .withMessage("Polled url: " + pollingRuntimeProperties.getUrl()));
+        this.context.log(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(pollingRuntimeProperties.getMethod().toString())
+                .withMessage("Polled url: " + pollingRuntimeProperties.getUrl()));
       } catch (Exception e) {
-        this.context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(pollingRuntimeProperties.getMethod().toString())
-                    .withMessage(
-                        "Error executing http request: " + pollingRuntimeProperties.getUrl(), e));
+        this.context.log(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(pollingRuntimeProperties.getMethod().toString())
+                .withMessage(
+                    "Error executing http request: " + pollingRuntimeProperties.getUrl(), e));
       }
     } catch (Exception e) {
-      this.context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("http-request")
-                  .withMessage("Error binding properties for HTTP request", e));
+      this.context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag("http-request")
+              .withMessage("Error binding properties for HTTP request", e));
     }
   }
 }

@@ -51,7 +51,8 @@ class AppIntegrationsRequestDeserializationTest {
             {"recipient":{"type":"camunda","email":"user@example.com",
                           "candidateUsers":["alice","bob"],"candidateGroups":["approvers"],
                           "camundaExtra":{"type":"none"}},
-             "message":"Please review"}""");
+             "message":"Please review"}\
+            """);
 
     assertThat(request.message()).isEqualTo("Please review");
     assertThat(request.recipient()).isInstanceOf(Recipient.CamundaRecipient.class);
@@ -67,7 +68,8 @@ class AppIntegrationsRequestDeserializationTest {
         message(
             """
             {"recipient":{"type":"camunda","email":"user@example.com",
-                          "camundaExtra":{"type":"form"}}}""");
+                          "camundaExtra":{"type":"form"}}}\
+            """);
 
     assertThat(request.message()).isNull();
     assertThat(request.recipient().additionalContent()).isInstanceOf(AdditionalContent.Form.class);
@@ -82,7 +84,8 @@ class AppIntegrationsRequestDeserializationTest {
                           "teamsTarget":{"type":"channel","channelId":"19:abc@thread.tacv2"},
                           "teamsExtra":{"type":"adaptiveCard",
                                         "adaptiveCard":{"type":"AdaptiveCard","version":"1.5"}}},
-             "message":"Deploy done"}""");
+             "message":"Deploy done"}\
+            """);
 
     assertThat(request.recipient()).isInstanceOf(Recipient.TeamsRecipient.class);
     var teams = (Recipient.TeamsRecipient) request.recipient();
@@ -103,7 +106,8 @@ class AppIntegrationsRequestDeserializationTest {
                           "teamsTarget":{"type":"user",
                                          "teamsUser":"6b1e0f9a-1f3d-4a2b-9d0e-4c1b2a3d4e5f"},
                           "teamsExtra":{"type":"none"}},
-             "message":"Ping"}""");
+             "message":"Ping"}\
+            """);
 
     var userTarget =
         (TeamsTarget.TeamsUserTarget) ((Recipient.TeamsRecipient) user.recipient()).teamsTarget();
@@ -116,7 +120,8 @@ class AppIntegrationsRequestDeserializationTest {
                           "teamsTarget":{"type":"conversation",
                                          "conversationId":"19:abc@thread.tacv2;messageid=17123456789"},
                           "teamsExtra":{"type":"none"}},
-             "message":"Following up"}""");
+             "message":"Following up"}\
+            """);
 
     var conversationTarget =
         (TeamsTarget.TeamsConversationTarget)
@@ -134,7 +139,8 @@ class AppIntegrationsRequestDeserializationTest {
                           "slackTarget":{"type":"channel","channelId":"C0123456789"},
                           "threadTs":"1712345678.000100",
                           "slackExtra":{"type":"blockKit","blocks":[{"type":"section"}]}},
-             "message":"Deploy done"}""");
+             "message":"Deploy done"}\
+            """);
 
     var slack = (Recipient.SlackRecipient) request.recipient();
     assertThat(slack.slackTarget()).isInstanceOf(SlackTarget.SlackChannelTarget.class);
@@ -152,7 +158,8 @@ class AppIntegrationsRequestDeserializationTest {
             """
             {"recipient":{"type":"slack",
                           "slackTarget":{"type":"user","user":"U0123456789"},
-                          "slackExtra":{"type":"form"}}}""");
+                          "slackExtra":{"type":"form"}}}\
+            """);
 
     var slack = (Recipient.SlackRecipient) request.recipient();
     assertThat(((SlackTarget.SlackUserTarget) slack.slackTarget()).user()).isEqualTo("U0123456789");
@@ -170,7 +177,8 @@ class AppIntegrationsRequestDeserializationTest {
             """
             {"platform":{"type":"teams","displayName":"Releases","teamId":"group-1",
                          "membershipType":"standard"},
-             "description":"Automated releases"}""");
+             "description":"Automated releases"}\
+            """);
     var teamsPlatform = (ChannelPlatform.TeamsChannelPlatform) teams.platform();
     assertThat(teamsPlatform.displayName()).isEqualTo("Releases");
     assertThat(teamsPlatform.teamId()).isEqualTo("group-1");
@@ -181,7 +189,8 @@ class AppIntegrationsRequestDeserializationTest {
         channel(
             """
             {"platform":{"type":"slack","displayName":"releases","workspaceId":"T0123",
-                         "isPrivate":true}}""");
+                         "isPrivate":true}}\
+            """);
     var slackPlatform = (ChannelPlatform.SlackChannelPlatform) slack.platform();
     assertThat(slackPlatform.displayName()).isEqualTo("releases");
     assertThat(slackPlatform.isPrivate()).isTrue();
@@ -195,25 +204,24 @@ class AppIntegrationsRequestDeserializationTest {
             {"deliveries":[{"platform":"teams",
                             "conversation":"19:abc@thread.tacv2;messageid=17123456789",
                             "messageId":"17123456789"}],
-             "failures":[{"platform":"slack","conversation":"C0123","reason":"not_in_channel"}]}""",
+             "failures":[{"platform":"slack","conversation":"C0123","reason":"not_in_channel"}]}\
+            """,
             SendMessageResult.class);
 
     assertThat(result.deliveries())
         .singleElement()
-        .satisfies(
-            delivery -> {
-              assertThat(delivery.platform()).isEqualTo("teams");
-              assertThat(delivery.conversation())
-                  .isEqualTo("19:abc@thread.tacv2;messageid=17123456789");
-              assertThat(delivery.messageId()).isEqualTo("17123456789");
-            });
+        .satisfies(delivery -> {
+          assertThat(delivery.platform()).isEqualTo("teams");
+          assertThat(delivery.conversation())
+              .isEqualTo("19:abc@thread.tacv2;messageid=17123456789");
+          assertThat(delivery.messageId()).isEqualTo("17123456789");
+        });
     assertThat(result.failures())
         .singleElement()
-        .satisfies(
-            failure -> {
-              assertThat(failure.conversation()).isEqualTo("C0123");
-              assertThat(failure.reason()).isEqualTo("not_in_channel");
-            });
+        .satisfies(failure -> {
+          assertThat(failure.conversation()).isEqualTo("C0123");
+          assertThat(failure.reason()).isEqualTo("not_in_channel");
+        });
   }
 
   @Test

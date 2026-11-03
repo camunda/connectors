@@ -38,13 +38,12 @@ public class ConfigurationUtil {
     var connectorMode = override.connectorMode();
     var elementTypes =
         Arrays.stream(annotation.elementTypes())
-            .map(
-                type ->
-                    new ConnectorElementType(
-                        Arrays.stream(type.appliesTo()).collect(Collectors.toSet()),
-                        type.elementType(),
-                        type.templateNameOverride().isBlank() ? null : type.templateNameOverride(),
-                        type.templateIdOverride().isBlank() ? null : type.templateIdOverride()))
+            .map(type ->
+                new ConnectorElementType(
+                    Arrays.stream(type.appliesTo()).collect(Collectors.toSet()),
+                    type.elementType(),
+                    type.templateNameOverride().isBlank() ? null : type.templateNameOverride(),
+                    type.templateIdOverride().isBlank() ? null : type.templateIdOverride()))
             .collect(Collectors.toSet());
     if (override.elementTypes() != null && !override.elementTypes().isEmpty()) {
       elementTypes = override.elementTypes();

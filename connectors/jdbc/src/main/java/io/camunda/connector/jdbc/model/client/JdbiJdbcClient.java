@@ -44,15 +44,14 @@ public record JdbiJdbcClient() implements JdbcClient {
     Jdbi jdbi = Jdbi.create(connection);
     jdbi.installPlugin(new Jackson2Plugin());
     String databaseProductName =
-        jdbi.withHandle(
-            handle -> {
-              try {
-                return handle.getConnection().getMetaData().getDatabaseProductName();
-              } catch (SQLException e) {
-                LOG.error("Failed to retrieve database dialect", e);
-                return "Unknown";
-              }
-            });
+        jdbi.withHandle(handle -> {
+          try {
+            return handle.getConnection().getMetaData().getDatabaseProductName();
+          } catch (SQLException e) {
+            LOG.error("Failed to retrieve database dialect", e);
+            return "Unknown";
+          }
+        });
 
     if (data.returnResults()) {
       // SELECT query, or RETURNING clause
@@ -90,16 +89,15 @@ public record JdbiJdbcClient() implements JdbcClient {
     switch (variables) {
       // Named parameters (:name, :id)
       case Map<?, ?> map ->
-          map.forEach(
-              (key, value) -> {
-                if (hasBindingVariable(query, key.toString())
-                    && Objects.requireNonNull(value) instanceof List<?> l) {
-                  // Bind a list of values to a single named parameter (<myList>)
-                  stmt.bindList(key.toString(), l);
-                } else {
-                  stmt.bind(key.toString(), value);
-                }
-              });
+          map.forEach((key, value) -> {
+            if (hasBindingVariable(query, key.toString())
+                && Objects.requireNonNull(value) instanceof List<?> l) {
+              // Bind a list of values to a single named parameter (<myList>)
+              stmt.bindList(key.toString(), l);
+            } else {
+              stmt.bind(key.toString(), value);
+            }
+          });
       // Positional parameters (?,?)
       case List<?> list -> {
         for (int i = 0; i < list.size(); i++) {

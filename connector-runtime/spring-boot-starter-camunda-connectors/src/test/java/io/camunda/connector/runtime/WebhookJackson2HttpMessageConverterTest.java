@@ -64,7 +64,8 @@ class WebhookJackson2HttpMessageConverterTest {
     String body =
         """
         {"credentialId":"probe","credentialRef":{"camunda.function.type":"base64","params":["test"]},\
-        "tenantId":"acme"}""";
+        "tenantId":"acme"}\
+        """;
 
     mockMvc
         .perform(

@@ -76,10 +76,9 @@ class DeleteWorksheetOperationTest extends BaseTest {
           .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(
-          () ->
-              GoogleSheetsServiceSupplier.getGoogleSheetsService(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedServiceSupplier.verify(() ->
+          GoogleSheetsServiceSupplier.getGoogleSheetsService(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));

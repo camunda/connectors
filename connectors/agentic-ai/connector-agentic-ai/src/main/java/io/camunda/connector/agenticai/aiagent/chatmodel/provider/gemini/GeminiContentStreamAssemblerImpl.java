@@ -165,13 +165,11 @@ public class GeminiContentStreamAssemblerImpl implements GeminiContentStreamAsse
    */
   private static void warnOnPartialFunctionCall(Part part) {
     part.functionCall()
-        .filter(
-            functionCall ->
-                functionCall.partialArgs().isPresent() || functionCall.willContinue().isPresent())
-        .ifPresent(
-            functionCall ->
-                LOG.warn(
-                    "Gemini streamed a partial function call (partialArgs/willContinue set) for '{}'. Partial function-call arguments are not merged, the resulting tool call may be incomplete.",
-                    functionCall.name().orElse("<unknown>")));
+        .filter(functionCall ->
+            functionCall.partialArgs().isPresent() || functionCall.willContinue().isPresent())
+        .ifPresent(functionCall ->
+            LOG.warn(
+                "Gemini streamed a partial function call (partialArgs/willContinue set) for '{}'. Partial function-call arguments are not merged, the resulting tool call may be incomplete.",
+                functionCall.name().orElse("<unknown>")));
   }
 }

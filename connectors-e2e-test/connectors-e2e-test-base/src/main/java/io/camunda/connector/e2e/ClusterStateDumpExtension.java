@@ -81,19 +81,17 @@ public class ClusterStateDumpExtension implements AfterTestExecutionCallback {
           topology.getBrokers().size());
       topology
           .getBrokers()
-          .forEach(
-              broker -> {
-                System.err.printf(
-                    "[cluster-dump]   broker %s (%s:%d) version=%s%n",
-                    broker.getMemberId(), broker.getHost(), broker.getPort(), broker.getVersion());
-                broker
-                    .getPartitions()
-                    .forEach(
-                        p ->
-                            System.err.printf(
-                                "[cluster-dump]     partition %d role=%s health=%s%n",
-                                p.getPartitionId(), p.getRole(), p.getHealth()));
-              });
+          .forEach(broker -> {
+            System.err.printf(
+                "[cluster-dump]   broker %s (%s:%d) version=%s%n",
+                broker.getMemberId(), broker.getHost(), broker.getPort(), broker.getVersion());
+            broker
+                .getPartitions()
+                .forEach(p ->
+                    System.err.printf(
+                        "[cluster-dump]     partition %d role=%s health=%s%n",
+                        p.getPartitionId(), p.getRole(), p.getHealth()));
+          });
     } catch (final Throwable t) {
       System.err.println(
           "[cluster-dump] TOPOLOGY REQUEST FAILED (broker unreachable/unhealthy?): " + t);

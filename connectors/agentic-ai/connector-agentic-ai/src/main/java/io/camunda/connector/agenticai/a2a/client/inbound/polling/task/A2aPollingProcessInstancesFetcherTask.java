@@ -84,18 +84,17 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
             .filter(entry -> !activeTasks.contains(entry.getKey()))
             .toList();
 
-    inactiveTasks.forEach(
-        entry -> {
-          entry.getValue().cancel();
-          runningPollTasks.remove(entry.getKey());
-        });
+    inactiveTasks.forEach(entry -> {
+      entry.getValue().cancel();
+      runningPollTasks.remove(entry.getKey());
+    });
   }
 
   private void scheduleRequest(ProcessInstanceContext processInstanceContext) {
     String taskKey = processInstanceContext.taskKey(context.getDefinition().deduplicationId());
     runningPollTasks.computeIfAbsent(
         taskKey,
-        (key) -> {
+        key -> {
           final var task =
               new A2aPollingTask(
                   context,

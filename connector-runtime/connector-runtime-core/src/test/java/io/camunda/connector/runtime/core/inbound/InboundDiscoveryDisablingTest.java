@@ -28,110 +28,100 @@ public class InboundDiscoveryDisablingTest {
 
   @Test
   public void discoveryDisablingWorks() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_INBOUND_DISCOVERY_DISABLED", "true")
-              .execute(
-                  () -> {
-                    InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> registry.getInstance("io.camunda:annotated"),
-                        "Inbound connector should not be available when discovery is disabled");
-                    registry.registerConfiguration(
-                        new InboundConnectorConfiguration(
-                            "Test Inbound Connector",
-                            "io.camunda:test-inbound:1",
-                            NotAnnotatedExecutable.class,
-                            List.of()));
-                    Assertions.assertInstanceOf(
-                        NotAnnotatedExecutable.class,
-                        registry.getInstance("io.camunda:test-inbound:1"),
-                        "Manual registration should still be available");
-                  });
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_INBOUND_DISCOVERY_DISABLED", "true")
+          .execute(() -> {
+            InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> registry.getInstance("io.camunda:annotated"),
+                "Inbound connector should not be available when discovery is disabled");
+            registry.registerConfiguration(
+                new InboundConnectorConfiguration(
+                    "Test Inbound Connector",
+                    "io.camunda:test-inbound:1",
+                    NotAnnotatedExecutable.class,
+                    List.of()));
+            Assertions.assertInstanceOf(
+                NotAnnotatedExecutable.class,
+                registry.getInstance("io.camunda:test-inbound:1"),
+                "Manual registration should still be available");
+          });
+    });
   }
 
   @Test
   public void namedDisablingForDiscoveredConnectors() throws Exception {
 
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
-              .execute(
-                  () -> {
-                    InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> registry.getInstance("io.camunda:annotated"),
-                        "Named inbound connector should not be available when disabled");
-                    registry.registerConfiguration(
-                        new InboundConnectorConfiguration(
-                            "Test Inbound Connector",
-                            "io.camunda:test-inbound:1",
-                            NotAnnotatedExecutable.class,
-                            List.of()));
-                    Assertions.assertInstanceOf(
-                        NotAnnotatedExecutable.class,
-                        registry.getInstance("io.camunda:test-inbound:1"),
-                        "Other connectors should still be available");
-                  });
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
+          .execute(() -> {
+            InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> registry.getInstance("io.camunda:annotated"),
+                "Named inbound connector should not be available when disabled");
+            registry.registerConfiguration(
+                new InboundConnectorConfiguration(
+                    "Test Inbound Connector",
+                    "io.camunda:test-inbound:1",
+                    NotAnnotatedExecutable.class,
+                    List.of()));
+            Assertions.assertInstanceOf(
+                NotAnnotatedExecutable.class,
+                registry.getInstance("io.camunda:test-inbound:1"),
+                "Other connectors should still be available");
+          });
+    });
   }
 
   @Test
   public void enabledAllowlistDisablesEverythingElse() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "io.camunda:test-inbound:1")
-              .execute(
-                  () -> {
-                    InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
-                    registry.registerConfiguration(
-                        new InboundConnectorConfiguration(
-                            "Test Inbound Connector",
-                            "io.camunda:test-inbound:1",
-                            NotAnnotatedExecutable.class,
-                            List.of()));
-                    Assertions.assertInstanceOf(
-                        NotAnnotatedExecutable.class,
-                        registry.getInstance("io.camunda:test-inbound:1"),
-                        "Connector in the allowlist should be available");
-                    Assertions.assertThrows(
-                        RuntimeException.class,
-                        () -> registry.getInstance("io.camunda:annotated"),
-                        "Connector not in the allowlist should be disabled");
-                  });
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "io.camunda:test-inbound:1")
+          .execute(() -> {
+            InboundConnectorFactory registry = new DefaultInboundConnectorFactory();
+            registry.registerConfiguration(
+                new InboundConnectorConfiguration(
+                    "Test Inbound Connector",
+                    "io.camunda:test-inbound:1",
+                    NotAnnotatedExecutable.class,
+                    List.of()));
+            Assertions.assertInstanceOf(
+                NotAnnotatedExecutable.class,
+                registry.getInstance("io.camunda:test-inbound:1"),
+                "Connector in the allowlist should be available");
+            Assertions.assertThrows(
+                RuntimeException.class,
+                () -> registry.getInstance("io.camunda:annotated"),
+                "Connector not in the allowlist should be disabled");
+          });
+    });
   }
 
   @Test
   public void enabledAndDisabledTogetherThrows() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "io.camunda:test-inbound:1")
-              .and("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
-              .execute(
-                  () ->
-                      Assertions.assertThrows(
-                          IllegalStateException.class,
-                          DefaultInboundConnectorFactory::new,
-                          "ENABLED and DISABLED are mutually exclusive"));
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "io.camunda:test-inbound:1")
+          .and("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
+          .execute(() ->
+              Assertions.assertThrows(
+                  IllegalStateException.class,
+                  DefaultInboundConnectorFactory::new,
+                  "ENABLED and DISABLED are mutually exclusive"));
+    });
   }
 
   @Test
   public void emptyEnabledWithDisabledThrows() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "")
-              .and("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
-              .execute(
-                  () ->
-                      Assertions.assertThrows(
-                          IllegalStateException.class,
-                          DefaultInboundConnectorFactory::new,
-                          "Mutual exclusion is enforced even when ENABLED is empty"));
-        });
+    restoreSystemProperties(() -> {
+      withEnvironmentVariables("CONNECTOR_INBOUND_ENABLED", "")
+          .and("CONNECTOR_INBOUND_DISABLED", "io.camunda:annotated")
+          .execute(() ->
+              Assertions.assertThrows(
+                  IllegalStateException.class,
+                  DefaultInboundConnectorFactory::new,
+                  "Mutual exclusion is enforced even when ENABLED is empty"));
+    });
   }
 }

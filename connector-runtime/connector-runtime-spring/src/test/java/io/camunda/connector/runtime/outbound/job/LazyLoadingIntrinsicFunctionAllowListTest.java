@@ -51,11 +51,10 @@ class LazyLoadingIntrinsicFunctionAllowListTest {
   void isAllowed_supplierCalledExactlyOnce() {
     var callCount = new AtomicInteger(0);
     var allowList =
-        new LazyLoadingIntrinsicFunctionAllowList(
-            () -> {
-              callCount.incrementAndGet();
-              return List.of(new AllowedIntrinsicFunction("base64", List.of("body")));
-            });
+        new LazyLoadingIntrinsicFunctionAllowList(() -> {
+          callCount.incrementAndGet();
+          return List.of(new AllowedIntrinsicFunction("base64", List.of("body")));
+        });
 
     allowList.isAllowed(new Call("base64", List.of("body")));
     allowList.isAllowed(new Call("base64", List.of("body")));
@@ -69,11 +68,10 @@ class LazyLoadingIntrinsicFunctionAllowListTest {
     // The whole point of this class: constructing it (mirroring what create() now does) must not
     // by itself trigger the BPMN-model fetch the supplier performs.
     var callCount = new AtomicInteger(0);
-    new LazyLoadingIntrinsicFunctionAllowList(
-        () -> {
-          callCount.incrementAndGet();
-          return List.of();
-        });
+    new LazyLoadingIntrinsicFunctionAllowList(() -> {
+      callCount.incrementAndGet();
+      return List.of();
+    });
 
     assertTrue(callCount.get() == 0, "Supplier must not be called before isAllowed is invoked");
   }
@@ -83,11 +81,10 @@ class LazyLoadingIntrinsicFunctionAllowListTest {
     var callCount = new AtomicInteger(0);
     var failure = new IllegalStateException("BPMN fetch failed");
     var allowList =
-        new LazyLoadingIntrinsicFunctionAllowList(
-            () -> {
-              callCount.incrementAndGet();
-              throw failure;
-            });
+        new LazyLoadingIntrinsicFunctionAllowList(() -> {
+          callCount.incrementAndGet();
+          throw failure;
+        });
 
     var firstThrown =
         assertThrows(

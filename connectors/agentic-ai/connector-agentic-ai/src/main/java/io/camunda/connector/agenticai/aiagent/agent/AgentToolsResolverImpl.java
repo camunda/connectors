@@ -68,30 +68,30 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
 
     final var changesSummary =
         gatewayToolHandlerUpdates.entrySet().stream()
-            .map(
-                entry -> {
-                  final var updates = entry.getValue();
+            .map(entry -> {
+              final var updates = entry.getValue();
 
-                  final var parts = new ArrayList<String>();
-                  if (CollectionUtils.isNotEmpty(updates.added())) {
-                    parts.add("added: " + String.join(", ", updates.added()));
-                  }
+              final var parts = new ArrayList<String>();
+              if (CollectionUtils.isNotEmpty(updates.added())) {
+                parts.add("added: " + String.join(", ", updates.added()));
+              }
 
-                  if (CollectionUtils.isNotEmpty(updates.removed())) {
-                    parts.add("removed: " + String.join(", ", updates.removed()));
-                  }
+              if (CollectionUtils.isNotEmpty(updates.removed())) {
+                parts.add("removed: " + String.join(", ", updates.removed()));
+              }
 
-                  return "%s [%s]".formatted(entry.getKey(), String.join("; ", parts));
-                })
+              return "%s [%s]".formatted(entry.getKey(), String.join("; ", parts));
+            })
             .collect(Collectors.joining(", "));
 
     throw new ConnectorException(
         AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED,
         """
-              Gateway tool definitions have changed, most likely due to a process migration.
-              Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
-              Please restore gateway tool definitions to the previous state to continue agent execution.
-              Changes: %s"""
+        Gateway tool definitions have changed, most likely due to a process migration.
+        Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
+        Please restore gateway tool definitions to the previous state to continue agent execution.
+        Changes: %s\
+        """
             .formatted(changesSummary));
   }
 
@@ -116,9 +116,10 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       throw new ConnectorException(
           AgentErrorCodes.ERROR_CODE_MIGRATION_MISSING_TOOLS,
           """
-              The AI Agent references tools that are no longer defined, most likely due to a process migration.
-              Removing or renaming existing tools is currently not supported.
-              Please re-add the following tools to continue agent execution: %s"""
+          The AI Agent references tools that are no longer defined, most likely due to a process migration.
+          Removing or renaming existing tools is currently not supported.
+          Please re-add the following tools to continue agent execution: %s\
+          """
               .formatted(String.join(", ", removedToolNames)));
     }
 
@@ -126,25 +127,24 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
     final var updatedToolDefinitions = new LinkedHashMap<>(existingToolDefinitions);
     newToolDefinitions
         .values()
-        .forEach(
-            newToolDefinition -> {
-              if (existingNonGatewayToolDefinitions.containsKey(newToolDefinition.name())) {
-                final var existingToolDefinition =
-                    existingNonGatewayToolDefinitions.get(newToolDefinition.name());
+        .forEach(newToolDefinition -> {
+          if (existingNonGatewayToolDefinitions.containsKey(newToolDefinition.name())) {
+            final var existingToolDefinition =
+                existingNonGatewayToolDefinitions.get(newToolDefinition.name());
 
-                if (!existingToolDefinition.equals(newToolDefinition)) {
-                  LOGGER.info(
-                      "Updating tool definition '{}' after process migration.",
-                      newToolDefinition.name());
-                  updatedToolDefinitions.put(newToolDefinition.name(), newToolDefinition);
-                }
-              } else {
-                LOGGER.info(
-                    "Adding new tool definition '{}' to agent context after process migration.",
-                    newToolDefinition.name());
-                updatedToolDefinitions.put(newToolDefinition.name(), newToolDefinition);
-              }
-            });
+            if (!existingToolDefinition.equals(newToolDefinition)) {
+              LOGGER.info(
+                  "Updating tool definition '{}' after process migration.",
+                  newToolDefinition.name());
+              updatedToolDefinitions.put(newToolDefinition.name(), newToolDefinition);
+            }
+          } else {
+            LOGGER.info(
+                "Adding new tool definition '{}' to agent context after process migration.",
+                newToolDefinition.name());
+            updatedToolDefinitions.put(newToolDefinition.name(), newToolDefinition);
+          }
+        });
 
     return agentContext.withToolDefinitions(updatedToolDefinitions.values().stream().toList());
   }

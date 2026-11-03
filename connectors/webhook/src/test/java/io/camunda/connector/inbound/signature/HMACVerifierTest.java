@@ -563,10 +563,9 @@ class HMACVerifierTest {
     // single request. Connectors call this from activate() (gated on HMAC being enabled) so it
     // fails immediately at deploy time instead — this is not run from the constructor itself,
     // since both connectors construct HMACVerifier unconditionally regardless of that gate.
-    assertThatThrownBy(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL}))
+    assertThatThrownBy(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
@@ -575,10 +574,9 @@ class HMACVerifierTest {
   void
       rejectUnsupportedScopeCombination_WhenTimestampScopeStripsDownToUnsupportedParametersAlone_ShouldThrow() {
     // Same regression, for [timestamp, parameters] stripping down to [parameters] alone.
-    assertThatThrownBy(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.PARAMETERS}))
+    assertThatThrownBy(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.PARAMETERS}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
@@ -592,30 +590,27 @@ class HMACVerifierTest {
 
   @Test
   void rejectUnsupportedScopeCombination_WhenTimestampScopeIsDuplicated_ShouldThrow() {
-    assertThatThrownBy(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.TIMESTAMP}))
+    assertThatThrownBy(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.TIMESTAMP}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
 
   @Test
   void rejectUnsupportedScopeCombination_WhenTimestampIsDuplicatedAlongsideBody_ShouldThrow() {
-    assertThatThrownBy(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.TIMESTAMP, HMACScope.BODY}))
+    assertThatThrownBy(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.TIMESTAMP, HMACScope.BODY}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
 
   @Test
   void rejectUnsupportedScopeCombination_WhenBodyScopeIsDuplicated_ShouldThrow() {
-    assertThatThrownBy(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.BODY, HMACScope.BODY}))
+    assertThatThrownBy(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.BODY, HMACScope.BODY}))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("Unsupported HMAC scope combination");
   }
@@ -624,10 +619,9 @@ class HMACVerifierTest {
   void rejectUnsupportedScopeCombination_WhenTimestampCombinedWithSupportedScopes_ShouldNotThrow() {
     // Counterpart: [timestamp, url, body] strips down to [url, body], a supported combination,
     // and must keep working.
-    assertThatCode(
-            () ->
-                HMACVerifier.rejectUnsupportedScopeCombination(
-                    new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL, HMACScope.BODY}))
+    assertThatCode(() ->
+            HMACVerifier.rejectUnsupportedScopeCombination(
+                new HMACScope[] {HMACScope.TIMESTAMP, HMACScope.URL, HMACScope.BODY}))
         .doesNotThrowAnyException();
   }
 

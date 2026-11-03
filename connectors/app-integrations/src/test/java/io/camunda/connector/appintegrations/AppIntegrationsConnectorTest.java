@@ -750,12 +750,11 @@ class AppIntegrationsConnectorTest {
 
     assertThat(result.deliveries())
         .singleElement()
-        .satisfies(
-            delivery -> {
-              assertThat(delivery.platform()).isEqualTo("teams");
-              assertThat(delivery.conversation()).isEqualTo("conv-1");
-              assertThat(delivery.messageId()).isEqualTo("m-1");
-            });
+        .satisfies(delivery -> {
+          assertThat(delivery.platform()).isEqualTo("teams");
+          assertThat(delivery.conversation()).isEqualTo("conv-1");
+          assertThat(delivery.messageId()).isEqualTo("m-1");
+        });
     assertThat(result.failures()).isEmpty();
     var req = captureRequest();
     assertThat(req.getUrl()).endsWith("/api/connector/message");

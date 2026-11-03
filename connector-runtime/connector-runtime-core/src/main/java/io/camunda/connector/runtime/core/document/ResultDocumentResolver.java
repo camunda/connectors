@@ -68,10 +68,9 @@ public class ResultDocumentResolver {
       }
       Map<String, Object> result = new LinkedHashMap<>();
       node.properties()
-          .forEach(
-              entry ->
-                  result.put(
-                      entry.getKey(), resolve(entry.getValue(), physicalTenantId, expectedNonce)));
+          .forEach(entry ->
+              result.put(
+                  entry.getKey(), resolve(entry.getValue(), physicalTenantId, expectedNonce)));
       return result;
     }
     if (node.isArray()) {

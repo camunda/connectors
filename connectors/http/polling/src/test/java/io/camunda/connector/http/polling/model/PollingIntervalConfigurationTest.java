@@ -63,10 +63,10 @@ public class PollingIntervalConfigurationTest {
     inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider,
-            (e) -> {},
+            e -> {},
             connectorData,
             null,
-            (e) -> {},
+            e -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
             new ActivityLogRegistry(),
             mock(CamundaClient.class));

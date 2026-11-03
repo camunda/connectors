@@ -425,7 +425,8 @@ final class DocumentPropertyHandler {
     return qualify ->
         """
         if %1$s = "yes" then (%2$s) \
-        else null"""
+        else null\
+        """
             .formatted(qualify.apply(modeId), sourceBranches(fields, sources, false, qualify));
   }
 
@@ -438,7 +439,8 @@ final class DocumentPropertyHandler {
         """
         if %1$s = "multiple" then %2$s \
         else if %1$s = "single" then (%3$s) \
-        else null"""
+        else null\
+        """
             .formatted(
                 qualify.apply(modeId),
                 qualify.apply(multipleExpressionId),
@@ -472,7 +474,8 @@ final class DocumentPropertyHandler {
 
   private static String inlineObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
     return """
-        { "%s": "%s", content: %s, name: %s, contentType: %s }"""
+    { "%s": "%s", content: %s, name: %s, contentType: %s }\
+    """
         .formatted(
             DOCUMENT_TYPE_KEY,
             DOCUMENT_TYPE_INLINE,
@@ -483,7 +486,8 @@ final class DocumentPropertyHandler {
 
   private static String externalObjectLiteral(SingleDocFields f, UnaryOperator<String> qualify) {
     return """
-        { "%s": "%s", url: %s, name: %s }"""
+    { "%s": "%s", url: %s, name: %s }\
+    """
         .formatted(
             DOCUMENT_TYPE_KEY,
             DOCUMENT_TYPE_EXTERNAL,

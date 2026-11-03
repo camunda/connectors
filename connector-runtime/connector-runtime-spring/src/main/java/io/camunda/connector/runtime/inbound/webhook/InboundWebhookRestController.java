@@ -145,12 +145,11 @@ public class InboundWebhookRestController {
 
     String contentType =
         Optional.ofNullable(webhookHttpResponse.headers())
-            .flatMap(
-                h ->
-                    h.entrySet().stream()
-                        .filter(e -> e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
-                        .map(Map.Entry::getValue)
-                        .findFirst())
+            .flatMap(h ->
+                h.entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                    .map(Map.Entry::getValue)
+                    .findFirst())
             .orElse(null);
     Object body =
         isXmlContentType(contentType)
@@ -316,12 +315,11 @@ public class InboundWebhookRestController {
         // Step 2: trigger and correlate
         connector
             .context()
-            .log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.INFO)
-                        .withTag(payload.method())
-                        .withMessage(buildRequestLogMessage(payload)));
+            .log(activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(payload.method())
+                    .withMessage(buildRequestLogMessage(payload)));
 
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
@@ -335,12 +333,11 @@ public class InboundWebhookRestController {
     } catch (Exception e) {
       connector
           .context()
-          .log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.ERROR)
-                      .withTag(payload.method())
-                      .withMessage("Webhook processing failed", e));
+          .log(activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(payload.method())
+                  .withMessage("Webhook processing failed", e));
       response = buildErrorResponse(e);
     }
     return response;
@@ -355,13 +352,12 @@ public class InboundWebhookRestController {
     }
 
     return parts.stream()
-        .map(
-            part ->
-                context.create(
-                    DocumentCreationRequest.from(part.inputStream())
-                        .fileName(part.submittedFileName())
-                        .contentType(part.contentType())
-                        .build()))
+        .map(part ->
+            context.create(
+                DocumentCreationRequest.from(part.inputStream())
+                    .fileName(part.submittedFileName())
+                    .contentType(part.contentType())
+                    .build()))
         .toList();
   }
 
@@ -373,12 +369,11 @@ public class InboundWebhookRestController {
     ResponseEntity<?> response = null;
     if (verificationResponse != null) {
       response = toResponseEntity(verificationResponse);
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.INFO)
-                  .withTag(payload.method())
-                  .withMessage("Successfully handled a verification request"));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.INFO)
+              .withTag(payload.method())
+              .withMessage("Successfully handled a verification request"));
     }
     return response;
   }
@@ -528,22 +523,20 @@ public class InboundWebhookRestController {
       sb.append("\n\nHeaders:");
       payload
           .headers()
-          .forEach(
-              (k, v) -> {
-                var value = REDACTED_HEADERS.contains(k.toLowerCase()) ? "[redacted]" : v;
-                sb.append("\n  ").append(k).append(": ").append(value);
-              });
+          .forEach((k, v) -> {
+            var value = REDACTED_HEADERS.contains(k.toLowerCase()) ? "[redacted]" : v;
+            sb.append("\n  ").append(k).append(": ").append(value);
+          });
     }
 
     if (payload.params() != null && !payload.params().isEmpty()) {
       sb.append("\n\nQuery params:");
       payload
           .params()
-          .forEach(
-              (k, v) -> {
-                var value = REDACTED_QUERY_PARAMS.contains(k.toLowerCase()) ? "[redacted]" : v;
-                sb.append("\n  ").append(k).append("=").append(value);
-              });
+          .forEach((k, v) -> {
+            var value = REDACTED_QUERY_PARAMS.contains(k.toLowerCase()) ? "[redacted]" : v;
+            sb.append("\n  ").append(k).append("=").append(value);
+          });
     }
 
     sb.append("\n\nBody: ");
@@ -565,16 +558,15 @@ public class InboundWebhookRestController {
       sb.append("\n\nParts (").append(payload.parts().size()).append("):");
       payload
           .parts()
-          .forEach(
-              part -> {
-                sb.append("\n  - name=").append(part.name());
-                if (part.submittedFileName() != null) {
-                  sb.append(", fileName=").append(part.submittedFileName());
-                }
-                if (part.contentType() != null) {
-                  sb.append(", contentType=").append(part.contentType());
-                }
-              });
+          .forEach(part -> {
+            sb.append("\n  - name=").append(part.name());
+            if (part.submittedFileName() != null) {
+              sb.append(", fileName=").append(part.submittedFileName());
+            }
+            if (part.contentType() != null) {
+              sb.append(", contentType=").append(part.contentType());
+            }
+          });
     }
 
     return sb.toString();

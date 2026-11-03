@@ -226,16 +226,15 @@ class OAuthClientCredentialsTokenResolverTest {
 
     assertThatThrownBy(() -> resolver.resolveAccessToken(auth))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            e -> {
-              @SuppressWarnings("unchecked")
-              final var response =
-                  (java.util.Map<String, Object>)
-                      ((ConnectorException) e).getErrorVariables().get("response");
-              @SuppressWarnings("unchecked")
-              final var body = (java.util.Map<String, Object>) response.get("body");
-              assertThat(body).containsEntry("error", "invalid_client");
-            });
+        .satisfies(e -> {
+          @SuppressWarnings("unchecked")
+          final var response =
+              (java.util.Map<String, Object>)
+                  ((ConnectorException) e).getErrorVariables().get("response");
+          @SuppressWarnings("unchecked")
+          final var body = (java.util.Map<String, Object>) response.get("body");
+          assertThat(body).containsEntry("error", "invalid_client");
+        });
   }
 
   @Test

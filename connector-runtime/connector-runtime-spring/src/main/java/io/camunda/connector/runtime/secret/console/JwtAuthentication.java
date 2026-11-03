@@ -68,10 +68,10 @@ public class JwtAuthentication implements Authentication {
               var errorMessage =
                   String.format(
                       """
-              Token retrieval failed from: %s
-              Response code: %s
-              Audience: %s
-              """,
+                      Token retrieval failed from: %s
+                      Response code: %s
+                      Audience: %s
+                      """,
                       jwtCredential.authUrl(), response.getCode(), jwtCredential.audience());
               throw new RuntimeException(errorMessage, e);
             }

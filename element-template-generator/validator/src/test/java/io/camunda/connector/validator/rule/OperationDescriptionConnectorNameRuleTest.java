@@ -37,11 +37,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "CSV Connector",
-          "steps": [
-            { "name": "Read CSV", "presetId": "p",
-              "description": "Read a CSV document and return its records" } ] }
-        """);
+            { "name": "CSV Connector",
+              "steps": [
+                { "name": "Read CSV", "presetId": "p",
+                  "description": "Read a CSV document and return its records" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -50,11 +50,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "GitHub Outbound Connector",
-          "steps": [
-            { "name": "Issues", "presetId": "p",
-              "description": "Create, read, update and search issues and comments" } ] }
-        """);
+            { "name": "GitHub Outbound Connector",
+              "steps": [
+                { "name": "Issues", "presetId": "p",
+                  "description": "Create, read, update and search issues and comments" } ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/description");
@@ -66,9 +66,9 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "GitHub Outbound Connector",
-          "steps": [ { "name": "Issues", "presetId": "p", "keywords": ["x"] } ] }
-        """);
+            { "name": "GitHub Outbound Connector",
+              "steps": [ { "name": "Issues", "presetId": "p", "keywords": ["x"] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -77,9 +77,9 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "GitHub Outbound Connector",
-          "steps": [ { "name": "Issues", "presetId": "p", "description": "   " } ] }
-        """);
+            { "name": "GitHub Outbound Connector",
+              "steps": [ { "name": "Issues", "presetId": "p", "description": "   " } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -88,11 +88,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "WhatsApp Business Outbound Connector",
-          "steps": [
-            { "name": "Send plain text message", "presetId": "p",
-              "description": "Send a plain text message to a recipient via WhatsApp" } ] }
-        """);
+            { "name": "WhatsApp Business Outbound Connector",
+              "steps": [
+                { "name": "Send plain text message", "presetId": "p",
+                  "description": "Send a plain text message to a recipient via WhatsApp" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -101,11 +101,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "AI Connector",
-          "steps": [
-            { "name": "op", "presetId": "p",
-              "description": "Send mail notification" } ] }
-        """);
+            { "name": "AI Connector",
+              "steps": [
+                { "name": "op", "presetId": "p",
+                  "description": "Send mail notification" } ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/description");
@@ -116,10 +116,10 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "Foo Connector (Send Task)",
-          "steps": [
-            { "name": "op", "presetId": "p", "description": "does nothing useful" } ] }
-        """);
+            { "name": "Foo Connector (Send Task)",
+              "steps": [
+                { "name": "op", "presetId": "p", "description": "does nothing useful" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).hasSize(1);
   }
 
@@ -128,11 +128,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "GitHub Outbound Connector",
-          "steps": [
-            { "name": "g", "steps": [
-              { "name": "leaf", "presetId": "p", "description": "manage things" } ] } ] }
-        """);
+            { "name": "GitHub Outbound Connector",
+              "steps": [
+                { "name": "g", "steps": [
+                  { "name": "leaf", "presetId": "p", "description": "manage things" } ] } ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/steps/0/description");
@@ -143,13 +143,13 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "GitHub Outbound Connector",
-          "steps": [
-            { "name": "g", "description": "a group without connector name",
+            { "name": "GitHub Outbound Connector",
               "steps": [
-                { "name": "leaf", "presetId": "p",
-                  "description": "manage GitHub repositories" } ] } ] }
-        """);
+                { "name": "g", "description": "a group without connector name",
+                  "steps": [
+                    { "name": "leaf", "presetId": "p",
+                      "description": "manage GitHub repositories" } ] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -158,10 +158,10 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "Agentic AI Outbound Connector",
-          "steps": [
-            { "name": "op", "presetId": "p", "description": "unrelated description" } ] }
-        """);
+            { "name": "Agentic AI Outbound Connector",
+              "steps": [
+                { "name": "op", "presetId": "p", "description": "unrelated description" } ] }
+            """);
     assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/aws.json"), template))
         .isEmpty();
   }
@@ -172,11 +172,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "Send Message Connector (Send Task)",
-          "steps": [
-            { "name": "Correlate message", "presetId": "p",
-              "description": "Correlate a message to a running process instance" } ] }
-        """);
+            { "name": "Send Message Connector (Send Task)",
+              "steps": [
+                { "name": "Correlate message", "presetId": "p",
+                  "description": "Correlate a message to a running process instance" } ] }
+            """);
     List<Finding> findings =
         rule.apply(
             Path.of("connectors/camunda-message/element-templates/send-task.json"), template);
@@ -189,11 +189,11 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "name": "Send Message Connector (Send Task)",
-          "steps": [
-            { "name": "Publish message", "presetId": "p",
-              "description": "Publish a message to Camunda with buffering support" } ] }
-        """);
+            { "name": "Send Message Connector (Send Task)",
+              "steps": [
+                { "name": "Publish message", "presetId": "p",
+                  "description": "Publish a message to Camunda with buffering support" } ] }
+            """);
     assertThat(
             rule.apply(
                 Path.of("connectors/camunda-message/element-templates/send-task.json"), template))
@@ -205,8 +205,8 @@ class OperationDescriptionConnectorNameRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "op", "presetId": "p", "description": "anything" } ] }
-        """);
+            { "steps": [ { "name": "op", "presetId": "p", "description": "anything" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 

@@ -197,13 +197,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling-runtime-properties");
-              assertThat(activity.message())
-                  .startsWith("Failed to bind A2A polling runtime properties\nBinding failed");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling-runtime-properties");
+          assertThat(activity.message())
+              .startsWith("Failed to bind A2A polling runtime properties\nBinding failed");
+        });
   }
 
   @Test
@@ -223,13 +222,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling-response");
-              assertThat(activity.message())
-                  .startsWith("Error loading A2A client response\nUnrecognized token 'invalid'");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling-response");
+          assertThat(activity.message())
+              .startsWith("Error loading A2A client response\nUnrecognized token 'invalid'");
+        });
   }
 
   @Test
@@ -243,12 +241,11 @@ class A2aPollingTaskTest {
 
     verify(processInstanceContext)
         .correlate(
-            ArgumentMatchers.<A2aClientResponse>assertArg(
-                arg -> {
-                  assertThat(arg.result()).isEqualTo(agentCard);
-                  assertThat(arg.pollingData()).isNotNull();
-                  assertThat(arg.pollingData().id()).isEqualTo("agent-card-id");
-                }));
+            ArgumentMatchers.<A2aClientResponse>assertArg(arg -> {
+              assertThat(arg.result()).isEqualTo(agentCard);
+              assertThat(arg.pollingData()).isNotNull();
+              assertThat(arg.pollingData().id()).isEqualTo("agent-card-id");
+            }));
     verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
@@ -297,13 +294,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling-client");
-              assertThat(activity.message())
-                  .startsWith("Failed to create A2A client\nFetching agent card failed");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling-client");
+          assertThat(activity.message())
+              .startsWith("Failed to create A2A client\nFetching agent card failed");
+        });
   }
 
   @Test
@@ -323,13 +319,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling-client");
-              assertThat(activity.message())
-                  .startsWith("Failed to create A2A client\nCreating client failed");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling-client");
+          assertThat(activity.message())
+              .startsWith("Failed to create A2A client\nCreating client failed");
+        });
   }
 
   @Test
@@ -350,13 +345,12 @@ class A2aPollingTaskTest {
     assertThat(loggedActivities)
         .hasSize(1)
         .first()
-        .satisfies(
-            activity -> {
-              assertThat(activity.severity()).isEqualTo(Severity.ERROR);
-              assertThat(activity.tag()).isEqualTo("a2a-polling");
-              assertThat(activity.message())
-                  .startsWith("Failed to poll A2A task task-123\nFetching task failed");
-            });
+        .satisfies(activity -> {
+          assertThat(activity.severity()).isEqualTo(Severity.ERROR);
+          assertThat(activity.tag()).isEqualTo("a2a-polling");
+          assertThat(activity.message())
+              .startsWith("Failed to poll A2A task task-123\nFetching task failed");
+        });
   }
 
   @Test
@@ -431,11 +425,10 @@ class A2aPollingTaskTest {
   }
 
   private A2aClientResponse taskArgumentMatcher(final A2aTask expectedTask) {
-    return assertArg(
-        arg ->
-            assertThat(arg)
-                .usingRecursiveComparison()
-                .ignoringFieldsOfTypes(OffsetDateTime.class)
-                .isEqualTo(a2aClientResponse(expectedTask)));
+    return assertArg(arg ->
+        assertThat(arg)
+            .usingRecursiveComparison()
+            .ignoringFieldsOfTypes(OffsetDateTime.class)
+            .isEqualTo(a2aClientResponse(expectedTask)));
   }
 }

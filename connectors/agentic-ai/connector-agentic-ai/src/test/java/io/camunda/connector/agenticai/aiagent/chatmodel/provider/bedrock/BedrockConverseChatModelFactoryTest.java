@@ -111,10 +111,9 @@ class BedrockConverseChatModelFactoryTest {
 
   private static AgenticAiHttpProxySupport proxySupportSpy(ProxyConfiguration proxyConfiguration) {
     final var proxySupportSpy = spy(new AgenticAiHttpProxySupport(proxyConfiguration));
-    doAnswer(
-            invocation ->
-                ((NettyNioAsyncHttpClient.Builder) invocation.callRealMethod())
-                    .eventLoopGroup(SHARED_EVENT_LOOP_GROUP))
+    doAnswer(invocation ->
+            ((NettyNioAsyncHttpClient.Builder) invocation.callRealMethod())
+                .eventLoopGroup(SHARED_EVENT_LOOP_GROUP))
         .when(proxySupportSpy)
         .createAwsAsyncHttpClientBuilder(any());
     return proxySupportSpy;
@@ -164,7 +163,7 @@ class BedrockConverseChatModelFactoryTest {
 
     testBuilder(
         bedrockConfig(authentication, null),
-        (clientBuilder) -> {
+        clientBuilder -> {
           verify(clientBuilder).region(AWS_REGION);
           verify(clientBuilder, never()).endpointOverride(any());
           verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
@@ -183,7 +182,7 @@ class BedrockConverseChatModelFactoryTest {
   void buildsClientWithDefaultCredentialsChain() {
     testBuilder(
         bedrockConfig(defaultCredentialsAuth(), null),
-        (clientBuilder) -> {
+        clientBuilder -> {
           verify(clientBuilder).credentialsProvider(credentialsProviderCaptor.capture());
           assertThat(credentialsProviderCaptor.getValue())
               .isInstanceOf(DefaultCredentialsProvider.class);
@@ -198,7 +197,7 @@ class BedrockConverseChatModelFactoryTest {
 
     testBuilder(
         bedrockConfig(authentication, null),
-        (clientBuilder) -> {
+        clientBuilder -> {
           verify(clientBuilder, never()).credentialsProvider(any());
 
           final var tokenProviderCaptor = ArgumentCaptor.forClass(SdkTokenProvider.class);
@@ -222,7 +221,7 @@ class BedrockConverseChatModelFactoryTest {
 
     testBuilder(
         bedrockConfig(defaultCredentialsAuth(), endpoint),
-        (clientBuilder) -> {
+        clientBuilder -> {
           verify(clientBuilder).endpointOverride(URI.create(endpoint));
           verify(proxySupport).createAwsAsyncHttpClientBuilder(URI.create(endpoint));
         });
@@ -232,7 +231,7 @@ class BedrockConverseChatModelFactoryTest {
   void doesNotSetEndpointOverrideWhenEndpointAbsent() {
     testBuilder(
         bedrockConfig(defaultCredentialsAuth(), null),
-        (clientBuilder) -> {
+        clientBuilder -> {
           verify(clientBuilder, never()).endpointOverride(any());
           verify(proxySupport).createAwsAsyncHttpClientBuilder(null);
         });
@@ -248,7 +247,7 @@ class BedrockConverseChatModelFactoryTest {
 
     testBuilder(
         new BedrockConverseChatModelConfiguration(connection),
-        (clientBuilder) -> {
+        clientBuilder -> {
           final var overrideConfigurationCaptor =
               ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
           verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());

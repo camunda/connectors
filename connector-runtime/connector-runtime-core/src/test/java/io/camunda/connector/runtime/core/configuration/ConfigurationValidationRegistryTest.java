@@ -95,10 +95,9 @@ class ConfigurationValidationRegistryTest {
 
   @Test
   void failsFastWhenTwoValidatorsClaimTheSameId() {
-    assertThatThrownBy(
-            () ->
-                new ConfigurationValidationRegistry(
-                    List.of(new ConfigOneValidator(), new OtherConfigOneValidator())))
+    assertThatThrownBy(() ->
+            new ConfigurationValidationRegistry(
+                List.of(new ConfigOneValidator(), new OtherConfigOneValidator())))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Duplicate configuration validator for id 'cfg:1'");
   }

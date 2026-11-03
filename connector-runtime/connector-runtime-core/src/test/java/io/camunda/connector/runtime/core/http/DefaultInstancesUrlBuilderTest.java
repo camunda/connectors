@@ -24,13 +24,13 @@ import org.junit.jupiter.api.Test;
 
 public class DefaultInstancesUrlBuilderTest {
 
-  private final DnsResolver dnsResolver = (host) -> new String[] {"10.0.0.10", "10.0.0.11"};
+  private final DnsResolver dnsResolver = host -> new String[] {"10.0.0.10", "10.0.0.11"};
   private final DnsResolver faultyDnsResolver =
-      (host) -> {
+      host -> {
         throw new RuntimeException("Host not found!");
       };
   private final DnsResolver emptyDnsResolver =
-      (host) -> {
+      host -> {
         return new String[] {};
       };
   private static final String HEADLESS_SERVICE_URL = "http://headless-service-url:8080";
@@ -52,20 +52,18 @@ public class DefaultInstancesUrlBuilderTest {
 
   @Test
   public void shouldThrowException_whenHostNotFound() {
-    assertThatThrownBy(
-            () ->
-                new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, faultyDnsResolver)
-                    .buildUrls("test/path"))
+    assertThatThrownBy(() ->
+            new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, faultyDnsResolver)
+                .buildUrls("test/path"))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("An error occurred while resolving hostname: headless-service-url");
   }
 
   @Test
   public void shouldThrowException_whenReturnEmptyAddresses() {
-    assertThatThrownBy(
-            () ->
-                new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, emptyDnsResolver)
-                    .buildUrls("test/path"))
+    assertThatThrownBy(() ->
+            new DefaultInstancesUrlBuilder(8080, HEADLESS_SERVICE_URL, emptyDnsResolver)
+                .buildUrls("test/path"))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Unable to resolve hostname: headless-service-url");
   }

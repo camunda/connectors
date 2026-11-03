@@ -88,10 +88,9 @@ class RealProviderResponseAssertionsTest {
         The report was prepared by Dr. Kael Thrennix, Chief Analytics Officer.
         """;
 
-    assertThatThrownBy(
-            () ->
-                RealProviderResponseAssertions.assertNestedDocumentResponse(
-                    Map.of("responseText", response)))
+    assertThatThrownBy(() ->
+            RealProviderResponseAssertions.assertNestedDocumentResponse(
+                Map.of("responseText", response)))
         .isInstanceOf(AssertionError.class);
   }
 
@@ -103,10 +102,9 @@ class RealProviderResponseAssertionsTest {
         The organization has 847 employees across 12 offices.
         """;
 
-    assertThatThrownBy(
-            () ->
-                RealProviderResponseAssertions.assertNestedDocumentResponse(
-                    Map.of("responseText", response)))
+    assertThatThrownBy(() ->
+            RealProviderResponseAssertions.assertNestedDocumentResponse(
+                Map.of("responseText", response)))
         .isInstanceOf(AssertionError.class);
   }
 
@@ -144,28 +142,25 @@ class RealProviderResponseAssertionsTest {
 
   @Test
   void shouldRejectIncidentalChickenCount() {
-    assertThatThrownBy(
-            () ->
-                RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
-                    "The arithmetic includes 23, and the other equation includes 12."))
+    assertThatThrownBy(() ->
+            RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
+                "The arithmetic includes 23, and the other equation includes 12."))
         .isInstanceOf(AssertionError.class);
   }
 
   @Test
   void shouldRejectWrongChickenCountConclusionEvenWhen23IsMentioned() {
-    assertThatThrownBy(
-            () ->
-                RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
-                    "One intermediate value is 23, but there are 12 chickens."))
+    assertThatThrownBy(() ->
+            RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
+                "One intermediate value is 23, but there are 12 chickens."))
         .isInstanceOf(AssertionError.class);
   }
 
   @Test
   void shouldRejectOutOfRangeChickenCountConclusionAsAnAssertionFailure() {
-    assertThatThrownBy(
-            () ->
-                RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
-                    "There are 999999999999999999999999999999 chickens."))
+    assertThatThrownBy(() ->
+            RealProviderResponseAssertions.assertCorrectChickenCountConclusion(
+                "There are 999999999999999999999999999999 chickens."))
         .isInstanceOf(AssertionError.class);
   }
 }

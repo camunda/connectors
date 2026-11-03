@@ -188,12 +188,11 @@ public class BedrockConverseResponseConverter {
     final Object input = captured.get("input");
     if (input instanceof Map<?, ?> map) {
       final Map<String, Object> arguments = new LinkedHashMap<>();
-      map.forEach(
-          (k, v) -> {
-            if (!String.valueOf(k).isEmpty()) {
-              arguments.put(String.valueOf(k), v);
-            }
-          });
+      map.forEach((k, v) -> {
+        if (!String.valueOf(k).isEmpty()) {
+          arguments.put(String.valueOf(k), v);
+        }
+      });
       return arguments;
     }
     // Converse always supplies a Document for `input` (an empty object for a no-argument tool

@@ -102,41 +102,39 @@ class AgentSubProcessGeminiStreamingResponseTests extends BaseGeminiNativeSubPro
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasReasoningContent()
-                .hasResponseMessageSatisfying(
-                    message -> {
-                      // Two runs, in order, each merged within itself.
-                      assertThat(message.content())
-                          .as("assistant content: one reasoning run then one text run")
-                          .hasSize(2);
-                      assertThat(message.content().get(0))
-                          .isInstanceOfSatisfying(
-                              ReasoningContent.class,
-                              reasoning ->
-                                  assertThat(reasoning.text())
-                                      .isEqualTo("Let me think about the sea for a moment."));
-                      assertThat(message.content().get(1))
-                          .isInstanceOfSatisfying(
-                              TextContent.class,
-                              text -> assertThat(text.text()).isEqualTo("Endless waves whisper."));
-                    })
+                .hasResponseMessageSatisfying(message -> {
+                  // Two runs, in order, each merged within itself.
+                  assertThat(message.content())
+                      .as("assistant content: one reasoning run then one text run")
+                      .hasSize(2);
+                  assertThat(message.content().get(0))
+                      .isInstanceOfSatisfying(
+                          ReasoningContent.class,
+                          reasoning ->
+                              assertThat(reasoning.text())
+                                  .isEqualTo("Let me think about the sea for a moment."));
+                  assertThat(message.content().get(1))
+                      .isInstanceOfSatisfying(
+                          TextContent.class,
+                          text -> assertThat(text.text()).isEqualTo("Endless waves whisper."));
+                })
                 // responseText only ever reflects the answer text, never the reasoning.
                 .hasResponseText("Endless waves whisper.")
-                .metricsSatisfy(
-                    metrics -> {
-                      // thoughtsTokenCount maps onto the domain reasoning counter.
-                      assertThat(metrics.tokenUsage().reasoningTokenCount())
-                          .as("reasoning token count from usageMetadata.thoughtsTokenCount")
-                          .isEqualTo(30);
-                      // Gemini's implicit caching reports cache READS only, mapped onto
-                      // cacheReadTokenCount; there is no cache-write counter, so
-                      // cacheCreationTokenCount stays at its default of 0.
-                      assertThat(metrics.tokenUsage().cacheReadTokenCount())
-                          .as("cache read token count from usageMetadata.cachedContentTokenCount")
-                          .isEqualTo(7);
-                      assertThat(metrics.tokenUsage().cacheCreationTokenCount())
-                          .as("Gemini reports no cache-write counter")
-                          .isZero();
-                    }));
+                .metricsSatisfy(metrics -> {
+                  // thoughtsTokenCount maps onto the domain reasoning counter.
+                  assertThat(metrics.tokenUsage().reasoningTokenCount())
+                      .as("reasoning token count from usageMetadata.thoughtsTokenCount")
+                      .isEqualTo(30);
+                  // Gemini's implicit caching reports cache READS only, mapped onto
+                  // cacheReadTokenCount; there is no cache-write counter, so
+                  // cacheCreationTokenCount stays at its default of 0.
+                  assertThat(metrics.tokenUsage().cacheReadTokenCount())
+                      .as("cache read token count from usageMetadata.cachedContentTokenCount")
+                      .isEqualTo(7);
+                  assertThat(metrics.tokenUsage().cacheCreationTokenCount())
+                      .as("Gemini reports no cache-write counter")
+                      .isZero();
+                }));
   }
 
   @Test
@@ -167,24 +165,23 @@ class AgentSubProcessGeminiStreamingResponseTests extends BaseGeminiNativeSubPro
                 // the two TextContent blocks are joined with no separator into the response text
                 // - it must not be truncated to just the first, signature-carrying block
                 .hasResponseText("First half.Second half.")
-                .hasResponseMessageSatisfying(
-                    message -> {
-                      assertThat(message.content())
-                          .as("signature-carrying part must not absorb the following text")
-                          .hasSize(2);
-                      assertThat(message.content().get(0))
-                          .isInstanceOfSatisfying(
-                              TextContent.class,
-                              text -> {
-                                assertThat(text.text()).isEqualTo("First half.");
-                                assertThat(text.metadata())
-                                    .as("thoughtSignature preserved as base64 metadata")
-                                    .containsEntry("thoughtSignature", signature);
-                              });
-                      assertThat(message.content().get(1))
-                          .isInstanceOfSatisfying(
-                              TextContent.class,
-                              text -> assertThat(text.text()).isEqualTo("Second half."));
-                    }));
+                .hasResponseMessageSatisfying(message -> {
+                  assertThat(message.content())
+                      .as("signature-carrying part must not absorb the following text")
+                      .hasSize(2);
+                  assertThat(message.content().get(0))
+                      .isInstanceOfSatisfying(
+                          TextContent.class,
+                          text -> {
+                            assertThat(text.text()).isEqualTo("First half.");
+                            assertThat(text.metadata())
+                                .as("thoughtSignature preserved as base64 metadata")
+                                .containsEntry("thoughtSignature", signature);
+                          });
+                  assertThat(message.content().get(1))
+                      .isInstanceOfSatisfying(
+                          TextContent.class,
+                          text -> assertThat(text.text()).isEqualTo("Second half."));
+                }));
   }
 }

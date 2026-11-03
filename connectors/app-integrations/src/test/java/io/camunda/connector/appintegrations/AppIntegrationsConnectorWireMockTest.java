@@ -218,7 +218,8 @@ class AppIntegrationsConnectorWireMockTest {
                         """
                         {"deliveries":[{"platform":"slack","conversation":"D0123","messageId":"1712345678.000100"},
                                        {"platform":"teams","conversation":"conv-2","messageId":"m-2"}],
-                         "failures":[{"platform":"slack","conversation":"C0999","reason":"not_in_channel"}]}""")
+                         "failures":[{"platform":"slack","conversation":"C0999","reason":"not_in_channel"}]}\
+                        """)
                     .withStatus(201)));
 
     var request =
