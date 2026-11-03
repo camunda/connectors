@@ -62,6 +62,26 @@ class CloudRunEntryPointTest {
 
   @ParameterizedTest
   @EnumSource(ScriptLanguage.class)
+  void keepsWhatItCannotRemoveFromTmpAndStarts(ScriptLanguage language) throws Exception {
+    final var command = load(language);
+    // As the "run" entry a new Cloud Run container has in /tmp, which the server cannot remove.
+    Files.writeString(tmp.resolve("run"), "of the platform");
+    Files.setPosixFilePermissions(tmp, PosixFilePermissions.fromString("r-x------"));
+    try {
+      final var result = run(command, Map.of("EXECUTOR_FUNCTION_TIMEOUT_MS", "35000"));
+
+      assertThat(result.exitValue()).as(result.output()).isZero();
+      assertThat(result.output())
+          .contains("registered handler")
+          .contains("Kept in " + tmp + ", which the server cannot remove: run");
+    } finally {
+      Files.setPosixFilePermissions(tmp, PosixFilePermissions.fromString("rwx------"));
+    }
+    assertThat(tmp.resolve("run")).exists();
+  }
+
+  @ParameterizedTest
+  @EnumSource(ScriptLanguage.class)
   void refusesToStartWithoutTheFunctionTimeout(ScriptLanguage language) throws Exception {
     final var command = load(language);
 

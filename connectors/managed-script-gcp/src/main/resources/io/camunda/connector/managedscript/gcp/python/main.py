@@ -9,6 +9,7 @@ cleanup after a call would kill a concurrent script.
 """
 
 import os
+import sys
 
 import functions_framework
 
@@ -22,11 +23,12 @@ FUNCTION_TIMEOUT_MS = int(os.environ["EXECUTOR_FUNCTION_TIMEOUT_MS"])
 
 TMP = os.environ.get("EXECUTOR_TMP", "/tmp")
 
-# An instance keeps /tmp when its server restarts after a timeout or a crash: what a call left there
-# must not become part of what the executor keeps. Better not to start than to keep it.
+# Whatever is in /tmp when the module loads becomes part of what the executor keeps. A new container
+# starts with an empty /tmp, but for entries of the platform, such as "run", that cannot be removed:
+# they are kept. Anything a previous server of the instance left that can be removed is removed.
 _left = executor_core.clear(TMP)
 if _left:
-    raise RuntimeError("Cannot clear %s of a previous server: %s" % (TMP, ", ".join(_left)))
+    print("Kept in %s, which the server cannot remove: %s" % (TMP, ", ".join(_left)), file=sys.stderr)
 
 executor = executor_core.create_executor(local=False, tmp=TMP)
 

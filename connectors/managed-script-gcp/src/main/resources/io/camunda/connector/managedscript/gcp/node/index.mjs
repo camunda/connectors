@@ -22,11 +22,12 @@ if (!(FUNCTION_TIMEOUT_MS > 0)) {
 
 const TMP = process.env.EXECUTOR_TMP ?? '/tmp';
 
-// An instance keeps /tmp when its server restarts after a timeout or a crash: what a call left
-// there must not become part of what the executor keeps. Better not to start than to keep it.
+// Whatever is in /tmp when the module loads becomes part of what the executor keeps. A new container
+// starts with an empty /tmp, but for entries of the platform, such as "run", that cannot be removed:
+// they are kept. Anything a previous server of the instance left that can be removed is removed.
 const left = clear(TMP);
 if (left.length > 0) {
-  throw new Error(`Cannot clear ${TMP} of a previous server: ${left.join(', ')}`);
+  console.error(`Kept in ${TMP}, which the server cannot remove: ${left.join(', ')}`);
 }
 
 const executor = createExecutor({ local: false, tmp: TMP });
