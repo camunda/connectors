@@ -13,6 +13,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.IdTokenProvider;
 import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -128,6 +129,20 @@ class GcpManagedCodeAutoConfigurationTest {
             ImpersonatedCredentials.class,
             impersonated -> assertThat(impersonated.getAccount()).isEqualTo(DEPLOYER_SA))
         .isInstanceOf(IdTokenProvider.class);
+  }
+
+  @Test
+  void refusesAUserLoginWithoutADeployer() {
+    final var login =
+        UserCredentials.newBuilder()
+            .setClientId("client")
+            .setClientSecret("secret")
+            .setRefreshToken("refresh")
+            .build();
+
+    assertThatThrownBy(() -> GcpClients.deployer(login, null))
+        .hasMessageContaining("deployer-service-account");
+    assertThat(GcpClients.deployer(login, DEPLOYER_SA)).isInstanceOf(ImpersonatedCredentials.class);
   }
 
   @Test

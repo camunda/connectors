@@ -269,23 +269,24 @@ Account Credentials APIs enabled.
 The **function service account** runs customer code: grant it **no role**, since a script can read
 the memory of the wrapper during its call. Cloud Run collects the logs of the executors without one.
 
-The **identity of the runtime**, or the deployer service account when one is set, needs, with
-`<location>` standing for `projects/<project>/locations/<region>`:
+The **identity of the runtime**, or the deployer service account when one is set, needs these
+grants, limited to the prefix of its cluster, with `<location>` standing for
+`projects/<project>/locations/<region>`. They are the ones the shared-project isolation tests of the
+executor design proved together:
 
-- a custom role with `cloudfunctions.functions.get`, `cloudfunctions.functions.create`,
-  `cloudfunctions.functions.update` and `cloudfunctions.functions.sourceCodeSet`, bound on the
-  project with the condition
-  `resource.name.startsWith("<location>/functions/<prefix>")`;
-- a custom role with `cloudfunctions.functions.generateUploadUrl` and `cloudfunctions.operations.get`,
-  bound on the project without a condition, since the upload URL is requested on the location and
-  an operation has no function name. Neither lists or reads the functions of another cluster;
-- `roles/iam.serviceAccountUser` on the function service account only, to run the executors as it;
-- `roles/run.invoker`, bound on the project with the condition
-  `resource.name.startsWith("<location>/services/<prefix>")`, to call the executors.
+| Grant | Scope | Why |
+|---|---|---|
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/functions/<prefix>")` | create, read and update its own executors |
+| `roles/cloudfunctions.developer` | project, condition `resource.name.startsWith("<location>/operations/")` | poll the operations of a creation or update |
+| A custom role with only `cloudfunctions.functions.generateUploadUrl` | project, condition `resource.name == "<location>"` | upload the source: the upload URL is requested on the location, where the developer role would list the functions of every cluster |
+| `roles/iam.serviceAccountUser` | the function service account only | run the executors as it |
+| `roles/run.invoker` | project, condition `request.host.startsWith("<prefix>")` | call its own executors through their `run.app` host; a condition on the service name has no effect |
 
-With `gcp.deployer-service-account`, the identity of the runtime needs nothing but
-`roles/iam.serviceAccountTokenCreator` on the deployer service account, to get its access and ID
-tokens.
+It needs no Cloud Build, Artifact Registry, Cloud Storage or Cloud Run admin access: builds push
+their images under the identity of the service. With `gcp.deployer-service-account`, the identity of
+the runtime needs nothing but `roles/iam.serviceAccountTokenCreator` on the deployer service
+account, to get its access and ID tokens. The invoker and impersonation grants took 66 to 91
+seconds to apply, measured once: within the default `grant-propagation-window`.
 
 With **workload identity federation**, outside GCP or without the metadata server, point
 `GOOGLE_APPLICATION_CREDENTIALS` at a credential configuration that reads the token of the platform

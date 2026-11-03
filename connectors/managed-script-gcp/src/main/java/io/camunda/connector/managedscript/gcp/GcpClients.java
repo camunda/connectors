@@ -10,6 +10,7 @@ import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.IdTokenProvider;
 import com.google.auth.oauth2.ImpersonatedCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import com.google.cloud.functions.v2.FunctionServiceClient;
 import com.google.cloud.functions.v2.FunctionServiceSettings;
 import java.io.IOException;
@@ -52,7 +53,9 @@ final class GcpClients {
                 null,
                 List.of(CLOUD_PLATFORM_SCOPE),
                 IMPERSONATION_LIFETIME_SECONDS);
-    if (!(credentials instanceof IdTokenProvider)) {
+    // A user login is an IdTokenProvider, but its ID token is the one of its own login, whatever
+    // the audience, which Cloud Run refuses.
+    if (!(credentials instanceof IdTokenProvider) || credentials instanceof UserCredentials) {
       throw new IllegalStateException(
           ("The application default credentials (%s) cannot mint the ID tokens that call the"
                   + " executors: set camunda.connector.managed-code.gcp.deployer-service-account"
