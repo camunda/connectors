@@ -35,6 +35,11 @@ public record ExecutionResponse(
     String logs,
     boolean logsTruncated) {
 
+  public ExecutionResponse(
+      String contractVersion, String outcome, Map<String, Object> variables, Error error) {
+    this(contractVersion, outcome, variables, error, null, false);
+  }
+
   public static final String COMPLETED = "COMPLETED";
   public static final String FAILED = "FAILED";
 

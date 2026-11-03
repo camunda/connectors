@@ -58,6 +58,15 @@ class ExecutionResponseTest {
   }
 
   @Test
+  void hasNoLogsWhenBuiltWithoutThem() {
+    final var response =
+        new ExecutionResponse(ExecutionRequest.CONTRACT_VERSION, "COMPLETED", Map.of(), null);
+
+    assertThat(response.logs()).isNull();
+    assertThat(response.logsTruncated()).isFalse();
+  }
+
+  @Test
   void hasNoLogsInTheResponsesOfTheFactoryMethods() {
     assertThat(ExecutionResponse.completed(Map.of()).logs()).isNull();
     assertThat(ExecutionResponse.failed(ErrorCode.TIMEOUT, "late").logs()).isNull();

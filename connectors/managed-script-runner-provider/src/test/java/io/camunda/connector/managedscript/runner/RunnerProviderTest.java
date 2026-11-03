@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -205,6 +206,109 @@ class RunnerProviderTest {
   }
 
   @Test
+  void reportsAMissingRouteAsUnavailable() {
+    stubAnswer(aResponse().withStatus(404));
+
+    assertFailed(provider.execute(ScriptLanguage.PYTHON, REQUEST), ErrorCode.PLATFORM_UNAVAILABLE);
+  }
+
+  @Test
+  void reportsARequestThatIsTooLargeAsInvalidInput() {
+    stubAnswer(aResponse().withStatus(413));
+
+    assertFailed(provider.execute(ScriptLanguage.PYTHON, REQUEST), ErrorCode.INVALID_INPUT);
+  }
+
+  @Test
+  void reportsAnInputThatCannotBeSentAsInvalidInput() {
+    final var request =
+        new ExecutionRequest(
+            "1",
+            "x",
+            Map.of(
+                "value",
+                new Object() {
+                  public String getValue() {
+                    throw new IllegalStateException("not serializable");
+                  }
+                }),
+            Map.of(),
+            1_000);
+
+    assertFailed(provider.execute(ScriptLanguage.PYTHON, request), ErrorCode.INVALID_INPUT);
+    assertThat(runner.find(WireMock.anyRequestedFor(WireMock.anyUrl()))).isEmpty();
+  }
+
+  @Test
+  void reportsAnAnswerWhoseBodyStallsAsUnavailable() throws Exception {
+    try (var server = new ServerSocket(0)) {
+      final var stalling =
+          Thread.startVirtualThread(() -> {
+            try (var socket = server.accept()) {
+              socket.getInputStream().read(new byte[65_536]);
+              socket
+                  .getOutputStream()
+                  .write(
+                      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{"
+                          .getBytes(StandardCharsets.US_ASCII));
+              socket.getOutputStream().flush();
+              Thread.sleep(5_000);
+            } catch (IOException | InterruptedException e) {
+              // The provider closes the connection when it stops waiting.
+            }
+          });
+      final var impatient =
+          new RunnerProvider(
+              properties("http://localhost:" + server.getLocalPort()), Duration.ofMillis(100));
+      final var request = new ExecutionRequest("1", "x", Map.of(), Map.of(), 100);
+      final long start = System.nanoTime();
+
+      final var response = impatient.execute(ScriptLanguage.PYTHON, request);
+
+      assertFailed(response, ErrorCode.PLATFORM_UNAVAILABLE);
+      assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(3));
+      stalling.interrupt();
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"SCRIPT_ERROR", "INVALID_RESULT", "RESOURCE_LIMIT", "TIMEOUT"})
+  void returnsTheCodeOfAFailureThatAScriptCanCause(String code) {
+    stubAnswer(aResponse().withStatus(200).withBody(failedWith(code)));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, REQUEST);
+
+    assertThat(response.error().code()).isEqualTo(code);
+    assertThat(response.logs()).isEqualTo("printed\n");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"PLATFORM_INTERRUPTED", "PROVISIONING_PENDING", "PLATFORM_UNAVAILABLE", "UNKNOWN"})
+  void reportsAFailureCodeThatAScriptCannotCauseAsAnInvalidResult(String code) {
+    stubAnswer(aResponse().withStatus(200).withBody(failedWith(code)));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, REQUEST);
+
+    assertFailed(response, ErrorCode.INVALID_RESULT);
+    assertThat(response.error().message()).contains(code);
+    assertThat(response.logs()).isEqualTo("printed\n");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"first\nsecond", "first\rsecond", "euro\u20ac"})
+  void reportsATokenThatCannotBeAHeaderAsAPlatformErrorAndSendsNothing(String token)
+      throws IOException {
+    Files.writeString(tokenPath, token);
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, REQUEST);
+
+    assertFailed(response, ErrorCode.PLATFORM_ERROR);
+    assertThat(response.error().message()).doesNotContain(token);
+    assertThat(runner.find(WireMock.anyRequestedFor(WireMock.anyUrl()))).isEmpty();
+  }
+
+  @Test
   void reportsAThrottledRunnerAsThrottled() {
     stubAnswer(aResponse().withStatus(429));
 
@@ -212,7 +316,7 @@ class RunnerProviderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {302, 404})
+  @ValueSource(ints = {302, 418})
   void reportsAnUnexpectedAnswerAsAPlatformErrorWithoutFollowingIt(int status) {
     stubAnswer(aResponse().withStatus(status).withHeader("Location", "/elsewhere"));
 
@@ -324,6 +428,15 @@ class RunnerProviderTest {
 
   private void stubAnswer(com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder answer) {
     runner.register(post(urlEqualTo("/v1/executions")).willReturn(answer));
+  }
+
+  private static String failedWith(String code) {
+    return """
+    {"contractVersion": "1", "outcome": "FAILED",
+     "error": {"code": "%s", "message": "m", "retryable": false},
+     "logs": "printed\\n", "logsTruncated": false}
+    """
+        .formatted(code);
   }
 
   private static String completed() {

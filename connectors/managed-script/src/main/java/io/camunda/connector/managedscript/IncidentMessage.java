@@ -44,8 +44,8 @@ final class IncidentMessage {
 
   /**
    * The text of {@link #format(ErrorCode, String, String, ScriptLanguage)}, then the end of the
-   * logs in the room that it leaves, cut between lines. A line with a control character other than
-   * a tab is replaced by {@link #CONTROL_LINE}. Logs that do not fit at all are left out.
+   * logs in the room that it leaves, cut between lines and with the same rule for control
+   * characters. Logs that do not fit at all are left out.
    *
    * @param logs {@code null} when the executor sent none
    * @param logsTruncated whether the executor cut the start of the logs; their first line is then
@@ -70,11 +70,15 @@ final class IncidentMessage {
   /**
    * Keeps the code whole, cuts the message between words, and cuts the stack trace between lines:
    * keeping its end for Python, whose tracebacks end with the failing frame, and its start for
-   * JavaScript, whose stacks start with it.
+   * JavaScript, whose stacks start with it. A line of the message or of the stack trace with a
+   * control character other than a carriage return or a tab is replaced by {@link #CONTROL_LINE}.
    *
    * @param language {@code null} when the failure happened before the language was known
    */
-  static String format(ErrorCode code, String message, String stackTrace, ScriptLanguage language) {
+  static String format(
+      ErrorCode code, String rawMessage, String rawStackTrace, ScriptLanguage language) {
+    final var message = withoutControlLines(rawMessage);
+    final var stackTrace = withoutControlLines(rawStackTrace);
     final var head =
         code.name()
             + ": "
@@ -133,13 +137,19 @@ final class IncidentMessage {
     return kept.isEmpty() ? null : TRUNCATED + "\n" + String.join("\n", kept);
   }
 
-  private static String withoutControlLines(String logs) {
-    return Arrays.stream(logs.split("\n", -1))
+  private static String withoutControlLines(String text) {
+    if (text == null) {
+      return null;
+    }
+    return Arrays.stream(text.split("\n", -1))
         // Operate shows the incident message as text, where a control character, a line separator
         // or a bidirectional override can hide or reorder what the script printed. Masking matches
-        // each secret exactly, so a secret with one character removed stays readable.
+        // each secret exactly, so a secret with one character removed stays readable. A carriage
+        // return stays, so that a secret with CRLF line endings stays whole.
         .map(line ->
-            line.codePoints().anyMatch(c -> c != '\t' && isControl(c)) ? CONTROL_LINE : line)
+            line.codePoints().anyMatch(c -> c != '\t' && c != '\r' && isControl(c))
+                ? CONTROL_LINE
+                : line)
         .collect(Collectors.joining("\n"));
   }
 

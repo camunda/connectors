@@ -210,17 +210,17 @@ class IncidentMessageTest {
   }
 
   @Test
-  void leavesOutEachLineOfTheLogsWithAControlCharacterOtherThanATab() {
+  void leavesOutEachLineOfTheLogsWithAControlCharacterOtherThanACarriageReturnOrATab() {
     final var lines =
         new String[] {
           "a\u001b[31mred",
           "nul\u0000",
-          "crlf\r",
           "next\u0085line",
           "del\u007f",
           "line\u2028separator",
           "bidi\u202eoverride",
           "zero\u200bwidth",
+          "crlf\r",
           "\tindented"
         };
 
@@ -232,20 +232,55 @@ class IncidentMessageTest {
         .isEqualTo(
             "SCRIPT_ERROR: m\n"
                 + IncidentMessage.LOGS_HEADER
-                + ("\n" + IncidentMessage.CONTROL_LINE).repeat(lines.length - 1)
-                + "\n\tindented");
+                + ("\n" + IncidentMessage.CONTROL_LINE).repeat(lines.length - 2)
+                + "\ncrlf\r\n\tindented");
   }
 
   @Test
   void neverKeepsASecretWithAControlCharacterWithoutIt() {
     for (var secret :
-        new String[] {SECRET + "\r", "\ufeff" + SECRET, "s3cr3t\u200b-value-0123456789"}) {
+        new String[] {
+          SECRET + "\r", "\ufeff" + SECRET, "s3cr3t\u200b-value-0123456789", "user:pass\r\ntok3n"
+        }) {
       final var text =
           IncidentMessage.format(
               ErrorCode.SCRIPT_ERROR, "m", null, null, "before\n" + secret + "\r\nafter", false);
 
-      assertThat(text).doesNotContain("s3cr3t").doesNotContain("0123456789").endsWith("\nafter");
+      if (!text.contains(secret)) {
+        assertThat(text)
+            .doesNotContain("s3cr3t")
+            .doesNotContain("0123456789")
+            .doesNotContain("tok3n");
+      }
+      assertThat(text).endsWith("\nafter");
     }
+  }
+
+  @Test
+  void keepsASecretWithCrlfLineEndingsWhole() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR, "m", null, null, "before\nuser:pass\r\ntok3n\nafter", false);
+
+    assertThat(text).contains("user:pass\r\ntok3n");
+  }
+
+  @Test
+  void leavesOutEachLineOfTheMessageAndTheStackTraceWithAControlCharacter() {
+    final var text =
+        IncidentMessage.format(
+            ErrorCode.SCRIPT_ERROR,
+            "boom\u001b[2J",
+            "Traceback\nline\u202eevil\nValueError: boom",
+            ScriptLanguage.PYTHON);
+
+    assertThat(text)
+        .isEqualTo(
+            "SCRIPT_ERROR: "
+                + IncidentMessage.CONTROL_LINE
+                + "\nTraceback\n"
+                + IncidentMessage.CONTROL_LINE
+                + "\nValueError: boom");
   }
 
   @Test

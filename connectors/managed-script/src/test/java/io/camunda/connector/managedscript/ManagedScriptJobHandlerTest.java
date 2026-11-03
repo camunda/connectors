@@ -384,6 +384,28 @@ class ManagedScriptJobHandlerTest {
   }
 
   @Test
+  void putsTheScriptLogsInTheIncidentOfAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse(
+            "1",
+            "FAILED",
+            null,
+            new ExecutionResponse.Error("BUILD_FAILED", "old code", null, false, false),
+            "step 1\n",
+            false),
+        new ExecutionResponse("1", "RUNNING", null, null, "step 2\n", false));
+
+    final var unknownCode = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var unknownOutcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(assertFailed(unknownCode, ErrorCode.INVALID_RESULT, 0).message())
+        .endsWith("\n" + IncidentMessage.LOGS_HEADER + "\nstep 1\n");
+    assertThat(assertFailed(unknownOutcome, ErrorCode.INVALID_RESULT, 0).message())
+        .endsWith("\n" + IncidentMessage.LOGS_HEADER + "\nstep 2\n");
+  }
+
+  @Test
   void neverLogsTheScriptItsInputOrItsOutput() {
     captureLogs();
     store("sum.py", "SCRIPT_SENTINEL");

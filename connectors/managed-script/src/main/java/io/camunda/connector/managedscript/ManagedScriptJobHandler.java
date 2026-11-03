@@ -164,7 +164,12 @@ final class ManagedScriptJobHandler {
   private Outcome outcome(JobContext job, ScriptLanguage language, ExecutionResponse response) {
     if (response == null || response.outcome() == null) {
       return failed(
-          job, ErrorCode.INVALID_RESULT, "The provider returned no outcome", null, language);
+          job,
+          ErrorCode.INVALID_RESULT,
+          "The provider returned no outcome",
+          null,
+          language,
+          response);
     }
     if (!ExecutionRequest.CONTRACT_VERSION.equals(response.contractVersion())) {
       return failed(
@@ -172,12 +177,18 @@ final class ManagedScriptJobHandler {
           ErrorCode.INVALID_RESULT,
           "Unsupported contract version '%s'".formatted(response.contractVersion()),
           null,
-          language);
+          language,
+          response);
     }
     if (ExecutionResponse.COMPLETED.equals(response.outcome())) {
       if (response.variables() == null) {
         return failed(
-            job, ErrorCode.INVALID_RESULT, "The script returned no variables", null, language);
+            job,
+            ErrorCode.INVALID_RESULT,
+            "The script returned no variables",
+            null,
+            language,
+            response);
       }
       return new Outcome.Completed(response.variables());
     }
@@ -188,7 +199,8 @@ final class ManagedScriptJobHandler {
           ErrorCode.INVALID_RESULT,
           "Unsupported outcome '%s'".formatted(response.outcome()),
           null,
-          language);
+          language,
+          response);
     }
     final var code = ErrorCode.of(error.code());
     if (code.isEmpty()) {
@@ -197,19 +209,28 @@ final class ManagedScriptJobHandler {
           ErrorCode.INVALID_RESULT,
           "Unknown error code '%s': %s".formatted(error.code(), error.message()),
           null,
-          language);
+          language,
+          response);
     }
+    return failed(job, code.get(), error.message(), error.stackTrace(), language, response);
+  }
+
+  /** A failure that the provider answered, with the script logs of its response. */
+  private Outcome.Failed failed(
+      JobContext job,
+      ErrorCode code,
+      String message,
+      String stackTrace,
+      ScriptLanguage language,
+      ExecutionResponse response) {
     // The runtime does not mask the values that the engine resolved before the job was activated,
     // so a script that prints its input puts those secrets into the incident.
     final var text =
-        IncidentMessage.format(
-            code.get(),
-            error.message(),
-            error.stackTrace(),
-            language,
-            response.logs(),
-            response.logsTruncated());
-    return failed(job, code.get(), text);
+        response == null
+            ? IncidentMessage.format(code, message, stackTrace, language)
+            : IncidentMessage.format(
+                code, message, stackTrace, language, response.logs(), response.logsTruncated());
+    return failed(job, code, text);
   }
 
   /** Fails the job with the retries that the error code calls for. */

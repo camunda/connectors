@@ -14,18 +14,27 @@ import io.camunda.connector.managedscript.api.ExecutionRequest;
 import io.camunda.connector.managedscript.api.ExecutionResponse;
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Runs managed scripts on the sandboxed runner of the cluster, over the runner API: {@code POST
@@ -43,6 +52,14 @@ public final class RunnerProvider implements ManagedCodeProvider {
    * logs to 64 KiB, so a larger answer does not come from a working runner.
    */
   static final int MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+
+  /** The failure codes that a script can cause: the codes of the child shims, and a timeout. */
+  private static final Set<String> SCRIPT_FAILURE_CODES =
+      Set.of(
+          ErrorCode.SCRIPT_ERROR.name(),
+          ErrorCode.INVALID_RESULT.name(),
+          ErrorCode.RESOURCE_LIMIT.name(),
+          ErrorCode.TIMEOUT.name());
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
 
@@ -88,11 +105,9 @@ public final class RunnerProvider implements ManagedCodeProvider {
   public void ensureExecutors() {}
 
   /**
-   * Maps each answer of the runner to a response: {@code 200} to the execution response that it
-   * holds; {@code 400}, {@code 401} and {@code 403} to {@link ErrorCode#PLATFORM_REJECTED}, which
-   * leaves no retries; {@code 429} to {@link ErrorCode#PLATFORM_THROTTLED}; no answer and {@code
-   * 5xx} to {@link ErrorCode#PLATFORM_UNAVAILABLE}; any other answer to {@link
-   * ErrorCode#PLATFORM_ERROR}.
+   * In a {@code 200} answer, a failure code that a script cannot cause becomes {@link
+   * ErrorCode#INVALID_RESULT}. No answer within the timeout of the script and a margin becomes
+   * {@link ErrorCode#PLATFORM_UNAVAILABLE}.
    */
   @Override
   public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
@@ -113,70 +128,189 @@ public final class RunnerProvider implements ManagedCodeProvider {
       return ExecutionResponse.failed(
           ErrorCode.PLATFORM_ERROR, "The token for the runner is empty");
     }
+    final byte[] body;
     try {
-      return call(language, runtime, request, token);
-    } catch (HttpTimeoutException e) {
+      body = objectMapper.writeValueAsBytes(requestBody(language, runtime, request));
+    } catch (JacksonException e) {
       return ExecutionResponse.failed(
-          ErrorCode.PLATFORM_UNAVAILABLE, "The runner did not answer in time");
-    } catch (IOException e) {
-      return ExecutionResponse.failed(
-          ErrorCode.PLATFORM_UNAVAILABLE,
-          "The runner is not available: " + e.getClass().getSimpleName());
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return ExecutionResponse.failed(
-          ErrorCode.PLATFORM_INTERRUPTED, "The call to the runner was interrupted");
+          ErrorCode.INVALID_INPUT, "The script input cannot be sent to the runner");
     }
+    final var timeout = Duration.ofMillis(request.timeoutMs()).plus(answerMargin);
+    final HttpRequest httpRequest;
+    try {
+      httpRequest =
+          HttpRequest.newBuilder(executions)
+              .timeout(timeout)
+              .header("Authorization", "Bearer " + token)
+              .header("Content-Type", "application/json")
+              .header("Accept", "application/json")
+              .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+              .build();
+    } catch (IllegalArgumentException e) {
+      // The JDK quotes the header, and with it the token, in the message of this exception.
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_ERROR, "The token for the runner is not a valid header value");
+    }
+    return call(httpRequest, timeout);
   }
 
-  private ExecutionResponse call(
-      ScriptLanguage language, String runtime, ExecutionRequest request, String token)
-      throws IOException, InterruptedException {
+  private static Map<String, Object> requestBody(
+      ScriptLanguage language, String runtime, ExecutionRequest request) {
     final Map<String, Object> body = new LinkedHashMap<>();
     body.put("language", language.language());
     body.put("runtime", runtime);
     body.putAll(request.payload());
-    final var httpRequest =
-        HttpRequest.newBuilder(executions)
-            .timeout(Duration.ofMillis(request.timeoutMs()).plus(answerMargin))
-            .header("Authorization", "Bearer " + token)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofByteArray(objectMapper.writeValueAsBytes(body)))
-            .build();
-    final var response = client.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-    try (InputStream answer = response.body()) {
-      final int status = response.statusCode();
-      return switch (status) {
-        case 200 -> executionResponse(answer);
-        case 400, 401, 403 ->
+    return body;
+  }
+
+  private ExecutionResponse call(HttpRequest httpRequest, Duration timeout) {
+    // The timeout of the request ends when the headers arrive, so it does not bound the body.
+    final var answer =
+        client.sendAsync(
+            httpRequest,
+            info ->
+                info.statusCode() == 200
+                    ? new BoundedBody(MAX_RESPONSE_BYTES)
+                    : HttpResponse.BodySubscribers.<byte[]>replacing(null));
+    final HttpResponse<byte[]> response;
+    try {
+      response = answer.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+    } catch (TimeoutException e) {
+      answer.cancel(true);
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_UNAVAILABLE, "The runner did not answer in time");
+    } catch (InterruptedException e) {
+      answer.cancel(true);
+      Thread.currentThread().interrupt();
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_INTERRUPTED, "The call to the runner was interrupted");
+    } catch (ExecutionException e) {
+      return switch (e.getCause()) {
+        case AnswerTooLarge tooLarge ->
             ExecutionResponse.failed(
-                ErrorCode.PLATFORM_REJECTED, "The runner rejected the call: HTTP " + status);
-        case 429 ->
+                ErrorCode.INVALID_RESULT,
+                "The answer of the runner is larger than %d bytes".formatted(MAX_RESPONSE_BYTES));
+        case HttpTimeoutException timedOut ->
             ExecutionResponse.failed(
-                ErrorCode.PLATFORM_THROTTLED, "The runner is at capacity: HTTP " + status);
-        default ->
-            status >= 500
-                ? ExecutionResponse.failed(
-                    ErrorCode.PLATFORM_UNAVAILABLE, "The runner is not available: HTTP " + status)
-                : ExecutionResponse.failed(
-                    ErrorCode.PLATFORM_ERROR, "Unexpected answer of the runner: HTTP " + status);
+                ErrorCode.PLATFORM_UNAVAILABLE, "The runner did not answer in time");
+        case IOException failed ->
+            ExecutionResponse.failed(
+                ErrorCode.PLATFORM_UNAVAILABLE,
+                "The runner is not available: " + failed.getClass().getSimpleName());
+        case null, default ->
+            ExecutionResponse.failed(ErrorCode.PLATFORM_ERROR, "The call to the runner failed");
       };
+    }
+    final int status = response.statusCode();
+    return switch (status) {
+      case 200 -> executionResponse(response.body());
+      case 400, 401, 403 ->
+          ExecutionResponse.failed(
+              ErrorCode.PLATFORM_REJECTED, "The runner rejected the call: HTTP " + status);
+      // Kourier answers 404 when the Knative Service is gone, as for a suspended runner.
+      case 404 ->
+          ExecutionResponse.failed(
+              ErrorCode.PLATFORM_UNAVAILABLE, "The runner is not available: HTTP " + status);
+      case 413 ->
+          ExecutionResponse.failed(
+              ErrorCode.INVALID_INPUT, "The runner rejected the size of the call: HTTP " + status);
+      case 429 ->
+          ExecutionResponse.failed(
+              ErrorCode.PLATFORM_THROTTLED, "The runner is at capacity: HTTP " + status);
+      default ->
+          status >= 500
+              ? ExecutionResponse.failed(
+                  ErrorCode.PLATFORM_UNAVAILABLE, "The runner is not available: HTTP " + status)
+              : ExecutionResponse.failed(
+                  ErrorCode.PLATFORM_ERROR, "Unexpected answer of the runner: HTTP " + status);
+    };
+  }
+
+  private ExecutionResponse executionResponse(byte[] answer) {
+    final ExecutionResponse response;
+    try {
+      response = objectMapper.readValue(answer, ExecutionResponse.class);
+    } catch (IOException e) {
+      return ExecutionResponse.failed(
+          ErrorCode.INVALID_RESULT, "The answer of the runner is not an execution response");
+    }
+    if (response == null
+        || !ExecutionResponse.FAILED.equals(response.outcome())
+        || response.error() == null
+        || SCRIPT_FAILURE_CODES.contains(response.error().code())) {
+      return response;
+    }
+    // A runner that passes on a code that the script wrote must not choose the retries of the job.
+    return new ExecutionResponse(
+        response.contractVersion(),
+        ExecutionResponse.FAILED,
+        null,
+        new ExecutionResponse.Error(
+            ErrorCode.INVALID_RESULT.name(),
+            "The runner reported the code '%s', which a script cannot cause"
+                .formatted(response.error().code()),
+            null,
+            ErrorCode.INVALID_RESULT.retryable(),
+            false),
+        response.logs(),
+        response.logsTruncated());
+  }
+
+  /** Collects a body up to a size, and fails with {@link AnswerTooLarge} above it. */
+  private static final class BoundedBody implements HttpResponse.BodySubscriber<byte[]> {
+
+    private final int limit;
+    private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    private final CompletableFuture<byte[]> result = new CompletableFuture<>();
+    private Flow.Subscription subscription;
+
+    BoundedBody(int limit) {
+      this.limit = limit;
+    }
+
+    @Override
+    public void onSubscribe(Flow.Subscription subscription) {
+      this.subscription = subscription;
+      subscription.request(Long.MAX_VALUE);
+    }
+
+    @Override
+    public void onNext(List<ByteBuffer> buffers) {
+      for (var buffer : buffers) {
+        if (result.isDone()) {
+          return;
+        }
+        if (bytes.size() + buffer.remaining() > limit) {
+          subscription.cancel();
+          result.completeExceptionally(new AnswerTooLarge());
+          return;
+        }
+        final var chunk = new byte[buffer.remaining()];
+        buffer.get(chunk);
+        bytes.writeBytes(chunk);
+      }
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+      result.completeExceptionally(throwable);
+    }
+
+    @Override
+    public void onComplete() {
+      result.complete(bytes.toByteArray());
+    }
+
+    @Override
+    public CompletionStage<byte[]> getBody() {
+      return result;
     }
   }
 
-  private ExecutionResponse executionResponse(InputStream answer) throws IOException {
-    final var bytes = answer.readNBytes(MAX_RESPONSE_BYTES + 1);
-    if (bytes.length > MAX_RESPONSE_BYTES) {
-      return ExecutionResponse.failed(
-          ErrorCode.INVALID_RESULT,
-          "The answer of the runner is larger than %d bytes".formatted(MAX_RESPONSE_BYTES));
-    }
-    try {
-      return objectMapper.readValue(bytes, ExecutionResponse.class);
-    } catch (JacksonException e) {
-      return ExecutionResponse.failed(
-          ErrorCode.INVALID_RESULT, "The answer of the runner is not an execution response");
+  private static final class AnswerTooLarge extends RuntimeException {
+
+    AnswerTooLarge() {
+      super(null, null, false, false);
     }
   }
 }
