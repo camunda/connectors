@@ -39,7 +39,8 @@ class ConfigurationValidationRestControllerTest {
   private static final String BODY =
       """
       {"credentialId":"io.camunda:aws-credential:1","credentialRef":"=ref","tenantId":"acme",\
-      "physicalTenantId":"engine-a"}""";
+      "physicalTenantId":"engine-a"}\
+      """;
 
   private ConfigurationValidationService service;
   private MockMvc mockMvc;
@@ -103,7 +104,8 @@ class ConfigurationValidationRestControllerTest {
                 .content(
                     """
                     {"credentialId":"io.camunda:aws-credential:1","credentialRef":"=ref",\
-                    "tenantId":"acme"}"""))
+                    "tenantId":"acme"}\
+                    """))
         .andExpect(status().isOk());
 
     assertThat(captor.getValue().physicalTenantId()).isNull();

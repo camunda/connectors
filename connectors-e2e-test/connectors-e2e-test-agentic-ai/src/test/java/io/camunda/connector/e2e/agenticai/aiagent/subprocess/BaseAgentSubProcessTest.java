@@ -278,24 +278,22 @@ public abstract class BaseAgentSubProcessTest extends BaseAgentTest {
     await()
         .alias("toolCall variable does not leak to root scope")
         .atMost(Duration.ofSeconds(15))
-        .untilAsserted(
-            () -> {
-              final var leaked =
-                  camundaClient
-                      .newVariableSearchRequest()
-                      .filter(
-                          f ->
-                              f.processInstanceKey(processInstanceKey)
-                                  .scopeKey(processInstanceKey)
-                                  .name("toolCall"))
-                      .send()
-                      .join()
-                      .items();
-              assertThat(leaked)
-                  .as(
-                      "toolCall should only exist on inner-instance scopes — leak to root scope detected")
-                  .isEmpty();
-            });
+        .untilAsserted(() -> {
+          final var leaked =
+              camundaClient
+                  .newVariableSearchRequest()
+                  .filter(f ->
+                      f.processInstanceKey(processInstanceKey)
+                          .scopeKey(processInstanceKey)
+                          .name("toolCall"))
+                  .send()
+                  .join()
+                  .items();
+          assertThat(leaked)
+              .as(
+                  "toolCall should only exist on inner-instance scopes — leak to root scope detected")
+              .isEmpty();
+        });
   }
 
   protected void assertAgentResponse(

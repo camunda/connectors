@@ -137,10 +137,9 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   public static List<Pair<Method, DataExample>> findAllDataExampleMethods(Class<?> type) {
     return Arrays.stream(type.getDeclaredMethods())
         .filter(m -> Modifier.isStatic(m.getModifiers()))
-        .filter(
-            m ->
-                Arrays.stream(m.getAnnotations())
-                    .anyMatch(a -> DataExample.class.equals(a.annotationType())))
+        .filter(m ->
+            Arrays.stream(m.getAnnotations())
+                .anyMatch(a -> DataExample.class.equals(a.annotationType())))
         .sorted(Comparator.comparing(Method::getName))
         .map(m -> Pair.of(m, m.getDeclaredAnnotation(DataExample.class)))
         .toList();
@@ -228,11 +227,10 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
     var propertyBuilders =
         java.util.Arrays.stream(elementTemplate.inputDataClass())
             .filter(inputClass -> inputClass != Void.class)
-            .flatMap(
-                inputClass ->
-                    TemplatePropertiesUtil.extractTemplatePropertiesFromType(
-                        inputClass, templateGenerationContext)
-                        .stream())
+            .flatMap(inputClass ->
+                TemplatePropertiesUtil.extractTemplatePropertiesFromType(
+                    inputClass, templateGenerationContext)
+                    .stream())
             .toList();
 
     // Map to docs compatible property representation

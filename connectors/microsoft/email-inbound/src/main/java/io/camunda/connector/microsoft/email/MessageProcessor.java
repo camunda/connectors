@@ -27,45 +27,41 @@ public class MessageProcessor {
   }
 
   public void handleMessage(EmailMessage message) {
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag("new-email")
-                .withMessage("Processing email: " + message.id()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag("new-email")
+            .withMessage("Processing email: " + message.id()));
     var shouldPostprocess =
         switch (context.canActivate(message)) {
           case ActivationCheckResult.Success success -> correlate(message);
           case ActivationCheckResult.Failure.NoMatchingElement e -> {
             if (e.discardUnmatchedEvents()) {
-              context.log(
-                  activity ->
-                      activity
-                          .withSeverity(Severity.INFO)
-                          .withTag("NoMatchingElement")
-                          .withMessage(
-                              "No matching activation condition. Discarding unmatched email: "
-                                  + message.id()));
+              context.log(activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag("NoMatchingElement")
+                      .withMessage(
+                          "No matching activation condition. Discarding unmatched email: "
+                              + message.id()));
               yield ShouldPostprocess.YES;
             }
-            context.log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.INFO)
-                        .withTag("NoMatchingElement")
-                        .withMessage(
-                            "No matching activation condition. Not discarding unmatched email: "
-                                + message.id()));
+            context.log(activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag("NoMatchingElement")
+                    .withMessage(
+                        "No matching activation condition. Not discarding unmatched email: "
+                            + message.id()));
             yield ShouldPostprocess.NO;
           }
           case ActivationCheckResult.Failure.TooManyMatchingElements tooMany -> {
-            context.log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.ERROR)
-                        .withTag("TooManyMatchingElements")
-                        .withMessage(
-                            "Too many matching activation conditions. Email: " + message.id()));
+            context.log(activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag("TooManyMatchingElements")
+                    .withMessage(
+                        "Too many matching activation conditions. Email: " + message.id()));
             yield ShouldPostprocess.NO;
           }
         };
@@ -102,28 +98,23 @@ public class MessageProcessor {
       case CorrelationResult.Failure f -> {
         switch (f.handlingStrategy()) {
           case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream forwardError -> {
-            context.log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.ERROR)
-                        .withTag(ActivityLogTag.MESSAGE)
-                        .withMessage(
-                            "Error processing email: "
-                                + message.id()
-                                + ", message: "
-                                + f.message()));
+            context.log(activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage(
+                        "Error processing email: " + message.id() + ", message: " + f.message()));
             yield ShouldPostprocess.NO;
           }
           case CorrelationFailureHandlingStrategy.Ignore ignore -> {
-            context.log(
-                activity ->
-                    activity
-                        .withSeverity(Severity.INFO)
-                        .withTag(ActivityLogTag.MESSAGE)
-                        .withMessage(
-                            "No correlation condition was met for email: "
-                                + message.id()
-                                + ". `Ignore unmatched event` was selected. Continuing.."));
+            context.log(activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage(
+                        "No correlation condition was met for email: "
+                            + message.id()
+                            + ". `Ignore unmatched event` was selected. Continuing.."));
             yield ShouldPostprocess.YES;
           }
         }

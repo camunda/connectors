@@ -116,11 +116,10 @@ class MicrosoftMailClientTest {
             .get(any()))
         .thenThrow(apiExceptionWithStatus(429));
 
-    assertThatThrownBy(
-            () ->
-                client.fetchAttachments(
-                    mock(InboundConnectorContext.class),
-                    messageWithAttachmentMetadata(List.of(pdfMetadata))))
+    assertThatThrownBy(() ->
+            client.fetchAttachments(
+                mock(InboundConnectorContext.class),
+                messageWithAttachmentMetadata(List.of(pdfMetadata))))
         .isInstanceOf(MicrosoftMailClient.TransientAttachmentLookupException.class)
         .hasCauseInstanceOf(ApiException.class);
   }
@@ -140,11 +139,10 @@ class MicrosoftMailClientTest {
             .get(any()))
         .thenThrow(apiExceptionWithStatus(404));
 
-    assertThatThrownBy(
-            () ->
-                client.fetchAttachments(
-                    mock(InboundConnectorContext.class),
-                    messageWithAttachmentMetadata(List.of(pdfMetadata))))
+    assertThatThrownBy(() ->
+            client.fetchAttachments(
+                mock(InboundConnectorContext.class),
+                messageWithAttachmentMetadata(List.of(pdfMetadata))))
         .isInstanceOf(ConnectorException.class);
   }
 
@@ -247,11 +245,10 @@ class MicrosoftMailClientTest {
     // Propagated out of poll() (rather than swallowed) so EmailPollingWorker.run() reports the
     // connector unhealthy for this poll cycle instead of silently reporting Health.up().
     var invocations = new AtomicInteger();
-    assertThatThrownBy(
-            () ->
-                client
-                    .constructMessageFetcher(new Folder.FolderById("inbox"), null)
-                    .poll(msg -> invocations.incrementAndGet()))
+    assertThatThrownBy(() ->
+            client
+                .constructMessageFetcher(new Folder.FolderById("inbox"), null)
+                .poll(msg -> invocations.incrementAndGet()))
         .isInstanceOf(MicrosoftMailClient.TransientAttachmentLookupException.class)
         .hasCauseInstanceOf(ApiException.class);
 
@@ -281,11 +278,10 @@ class MicrosoftMailClientTest {
         .thenThrow(new RuntimeException(new IOException("connection reset")));
 
     var invocations = new AtomicInteger();
-    assertThatThrownBy(
-            () ->
-                client
-                    .constructMessageFetcher(new Folder.FolderById("inbox"), null)
-                    .poll(msg -> invocations.incrementAndGet()))
+    assertThatThrownBy(() ->
+            client
+                .constructMessageFetcher(new Folder.FolderById("inbox"), null)
+                .poll(msg -> invocations.incrementAndGet()))
         .isInstanceOf(MicrosoftMailClient.TransientAttachmentLookupException.class);
 
     assertThat(invocations.get()).isZero();

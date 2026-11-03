@@ -87,10 +87,9 @@ class CreateWorksheetOperationTest extends BaseTest {
       assertThat(responseTyped.getSheetId(), is(123));
 
       // Then
-      mockedServiceSupplier.verify(
-          () ->
-              GoogleSheetsServiceSupplier.getGoogleSheetsService(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedServiceSupplier.verify(() ->
+          GoogleSheetsServiceSupplier.getGoogleSheetsService(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));
@@ -125,10 +124,9 @@ class CreateWorksheetOperationTest extends BaseTest {
           .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(
-          () ->
-              GoogleSheetsServiceSupplier.getGoogleSheetsService(
-                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedServiceSupplier.verify(() ->
+          GoogleSheetsServiceSupplier.getGoogleSheetsService(
+              new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));

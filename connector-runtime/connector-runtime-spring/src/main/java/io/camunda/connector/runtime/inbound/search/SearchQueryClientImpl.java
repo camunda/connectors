@@ -60,9 +60,8 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newProcessDefinitionMessageSubscriptionStatisticsRequest()
-            .filter(
-                subscription ->
-                    subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
+            .filter(subscription ->
+                subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
@@ -77,11 +76,10 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newElementInstanceSearchRequest()
-            .filter(
-                i ->
-                    i.processDefinitionKey(processDefinitionKey)
-                        .elementId(elementId)
-                        .state(ElementInstanceState.ACTIVE));
+            .filter(i ->
+                i.processDefinitionKey(processDefinitionKey)
+                    .elementId(elementId)
+                    .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {

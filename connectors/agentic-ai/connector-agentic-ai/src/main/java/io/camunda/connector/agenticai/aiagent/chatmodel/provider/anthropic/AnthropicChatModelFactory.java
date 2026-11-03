@@ -114,13 +114,12 @@ public class AnthropicChatModelFactory implements ChatModelFactory {
         configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);
     httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(
-            p -> {
-              builder.proxy(p.proxy());
-              if (p.hasCredentials()) {
-                builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
-              }
-            });
+        .ifPresent(p -> {
+          builder.proxy(p.proxy());
+          if (p.hasCredentials()) {
+            builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
+          }
+        });
     return builder.build();
   }
 

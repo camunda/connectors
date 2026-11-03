@@ -142,19 +142,17 @@ public class HttpServiceDocumentReturnTest {
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\"message\":\"custom message\",\"temp\":36}")));
 
-    assertThatThrownBy(
-            () ->
-                httpService.executeConnectorRequest(
-                    getRequest(wm), documentFactory, DocumentReturnChoice.JSON))
+    assertThatThrownBy(() ->
+            httpService.executeConnectorRequest(
+                getRequest(wm), documentFactory, DocumentReturnChoice.JSON))
         .isInstanceOf(ConnectorException.class)
-        .satisfies(
-            ex -> {
-              var ce = (ConnectorException) ex;
-              assertThat(ce.getErrorCode()).isEqualTo("400");
-              var response = (Map<String, Object>) ce.getErrorVariables().get("response");
-              var body = (Map<String, Object>) response.get("body");
-              assertThat(body).containsEntry("temp", 36).containsEntry("message", "custom message");
-            });
+        .satisfies(ex -> {
+          var ce = (ConnectorException) ex;
+          assertThat(ce.getErrorCode()).isEqualTo("400");
+          var response = (Map<String, Object>) ce.getErrorVariables().get("response");
+          var body = (Map<String, Object>) response.get("body");
+          assertThat(body).containsEntry("temp", 36).containsEntry("message", "custom message");
+        });
   }
 
   @Test

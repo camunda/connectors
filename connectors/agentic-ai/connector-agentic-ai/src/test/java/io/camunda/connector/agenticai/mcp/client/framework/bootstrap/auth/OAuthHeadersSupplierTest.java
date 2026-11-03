@@ -96,8 +96,7 @@ class OAuthHeadersSupplierTest {
     assertThatThrownBy(supplier::get)
         .isInstanceOf(ConnectorException.class)
         .hasMessage("MCP client authentication failed: token endpoint returned 401 - " + body)
-        .satisfies(
-            e ->
-                assertThat(((ConnectorException) e).getErrorVariables()).isEqualTo(errorVariables));
+        .satisfies(e ->
+            assertThat(((ConnectorException) e).getErrorVariables()).isEqualTo(errorVariables));
   }
 }

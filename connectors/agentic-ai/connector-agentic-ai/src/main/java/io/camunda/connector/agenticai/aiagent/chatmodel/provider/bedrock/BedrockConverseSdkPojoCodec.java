@@ -181,9 +181,8 @@ final class BedrockConverseSdkPojoCodec {
 
   private static Map<String, Object> captureMap(Map<?, ?> values, SdkField<?> valueField) {
     final Map<String, Object> captured = new LinkedHashMap<>();
-    values.forEach(
-        (key, value) ->
-            captured.put((String) key, value == null ? null : captureValue(value, valueField)));
+    values.forEach((key, value) ->
+        captured.put((String) key, value == null ? null : captureValue(value, valueField)));
     return captured;
   }
 

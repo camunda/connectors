@@ -47,12 +47,11 @@ class SearchQueryClientImplTest {
     final ProcessDefinitionFilter filter = mock(ProcessDefinitionFilter.class, RETURNS_SELF);
     when(camundaClient.newProcessDefinitionSearchRequest()).thenReturn(searchRequest);
     when(searchRequest.filter(any(Consumer.class)))
-        .thenAnswer(
-            invocation -> {
-              final Consumer<ProcessDefinitionFilter> filterConsumer = invocation.getArgument(0);
-              filterConsumer.accept(filter);
-              return searchRequest;
-            });
+        .thenAnswer(invocation -> {
+          final Consumer<ProcessDefinitionFilter> filterConsumer = invocation.getArgument(0);
+          filterConsumer.accept(filter);
+          return searchRequest;
+        });
     when(searchRequest.page(any(Consumer.class))).thenReturn(searchRequest);
     @SuppressWarnings("unchecked")
     final CamundaFuture<SearchResponse<ProcessDefinition>> future = mock(CamundaFuture.class);

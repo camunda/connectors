@@ -103,7 +103,8 @@ class SageMakerSyncCallerTest {
     var runtime = mock(SageMakerRuntimeClient.class);
     String jsonBody =
         """
-        {"predictions":[{"label":"POSITIVE","score":0.9821},{"label":"NEGATIVE","score":0.0179}],"modelId":"text-classification-v3"}""";
+        {"predictions":[{"label":"POSITIVE","score":0.9821},{"label":"NEGATIVE","score":0.0179}],"modelId":"text-classification-v3"}\
+        """;
     var mockedAwsCall =
         InvokeEndpointResponse.builder()
             .body(SdkBytes.fromByteArray(jsonBody.getBytes(StandardCharsets.UTF_8)))

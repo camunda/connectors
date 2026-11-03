@@ -233,12 +233,11 @@ class OpenAiContentConverterTest {
 
   @Test
   void rejectsUnsupportedContentType() {
-    assertThatThrownBy(
-            () ->
-                converter.toResponsesContentParts(
-                    List.of(
-                        DocumentContent.documentContent(
-                            documentWithContentType("application/x-nope")))))
+    assertThatThrownBy(() ->
+            converter.toResponsesContentParts(
+                List.of(
+                    DocumentContent.documentContent(
+                        documentWithContentType("application/x-nope")))))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("application/x-nope");
   }

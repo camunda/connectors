@@ -94,17 +94,16 @@ class CamundaApiRetryTest {
         };
 
     // when / then
-    assertThatThrownBy(
-            () ->
-                CamundaApiRetry.execute(
-                    () -> {
-                      throw new RuntimeException("permanent");
-                    },
-                    t -> PERMANENT,
-                    3,
-                    Duration.ofSeconds(1),
-                    capturingMapper,
-                    recordingSleeper(recordedSleeps)))
+    assertThatThrownBy(() ->
+            CamundaApiRetry.execute(
+                () -> {
+                  throw new RuntimeException("permanent");
+                },
+                t -> PERMANENT,
+                3,
+                Duration.ofSeconds(1),
+                capturingMapper,
+                recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
     assertThat(capturedReason.get()).isEqualTo(PERMANENT_ERROR);
@@ -127,17 +126,16 @@ class CamundaApiRetryTest {
         };
 
     // when / then
-    assertThatThrownBy(
-            () ->
-                CamundaApiRetry.execute(
-                    () -> {
-                      throw new RuntimeException("fail");
-                    },
-                    t -> classifierCallCount.incrementAndGet() <= 2 ? RETRYABLE : PERMANENT,
-                    4,
-                    Duration.ofSeconds(1),
-                    capturingMapper,
-                    recordingSleeper(recordedSleeps)))
+    assertThatThrownBy(() ->
+            CamundaApiRetry.execute(
+                () -> {
+                  throw new RuntimeException("fail");
+                },
+                t -> classifierCallCount.incrementAndGet() <= 2 ? RETRYABLE : PERMANENT,
+                4,
+                Duration.ofSeconds(1),
+                capturingMapper,
+                recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
     assertThat(capturedReason.get()).isEqualTo(PERMANENT_ERROR);
@@ -159,17 +157,16 @@ class CamundaApiRetryTest {
         };
 
     // when / then
-    assertThatThrownBy(
-            () ->
-                CamundaApiRetry.execute(
-                    () -> {
-                      throw new RuntimeException("always fail");
-                    },
-                    ErrorClassifier.onAllExceptions(),
-                    4,
-                    Duration.ofSeconds(1),
-                    capturingMapper,
-                    recordingSleeper(recordedSleeps)))
+    assertThatThrownBy(() ->
+            CamundaApiRetry.execute(
+                () -> {
+                  throw new RuntimeException("always fail");
+                },
+                ErrorClassifier.onAllExceptions(),
+                4,
+                Duration.ofSeconds(1),
+                capturingMapper,
+                recordingSleeper(recordedSleeps)))
         .isInstanceOf(ConnectorException.class);
 
     assertThat(capturedReason.get()).isEqualTo(RETRIES_EXHAUSTED);
@@ -199,17 +196,16 @@ class CamundaApiRetryTest {
         };
 
     // when / then
-    assertThatThrownBy(
-            () ->
-                CamundaApiRetry.execute(
-                    () -> {
-                      throw new RuntimeException("fail");
-                    },
-                    ErrorClassifier.onAllExceptions(),
-                    3,
-                    Duration.ofSeconds(1),
-                    capturingMapper,
-                    interruptingSleeper))
+    assertThatThrownBy(() ->
+            CamundaApiRetry.execute(
+                () -> {
+                  throw new RuntimeException("fail");
+                },
+                ErrorClassifier.onAllExceptions(),
+                3,
+                Duration.ofSeconds(1),
+                capturingMapper,
+                interruptingSleeper))
         .isInstanceOf(ConnectorException.class);
 
     assertThat(capturedReason.get()).isEqualTo(INTERRUPTED);

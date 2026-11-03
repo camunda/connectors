@@ -47,47 +47,46 @@ public class AdHocToolSchemaGeneratorImpl implements AdHocToolSchemaGenerator {
 
     element
         .parameters()
-        .forEach(
-            parameter -> {
-              final var parameterName = parameterName(element, parameter);
+        .forEach(parameter -> {
+          final var parameterName = parameterName(element, parameter);
 
-              if (restrictedParamNames.contains(parameterName)) {
-                throw new AdHocToolSchemaGenerationException(
-                    "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is restricted and cannot be used."
-                        .formatted(element.elementId(), parameter.name()));
-              }
+          if (restrictedParamNames.contains(parameterName)) {
+            throw new AdHocToolSchemaGenerationException(
+                "Failed to generate ad-hoc tool schema for element '%s'. Parameter name '%s' is restricted and cannot be used."
+                    .formatted(element.elementId(), parameter.name()));
+          }
 
-              if (properties.containsKey(parameterName)) {
-                throw new AdHocToolSchemaGenerationException(
-                    "Failed to generate ad-hoc tool schema for element '%s'. Duplicate parameter name '%s'."
-                        .formatted(element.elementId(), parameter.name()));
-              }
+          if (properties.containsKey(parameterName)) {
+            throw new AdHocToolSchemaGenerationException(
+                "Failed to generate ad-hoc tool schema for element '%s'. Duplicate parameter name '%s'."
+                    .formatted(element.elementId(), parameter.name()));
+          }
 
-              final var propertySchema =
-                  Optional.ofNullable(parameter.schema())
-                      .map(LinkedHashMap::new)
-                      .orElseGet(LinkedHashMap::new);
+          final var propertySchema =
+              Optional.ofNullable(parameter.schema())
+                  .map(LinkedHashMap::new)
+                  .orElseGet(LinkedHashMap::new);
 
-              // apply type from parameter if it is set
-              if (StringUtils.isNotBlank(parameter.type())) {
-                propertySchema.put(PROPERTY_TYPE, parameter.type());
-              }
+          // apply type from parameter if it is set
+          if (StringUtils.isNotBlank(parameter.type())) {
+            propertySchema.put(PROPERTY_TYPE, parameter.type());
+          }
 
-              // default to string if no type is set (not on parameter, not in schema directly)
-              if (!propertySchema.containsKey(PROPERTY_TYPE)) {
-                propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
-              }
+          // default to string if no type is set (not on parameter, not in schema directly)
+          if (!propertySchema.containsKey(PROPERTY_TYPE)) {
+            propertySchema.put(PROPERTY_TYPE, TYPE_STRING);
+          }
 
-              if (StringUtils.isNotBlank(parameter.description())) {
-                propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
-              }
+          if (StringUtils.isNotBlank(parameter.description())) {
+            propertySchema.put(PROPERTY_DESCRIPTION, parameter.description());
+          }
 
-              properties.put(parameterName, propertySchema);
+          properties.put(parameterName, propertySchema);
 
-              if (isParameterRequired(element, parameter)) {
-                required.add(parameterName);
-              }
-            });
+          if (isParameterRequired(element, parameter)) {
+            required.add(parameterName);
+          }
+        });
 
     Map<String, Object> inputSchema = new LinkedHashMap<>();
     inputSchema.put(PROPERTY_TYPE, TYPE_OBJECT);

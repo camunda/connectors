@@ -104,11 +104,12 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
     // Given
     String input =
         """
-                     {
-                     "type": "deleteItem",
-                     "tableName": "{{secrets.TABLE_NAME_KEY}}",
-                     "primaryKeyComponents":{"id":"{{secrets.KEY_ATTRIBUTE_VALUE}}"}
-                     }""";
+        {
+        "type": "deleteItem",
+        "tableName": "{{secrets.TABLE_NAME_KEY}}",
+        "primaryKeyComponents":{"id":"{{secrets.KEY_ATTRIBUTE_VALUE}}"}
+        }\
+        """;
     OutboundConnectorContext context = getContextWithSecrets(input);
     var request = context.bindVariables(AwsInput.class);
     // Then

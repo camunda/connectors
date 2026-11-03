@@ -24,53 +24,55 @@ public abstract class BaseTest {
 
   protected static final String DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD =
       """
-                  {
-                      "authentication":{
-                        "secretKey":"XXX",
-                        "accessKey":"YYY"
-                      },
-                      "queue":{
-                        "messageAttributes":{
-                          "description":{
-                            "StringValue":"delivery receipt from transaction 001122334455",
-                            "DataType":"String"
-                          },
-                          "size":{
-                            "StringValue":"2 KiB",
-                            "DataType":"String"
-                          }
-                        },
-                        "messageBody":{
-                          "data":"ok"
-                        },
-                        "region":"us-east-1",
-                        "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
-                      }
-                    }""";
+      {
+          "authentication":{
+            "secretKey":"XXX",
+            "accessKey":"YYY"
+          },
+          "queue":{
+            "messageAttributes":{
+              "description":{
+                "StringValue":"delivery receipt from transaction 001122334455",
+                "DataType":"String"
+              },
+              "size":{
+                "StringValue":"2 KiB",
+                "DataType":"String"
+              }
+            },
+            "messageBody":{
+              "data":"ok"
+            },
+            "region":"us-east-1",
+            "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
+          }
+        }\
+      """;
 
   protected static final String DEFAULT_REQUEST_BODY_WITH_STRING_PAYLOAD =
       """
-                  {
-                      "authentication":{
-                        "secretKey":"XXX",
-                        "accessKey":"YYY"
-                      },
-                      "queue":{
-                        "messageAttributes":{
-                          "description":{
-                            "StringValue":"delivery receipt from transaction 001122334455",
-                            "DataType":"String"
-                          },
-                          "size":{
-                            "StringValue":"2 KiB",
-                            "DataType":"String"
-                          }
-                        },
-                        "messageBody": "I am a string value!",
-                        "region":"us-east-1",
-                        "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
-                      }
-                    }""";
+      {
+          "authentication":{
+            "secretKey":"XXX",
+            "accessKey":"YYY"
+          },
+          "queue":{
+            "messageAttributes":{
+              "description":{
+                "StringValue":"delivery receipt from transaction 001122334455",
+                "DataType":"String"
+              },
+              "size":{
+                "StringValue":"2 KiB",
+                "DataType":"String"
+              }
+            },
+            "messageBody": "I am a string value!",
+            "region":"us-east-1",
+            "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
+          }
+        }\
+      """;
 
   protected static final ObjectMapper objectMapper =
       ObjectMapperSupplier.getMapperInstance()

@@ -64,24 +64,21 @@ class KafkaConnectionConfigurationTest {
   @ValueSource(strings = {" ", "\t\n"})
   void requiresEveryField(String blank) {
     var validator = new DefaultValidationProvider();
-    assertThatThrownBy(
-            () ->
-                validator.validate(
-                    new KafkaConnectionConfiguration(blank, VALID.username(), VALID.password())))
+    assertThatThrownBy(() ->
+            validator.validate(
+                new KafkaConnectionConfiguration(blank, VALID.username(), VALID.password())))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("bootstrapServers");
-    assertThatThrownBy(
-            () ->
-                validator.validate(
-                    new KafkaConnectionConfiguration(
-                        VALID.bootstrapServers(), blank, VALID.password())))
+    assertThatThrownBy(() ->
+            validator.validate(
+                new KafkaConnectionConfiguration(
+                    VALID.bootstrapServers(), blank, VALID.password())))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("username");
-    assertThatThrownBy(
-            () ->
-                validator.validate(
-                    new KafkaConnectionConfiguration(
-                        VALID.bootstrapServers(), VALID.username(), blank)))
+    assertThatThrownBy(() ->
+            validator.validate(
+                new KafkaConnectionConfiguration(
+                    VALID.bootstrapServers(), VALID.username(), blank)))
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining("password");
   }

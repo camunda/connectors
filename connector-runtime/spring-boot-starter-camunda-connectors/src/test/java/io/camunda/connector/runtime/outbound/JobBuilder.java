@@ -98,12 +98,11 @@ public class JobBuilder {
       // wraps any failure in an InternalClientException, regardless of which node type the caller
       // asked for (JsonNode vs ObjectNode) — production code asks for both, depending on the path.
       lenient()
-          .doAnswer(
-              invocation -> {
-                Class<?> cls = invocation.getArgument(0);
-                JsonNode node = parseLikeClient(variables);
-                return cls.cast(node);
-              })
+          .doAnswer(invocation -> {
+            Class<?> cls = invocation.getArgument(0);
+            JsonNode node = parseLikeClient(variables);
+            return cls.cast(node);
+          })
           .when(job)
           .getVariablesAsType(any());
       return this;

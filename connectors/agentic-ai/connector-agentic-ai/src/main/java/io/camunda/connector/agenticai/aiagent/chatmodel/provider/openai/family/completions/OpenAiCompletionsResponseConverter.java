@@ -193,11 +193,11 @@ public class OpenAiCompletionsResponseConverter {
    * Mistral's {@code thinking} chunk) becomes whatever domain {@link Content} it produces; a plain
    * {@code text} chunk becomes a {@link TextContent}; any other chunk type (this endpoint's own
    * {@code ContentChunk} union additionally allows {@code reference}/{@code image_url}/{@code
-   * document_url}/{@code file}/{@code input_audio}, e.g. a citation from a web-search-tool-
-   * augmented answer) has no provider-neutral representation and is preserved losslessly as {@link
-   * ProviderContent} instead -- mirrors the custom-tool-call handling in {@link #toToolCall} -- so
-   * nothing is silently dropped from conversation history even if this connector can't otherwise
-   * act on it.
+   * document_url}/{@code file}/{@code input_audio}, e.g. a citation from a
+   * web-search-tool-augmented answer) has no provider-neutral representation and is preserved
+   * losslessly as {@link ProviderContent} instead -- mirrors the custom-tool-call handling in
+   * {@link #toToolCall} -- so nothing is silently dropped from conversation history even if this
+   * connector can't otherwise act on it.
    */
   private void mapChunkedContent(List<JsonValue> chunks, List<Content> content) {
     for (final JsonValue chunkValue : chunks) {

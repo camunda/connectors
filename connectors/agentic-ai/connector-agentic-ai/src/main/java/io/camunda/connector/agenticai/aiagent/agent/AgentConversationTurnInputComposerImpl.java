@@ -178,22 +178,20 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
 
     final var missingToolCalls = new ArrayList<ToolCall>();
     final var orderedToolCallResults = new ArrayList<ToolCallResult>();
-    toolCalls.forEach(
-        toolCall -> {
-          final var result = toolCallResultsById.get(toolCall.id());
-          if (result != null) {
-            orderedToolCallResults.add(result);
-          } else {
-            missingToolCalls.add(toolCall);
-            if (interruptMissingToolCalls) {
-              LOGGER.debug(
-                  "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
-              orderedToolCallResults.add(
-                  ToolCallResult.forCancelledToolCall(
-                      toolCall.id(), toolCall.name(), OffsetDateTime.now()));
-            }
-          }
-        });
+    toolCalls.forEach(toolCall -> {
+      final var result = toolCallResultsById.get(toolCall.id());
+      if (result != null) {
+        orderedToolCallResults.add(result);
+      } else {
+        missingToolCalls.add(toolCall);
+        if (interruptMissingToolCalls) {
+          LOGGER.debug("Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
+          orderedToolCallResults.add(
+              ToolCallResult.forCancelledToolCall(
+                  toolCall.id(), toolCall.name(), OffsetDateTime.now()));
+        }
+      }
+    });
 
     // some results still missing, not interrupting due to events -> we wait for more to arrive
     if (!missingToolCalls.isEmpty() && !interruptMissingToolCalls) {

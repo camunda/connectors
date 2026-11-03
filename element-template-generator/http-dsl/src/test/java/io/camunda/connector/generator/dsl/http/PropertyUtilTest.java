@@ -189,10 +189,9 @@ public class PropertyUtilTest {
 
     assertThat(result.unconditional()).isFalse();
     assertThat(result.group().properties())
-        .filteredOn(
-            property ->
-                property.getBinding() instanceof ZeebeInput binding
-                    && "authentication.scopes".equals(binding.name()))
+        .filteredOn(property ->
+            property.getBinding() instanceof ZeebeInput binding
+                && "authentication.scopes".equals(binding.name()))
         .extracting(Property::getValue)
         .containsExactlyInAnyOrder("read:contacts", "read:deals");
   }
@@ -299,16 +298,14 @@ public class PropertyUtilTest {
     assertThat(properties).hasSize(5);
 
     assertThat(properties)
-        .anyMatch(
-            element ->
-                element.getValue().equals("={Content-Type: Content_Type}")
-                    && element.getType().equals("Hidden"));
+        .anyMatch(element ->
+            element.getValue().equals("={Content-Type: Content_Type}")
+                && element.getType().equals("Hidden"));
 
     assertThat(properties)
-        .anyMatch(
-            element ->
-                element.getId().equals("POST_/mypath_header_Content-Type")
-                    && element.getValue().equals("multipart/form-data")
-                    && element.getType().equals("Hidden"));
+        .anyMatch(element ->
+            element.getId().equals("POST_/mypath_header_Content-Type")
+                && element.getValue().equals("multipart/form-data")
+                && element.getType().equals("Hidden"));
   }
 }

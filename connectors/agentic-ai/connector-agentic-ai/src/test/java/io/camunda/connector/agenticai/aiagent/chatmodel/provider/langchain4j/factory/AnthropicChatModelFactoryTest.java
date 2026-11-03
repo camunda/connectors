@@ -88,7 +88,7 @@ class AnthropicChatModelFactoryTest {
 
     testAnthropicChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).timeout(MODEL_TIMEOUT.timeout());
           verify(builder).apiKey(ANTHROPIC_API_KEY);
           verify(builder).modelName(ANTHROPIC_MODEL);
@@ -112,7 +112,7 @@ class AnthropicChatModelFactoryTest {
 
     testAnthropicChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).baseUrl("https://my-custom-endpoint.local");
         });
   }
@@ -131,7 +131,7 @@ class AnthropicChatModelFactoryTest {
 
     testAnthropicChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder, never()).maxTokens(anyInt());
           verify(builder, never()).temperature(anyDouble());
           verify(builder, never()).topP(anyDouble());
@@ -153,7 +153,7 @@ class AnthropicChatModelFactoryTest {
                 new AnthropicModel(ANTHROPIC_MODEL, null)));
 
     testAnthropicChatModelBuilder(
-        providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
+        providerConfig, builder -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
   @Test

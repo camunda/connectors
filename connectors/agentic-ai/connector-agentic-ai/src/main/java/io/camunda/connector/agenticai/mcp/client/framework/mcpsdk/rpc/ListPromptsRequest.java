@@ -53,17 +53,14 @@ final class ListPromptsRequest {
     var result =
         new McpClientListPromptsResult(
             filteredPrompts.stream()
-                .map(
-                    fr ->
-                        new PromptDescription(
-                            fr.name(),
-                            fr.title(),
-                            fr.description(),
-                            Optional.ofNullable(fr.arguments())
-                                .orElse(Collections.emptyList())
-                                .stream()
-                                .map(this::from)
-                                .toList()))
+                .map(fr ->
+                    new PromptDescription(
+                        fr.name(),
+                        fr.title(),
+                        fr.description(),
+                        Optional.ofNullable(fr.arguments()).orElse(Collections.emptyList()).stream()
+                            .map(this::from)
+                            .toList()))
                 .toList());
 
     LOGGER.debug(

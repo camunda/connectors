@@ -140,11 +140,12 @@ public class AgentA2aIntegrationTestSupport {
         weatherResult,
         exchangeRateResult,
         """
-            I called some of my normal and A2A tools and got the following results:
-            SuperfluxProduct: 39
-            A2A_Travel_Agent: %s
-            A2A_Weather_Agent: %s
-            A2A_Exchange_Rate_Agent: %s"""
+        I called some of my normal and A2A tools and got the following results:
+        SuperfluxProduct: 39
+        A2A_Travel_Agent: %s
+        A2A_Weather_Agent: %s
+        A2A_Exchange_Rate_Agent: %s\
+        """
             .formatted(travelResult, weatherResult, exchangeRateResult),
         "No.");
   }

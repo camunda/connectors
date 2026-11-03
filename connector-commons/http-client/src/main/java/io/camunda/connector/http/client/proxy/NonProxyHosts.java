@@ -84,11 +84,10 @@ public class NonProxyHosts {
    */
   static String toRegex(String nonProxyHosts) {
     return Arrays.stream(nonProxyHosts.split("\\|", -1))
-        .map(
-            token ->
-                Arrays.stream(token.split("\\*", -1))
-                    .map(Pattern::quote)
-                    .collect(Collectors.joining(".*")))
+        .map(token ->
+            Arrays.stream(token.split("\\*", -1))
+                .map(Pattern::quote)
+                .collect(Collectors.joining(".*")))
         .collect(Collectors.joining("|"));
   }
 

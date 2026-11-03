@@ -769,16 +769,15 @@ public class SpringConnectorJobHandler implements JobHandler {
             .create(command, deadline, counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
             .executeAsync();
 
-    completeJobRequest.whenComplete(
-        (outcome, throwable) -> {
-          var commandFailure = commandFailureOrNull(outcome, throwable);
-          if (commandFailure == null) {
-            connectorsOutboundMetrics.recordCompleted(job.getType());
-            notifyJobCompleted(context, connectorResponse);
-          } else {
-            notifyJobCompletionFailed(context, connectorResponse, commandFailure);
-          }
-        });
+    completeJobRequest.whenComplete((outcome, throwable) -> {
+      var commandFailure = commandFailureOrNull(outcome, throwable);
+      if (commandFailure == null) {
+        connectorsOutboundMetrics.recordCompleted(job.getType());
+        notifyJobCompleted(context, connectorResponse);
+      } else {
+        notifyJobCompletionFailed(context, connectorResponse, commandFailure);
+      }
+    });
 
     return completeJobRequest;
   }
@@ -795,26 +794,24 @@ public class SpringConnectorJobHandler implements JobHandler {
     return client
         .newCompleteCommand(job)
         .variables(variables)
-        .withResult(
-            resultStep -> {
-              var adHocSubProcess =
-                  resultStep
-                      .forAdHocSubProcess()
-                      .completionConditionFulfilled(
-                          connectorResponse.completionConditionFulfilled())
-                      .cancelRemainingInstances(connectorResponse.cancelRemainingInstances());
+        .withResult(resultStep -> {
+          var adHocSubProcess =
+              resultStep
+                  .forAdHocSubProcess()
+                  .completionConditionFulfilled(connectorResponse.completionConditionFulfilled())
+                  .cancelRemainingInstances(connectorResponse.cancelRemainingInstances());
 
-              List<ElementActivation> elementActivations =
-                  requireNonNullElse(connectorResponse.elementActivations(), List.of());
-              for (ElementActivation activation : elementActivations) {
-                adHocSubProcess =
-                    adHocSubProcess
-                        .activateElement(activation.elementId())
-                        .variables(requireNonNullElse(activation.variables(), Map.of()));
-              }
+          List<ElementActivation> elementActivations =
+              requireNonNullElse(connectorResponse.elementActivations(), List.of());
+          for (ElementActivation activation : elementActivations) {
+            adHocSubProcess =
+                adHocSubProcess
+                    .activateElement(activation.elementId())
+                    .variables(requireNonNullElse(activation.variables(), Map.of()));
+          }
 
-              return adHocSubProcess;
-            });
+          return adHocSubProcess;
+        });
   }
 
   private void checkVariablesSize(Map<String, Object> variables) {
@@ -846,10 +843,9 @@ public class SpringConnectorJobHandler implements JobHandler {
       OutboundConnectorContext context,
       ConnectorResponse response,
       Function<CommandFailure, JobCompletionFailure> failureBuilder) {
-    request.whenComplete(
-        (outcome, throwable) ->
-            notifyJobCompletionFailed(
-                context, response, failureBuilder.apply(commandFailureOrNull(outcome, throwable))));
+    request.whenComplete((outcome, throwable) ->
+        notifyJobCompletionFailed(
+            context, response, failureBuilder.apply(commandFailureOrNull(outcome, throwable))));
   }
 
   private void notifyJobCompleted(OutboundConnectorContext context, ConnectorResponse response) {

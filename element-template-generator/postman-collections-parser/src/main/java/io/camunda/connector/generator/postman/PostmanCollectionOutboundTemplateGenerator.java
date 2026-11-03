@@ -127,17 +127,14 @@ public class PostmanCollectionOutboundTemplateGenerator
     }
 
     return operations.stream()
-        .filter(
-            op -> {
-              if (op.supported()) {
-                return true;
-              }
-              LOG.warn(
-                  "Operation {} is not supported, reason: {}. It will be skipped",
-                  op.id(),
-                  op.info());
-              return false;
-            })
+        .filter(op -> {
+          if (op.supported()) {
+            return true;
+          }
+          LOG.warn(
+              "Operation {} is not supported, reason: {}. It will be skipped", op.id(), op.info());
+          return false;
+        })
         .map(OperationParseResult::builder)
         .toList();
   }
@@ -154,11 +151,10 @@ public class PostmanCollectionOutboundTemplateGenerator
     elementTypes.stream()
         .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
         .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  String.format("Unsupported element type '%s'", t.elementType().getName()));
-            });
+        .ifPresent(t -> {
+          throw new IllegalArgumentException(
+              String.format("Unsupported element type '%s'", t.elementType().getName()));
+        });
     if (elementTypes.isEmpty()) {
       elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
     }

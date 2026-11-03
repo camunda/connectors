@@ -37,12 +37,11 @@ class AgentInstanceToolMapperTest {
 
     assertThat(mapped)
         .singleElement()
-        .satisfies(
-            agentTool -> {
-              assertThat(agentTool.getName()).isEqualTo("getWeather");
-              assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
-              assertThat(agentTool.getElementId()).isEqualTo("getWeather");
-            });
+        .satisfies(agentTool -> {
+          assertThat(agentTool.getName()).isEqualTo("getWeather");
+          assertThat(agentTool.getDescription()).isEqualTo("Get the weather forecast");
+          assertThat(agentTool.getElementId()).isEqualTo("getWeather");
+        });
   }
 
   @Test
@@ -60,11 +59,10 @@ class AgentInstanceToolMapperTest {
 
     assertThat(mapped)
         .singleElement()
-        .satisfies(
-            agentTool -> {
-              assertThat(agentTool.getName()).isEqualTo("MCP_McpTest___greet");
-              assertThat(agentTool.getDescription()).isEqualTo("Greet someone");
-              assertThat(agentTool.getElementId()).isEqualTo("McpTest");
-            });
+        .satisfies(agentTool -> {
+          assertThat(agentTool.getName()).isEqualTo("MCP_McpTest___greet");
+          assertThat(agentTool.getDescription()).isEqualTo("Greet someone");
+          assertThat(agentTool.getElementId()).isEqualTo("McpTest");
+        });
   }
 }

@@ -70,7 +70,7 @@ public class InboundInstancesRestController {
     }
   }
 
-  @GetMapping()
+  @GetMapping
   public List<ConnectorInstances> getConnectorInstances(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,

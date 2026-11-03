@@ -36,8 +36,8 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        { "properties": [ { "id": "a" }, { "id": "b" } ] }
-        """);
+            { "properties": [ { "id": "a" }, { "id": "b" } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -46,13 +46,13 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authType" },
-            { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "authType" },
+                { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -61,13 +61,13 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup" },
-            { "id": "x", "condition": { "property": "opGruop", "oneOf": ["issues"] } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup" },
+                { "id": "x", "condition": { "property": "opGruop", "oneOf": ["issues"] } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -81,16 +81,16 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "providerType" },
-            { "id": "x", "condition": { "allMatch": [
-              { "property": "providerType", "equals": "bedrock" },
-              { "property": "missingOne", "equals": "credentials" }
-            ]}}
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "providerType" },
+                { "id": "x", "condition": { "allMatch": [
+                  { "property": "providerType", "equals": "bedrock" },
+                  { "property": "missingOne", "equals": "credentials" }
+                ]}}
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer())
@@ -103,16 +103,16 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "a" }, { "id": "b" },
-            { "id": "x", "condition": { "allMatch": [
-              { "property": "a", "equals": 1 },
-              { "property": "b", "equals": 2 }
-            ]}}
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "a" }, { "id": "b" },
+                { "id": "x", "condition": { "allMatch": [
+                  { "property": "a", "equals": 1 },
+                  { "property": "b", "equals": 2 }
+                ]}}
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -121,13 +121,13 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authentication.authType" },
-            { "id": "x", "condition": { "property": "authentication.authType", "equals": "pat" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "authentication.authType" },
+                { "id": "x", "condition": { "property": "authentication.authType", "equals": "pat" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -136,14 +136,14 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "a" },
-            { "id": "x", "condition": { "property": "missing1", "equals": "v" } },
-            { "id": "y", "condition": { "property": "missing2", "oneOf": ["v"] } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "a" },
+                { "id": "x", "condition": { "property": "missing1", "equals": "v" } },
+                { "id": "y", "condition": { "property": "missing2", "oneOf": ["v"] } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(2);
     assertThat(findings)
@@ -162,18 +162,18 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "baseRequest.authType" } ],
-          "configurationTemplates": [
             {
-              "properties": [
-                { "id": "authType" },
-                { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+              "properties": [ { "id": "baseRequest.authType" } ],
+              "configurationTemplates": [
+                {
+                  "properties": [
+                    { "id": "authType" },
+                    { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+                  ]
+                }
               ]
             }
-          ]
-        }
-        """);
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -182,17 +182,17 @@ class ConditionTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "authType" } ],
-          "configurationTemplates": [
             {
-              "properties": [
-                { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+              "properties": [ { "id": "authType" } ],
+              "configurationTemplates": [
+                {
+                  "properties": [
+                    { "id": "token", "condition": { "property": "authType", "equals": "pat" } }
+                  ]
+                }
               ]
             }
-          ]
-        }
-        """);
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer())

@@ -110,8 +110,7 @@ class RealProviderCoreE2ETestIT extends RealProviderApiSmokeSupport {
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .hasResponseTextSatisfying(
-                    text ->
-                        assertThat(normalizeShortAnswer(text)).isEqualToIgnoringCase(memoryToken)));
+                .hasResponseTextSatisfying(text ->
+                    assertThat(normalizeShortAnswer(text)).isEqualToIgnoringCase(memoryToken)));
   }
 }

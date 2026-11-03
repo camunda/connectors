@@ -58,12 +58,11 @@ public class PresetConditionsSatisfiedRule implements Rule {
       Map<String, String> assignment = new LinkedHashMap<>();
       properties
           .properties()
-          .forEach(
-              e -> {
-                if (e.getValue().isTextual()) {
-                  assignment.put(e.getKey(), e.getValue().asText());
-                }
-              });
+          .forEach(e -> {
+            if (e.getValue().isTextual()) {
+              assignment.put(e.getKey(), e.getValue().asText());
+            }
+          });
       for (Map.Entry<String, String> entry : assignment.entrySet()) {
         String key = entry.getKey();
         List<JsonNode> conditions = conditionsByPropertyId.get(key);

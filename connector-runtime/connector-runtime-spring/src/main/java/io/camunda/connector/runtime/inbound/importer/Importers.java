@@ -51,11 +51,10 @@ public class Importers {
       LOGGER.trace(
           "Imported latest process versions: {}",
           result.entrySet().stream()
-              .map(
-                  entry ->
-                      String.format(
-                          "%s => key: %d",
-                          entry.getKey().bpmnProcessId(), entry.getValue().iterator().next()))
+              .map(entry ->
+                  String.format(
+                      "%s => key: %d",
+                      entry.getKey().bpmnProcessId(), entry.getValue().iterator().next()))
               .reduce((a, b) -> a + "; " + b)
               .orElse("none"));
     }
@@ -83,11 +82,10 @@ public class Importers {
       LOGGER.trace(
           "Imported active process versions: {}",
           result.entrySet().stream()
-              .map(
-                  entry ->
-                      String.format(
-                          "%s => keys: %s",
-                          entry.getKey().bpmnProcessId(), entry.getValue().toString()))
+              .map(entry ->
+                  String.format(
+                      "%s => keys: %s",
+                      entry.getKey().bpmnProcessId(), entry.getValue().toString()))
               .reduce((a, b) -> a + "; " + b)
               .orElse("none"));
     }

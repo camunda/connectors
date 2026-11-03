@@ -92,7 +92,7 @@ class GoogleVertexAiChatModelFactoryTest {
             null,
             new ApplicationDefaultCredentialsAuthentication(),
             DEFAULT_MODEL_PARAMETERS),
-        (builders) -> {
+        builders -> {
           verify(builders.clientBuilder).vertexAI(true);
           verify(builders.clientBuilder).project(PROJECT_ID);
           verify(builders.clientBuilder).location(REGION);
@@ -118,7 +118,7 @@ class GoogleVertexAiChatModelFactoryTest {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(
             null, null, new ApplicationDefaultCredentialsAuthentication(), modelParameters),
-        (builders) -> {
+        builders -> {
           verify(builders.chatModelBuilder, never()).maxOutputTokens(anyInt());
           verify(builders.chatModelBuilder, never()).temperature(anyDouble());
           verify(builders.chatModelBuilder, never()).topP(anyDouble());
@@ -146,7 +146,7 @@ class GoogleVertexAiChatModelFactoryTest {
               null,
               new ServiceAccountCredentialsAuthentication("{}"),
               DEFAULT_MODEL_PARAMETERS),
-          (builders) -> verify(builders.clientBuilder).credentials(scopedSac));
+          builders -> verify(builders.clientBuilder).credentials(scopedSac));
 
       staticMockedSac.verify(() -> ServiceAccountCredentials.fromStream(any()));
     }
@@ -166,14 +166,14 @@ class GoogleVertexAiChatModelFactoryTest {
                 new GoogleVertexAiModel(MODEL, null)));
 
     testGoogleVertexAiChatModelBuilder(
-        providerConfig, (builders) -> verify(builders.clientBuilder).location(region));
+        providerConfig, builders -> verify(builders.clientBuilder).location(region));
   }
 
   @Test
   void disablesGenAiRetries() {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) ->
+        builders ->
             assertThat(captureHttpOptions(builders).retryOptions())
                 .isPresent()
                 .get()
@@ -186,7 +186,7 @@ class GoogleVertexAiChatModelFactoryTest {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(
             null, MODEL_TIMEOUT, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) ->
+        builders ->
             assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(30_000));
   }
 
@@ -198,7 +198,7 @@ class GoogleVertexAiChatModelFactoryTest {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(
             null, timeouts, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) ->
+        builders ->
             assertThat(captureHttpOptions(builders).timeout())
                 .isPresent()
                 .contains((int) Duration.ofMinutes(3).toMillis()));
@@ -226,7 +226,7 @@ class GoogleVertexAiChatModelFactoryTest {
             new TimeoutConfiguration(Duration.ofNanos(500)),
             new ApplicationDefaultCredentialsAuthentication(),
             null),
-        (builders) -> assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(1));
+        builders -> assertThat(captureHttpOptions(builders).timeout()).isPresent().contains(1));
   }
 
   @Test
@@ -237,7 +237,7 @@ class GoogleVertexAiChatModelFactoryTest {
             null,
             new ApplicationDefaultCredentialsAuthentication(),
             null),
-        (builders) ->
+        builders ->
             assertThat(captureHttpOptions(builders).baseUrl())
                 .isPresent()
                 .contains("https://my-custom-endpoint.local"));
@@ -250,14 +250,14 @@ class GoogleVertexAiChatModelFactoryTest {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(
             endpoint, null, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) -> assertThat(captureHttpOptions(builders).baseUrl()).isEmpty());
+        builders -> assertThat(captureHttpOptions(builders).baseUrl()).isEmpty());
   }
 
   @Test
   void doesNotApplyClientOptionsWhenProxyNotConfigured() {
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) -> verify(builders.clientBuilder, never()).clientOptions(any()));
+        builders -> verify(builders.clientBuilder, never()).clientOptions(any()));
   }
 
   @Test
@@ -270,7 +270,7 @@ class GoogleVertexAiChatModelFactoryTest {
 
     testGoogleVertexAiChatModelBuilder(
         createProviderConfig(null, null, new ApplicationDefaultCredentialsAuthentication(), null),
-        (builders) -> {
+        builders -> {
           verify(builders.clientBuilder).clientOptions(clientOptionsArgumentCaptor.capture());
           assertThat(clientOptionsArgumentCaptor.getValue().proxyOptions()).contains(proxyOptions);
         });

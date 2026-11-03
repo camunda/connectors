@@ -57,18 +57,17 @@ public class InboundRecoveringTest extends BaseEmailTest {
     // IllegalStateException("Can not handle IMAP connection") and throws on its handler threads.
     // Surefire captures these and fails the test. This handler ignores those expected exceptions.
     originalHandler.set(Thread.getDefaultUncaughtExceptionHandler());
-    Thread.setDefaultUncaughtExceptionHandler(
-        (thread, throwable) -> {
-          if (isGreenMailImapHandlerException(throwable)) {
-            // Expected during connection-cutting tests — ignore
-            return;
-          }
-          // Delegate to original handler for unexpected exceptions
-          Thread.UncaughtExceptionHandler original = originalHandler.get();
-          if (original != null) {
-            original.uncaughtException(thread, throwable);
-          }
-        });
+    Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+      if (isGreenMailImapHandlerException(throwable)) {
+        // Expected during connection-cutting tests — ignore
+        return;
+      }
+      // Delegate to original handler for unexpected exceptions
+      Thread.UncaughtExceptionHandler original = originalHandler.get();
+      if (original != null) {
+        original.uncaughtException(thread, throwable);
+      }
+    });
   }
 
   @AfterEach
@@ -129,11 +128,10 @@ public class InboundRecoveringTest extends BaseEmailTest {
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    // We want to check it was called once at startup and once at poll
-                    verify(inboundConnectorContext, atLeast(2))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+            .untilAsserted(() ->
+                // We want to check it was called once at startup and once at poll
+                verify(inboundConnectorContext, atLeast(2))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
         // It will make the proxy switch to a kill mode, will send BYE all the time to the server,
         // closing the connection
@@ -141,11 +139,10 @@ public class InboundRecoveringTest extends BaseEmailTest {
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    // We want to check health was down for at least 1 times
-                    verify(inboundConnectorContext, atLeast(1))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
+            .untilAsserted(() ->
+                // We want to check health was down for at least 1 times
+                verify(inboundConnectorContext, atLeast(1))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
 
         Mockito.clearInvocations(inboundConnectorContext);
         proxyImap.setOkProxy();
@@ -154,24 +151,21 @@ public class InboundRecoveringTest extends BaseEmailTest {
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    verify(inboundConnectorContext, atLeast(1))
-                        .correlate(
-                            argThat(
-                                correlationRequest -> {
-                                  ReadEmailResponse response =
-                                      ((ReadEmailResponse) correlationRequest.getVariables());
-                                  return response.plainTextBody().equals("Content")
-                                      && response.subject().equals("Subject");
-                                })));
+            .untilAsserted(() ->
+                verify(inboundConnectorContext, atLeast(1))
+                    .correlate(
+                        argThat(correlationRequest -> {
+                          ReadEmailResponse response =
+                              ((ReadEmailResponse) correlationRequest.getVariables());
+                          return response.plainTextBody().equals("Content")
+                              && response.subject().equals("Subject");
+                        })));
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    verify(inboundConnectorContext, atLeast(1))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+            .untilAsserted(() ->
+                verify(inboundConnectorContext, atLeast(1))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
       } finally {
         // Ensure the proxy allows connections so stopListener()'s join() doesn't block
         // on Failsafe retries if the test failed while the proxy was in cut mode.
@@ -214,21 +208,19 @@ public class InboundRecoveringTest extends BaseEmailTest {
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    // We want to check it was called once at startup and once at poll
-                    verify(inboundConnectorContext, atLeast(2))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+            .untilAsserted(() ->
+                // We want to check it was called once at startup and once at poll
+                verify(inboundConnectorContext, atLeast(2))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
         super.sendEmail("camunda@test.com", "Subject", "Content");
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    // We want to check health was down for at least 1 times
-                    verify(inboundConnectorContext, atLeast(1))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
+            .untilAsserted(() ->
+                // We want to check health was down for at least 1 times
+                verify(inboundConnectorContext, atLeast(1))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
 
         Mockito.clearInvocations(inboundConnectorContext);
 
@@ -238,24 +230,21 @@ public class InboundRecoveringTest extends BaseEmailTest {
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    verify(inboundConnectorContext, atLeast(1))
-                        .correlate(
-                            argThat(
-                                correlationRequest -> {
-                                  ReadEmailResponse response =
-                                      ((ReadEmailResponse) correlationRequest.getVariables());
-                                  return response.plainTextBody().equals("Content")
-                                      && response.subject().equals("Subject");
-                                })));
+            .untilAsserted(() ->
+                verify(inboundConnectorContext, atLeast(1))
+                    .correlate(
+                        argThat(correlationRequest -> {
+                          ReadEmailResponse response =
+                              ((ReadEmailResponse) correlationRequest.getVariables());
+                          return response.plainTextBody().equals("Content")
+                              && response.subject().equals("Subject");
+                        })));
 
         await()
             .atMost(10, TimeUnit.SECONDS)
-            .untilAsserted(
-                () ->
-                    verify(inboundConnectorContext, atLeast(1))
-                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+            .untilAsserted(() ->
+                verify(inboundConnectorContext, atLeast(1))
+                    .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
       } finally {
         // Stop the listener BEFORE the proxy is closed by try-with-resources.
         // This ensures the IMAP connection is cleanly closed through the still-open proxy,

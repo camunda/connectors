@@ -75,19 +75,13 @@ class DocumentPhysicalTenantIsolationWiringTest {
     assertThat(documentFactoriesByPhysicalTenantId.get("tenanta"))
         .isNotSameAs(documentFactoriesByPhysicalTenantId.get("tenantb"));
 
-    assertThatThrownBy(
-            () ->
-                documentFactoriesByPhysicalTenantId
-                    .get("tenanta")
-                    .create(documentCreationRequest()))
+    assertThatThrownBy(() ->
+            documentFactoriesByPhysicalTenantId.get("tenanta").create(documentCreationRequest()))
         .rootCause()
         .hasMessageContaining("engine-a.internal");
 
-    assertThatThrownBy(
-            () ->
-                documentFactoriesByPhysicalTenantId
-                    .get("tenantb")
-                    .create(documentCreationRequest()))
+    assertThatThrownBy(() ->
+            documentFactoriesByPhysicalTenantId.get("tenantb").create(documentCreationRequest()))
         .rootCause()
         .hasMessageContaining("engine-b.internal");
   }

@@ -36,11 +36,11 @@ class PresetIdResolvesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "steps": [ { "presetId": "a" }, { "presetId": "b" } ],
-          "presets": [ { "id": "a" }, { "id": "b" } ]
-        }
-        """);
+            {
+              "steps": [ { "presetId": "a" }, { "presetId": "b" } ],
+              "presets": [ { "id": "a" }, { "id": "b" } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -49,11 +49,11 @@ class PresetIdResolvesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "steps": [ { "presetId": "missing" } ],
-          "presets": [ { "id": "a" } ]
-        }
-        """);
+            {
+              "steps": [ { "presetId": "missing" } ],
+              "presets": [ { "id": "a" } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/presetId");
@@ -65,13 +65,13 @@ class PresetIdResolvesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "steps": [
-            { "name": "g", "steps": [ { "presetId": "x" }, { "presetId": "y" } ] }
-          ],
-          "presets": [ { "id": "x" } ]
-        }
-        """);
+            {
+              "steps": [
+                { "name": "g", "steps": [ { "presetId": "x" }, { "presetId": "y" } ] }
+              ],
+              "presets": [ { "id": "x" } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/steps/1/presetId");

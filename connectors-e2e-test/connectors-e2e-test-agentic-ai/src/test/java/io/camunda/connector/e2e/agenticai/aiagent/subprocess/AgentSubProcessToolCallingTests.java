@@ -46,7 +46,7 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
             e -> e,
             FEEDBACK_LOOP_RESPONSE_TEXT,
             true,
-            (agentResponse) ->
+            agentResponse ->
                 AgentSubProcessResponseAssert.assertThat(agentResponse)
                     .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
                     .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)

@@ -19,20 +19,20 @@ class JsonSchemaConverterTest {
 
   private static final String TEST_SCHEMA =
       """
-        {
-          "type": "object",
-          "properties": {
-            "message": {
-              "type": "string",
-              "description": "Message to echo"
-            }
-          },
-          "required": [
-            "message"
-          ],
-          "additionalProperties": false
-        }
-        """;
+      {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to echo"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      }
+      """;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final JsonSchemaConverter jsonSchemaConverter = new JsonSchemaConverter(objectMapper);

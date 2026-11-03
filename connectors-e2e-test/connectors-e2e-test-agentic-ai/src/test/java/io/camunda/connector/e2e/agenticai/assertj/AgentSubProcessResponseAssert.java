@@ -60,11 +60,10 @@ public class AgentSubProcessResponseAssert
   }
 
   public AgentSubProcessResponseAssert hasReasoningContent() {
-    return hasResponseMessageSatisfying(
-        message ->
-            Assertions.assertThat(message.content())
-                .as("reasoning content")
-                .anyMatch(ReasoningContent.class::isInstance));
+    return hasResponseMessageSatisfying(message ->
+        Assertions.assertThat(message.content())
+            .as("reasoning content")
+            .anyMatch(ReasoningContent.class::isInstance));
   }
 
   public AgentSubProcessResponseAssert hasNoResponseMessage() {

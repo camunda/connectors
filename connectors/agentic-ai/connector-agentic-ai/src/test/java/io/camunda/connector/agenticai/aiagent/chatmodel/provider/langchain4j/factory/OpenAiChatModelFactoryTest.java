@@ -89,7 +89,7 @@ class OpenAiChatModelFactoryTest {
 
     testOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).timeout(MODEL_TIMEOUT.timeout());
           verify(builder).apiKey(OPEN_AI_API_KEY);
           verify(builder).modelName(OPEN_AI_MODEL);
@@ -121,7 +121,7 @@ class OpenAiChatModelFactoryTest {
 
     testOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).organizationId("MY_ORG_ID");
           verify(builder).projectId("MY_PROJECT_ID");
         });
@@ -140,7 +140,7 @@ class OpenAiChatModelFactoryTest {
 
     testOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           if (modelParameters == null) {
             verify(builder, never()).defaultRequestParameters(any());
           } else {
@@ -169,7 +169,7 @@ class OpenAiChatModelFactoryTest {
                 new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
 
     testOpenAiChatModelBuilder(
-        providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
+        providerConfig, builder -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
   @Test

@@ -74,10 +74,8 @@ public class ToolCallResultDocumentExtractor {
         Optional.ofNullable(toolCallResult.name())
             .flatMap(gatewayToolHandlers::handlerForToolDefinition)
             .map(handler -> handler.extractDocuments(toolCallResult))
-            .orElseGet(
-                () ->
-                    ContentTreeDocumentWalker.extractDocumentsFromContent(
-                        toolCallResult.content()));
+            .orElseGet(() ->
+                ContentTreeDocumentWalker.extractDocumentsFromContent(toolCallResult.content()));
     // defensive: a third-party handler might return null entries; also dedupe documents
     // that appear multiple times in a single result (e.g. the same attachment referenced
     // from different paths in the content tree) — keyed by DocumentReference, which is a

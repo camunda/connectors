@@ -203,13 +203,12 @@ public class ImportSchedulers implements CamundaClientLifecycleAware {
       ImportType importType, BiFunction<String, SearchQueryClient, ImportResult> importFn) {
     List<CompletableFuture<Boolean>> futures =
         activeSearchQueryClientsByPhysicalTenantId.entrySet().stream()
-            .map(
-                entry ->
-                    CompletableFuture.supplyAsync(
-                        () ->
-                            pollOnePhysicalTenant(
-                                importType, importFn, entry.getKey(), entry.getValue()),
-                        executor))
+            .map(entry ->
+                CompletableFuture.supplyAsync(
+                    () ->
+                        pollOnePhysicalTenant(
+                            importType, importFn, entry.getKey(), entry.getValue()),
+                    executor))
             .toList();
     return futures.stream().map(CompletableFuture::join).reduce(true, Boolean::logicalAnd);
   }

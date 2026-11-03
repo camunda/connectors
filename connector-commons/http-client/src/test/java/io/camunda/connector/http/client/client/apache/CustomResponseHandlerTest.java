@@ -105,7 +105,7 @@ public class CustomResponseHandlerTest {
   @Test
   public void shouldHandleErrorResponse() {
     // given
-    CustomResponseHandler<Void> handler = new CustomResponseHandler<>((response) -> null, false);
+    CustomResponseHandler<Void> handler = new CustomResponseHandler<>(response -> null, false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(500);
     StringEntity entity = new StringEntity("Internal Server Error: something went wrong");
     response.setEntity(entity);

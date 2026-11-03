@@ -102,7 +102,7 @@ class BedrockChatModelFactoryTest {
 
     testCreateBedrockChatModelWithCredentials(
         providerConfig,
-        (credentialsProvider) ->
+        credentialsProvider ->
             assertThat(credentialsProvider)
                 .isNotNull()
                 .isInstanceOf(DefaultCredentialsProvider.class));
@@ -122,7 +122,7 @@ class BedrockChatModelFactoryTest {
 
     testCreateBedrockChatModelWithCredentials(
         providerConfig,
-        (credentialsProvider) -> {
+        credentialsProvider -> {
           assertThat(credentialsProvider).isNotNull().isInstanceOf(StaticCredentialsProvider.class);
 
           final var credentials = credentialsProvider.resolveCredentials();
@@ -145,7 +145,7 @@ class BedrockChatModelFactoryTest {
 
     testBedrockChatModelBuilder(
         providerConfig,
-        (builders) -> {
+        builders -> {
           verify(builders.chatModelBuilder).timeout(MODEL_TIMEOUT.timeout());
 
           var clientBuilder = builders.clientBuilder;
@@ -177,7 +177,7 @@ class BedrockChatModelFactoryTest {
     testBedrockChatModelBuilder(
         providerConfig,
         URI.create("https://my-custom-endpoint.local"),
-        (builders) -> {
+        builders -> {
           verify(builders.clientBuilder)
               .endpointOverride(URI.create("https://my-custom-endpoint.local"));
         });
@@ -197,7 +197,7 @@ class BedrockChatModelFactoryTest {
     testBedrockChatModelBuilder(
         providerConfig,
         URI.create("http://localhost:8080"),
-        (builders) -> {
+        builders -> {
           verify(builders.clientBuilder).endpointOverride(URI.create("http://localhost:8080"));
         });
   }
@@ -217,7 +217,7 @@ class BedrockChatModelFactoryTest {
 
     testBedrockChatModelBuilder(
         providerConfig,
-        (builders) -> {
+        builders -> {
           if (modelParameters == null) {
             verify(builders.chatModelBuilder, never()).defaultRequestParameters(any());
           } else {
@@ -248,8 +248,7 @@ class BedrockChatModelFactoryTest {
                 new BedrockModel(BEDROCK_MODEL, null)));
 
     testBedrockChatModelBuilder(
-        providerConfig,
-        (builder) -> verify(builder.chatModelBuilder).timeout(Duration.ofMinutes(3)));
+        providerConfig, builder -> verify(builder.chatModelBuilder).timeout(Duration.ofMinutes(3)));
   }
 
   @Test
@@ -311,7 +310,7 @@ class BedrockChatModelFactoryTest {
       ThrowingConsumer<AwsCredentialsProvider> credentialsProviderAssertions) {
     testBedrockChatModelBuilder(
         providerConfig,
-        (builders) -> {
+        builders -> {
           verify(builders.clientBuilder).region(Region.EU_WEST_1);
           verify(builders.clientBuilder, never()).endpointOverride(any());
 

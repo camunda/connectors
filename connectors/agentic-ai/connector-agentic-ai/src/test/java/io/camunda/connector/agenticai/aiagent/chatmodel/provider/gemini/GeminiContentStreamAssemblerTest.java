@@ -129,11 +129,10 @@ class GeminiContentStreamAssemblerTest {
 
     assertThat(partsOf(assembled))
         .singleElement()
-        .satisfies(
-            part -> {
-              assertThat(part.text()).contains("thinking");
-              assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(THOUGHT_SIGNATURE);
-            });
+        .satisfies(part -> {
+          assertThat(part.text()).contains("thinking");
+          assertThat(part.thoughtSignature().orElseThrow()).isEqualTo(THOUGHT_SIGNATURE);
+        });
   }
 
   @Test

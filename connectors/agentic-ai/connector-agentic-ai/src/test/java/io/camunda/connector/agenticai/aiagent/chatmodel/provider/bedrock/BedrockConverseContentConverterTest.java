@@ -244,10 +244,9 @@ class BedrockConverseContentConverterTest {
 
     @Test
     void throwsWhenReasoningContentPayloadIsNotAMap() {
-      assertThatThrownBy(
-              () ->
-                  converter.toContentBlocks(
-                      List.of(new ReasoningContent("bedrock", "not-a-map", null, null))))
+      assertThatThrownBy(() ->
+              converter.toContentBlocks(
+                  List.of(new ReasoningContent("bedrock", "not-a-map", null, null))))
           .isInstanceOf(ConnectorException.class)
           .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
     }
@@ -270,10 +269,8 @@ class BedrockConverseContentConverterTest {
 
     @Test
     void throwsWhenProviderContentPayloadIsNotAMap() {
-      assertThatThrownBy(
-              () ->
-                  converter.toContentBlocks(
-                      List.of(new ProviderContent("bedrock", "not-a-map", null))))
+      assertThatThrownBy(() ->
+              converter.toContentBlocks(List.of(new ProviderContent("bedrock", "not-a-map", null))))
           .isInstanceOf(ConnectorException.class)
           .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
     }
@@ -456,23 +453,20 @@ class BedrockConverseContentConverterTest {
 
     @Test
     void throwsForReasoningContent() {
-      assertThatThrownBy(
-              () ->
-                  converter.toToolResultBlocks(
-                      List.of(
-                          new ReasoningContent(
-                              "bedrock", Map.of("reasoningText", Map.of()), null, null))))
+      assertThatThrownBy(() ->
+              converter.toToolResultBlocks(
+                  List.of(
+                      new ReasoningContent(
+                          "bedrock", Map.of("reasoningText", Map.of()), null, null))))
           .isInstanceOf(ConnectorException.class)
           .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
     }
 
     @Test
     void throwsForProviderContent() {
-      assertThatThrownBy(
-              () ->
-                  converter.toToolResultBlocks(
-                      List.of(
-                          new ProviderContent("bedrock", Map.of("cachePoint", Map.of()), null))))
+      assertThatThrownBy(() ->
+              converter.toToolResultBlocks(
+                  List.of(new ProviderContent("bedrock", Map.of("cachePoint", Map.of()), null))))
           .isInstanceOf(ConnectorException.class)
           .hasFieldOrPropertyWithValue("errorCode", "FAILED_MODEL_CALL");
     }

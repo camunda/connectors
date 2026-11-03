@@ -50,50 +50,47 @@ public record PostmanCollectionsGenerationSource(
 
     JsonNode collectionNode =
         Optional.ofNullable(collectionPathOrContent)
-            .map(
-                pathOrContent -> {
+            .map(pathOrContent -> {
+              try {
+                if (isValidJSON(pathOrContent)) {
                   try {
-                    if (isValidJSON(pathOrContent)) {
-                      try {
-                        return ObjectMapperProvider.getInstance()
-                            .readValue(pathOrContent, JsonNode.class);
-                      } catch (IOException e) {
-                        throw new IllegalArgumentException(
-                            "Couldn't parse Postman Collection to v.2.1.0 standard", e);
-                      }
-                    } else if (isValidYAML(pathOrContent)) {
-                      final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-                      mapper.findAndRegisterModules();
-                      return mapper.readValue(pathOrContent, JsonNode.class);
-                    }
-                    final File postmanCollectionsFileJson;
-                    if (pathOrContent.startsWith("http")) { // Network
-                      postmanCollectionsFileJson = File.createTempFile("postman-gen", "tmp");
-                      postmanCollectionsFileJson.deleteOnExit();
-                      InputStream collectionUrl = new URL(collectionPathOrContent).openStream();
-                      Files.copy(
-                          collectionUrl,
-                          postmanCollectionsFileJson.toPath(),
-                          StandardCopyOption.REPLACE_EXISTING);
-                    } else { // Local file system
-                      postmanCollectionsFileJson = new File(collectionPathOrContent);
-                    }
-                    if (!postmanCollectionsFileJson.exists()
-                        || !postmanCollectionsFileJson.isFile()) {
-                      throw new IllegalArgumentException(
-                          "Incorrect Postman Collections file: "
-                              + postmanCollectionsFileJson.getName());
-                    }
                     return ObjectMapperProvider.getInstance()
-                        .readValue(new FileInputStream(postmanCollectionsFileJson), JsonNode.class);
+                        .readValue(pathOrContent, JsonNode.class);
                   } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new IllegalArgumentException(
+                        "Couldn't parse Postman Collection to v.2.1.0 standard", e);
                   }
-                })
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Postman file path, URL, or content must be provided as first parameter"));
+                } else if (isValidYAML(pathOrContent)) {
+                  final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+                  mapper.findAndRegisterModules();
+                  return mapper.readValue(pathOrContent, JsonNode.class);
+                }
+                final File postmanCollectionsFileJson;
+                if (pathOrContent.startsWith("http")) { // Network
+                  postmanCollectionsFileJson = File.createTempFile("postman-gen", "tmp");
+                  postmanCollectionsFileJson.deleteOnExit();
+                  InputStream collectionUrl = new URL(collectionPathOrContent).openStream();
+                  Files.copy(
+                      collectionUrl,
+                      postmanCollectionsFileJson.toPath(),
+                      StandardCopyOption.REPLACE_EXISTING);
+                } else { // Local file system
+                  postmanCollectionsFileJson = new File(collectionPathOrContent);
+                }
+                if (!postmanCollectionsFileJson.exists() || !postmanCollectionsFileJson.isFile()) {
+                  throw new IllegalArgumentException(
+                      "Incorrect Postman Collections file: "
+                          + postmanCollectionsFileJson.getName());
+                }
+                return ObjectMapperProvider.getInstance()
+                    .readValue(new FileInputStream(postmanCollectionsFileJson), JsonNode.class);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            })
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "Postman file path, URL, or content must be provided as first parameter"));
 
     try {
       PostmanCollectionV210 collection;

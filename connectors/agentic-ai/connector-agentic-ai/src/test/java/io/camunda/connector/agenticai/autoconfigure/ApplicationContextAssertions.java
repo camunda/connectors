@@ -22,9 +22,8 @@ class ApplicationContextAssertions {
       AssertableApplicationContext context, List<Class<?>> beans) {
     assertAll(
         beans.stream()
-            .map(
-                beanClass ->
-                    () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
+            .map(beanClass ->
+                () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
   }
 
   static void assertDoesNotHaveAnyBeansOf(

@@ -418,9 +418,8 @@ class OpenAiResponsesRequestConverterTest {
     final var assistantInputTextParts =
         rawInputItems(params).stream()
             .filter(item -> "assistant".equals(item.get("role")))
-            .flatMap(
-                item ->
-                    item.get("content") instanceof List<?> parts ? parts.stream() : Stream.empty())
+            .flatMap(item ->
+                item.get("content") instanceof List<?> parts ? parts.stream() : Stream.empty())
             .filter(part -> part instanceof Map<?, ?> map && "input_text".equals(map.get("type")))
             .toList();
 

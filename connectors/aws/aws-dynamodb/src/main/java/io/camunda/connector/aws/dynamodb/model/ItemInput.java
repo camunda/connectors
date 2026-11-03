@@ -12,7 +12,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize()
+@JsonDeserialize
 @TemplateSubType(
     label = "Item",
     id = "itemOperation",

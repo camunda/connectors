@@ -92,13 +92,12 @@ public abstract class BaseTest {
     final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
     var array = mapper.readValue(cases, ArrayList.class);
     return array.stream()
-        .map(
-            value -> {
-              try {
-                return mapper.writeValueAsString(value);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-            });
+        .map(value -> {
+          try {
+            return mapper.writeValueAsString(value);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 }

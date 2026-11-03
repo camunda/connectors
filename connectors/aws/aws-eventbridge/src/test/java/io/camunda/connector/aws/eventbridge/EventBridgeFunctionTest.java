@@ -238,7 +238,7 @@ class EventBridgeFunctionTest {
     assertThat(result.sdkResponseMetadata().requestId()).isNull();
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("validationTestCases")
   public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
     // Given invalid data (without all required fields)

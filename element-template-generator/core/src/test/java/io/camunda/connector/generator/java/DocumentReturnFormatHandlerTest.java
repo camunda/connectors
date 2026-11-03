@@ -152,16 +152,14 @@ class DocumentReturnFormatHandlerTest extends BaseTest {
     assertThat(encoding.getCondition()).isInstanceOf(AllMatch.class);
     AllMatch allMatch = (AllMatch) encoding.getCondition();
     assertThat(allMatch.allMatch())
-        .anyMatch(
-            cond ->
-                cond instanceof Equals eq
-                    && "operation.type".equals(eq.property())
-                    && "download".equals(eq.equals()));
+        .anyMatch(cond ->
+            cond instanceof Equals eq
+                && "operation.type".equals(eq.property())
+                && "download".equals(eq.equals()));
     assertThat(allMatch.allMatch())
-        .anyMatch(
-            cond ->
-                cond instanceof Equals eq
-                    && "documentReturnFormat".equals(eq.property())
-                    && "TEXT".equals(eq.equals()));
+        .anyMatch(cond ->
+            cond instanceof Equals eq
+                && "documentReturnFormat".equals(eq.property())
+                && "TEXT".equals(eq.equals()));
   }
 }
