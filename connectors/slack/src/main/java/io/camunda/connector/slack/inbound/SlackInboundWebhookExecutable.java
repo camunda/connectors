@@ -148,7 +148,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   /**
    * Splits on {@code &} and the first {@code =} before URL-decoding, so encoded separators in a
-   * value (e.g. {@code &amp;} inside an interactivity payload) are not treated as separators.
+   * value (e.g. {@code %26} inside a JSON payload value) are not treated as separators.
    */
   private static Map<String, String> parseFormUrlEncoded(String body) {
     Map<String, String> result = new LinkedHashMap<>();

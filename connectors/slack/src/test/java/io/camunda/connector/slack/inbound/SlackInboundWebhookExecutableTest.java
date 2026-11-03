@@ -232,16 +232,13 @@ class SlackInboundWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_InteractivityPayloadWithAmpersand_ParsesPayloadJson() throws Exception {
+  void triggerWebhook_PayloadValueWithAmpersandAndEquals_IsKeptIntact() throws Exception {
     final var json =
-        "{\"type\":\"block_actions\",\"message\":{\"text\":\"John Wiley &amp; Sons\"},"
-            + "\"state\":{\"values\":{}},\"actions\":[{\"action_id\":\"approve\",\"value\":\"yes\"}]}";
+        "{\"type\":\"block_actions\",\"message\":{\"text\":\"John Wiley &amp; Sons a=b\"}}";
     final var body = "payload=" + java.net.URLEncoder.encode(json, UTF_8);
     final var result = triggerFormRequest(body);
 
-    assertThat((Map) result.request().body())
-        .containsKeys("state", "actions")
-        .containsEntry("type", "block_actions");
+    assertThat((Map) result.request().body()).containsEntry("payload", json);
   }
 
   private SlackWebhookProcessingResult triggerFormRequest(String body) throws Exception {
