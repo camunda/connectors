@@ -31,16 +31,10 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-<<<<<<< HEAD
-import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-=======
-import java.util.*;
->>>>>>> 99a20519 (fix(webhook,slack): decode form-urlencoded names/values after splitting (#10017))
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,16 +173,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     String contentTypeHeader =
         caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-<<<<<<< HEAD
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("="))
-          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
-=======
       return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
->>>>>>> 99a20519 (fix(webhook,slack): decode form-urlencoded names/values after splitting (#10017))
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
