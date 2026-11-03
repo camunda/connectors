@@ -5,8 +5,8 @@ first: express the behavior, watch it fail, implement, then confirm it passes. T
 observable behavior, not per-class coverage gaps.
 
 Accept a complete user-facing feature only with end-to-end evidence through customer-available
-interfaces (CPT with BPMN, templates and process variables, or the exposed API) and real integrations
-relevant to that feature. Assert customer-visible results, including required observability.
+interfaces and real integrations relevant to that feature. Use CPT with BPMN, templates and process
+variables, or the exposed API. Assert customer-visible results, including required observability.
 WireMock is fine for internal tests and incremental development; mock-based tests alone do not
 satisfy feature acceptance criteria.
 

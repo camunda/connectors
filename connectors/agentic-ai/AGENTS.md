@@ -13,11 +13,13 @@ agent working in the module (new to it or returning) and routes it to the right 
 1. Build the minimal [mental model](#mental-model) below.
 2. Use [Start here, navigation](#start-here-navigation) to jump to the exact reference section for
    your task. Read that section by anchor or `Read` offset rather than the whole file.
-3. Follow the [operating rules](#working-in-this-module), especially the e2e-vs-unit decision rule
-   and the Definition of Done, before declaring a change complete.
+3. Follow the [testing rules](docs/acceptance-testing.md) and
+   [Definition of Done](#definition-of-done) before declaring a change complete.
 
-Deep architecture lives in the reference docs, linked instead of copied:
+Task guidance and architecture live in linked documents:
 
+- [`docs/design-guidelines.md`](docs/design-guidelines.md): invariants, contract decisions and ADRs
+- [`docs/acceptance-testing.md`](docs/acceptance-testing.md): test selection, feature acceptance and provider coverage
 - [`docs/reference/ai-agent.md`](docs/reference/ai-agent.md): core AI Agent architecture (sections cited as
   `ai-agent.md §N`)
 - [`docs/reference/mcp.md`](docs/reference/mcp.md): MCP integration
@@ -383,7 +385,8 @@ When a change touches documented structure (classes, interfaces, data-model reco
 properties, error codes, behavioral contracts), update the matching doc in the same change:
 
 - **`AGENTS.md`** (this file): high-level orientation (mental model, navigation, glossary, gotchas,
-  invariants, build/test commands, entry points).
+  build/test commands, entry points). Design rules live in `docs/design-guidelines.md`; testing rules
+  live in `docs/acceptance-testing.md`.
 - **`docs/reference/ai-agent.md`**: core agent framework (orchestration, memory, tools, converters,
   config, error codes, invariants §24, extension points §25). MCP → `mcp.md`, A2A → `a2a.md`, native/v2
   provider specifics → `native-providers.md`.

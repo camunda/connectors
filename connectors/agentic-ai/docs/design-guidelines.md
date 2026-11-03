@@ -41,9 +41,10 @@ names: configuration keys, template IDs, job types, error codes or tool names.
 ## Choose defaults and limits that can evolve
 
 Start restrictions as tight as justified by throughput, latency, compatibility or resource usage,
-then relax as needed. Tightening a default later can break existing workloads; preserve their
-previous value on upgrade where needed. State the value, reason, how to observe a hit and how to
-configure it in the PR. Limit errors name every configuration option that must change to recover.
+then relax as needed. Tightening a default later can break existing workloads; assess whether
+upgrading installations must retain their previous value. In the PR, state the value, reason, how to
+observe a hit and how to configure it. Limit errors name every configuration option that must change
+to recover.
 
 ## Design observable automated behavior
 
@@ -86,7 +87,7 @@ where observed and link to the ADR for the reasoning.
 
 **Code comments and javadoc state their own contract, not another module's rationale.** Describe
 what a method does, its parameter requirements and precise caller-visible triggers. Link to sibling
-types in the same package when useful (e.g. `handleNoInput` to `CompositionResult.NoInput`), but not
-another module's internals or decision history to justify a precondition. If understanding a
-precondition requires reading a caller in another module, document that coupling in an ADR or
-reference doc, not the method's javadoc.
+types in the same package when useful (e.g. `handleNoInput` to `CompositionResult.NoInput`).
+Do not use another package or module's internals or decision history to justify a precondition.
+If understanding a precondition requires reading a caller across that boundary, document the coupling
+in an ADR or reference doc, not the method's javadoc.
