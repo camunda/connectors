@@ -1,0 +1,46 @@
+name: AI PR Review (IDP extraction)
+
+# AI pull-request review via camunda/pr-review-agent (reusable workflow).
+#
+# Trial: shadow mode only. The bot posts a COMMENT review and never approves.
+# A review runs on non-draft PRs, and on drafts only with the `ai-review` label.
+# Fork PRs get no Vault secrets and are not reviewed.
+# The team config is .github/pr-review-agent/idp-extraction.yml, read from
+# the default branch (never from the PR). Keep this check NON-required.
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review, labeled ]
+    # Only PRs that touch the IDP connector.
+    paths:
+      - "connectors/idp-extraction/**"
+
+# Cancel a stale review when a new push arrives on the same PR. A `labeled`
+# event for any label other than `ai-review` (the config's opt_in_label) gets
+# its own group and skips the review job, so it never cancels a running review.
+concurrency:
+  group: >-
+    ${{ github.event.action == 'labeled' && github.event.label.name != 'ai-review'
+        && format('ai-pr-review-ignored-{0}', github.run_id)
+        || format('ai-pr-review-{0}-{1}', github.workflow, github.event.pull_request.number) }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  review:
+    if: github.event.action != 'labeled' || github.event.label.name == 'ai-review'
+    # The called workflow's jobs can only narrow these, never widen them.
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: read
+      statuses: read
+    # No release tag exists yet; pinned to main.
+    uses: camunda/pr-review-agent/.github/workflows/pr-review.yml@db54401cbcea61e9464656d7e9f760b4bec2f2b5 # main
+    with:
+      config: idp-extraction
+      force_shadow_mode: true
+    secrets:
+      VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
