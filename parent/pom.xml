@@ -205,7 +205,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.6</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.10.4</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.11.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.1</plugin.version.maven-jar-plugin>
     <plugin.version.revapi-maven-plugin>0.15.1</plugin.version.revapi-maven-plugin>
     <version.revapi-java>0.28.4</version.revapi-java>
