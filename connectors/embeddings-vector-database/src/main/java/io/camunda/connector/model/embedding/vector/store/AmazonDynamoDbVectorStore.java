@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(label = "Amazon DynamoDB", id = AmazonDynamoDbVectorStore.AMAZON_DYNAMODB_STORE)
 public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDynamoDb)
@@ -24,6 +25,13 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
 
   @TemplateProperty(ignore = true)
   public static final String AMAZON_DYNAMODB_STORE = "amazonDynamoDbStore";
+
+  @TemplateProperty(ignore = true)
+  private static final String NAME_PATTERN = "^[a-zA-Z0-9_.-]{3,255}$";
+
+  @TemplateProperty(ignore = true)
+  private static final String NAME_MESSAGE =
+      "must be 3 to 255 letters, digits, underscores, hyphens or dots";
 
   public record Configuration(
       // Declared first so the chooser renders before the inline fallback fields it gates below.
@@ -40,7 +48,7 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
       @TemplateProperty(
               group = "embeddingsStore",
               label = "Access key",
-              tooltip = "IAM access key of a user allowed to read and write the table",
+              tooltip = AmazonDynamoDbCredential.ACCESS_KEY_TOOLTIP,
               constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
@@ -65,15 +73,18 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
               placeholder = "us-east-1")
           String region,
       @NotBlank
+          @Pattern(regexp = NAME_PATTERN, message = NAME_MESSAGE)
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Table name",
               tooltip =
                   "Table that stores the embeddings. If it does not exist, it is created on the"
-                      + " first embed in on-demand capacity mode, together with the vector index.",
+                      + " first embed in on-demand capacity mode, together with the vector index."
+                      + " An existing table must have a string partition key and no sort key.",
               placeholder = "embeddings")
           String tableName,
       @NotBlank
+          @Pattern(regexp = NAME_PATTERN, message = NAME_MESSAGE)
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Vector index name",
@@ -81,7 +92,8 @@ public record AmazonDynamoDbVectorStore(@Valid @NotNull Configuration amazonDyna
                   "Note: DynamoDB indexes new embeddings asynchronously, so they may not be"
                       + " returned by a retrieve that runs immediately after the embed.",
               tooltip =
-                  "Vector index used for similarity search. When the table is created by the"
+                  "Vector index used for similarity search. It must project the '_page_content'"
+                      + " attribute, which holds the chunk text. When the table is created by the"
                       + " connector, the index uses cosine distance and the embedding model's"
                       + " dimensions.",
               placeholder = "embeddings-index")

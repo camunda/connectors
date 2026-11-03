@@ -11,8 +11,6 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-import dev.langchain4j.community.store.embedding.dynamodb.DynamoDbEmbeddingStore;
-import dev.langchain4j.community.store.embedding.s3.S3VectorsEmbeddingStore;
 import dev.langchain4j.data.segment.TextSegment;
 import io.camunda.connector.fixture.EmbeddingsVectorStoreFixture;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
@@ -30,12 +28,12 @@ class AmazonVectorStoreFactoryTest {
         factory ->
             factory.createS3VectorsVectorStore(
                 EmbeddingsVectorStoreFixture.createAmazonS3VectorsVectorStore()),
-        S3VectorsEmbeddingStore.class),
+        AmazonS3VectorsEmbeddingStore.class),
     DYNAMODB(
         factory ->
             factory.createDynamoDbVectorStore(
                 EmbeddingsVectorStoreFixture.createAmazonDynamoDbVectorStore()),
-        DynamoDbEmbeddingStore.class);
+        AmazonDynamoDbEmbeddingStore.class);
 
     final Function<AmazonVectorStoreFactory, ClosableEmbeddingStore<TextSegment>> create;
     final Class<?> expectedType;

@@ -21,7 +21,7 @@ public record AmazonDynamoDbCredential(
             secret = true,
             group = "authentication",
             label = "Access key",
-            tooltip = "IAM access key of a user allowed to read and write the table")
+            tooltip = ACCESS_KEY_TOOLTIP)
         String accessKey,
     @NotBlank
         @TemplateProperty(
@@ -30,6 +30,11 @@ public record AmazonDynamoDbCredential(
             label = "Secret key",
             tooltip = "Secret key associated with the access key")
         String secretKey) {
+
+  @TemplateProperty(ignore = true)
+  static final String ACCESS_KEY_TOOLTIP =
+      "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem and SearchVectors,"
+          + " plus CreateTable if the connector should create the table";
 
   @Override
   public String toString() {

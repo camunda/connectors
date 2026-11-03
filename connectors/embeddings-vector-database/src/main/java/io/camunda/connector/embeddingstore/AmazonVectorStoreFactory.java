@@ -6,15 +6,17 @@
  */
 package io.camunda.connector.embeddingstore;
 
-import dev.langchain4j.community.store.embedding.dynamodb.DynamoDbEmbeddingStore;
-import dev.langchain4j.community.store.embedding.s3.S3VectorsEmbeddingStore;
 import dev.langchain4j.data.segment.TextSegment;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AmazonDynamoDbVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AmazonS3VectorsVectorStore;
 import io.camunda.connector.util.ProxyUtil;
+import java.time.Duration;
+import java.util.function.Function;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
@@ -22,6 +24,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.s3vectors.S3VectorsClient;
 
 public class AmazonVectorStoreFactory {
+
+  private static final Duration API_CALL_TIMEOUT = Duration.ofSeconds(30);
 
   private final ProxyConfiguration proxyConfig;
 
@@ -32,49 +36,54 @@ public class AmazonVectorStoreFactory {
   public ClosableEmbeddingStore<TextSegment> createS3VectorsVectorStore(
       AmazonS3VectorsVectorStore amazonS3VectorsVectorStore) {
     final var config = amazonS3VectorsVectorStore.amazonS3Vectors();
-    final var httpClient = createHttpClient();
-    final var client =
-        S3VectorsClient.builder()
-            .httpClient(httpClient)
-            .region(Region.of(config.region()))
-            .credentialsProvider(credentialsProvider(config.accessKey(), config.secretKey()))
-            .build();
-
-    final var embeddingStore =
-        S3VectorsEmbeddingStore.builder()
-            .s3VectorsClient(client)
-            .vectorBucketName(config.vectorBucketName())
-            .indexName(config.indexName())
-            .build();
-    return ClosableEmbeddingStore.wrap(embeddingStore, () -> close(client, httpClient));
+    return createStore(
+        S3VectorsClient.builder(),
+        config.region(),
+        config.accessKey(),
+        config.secretKey(),
+        client ->
+            new AmazonS3VectorsEmbeddingStore(
+                client, config.region(), config.vectorBucketName(), config.indexName()));
   }
 
   public ClosableEmbeddingStore<TextSegment> createDynamoDbVectorStore(
       AmazonDynamoDbVectorStore amazonDynamoDbVectorStore) {
     final var config = amazonDynamoDbVectorStore.amazonDynamoDb();
-    final var httpClient = createHttpClient();
-    final var client =
-        DynamoDbClient.builder()
-            .httpClient(httpClient)
-            .region(Region.of(config.region()))
-            .credentialsProvider(credentialsProvider(config.accessKey(), config.secretKey()))
-            .build();
-
-    final var embeddingStore =
-        DynamoDbEmbeddingStore.builder()
-            .dynamoDbClient(client)
-            .tableName(config.tableName())
-            .indexName(config.indexName())
-            .build();
-    return ClosableEmbeddingStore.wrap(embeddingStore, () -> close(client, httpClient));
+    return createStore(
+        DynamoDbClient.builder(),
+        config.region(),
+        config.accessKey(),
+        config.secretKey(),
+        client ->
+            new AmazonDynamoDbEmbeddingStore(
+                client, config.region(), config.tableName(), config.indexName()));
   }
 
-  private SdkHttpClient createHttpClient() {
-    return ProxyUtil.createAwsProxyAwareHttpClient(proxyConfig, ProxyConfiguration.SCHEME_HTTPS);
-  }
-
-  private static StaticCredentialsProvider credentialsProvider(String accessKey, String secretKey) {
-    return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+  private <C extends SdkClient, B extends AwsClientBuilder<B, C> & AwsSyncClientBuilder<B, C>>
+      ClosableEmbeddingStore<TextSegment> createStore(
+          B builder,
+          String region,
+          String accessKey,
+          String secretKey,
+          Function<C, AwsVectorEmbeddingStore> storeFactory) {
+    final var httpClient =
+        ProxyUtil.createAwsProxyAwareHttpClient(proxyConfig, ProxyConfiguration.SCHEME_HTTPS);
+    try {
+      final C client =
+          builder
+              .httpClient(httpClient)
+              .region(Region.of(region))
+              .credentialsProvider(
+                  StaticCredentialsProvider.create(
+                      AwsBasicCredentials.create(accessKey, secretKey)))
+              .overrideConfiguration(config -> config.apiCallTimeout(API_CALL_TIMEOUT))
+              .build();
+      return ClosableEmbeddingStore.wrap(
+          storeFactory.apply(client), () -> close(client, httpClient));
+    } catch (RuntimeException e) {
+      httpClient.close();
+      throw e;
+    }
   }
 
   // The SDK does not close an HTTP client that was passed to its builder.

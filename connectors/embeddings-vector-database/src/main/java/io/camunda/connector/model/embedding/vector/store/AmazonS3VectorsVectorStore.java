@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(
     label = "Amazon S3 Vectors",
@@ -42,8 +43,7 @@ public record AmazonS3VectorsVectorStore(@Valid @NotNull Configuration amazonS3V
       @TemplateProperty(
               group = "embeddingsStore",
               label = "Access key",
-              tooltip =
-                  "IAM access key of a user allowed to read and write the vector bucket and its indexes",
+              tooltip = AmazonS3VectorsCredential.ACCESS_KEY_TOOLTIP,
               constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
@@ -75,12 +75,19 @@ public record AmazonS3VectorsVectorStore(@Valid @NotNull Configuration amazonS3V
               placeholder = "my-vector-bucket")
           String vectorBucketName,
       @NotBlank
+          @Pattern(
+              regexp = "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+              message =
+                  "must be 3 to 63 lowercase letters, digits, hyphens or dots, and start and end"
+                      + " with a letter or digit")
           @TemplateProperty(
               group = "embeddingsStore",
               label = "Index name",
               tooltip =
                   "Vector index that stores the embeddings. If it does not exist, it is created on"
-                      + " the first embed with cosine distance and the embedding model's dimensions.",
+                      + " the first embed with cosine distance and the embedding model's dimensions."
+                      + " An existing index must declare '_page_content' as a non-filterable"
+                      + " metadata key.",
               placeholder = "embeddings")
           String indexName) {
 

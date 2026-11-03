@@ -14,8 +14,6 @@ import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.store.embedding.dynamodb.DynamoDbEmbeddingStore;
-import dev.langchain4j.community.store.embedding.s3.S3VectorsEmbeddingStore;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
@@ -75,7 +73,7 @@ class DefaultEmbeddingStoreFactoryTest {
     try (var store =
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createAmazonS3VectorsVectorStore(), mockModel, null)) {
-      assertThat(store.getEmbeddingStore()).isInstanceOf(S3VectorsEmbeddingStore.class);
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AmazonS3VectorsEmbeddingStore.class);
     }
   }
 
@@ -88,7 +86,7 @@ class DefaultEmbeddingStoreFactoryTest {
     try (var store =
         factory.initializeVectorStore(
             EmbeddingsVectorStoreFixture.createAmazonDynamoDbVectorStore(), mockModel, null)) {
-      assertThat(store.getEmbeddingStore()).isInstanceOf(DynamoDbEmbeddingStore.class);
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AmazonDynamoDbEmbeddingStore.class);
     }
   }
 

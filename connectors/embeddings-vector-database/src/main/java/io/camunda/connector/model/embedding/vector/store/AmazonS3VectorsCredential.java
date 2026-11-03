@@ -21,8 +21,7 @@ public record AmazonS3VectorsCredential(
             secret = true,
             group = "authentication",
             label = "Access key",
-            tooltip =
-                "IAM access key of a user allowed to read and write the vector bucket and its indexes")
+            tooltip = ACCESS_KEY_TOOLTIP)
         String accessKey,
     @NotBlank
         @TemplateProperty(
@@ -31,6 +30,11 @@ public record AmazonS3VectorsCredential(
             label = "Secret key",
             tooltip = "Secret key associated with the access key")
         String secretKey) {
+
+  @TemplateProperty(ignore = true)
+  static final String ACCESS_KEY_TOOLTIP =
+      "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors, QueryVectors and"
+          + " GetVectors, plus CreateIndex if the connector should create the index";
 
   @Override
   public String toString() {

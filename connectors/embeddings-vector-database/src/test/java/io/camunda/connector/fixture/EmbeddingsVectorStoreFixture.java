@@ -43,7 +43,7 @@ public class EmbeddingsVectorStoreFixture {
   public static AmazonS3VectorsVectorStore createAmazonS3VectorsVectorStore() {
     return new AmazonS3VectorsVectorStore(
         new AmazonS3VectorsVectorStore.Configuration(
-            null, "ACCESS_KEY", "SECRET_KEY", "us-east-1", "vector-bucket", "embeddings_idx"));
+            null, "ACCESS_KEY", "SECRET_KEY", "us-east-1", "vector-bucket", "embeddings-idx"));
   }
 
   public static AmazonDynamoDbVectorStore createAmazonDynamoDbVectorStore() {

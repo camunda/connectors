@@ -189,6 +189,22 @@
         "org.apache.maven.plugins:maven-failsafe-plugin"
       ],
       "enabled": false
+    },
+    {
+      "description": "LangChain4j community modules are built against one LangChain4j core release (1.x.y-betaN needs core 1.x.y), so version.langchain4j-community must move together with version.langchain4j. Group them in one PR without automerge, so a core bump that arrives before the matching community release is reviewed instead of merged.",
+      "matchPackageNames": [
+        "dev.langchain4j:langchain4j-bom",
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "groupName": "langchain4j",
+      "automerge": false
+    },
+    {
+      "description": "LangChain4j community modules are only published as beta versions; without this, Renovate never moves them to the next core release's beta.",
+      "matchPackageNames": [
+        "/^dev\\.langchain4j:langchain4j-community-/"
+      ],
+      "ignoreUnstable": false
     }
   ],
   "baseBranchPatterns": [

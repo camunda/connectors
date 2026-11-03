@@ -1085,7 +1085,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "IAM access key of a user allowed to read and write the table",
+    "tooltip" : "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem and SearchVectors, plus CreateTable if the connector should create the table",
     "type" : "String"
   }, {
     "id" : "vectorStore.amazonDynamoDb.secretKey",
@@ -1139,7 +1139,11 @@
     "label" : "Table name",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_.-]{3,255}$",
+        "message" : "must be 3 to 255 letters, digits, underscores, hyphens or dots"
+      }
     },
     "feel" : "optional",
     "group" : "embeddingsStore",
@@ -1152,7 +1156,7 @@
       "equals" : "amazonDynamoDbStore",
       "type" : "simple"
     },
-    "tooltip" : "Table that stores the embeddings. If it does not exist, it is created on the first embed in on-demand capacity mode, together with the vector index.",
+    "tooltip" : "Table that stores the embeddings. If it does not exist, it is created on the first embed in on-demand capacity mode, together with the vector index. An existing table must have a string partition key and no sort key.",
     "placeholder" : "embeddings",
     "type" : "String"
   }, {
@@ -1161,7 +1165,11 @@
     "description" : "Note: DynamoDB indexes new embeddings asynchronously, so they may not be returned by a retrieve that runs immediately after the embed.",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-zA-Z0-9_.-]{3,255}$",
+        "message" : "must be 3 to 255 letters, digits, underscores, hyphens or dots"
+      }
     },
     "feel" : "optional",
     "group" : "embeddingsStore",
@@ -1174,7 +1182,7 @@
       "equals" : "amazonDynamoDbStore",
       "type" : "simple"
     },
-    "tooltip" : "Vector index used for similarity search. When the table is created by the connector, the index uses cosine distance and the embedding model's dimensions.",
+    "tooltip" : "Vector index used for similarity search. It must project the '_page_content' attribute, which holds the chunk text. When the table is created by the connector, the index uses cosine distance and the embedding model's dimensions.",
     "placeholder" : "embeddings-index",
     "type" : "String"
   }, {
@@ -1347,7 +1355,7 @@
         "type" : "simple"
       } ]
     },
-    "tooltip" : "IAM access key of a user allowed to read and write the vector bucket and its indexes",
+    "tooltip" : "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors, QueryVectors and GetVectors, plus CreateIndex if the connector should create the index",
     "type" : "String"
   }, {
     "id" : "vectorStore.amazonS3Vectors.secretKey",
@@ -1422,7 +1430,11 @@
     "label" : "Index name",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+        "message" : "must be 3 to 63 lowercase letters, digits, hyphens or dots, and start and end with a letter or digit"
+      }
     },
     "feel" : "optional",
     "group" : "embeddingsStore",
@@ -1435,7 +1447,7 @@
       "equals" : "amazonS3VectorsStore",
       "type" : "simple"
     },
-    "tooltip" : "Vector index that stores the embeddings. If it does not exist, it is created on the first embed with cosine distance and the embedding model's dimensions.",
+    "tooltip" : "Vector index that stores the embeddings. If it does not exist, it is created on the first embed with cosine distance and the embedding model's dimensions. An existing index must declare '_page_content' as a non-filterable metadata key.",
     "placeholder" : "embeddings",
     "type" : "String"
   }, {
@@ -3046,7 +3058,7 @@
         "name" : "accessKey",
         "type" : "property"
       },
-      "tooltip" : "IAM access key of a user allowed to read and write the vector bucket and its indexes",
+      "tooltip" : "IAM access key of a user allowed to call s3vectors:GetIndex, PutVectors, QueryVectors and GetVectors, plus CreateIndex if the connector should create the index",
       "type" : "String",
       "secret" : true
     }, {
@@ -3080,7 +3092,7 @@
         "name" : "accessKey",
         "type" : "property"
       },
-      "tooltip" : "IAM access key of a user allowed to read and write the table",
+      "tooltip" : "IAM access key of a user allowed to call dynamodb:DescribeTable, BatchWriteItem and SearchVectors, plus CreateTable if the connector should create the table",
       "type" : "String",
       "secret" : true
     }, {
