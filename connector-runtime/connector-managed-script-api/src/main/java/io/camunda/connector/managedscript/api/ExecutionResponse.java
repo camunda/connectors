@@ -22,10 +22,8 @@ import java.util.Map;
 /**
  * Execution contract version 1 response.
  *
- * @param logs the end of what the script wrote to stderr, as platform metadata next to the contract
- *     fields; {@code null} when the executor sends none
- * @param logsTruncated whether the executor cut the start of the logs, so that their first line can
- *     be a part of a line
+ * @param logs the end of what the script wrote to stderr; {@code null} when the executor sends none
+ * @param logsTruncated whether the executor cut the start of the logs
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ExecutionResponse(
@@ -33,6 +31,7 @@ public record ExecutionResponse(
     String outcome,
     Map<String, Object> variables,
     Error error,
+    // Platform metadata next to the contract fields.
     String logs,
     boolean logsTruncated) {
 
