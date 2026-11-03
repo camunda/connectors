@@ -442,17 +442,19 @@ per language.
 |---|---|---|---|
 | `connector-runtime/connector-managed-script-api` | Apache 2.0 | Provider SPI, execution contract and executor wrappers; depends on nothing but Jackson annotations | Wherever a provider is built |
 | `connectors/managed-script` | Camunda proprietary, like the other connectors | Connector, element template, job handler, readiness, `local` provider | Default bundle, disabled by default (`camunda.connector.managed-code.enabled=false`) |
-| `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Not in the default bundle |
-| `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Not in the default bundle |
+| `connectors/managed-script-aws` | Camunda proprietary | `aws` provider: one zip Lambda function per language (`python3.13`, `nodejs22.x`) | Default bundle, inactive unless `provider=aws` |
+| `connectors/managed-script-gcp` | Camunda proprietary | `gcp` provider: one Cloud Run function per language (`python313`, `nodejs22`), request concurrency 1 | Default bundle, inactive unless `provider=gcp` |
 
 The connector lives with the other connectors, so its element template is published with theirs.
 The SPI stays in an Apache 2.0 module of its own, without Spring or the runtime, so that a provider,
 including one a Self-Managed customer writes, depends on that module only. The dependencies go one
 way: the connector and the providers depend on the API, and the runtime depends on none of them.
-The AWS and GCP modules bring the Lambda, CloudWatch Logs and Cloud Run functions clients and the
-permissions to create functions, so the default bundle does not include them; a
-distribution that offers managed scripts, such as the SaaS image, adds the module of its provider
-to the classpath.
+The AWS and GCP modules are in the default bundle, and so in the SaaS image, which builds on it:
+Self-Managed and SaaS enable a provider by configuration, without adding jars. A module grants no
+permission by itself: the runtime creates functions only with managed code enabled, its provider
+selected and a cloud identity allowed to, all set by the operator. The cost is the Lambda,
+CloudWatch Logs and Cloud Functions clients in the bundle; the rest of their dependencies (AWS SDK
+core, Google auth, gRPC) are there already for the AWS and Google connectors.
 
 The `local` provider is for **trusted development only and is not a sandbox**. It runs the same
 wrapper as a local Node.js or Python process, started through an entry point of its own that reads
@@ -472,8 +474,8 @@ It logs a warning at startup. Windows is not supported.
 - The runtime's connector machinery handles activation, variable fetching, result and error
   expressions, retries and secrets, as for every connector.
 - Deployment stays fast and does not depend on the provider being available.
-- With managed code disabled, the ordinary connector workers are unchanged, and the default bundle
-  carries no managed-script provider.
+- With managed code disabled, the ordinary connector workers are unchanged, and no provider bean is
+  created, although the default bundle carries the `aws` and `gcp` providers.
 - A fixed contract, a closed set of error codes and a documented retry behaviour per code let the
   wrappers, the providers and the job handler be built and reviewed in separate PRs.
 
