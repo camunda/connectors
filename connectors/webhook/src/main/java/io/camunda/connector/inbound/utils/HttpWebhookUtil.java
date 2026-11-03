@@ -33,18 +33,8 @@ public class HttpWebhookUtil {
     }
     if (isMultipartFormDataContentType(contentTypeHeader)) {
       return Collections.emptyMap();
-<<<<<<< HEAD
     } else if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("="))
-          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
-=======
-    } else if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
       return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
->>>>>>> 99a2051 (fix(webhook,slack): decode form-urlencoded names/values after splitting (#10017))
     } else if (isXmlContentType(contentTypeHeader)) {
       return new String(rawBody, StandardCharsets.UTF_8);
     } else {
