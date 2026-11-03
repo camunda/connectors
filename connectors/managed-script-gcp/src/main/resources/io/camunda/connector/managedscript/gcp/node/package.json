@@ -1,0 +1,10 @@
+{
+  "name": "camunda-managed-script-executor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "dependencies": {
+    "@google-cloud/functions-framework": "5.0.5"
+  }
+}
