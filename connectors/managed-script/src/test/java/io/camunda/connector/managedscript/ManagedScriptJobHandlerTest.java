@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -232,7 +233,14 @@ class ManagedScriptJobHandlerTest {
   @Test
   void runsAJobWhoseExecutorIsReadyWhileAnotherLanguageIsNot() {
     store("sum.js", "export function execute() { return {}; }");
-    final var handler = handler(blockingUntil(new CountDownLatch(1), ScriptLanguage.PYTHON));
+    final var blocked = blockingUntil(new CountDownLatch(1), ScriptLanguage.PYTHON);
+    final var handler = handler(blocked);
+    // Python is being made ready, and blocks in the provider: one thread for both languages would
+    // keep the JavaScript job waiting behind it.
+    readinesses.getLast().start(ScriptLanguage.PYTHON);
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(5))
+        .until(() -> blocked.ensured.contains(ScriptLanguage.PYTHON));
 
     final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
