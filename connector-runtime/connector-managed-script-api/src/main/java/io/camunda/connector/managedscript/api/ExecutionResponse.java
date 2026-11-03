@@ -18,6 +18,7 @@ package io.camunda.connector.managedscript.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Execution contract version 1 response.
@@ -29,14 +30,17 @@ import java.util.Map;
 public record ExecutionResponse(
     String contractVersion,
     String outcome,
-    Map<String, Object> variables,
-    Error error,
+    @Nullable Map<String, Object> variables,
+    @Nullable Error error,
     // Platform metadata next to the contract fields.
-    String logs,
+    @Nullable String logs,
     boolean logsTruncated) {
 
   public ExecutionResponse(
-      String contractVersion, String outcome, Map<String, Object> variables, Error error) {
+      String contractVersion,
+      String outcome,
+      @Nullable Map<String, Object> variables,
+      @Nullable Error error) {
     this(contractVersion, outcome, variables, error, null, false);
   }
 
@@ -71,5 +75,9 @@ public record ExecutionResponse(
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record Error(
-      String code, String message, String stackTrace, boolean retryable, boolean truncated) {}
+      String code,
+      String message,
+      @Nullable String stackTrace,
+      boolean retryable,
+      boolean truncated) {}
 }

@@ -245,7 +245,9 @@ class RunnerProviderTest {
       final var stalling =
           Thread.startVirtualThread(() -> {
             try (var socket = server.accept()) {
-              socket.getInputStream().read(new byte[65_536]);
+              if (socket.getInputStream().read(new byte[65_536]) < 0) {
+                return;
+              }
               socket
                   .getOutputStream()
                   .write(

@@ -185,21 +185,22 @@ public final class RunnerProvider implements ManagedCodeProvider {
       return ExecutionResponse.failed(
           ErrorCode.PLATFORM_INTERRUPTED, "The call to the runner was interrupted");
     } catch (ExecutionException e) {
-      return switch (e.getCause()) {
-        case AnswerTooLarge tooLarge ->
-            ExecutionResponse.failed(
-                ErrorCode.INVALID_RESULT,
-                "The answer of the runner is larger than %d bytes".formatted(MAX_RESPONSE_BYTES));
-        case HttpTimeoutException timedOut ->
-            ExecutionResponse.failed(
-                ErrorCode.PLATFORM_UNAVAILABLE, "The runner did not answer in time");
-        case IOException failed ->
-            ExecutionResponse.failed(
-                ErrorCode.PLATFORM_UNAVAILABLE,
-                "The runner is not available: " + failed.getClass().getSimpleName());
-        case null, default ->
-            ExecutionResponse.failed(ErrorCode.PLATFORM_ERROR, "The call to the runner failed");
-      };
+      final var cause = e.getCause();
+      if (cause instanceof AnswerTooLarge) {
+        return ExecutionResponse.failed(
+            ErrorCode.INVALID_RESULT,
+            "The answer of the runner is larger than %d bytes".formatted(MAX_RESPONSE_BYTES));
+      }
+      if (cause instanceof HttpTimeoutException) {
+        return ExecutionResponse.failed(
+            ErrorCode.PLATFORM_UNAVAILABLE, "The runner did not answer in time");
+      }
+      if (cause instanceof IOException) {
+        return ExecutionResponse.failed(
+            ErrorCode.PLATFORM_UNAVAILABLE,
+            "The runner is not available: " + cause.getClass().getSimpleName());
+      }
+      return ExecutionResponse.failed(ErrorCode.PLATFORM_ERROR, "The call to the runner failed");
     }
     final int status = response.statusCode();
     return switch (status) {
