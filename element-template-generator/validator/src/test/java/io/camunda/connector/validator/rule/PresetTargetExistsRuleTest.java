@@ -36,8 +36,8 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        { "properties": [ { "id": "operationGroup", "choices": [{"value": "issues"}] } ] }
-        """);
+            { "properties": [ { "id": "operationGroup", "choices": [{"value": "issues"}] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -46,17 +46,17 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [
-              { "value": "actions" }, { "value": "issues" }
-            ]}
-          ],
-          "presets": [
-            { "id": "p1", "properties": { "operationGroup": "actions" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup", "choices": [
+                  { "value": "actions" }, { "value": "issues" }
+                ]}
+              ],
+              "presets": [
+                { "id": "p1", "properties": { "operationGroup": "actions" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -65,11 +65,11 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "operationGroup", "choices": [{"value": "actions"}] } ],
-          "presets": [ { "id": "p", "properties": { "operationGruop": "actions" } } ]
-        }
-        """);
+            {
+              "properties": [ { "id": "operationGroup", "choices": [{"value": "actions"}] } ],
+              "presets": [ { "id": "p", "properties": { "operationGruop": "actions" } } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -83,15 +83,15 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [
-              { "value": "actions" }, { "value": "issues" }
-            ]}
-          ],
-          "presets": [ { "id": "p", "properties": { "operationGroup": "deployments" } } ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup", "choices": [
+                  { "value": "actions" }, { "value": "issues" }
+                ]}
+              ],
+              "presets": [ { "id": "p", "properties": { "operationGroup": "deployments" } } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -104,18 +104,18 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [{"value": "actions"}] },
-            { "id": "eventOperationType" }
-          ],
-          "presets": [ { "id": "p", "properties": {
-            "operationGroup": "deployments",
-            "eventOperationType": "createWorkflowDispatchEvent",
-            "missing": "x"
-          }}]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup", "choices": [{"value": "actions"}] },
+                { "id": "eventOperationType" }
+              ],
+              "presets": [ { "id": "p", "properties": {
+                "operationGroup": "deployments",
+                "eventOperationType": "createWorkflowDispatchEvent",
+                "missing": "x"
+              }}]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(2);
     assertThat(findings)
@@ -129,11 +129,11 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "freeText" } ],
-          "presets": [ { "id": "p", "properties": { "freeText": "anything goes" } } ]
-        }
-        """);
+            {
+              "properties": [ { "id": "freeText" } ],
+              "presets": [ { "id": "p", "properties": { "freeText": "anything goes" } } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -142,11 +142,11 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "freeText" } ],
-          "presets": [ { "id": "p", "properties": { "freeText": 42 } } ]
-        }
-        """);
+            {
+              "properties": [ { "id": "freeText" } ],
+              "presets": [ { "id": "p", "properties": { "freeText": 42 } } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -159,24 +159,24 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [
-              { "value": "actions" }, { "value": "issues" }
-            ]},
-            { "id": "eventOperationType",
-              "choices": [{ "value": "createWorkflowDispatchEvent" }],
-              "condition": { "property": "operationGroup", "equals": "actions" } },
-            { "id": "eventOperationType",
-              "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
-              "condition": { "property": "operationGroup", "equals": "issues" } }
-          ],
-          "presets": [ { "id": "p", "properties": {
-            "operationGroup": "issues",
-            "eventOperationType": "createIssue"
-          }}]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup", "choices": [
+                  { "value": "actions" }, { "value": "issues" }
+                ]},
+                { "id": "eventOperationType",
+                  "choices": [{ "value": "createWorkflowDispatchEvent" }],
+                  "condition": { "property": "operationGroup", "equals": "actions" } },
+                { "id": "eventOperationType",
+                  "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
+                  "condition": { "property": "operationGroup", "equals": "issues" } }
+              ],
+              "presets": [ { "id": "p", "properties": {
+                "operationGroup": "issues",
+                "eventOperationType": "createIssue"
+              }}]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -185,24 +185,24 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup", "choices": [
-              { "value": "actions" }, { "value": "issues" }
-            ]},
-            { "id": "eventOperationType",
-              "choices": [{ "value": "createWorkflowDispatchEvent" }],
-              "condition": { "property": "operationGroup", "equals": "actions" } },
-            { "id": "eventOperationType",
-              "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
-              "condition": { "property": "operationGroup", "equals": "issues" } }
-          ],
-          "presets": [ { "id": "p", "properties": {
-            "operationGroup": "issues",
-            "eventOperationType": "notInEither"
-          }}]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup", "choices": [
+                  { "value": "actions" }, { "value": "issues" }
+                ]},
+                { "id": "eventOperationType",
+                  "choices": [{ "value": "createWorkflowDispatchEvent" }],
+                  "condition": { "property": "operationGroup", "equals": "actions" } },
+                { "id": "eventOperationType",
+                  "choices": [{ "value": "createIssue" }, { "value": "closeIssue" }],
+                  "condition": { "property": "operationGroup", "equals": "issues" } }
+              ],
+              "presets": [ { "id": "p", "properties": {
+                "operationGroup": "issues",
+                "eventOperationType": "notInEither"
+              }}]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     Finding f = findings.get(0);
@@ -215,11 +215,11 @@ class PresetTargetExistsRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "x" } ],
-          "presets": [ { "id": "p", "properties": { "missing": "y" } } ]
-        }
-        """);
+            {
+              "properties": [ { "id": "x" } ],
+              "presets": [ { "id": "p", "properties": { "missing": "y" } } ]
+            }
+            """);
     assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/aws.json"), template))
         .isEmpty();
   }

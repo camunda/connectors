@@ -40,7 +40,7 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
         e -> e,
         HAIKU_TEXT,
         true,
-        (agentResponse) ->
+        agentResponse ->
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(HAIKU_TEXT)
                 .hasResponseText(HAIKU_TEXT)
@@ -63,7 +63,7 @@ public class AgentSubProcessFeedbackLoopTests extends BaseAgentSubProcessTest {
         },
         HAIKU_TEXT,
         false,
-        (agentResponse) ->
+        agentResponse ->
             // defaults to text
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .hasNoResponseMessage()

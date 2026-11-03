@@ -52,12 +52,11 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
     assertThat(violations.iterator().next())
-        .satisfies(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be null");
-              assertThat(violation.getPropertyPath().toString())
-                  .isEqualTo("vectorDatabaseConnectorOperation");
-            });
+        .satisfies(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be null");
+          assertThat(violation.getPropertyPath().toString())
+              .isEqualTo("vectorDatabaseConnectorOperation");
+        });
   }
 
   @Test
@@ -66,12 +65,10 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
     assertThat(violations.iterator().next())
-        .satisfies(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be null");
-              assertThat(violation.getPropertyPath().toString())
-                  .isEqualTo("embeddingModelProvider");
-            });
+        .satisfies(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be null");
+          assertThat(violation.getPropertyPath().toString()).isEqualTo("embeddingModelProvider");
+        });
   }
 
   @Test
@@ -80,11 +77,10 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
     assertThat(violations.iterator().next())
-        .satisfies(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be null");
-              assertThat(violation.getPropertyPath().toString()).isEqualTo("vectorStore");
-            });
+        .satisfies(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be null");
+          assertThat(violation.getPropertyPath().toString()).isEqualTo("vectorStore");
+        });
   }
 
   @Test
@@ -101,17 +97,15 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
-              assertThat(violation.getPropertyPath().toString()).contains("maxSegmentSizeInChars");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
+          assertThat(violation.getPropertyPath().toString()).contains("maxSegmentSizeInChars");
+        });
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
-              assertThat(violation.getPropertyPath().toString()).contains("maxOverlapSizeInChars");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
+          assertThat(violation.getPropertyPath().toString()).contains("maxOverlapSizeInChars");
+        });
   }
 
   @Test
@@ -126,17 +120,15 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be blank");
-              assertThat(violation.getPropertyPath().toString()).contains("apiKey");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("apiKey");
+        });
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be blank");
-              assertThat(violation.getPropertyPath().toString()).contains("modelName");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("modelName");
+        });
   }
 
   @Test
@@ -151,23 +143,20 @@ class EmbeddingsVectorDBRequestValidationTest {
     var violations = validator.validate(request);
     assertThat(violations).hasSize(3);
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be blank");
-              assertThat(violation.getPropertyPath().toString()).contains("endpoint");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("endpoint");
+        });
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be blank");
-              assertThat(violation.getPropertyPath().toString()).contains("apiKey");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("apiKey");
+        });
     assertThat(violations)
-        .anySatisfy(
-            violation -> {
-              assertThat(violation.getMessage()).isEqualTo("must not be blank");
-              assertThat(violation.getPropertyPath().toString()).contains("indexName");
-            });
+        .anySatisfy(violation -> {
+          assertThat(violation.getMessage()).isEqualTo("must not be blank");
+          assertThat(violation.getPropertyPath().toString()).contains("indexName");
+        });
   }
 
   private VectorDatabaseConnectorOperation sampleOperation() {

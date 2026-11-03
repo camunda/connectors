@@ -389,11 +389,10 @@ class StepTreeWalkerTest {
       // no @NestedProperties annotation (default addNestedPath = true).
       assertThat(result.presets())
           .extracting(Preset::properties)
-          .anySatisfy(
-              p -> {
-                assertThat(p).containsEntry("input.operationGroup", "tableOperation");
-                assertThat(p).containsEntry("input.tableOperation", "createTable");
-              });
+          .anySatisfy(p -> {
+            assertThat(p).containsEntry("input.operationGroup", "tableOperation");
+            assertThat(p).containsEntry("input.tableOperation", "createTable");
+          });
     }
   }
 
@@ -554,11 +553,10 @@ class StepTreeWalkerTest {
       // field has no @NestedProperties annotation (default addNestedPath = true).
       assertThat(result.presets())
           .extracting(Preset::properties)
-          .anySatisfy(
-              p -> {
-                assertThat(p).containsEntry("outer", "branchA");
-                assertThat(p).containsEntry("ops.opType", "create");
-              });
+          .anySatisfy(p -> {
+            assertThat(p).containsEntry("outer", "branchA");
+            assertThat(p).containsEntry("ops.opType", "create");
+          });
     }
 
     @Test

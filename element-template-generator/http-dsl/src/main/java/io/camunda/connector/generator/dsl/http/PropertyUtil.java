@@ -58,18 +58,17 @@ public class PropertyUtil {
     }
     var choices =
         availableTypes.stream()
-            .map(
-                type -> {
-                  String label = type.label();
-                  if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
-                    label += " (" + apiKey.key() + ")";
-                  }
-                  if (type instanceof HttpAuthentication.BasicAuth basicAuth
-                      && !basicAuth.key().isEmpty()) {
-                    label += " (" + basicAuth.key() + ")";
-                  }
-                  return new DropdownProperty.DropdownChoice(label, type.id());
-                })
+            .map(type -> {
+              String label = type.label();
+              if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
+                label += " (" + apiKey.key() + ")";
+              }
+              if (type instanceof HttpAuthentication.BasicAuth basicAuth
+                  && !basicAuth.key().isEmpty()) {
+                label += " (" + basicAuth.key() + ")";
+              }
+              return new DropdownProperty.DropdownChoice(label, type.id());
+            })
             .toList();
 
     return DropdownProperty.builder()
@@ -232,29 +231,28 @@ public class PropertyUtil {
       for (var authentication : auths) {
         var authProperties =
             HttpAuthentication.getPropertyPrefabs(authentication).stream()
-                .map(
-                    builder -> {
-                      if (unconditional && auths.size() == 1) {
-                        // single auth for all ops — no condition at all
-                        return builder.build();
-                      } else if (unconditional) {
-                        // multiple auth types but unconditional (all ops share same multi-auth set)
-                        return builder
-                            .condition(new Equals(discriminatorId, authentication.id()))
-                            .build();
-                      } else {
-                        // conditional — scope to the ops in this group
-                        // prefix field IDs with the sorted-first op ID to avoid duplicates
-                        String fieldId = opIds.getFirst() + "_" + builder.getId();
-                        return builder
-                            .id(fieldId)
-                            .condition(
-                                new AllMatch(
-                                    new Equals(discriminatorId, authentication.id()),
-                                    new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, opIds)))
-                            .build();
-                      }
-                    })
+                .map(builder -> {
+                  if (unconditional && auths.size() == 1) {
+                    // single auth for all ops — no condition at all
+                    return builder.build();
+                  } else if (unconditional) {
+                    // multiple auth types but unconditional (all ops share same multi-auth set)
+                    return builder
+                        .condition(new Equals(discriminatorId, authentication.id()))
+                        .build();
+                  } else {
+                    // conditional — scope to the ops in this group
+                    // prefix field IDs with the sorted-first op ID to avoid duplicates
+                    String fieldId = opIds.getFirst() + "_" + builder.getId();
+                    return builder
+                        .id(fieldId)
+                        .condition(
+                            new AllMatch(
+                                new Equals(discriminatorId, authentication.id()),
+                                new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, opIds)))
+                        .build();
+                  }
+                })
                 .toList();
         properties.addAll(authProperties);
       }

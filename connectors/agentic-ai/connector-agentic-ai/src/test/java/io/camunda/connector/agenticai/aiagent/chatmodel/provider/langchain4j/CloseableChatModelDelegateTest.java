@@ -104,11 +104,9 @@ class CloseableChatModelDelegateTest {
     verify(resource).close();
     assertThat(events)
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage())
-                  .isEqualTo("Failed to close chat model resource");
-            });
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage()).isEqualTo("Failed to close chat model resource");
+        });
   }
 }

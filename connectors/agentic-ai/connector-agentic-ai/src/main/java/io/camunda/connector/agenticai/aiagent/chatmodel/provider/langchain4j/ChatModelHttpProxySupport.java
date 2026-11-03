@@ -173,28 +173,25 @@ public class ChatModelHttpProxySupport {
     // properties for proxy configuration.
     return proxyConfiguration
         .getProxyDetails(uri.getScheme())
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] and host [{}] => [{}://{}:{}]",
-                  uri.getScheme(),
-                  uri.getHost(),
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              ProxyOptions proxyOptions =
-                  new ProxyOptions(
-                      ProxyOptions.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              proxyOptions.setNonProxyHosts(
-                  NonProxyHosts.getNonProxyHostsPatterns()
-                      .distinct()
-                      .collect(Collectors.joining("|")));
-              if (proxyDetails.hasCredentials()) {
-                proxyOptions.setCredentials(proxyDetails.user(), proxyDetails.password());
-              }
-              return proxyOptions;
-            });
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] and host [{}] => [{}://{}:{}]",
+              uri.getScheme(),
+              uri.getHost(),
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
+          ProxyOptions proxyOptions =
+              new ProxyOptions(
+                  ProxyOptions.Type.HTTP,
+                  new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          proxyOptions.setNonProxyHosts(
+              NonProxyHosts.getNonProxyHostsPatterns().distinct().collect(Collectors.joining("|")));
+          if (proxyDetails.hasCredentials()) {
+            proxyOptions.setCredentials(proxyDetails.user(), proxyDetails.password());
+          }
+          return proxyOptions;
+        });
   }
 
   private static URI toUri(ProxyConfiguration.ProxyDetails proxyDetails) {
@@ -228,27 +225,26 @@ public class ChatModelHttpProxySupport {
 
     return proxyConfiguration
         .getProxyDetails(scheme)
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target host [{}] => [{}://{}:{}]",
-                  host,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target host [{}] => [{}://{}:{}]",
+              host,
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
 
-              final var proxyOptionsBuilder =
-                  com.google.genai.types.ProxyOptions.builder()
-                      .type(com.google.genai.types.ProxyType.Known.HTTP)
-                      .host(proxyDetails.host())
-                      .port(proxyDetails.port());
+          final var proxyOptionsBuilder =
+              com.google.genai.types.ProxyOptions.builder()
+                  .type(com.google.genai.types.ProxyType.Known.HTTP)
+                  .host(proxyDetails.host())
+                  .port(proxyDetails.port());
 
-              if (proxyDetails.hasCredentials()) {
-                proxyOptionsBuilder.username(proxyDetails.user()).password(proxyDetails.password());
-              }
+          if (proxyDetails.hasCredentials()) {
+            proxyOptionsBuilder.username(proxyDetails.user()).password(proxyDetails.password());
+          }
 
-              return proxyOptionsBuilder.build();
-            });
+          return proxyOptionsBuilder.build();
+        });
   }
 
   private static String defaultGoogleGenAiBaseUrl(String region) {

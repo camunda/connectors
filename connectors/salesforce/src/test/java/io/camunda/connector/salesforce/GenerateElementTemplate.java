@@ -143,12 +143,11 @@ public class GenerateElementTemplate {
             httpJsonTemplate.properties().stream()
                 .filter(GenerateElementTemplate::isAuthTypeDropdown)
                 .findFirst()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "HTTP JSON's generated template no longer has an "
-                                + "\"authentication.type\" dropdown property -- has it been renamed"
-                                + " or removed?"));
+                .orElseThrow(() ->
+                    new IllegalStateException(
+                        "HTTP JSON's generated template no longer has an "
+                            + "\"authentication.type\" dropdown property -- has it been renamed"
+                            + " or removed?"));
 
     ElementTemplateBuilder builder =
         ElementTemplateBuilder.from(httpJsonTemplate)
@@ -157,11 +156,10 @@ public class GenerateElementTemplate {
             // Salesforce-specific and rebuilt from scratch below. Groups are dropped entirely and
             // re-declared below.
             .removePropertyGroups(g -> true)
-            .removeProperties(
-                p ->
-                    !(isAuthTypeDropdown(p)
-                        || idIn(p, KEPT_AUTH_PROPERTY_IDS)
-                        || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
+            .removeProperties(p ->
+                !(isAuthTypeDropdown(p)
+                    || idIn(p, KEPT_AUTH_PROPERTY_IDS)
+                    || idIn(p, KEPT_OUTPUT_PROPERTY_IDS)))
             // HTTP JSON's inherited configuration templates (e.g. its REST Authentication
             // config, covering apiKey/basic/OAuth-refresh-token flows) don't apply here --
             // Salesforce only supports the two auth mechanisms narrowed to below.

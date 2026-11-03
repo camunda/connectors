@@ -146,19 +146,20 @@ class KafkaConnectorFunctionTest {
     // given
     final String noAuthRequest =
         """
-                    {
-                        "topic":{
-                          "bootstrapServers":"kafka-stub.kafka.cloud:1234",
-                          "topicName":"some-awesome-topic"
-                        },
-                        "message":{
-                          "key":"Happy",
-                          "value":"Case"
-                        },
-                        "schemaStrategy":{
-                          "type":"noSchema"
-                        }
-                      }""";
+        {
+            "topic":{
+              "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+              "topicName":"some-awesome-topic"
+            },
+            "message":{
+              "key":"Happy",
+              "value":"Case"
+            },
+            "schemaStrategy":{
+              "type":"noSchema"
+            }
+          }\
+        """;
     CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
     RecordMetadata kafkaResponse =
         new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
@@ -188,11 +189,10 @@ class KafkaConnectorFunctionTest {
   void execute_UsesCredentialConnectionForProducer() throws Exception {
     var capturedProperties = new Properties();
     var function =
-        new KafkaConnectorFunction(
-            properties -> {
-              capturedProperties.putAll(properties);
-              return producer;
-            });
+        new KafkaConnectorFunction(properties -> {
+          capturedProperties.putAll(properties);
+          return producer;
+        });
     var metadata = new RecordMetadata(new TopicPartition("task-topic", 1), 1, 1, 1, 1, 1);
     Mockito.when(producer.send(ArgumentMatchers.any()))
         .thenReturn(CompletableFuture.completedFuture(metadata));
@@ -227,10 +227,9 @@ class KafkaConnectorFunctionTest {
   @Test
   void execute_InvalidCredentialDoesNotCreateProducer() {
     var function =
-        new KafkaConnectorFunction(
-            properties -> {
-              throw new AssertionError("Invalid credentials must fail before creating a producer");
-            });
+        new KafkaConnectorFunction(properties -> {
+          throw new AssertionError("Invalid credentials must fail before creating a producer");
+        });
     var context =
         OutboundConnectorContextBuilder.create()
             .variables(

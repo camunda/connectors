@@ -559,10 +559,9 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void backoffFunctionShouldThrowWhenMinDelayExceedsMaxDelay() {
     // given - minDelay=PT10S > maxDelay=PT5S is invalid
     // when & then
-    assertThatThrownBy(
-            () ->
-                objectUnderTest.evaluate(
-                    "=backoff(1, duration(\"PT10S\"), 1.6, duration(\"PT5S\"), 0.1)", Map.of()))
+    assertThatThrownBy(() ->
+            objectUnderTest.evaluate(
+                "=backoff(1, duration(\"PT10S\"), 1.6, duration(\"PT5S\"), 0.1)", Map.of()))
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("minDelay");
   }
@@ -571,10 +570,9 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   void backoffFunctionShouldThrowWhenJitterFactorIsNegative() {
     // given - negative jitterFactor is invalid
     // when & then
-    assertThatThrownBy(
-            () ->
-                objectUnderTest.evaluate(
-                    "=backoff(1, duration(\"PT0.05S\"), 1.6, duration(\"PT5S\"), -0.1)", Map.of()))
+    assertThatThrownBy(() ->
+            objectUnderTest.evaluate(
+                "=backoff(1, duration(\"PT0.05S\"), 1.6, duration(\"PT5S\"), -0.1)", Map.of()))
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("jitterFactor");
   }

@@ -54,10 +54,9 @@ class AwsCredentialValidatorTest {
   @Test
   void unauthorizedOn403AndDoesNotLeakSdkMessage() {
     var validator =
-        new AwsCredentialValidator(
-            configuration -> {
-              throw sts(403, "token SENSITIVE-DETAIL is invalid (Request ID: abc)");
-            });
+        new AwsCredentialValidator(configuration -> {
+          throw sts(403, "token SENSITIVE-DETAIL is invalid (Request ID: abc)");
+        });
 
     var result = validator.validate(VALID);
 
@@ -87,10 +86,9 @@ class AwsCredentialValidatorTest {
   @Test
   void errorOnNonSdkExceptionAndDoesNotLeakMessage() {
     var validator =
-        new AwsCredentialValidator(
-            configuration -> {
-              throw new RuntimeException("boom SENSITIVE");
-            });
+        new AwsCredentialValidator(configuration -> {
+          throw new RuntimeException("boom SENSITIVE");
+        });
 
     var result = validator.validate(VALID);
 

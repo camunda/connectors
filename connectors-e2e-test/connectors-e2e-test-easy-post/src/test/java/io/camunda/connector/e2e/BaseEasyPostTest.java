@@ -96,56 +96,56 @@ public abstract class BaseEasyPostTest {
 
   private static String createAddressRequestBodyJson() {
     return """
-                    {
-                      "address": {
-                        "city": "San Francisco",
-                        "name": "John Doe",
-                        "country": "US",
-                        "street2": "5th Floor",
-                        "company": "Doe Inc.",
-                        "phone": "415-123-4567",
-                        "state_tax_id": "987-654321",
-                        "zip": "94104",
-                        "email": "johndoe@example.com",
-                        "state": "CA",
-                        "street1": "417 Montgomery Street",
-                        "federal_tax_id": "12-3456789"
-                      }
-                    }
-                              """;
+    {
+      "address": {
+        "city": "San Francisco",
+        "name": "John Doe",
+        "country": "US",
+        "street2": "5th Floor",
+        "company": "Doe Inc.",
+        "phone": "415-123-4567",
+        "state_tax_id": "987-654321",
+        "zip": "94104",
+        "email": "johndoe@example.com",
+        "state": "CA",
+        "street1": "417 Montgomery Street",
+        "federal_tax_id": "12-3456789"
+      }
+    }
+    """;
   }
 
   private static String createParcelRequestBodyJson() {
     return """
-                    {
-                      "parcel": {
-                        "weight" : "5",
-                        "predefined_package" : "predefinedPackage",
-                        "height" : "15",
-                        "length" : "10",
-                        "width" : "20"
-                      }
-                    }
-                    """;
+    {
+      "parcel": {
+        "weight" : "5",
+        "predefined_package" : "predefinedPackage",
+        "height" : "15",
+        "length" : "10",
+        "width" : "20"
+      }
+    }
+    """;
   }
 
   private static String createShipmentRequestBodyJson() {
     return """
-            {
-              "shipment": {
-              "to_address" : {
-              "id": "adr_64cfa74a8a5a1"
-              },
-              "from_address" : {
-              "id": "adr_64cfa7fde45"
-              },
-              "parcel" : {
-              "id": "prcl_4d0bf800c0e6cb"
-              }
-              }
-            }
+    {
+      "shipment": {
+      "to_address" : {
+      "id": "adr_64cfa74a8a5a1"
+      },
+      "from_address" : {
+      "id": "adr_64cfa7fde45"
+      },
+      "parcel" : {
+      "id": "prcl_4d0bf800c0e6cb"
+      }
+      }
+    }
 
-            """;
+    """;
   }
 
   private static Map<String, Object> createAddressResponse() {

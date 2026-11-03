@@ -48,7 +48,7 @@ public class AgentTaskToolCallingTests extends BaseAgentTaskTest {
         e -> e,
         FEEDBACK_LOOP_RESPONSE_TEXT,
         true,
-        (agentResponse) ->
+        agentResponse ->
             AgentResponseAssert.assertThat(agentResponse)
                 .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
                 .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)

@@ -359,12 +359,10 @@ class LangChain4JChatModelTest {
     verify(chatModel).close();
     assertThat(events)
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage())
-                  .isEqualTo("Failed to close CloseableChatModel");
-            });
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage()).isEqualTo("Failed to close CloseableChatModel");
+        });
   }
 
   private AgentExecutionContext createExecutionContext() {

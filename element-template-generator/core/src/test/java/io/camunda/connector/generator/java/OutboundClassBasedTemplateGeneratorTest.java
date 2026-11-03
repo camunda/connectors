@@ -171,10 +171,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void elementTemplateAnnotation_partialCategoryFails() {
-      assertThatThrownBy(
-              () ->
-                  generator.generate(
-                      MyConnectorFunction.MinimallyAnnotatedWithPartialCategory.class))
+      assertThatThrownBy(() ->
+              generator.generate(MyConnectorFunction.MinimallyAnnotatedWithPartialCategory.class))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("category id and name must be non-blank");
     }
@@ -708,12 +706,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .getFirst();
 
       assertThat(template.properties())
-          .filteredOn(
-              p ->
-                  p.getBinding().type().equals("zeebe:property")
-                      && ((PropertyBinding.ZeebeProperty) p.getBinding())
-                          .name()
-                          .startsWith("myExtensionProperty"))
+          .filteredOn(p ->
+              p.getBinding().type().equals("zeebe:property")
+                  && ((PropertyBinding.ZeebeProperty) p.getBinding())
+                      .name()
+                      .startsWith("myExtensionProperty"))
           .hasSize(2)
           .satisfiesExactlyInAnyOrder(
               p -> {
@@ -1159,12 +1156,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
       var linkedResourceProps =
           template.properties().stream()
-              .filter(
-                  p ->
-                      "zeebe:linkedResource".equals(p.getBinding().type())
-                          && p.getCondition() instanceof PropertyCondition.AllMatch am
-                          && am.allMatch()
-                              .contains(new PropertyCondition.Equals("operation", "op1")))
+              .filter(p ->
+                  "zeebe:linkedResource".equals(p.getBinding().type())
+                      && p.getCondition() instanceof PropertyCondition.AllMatch am
+                      && am.allMatch().contains(new PropertyCondition.Equals("operation", "op1")))
               .toList();
       assertThat(linkedResourceProps).hasSize(4);
     }
@@ -1175,10 +1170,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
       var hidden =
           template.properties().stream()
-              .filter(
-                  p ->
-                      "zeebe:linkedResource".equals(p.getBinding().type())
-                          && p instanceof HiddenProperty)
+              .filter(p ->
+                  "zeebe:linkedResource".equals(p.getBinding().type())
+                      && p instanceof HiddenProperty)
               .findFirst()
               .orElseThrow();
 
@@ -1262,12 +1256,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           generator.generate(OperationAnnotatedConnectorWithLinkedResource.class).getFirst();
       var op2LinkedResourceProps =
           template.properties().stream()
-              .filter(
-                  p ->
-                      "zeebe:linkedResource".equals(p.getBinding().type())
-                          && p.getCondition() instanceof PropertyCondition.AllMatch am
-                          && am.allMatch()
-                              .contains(new PropertyCondition.Equals("operation", "op2")))
+              .filter(p ->
+                  "zeebe:linkedResource".equals(p.getBinding().type())
+                      && p.getCondition() instanceof PropertyCondition.AllMatch am
+                      && am.allMatch().contains(new PropertyCondition.Equals("operation", "op2")))
               .toList();
       assertThat(op2LinkedResourceProps).hasSize(8);
     }
@@ -1328,15 +1320,12 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       var resourceType =
           template.properties().stream()
-              .filter(
-                  p ->
-                      p instanceof HiddenProperty
-                          && "zeebe:linkedResource".equals(p.getBinding().type())
-                          && "formDefinition"
-                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName())
-                          && p.getCondition() instanceof PropertyCondition.AllMatch am
-                          && am.allMatch()
-                              .contains(new PropertyCondition.Equals("operation", "op4")))
+              .filter(p ->
+                  p instanceof HiddenProperty
+                      && "zeebe:linkedResource".equals(p.getBinding().type())
+                      && "formDefinition".equals(((ZeebeLinkedResource) p.getBinding()).linkName())
+                      && p.getCondition() instanceof PropertyCondition.AllMatch am
+                      && am.allMatch().contains(new PropertyCondition.Equals("operation", "op4")))
               .findFirst()
               .orElseThrow();
       assertThat(((PropertyCondition.AllMatch) resourceType.getCondition()).allMatch())
@@ -1370,24 +1359,20 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       var attachmentAHidden =
           template.properties().stream()
-              .filter(
-                  p ->
-                      p instanceof HiddenProperty
-                          && "zeebe:linkedResource".equals(p.getBinding().type())
-                          && "attachmentA"
-                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
+              .filter(p ->
+                  p instanceof HiddenProperty
+                      && "zeebe:linkedResource".equals(p.getBinding().type())
+                      && "attachmentA".equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
               .findFirst()
               .orElseThrow();
       assertThat(attachmentAHidden.getValue()).isEqualTo("form");
 
       var attachmentBHidden =
           template.properties().stream()
-              .filter(
-                  p ->
-                      p instanceof HiddenProperty
-                          && "zeebe:linkedResource".equals(p.getBinding().type())
-                          && "attachmentB"
-                              .equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
+              .filter(p ->
+                  p instanceof HiddenProperty
+                      && "zeebe:linkedResource".equals(p.getBinding().type())
+                      && "attachmentB".equals(((ZeebeLinkedResource) p.getBinding()).linkName()))
               .findFirst()
               .orElseThrow();
       assertThat(attachmentBHidden.getValue()).isEqualTo("file");
@@ -1403,19 +1388,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       var conditioned =
           template.properties().stream()
-              .filter(
-                  p ->
-                      "zeebe:linkedResource".equals(p.getBinding().type())
-                          && p.getCondition() instanceof PropertyCondition.AllMatch am
-                          && am.allMatch().contains(expectedOperation))
+              .filter(p ->
+                  "zeebe:linkedResource".equals(p.getBinding().type())
+                      && p.getCondition() instanceof PropertyCondition.AllMatch am
+                      && am.allMatch().contains(expectedOperation))
               .toList();
 
       assertThat(conditioned).hasSize(4);
       assertThat(conditioned)
-          .allSatisfy(
-              p ->
-                  assertThat(((PropertyCondition.AllMatch) p.getCondition()).allMatch())
-                      .contains(expectedOperation, expectedGate));
+          .allSatisfy(p ->
+              assertThat(((PropertyCondition.AllMatch) p.getCondition()).allMatch())
+                  .contains(expectedOperation, expectedGate));
 
       // No toggle is emitted: the conditionProperty gates the resource instead.
       assertThat(template.properties())
@@ -1482,10 +1465,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void condition_withoutProperty_throws() {
-      assertThatThrownBy(
-              () ->
-                  generator.generate(
-                      OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
+      assertThatThrownBy(() ->
+              generator.generate(
+                  OperationAnnotatedConnectorWithIncompleteLinkedResourceCondition.class))
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("must have " + "'property' set");
     }
@@ -1509,10 +1491,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var template = generator.generate(ClassBasedConnectorWithLinkedResource.class).getFirst();
       var hidden =
           template.properties().stream()
-              .filter(
-                  p ->
-                      "zeebe:linkedResource".equals(p.getBinding().type())
-                          && p instanceof HiddenProperty)
+              .filter(p ->
+                  "zeebe:linkedResource".equals(p.getBinding().type())
+                      && p instanceof HiddenProperty)
               .findFirst()
               .orElseThrow();
 

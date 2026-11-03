@@ -377,16 +377,14 @@ public class SpringSoapClient implements SoapClient {
           .getDocumentElement()
           .setAttribute("xmlns:wsu", WSS4JConstants.WSU_NS);
       ofNullable(namespaces)
-          .ifPresent(
-              ns ->
-                  ns.forEach(
-                      (name, uri) -> {
-                        domResult
-                            .getNode()
-                            .getOwnerDocument()
-                            .getDocumentElement()
-                            .setAttribute("xmlns:" + name, uri);
-                      }));
+          .ifPresent(ns ->
+              ns.forEach((name, uri) -> {
+                domResult
+                    .getNode()
+                    .getOwnerDocument()
+                    .getDocumentElement()
+                    .setAttribute("xmlns:" + name, uri);
+              }));
     }
   }
 }

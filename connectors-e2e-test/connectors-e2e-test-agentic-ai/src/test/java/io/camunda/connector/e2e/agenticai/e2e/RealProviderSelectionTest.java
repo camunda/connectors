@@ -165,9 +165,8 @@ class RealProviderSelectionTest {
 
     assertThat(RealProviderApiSmokeSupport.providers())
         .singleElement()
-        .extracting(
-            provider ->
-                provider.properties().get("provider.googleGemini.backend.googleVertexAi.region"))
+        .extracting(provider ->
+            provider.properties().get("provider.googleGemini.backend.googleVertexAi.region"))
         .isEqualTo("global");
   }
 

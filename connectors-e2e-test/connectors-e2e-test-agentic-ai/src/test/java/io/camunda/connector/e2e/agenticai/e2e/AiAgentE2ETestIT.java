@@ -208,13 +208,12 @@ public class AiAgentE2ETestIT {
   private void mockTool(String jobType, Object toolCallResult) {
     processTestContext
         .mockJobWorker(jobType)
-        .withHandler(
-            (jobClient, job) ->
-                jobClient
-                    .newCompleteCommand(job)
-                    .variable("toolCallResult", toolCallResult)
-                    .send()
-                    .join());
+        .withHandler((jobClient, job) ->
+            jobClient
+                .newCompleteCommand(job)
+                .variable("toolCallResult", toolCallResult)
+                .send()
+                .join());
   }
 
   // ---------------------------------------------------------------------------
@@ -230,7 +229,8 @@ public class AiAgentE2ETestIT {
             provider,
             """
             Use your user lookup tool to list the available users and tell me the name of the \
-            second user in the list. Reply with that name only.""");
+            second user in the list. Reply with that name only.\
+            """);
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
@@ -253,7 +253,8 @@ public class AiAgentE2ETestIT {
             Use your date and time tool and your joke tool before giving your final answer. After \
             both tools have returned, provide one final response containing the day of the week \
             and the joke exactly as the tool returned it. If you mention one result while calling \
-            the other tool, repeat both results in the final response.""");
+            the other tool, repeat both results in the final response.\
+            """);
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
@@ -281,7 +282,8 @@ public class AiAgentE2ETestIT {
             """
             Look up the list of users, take the second user in that list, and then check the \
             status of the order that user has placed. Tell me the order status and the tracking \
-            number. Perform both lookups now without asking for confirmation.""");
+            number. Perform both lookups now without asking for confirmation.\
+            """);
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
@@ -309,7 +311,8 @@ public class AiAgentE2ETestIT {
             provider,
             """
             I need the internal code name of the current maintenance window. You do not know it, \
-            so ask a human expert for it, then tell me their answer verbatim.""");
+            so ask a human expert for it, then tell me their answer verbatim.\
+            """);
 
     camundaClient
         .newCompleteUserTaskCommand(awaitUserTask(processInstance, "AskHuman"))
@@ -345,7 +348,8 @@ public class AiAgentE2ETestIT {
         false,
         """
         Based on the date and time you just looked up, which day of the week was that? Reply with \
-        the weekday only.""");
+        the weekday only.\
+        """);
 
     completeUserTask(awaitUserTask(processInstance, USER_FEEDBACK), true, null);
 
@@ -741,10 +745,9 @@ public class AiAgentE2ETestIT {
   private boolean isCompleted(ProcessInstanceEvent instance) {
     return !camundaClient
         .newProcessInstanceSearchRequest()
-        .filter(
-            f ->
-                f.processInstanceKey(instance.getProcessInstanceKey())
-                    .state(ProcessInstanceState.COMPLETED))
+        .filter(f ->
+            f.processInstanceKey(instance.getProcessInstanceKey())
+                .state(ProcessInstanceState.COMPLETED))
         .send()
         .join()
         .items()
@@ -784,11 +787,10 @@ public class AiAgentE2ETestIT {
   private List<Long> createdUserTaskKeys(ProcessInstanceEvent instance, String elementId) {
     return camundaClient
         .newUserTaskSearchRequest()
-        .filter(
-            f ->
-                f.processInstanceKey(instance.getProcessInstanceKey())
-                    .elementId(elementId)
-                    .state(UserTaskState.CREATED))
+        .filter(f ->
+            f.processInstanceKey(instance.getProcessInstanceKey())
+                .elementId(elementId)
+                .state(UserTaskState.CREATED))
         .send()
         .join()
         .items()

@@ -127,40 +127,37 @@ class OutboundRegistryTest {
   void suppliesFreshInstance_perInstanceSupplierCall_forPrototypeScopedSpringBean() {
     new ApplicationContextRunner()
         .withUserConfiguration(TestConfig.class, PrototypeFunction.class)
-        .run(
-            context -> {
-              var registry = context.getBean(DefaultOutboundConnectorFactory.class);
-              var config =
-                  registry.getActiveConfigurations().stream()
-                      .filter(c -> c.type().equals("io.camunda:prototype"))
-                      .findFirst()
-                      .orElseThrow();
+        .run(context -> {
+          var registry = context.getBean(DefaultOutboundConnectorFactory.class);
+          var config =
+              registry.getActiveConfigurations().stream()
+                  .filter(c -> c.type().equals("io.camunda:prototype"))
+                  .findFirst()
+                  .orElseThrow();
 
-              var first = config.instanceSupplier().get();
-              var second = config.instanceSupplier().get();
+          var first = config.instanceSupplier().get();
+          var second = config.instanceSupplier().get();
 
-              assertThat(first).isInstanceOf(PrototypeFunction.class);
-              assertThat(first).isNotSameAs(second);
-            });
+          assertThat(first).isInstanceOf(PrototypeFunction.class);
+          assertThat(first).isNotSameAs(second);
+        });
   }
 
   private void runTest(
       ApplicationContextRunner configuredContextRunner,
       ThrowingConsumer<OutboundConnectorConfiguration> configurationAssertions) {
-    configuredContextRunner.run(
-        context -> {
-          var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
-          Assertions.assertThatStream(outboundConnectorRegistry.getActiveConfigurations().stream())
-              .anyMatch(
-                  e -> {
-                    try {
-                      configurationAssertions.accept(e);
-                      return true;
-                    } catch (Exception ex) {
-                      return false;
-                    }
-                  });
-        });
+    configuredContextRunner.run(context -> {
+      var outboundConnectorRegistry = context.getBean(DefaultOutboundConnectorFactory.class);
+      Assertions.assertThatStream(outboundConnectorRegistry.getActiveConfigurations().stream())
+          .anyMatch(e -> {
+            try {
+              configurationAssertions.accept(e);
+              return true;
+            } catch (Exception ex) {
+              return false;
+            }
+          });
+    });
   }
 }
 

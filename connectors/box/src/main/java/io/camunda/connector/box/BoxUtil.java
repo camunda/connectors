@@ -47,13 +47,11 @@ public class BoxUtil {
   public static Optional<BoxItem.Info> findItemInTree(BoxFolder folder, BoxPath.Segments segments) {
     String segment = segments.segments().getFirst();
     return findItemByName(items(folder), segment)
-        .flatMap(
-            item ->
-                segments.isPathEnd()
-                    ? Optional.of(item)
-                    : findItemInTree(
-                        new BoxFolder(folder.getAPI(), item.getID()),
-                        segments.withoutFirstSegment()));
+        .flatMap(item ->
+            segments.isPathEnd()
+                ? Optional.of(item)
+                : findItemInTree(
+                    new BoxFolder(folder.getAPI(), item.getID()), segments.withoutFirstSegment()));
   }
 
   private static Stream<BoxItem.Info> items(BoxFolder folder) {

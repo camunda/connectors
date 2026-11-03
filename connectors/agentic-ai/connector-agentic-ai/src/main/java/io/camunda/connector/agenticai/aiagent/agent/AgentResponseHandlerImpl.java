@@ -54,10 +54,9 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
         Objects.requireNonNull(
             conversation
                 .lastTurn()
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            "Cannot create an agent response: the conversation has no completed turn"))
+                .orElseThrow(() ->
+                    new IllegalStateException(
+                        "Cannot create an agent response: the conversation has no completed turn"))
                 .assistantMessage(),
             "Cannot create an agent response: the last turn has no assistant message");
     final var rawToolCalls = Optional.ofNullable(assistantMessage.toolCalls()).orElse(List.of());

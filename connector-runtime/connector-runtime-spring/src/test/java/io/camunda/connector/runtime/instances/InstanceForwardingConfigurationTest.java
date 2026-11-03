@@ -34,23 +34,21 @@ class InstanceForwardingConfigurationTest {
 
   @Test
   void shouldCreateLocalRouter_whenHeadlessServiceUrlIsNotConfigured() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(InstanceForwardingRouter.class);
-          assertThat(context.getBean(InstanceForwardingRouter.class))
-              .isInstanceOf(LocalInstanceForwardingRouter.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(InstanceForwardingRouter.class);
+      assertThat(context.getBean(InstanceForwardingRouter.class))
+          .isInstanceOf(LocalInstanceForwardingRouter.class);
+    });
   }
 
   @Test
   void shouldCreateForwardingRouter_whenHeadlessServiceUrlIsConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.headless.serviceurl=http://connectors-headless")
-        .run(
-            context -> {
-              assertThat(context).hasSingleBean(InstanceForwardingRouter.class);
-              assertThat(context.getBean(InstanceForwardingRouter.class))
-                  .isInstanceOf(ForwardingInstanceForwardingRouter.class);
-            });
+        .run(context -> {
+          assertThat(context).hasSingleBean(InstanceForwardingRouter.class);
+          assertThat(context.getBean(InstanceForwardingRouter.class))
+              .isInstanceOf(ForwardingInstanceForwardingRouter.class);
+        });
   }
 }

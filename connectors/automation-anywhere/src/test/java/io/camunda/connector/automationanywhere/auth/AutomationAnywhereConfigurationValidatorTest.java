@@ -95,10 +95,9 @@ class AutomationAnywhereConfigurationValidatorTest {
   @Test
   void returnsError_onConnectionFailure() {
     when(httpService.executeConnectorRequest(any()))
-        .thenAnswer(
-            invocation -> {
-              throw new ConnectException("refused");
-            });
+        .thenAnswer(invocation -> {
+          throw new ConnectException("refused");
+        });
 
     assertThat(validator.validate(PASSWORD_CREDENTIAL))
         .isEqualTo(
@@ -146,9 +145,8 @@ class AutomationAnywhereConfigurationValidatorTest {
   void isDiscoverableViaTheServiceLoader() {
     assertThat(
             ServiceLoader.load(ConfigurationValidator.class).stream()
-                .filter(
-                    provider ->
-                        provider.type().equals(AutomationAnywhereConfigurationValidator.class))
+                .filter(provider ->
+                    provider.type().equals(AutomationAnywhereConfigurationValidator.class))
                 .map(ServiceLoader.Provider::get))
         .singleElement()
         .isInstanceOf(AutomationAnywhereConfigurationValidator.class);

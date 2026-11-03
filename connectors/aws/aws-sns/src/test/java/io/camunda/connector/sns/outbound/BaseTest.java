@@ -25,78 +25,81 @@ public abstract class BaseTest {
 
   protected static final String DEFAULT_REQUEST_BODY =
       """
-                  {
-                    "authentication":{
-                      "secretKey":"abc",
-                      "accessKey":"def"
-                    },
-                    "topic":{
-                      "message":"MyMessage",
-                      "messageAttributes":{
-                        "attribute2":{
-                          "StringValue":"attribute 2 value",
-                          "DataType":"String"
-                        },
-                        "attribute1":{
-                          "StringValue":"attribute 1 value",
-                          "DataType":"String"
-                        }
-                      },
-                      "subject":"MySubject",
-                      "region":"us-east-1",
-                      "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
-                    }
-                  }""";
+      {
+        "authentication":{
+          "secretKey":"abc",
+          "accessKey":"def"
+        },
+        "topic":{
+          "message":"MyMessage",
+          "messageAttributes":{
+            "attribute2":{
+              "StringValue":"attribute 2 value",
+              "DataType":"String"
+            },
+            "attribute1":{
+              "StringValue":"attribute 1 value",
+              "DataType":"String"
+            }
+          },
+          "subject":"MySubject",
+          "region":"us-east-1",
+          "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
+        }
+      }\
+      """;
 
   protected static final String REQUEST_WITH_JSON_MSG_BODY =
       """
-                  {
-                    "authentication":{
-                      "secretKey":"abc",
-                      "accessKey":"def"
-                    },
-                    "topic":{
-                      "message":{"key":"value"},
-                      "messageAttributes":{
-                        "attribute2":{
-                          "StringValue":"attribute 2 value",
-                          "DataType":"String"
-                        },
-                        "attribute1":{
-                          "StringValue":"attribute 1 value",
-                          "DataType":"String"
-                        }
-                      },
-                      "subject":"MySubject",
-                      "region":"us-east-1",
-                      "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
-                    }
-                  }""";
+      {
+        "authentication":{
+          "secretKey":"abc",
+          "accessKey":"def"
+        },
+        "topic":{
+          "message":{"key":"value"},
+          "messageAttributes":{
+            "attribute2":{
+              "StringValue":"attribute 2 value",
+              "DataType":"String"
+            },
+            "attribute1":{
+              "StringValue":"attribute 1 value",
+              "DataType":"String"
+            }
+          },
+          "subject":"MySubject",
+          "region":"us-east-1",
+          "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
+        }
+      }\
+      """;
 
   protected static final String REQUEST_WITH_JSON_MSG_BODY_SPECIAL_CHAR =
       """
-                      {
-                        "authentication":{
-                          "secretKey":"abc",
-                          "accessKey":"def"
-                        },
-                        "topic":{
-                          "message":{"key":"\\"normal\\" value"},
-                          "messageAttributes":{
-                            "attribute2":{
-                              "StringValue":"attribute 2 value",
-                              "DataType":"String"
-                            },
-                            "attribute1":{
-                              "StringValue":"attribute 1 value",
-                              "DataType":"String"
-                            }
-                          },
-                          "subject":"MySubject",
-                          "region":"us-east-1",
-                          "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
-                        }
-                      }""";
+      {
+        "authentication":{
+          "secretKey":"abc",
+          "accessKey":"def"
+        },
+        "topic":{
+          "message":{"key":"\\"normal\\" value"},
+          "messageAttributes":{
+            "attribute2":{
+              "StringValue":"attribute 2 value",
+              "DataType":"String"
+            },
+            "attribute1":{
+              "StringValue":"attribute 1 value",
+              "DataType":"String"
+            }
+          },
+          "subject":"MySubject",
+          "region":"us-east-1",
+          "topicArn":"arn:aws:sns:us-east-1:000000000000:test"
+        }
+      }\
+      """;
 
   protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 }

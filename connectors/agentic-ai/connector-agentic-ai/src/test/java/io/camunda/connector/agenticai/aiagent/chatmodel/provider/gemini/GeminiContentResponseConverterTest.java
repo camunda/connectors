@@ -146,13 +146,12 @@ class GeminiContentResponseConverterTest {
     assertThat(content).singleElement().isInstanceOf(ProviderContent.class);
     assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
         .singleElement()
-        .satisfies(
-            part -> {
-              final var blob = part.inlineData().orElseThrow();
-              assertThat(blob.mimeType()).contains("image/png");
-              assertThat(blob.data().orElseThrow())
-                  .isEqualTo("image-bytes".getBytes(StandardCharsets.UTF_8));
-            });
+        .satisfies(part -> {
+          final var blob = part.inlineData().orElseThrow();
+          assertThat(blob.mimeType()).contains("image/png");
+          assertThat(blob.data().orElseThrow())
+              .isEqualTo("image-bytes".getBytes(StandardCharsets.UTF_8));
+        });
   }
 
   @Test
@@ -188,12 +187,11 @@ class GeminiContentResponseConverterTest {
 
     assertThat(new GeminiContentConverter(new ObjectMapper()).toParts(content))
         .singleElement()
-        .satisfies(
-            part -> {
-              assertThat(part.text()).contains("the answer");
-              assertThat(part.thought()).isEmpty();
-              assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE);
-            });
+        .satisfies(part -> {
+          assertThat(part.text()).contains("the answer");
+          assertThat(part.thought()).isEmpty();
+          assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE);
+        });
   }
 
   @Test
@@ -241,13 +239,12 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.content()).isEmpty();
-              assertThat(assistantMessage.toolCalls()).isEmpty();
-              assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
-            });
+        .satisfies(partialResult -> {
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.content()).isEmpty();
+          assertThat(assistantMessage.toolCalls()).isEmpty();
+          assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
+        });
   }
 
   @Test
@@ -263,13 +260,12 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.content())
-                  .containsExactly(TextContent.textContent("partial answer"));
-              assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
-            });
+        .satisfies(partialResult -> {
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.content())
+              .containsExactly(TextContent.textContent("partial answer"));
+          assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason("SAFETY"));
+        });
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -374,13 +370,12 @@ class GeminiContentResponseConverterTest {
 
     assertThat(toolCalls)
         .singleElement()
-        .satisfies(
-            toolCall ->
-                assertThat(toolCall.metadata())
-                    .isEqualTo(
-                        Map.of(
-                            GOOGLE_GEMINI_ID,
-                            Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64))));
+        .satisfies(toolCall ->
+            assertThat(toolCall.metadata())
+                .isEqualTo(
+                    Map.of(
+                        GOOGLE_GEMINI_ID,
+                        Map.of(THOUGHT_SIGNATURE_METADATA_KEY, THOUGHT_SIGNATURE_BASE64))));
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -441,12 +436,11 @@ class GeminiContentResponseConverterTest {
 
     assertThat(replayed)
         .singleElement()
-        .satisfies(
-            part -> {
-              assertThat(part.thought()).contains(true);
-              assertThat(part.text()).contains("Let me think it through");
-              assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE);
-            });
+        .satisfies(part -> {
+          assertThat(part.thought()).contains(true);
+          assertThat(part.text()).contains("Let me think it through");
+          assertThat(part.thoughtSignature()).contains(THOUGHT_SIGNATURE);
+        });
   }
 
   @Test
@@ -525,15 +519,13 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              assertThat(partialResult).isNotNull();
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.stopReason())
-                  .isEqualTo(new UnknownStopReason(finishReason));
-              assertThat(assistantMessage.metadata())
-                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
-            });
+        .satisfies(partialResult -> {
+          assertThat(partialResult).isNotNull();
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.stopReason()).isEqualTo(new UnknownStopReason(finishReason));
+          assertThat(assistantMessage.metadata())
+              .containsEntry(GOOGLE_GEMINI_ID, Map.of("finishReason", finishReason));
+        });
   }
 
   @Test
@@ -610,25 +602,24 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              assertThat(partialResult).isNotNull();
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.content())
-                  .containsExactly(TextContent.textContent("Prompt blocked: SAFETY"));
-              assertThat(assistantMessage.toolCalls()).isEmpty();
-              assertThat(assistantMessage.stopReason()).isNull();
-              assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
-              assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
-              assertThat(assistantMessage.metadata())
-                  .containsEntry(GOOGLE_GEMINI_ID, Map.of("blockReason", "SAFETY"))
-                  .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
+        .satisfies(partialResult -> {
+          assertThat(partialResult).isNotNull();
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.content())
+              .containsExactly(TextContent.textContent("Prompt blocked: SAFETY"));
+          assertThat(assistantMessage.toolCalls()).isEmpty();
+          assertThat(assistantMessage.stopReason()).isNull();
+          assertThat(assistantMessage.messageId()).isEqualTo("resp-blocked");
+          assertThat(assistantMessage.modelId()).isEqualTo("gemini-3-pro-preview");
+          assertThat(assistantMessage.metadata())
+              .containsEntry(GOOGLE_GEMINI_ID, Map.of("blockReason", "SAFETY"))
+              .containsKey(AssistantMessageMetadata.TIMESTAMP_KEY);
 
-              final var metrics = partialResult.metrics();
-              assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(7);
-              assertThat(metrics.modelCalls()).isEqualTo(1);
-              assertThat(metrics.toolCalls()).isZero();
-            });
+          final var metrics = partialResult.metrics();
+          assertThat(metrics.tokenUsage().inputTokenCount()).isEqualTo(7);
+          assertThat(metrics.modelCalls()).isEqualTo(1);
+          assertThat(metrics.toolCalls()).isZero();
+        });
   }
 
   @Test
@@ -645,13 +636,12 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.content())
-                  .containsExactly(TextContent.textContent("Prompt blocked: PROHIBITED_CONTENT"));
-              assertThat(assistantMessage.stopReason()).isNull();
-            });
+        .satisfies(partialResult -> {
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.content())
+              .containsExactly(TextContent.textContent("Prompt blocked: PROHIBITED_CONTENT"));
+          assertThat(assistantMessage.stopReason()).isNull();
+        });
   }
 
   @Test
@@ -661,16 +651,15 @@ class GeminiContentResponseConverterTest {
     assertThatThrownBy(() -> converter.toResult(response, EXECUTION_TIME))
         .isInstanceOf(ContentFilteredException.class)
         .extracting(e -> ((ContentFilteredException) e).partialResult())
-        .satisfies(
-            partialResult -> {
-              final var assistantMessage = partialResult.assistantMessage();
-              assertThat(assistantMessage.content())
-                  .containsExactly(
-                      TextContent.textContent("Prompt blocked (no block reason reported)"));
-              assertThat(assistantMessage.stopReason()).isNull();
-              assertThat(assistantMessage.metadata())
-                  .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
-            });
+        .satisfies(partialResult -> {
+          final var assistantMessage = partialResult.assistantMessage();
+          assertThat(assistantMessage.content())
+              .containsExactly(
+                  TextContent.textContent("Prompt blocked (no block reason reported)"));
+          assertThat(assistantMessage.stopReason()).isNull();
+          assertThat(assistantMessage.metadata())
+              .containsOnlyKeys(AssistantMessageMetadata.TIMESTAMP_KEY);
+        });
   }
 
   // ---------------------------------------------------------------------------------------------

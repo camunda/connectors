@@ -332,12 +332,11 @@ public class AnthropicMessageRequestConverter {
     // as a dedicated, validated field defaulting to that value, so it must be excluded here to
     // avoid emitting a duplicate "type" key).
     final Map<String, JsonValue> additional = new LinkedHashMap<>();
-    schema.forEach(
-        (k, v) -> {
-          if (!"type".equals(k)) {
-            additional.put(k, JsonValue.from(v));
-          }
-        });
+    schema.forEach((k, v) -> {
+      if (!"type".equals(k)) {
+        additional.put(k, JsonValue.from(v));
+      }
+    });
     return Tool.InputSchema.builder().additionalProperties(additional).build();
   }
 

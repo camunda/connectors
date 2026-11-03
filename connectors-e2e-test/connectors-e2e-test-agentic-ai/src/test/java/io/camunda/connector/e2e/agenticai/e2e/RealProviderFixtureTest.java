@@ -65,36 +65,33 @@ class RealProviderFixtureTest {
     registry
         .required("requiredCiCapabilities")
         .elements()
-        .forEachRemaining(
-            capabilities ->
-                capabilities
-                    .elements()
-                    .forEachRemaining(tag -> requiredCapabilities.add(tag.asText())));
+        .forEachRemaining(capabilities ->
+            capabilities
+                .elements()
+                .forEachRemaining(tag -> requiredCapabilities.add(tag.asText())));
 
     assertThat(CAPABILITY_SUITES.keySet())
         .containsExactlyInAnyOrderElementsOf(requiredCapabilities);
 
     var failsafeConfiguration = Files.readString(Path.of(System.getProperty("basedir"), "pom.xml"));
-    CAPABILITY_SUITES.forEach(
-        (tag, suite) -> {
-          assertThat(suite.getAnnotation(Tag.class))
-              .as("%s capability tag", suite.getSimpleName())
-              .isNotNull()
-              .extracting(Tag::value)
-              .isEqualTo(tag);
-          assertThat(suite.getDeclaredMethods())
-              .as("%s executable parameterized scenarios", suite.getSimpleName())
-              .anyMatch(
-                  method ->
-                      method.isAnnotationPresent(ParameterizedTest.class)
-                          && !method.isAnnotationPresent(Disabled.class));
-          assertThat(
-                  suite.getSimpleName().endsWith("E2ETestIT")
-                      || failsafeConfiguration.contains(
-                          "<include>**/" + suite.getSimpleName() + ".java</include>"))
-              .as("%s Failsafe inclusion", suite.getSimpleName())
-              .isTrue();
-        });
+    CAPABILITY_SUITES.forEach((tag, suite) -> {
+      assertThat(suite.getAnnotation(Tag.class))
+          .as("%s capability tag", suite.getSimpleName())
+          .isNotNull()
+          .extracting(Tag::value)
+          .isEqualTo(tag);
+      assertThat(suite.getDeclaredMethods())
+          .as("%s executable parameterized scenarios", suite.getSimpleName())
+          .anyMatch(method ->
+              method.isAnnotationPresent(ParameterizedTest.class)
+                  && !method.isAnnotationPresent(Disabled.class));
+      assertThat(
+              suite.getSimpleName().endsWith("E2ETestIT")
+                  || failsafeConfiguration.contains(
+                      "<include>**/" + suite.getSimpleName() + ".java</include>"))
+          .as("%s Failsafe inclusion", suite.getSimpleName())
+          .isTrue();
+    });
   }
 
   @Test

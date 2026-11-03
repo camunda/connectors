@@ -36,17 +36,17 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup" },
-            { "id": "tableOp",
-              "condition": { "property": "operationGroup", "equals": "table" } }
-          ],
-          "presets": [
-            { "id": "p", "properties": { "operationGroup": "table", "tableOp": "create" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup" },
+                { "id": "tableOp",
+                  "condition": { "property": "operationGroup", "equals": "table" } }
+              ],
+              "presets": [
+                { "id": "p", "properties": { "operationGroup": "table", "tableOp": "create" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -55,17 +55,17 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup" },
-            { "id": "tableOp",
-              "condition": { "property": "operationGroup", "equals": "table" } }
-          ],
-          "presets": [
-            { "id": "bad", "properties": { "operationGroup": "item", "tableOp": "create" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup" },
+                { "id": "tableOp",
+                  "condition": { "property": "operationGroup", "equals": "table" } }
+              ],
+              "presets": [
+                { "id": "bad", "properties": { "operationGroup": "item", "tableOp": "create" } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/presets/0/properties/tableOp");
@@ -77,19 +77,19 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "operationGroup" },
-            { "id": "innerOp",
-              "condition": { "property": "operationGroup", "equals": "table" } },
-            { "id": "innerOp",
-              "condition": { "property": "operationGroup", "equals": "item" } }
-          ],
-          "presets": [
-            { "id": "p", "properties": { "operationGroup": "item", "innerOp": "getItem" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "operationGroup" },
+                { "id": "innerOp",
+                  "condition": { "property": "operationGroup", "equals": "table" } },
+                { "id": "innerOp",
+                  "condition": { "property": "operationGroup", "equals": "item" } }
+              ],
+              "presets": [
+                { "id": "p", "properties": { "operationGroup": "item", "innerOp": "getItem" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -98,11 +98,11 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [ { "id": "foo" } ],
-          "presets": [ { "id": "p", "properties": { "foo": "anything" } } ]
-        }
-        """);
+            {
+              "properties": [ { "id": "foo" } ],
+              "presets": [ { "id": "p", "properties": { "foo": "anything" } } ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -111,21 +111,21 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "a" }, { "id": "b" },
-            { "id": "c",
-              "condition": { "allMatch": [
-                { "property": "a", "equals": "1" },
-                { "property": "b", "equals": "2" }
-              ]}}
-          ],
-          "presets": [
-            { "id": "ok",  "properties": { "a": "1", "b": "2", "c": "x" } },
-            { "id": "bad", "properties": { "a": "1", "b": "3", "c": "x" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "a" }, { "id": "b" },
+                { "id": "c",
+                  "condition": { "allMatch": [
+                    { "property": "a", "equals": "1" },
+                    { "property": "b", "equals": "2" }
+                  ]}}
+              ],
+              "presets": [
+                { "id": "ok",  "properties": { "a": "1", "b": "2", "c": "x" } },
+                { "id": "bad", "properties": { "a": "1", "b": "3", "c": "x" } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/presets/1/properties/c");
@@ -136,14 +136,14 @@ class PresetConditionsSatisfiedRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "x",
-              "condition": { "property": "y", "equals": "z" } }
-          ],
-          "presets": [ { "id": "p", "properties": { "x": "v" } } ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "x",
+                  "condition": { "property": "y", "equals": "z" } }
+              ],
+              "presets": [ { "id": "p", "properties": { "x": "v" } } ]
+            }
+            """);
     assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/x.json"), template))
         .isEmpty();
   }

@@ -46,11 +46,10 @@ public abstract class LangChain4JOpenAiBaseChatModelFactory<T extends ProviderCo
     Optional.ofNullable(usage.inputTokensDetails())
         .map(OpenAiTokenUsage.InputTokensDetails::cachedTokens)
         .filter(cachedTokens -> cachedTokens > 0)
-        .ifPresent(
-            cachedTokens -> {
-              builder.cacheReadTokenCount(cachedTokens);
-              builder.inputTokenCount(Math.max(0, builder.inputTokenCount() - cachedTokens));
-            });
+        .ifPresent(cachedTokens -> {
+          builder.cacheReadTokenCount(cachedTokens);
+          builder.inputTokenCount(Math.max(0, builder.inputTokenCount() - cachedTokens));
+        });
     Optional.ofNullable(usage.outputTokensDetails())
         .map(OpenAiTokenUsage.OutputTokensDetails::reasoningTokens)
         .ifPresent(reasoningTokens -> builder.reasoningTokenCount(nullToZero(reasoningTokens)));

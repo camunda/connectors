@@ -29,20 +29,19 @@ public final class ProxyUtil {
 
     proxyConfig
         .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .endpoint(ProxyUtil.toUri(proxyDetails))
-                  // the SDK does not sanitize the patterns
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+        .ifPresent(proxyDetails -> {
+          awsProxyConfigBuilder
+              .scheme(proxyDetails.scheme())
+              .endpoint(ProxyUtil.toUri(proxyDetails))
+              // the SDK does not sanitize the patterns
+              .nonProxyHosts(
+                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
+          if (proxyDetails.hasCredentials()) {
+            awsProxyConfigBuilder.username(proxyDetails.user());
+            awsProxyConfigBuilder.password(proxyDetails.password());
+          }
+        });
 
     return ApacheHttpClient.builder().proxyConfiguration(awsProxyConfigBuilder.build()).build();
   }

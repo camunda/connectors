@@ -36,8 +36,8 @@ class StepLeafShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "x", "presetId": "p", "keywords": ["x"] } ] }
-        """);
+            { "steps": [ { "name": "x", "presetId": "p", "keywords": ["x"] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -46,8 +46,8 @@ class StepLeafShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "name": "x", "keywords": ["x"] } ] }
-        """);
+            { "steps": [ { "name": "x", "keywords": ["x"] } ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/presetId");
@@ -58,8 +58,8 @@ class StepLeafShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [ { "presetId": "  ", "keywords": ["x"] } ] }
-        """);
+            { "steps": [ { "presetId": "  ", "keywords": ["x"] } ] }
+            """);
     assertThat(rule.apply(FILE, template)).hasSize(1);
   }
 
@@ -93,10 +93,10 @@ class StepLeafShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [
-          { "name": "g", "steps": [ { "name": "leaf", "presetId": "p" } ] }
-        ] }
-        """);
+            { "steps": [
+              { "name": "g", "steps": [ { "name": "leaf", "presetId": "p" } ] }
+            ] }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/steps/0/steps/0/keywords");
@@ -107,11 +107,11 @@ class StepLeafShapeRuleTest {
     JsonNode template =
         read(
             """
-        { "steps": [
-          { "name": "g",
-            "steps": [ { "presetId": "p", "keywords": ["x"] } ] }
-        ] }
-        """);
+            { "steps": [
+              { "name": "g",
+                "steps": [ { "presetId": "p", "keywords": ["x"] } ] }
+            ] }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 

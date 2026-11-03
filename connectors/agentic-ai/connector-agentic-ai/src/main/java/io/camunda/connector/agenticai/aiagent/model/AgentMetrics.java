@@ -111,14 +111,13 @@ public record AgentMetrics(
     }
 
     public TokenUsage add(TokenUsage other) {
-      return with(
-          b ->
-              b.inputTokenCount(b.inputTokenCount() + other.inputTokenCount())
-                  .outputTokenCount(b.outputTokenCount() + other.outputTokenCount())
-                  .cacheReadTokenCount(b.cacheReadTokenCount() + other.cacheReadTokenCount())
-                  .cacheCreationTokenCount(
-                      b.cacheCreationTokenCount() + other.cacheCreationTokenCount())
-                  .reasoningTokenCount(b.reasoningTokenCount() + other.reasoningTokenCount()));
+      return with(b ->
+          b.inputTokenCount(b.inputTokenCount() + other.inputTokenCount())
+              .outputTokenCount(b.outputTokenCount() + other.outputTokenCount())
+              .cacheReadTokenCount(b.cacheReadTokenCount() + other.cacheReadTokenCount())
+              .cacheCreationTokenCount(
+                  b.cacheCreationTokenCount() + other.cacheCreationTokenCount())
+              .reasoningTokenCount(b.reasoningTokenCount() + other.reasoningTokenCount()));
     }
 
     public static TokenUsage empty() {

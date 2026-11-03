@@ -184,23 +184,23 @@ public class IntrinsicFunctionDeserializationTest {
   void intrinsicFunctionLimit_Wide() {
     var payload =
         """
+        {
+          "result": [
             {
-              "result": [
-                {
-                  "camunda.function.type": "test_concat",
-                  "params": [ "Hello", " World" ]
-                },
-                {
-                  "camunda.function.type": "test_concat",
-                  "params": [ "Hello", " World" ]
-                },
-                {
-                  "camunda.function.type": "test_concat",
-                  "params": [ "Hello", " World" ]
-                }
-              ]
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
+            },
+            {
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
+            },
+            {
+              "camunda.function.type": "test_concat",
+              "params": [ "Hello", " World" ]
             }
-            """;
+          ]
+        }
+        """;
 
     var exception =
         assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));
@@ -212,26 +212,26 @@ public class IntrinsicFunctionDeserializationTest {
   void intrinsicFunctionLimit_Deep() {
     var payload =
         """
-            {
-              "result": {
+        {
+          "result": {
+            "camunda.function.type": "test_concat",
+            "params": [
+              {
                 "camunda.function.type": "test_concat",
                 "params": [
                   {
                     "camunda.function.type": "test_concat",
                     "params": [
-                      {
-                        "camunda.function.type": "test_concat",
-                        "params": [
-                          "Hello",
-                          { "camunda.function.type": "test_concat", "params": ["Hello", " World"] }
-                        ]
-                      }, " World"
+                      "Hello",
+                      { "camunda.function.type": "test_concat", "params": ["Hello", " World"] }
                     ]
                   }, " World"
                 ]
-              }
-            }
-            """;
+              }, " World"
+            ]
+          }
+        }
+        """;
 
     var exception =
         assertThrows(JsonMappingException.class, () -> objectMapper.readValue(payload, Map.class));

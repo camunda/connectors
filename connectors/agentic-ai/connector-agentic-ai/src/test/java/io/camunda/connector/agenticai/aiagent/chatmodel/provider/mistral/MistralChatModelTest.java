@@ -302,11 +302,10 @@ class MistralChatModelTest {
     verify(client).close();
     assertThat(events)
         .singleElement()
-        .satisfies(
-            event -> {
-              assertThat(event.getLevel()).isEqualTo(Level.ERROR);
-              assertThat(event.getFormattedMessage()).isEqualTo("Failed to close OpenAIClient");
-            });
+        .satisfies(event -> {
+          assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+          assertThat(event.getFormattedMessage()).isEqualTo("Failed to close OpenAIClient");
+        });
   }
 
   private static ChatCompletion canningCompletion() {

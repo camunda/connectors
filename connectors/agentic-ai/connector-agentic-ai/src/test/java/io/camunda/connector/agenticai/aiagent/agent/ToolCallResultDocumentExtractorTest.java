@@ -94,19 +94,17 @@ class ToolCallResultDocumentExtractorTest {
 
     assertThat(extracted).hasSize(2);
     assertThat(extracted.get(0))
-        .satisfies(
-            e -> {
-              assertThat(e.toolCallId()).isEqualTo("call_1");
-              assertThat(e.toolCallName()).isEqualTo(MANAGED_TOOL);
-              assertThat(e.documents()).containsExactly(managedDoc);
-            });
+        .satisfies(e -> {
+          assertThat(e.toolCallId()).isEqualTo("call_1");
+          assertThat(e.toolCallName()).isEqualTo(MANAGED_TOOL);
+          assertThat(e.documents()).containsExactly(managedDoc);
+        });
     assertThat(extracted.get(1))
-        .satisfies(
-            e -> {
-              assertThat(e.toolCallId()).isEqualTo("call_2");
-              assertThat(e.toolCallName()).isEqualTo("plain_tool");
-              assertThat(e.documents()).containsExactly(unmanagedDoc);
-            });
+        .satisfies(e -> {
+          assertThat(e.toolCallId()).isEqualTo("call_2");
+          assertThat(e.toolCallName()).isEqualTo("plain_tool");
+          assertThat(e.documents()).containsExactly(unmanagedDoc);
+        });
   }
 
   @Test
@@ -170,12 +168,11 @@ class ToolCallResultDocumentExtractorTest {
 
     assertThat(extracted).hasSize(1);
     assertThat(extracted.getFirst())
-        .satisfies(
-            e -> {
-              assertThat(e.toolCallId()).isNull();
-              assertThat(e.toolCallName()).isNull();
-              assertThat(e.documents()).containsExactly(doc);
-            });
+        .satisfies(e -> {
+          assertThat(e.toolCallId()).isNull();
+          assertThat(e.toolCallName()).isNull();
+          assertThat(e.documents()).containsExactly(doc);
+        });
     verify(handler, never()).extractDocuments(any());
   }
 

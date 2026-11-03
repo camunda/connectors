@@ -93,7 +93,7 @@ class AzureOpenAiChatModelFactoryTest {
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).timeout(MODEL_TIMEOUT.timeout());
           verify(builder).apiKey(AZURE_OPENAI_API_KEY);
           verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
@@ -119,7 +119,7 @@ class AzureOpenAiChatModelFactoryTest {
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder, never()).apiKey(any());
           verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
           verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
@@ -146,7 +146,7 @@ class AzureOpenAiChatModelFactoryTest {
 
     testAzureOpenAiChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder, never()).maxTokens(anyInt());
           verify(builder, never()).temperature(anyDouble());
           verify(builder, never()).topP(anyDouble());
@@ -168,7 +168,7 @@ class AzureOpenAiChatModelFactoryTest {
                     AZURE_OPENAI_DEPLOYMENT_NAME, null)));
 
     testAzureOpenAiChatModelBuilder(
-        providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
+        providerConfig, builder -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
   private void testAzureOpenAiChatModelBuilder(

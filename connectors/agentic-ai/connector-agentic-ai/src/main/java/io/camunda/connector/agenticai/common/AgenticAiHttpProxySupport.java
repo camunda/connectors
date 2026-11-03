@@ -51,21 +51,19 @@ public class AgenticAiHttpProxySupport {
   public Optional<OkHttpProxy> okHttpProxy(String scheme) {
     return proxyConfiguration
         .getProxyDetails(scheme)
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}:{}]",
-                  scheme,
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              final var proxy =
-                  new Proxy(
-                      Proxy.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              return proxyDetails.hasCredentials()
-                  ? new OkHttpProxy(proxy, proxyDetails.user(), proxyDetails.password())
-                  : new OkHttpProxy(proxy, null, null);
-            });
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}:{}]",
+              scheme,
+              proxyDetails.host(),
+              proxyDetails.port());
+          final var proxy =
+              new Proxy(
+                  Proxy.Type.HTTP, new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          return proxyDetails.hasCredentials()
+              ? new OkHttpProxy(proxy, proxyDetails.user(), proxyDetails.password())
+              : new OkHttpProxy(proxy, null, null);
+        });
   }
 
   /** Proxy plus optional credentials in a form neutral to any OkHttp-based SDK. */
@@ -89,25 +87,24 @@ public class AgenticAiHttpProxySupport {
 
     proxyConfiguration
         .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .endpoint(toUri(proxyDetails))
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+        .ifPresent(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}://{}:{}]",
+              schemeName,
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
+          awsProxyConfigBuilder
+              .scheme(proxyDetails.scheme())
+              .endpoint(toUri(proxyDetails))
+              .nonProxyHosts(
+                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
+          if (proxyDetails.hasCredentials()) {
+            awsProxyConfigBuilder.username(proxyDetails.user());
+            awsProxyConfigBuilder.password(proxyDetails.password());
+          }
+        });
 
     return awsProxyConfigBuilder.build();
   }
@@ -141,26 +138,25 @@ public class AgenticAiHttpProxySupport {
 
     proxyConfiguration
         .getProxyDetails(schemeName)
-        .ifPresent(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
-                  schemeName,
-                  proxyDetails.scheme(),
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              awsProxyConfigBuilder
-                  .scheme(proxyDetails.scheme())
-                  .host(proxyDetails.host())
-                  .port(proxyDetails.port())
-                  .nonProxyHosts(
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+        .ifPresent(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}://{}:{}]",
+              schemeName,
+              proxyDetails.scheme(),
+              proxyDetails.host(),
+              proxyDetails.port());
+          awsProxyConfigBuilder
+              .scheme(proxyDetails.scheme())
+              .host(proxyDetails.host())
+              .port(proxyDetails.port())
+              .nonProxyHosts(
+                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-            });
+          if (proxyDetails.hasCredentials()) {
+            awsProxyConfigBuilder.username(proxyDetails.user());
+            awsProxyConfigBuilder.password(proxyDetails.password());
+          }
+        });
 
     return awsProxyConfigBuilder.build();
   }
@@ -182,26 +178,23 @@ public class AgenticAiHttpProxySupport {
   public Optional<ProxyOptions> azureProxyOptions(String scheme) {
     return proxyConfiguration
         .getProxyDetails(scheme)
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}:{}]",
-                  scheme,
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              final var options =
-                  new ProxyOptions(
-                      ProxyOptions.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              options.setNonProxyHosts(
-                  NonProxyHosts.getNonProxyHostsPatterns()
-                      .distinct()
-                      .collect(Collectors.joining("|")));
-              if (proxyDetails.hasCredentials()) {
-                options.setCredentials(proxyDetails.user(), proxyDetails.password());
-              }
-              return options;
-            });
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}:{}]",
+              scheme,
+              proxyDetails.host(),
+              proxyDetails.port());
+          final var options =
+              new ProxyOptions(
+                  ProxyOptions.Type.HTTP,
+                  new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          options.setNonProxyHosts(
+              NonProxyHosts.getNonProxyHostsPatterns().distinct().collect(Collectors.joining("|")));
+          if (proxyDetails.hasCredentials()) {
+            options.setCredentials(proxyDetails.user(), proxyDetails.password());
+          }
+          return options;
+        });
   }
 
   /**

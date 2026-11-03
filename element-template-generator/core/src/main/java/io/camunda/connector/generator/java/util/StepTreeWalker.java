@@ -381,11 +381,10 @@ public final class StepTreeWalker {
 
   private static List<Class<?>> nonIgnoredSubtypes(Class<?> sealed) {
     return Arrays.stream(sealed.getPermittedSubclasses())
-        .filter(
-            s -> {
-              TemplateSubType st = s.getAnnotation(TemplateSubType.class);
-              return st == null || !st.ignore();
-            })
+        .filter(s -> {
+          TemplateSubType st = s.getAnnotation(TemplateSubType.class);
+          return st == null || !st.ignore();
+        })
         .toList();
   }
 }

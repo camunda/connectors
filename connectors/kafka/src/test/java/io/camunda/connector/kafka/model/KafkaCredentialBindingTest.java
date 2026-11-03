@@ -109,20 +109,18 @@ class KafkaCredentialBindingTest {
 
   static Stream<Arguments> jaasOptionValues() {
     return Stream.of(false, true)
-        .flatMap(
-            inbound ->
-                Stream.of(false, true)
-                    .flatMap(
-                        reusable ->
-                            Stream.of(
-                                    "apostrophe's",
-                                    "double\"quote",
-                                    "back\\slash",
-                                    "trailing\\",
-                                    "literal\\n",
-                                    "' injected='option",
-                                    "line\nbreak\rnext\tcolumn")
-                                .map(value -> Arguments.of(inbound, reusable, value))));
+        .flatMap(inbound ->
+            Stream.of(false, true)
+                .flatMap(reusable ->
+                    Stream.of(
+                            "apostrophe's",
+                            "double\"quote",
+                            "back\\slash",
+                            "trailing\\",
+                            "literal\\n",
+                            "' injected='option",
+                            "line\nbreak\rnext\tcolumn")
+                        .map(value -> Arguments.of(inbound, reusable, value))));
   }
 
   @ParameterizedTest
@@ -225,22 +223,19 @@ class KafkaCredentialBindingTest {
 
   static Stream<Arguments> invalidCredentials() {
     return Stream.of(false, true)
-        .flatMap(
-            inbound ->
-                Stream.of("bootstrapServers", "username", "password")
-                    .flatMap(
-                        field ->
-                            Stream.of("", " ", "missing")
-                                .map(
-                                    value -> {
-                                      var credential = new HashMap<>(CREDENTIAL);
-                                      if (value.equals("missing")) {
-                                        credential.remove(field);
-                                      } else {
-                                        credential.put(field, value);
-                                      }
-                                      return Arguments.of(inbound, credential);
-                                    })));
+        .flatMap(inbound ->
+            Stream.of("bootstrapServers", "username", "password")
+                .flatMap(field ->
+                    Stream.of("", " ", "missing")
+                        .map(value -> {
+                          var credential = new HashMap<>(CREDENTIAL);
+                          if (value.equals("missing")) {
+                            credential.remove(field);
+                          } else {
+                            credential.put(field, value);
+                          }
+                          return Arguments.of(inbound, credential);
+                        })));
   }
 
   @ParameterizedTest

@@ -104,11 +104,10 @@ public class A2aDocumentToPartConverterImpl implements A2aDocumentToPartConverte
         .map(DocumentMetadata::getContentType)
         .filter(StringUtils::isNotBlank)
         .map(ContentType::parse)
-        .orElseThrow(
-            () ->
-                new A2aDocumentConversionException(
-                    "Content type is unset for document with reference '%s'"
-                        .formatted(camundaDocument.reference())));
+        .orElseThrow(() ->
+            new A2aDocumentConversionException(
+                "Content type is unset for document with reference '%s'"
+                    .formatted(camundaDocument.reference())));
   }
 
   private boolean isCompatibleWithAnyOf(ContentType contentType, List<ContentType> contentTypes) {

@@ -166,11 +166,10 @@ class KafkaBootstrapProbeTest {
       unreachable = unused.getLocalPort();
     }
 
-    assertThatThrownBy(
-            () ->
-                KafkaBootstrapProbe.verify(
-                    props(" localhost:" + unreachable + " , PLAINTEXT://localhost:" + port + ","),
-                    TIMEOUT_MS))
+    assertThatThrownBy(() ->
+            KafkaBootstrapProbe.verify(
+                props(" localhost:" + unreachable + " , PLAINTEXT://localhost:" + port + ","),
+                TIMEOUT_MS))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("localhost:" + port);
   }
@@ -262,26 +261,25 @@ class KafkaBootstrapProbeTest {
       ServerSocket serverSocket, boolean readRequest, Consumer<OutputStream> handler) {
     server = serverSocket;
     serverThread =
-        new Thread(
-            () -> {
-              try (Socket socket = server.accept();
-                  var in = new DataInputStream(socket.getInputStream())) {
-                if (!readRequest) {
-                  handler.accept(socket.getOutputStream());
-                  return;
-                }
-                byte[] request = new byte[in.readInt()];
-                in.readFully(request);
-                // api_key 18 (ApiVersions), api_version 0
-                if (request[0] != 0 || request[1] != 18) {
-                  throw new IllegalStateException(
-                      "Unexpected request: " + new String(request, StandardCharsets.ISO_8859_1));
-                }
-                handler.accept(socket.getOutputStream());
-              } catch (IOException ignored) {
-                // server closed or client gone
-              }
-            });
+        new Thread(() -> {
+          try (Socket socket = server.accept();
+              var in = new DataInputStream(socket.getInputStream())) {
+            if (!readRequest) {
+              handler.accept(socket.getOutputStream());
+              return;
+            }
+            byte[] request = new byte[in.readInt()];
+            in.readFully(request);
+            // api_key 18 (ApiVersions), api_version 0
+            if (request[0] != 0 || request[1] != 18) {
+              throw new IllegalStateException(
+                  "Unexpected request: " + new String(request, StandardCharsets.ISO_8859_1));
+            }
+            handler.accept(socket.getOutputStream());
+          } catch (IOException ignored) {
+            // server closed or client gone
+          }
+        });
     serverThread.start();
     return server.getLocalPort();
   }

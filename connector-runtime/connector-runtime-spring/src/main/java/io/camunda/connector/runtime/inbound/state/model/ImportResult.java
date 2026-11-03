@@ -47,11 +47,10 @@ public record ImportResult(
         processDefinitionKeysByProcessId.keySet().stream()
             .findFirst()
             .map(ProcessDefinitionRef::physicalTenantId)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Cannot infer physicalTenantId from an empty import batch; use the"
-                            + " constructor that takes an explicit physicalTenantId")));
+            .orElseThrow(() ->
+                new IllegalArgumentException(
+                    "Cannot infer physicalTenantId from an empty import batch; use the"
+                        + " constructor that takes an explicit physicalTenantId")));
   }
 
   public enum ImportType {

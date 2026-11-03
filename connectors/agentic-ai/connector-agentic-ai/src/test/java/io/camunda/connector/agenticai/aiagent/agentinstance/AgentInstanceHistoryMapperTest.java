@@ -68,11 +68,10 @@ class AgentInstanceHistoryMapperTest {
 
     assertThat(items)
         .singleElement()
-        .satisfies(
-            item -> {
-              assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
-              assertThat(item.producedAt()).isEqualTo(TOOL_RESULT_COMPLETED_AT);
-            });
+        .satisfies(item -> {
+          assertThat(item.role()).isEqualTo(AgentInstanceHistoryRole.TOOL_RESULT);
+          assertThat(item.producedAt()).isEqualTo(TOOL_RESULT_COMPLETED_AT);
+        });
   }
 
   @Test
@@ -124,10 +123,8 @@ class AgentInstanceHistoryMapperTest {
             .build();
     final var message = ToolCallResultMessage.builder().results(List.of(result)).build();
 
-    assertThatThrownBy(
-            () ->
-                mapper.inputHistoryItems(
-                    message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP))
+    assertThatThrownBy(() ->
+            mapper.inputHistoryItems(message, Map.of("call-1", toolCall), TURN_INGESTION_TIMESTAMP))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("call-1")
         .hasMessageContaining("completedAt");

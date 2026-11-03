@@ -280,18 +280,17 @@ public class OpenAiCompletionsRequestConverter {
    */
   private String toTextOutput(List<Content> content) {
     return content.stream()
-        .map(
-            c -> {
-              if (c instanceof TextContent text) {
-                return text.text();
-              } else if (c instanceof ObjectContent obj) {
-                return contentConverter.writeAsJson(obj.content());
-              } else if (c instanceof DocumentContent doc) {
-                return contentConverter.writeAsJson(doc.document());
-              } else {
-                return contentConverter.writeAsJson(c);
-              }
-            })
+        .map(c -> {
+          if (c instanceof TextContent text) {
+            return text.text();
+          } else if (c instanceof ObjectContent obj) {
+            return contentConverter.writeAsJson(obj.content());
+          } else if (c instanceof DocumentContent doc) {
+            return contentConverter.writeAsJson(doc.document());
+          } else {
+            return contentConverter.writeAsJson(c);
+          }
+        })
         .collect(Collectors.joining("\n"));
   }
 

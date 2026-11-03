@@ -169,12 +169,11 @@ class CachingProcessDefinitionAdHocToolElementsResolverTest {
 
   private List<AdHocToolElement> elements(String... elementIds) {
     return Arrays.stream(elementIds)
-        .map(
-            elementId ->
-                AdHocToolElement.builder()
-                    .elementId(elementId)
-                    .elementName("Element Name " + elementId)
-                    .build())
+        .map(elementId ->
+            AdHocToolElement.builder()
+                .elementId(elementId)
+                .elementName("Element Name " + elementId)
+                .build())
         .toList();
   }
 

@@ -57,42 +57,38 @@ class InboundConnectorBeanDefinitionProcessorTest {
 
   @Test
   void registersInboundConnectorFunctionBean() {
-    contextRunner.run(
-        context -> {
-          verify(inboundConnectorFactory)
-              .registerConfiguration(registeredConfigurationCaptor.capture());
+    contextRunner.run(context -> {
+      verify(inboundConnectorFactory)
+          .registerConfiguration(registeredConfigurationCaptor.capture());
 
-          assertThat(registeredConfigurationCaptor.getValue())
-              .satisfies(
-                  config -> {
-                    assertThat(config.name()).isEqualTo("My Executable");
-                    assertThat(config.type()).isEqualTo("io.camunda:annotated");
-                    assertThat(config.deduplicationProperties()).containsExactly("id");
-                    assertThat(config.customInstanceSupplier().get())
-                        .isInstanceOf(AnnotatedExecutable.class);
-                  });
-        });
+      assertThat(registeredConfigurationCaptor.getValue())
+          .satisfies(config -> {
+            assertThat(config.name()).isEqualTo("My Executable");
+            assertThat(config.type()).isEqualTo("io.camunda:annotated");
+            assertThat(config.deduplicationProperties()).containsExactly("id");
+            assertThat(config.customInstanceSupplier().get())
+                .isInstanceOf(AnnotatedExecutable.class);
+          });
+    });
   }
 
   @Test
   void overridesType() {
     contextRunner
         .withPropertyValues("CONNECTOR_MY_EXECUTABLE_TYPE=io.camunda:overridden")
-        .run(
-            context -> {
-              verify(inboundConnectorFactory)
-                  .registerConfiguration(registeredConfigurationCaptor.capture());
+        .run(context -> {
+          verify(inboundConnectorFactory)
+              .registerConfiguration(registeredConfigurationCaptor.capture());
 
-              assertThat(registeredConfigurationCaptor.getValue())
-                  .satisfies(
-                      config -> {
-                        assertThat(config.name()).isEqualTo("My Executable");
-                        assertThat(config.type()).isEqualTo("io.camunda:overridden");
-                        assertThat(config.deduplicationProperties()).containsExactly("id");
-                        assertThat(config.customInstanceSupplier().get())
-                            .isInstanceOf(AnnotatedExecutable.class);
-                      });
-            });
+          assertThat(registeredConfigurationCaptor.getValue())
+              .satisfies(config -> {
+                assertThat(config.name()).isEqualTo("My Executable");
+                assertThat(config.type()).isEqualTo("io.camunda:overridden");
+                assertThat(config.deduplicationProperties()).containsExactly("id");
+                assertThat(config.customInstanceSupplier().get())
+                    .isInstanceOf(AnnotatedExecutable.class);
+              });
+        });
   }
 }
 

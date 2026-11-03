@@ -119,10 +119,9 @@ public class GoogleVertexAiChatModelFactory
 
     proxySupport
         .createGoogleGenAiProxyOptions(connection.endpoint(), connection.region())
-        .ifPresent(
-            proxyOptions ->
-                clientBuilder.clientOptions(
-                    ClientOptions.builder().proxyOptions(proxyOptions).build()));
+        .ifPresent(proxyOptions ->
+            clientBuilder.clientOptions(
+                ClientOptions.builder().proxyOptions(proxyOptions).build()));
 
     if (connection.authentication() instanceof ServiceAccountCredentialsAuthentication sac) {
       clientBuilder.credentials(createGoogleServiceAccountCredentials(sac));

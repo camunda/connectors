@@ -142,11 +142,10 @@ class OutboundConnectorsRestControllerMultiInstancesTest extends BaseOutboundMul
 
     var connectors = response.getBody();
     // No BrokerJobStreamClient is configured in the test setup → UNKNOWN for all.
-    connectors.forEach(
-        c -> {
-          assertEquals(BrokerConnectivityState.UNKNOWN, c.brokerConnectivityState());
-          assertNull(c.streamIds());
-        });
+    connectors.forEach(c -> {
+      assertEquals(BrokerConnectivityState.UNKNOWN, c.brokerConnectivityState());
+      assertNull(c.streamIds());
+    });
   }
 
   @Test

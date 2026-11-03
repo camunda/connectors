@@ -307,10 +307,9 @@ class AgentSubProcessRequestHandlerTest {
     final var interruptedMessage =
         toolCallResultMessage(
             toolCallResults.stream()
-                .map(
-                    tc ->
-                        ToolCallResult.forCancelledToolCall(
-                            tc.id(), tc.name(), OffsetDateTime.parse("2026-07-02T10:00:00Z")))
+                .map(tc ->
+                    ToolCallResult.forCancelledToolCall(
+                        tc.id(), tc.name(), OffsetDateTime.parse("2026-07-02T10:00:00Z")))
                 .toList());
     mockProceed(interruptedMessage);
 
@@ -774,23 +773,22 @@ class AgentSubProcessRequestHandlerTest {
 
   private void mockResponseHandler() {
     when(responseHandler.createResponse(any(AgentConversation.class)))
-        .thenAnswer(
-            i -> {
-              final var conversation = i.getArgument(0, AgentConversation.class);
-              final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
-              final var toolCalls =
-                  assistantMessage.toolCalls() == null
-                      ? List.<ToolCallProcessVariable>of()
-                      : assistantMessage.toolCalls().stream()
-                          .map(ToolCallProcessVariable::from)
-                          .toList();
-              return AgentResponse.builder()
-                  .context(conversation.toAgentContext())
-                  .responseMessage(assistantMessage)
-                  .responseText(assistantMessage.hasToolCalls() ? null : textOf(assistantMessage))
-                  .toolCalls(toolCalls)
-                  .build();
-            });
+        .thenAnswer(i -> {
+          final var conversation = i.getArgument(0, AgentConversation.class);
+          final var assistantMessage = conversation.lastTurn().orElseThrow().assistantMessage();
+          final var toolCalls =
+              assistantMessage.toolCalls() == null
+                  ? List.<ToolCallProcessVariable>of()
+                  : assistantMessage.toolCalls().stream()
+                      .map(ToolCallProcessVariable::from)
+                      .toList();
+          return AgentResponse.builder()
+              .context(conversation.toAgentContext())
+              .responseMessage(assistantMessage)
+              .responseText(assistantMessage.hasToolCalls() ? null : textOf(assistantMessage))
+              .toolCalls(toolCalls)
+              .build();
+        });
   }
 
   private static String textOf(AssistantMessage assistantMessage) {

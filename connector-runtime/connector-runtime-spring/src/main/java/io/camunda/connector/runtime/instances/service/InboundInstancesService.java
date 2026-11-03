@@ -66,14 +66,13 @@ public class InboundInstancesService {
       String executableId, String hostname) {
     var executable = findExecutable(executableId);
     return executable.logs().stream()
-        .map(
-            activity ->
-                new InstanceAwareModel.InstanceAwareActivity(
-                    activity.severity(),
-                    activity.tag(),
-                    activity.timestamp(),
-                    activity.message(),
-                    hostname))
+        .map(activity ->
+            new InstanceAwareModel.InstanceAwareActivity(
+                activity.severity(),
+                activity.tag(),
+                activity.timestamp(),
+                activity.message(),
+                hostname))
         .toList();
   }
 
@@ -161,20 +160,18 @@ public class InboundInstancesService {
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
         .stream()
-        .map(
-            e ->
-                new ConnectorInstances(
-                    e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
+        .map(e ->
+            new ConnectorInstances(
+                e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
         .toList();
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       Consumer<ActiveExecutableQuery> filter, boolean appendPhysicalTenantAndTenantToPath) {
     return executableRegistry.query(filter).stream()
-        .map(
-            r ->
-                connectorDataMapper.createActiveInboundConnectorResponse(
-                    r, appendPhysicalTenantAndTenantToPath))
+        .map(r ->
+            connectorDataMapper.createActiveInboundConnectorResponse(
+                r, appendPhysicalTenantAndTenantToPath))
         .collect(Collectors.toList());
   }
 }

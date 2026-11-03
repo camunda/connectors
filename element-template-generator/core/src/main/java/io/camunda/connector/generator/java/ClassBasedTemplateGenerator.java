@@ -76,11 +76,10 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       final boolean isHybridMode) {
     String baseTemplateId =
         Optional.ofNullable(elementType.templateIdOverride())
-            .orElseGet(
-                () ->
-                    context.elementTypes().size() > 1
-                        ? templateId + ":" + elementType.elementType().getId()
-                        : templateId);
+            .orElseGet(() ->
+                context.elementTypes().size() > 1
+                    ? templateId + ":" + elementType.elementType().getId()
+                    : templateId);
     return isHybridMode
         ? baseTemplateId + GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX
         : baseTemplateId;
@@ -93,16 +92,15 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       boolean isHybridMode) {
     String baseTemplateName =
         Optional.ofNullable(elementType.templateNameOverride())
-            .orElseGet(
-                () -> {
-                  if (context.elementTypes().size() > 1) {
-                    return templateName
-                        + " ("
-                        + camelCaseToSpaces(elementType.elementType().getId())
-                        + ")";
-                  }
-                  return templateName;
-                });
+            .orElseGet(() -> {
+              if (context.elementTypes().size() > 1) {
+                return templateName
+                    + " ("
+                    + camelCaseToSpaces(elementType.elementType().getId())
+                    + ")";
+              }
+              return templateName;
+            });
     return isHybridMode
         ? GeneratorConfiguration.HYBRID_TEMPLATE_NAME_PREFIX + baseTemplateName
         : baseTemplateName;
@@ -235,41 +233,38 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var configurationTemplates = buildConfigurationTemplates(template, context);
 
     return context.elementTypes().stream()
-        .map(
-            elementType -> {
-              var builder =
-                  context instanceof Outbound
-                      ? ElementTemplateBuilder.createOutbound()
-                      : ElementTemplateBuilder.createInbound();
-              boolean isHybridMode = ConnectorMode.HYBRID.equals(configuration.connectorMode());
-              return builder
-                  .id(createId(context, template.id(), elementType, isHybridMode))
-                  .type(context.connectorType(), isHybridMode)
-                  .name(createName(context, template.name(), elementType, isHybridMode))
-                  .version(template.version())
-                  .category(
-                      new ElementTemplateCategory(
-                          template.category().id(), template.category().name()))
-                  .appliesTo(elementType.appliesTo())
-                  .engines(
-                      !template.engineVersion().isBlank()
-                          ? new Engines(template.engineVersion())
-                          : null)
-                  .elementType(elementType.elementType())
-                  .icon(icon)
-                  .keywords(template.keywords().length == 0 ? null : template.keywords())
-                  .documentationRef(
-                      template.documentationRef().isEmpty() ? null : template.documentationRef())
-                  .description(template.description().isEmpty() ? null : template.description())
-                  .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                  .propertyGroups(
-                      addServiceProperties(
-                          mergedGroups, context, elementType, configuration, template))
-                  .steps(stepTree.steps())
-                  .presets(stepTree.presets())
-                  .configurationTemplates(configurationTemplates)
-                  .build();
-            })
+        .map(elementType -> {
+          var builder =
+              context instanceof Outbound
+                  ? ElementTemplateBuilder.createOutbound()
+                  : ElementTemplateBuilder.createInbound();
+          boolean isHybridMode = ConnectorMode.HYBRID.equals(configuration.connectorMode());
+          return builder
+              .id(createId(context, template.id(), elementType, isHybridMode))
+              .type(context.connectorType(), isHybridMode)
+              .name(createName(context, template.name(), elementType, isHybridMode))
+              .version(template.version())
+              .category(
+                  new ElementTemplateCategory(template.category().id(), template.category().name()))
+              .appliesTo(elementType.appliesTo())
+              .engines(
+                  !template.engineVersion().isBlank()
+                      ? new Engines(template.engineVersion())
+                      : null)
+              .elementType(elementType.elementType())
+              .icon(icon)
+              .keywords(template.keywords().length == 0 ? null : template.keywords())
+              .documentationRef(
+                  template.documentationRef().isEmpty() ? null : template.documentationRef())
+              .description(template.description().isEmpty() ? null : template.description())
+              .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+              .propertyGroups(
+                  addServiceProperties(mergedGroups, context, elementType, configuration, template))
+              .steps(stepTree.steps())
+              .presets(stepTree.presets())
+              .configurationTemplates(configurationTemplates)
+              .build();
+        })
         .toList();
   }
 
@@ -430,58 +425,55 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   private List<ConfigurationTemplate> buildConfigurationTemplates(
       ElementTemplate template, TemplateGenerationContext context) {
     return Arrays.stream(template.configurations())
-        .map(
-            templateClass -> {
-              var configurationAnnotation =
-                  templateClass.getAnnotation(
-                      io.camunda.connector.api.annotation.Configuration.class);
-              if (configurationAnnotation == null) {
-                throw new IllegalArgumentException(
-                    "Class "
-                        + templateClass.getName()
-                        + " referenced in @ElementTemplate.configurations() must be"
-                        + " annotated with @Configuration");
-              }
-              if (configurationAnnotation.name().isBlank()) {
-                throw new IllegalArgumentException(
-                    "@Configuration on "
-                        + templateClass.getName()
-                        + " must declare a non-blank name (generator constraint; the schema requires"
-                        + " name to be present but does not itself enforce non-blank)");
-              }
-              if (configurationAnnotation.kind().isBlank()) {
-                throw new IllegalArgumentException(
-                    "@Configuration on "
-                        + templateClass.getName()
-                        + " must declare a non-blank kind (required by the configuration-template"
-                        + " schema)");
-              }
-              var templateProperties =
-                  TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
-                          templateClass, context)
-                      .stream()
-                      .map(PropertyBuilder::build)
-                      .toList();
-              return new ConfigurationTemplate(
-                  configurationAnnotation.id(),
-                  configurationAnnotation.kind(),
-                  configurationAnnotation.version(),
-                  configurationAnnotation.name(),
-                  templateProperties);
-            })
+        .map(templateClass -> {
+          var configurationAnnotation =
+              templateClass.getAnnotation(io.camunda.connector.api.annotation.Configuration.class);
+          if (configurationAnnotation == null) {
+            throw new IllegalArgumentException(
+                "Class "
+                    + templateClass.getName()
+                    + " referenced in @ElementTemplate.configurations() must be"
+                    + " annotated with @Configuration");
+          }
+          if (configurationAnnotation.name().isBlank()) {
+            throw new IllegalArgumentException(
+                "@Configuration on "
+                    + templateClass.getName()
+                    + " must declare a non-blank name (generator constraint; the schema requires"
+                    + " name to be present but does not itself enforce non-blank)");
+          }
+          if (configurationAnnotation.kind().isBlank()) {
+            throw new IllegalArgumentException(
+                "@Configuration on "
+                    + templateClass.getName()
+                    + " must declare a non-blank kind (required by the configuration-template"
+                    + " schema)");
+          }
+          var templateProperties =
+              TemplatePropertiesUtil.extractConfigurationTemplatePropertiesFromType(
+                      templateClass, context)
+                  .stream()
+                  .map(PropertyBuilder::build)
+                  .toList();
+          return new ConfigurationTemplate(
+              configurationAnnotation.id(),
+              configurationAnnotation.kind(),
+              configurationAnnotation.version(),
+              configurationAnnotation.name(),
+              templateProperties);
+        })
         .toList();
   }
 
   private List<PropertyBuilder> generateExtensionProperties(ElementTemplate template) {
     return Arrays.stream(template.extensionProperties())
-        .map(
-            extensionProperty ->
-                HiddenProperty.builder()
-                    .binding(new PropertyBinding.ZeebeProperty(extensionProperty.name()))
-                    .value(extensionProperty.value())
-                    .condition(
-                        TemplatePropertyAnnotationProcessor.buildCondition(
-                            extensionProperty.condition())))
+        .map(extensionProperty ->
+            HiddenProperty.builder()
+                .binding(new PropertyBinding.ZeebeProperty(extensionProperty.name()))
+                .value(extensionProperty.value())
+                .condition(
+                    TemplatePropertyAnnotationProcessor.buildCondition(
+                        extensionProperty.condition())))
         .toList();
   }
 }

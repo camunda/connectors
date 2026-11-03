@@ -97,7 +97,7 @@ class OpenAiCompatibleChatModelFactoryTest {
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).timeout(MODEL_TIMEOUT.timeout());
           verify(builder).modelName(MODEL);
           verify(builder).baseUrl(ENDPOINT);
@@ -136,7 +136,7 @@ class OpenAiCompatibleChatModelFactoryTest {
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).modelName(MODEL);
           verify(builder).baseUrl(ENDPOINT);
           verify(builder, never()).apiKey(any());
@@ -162,7 +162,7 @@ class OpenAiCompatibleChatModelFactoryTest {
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           if (modelParameters == null) {
             verify(builder, never()).defaultRequestParameters(any());
           } else {
@@ -195,7 +195,7 @@ class OpenAiCompatibleChatModelFactoryTest {
                 new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
 
     testOpenAiCompatibleChatModelBuilder(
-        providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
+        providerConfig, builder -> verify(builder).timeout(Duration.ofMinutes(3)));
   }
 
   @Test
@@ -214,7 +214,7 @@ class OpenAiCompatibleChatModelFactoryTest {
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).modelName(MODEL);
           verify(builder).baseUrl(ENDPOINT);
           verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
@@ -246,7 +246,7 @@ class OpenAiCompatibleChatModelFactoryTest {
 
     testOpenAiCompatibleChatModelBuilder(
         providerConfig,
-        (builder) -> {
+        builder -> {
           verify(builder).modelName(MODEL);
 
           verify(builder).baseUrl(ENDPOINT);

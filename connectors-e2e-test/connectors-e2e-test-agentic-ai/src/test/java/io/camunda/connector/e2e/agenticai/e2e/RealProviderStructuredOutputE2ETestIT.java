@@ -67,20 +67,19 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
   void mockAccessAuthorizationTool() {
     processTestContext
         .mockJobWorker(ACCESS_JOB_TYPE)
-        .withHandler(
-            (jobClient, job) -> {
-              var codeName = String.valueOf(job.getVariablesAsMap().get("codeName"));
-              capturedAccessAuthorizationCodeName.set(codeName);
-              if (codeName.isBlank() || "null".equals(codeName)) {
-                throw new IllegalStateException(
-                    "Lookup Access Authorization called without a resolvable codeName argument");
-              }
-              jobClient
-                  .newCompleteCommand(job)
-                  .variable("toolCallResult", ACCESS_AUTHORIZATION_SECRET)
-                  .send()
-                  .join();
-            });
+        .withHandler((jobClient, job) -> {
+          var codeName = String.valueOf(job.getVariablesAsMap().get("codeName"));
+          capturedAccessAuthorizationCodeName.set(codeName);
+          if (codeName.isBlank() || "null".equals(codeName)) {
+            throw new IllegalStateException(
+                "Lookup Access Authorization called without a resolvable codeName argument");
+          }
+          jobClient
+              .newCompleteCommand(job)
+              .variable("toolCallResult", ACCESS_AUTHORIZATION_SECRET)
+              .send()
+              .join();
+        });
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -114,16 +113,15 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .metricsSatisfy(metrics -> assertThat(metrics.toolCalls()).isEqualTo(2))
-                .hasResponseJsonSatisfying(
-                    json -> {
-                      @SuppressWarnings("unchecked")
-                      var map = (Map<String, Object>) json;
-                      assertThat(map).containsKeys("codeName", "accessCode");
-                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
-                          .contains(NONCE_CODE_NAME);
-                      assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
-                          .contains(NONCE_ACCESS_CODE);
-                    }));
+                .hasResponseJsonSatisfying(json -> {
+                  @SuppressWarnings("unchecked")
+                  var map = (Map<String, Object>) json;
+                  assertThat(map).containsKeys("codeName", "accessCode");
+                  assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                      .contains(NONCE_CODE_NAME);
+                  assertThat(normalizeDashes(String.valueOf(map.get("accessCode"))))
+                      .contains(NONCE_ACCESS_CODE);
+                }));
 
     assertThat(normalizeDashes(capturedAccessAuthorizationCodeName.get()))
         .as("codeName argument passed to Lookup Access Authorization")
@@ -159,16 +157,15 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
         response ->
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
-                .hasResponseJsonSatisfying(
-                    json -> {
-                      @SuppressWarnings("unchecked")
-                      var map = (Map<String, Object>) json;
-                      assertThat(map).containsKeys("codeName", "clearanceLevel");
-                      assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
-                          .contains(NONCE_CODE_NAME);
-                      assertThat(normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
-                          .contains(NONCE_CLEARANCE);
-                    }));
+                .hasResponseJsonSatisfying(json -> {
+                  @SuppressWarnings("unchecked")
+                  var map = (Map<String, Object>) json;
+                  assertThat(map).containsKeys("codeName", "clearanceLevel");
+                  assertThat(normalizeDashes(String.valueOf(map.get("codeName"))))
+                      .contains(NONCE_CODE_NAME);
+                  assertThat(normalizeDashes(String.valueOf(map.get("clearanceLevel"))))
+                      .contains(NONCE_CLEARANCE);
+                }));
   }
 
   @ParameterizedTest(name = "{0}", allowZeroInvocations = true)
@@ -205,14 +202,13 @@ class RealProviderStructuredOutputE2ETestIT extends RealProviderApiSmokeSupport 
             AgentSubProcessResponseAssert.assertThat(response)
                 .isReady()
                 .metricsSatisfy(metrics -> assertThat(metrics.toolCalls()).isZero())
-                .hasResponseJsonSatisfying(
-                    json -> {
-                      @SuppressWarnings("unchecked")
-                      var map = (Map<String, Object>) json;
-                      assertThat(String.valueOf(map.get("codeName")))
-                          .isEqualToIgnoringCase(DIRECT_CODE_NAME);
-                      assertThat(String.valueOf(map.get("clearanceLevel")))
-                          .isEqualToIgnoringCase(DIRECT_CLEARANCE);
-                    }));
+                .hasResponseJsonSatisfying(json -> {
+                  @SuppressWarnings("unchecked")
+                  var map = (Map<String, Object>) json;
+                  assertThat(String.valueOf(map.get("codeName")))
+                      .isEqualToIgnoringCase(DIRECT_CODE_NAME);
+                  assertThat(String.valueOf(map.get("clearanceLevel")))
+                      .isEqualToIgnoringCase(DIRECT_CLEARANCE);
+                }));
   }
 }

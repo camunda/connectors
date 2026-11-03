@@ -145,24 +145,23 @@ public class AgentSubProcessRequestHandler
 
   private List<ElementActivation> buildElementActivations(AgentResponse agentResponse) {
     return agentResponse.toolCalls().stream()
-        .map(
-            toolCall -> {
-              if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
-              } else {
-                LOGGER.debug("Activating tool {}", toolCall.metadata().name());
-              }
+        .map(toolCall -> {
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
+          } else {
+            LOGGER.debug("Activating tool {}", toolCall.metadata().name());
+          }
 
-              return (ElementActivation)
-                  new ToolCallElementActivation(
-                      toolCall.metadata().name(),
-                      Map.ofEntries(
-                          Map.entry(AgentProcessVariables.TOOL_CALL, toolCall),
-                          // Creating empty toolCallResult variable to avoid variable
-                          // to bubble up in the upper scopes while merging variables on
-                          // ad-hoc sub-process inner instance completion.
-                          Map.entry(AgentProcessVariables.TOOL_CALL_RESULT, "")));
-            })
+          return (ElementActivation)
+              new ToolCallElementActivation(
+                  toolCall.metadata().name(),
+                  Map.ofEntries(
+                      Map.entry(AgentProcessVariables.TOOL_CALL, toolCall),
+                      // Creating empty toolCallResult variable to avoid variable
+                      // to bubble up in the upper scopes while merging variables on
+                      // ad-hoc sub-process inner instance completion.
+                      Map.entry(AgentProcessVariables.TOOL_CALL_RESULT, "")));
+        })
         .toList();
   }
 }
