@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.EmbeddingsVectorDB.v1",
   "description" : "Embed and download documents with vector databases",
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -14,7 +14,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "operation",
@@ -169,6 +169,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+    "label" : "Azure OpenAI credential",
+    "description" : "Choose a reusable Azure OpenAI credential, or configure one-time authentication below.",
+    "optional" : true,
+    "group" : "embeddingModel",
+    "binding" : {
+      "name" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "azureOpenAiModelProvider",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-azure-openai-credential:1"
+  }, {
     "id" : "embeddingModelProvider.azureOpenAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure OpenAI authentication strategy.",
@@ -179,9 +196,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "azureOpenAiModelProvider",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.modelProvider",
+        "equals" : "azureOpenAiModelProvider",
+        "type" : "simple"
+      } ]
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -210,12 +233,17 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "embeddingModelProvider.modelProvider",
         "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.azureOpenAi.authentication.clientId",
     "label" : "Client ID",
@@ -234,6 +262,10 @@
       "allMatch" : [ {
         "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
@@ -262,12 +294,17 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "embeddingModelProvider.modelProvider",
         "equals" : "azureOpenAiModelProvider",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.azureOpenAi.authentication.tenantId",
     "label" : "Tenant ID",
@@ -286,6 +323,10 @@
       "allMatch" : [ {
         "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
@@ -309,6 +350,10 @@
       "allMatch" : [ {
         "property" : "embeddingModelProvider.azureOpenAi.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "embeddingModelProvider.modelProvider",
@@ -390,6 +435,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "embeddingModelProvider.bedrock.bedrockCredential",
+    "label" : "AWS Bedrock credential",
+    "description" : "Choose a reusable AWS Bedrock credential, or configure one-time access keys below.",
+    "optional" : true,
+    "group" : "embeddingModel",
+    "binding" : {
+      "name" : "embeddingModelProvider.bedrock.bedrockCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "bedrockModelProvider",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-bedrock-credential:1"
+  }, {
     "id" : "embeddingModelProvider.bedrock.accessKey",
     "label" : "Access key",
     "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
@@ -404,9 +466,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "bedrockModelProvider",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "embeddingModelProvider.bedrock.bedrockCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.modelProvider",
+        "equals" : "bedrockModelProvider",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -424,9 +492,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "bedrockModelProvider",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "embeddingModelProvider.bedrock.bedrockCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.modelProvider",
+        "equals" : "bedrockModelProvider",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -620,6 +694,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "embeddingModelProvider.googleVertexAi.googleVertexAiCredential",
+    "label" : "Google Vertex AI credential",
+    "description" : "Choose a reusable Google Vertex AI credential, or configure one-time authentication below.",
+    "optional" : true,
+    "group" : "embeddingModel",
+    "binding" : {
+      "name" : "embeddingModelProvider.googleVertexAi.googleVertexAiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "vertexAiModelProvider",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-google-vertex-ai-credential:1"
+  }, {
     "id" : "embeddingModelProvider.googleVertexAi.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Google Vertex AI authentication strategy.",
@@ -630,9 +721,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "vertexAiModelProvider",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "embeddingModelProvider.googleVertexAi.googleVertexAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.modelProvider",
+        "equals" : "vertexAiModelProvider",
+        "type" : "simple"
+      } ]
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -662,12 +759,17 @@
         "equals" : "serviceAccountCredentials",
         "type" : "simple"
       }, {
+        "property" : "embeddingModelProvider.googleVertexAi.googleVertexAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "embeddingModelProvider.modelProvider",
         "equals" : "vertexAiModelProvider",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "embeddingModelProvider.googleVertexAi.modelName",
     "label" : "Model name",
@@ -745,6 +847,23 @@
     },
     "type" : "Number"
   }, {
+    "id" : "embeddingModelProvider.openAi.openAiCredential",
+    "label" : "OpenAI credential",
+    "description" : "Choose a reusable OpenAI credential, or configure a one-time API key below.",
+    "optional" : true,
+    "group" : "embeddingModel",
+    "binding" : {
+      "name" : "embeddingModelProvider.openAi.openAiCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "embeddingModelProvider.modelProvider",
+      "equals" : "openAiModelProvider",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-openai-credential:1"
+  }, {
     "id" : "embeddingModelProvider.openAi.apiKey",
     "label" : "OpenAI API key",
     "optional" : false,
@@ -758,9 +877,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "embeddingModelProvider.modelProvider",
-      "equals" : "openAiModelProvider",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "embeddingModelProvider.openAi.openAiCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "embeddingModelProvider.modelProvider",
+        "equals" : "openAiModelProvider",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -914,6 +1039,23 @@
       "value" : "openSearchStore"
     } ]
   }, {
+    "id" : "vectorStore.amazonManagedOpensearch.amazonManagedOpenSearchCredential",
+    "label" : "Amazon Managed OpenSearch credential",
+    "description" : "Choose a reusable Amazon Managed OpenSearch credential, or configure one-time access keys below.",
+    "optional" : true,
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.amazonManagedOpensearch.amazonManagedOpenSearchCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "amazonManagedOpenSearchStore",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-amazon-managed-opensearch-credential:1"
+  }, {
     "id" : "vectorStore.amazonManagedOpensearch.accessKey",
     "label" : "Access key",
     "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
@@ -928,9 +1070,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "amazonManagedOpenSearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.amazonManagedOpensearch.amazonManagedOpenSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "amazonManagedOpenSearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -948,9 +1096,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "amazonManagedOpenSearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.amazonManagedOpensearch.amazonManagedOpenSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "amazonManagedOpenSearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -1034,6 +1188,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "vectorStore.aiSearch.aiSearchCredential",
+    "label" : "Azure AI Search credential",
+    "description" : "Choose a reusable Azure AI Search credential, or configure one-time authentication below.",
+    "optional" : true,
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.aiSearch.aiSearchCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "azureAiSearchStore",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-azure-ai-search-credential:1"
+  }, {
     "id" : "vectorStore.aiSearch.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure authentication strategy.",
@@ -1044,9 +1215,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "azureAiSearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "azureAiSearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -1075,12 +1252,17 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "vectorStore.vectorStore",
         "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.aiSearch.authentication.clientId",
     "label" : "Client ID",
@@ -1099,6 +1281,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1127,12 +1313,17 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "vectorStore.vectorStore",
         "equals" : "azureAiSearchStore",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.aiSearch.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1151,6 +1342,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1174,6 +1369,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.aiSearch.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.aiSearch.aiSearchCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1223,6 +1422,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+    "label" : "Azure Cosmos DB NoSQL credential",
+    "description" : "Choose a reusable Azure Cosmos DB NoSQL credential, or configure one-time authentication below.",
+    "optional" : true,
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "azureCosmosDbNoSqlStore",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-azure-cosmos-db-nosql-credential:1"
+  }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.type",
     "label" : "Authentication",
     "description" : "Specify the Azure authentication strategy.",
@@ -1233,9 +1449,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "azureCosmosDbNoSqlStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "azureCosmosDbNoSqlStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -1264,12 +1486,17 @@
         "equals" : "apiKey",
         "type" : "simple"
       }, {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "vectorStore.vectorStore",
         "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.clientId",
     "label" : "Client ID",
@@ -1288,6 +1515,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1316,12 +1547,17 @@
         "equals" : "clientCredentials",
         "type" : "simple"
       }, {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
         "property" : "vectorStore.vectorStore",
         "equals" : "azureCosmosDbNoSqlStore",
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "String",
+    "secret" : true
   }, {
     "id" : "vectorStore.azureCosmosDbNoSql.authentication.tenantId",
     "label" : "Tenant ID",
@@ -1340,6 +1576,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1363,6 +1603,10 @@
       "allMatch" : [ {
         "property" : "vectorStore.azureCosmosDbNoSql.authentication.type",
         "equals" : "clientCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+        "isEmpty" : true,
         "type" : "simple"
       }, {
         "property" : "vectorStore.vectorStore",
@@ -1528,6 +1772,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "vectorStore.elasticsearch.elasticsearchCredential",
+    "label" : "Elasticsearch credential",
+    "description" : "Choose a reusable Elasticsearch credential, or configure a one-time username and password below.",
+    "optional" : true,
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.elasticsearch.elasticsearchCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "elasticsearchStore",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-elasticsearch-credential:1"
+  }, {
     "id" : "vectorStore.elasticsearch.userName",
     "label" : "Username",
     "description" : "Elasticsearch username",
@@ -1542,9 +1803,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "elasticsearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.elasticsearch.elasticsearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "elasticsearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -1562,9 +1829,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "elasticsearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.elasticsearch.elasticsearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "elasticsearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -1608,6 +1881,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "vectorStore.openSearch.openSearchCredential",
+    "label" : "OpenSearch credential",
+    "description" : "Choose a reusable OpenSearch credential, or configure a one-time username and password below.",
+    "optional" : true,
+    "group" : "embeddingsStore",
+    "binding" : {
+      "name" : "vectorStore.openSearch.openSearchCredential",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "vectorStore.vectorStore",
+      "equals" : "openSearchStore",
+      "type" : "simple"
+    },
+    "type" : "Configuration",
+    "configurationTemplate" : "io.camunda.connectors:embeddings-opensearch-credential:1"
+  }, {
     "id" : "vectorStore.openSearch.userName",
     "label" : "Username",
     "description" : "OpenSearch username",
@@ -1622,9 +1912,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "openSearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.openSearch.openSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "openSearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -1642,9 +1938,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "vectorStore.vectorStore",
-      "equals" : "openSearchStore",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "vectorStore.openSearch.openSearchCredential",
+        "isEmpty" : true,
+        "type" : "simple"
+      }, {
+        "property" : "vectorStore.vectorStore",
+        "equals" : "openSearchStore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -1818,7 +2120,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1924,6 +2226,539 @@
     "properties" : {
       "vectorDatabaseConnectorOperation.operationType" : "retrieveDocumentOperation"
     }
+  } ],
+  "configurationTemplates" : [ {
+    "id" : "io.camunda.connectors:embeddings-openai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenAI embedding credential",
+    "properties" : [ {
+      "id" : "apiKey",
+      "label" : "OpenAI API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "apiKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-azure-openai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Azure OpenAI embedding credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Azure OpenAI authentication strategy.",
+      "value" : "apiKey",
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "API key",
+        "value" : "apiKey"
+      }, {
+        "name" : "Client credentials",
+        "value" : "clientCredentials"
+      } ]
+    }, {
+      "id" : "authentication.apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.apiKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "description" : "ID of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "description" : "Secret of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.tenantId",
+      "label" : "Tenant ID",
+      "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.tenantId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.authorityHost",
+      "label" : "Authority host",
+      "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.authorityHost",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-google-vertex-ai-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Google Vertex AI embedding credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Google Vertex AI authentication strategy.",
+      "value" : "serviceAccountCredentials",
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "Service account credentials",
+        "value" : "serviceAccountCredentials"
+      }, {
+        "name" : "Application default credentials (Hybrid/Self-Managed only)",
+        "value" : "applicationDefaultCredentials"
+      } ]
+    }, {
+      "id" : "authentication.jsonKey",
+      "label" : "JSON key of the service account",
+      "description" : "This is the key of the service account in JSON format.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingModel",
+      "binding" : {
+        "name" : "authentication.jsonKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-bedrock-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "AWS Bedrock embedding credential",
+    "properties" : [ {
+      "id" : "accessKey",
+      "label" : "Access key",
+      "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "accessKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "secretKey",
+      "label" : "Secret key",
+      "description" : "Provide a secret key associated with the access key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "secretKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-azure-ai-search-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Azure AI Search credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Azure authentication strategy.",
+      "value" : "apiKey",
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "API key",
+        "value" : "apiKey"
+      }, {
+        "name" : "Client credentials",
+        "value" : "clientCredentials"
+      } ]
+    }, {
+      "id" : "authentication.apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.apiKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "description" : "ID of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "description" : "Secret of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.tenantId",
+      "label" : "Tenant ID",
+      "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.tenantId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.authorityHost",
+      "label" : "Authority host",
+      "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.authorityHost",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-azure-cosmos-db-nosql-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Azure Cosmos DB NoSQL credential",
+    "properties" : [ {
+      "id" : "authentication.type",
+      "label" : "Authentication",
+      "description" : "Specify the Azure authentication strategy.",
+      "value" : "apiKey",
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.type",
+        "type" : "property"
+      },
+      "type" : "Dropdown",
+      "choices" : [ {
+        "name" : "API key",
+        "value" : "apiKey"
+      }, {
+        "name" : "Client credentials",
+        "value" : "clientCredentials"
+      } ]
+    }, {
+      "id" : "authentication.apiKey",
+      "label" : "API key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.apiKey",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "apiKey",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.clientId",
+      "label" : "Client ID",
+      "description" : "ID of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.clientId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.clientSecret",
+      "label" : "Client secret",
+      "description" : "Secret of a Microsoft Entra application",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.clientSecret",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "authentication.tenantId",
+      "label" : "Tenant ID",
+      "description" : "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.tenantId",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    }, {
+      "id" : "authentication.authorityHost",
+      "label" : "Authority host",
+      "description" : "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
+      "group" : "embeddingsStore",
+      "binding" : {
+        "name" : "authentication.authorityHost",
+        "type" : "property"
+      },
+      "condition" : {
+        "property" : "authentication.type",
+        "equals" : "clientCredentials",
+        "type" : "simple"
+      },
+      "type" : "String"
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-amazon-managed-opensearch-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Amazon Managed OpenSearch credential",
+    "properties" : [ {
+      "id" : "accessKey",
+      "label" : "Access key",
+      "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "accessKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    }, {
+      "id" : "secretKey",
+      "label" : "Secret key",
+      "description" : "Provide a secret key associated with the access key",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "secretKey",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-opensearch-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "OpenSearch credential",
+    "properties" : [ {
+      "id" : "userName",
+      "label" : "Username",
+      "description" : "OpenSearch username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "userName",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "password",
+      "label" : "Password",
+      "description" : "OpenSearch password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
+  }, {
+    "id" : "io.camunda.connectors:embeddings-elasticsearch-credential:1",
+    "kind" : "CREDENTIAL",
+    "version" : 1,
+    "name" : "Elasticsearch credential",
+    "properties" : [ {
+      "id" : "userName",
+      "label" : "Username",
+      "description" : "Elasticsearch username",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "userName",
+        "type" : "property"
+      },
+      "type" : "String"
+    }, {
+      "id" : "password",
+      "label" : "Password",
+      "description" : "Elasticsearch password",
+      "constraints" : {
+        "notEmpty" : true
+      },
+      "group" : "authentication",
+      "binding" : {
+        "name" : "password",
+        "type" : "property"
+      },
+      "type" : "String",
+      "secret" : true
+    } ]
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjAxIiBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiLz4KPHBhdGggZD0iTTI1NS45OTkgMTM2LjcwMkMxOTMuMzE4IDEzNi43MDIgMTI1Ljg1NSAxNTEuNDg1IDEyNS44NTUgMTgzLjkzM1YzOTYuNDc1QzEyNS44NTUgNDI4LjkyMyAxOTMuMzE4IDQ0My43MDcgMjU1Ljk5OSA0NDMuNzA3QzMxOC42NzkgNDQzLjcwNyAzODYuMTQyIDQyOC45MjMgMzg2LjE0MiAzOTYuNDc1VjE4My45MzNDMzg2LjE0MiAxNTEuNDg1IDMxOC42NzkgMTM2LjcwMiAyNTUuOTk5IDEzNi43MDJaTTI1NS45OTkgMTYwLjMxOEMzMjQuNTkxIDE2MC4zMTggMzYwLjA1MyAxNzcuMjUxIDM2Mi40NDIgMTgzLjkzM0MzNjAuMDUzIDE5MC42MTUgMzI0LjU5MSAyMDcuNTQ5IDI1NS45OTkgMjA3LjU0OUMxODYuODg5IDIwNy41NDkgMTUxLjQxOCAxOTAuMzYyIDE0OS41MTggMTg0LjE0MVYxODQuMDgzQzE1MS40MTggMTc3LjUwNSAxODYuODg5IDE2MC4zMTggMjU1Ljk5OSAxNjAuMzE4Wk0xNDkuNTE4IDIxMi41OTlDMTc0LjY5NCAyMjUuMjAzIDIxNi4yNzcgMjMxLjE2NSAyNTUuOTk5IDIzMS4xNjVDMjk1LjcyMSAyMzEuMTY1IDMzNy4zMDQgMjI1LjIwMyAzNjIuNDggMjEyLjU5OVYyNTQuNjMxQzM2MC41OCAyNjEuMjA5IDMyNS4xMDggMjc4LjM5NiAyNTUuOTk5IDI3OC4zOTZDMTg2Ljc4NSAyNzguMzk2IDE1MS4zMDMgMjYxLjE1NyAxNDkuNTE4IDI1NC43ODFWMjEyLjU5OVpNMTQ5LjUxOCAyODMuNDQ3QzE3NC42OTQgMjk2LjA1IDIxNi4yNzcgMzAyLjAxMiAyNTUuOTk5IDMwMi4wMTJDMjk1LjcyMSAzMDIuMDEyIDMzNy4zMDQgMjk2LjA1IDM2Mi40OCAyODMuNDQ3VjMyNS40NzhDMzYwLjU4IDMzMi4wNTYgMzI1LjEwOCAzNDkuMjQ0IDI1NS45OTkgMzQ5LjI0NEMxODYuNzg1IDM0OS4yNDQgMTUxLjMwMyAzMzIuMDA0IDE0OS41MTggMzI1LjYyOFYyODMuNDQ3Wk0yNTUuOTk5IDQyMC4wOTFDMTg2Ljc4NSA0MjAuMDkxIDE1MS4zMDMgNDAyLjg1MSAxNDkuNTE4IDM5Ni40NzVWMzU0LjI5NEMxNzQuNjk0IDM2Ni44OTggMjE2LjI3NyAzNzIuODU5IDI1NS45OTkgMzcyLjg1OUMyOTUuNzIxIDM3Mi44NTkgMzM3LjMwNCAzNjYuODk4IDM2Mi40OCAzNTQuMjk0VjM5Ni4zMjVDMzYwLjU4IDQwMi45MDMgMzI1LjEwOCA0MjAuMDkxIDI1NS45OTkgNDIwLjA5MVoiIGZpbGw9IiNGQzVEMEQiIHN0cm9rZT0iI0ZDNUQwRCIgc3Ryb2tlLXdpZHRoPSI2LjY3NDAyIi8+CjxwYXRoIGQ9Ik0zODcuODYgMzk5Ljg4M0wzNzQuNTMxIDQxMy4yMTFMNDQ2Ljg4NiA0ODUuNTY2SDM4NC4wNTJWNTA0LjYwN0g0NzkuMjU2VjQwOS40MDNINDYwLjIxNVY0NzIuMjM4TDM4Ny44NiAzOTkuODgzWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPHBhdGggZD0iTTEyNC4xMzggMzk5Ljg4M0wxMzcuNDY3IDQxMy4yMTFMNjUuMTExNiA0ODUuNTY2SDEyNy45NDZWNTA0LjYwN0gzMi43NDIyVjQwOS40MDNINTEuNzgzVjQ3Mi4yMzhMMTI0LjEzOCAzOTkuODgzWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPHBhdGggZD0iTTI0Ni41NzUgMTQ2LjA3MUgyNjUuNDI1VjQzLjc0NTNMMzA5Ljg1NiA4OC4xNzYxTDMyMy4zMTkgNzQuNzEyMkwyNTYgNy4zOTI4MkwxODguNjgxIDc0LjcxMjJMMjAyLjE0NCA4OC4xNzYxTDI0Ni41NzUgNDMuNzQ1M1YxNDYuMDcxWiIgZmlsbD0iI0ZDNUQwRCIgc3Ryb2tlPSIjRkM1RDBEIiBzdHJva2Utd2lkdGg9IjguMzQyNTIiLz4KPC9zdmc+Cg=="

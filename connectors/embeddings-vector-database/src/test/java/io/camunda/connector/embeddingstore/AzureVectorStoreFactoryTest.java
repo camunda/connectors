@@ -59,6 +59,7 @@ class AzureVectorStoreFactoryTest {
           new AzureCosmosDbNoSqlVectorStore(
               new AzureCosmosDbNoSqlVectorStore.Configuration(
                   "https://example.documents.azure.com:443/",
+                  null,
                   new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
                   "database-name",
                   "container-name",
@@ -79,6 +80,7 @@ class AzureVectorStoreFactoryTest {
           new AzureCosmosDbNoSqlVectorStore(
               new AzureCosmosDbNoSqlVectorStore.Configuration(
                   "https://example.documents.azure.com:443/",
+                  null,
                   new AzureAuthentication.AzureClientCredentialsAuthentication(
                       "client-id", "client-secret", "tenant-id", authorityHost),
                   "database-name",
@@ -166,6 +168,7 @@ class AzureVectorStoreFactoryTest {
         new AzureAiSearchVectorStore(
             new AzureAiSearchVectorStore.Configuration(
                 "https://your-search-service.search.windows.net",
+                null,
                 new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
                 "searchindex"));
 
@@ -196,6 +199,7 @@ class AzureVectorStoreFactoryTest {
           new AzureAiSearchVectorStore(
               new AzureAiSearchVectorStore.Configuration(
                   "https://your-search-service.search.windows.net",
+                  null,
                   new AzureAuthentication.AzureClientCredentialsAuthentication(
                       "client-id", "client-secret", "tenant-id", authorityHost),
                   "searchindex"));

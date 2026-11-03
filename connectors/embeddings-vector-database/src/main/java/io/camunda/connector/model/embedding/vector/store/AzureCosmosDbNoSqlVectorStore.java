@@ -6,11 +6,17 @@
  */
 package io.camunda.connector.model.embedding.vector.store;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.DropdownItem;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -32,7 +38,23 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
                   "Specify Azure Cosmos DB endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/\" target=\"_blank\">documentation</a>.",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
-      @Valid @NotNull AzureAuthentication authentication,
+      // Declared before the inline authentication it gates below.
+      @FEEL
+          @Valid
+          @TemplateProperty(
+              group = "embeddingsStore",
+              label = "Azure Cosmos DB NoSQL credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              optional = true,
+              description =
+                  "Choose a reusable Azure Cosmos DB NoSQL credential, or configure one-time authentication below.")
+          AzureCosmosDbNoSqlCredential azureCosmosDbNoSqlCredential,
+      @NestedProperties(
+              condition =
+                  @PropertyCondition(
+                      property = "vectorStore.azureCosmosDbNoSql.azureCosmosDbNoSqlCredential",
+                      isEmpty = NullableBoolean.TRUE))
+          AzureAuthentication authentication,
       @NotBlank
           @TemplateProperty(
               group = "embeddingsStore",
@@ -75,7 +97,29 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               defaultValue = "FLAT")
-          IndexType vectorIndexType) {}
+          IndexType vectorIndexType) {
+
+    /** The bound credential's authentication takes precedence; the inline value is the fallback. */
+    @Override
+    public AzureAuthentication authentication() {
+      return azureCosmosDbNoSqlCredential != null
+          ? azureCosmosDbNoSqlCredential.authentication()
+          : authentication;
+    }
+
+    @AssertTrue(message = "No authentication provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isAuthenticationPresent() {
+      return authentication() != null;
+    }
+
+    /** Validates the inline authentication only when no credential is bound. */
+    @Valid
+    @JsonIgnore
+    public AzureAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+      return azureCosmosDbNoSqlCredential != null ? null : authentication;
+    }
+  }
 
   public enum ConsistencyLevel {
     @DropdownItem(label = "Strong")

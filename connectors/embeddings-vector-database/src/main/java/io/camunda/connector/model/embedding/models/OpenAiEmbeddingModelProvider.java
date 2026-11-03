@@ -6,12 +6,16 @@
  */
 package io.camunda.connector.model.embedding.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
@@ -24,13 +28,28 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
   public static final String OPEN_AI_MODEL_PROVIDER = "openAiModelProvider";
 
   public record Configuration(
-      @NotBlank
+      // Declared first so the chooser renders (and is emitted in properties[]) before the inline
+      // apiKey fallback it gates below - required by ConditionPropertyOrderRule and the right UX.
+      @FEEL
+          @Valid
           @TemplateProperty(
+              group = "embeddingModel",
+              label = "OpenAI credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              optional = true,
+              description =
+                  "Choose a reusable OpenAI credential, or configure a one-time API key below.")
+          OpenAiEmbeddingCredential openAiCredential,
+      @TemplateProperty(
               group = "embeddingModel",
               label = "OpenAI API key",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+              condition =
+                  @PropertyCondition(
+                      property = "embeddingModelProvider.openAi.openAiCredential",
+                      isEmpty = NullableBoolean.TRUE))
           String apiKey,
       @NotBlank
           @TemplateProperty(
@@ -93,6 +112,18 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               type = TemplateProperty.PropertyType.String,
               optional = true)
           String baseUrl) {
+
+    /** The bound credential's API key takes precedence; the inline apiKey is the fallback. */
+    @Override
+    public String apiKey() {
+      return openAiCredential != null ? openAiCredential.apiKey() : apiKey;
+    }
+
+    @AssertTrue(message = "No API key provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isApiKeyPresent() {
+      return apiKey() != null && !apiKey().isBlank();
+    }
 
     @Override
     public String toString() {

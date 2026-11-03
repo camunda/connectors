@@ -170,6 +170,7 @@ class ElasticsearchVectorStoreFactoryTest {
                 "https://" + ELASTICSEARCH_HOST + ":" + ELASTICSEARCH_PORT,
                 null,
                 null,
+                null,
                 "embeddings_idx")),
         credentialsProvider -> {
           // Verify NO Elasticsearch credentials are set (username was null)
