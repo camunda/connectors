@@ -191,16 +191,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     String contentTypeHeader =
         caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-<<<<<<< HEAD
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("="))
-          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
-=======
       return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
->>>>>>> 99a20519 (fix(webhook,slack): decode form-urlencoded names/values after splitting (#10017))
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
