@@ -94,7 +94,7 @@ class ManagedCodeAutoConfigurationTest {
 
   @Test
   void keepsTheProviderNameAsWrittenSoThatAnErrorQuotesIt() {
-    assertThat(new ManagedCodeProperties(true, "local ", null, null, null).provider())
+    assertThat(new ManagedCodeProperties(true, "local ", null, null, null, null, null).provider())
         .isEqualTo("local ");
   }
 
