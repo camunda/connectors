@@ -158,7 +158,10 @@ class AgentElementTemplateTransformsTest {
     assertThat(property(properties, "data.events.behavior").get("group").asText())
         .isEqualTo("events");
 
-    propertyWithBinding(properties, "zeebe:input", "agent");
+    final var agentInput = propertyWithBinding(properties, "zeebe:input", "agent");
+    // input mappings are evaluated in order: the empty agent input must not clear agent before
+    // the agentContext input reads it
+    assertThat(properties.indexOf(agentContext)).isLessThan(properties.indexOf(agentInput));
   }
 
   private static JsonNode taskDefinitionType(List<JsonNode> properties) {
