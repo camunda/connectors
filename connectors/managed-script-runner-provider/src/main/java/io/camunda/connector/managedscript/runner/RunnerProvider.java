@@ -237,7 +237,8 @@ public final class RunnerProvider implements ManagedCodeProvider {
     if (response == null
         || !ExecutionResponse.FAILED.equals(response.outcome())
         || response.error() == null
-        || SCRIPT_FAILURE_CODES.contains(response.error().code())) {
+        || (response.error().code() != null
+            && SCRIPT_FAILURE_CODES.contains(response.error().code()))) {
       return response;
     }
     // A runner that passes on a code that the script wrote must not choose the retries of the job.

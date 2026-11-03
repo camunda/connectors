@@ -296,6 +296,29 @@ class RunnerProviderTest {
   }
 
   @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"message\": \"m\", \"retryable\": false}",
+        "{\"code\": null, \"message\": \"m\", \"retryable\": false}"
+      })
+  void reportsAFailureWithoutACodeAsAnInvalidResult(String error) {
+    stubAnswer(
+        aResponse()
+            .withStatus(200)
+            .withBody(
+                """
+                {"contractVersion": "1", "outcome": "FAILED", "error": %s,
+                 "logs": "printed\\n", "logsTruncated": false}
+                """
+                    .formatted(error)));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, REQUEST);
+
+    assertFailed(response, ErrorCode.INVALID_RESULT);
+    assertThat(response.logs()).isEqualTo("printed\n");
+  }
+
+  @ParameterizedTest
   @ValueSource(strings = {"first\nsecond", "first\rsecond", "euro\u20ac"})
   void reportsATokenThatCannotBeAHeaderAsAPlatformErrorAndSendsNothing(String token)
       throws IOException {
