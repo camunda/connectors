@@ -10,8 +10,10 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.outbound.model.ResolvedSchema;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
+import java.util.Optional;
 import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -46,6 +48,11 @@ public final class KafkaPropertiesUtil {
   // Kafka client is built using java.utils.Properties.
   // This method creates properties required to establish connection and produce messages.
   public static Properties assembleKafkaClientProperties(KafkaConnectorRequest request) {
+    return assembleKafkaClientProperties(request, Optional.empty());
+  }
+
+  public static Properties assembleKafkaClientProperties(
+      KafkaConnectorRequest request, Optional<ResolvedSchema> resolvedSchema) {
     Properties props = new Properties();
 
     // Step 1: collect properties directly from the form
@@ -97,6 +104,17 @@ public final class KafkaPropertiesUtil {
     if (request.additionalProperties() != null && !request.additionalProperties().isEmpty()) {
       props.putAll(request.additionalProperties());
     }
+
+    // Step 4: "From registry" must use exactly the resolved schema and never register, so these
+    // win over additional properties
+    resolvedSchema.ifPresent(
+        resolved -> {
+          props.put("auto.register.schemas", false);
+          props.put("use.latest.version", false);
+          props.put("use.schema.id", resolved.id());
+          props.put("value.subject.name.strategy", FixedSubjectNameStrategy.class.getName());
+          props.put(FixedSubjectNameStrategy.SUBJECT_CONFIG, resolved.subject());
+        });
 
     return props;
   }

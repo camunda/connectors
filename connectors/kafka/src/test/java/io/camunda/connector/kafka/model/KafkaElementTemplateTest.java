@@ -29,8 +29,9 @@ class KafkaElementTemplateTest {
     properties.forEach(property -> ids.add(property.path("id").asText()));
     var chooser = property(properties, "kafkaConnectionConfiguration");
 
-    assertThat(template.path("engines").path("camunda").asText()).isEqualTo("^8.10");
-    assertThat(template.path("version").asInt()).isEqualTo(inbound ? 8 : 7);
+    assertThat(template.path("engines").path("camunda").asText())
+        .isEqualTo(inbound ? "^8.10" : "^8.11");
+    assertThat(template.path("version").asInt()).isEqualTo(8);
     assertThat(chooser.path("type").asText()).isEqualTo("Configuration");
     assertThat(chooser.path("optional").asBoolean()).isTrue();
     assertThat(chooser.path("binding").path("name").asText())

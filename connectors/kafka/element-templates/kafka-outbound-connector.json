@@ -5,7 +5,7 @@
   "description" : "Produce Kafka message",
   "keywords" : [ "publish message", "send message", "message queue", "event streaming", "produce event", "stream data", "kafka topic" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,7 +15,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.10"
+    "camunda" : "^8.11"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -182,6 +182,99 @@
     "tooltip" : "Avro inline schema for the message value",
     "type" : "Text"
   }, {
+    "id" : "schemaStrategy.schemaSource",
+    "label" : "Schema source",
+    "optional" : false,
+    "value" : "inline",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schemaSource",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "schemaStrategy.type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
+    },
+    "tooltip" : "Inline: the schema you enter below is used, and it is registered in the schema registry if it is not available there yet. From registry: the schema already registered in the schema registry is used and nothing is registered; the task fails if it does not exist.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Inline schema",
+      "value" : "inline"
+    }, {
+      "name" : "From registry",
+      "value" : "registry"
+    } ]
+  }, {
+    "id" : "schemaStrategy.subject",
+    "label" : "Subject",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.subject",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "schemaStrategy.schemaSource",
+        "equals" : "registry",
+        "type" : "simple"
+      }, {
+        "property" : "schemaStrategy.type",
+        "equals" : "schemaRegistry",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Registry subject of the schema. Defaults to <code>&lt;topic&gt;-value</code>.",
+    "type" : "String"
+  }, {
+    "id" : "schemaStrategy.schemaVersion",
+    "label" : "Schema version",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schemaVersion",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "schemaStrategy.schemaSource",
+        "equals" : "registry",
+        "type" : "simple"
+      }, {
+        "property" : "schemaStrategy.type",
+        "equals" : "schemaRegistry",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Version of the schema in the subject. Leave empty to use the latest version. Ignored if a schema ID is set.",
+    "type" : "Number"
+  }, {
+    "id" : "schemaStrategy.schemaId",
+    "label" : "Schema ID",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schemaId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "schemaStrategy.schemaSource",
+        "equals" : "registry",
+        "type" : "simple"
+      }, {
+        "property" : "schemaStrategy.type",
+        "equals" : "schemaRegistry",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Global registry ID of the schema. It must be registered under the subject. Takes precedence over the schema version.",
+    "type" : "Number"
+  }, {
     "id" : "schemaStrategy.schema",
     "label" : "Schema",
     "optional" : false,
@@ -195,9 +288,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "schemaStrategy.type",
-      "equals" : "schemaRegistry",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "schemaStrategy.schemaSource",
+        "equals" : "inline",
+        "type" : "simple"
+      }, {
+        "property" : "schemaStrategy.type",
+        "equals" : "schemaRegistry",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Schema (JSON or Avro) for the message value.",
     "type" : "Text"
@@ -285,7 +384,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "7",
+    "value" : "8",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -18,7 +18,10 @@ public class ObjectNodeConverter {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public ObjectNode toObjectNode(String schema, Map<String, Object> payload) {
-    JsonSchema jsonSchema = new JsonSchema(schema);
+    return toObjectNode(new JsonSchema(schema), payload);
+  }
+
+  public ObjectNode toObjectNode(JsonSchema jsonSchema, Map<String, Object> payload) {
     JsonNode jsonPayload = objectMapper.convertValue(payload, ObjectNode.class);
 
     return JsonSchemaUtils.envelope(jsonSchema, jsonPayload);
