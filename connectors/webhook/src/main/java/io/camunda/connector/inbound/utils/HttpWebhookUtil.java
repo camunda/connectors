@@ -12,12 +12,10 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 public class HttpWebhookUtil {
 
@@ -35,6 +33,7 @@ public class HttpWebhookUtil {
     }
     if (isMultipartFormDataContentType(contentTypeHeader)) {
       return Collections.emptyMap();
+<<<<<<< HEAD
     } else if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
@@ -42,6 +41,10 @@ public class HttpWebhookUtil {
           .filter(Objects::nonNull)
           .map(param -> param.split("="))
           .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+=======
+    } else if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
+      return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
+>>>>>>> 99a20519 (fix(webhook,slack): decode form-urlencoded names/values after splitting (#10017))
     } else if (isXmlContentType(contentTypeHeader)) {
       return new String(rawBody, StandardCharsets.UTF_8);
     } else {
@@ -52,6 +55,26 @@ public class HttpWebhookUtil {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  /**
+   * Parses an {@code application/x-www-form-urlencoded} body. The body is split into pairs on
+   * {@code &} and each pair once on the first {@code =} <em>before</em> names and values are
+   * URL-decoded, so encoded separators ({@code %26}, {@code %3D}) and literal {@code =} inside a
+   * value are preserved. For a repeated name, the first value wins.
+   */
+  public static Map<String, String> parseFormUrlEncoded(String body) {
+    Map<String, String> result = new LinkedHashMap<>();
+    for (String pair : body.split("&")) {
+      if (pair.isEmpty()) {
+        continue;
+      }
+      String[] parts = pair.split("=", 2);
+      result.putIfAbsent(
+          URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+          parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "");
+    }
+    return result;
   }
 
   private static boolean isMultipartFormDataContentType(String contentType) {
