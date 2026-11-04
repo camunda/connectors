@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.ExternalDocument;
 import io.camunda.connector.runtime.core.document.InlineDocument;
@@ -27,42 +28,59 @@ class DocumentHandleTest {
   // ── Camunda document ──────────────────────────────────────────────────────
 
   @Test
-  void camundaDocumentUsesDocumentId() {
-    final var doc =
+  void camundaDocumentIdIsStableAndIgnoresTheContentHashAndTheMetadata() {
+    final var first =
         documentFactory.create(
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
-                .contentType("text/plain")
-                .fileName("hello.txt")
+                .documentId("doc-1")
+                .fileName("a.txt")
                 .build());
-    final var ref = (CamundaDocumentReference) doc.reference();
+    final var second =
+        documentFactory.create(
+            DocumentCreationRequest.from("other".getBytes(StandardCharsets.UTF_8))
+                .documentId("doc-1")
+                .fileName("b.txt")
+                .build());
 
-    assertThat(DocumentHandle.idFor(doc).value()).isEqualTo(ref.getDocumentId());
+    assertThat(DocumentHandle.idFor(first)).isEqualTo(DocumentHandle.idFor(second));
+    assertThat(DocumentHandle.idFor(first).value()).isEqualTo("doc_6d97d0f7b602");
   }
 
   @Test
-  void camundaDocumentIdIsStable() {
+  void camundaDocumentIdDoesNotExposeTheDocumentId() {
     final var doc =
         documentFactory.create(
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
+    final var ref = (CamundaDocumentReference) doc.reference();
 
-    assertThat(DocumentHandle.idFor(doc).value())
-        .isEqualTo(DocumentHandle.idFor(doc).value())
-        .isEqualTo(((CamundaDocumentReference) doc.reference()).getDocumentId());
+    assertThat(DocumentHandle.idFor(doc).value()).doesNotContain(ref.getDocumentId());
+  }
+
+  @Test
+  void idsHaveThePrefixAndTwelveLowercaseHexCharacters() {
+    final var camunda =
+        documentFactory.create(
+            DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8)).build());
+
+    assertThat(DocumentHandle.idFor(camunda).value()).matches("doc_[0-9a-f]{12}");
+    assertThat(
+            DocumentHandle.idFor(new ExternalDocument("https://example.com/a", null, u -> null))
+                .value())
+        .matches("doc_[0-9a-f]{12}");
+    assertThat(DocumentHandle.idFor(new InlineDocument("content", null, null)).value())
+        .matches("doc_[0-9a-f]{12}");
   }
 
   // ── External document ─────────────────────────────────────────────────────
 
   @Test
-  void externalDocumentDerivedIdStartsWithExtPrefixAndIsStable() {
+  void externalDocumentIdIsStableAndIgnoresTheName() {
     final var url = "https://example.com/report.pdf";
     final var doc1 = new ExternalDocument(url, "Report A", u -> null);
     final var doc2 = new ExternalDocument(url, "Report B", u -> null);
 
-    final var id1 = DocumentHandle.idFor(doc1).value();
-    final var id2 = DocumentHandle.idFor(doc2).value();
-
-    assertThat(id1).startsWith("ext-").hasSize(16);
-    assertThat(id1).isEqualTo(id2);
+    assertThat(DocumentHandle.idFor(doc1)).isEqualTo(DocumentHandle.idFor(doc2));
+    assertThat(DocumentHandle.idFor(doc1).value()).isEqualTo("doc_f089beca8872");
   }
 
   @Test
@@ -86,16 +104,12 @@ class DocumentHandleTest {
   // ── Inline document ───────────────────────────────────────────────────────
 
   @Test
-  void inlineDocumentDerivedIdStartsWithInlinePrefixAndIsStable() {
-    final var content = "same content";
-    final var doc1 = new InlineDocument(content, "a.txt", "text/plain");
-    final var doc2 = new InlineDocument(content, "b.txt", "text/csv");
+  void inlineDocumentIdIsStableAndIgnoresTheNameAndTheContentType() {
+    final var doc1 = new InlineDocument("hello", "a.txt", "text/plain");
+    final var doc2 = new InlineDocument("hello", "b.txt", "text/csv");
 
-    final var id1 = DocumentHandle.idFor(doc1).value();
-
-    assertThat(id1).startsWith("inline-").hasSize(19);
-    // Same content → same id regardless of name/contentType metadata
-    assertThat(id1).isEqualTo(DocumentHandle.idFor(doc2).value());
+    assertThat(DocumentHandle.idFor(doc1)).isEqualTo(DocumentHandle.idFor(doc2));
+    assertThat(DocumentHandle.idFor(doc1).value()).isEqualTo("doc_735f6a9cc2fd");
   }
 
   @Test
@@ -107,13 +121,12 @@ class DocumentHandleTest {
   }
 
   @Test
-  void inlineDocumentIdIsStableAcrossMultipleCalls() {
-    final var doc = new InlineDocument("stable content", "file.txt", "text/plain");
-    final var id1 = DocumentHandle.idFor(doc).value();
-    final var id2 = DocumentHandle.idFor(doc).value();
-    final var id3 = DocumentHandle.idFor(doc).value();
+  void identityKeyPartsAreLengthPrefixedSoTheirBoundariesMatter() {
+    final var camundaA = new CamundaDocumentReferenceModel("ab", "c", null, null);
+    final var camundaB = new CamundaDocumentReferenceModel("a", "bc", null, null);
 
-    assertThat(id1).isEqualTo(id2).isEqualTo(id3);
+    assertThat(DocumentHandle.identityKey(camundaA)).containsExactly("camunda", "ab", "c");
+    assertThat(DocumentHandle.idFor(camundaA)).isNotEqualTo(DocumentHandle.idFor(camundaB));
   }
 
   // ── Blank-content inline document (unsupported) ─────────────────────────────
@@ -130,36 +143,13 @@ class DocumentHandleTest {
   // ── Custom (non-UUID) document id ─────────────────────────────────────────
 
   @Test
-  void camundaDocumentCustomIdIsCarriedVerbatimEvenWithDisallowedChars() {
-    final var customId = "custom:doc_id/with spaces";
+  void camundaDocumentWithACustomIdGetsAnIdOfTheSameFormat() {
     final var doc =
         documentFactory.create(
             DocumentCreationRequest.from("hello".getBytes(StandardCharsets.UTF_8))
-                .documentId(customId)
+                .documentId("custom:doc_id/with spaces")
                 .build());
 
-    // Not sanitized, not hashed: this is the handle other code (e.g. a document workspace)
-    // cross-references documents by, so it must stay exactly what the caller supplied. Any
-    // provider-specific wire-format constraint (e.g. Bedrock's DocumentBlock.name charset) is
-    // handled at that provider's own call site, not here.
-    assertThat(DocumentHandle.idFor(doc).value()).isEqualTo(customId);
-  }
-
-  // ── Hashed-branch charset (ext-/inline- only) ─────────────────────────────
-
-  @Test
-  void hashedIdsMatchBedrockAllowedCharset() {
-    final var externalDoc =
-        new ExternalDocument("https://example.com/report.pdf", "Report", u -> null);
-    final var inlineDoc = new InlineDocument("inline content", "file.txt", "text/plain");
-
-    // Only the hashed branches (ext-/inline-) carry this guarantee by construction (hex digits).
-    // The CamundaDocumentReference branch is deliberately excluded - it stays verbatim.
-    for (final var id :
-        new String[] {
-          DocumentHandle.idFor(externalDoc).value(), DocumentHandle.idFor(inlineDoc).value()
-        }) {
-      assertThat(id).matches("[A-Za-z0-9 ()\\[\\]-]{1,200}");
-    }
+    assertThat(DocumentHandle.idFor(doc).value()).matches("doc_[0-9a-f]{12}");
   }
 }

@@ -74,8 +74,10 @@ class DocumentWorkspaceTest {
         .containsExactly(DocumentHandle.idFor(first), DocumentHandle.idFor(second));
     assertThat(workspace.findById(DocumentHandle.idFor(second)))
         .hasValueSatisfying(entry -> {
-          assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("two.txt");
-          assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("text/plain");
+          assertThat(DocumentHandle.fileNameFor(DocumentIngestion.referenceOf(entry)))
+              .isEqualTo("two.txt");
+          assertThat(DocumentHandle.contentTypeFor(DocumentIngestion.referenceOf(entry)))
+              .isEqualTo("text/plain");
           assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
         });
   }
