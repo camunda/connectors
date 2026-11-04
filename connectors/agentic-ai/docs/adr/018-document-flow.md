@@ -144,7 +144,7 @@ file a new id; two inline documents with the same content are one document.
 ### Documents of runtime tools
 
 A runtime tool can return a document in its result, also nested in an object. The agent registers the documents of the
-results of one assistant message after all its calls ran, in the order of the calls, with the call as their source, and
+results of one assistant message after all its calls ran, in the order of the calls, with the call as their origin, and
 shows the model the tags of the documents in place of the documents. This happens in one place that the composer of a
 mixed batch and the runtime tool round of a job share, so both give the same result. A result that is an error registers
 nothing.
