@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentInput;
 import io.camunda.connector.agenticai.aiagent.conversation.PreviousConversation;
+import io.camunda.connector.agenticai.aiagent.conversation.ToolCallSummaryService;
 import io.camunda.connector.agenticai.aiagent.conversation.TurnReconstructor;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -39,6 +40,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
+import io.camunda.connector.agenticai.aiagent.util.ToolCallSummaryUtils;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -57,6 +59,8 @@ public abstract class BaseAgentRequestHandler<
     implements AgentRequestHandler<C, R> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
+  private static final ToolCallSummaryService TOOL_CALL_SUMMARY_SERVICE =
+      new ToolCallSummaryService();
 
   private final AgentInitializer agentInitializer;
   private final ConversationStoreRegistry conversationStoreRegistry;
@@ -204,6 +208,13 @@ public abstract class BaseAgentRequestHandler<
               executionContext, agentConfiguration, conversation, chatModel, agentInstanceKey);
     }
 
+    final var finalTurn = updatedConversation.currentTurn();
+    if (finalTurn.assistantMessage() != null
+        && finalTurn.assistantMessage().toolCalls() != null
+        && !finalTurn.assistantMessage().toolCalls().isEmpty()) {
+      logToolCallSummary(updatedConversation);
+    }
+
     LOGGER.debug("Storing conversation messages to session");
     final var storedRef =
         session.storeMessages(
@@ -219,6 +230,22 @@ public abstract class BaseAgentRequestHandler<
         createStoreCompletionListener(executionContext, store, agentResponse);
     return buildConnectorResponse(
         executionContext, storedConversation, agentResponse, messageStorageCompletionListener);
+  }
+
+  private void logToolCallSummary(AgentConversation conversation) {
+    if (!LOGGER.isDebugEnabled()) {
+      return;
+    }
+    final var summaries = TOOL_CALL_SUMMARY_SERVICE.summarize(conversation);
+    final var table = new StringBuilder("Tool calls per turn:");
+    for (var summary : summaries) {
+      table
+          .append(System.lineSeparator())
+          .append("  ")
+          .append(ToolCallSummaryUtils.formatLine(summary));
+      summary.firstToolName().ifPresent(name -> table.append(" first=").append(name));
+    }
+    LOGGER.debug(table.toString());
   }
 
   /**
