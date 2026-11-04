@@ -141,7 +141,12 @@ camunda.connector.managed-code.aws.log-retention-days=30
     web-identity token file, and nothing says so in the log.
   - When the web-identity exchange fails, the chain goes on to the metadata server. On EKS, require
     IMDSv2 (`HttpTokens=required`) with a hop limit of 1 on the nodes, so that a broken trust does
-    not let the runtime run as the node role.
+    not let a pod run as the node role. The hop limit does not protect a pod with
+    `hostNetwork: true`, which reaches the metadata server without the extra hop. Where the runtime
+    must never fall back to the node role, disable the metadata credentials of the SDK in the
+    runtime, with the environment variable `AWS_EC2_METADATA_DISABLED=true` or the JVM property
+    `aws.disableEc2Metadata=true`, or block `169.254.169.254` with a network policy. Without the
+    metadata server, the region of STS can no longer come from the instance metadata.
   - STS, which exchanges the web-identity token, takes its region from the region chain of the AWS
     SDK, not from `camunda.connector.managed-code.aws.region`: the JVM property `aws.region`, which
     wins over the environment variable `AWS_REGION`, then the `region` of the profile files, then
