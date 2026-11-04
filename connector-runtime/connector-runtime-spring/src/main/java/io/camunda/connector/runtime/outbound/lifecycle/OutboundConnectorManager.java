@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretFilterFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorOutboundMetrics;
+import io.camunda.connector.runtime.outbound.job.ColdStartPlatformThreadJobHandler;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClients;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -45,10 +46,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OutboundConnectorManager implements CamundaClientLifecycleAware {
+public class OutboundConnectorManager implements CamundaClientLifecycleAware, AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorManager.class);
   private final JobWorkerManager jobWorkerManager;
@@ -63,6 +68,14 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
   private final Map<String, IntrinsicFunctionAllowListFactory>
       intrinsicFunctionAllowListFactoriesByPhysicalTenantId;
   private final MeterRegistry meterRegistry;
+
+  /**
+   * Runs the first jobs of each connector type on platform threads, see {@link
+   * ColdStartPlatformThreadJobHandler}. Unbounded like a cached pool, so cold jobs never wait for
+   * each other; the number of jobs in flight is already bounded by the job workers. Idle threads
+   * are discarded, so the pool is empty once every connector type has handled a job.
+   */
+  private final ExecutorService coldStartExecutor = createColdStartExecutor();
 
   /**
    * One {@link OutboundConnectorFunction} instance per (physical tenant, connector type) pair —
@@ -218,18 +231,40 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
     JobHandlerFactory jobHandlerFactory =
         ctx ->
-            new SpringConnectorJobHandler(
-                new ConnectorOutboundMetrics(metricsRecorder, meterRegistry, physicalTenantId),
-                jobCallbackCommandWrapperFactory,
-                secretProviderAggregator,
-                validationProvider,
-                documentFactory,
-                objectMapper,
-                connectorFunction,
-                secretFilterFactory,
-                intrinsicFunctionAllowListFactory,
-                client);
+            new ColdStartPlatformThreadJobHandler(
+                new SpringConnectorJobHandler(
+                    new ConnectorOutboundMetrics(metricsRecorder, meterRegistry, physicalTenantId),
+                    jobCallbackCommandWrapperFactory,
+                    secretProviderAggregator,
+                    validationProvider,
+                    documentFactory,
+                    objectMapper,
+                    connectorFunction,
+                    secretFilterFactory,
+                    intrinsicFunctionAllowListFactory,
+                    client),
+                coldStartExecutor);
     jobWorkerManager.createJobWorker(
         client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this, clientName);
+  }
+
+  /** Stops the cold-start threads. Jobs that still arrive afterwards run on the calling thread. */
+  @Override
+  public void close() {
+    coldStartExecutor.shutdown();
+  }
+
+  private static ExecutorService createColdStartExecutor() {
+    return new ThreadPoolExecutor(
+        0,
+        Integer.MAX_VALUE,
+        30,
+        TimeUnit.SECONDS,
+        new SynchronousQueue<>(),
+        Thread.ofPlatform()
+            .name("job-worker-cold-start-", 0)
+            .daemon(true)
+            .inheritInheritableThreadLocals(false)
+            .factory());
   }
 }
