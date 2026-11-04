@@ -50,12 +50,11 @@ public class ConnectorUtilTest {
       // then
       Assertions.assertThat(configuration)
           .isPresent()
-          .hasValueSatisfying(
-              config -> {
-                assertThat(config.name()).isEqualTo("ANNOTATED");
-                assertThat(config.type()).isEqualTo("io.camunda.Annotated");
-                assertThat(config.inputVariables()).isEqualTo(new String[] {"FOO"});
-              });
+          .hasValueSatisfying(config -> {
+            assertThat(config.name()).isEqualTo("ANNOTATED");
+            assertThat(config.type()).isEqualTo("io.camunda.Annotated");
+            assertThat(config.inputVariables()).isEqualTo(new String[] {"FOO"});
+          });
     }
 
     @Test
@@ -110,15 +109,13 @@ public class ConnectorUtilTest {
       EnvironmentVariables environmentVariables =
           new EnvironmentVariables(
               "CONNECTOR_NONNORMALIZED_NAME_TYPE", "io.camunda:connector:XXXXXXX");
-      environmentVariables.execute(
-          () -> {
-            Optional<OutboundConnectorConfiguration> configuration =
-                ConnectorUtil.getOutboundConnectorConfiguration(
-                    NonNormalizedOutboundConnector.class);
-            // then
-            assertThat(configuration).isPresent();
-            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
-          });
+      environmentVariables.execute(() -> {
+        Optional<OutboundConnectorConfiguration> configuration =
+            ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+        // then
+        assertThat(configuration).isPresent();
+        assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+      });
     }
 
     @Test
@@ -162,16 +159,14 @@ public class ConnectorUtilTest {
       // when
       EnvironmentVariables environmentVariables =
           new EnvironmentVariables("CONNECTOR_MY_CONNECTOR_TYPE", "io.camunda:connector:XXXXXXX");
-      environmentVariables.execute(
-          () -> {
-            Optional<OutboundConnectorConfiguration> configuration =
-                ConnectorUtil.getOutboundConnectorConfiguration(
-                    NonNormalizedOutboundConnector.class);
-            // then
-            assertThat(configuration).isPresent();
-            assertThat(configuration.get().name()).isEqualTo("MY_CONNECTOR");
-            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
-          });
+      environmentVariables.execute(() -> {
+        Optional<OutboundConnectorConfiguration> configuration =
+            ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+        // then
+        assertThat(configuration).isPresent();
+        assertThat(configuration.get().name()).isEqualTo("MY_CONNECTOR");
+        assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+      });
     }
 
     @Test
@@ -212,15 +207,13 @@ public class ConnectorUtilTest {
       EnvironmentVariables environmentVariables =
           new EnvironmentVariables(
               "CONNECTOR_NONNORMALIZED_NAME_TYPE", "io.camunda:connector:XXXXXXX");
-      environmentVariables.execute(
-          () -> {
-            Optional<InboundConnectorConfiguration> configuration =
-                ConnectorUtil.getInboundConnectorConfiguration(
-                    NonNormalizedOutboundConnector.class);
-            // then
-            assertThat(configuration).isPresent();
-            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
-          });
+      environmentVariables.execute(() -> {
+        Optional<InboundConnectorConfiguration> configuration =
+            ConnectorUtil.getInboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+        // then
+        assertThat(configuration).isPresent();
+        assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+      });
     }
   }
 }

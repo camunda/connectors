@@ -177,10 +177,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
     return SecretFilter.allowOnly(
         connectorDetails.rawPropertiesWithoutKeywords().entrySet().stream()
-            .flatMap(
-                entry ->
-                    SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
-                        .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+            .flatMap(entry ->
+                SecretUtil.retrieveSecretKeysInInput(entry.getValue()).stream()
+                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
             .distinct()
             .toList());
   }

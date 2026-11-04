@@ -400,10 +400,9 @@ public class HttpOutboundElementTemplateBuilderTest {
 
   private Property findByBindingName(String name, List<Property> properties) {
     return properties.stream()
-        .filter(
-            p ->
-                p.getBinding() instanceof ZeebeInput
-                    && ((ZeebeInput) p.getBinding()).name().equals(name))
+        .filter(p ->
+            p.getBinding() instanceof ZeebeInput
+                && ((ZeebeInput) p.getBinding()).name().equals(name))
         .findFirst()
         .get();
   }

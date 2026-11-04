@@ -52,7 +52,7 @@ class SlackInboundWebhookExecutableTest {
 
   private static final Function<Map<String, Object>, WebhookHttpResponse>
       CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
-          (ctx) ->
+          ctx ->
               new WebhookHttpResponse(
                   Map.of("challenge", ((Map) ctx.get("body")).get("challenge")), Map.of(), 200);
 

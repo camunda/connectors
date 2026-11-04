@@ -187,13 +187,12 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
                   xmlFetchInitialRetryDelay.multipliedBy(1L << (XML_FETCH_MAX_RETRIES - 1)))
               .withMaxRetries(XML_FETCH_MAX_RETRIES)
               .withMaxDuration(remaining)
-              .onFailedAttempt(
-                  event ->
-                      LOG.warn(
-                          "Attempt {}/{} to fetch BPMN XML failed: {}",
-                          event.getAttemptCount(),
-                          XML_FETCH_MAX_RETRIES + 1,
-                          event.getLastException().getClass().getName()))
+              .onFailedAttempt(event ->
+                  LOG.warn(
+                      "Attempt {}/{} to fetch BPMN XML failed: {}",
+                      event.getAttemptCount(),
+                      XML_FETCH_MAX_RETRIES + 1,
+                      event.getLastException().getClass().getName()))
               .build();
       return Failsafe.with(xmlFetchTimeout, xmlFetchRetryPolicy)
           .get(() -> camundaOperateClient.getProcessDefinitionModel(processDefinitionKey));
@@ -295,10 +294,9 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     // difference.
     Set<ZeebeInput> shadowedWriters =
         inputs.stream()
-            .filter(
-                candidate ->
-                    effectiveTargets.keySet().stream()
-                        .anyMatch(deeper -> isProperPrefix(pathByInput.get(candidate), deeper)))
+            .filter(candidate ->
+                effectiveTargets.keySet().stream()
+                    .anyMatch(deeper -> isProperPrefix(pathByInput.get(candidate), deeper)))
             .collect(Collectors.toSet());
 
     List<Secret> result = new ArrayList<>();
@@ -420,12 +418,11 @@ public class ProcessDefinitionSecretKeyCache implements SecretKeyCache {
     Collection<FlowElement> allElements = collectFlowElements(process.getFlowElements(), buffer);
     Collection<BaseElement> outboundEligibleElements = new HashSet<>();
     for (FlowElement element : allElements) {
-      OUTBOUND_ELIGIBLE_TYPES.forEach(
-          iet -> {
-            if (iet.isInstance(element)) {
-              outboundEligibleElements.add(element);
-            }
-          });
+      OUTBOUND_ELIGIBLE_TYPES.forEach(iet -> {
+        if (iet.isInstance(element)) {
+          outboundEligibleElements.add(element);
+        }
+      });
     }
     return outboundEligibleElements;
   }

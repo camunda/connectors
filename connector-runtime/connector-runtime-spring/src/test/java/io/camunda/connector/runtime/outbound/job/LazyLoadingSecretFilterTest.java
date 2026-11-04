@@ -59,11 +59,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_supplierCalledExactlyOnce() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              return List.of(secret("SECRET"));
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          return List.of(secret("SECRET"));
+        });
 
     filter.isAllowed(secret("SECRET"));
     filter.isAllowed(secret("SECRET"));
@@ -76,11 +75,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_nullSupplierResultCached_supplierNotReinvoked() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              return null;
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          return null;
+        });
 
     filter.isAllowed(secret("ANY"));
     filter.isAllowed(secret("ANY"));
@@ -92,11 +90,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_supplierThrows_failureCachedAndSupplierNotReinvoked() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              throw new IllegalArgumentException("lookup failed");
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          throw new IllegalArgumentException("lookup failed");
+        });
 
     assertThrows(IllegalArgumentException.class, () -> filter.isAllowed(secret("ANY")));
     assertThrows(IllegalArgumentException.class, () -> filter.isAllowed(secret("ANY")));
@@ -108,11 +105,10 @@ class LazyLoadingSecretFilterTest {
   void isAllowed_supplierThrowsError_doesNotFailOpenOnSubsequentCalls() {
     var callCount = new AtomicInteger(0);
     var filter =
-        new LazyLoadingSecretFilter(
-            () -> {
-              callCount.incrementAndGet();
-              throw new NoClassDefFoundError("some.missing.Class");
-            });
+        new LazyLoadingSecretFilter(() -> {
+          callCount.incrementAndGet();
+          throw new NoClassDefFoundError("some.missing.Class");
+        });
 
     assertThrows(NoClassDefFoundError.class, () -> filter.isAllowed(secret("UNDECLARED_SECRET")));
     assertThrows(

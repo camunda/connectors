@@ -71,7 +71,7 @@ public abstract class WebhookTestsBase {
     var context =
         new InboundConnectorContextImpl(
             new NullSecretProvider(),
-            (o) -> {},
+            o -> {},
             def,
             mock(InboundCorrelationHandler.class),
             e -> {},

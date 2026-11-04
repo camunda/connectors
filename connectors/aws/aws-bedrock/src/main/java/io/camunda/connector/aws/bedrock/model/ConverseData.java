@@ -96,26 +96,23 @@ public final class ConverseData implements RequestData {
     Message.Builder messageBuilder = Message.builder();
     List<Message> messages =
         this.messages.stream()
-            .map(
-                message ->
-                    messageBuilder
-                        .role(ConversationRole.valueOf(message.role()))
-                        .content(ContentBlock.fromText(message.message()))
-                        .build())
+            .map(message ->
+                messageBuilder
+                    .role(ConversationRole.valueOf(message.role()))
+                    .content(ContentBlock.fromText(message.message()))
+                    .build())
             .toList();
     ConverseResponse converseResponse =
-        bedrockRuntimeClient.converse(
-            builder ->
-                builder
-                    .modelId(this.modelId)
-                    .messages(messages)
-                    .inferenceConfig(
-                        config ->
-                            config
-                                .temperature(this.temperature)
-                                .maxTokens(this.maxTokens)
-                                .topP(this.topP)
-                                .build()));
+        bedrockRuntimeClient.converse(builder ->
+            builder
+                .modelId(this.modelId)
+                .messages(messages)
+                .inferenceConfig(config ->
+                    config
+                        .temperature(this.temperature)
+                        .maxTokens(this.maxTokens)
+                        .topP(this.topP)
+                        .build()));
     String newMessage = converseResponse.output().message().content().getFirst().text();
     this.messages.add(new PreviousMessage(newMessage, ConversationRole.ASSISTANT.name()));
     return new ConverseWrapperResponse(this.messages, newMessage);

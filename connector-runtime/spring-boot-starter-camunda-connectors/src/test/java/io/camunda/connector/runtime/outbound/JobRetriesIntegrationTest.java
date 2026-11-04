@@ -82,12 +82,11 @@ public class JobRetriesIntegrationTest {
     // then
     await()
         .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
+        .untilAsserted(() -> {
+          // need to reset it manually, as it is stored in ThreadLocal
+          BpmnAssert.initRecordStream(recordStream);
+          assertThat(instance).hasAnyIncidents();
+        });
     Assertions.assertThat(function.counter).isEqualTo(2);
   }
 
@@ -104,12 +103,11 @@ public class JobRetriesIntegrationTest {
     // then
     await()
         .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
+        .untilAsserted(() -> {
+          // need to reset it manually, as it is stored in ThreadLocal
+          BpmnAssert.initRecordStream(recordStream);
+          assertThat(instance).hasAnyIncidents();
+        });
     Assertions.assertThat(function.counter).isEqualTo(0);
   }
 
@@ -134,12 +132,11 @@ public class JobRetriesIntegrationTest {
 
     await()
         .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
+        .untilAsserted(() -> {
+          // need to reset it manually, as it is stored in ThreadLocal
+          BpmnAssert.initRecordStream(recordStream);
+          assertThat(instance).hasAnyIncidents();
+        });
     Assertions.assertThat(function.counter).isEqualTo(3);
   }
 
@@ -165,12 +162,11 @@ public class JobRetriesIntegrationTest {
 
     await()
         .atMost(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // need to reset it manually, as it is stored in ThreadLocal
-              BpmnAssert.initRecordStream(recordStream);
-              assertThat(instance).hasAnyIncidents();
-            });
+        .untilAsserted(() -> {
+          // need to reset it manually, as it is stored in ThreadLocal
+          BpmnAssert.initRecordStream(recordStream);
+          assertThat(instance).hasAnyIncidents();
+        });
     Assertions.assertThat(retryFunction.counter).isEqualTo(5);
   }
 

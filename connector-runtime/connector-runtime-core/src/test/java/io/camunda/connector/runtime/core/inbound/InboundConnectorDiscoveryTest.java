@@ -164,14 +164,11 @@ public class InboundConnectorDiscoveryTest {
       List<String> deduplicationProperties) {
 
     Assertions.assertThatList(registrations)
-        .anyMatch(
-            registration ->
-                (registration.name().equals(name)
-                    && registration.type().equals(type)
-                    && registration.connectorClass().getName().equals(functionCls)
-                    && (deduplicationProperties == null
-                        || registration
-                            .deduplicationProperties()
-                            .equals(deduplicationProperties))));
+        .anyMatch(registration ->
+            (registration.name().equals(name)
+                && registration.type().equals(type)
+                && registration.connectorClass().getName().equals(functionCls)
+                && (deduplicationProperties == null
+                    || registration.deduplicationProperties().equals(deduplicationProperties))));
   }
 }

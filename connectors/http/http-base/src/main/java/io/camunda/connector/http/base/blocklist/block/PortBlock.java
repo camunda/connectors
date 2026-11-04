@@ -54,24 +54,21 @@ public record PortBlock(String blockName, Set<Integer> blockedPorts) implements 
     Set<Integer> blockedPorts =
         Arrays.stream(value.split(","))
             .map(String::trim)
-            .map(
-                portStr -> {
-                  try {
-                    int parsedPort = Integer.parseInt(portStr);
-                    if (parsedPort < 0 || parsedPort > 65535) {
-                      logger.warn(
-                          "Invalid port number {} provided for block: {}", parsedPort, blockName);
-                      return null;
-                    }
-                    return parsedPort;
-                  } catch (NumberFormatException e) {
-                    logger.warn(
-                        "Invalid port format provided for block: {} - {}",
-                        blockName,
-                        e.getMessage());
-                    return null;
-                  }
-                })
+            .map(portStr -> {
+              try {
+                int parsedPort = Integer.parseInt(portStr);
+                if (parsedPort < 0 || parsedPort > 65535) {
+                  logger.warn(
+                      "Invalid port number {} provided for block: {}", parsedPort, blockName);
+                  return null;
+                }
+                return parsedPort;
+              } catch (NumberFormatException e) {
+                logger.warn(
+                    "Invalid port format provided for block: {} - {}", blockName, e.getMessage());
+                return null;
+              }
+            })
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 

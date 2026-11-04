@@ -141,13 +141,12 @@ public class JobHandlerContext extends AbstractConnectorContext
               .map(JsonMappingException.Reference::getFieldName)
               .reduce((s, s2) -> s.concat(", ").concat(s2))
               .map("Json object contains an invalid field: "::concat)
-              .map(
-                  s ->
-                      mappingException.getTargetType() == null
-                          ? s
-                          : s.concat(". It Must be `")
-                              .concat(mappingException.getTargetType().getSimpleName())
-                              .concat("`"))
+              .map(s ->
+                  mappingException.getTargetType() == null
+                      ? s
+                      : s.concat(". It Must be `")
+                          .concat(mappingException.getTargetType().getSimpleName())
+                          .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
       return new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
     }

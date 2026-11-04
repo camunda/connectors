@@ -74,14 +74,11 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
     var region =
         extractRegionOrDefault(request.getConfiguration(), request.getConfiguration().region());
     return endpoint
-        .map(
-            ep ->
-                awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
-                    credentialsProvider, region, ep))
-        .orElseGet(
-            () ->
-                awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
-                    credentialsProvider, region));
+        .map(ep ->
+            awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
+                credentialsProvider, region, ep))
+        .orElseGet(() ->
+            awsEventBridgeClientSupplier.getAmazonEventBridgeClient(credentialsProvider, region));
   }
 
   public PutEventsResponse putEvents(

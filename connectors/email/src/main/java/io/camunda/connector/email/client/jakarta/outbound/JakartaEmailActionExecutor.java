@@ -86,17 +86,16 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return Arrays.stream(messages)
             .findFirst()
             .map(this.jakartaUtils::createEmail)
-            .map(
-                email ->
-                    new ReadEmailResponse(
-                        email.messageId(),
-                        email.from(),
-                        email.headers(),
-                        email.subject(),
-                        email.size(),
-                        email.body().bodyAsPlainText(),
-                        email.body().bodyAsHtml(),
-                        email.receivedAt()))
+            .map(email ->
+                new ReadEmailResponse(
+                    email.messageId(),
+                    email.from(),
+                    email.headers(),
+                    email.subject(),
+                    email.size(),
+                    email.body().bodyAsPlainText(),
+                    email.body().bodyAsHtml(),
+                    email.receivedAt()))
             .orElseThrow(() -> new MessagingException("Could not find an email ID"));
       }
     } catch (MessagingException e) {
@@ -128,11 +127,10 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Message message =
           Arrays.stream(messages)
               .findFirst()
-              .orElseThrow(
-                  () ->
-                      new MessagingException(
-                          "Email with messageId %s does not exist"
-                              .formatted(imapMoveEmail.messageId())));
+              .orElseThrow(() ->
+                  new MessagingException(
+                      "Email with messageId %s does not exist"
+                          .formatted(imapMoveEmail.messageId())));
       this.jakartaUtils.moveMessage(store, message, imapMoveEmail.toFolder());
       sourceImapFolder.close();
       return new MoveEmailResponse(
@@ -154,10 +152,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
             .sorted(
                 this.jakartaUtils.retrieveEmailComparator(
                     imapListEmails.sortField(), imapListEmails.sortOrder()))
-            .map(
-                email ->
-                    new ListEmailsResponse(
-                        email.messageId(), email.from(), email.subject(), email.size()))
+            .map(email ->
+                new ListEmailsResponse(
+                    email.messageId(), email.from(), email.subject(), email.size()))
             .limit(imapListEmails.maxToBeRead())
             .toList();
       }
@@ -189,17 +186,16 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
           return Arrays.stream(messages)
               .findFirst()
               .map(this.jakartaUtils::createEmail)
-              .map(
-                  email ->
-                      new ReadEmailResponse(
-                          email.messageId(),
-                          email.from(),
-                          email.headers(),
-                          email.subject(),
-                          email.size(),
-                          email.body().bodyAsPlainText(),
-                          email.body().bodyAsHtml(),
-                          email.receivedAt()))
+              .map(email ->
+                  new ReadEmailResponse(
+                      email.messageId(),
+                      email.from(),
+                      email.headers(),
+                      email.subject(),
+                      email.size(),
+                      email.body().bodyAsPlainText(),
+                      email.body().bodyAsHtml(),
+                      email.receivedAt()))
               .orElseThrow(() -> new MessagingException("No emails have been found with this ID"));
         }
       }
@@ -220,10 +216,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
               .sorted(
                   this.jakartaUtils.retrieveEmailComparator(
                       pop3ListEmails.sortField(), pop3ListEmails.sortOrder()))
-              .map(
-                  email ->
-                      new ListEmailsResponse(
-                          email.messageId(), email.from(), email.subject(), email.size()))
+              .map(email ->
+                  new ListEmailsResponse(
+                      email.messageId(), email.from(), email.subject(), email.size()))
               .limit(pop3ListEmails.maxToBeRead())
               .toList();
         }
@@ -273,14 +268,13 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
   }
 
   private void setMessageHeaders(Map<String, String> stringObjectMap, Message message) {
-    stringObjectMap.forEach(
-        (key, value) -> {
-          try {
-            message.setHeader(key, value);
-          } catch (MessagingException e) {
-            throw new RuntimeException(e);
-          }
-        });
+    stringObjectMap.forEach((key, value) -> {
+      try {
+        message.setHeader(key, value);
+      } catch (MessagingException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   private Multipart getMultipart(SmtpSendEmail smtpSendEmail) throws MessagingException {

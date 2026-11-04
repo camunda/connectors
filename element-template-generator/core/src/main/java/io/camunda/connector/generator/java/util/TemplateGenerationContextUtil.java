@@ -92,11 +92,10 @@ public class TemplateGenerationContextUtil {
     elementTypes.stream()
         .filter(t -> !OUTBOUND_SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
         .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  "Unsupported element type " + t.elementType() + " for outbound connector");
-            });
+        .ifPresent(t -> {
+          throw new IllegalArgumentException(
+              "Unsupported element type " + t.elementType() + " for outbound connector");
+        });
     return new Outbound(connector.type(), elementTypes);
   }
 
@@ -114,11 +113,10 @@ public class TemplateGenerationContextUtil {
     elementTypes.stream()
         .filter(t -> !INBOUND_SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
         .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  "Unsupported element type " + t.elementType() + " for inbound connector");
-            });
+        .ifPresent(t -> {
+          throw new IllegalArgumentException(
+              "Unsupported element type " + t.elementType() + " for inbound connector");
+        });
     return new Inbound(connector.type(), elementTypes);
   }
 }

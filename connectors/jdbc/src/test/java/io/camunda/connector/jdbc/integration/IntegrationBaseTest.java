@@ -693,12 +693,12 @@ public abstract class IntegrationBaseTest {
     static final String INSERT = "INSERT INTO Employee (id, name, age, department) VALUES %s";
     static final String CREATE_TABLE =
         """
-                CREATE TABLE Employee (
-                  id INT PRIMARY KEY,
-                  name VARCHAR(100),
-                  age INT,
-                  department VARCHAR(100));
-                """;
+        CREATE TABLE Employee (
+          id INT PRIMARY KEY,
+          name VARCHAR(100),
+          age INT,
+          department VARCHAR(100));
+        """;
 
     String toInsertQueryFormat() {
       return String.format("(%d, '%s', %d, '%s')", id, name, age, department);

@@ -30,18 +30,17 @@ public class PostmanHeaderUtil {
     endpoint
         .request()
         .headers()
-        .forEach(
-            h ->
-                headerParams.add(
-                    HttpOperationProperty.createStringProperty(
-                        h.key(),
-                        Target.HEADER,
-                        "",
-                        h.disabled(),
-                        Optional.ofNullable(h.value())
-                            .orElse("")
-                            .replace("{{", "")
-                            .replace("}}", ""))));
+        .forEach(h ->
+            headerParams.add(
+                HttpOperationProperty.createStringProperty(
+                    h.key(),
+                    Target.HEADER,
+                    "",
+                    h.disabled(),
+                    Optional.ofNullable(h.value())
+                        .orElse("")
+                        .replace("{{", "")
+                        .replace("}}", ""))));
     return headerParams;
   }
 }
