@@ -176,7 +176,7 @@ public class AgentConversationTurnInputComposerImpl implements AgentConversation
     final var origin = DocumentOrigin.userMessage();
     if (documentFlow) {
       // add documents as references with the delivery content: the content is added, from the
-      // registry, when the model is called
+      // workspace, when the model is called
       for (var doc : userPrompt.documents()) {
         content.add(DocumentReferences.from(doc).withDelivery(DocumentDelivery.CONTENT));
       }
