@@ -38,8 +38,10 @@ import io.camunda.connector.agenticai.common.annotation.Experimental;
  * <p>A tool must not keep state of its own: any connector worker can run the agent, and one bean
  * serves every agent.
  *
- * <p>The name of a runtime tool must not equal the name of a tool of a process, whether the runtime
- * tool is enabled or not: the agent fails with an error. Use a name with a prefix of your own.
+ * <p>The name of a runtime tool must not equal the name of a tool of a process while the runtime
+ * tool is {@link #isEnabled enabled}: the agent fails with an error. A tool that is not enabled
+ * reserves no name. Use a name with a prefix of your own. The prefix {@code c8__} is meant for the
+ * tools the connector ships; no prefix is checked or reserved, only the exact name.
  */
 @Experimental
 public interface RuntimeTool {

@@ -2162,8 +2162,9 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
 
 **To add a tool**
 
-1. Pick a name with a vendor prefix such as `acme_`. A tool of the process must not have the name while the tool is
-   enabled: the agent job fails with `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`.
+1. Pick a name with a vendor prefix such as `acme_`; `c8__` is meant for the tools the connector ships. A tool of the
+   process must not have the name while the tool is enabled: the agent job fails with
+   `ERROR_CODE_RUNTIME_TOOL_NAME_CONFLICT`. No prefix is checked or reserved, only the exact name.
 2. Build the definition with `ToolDefinition.runtime(...)` and `LinkedHashMap`s for the schema: the order of a map such
    as `Map.of` differs between JVMs, and the order of the parameters is part of the configuration fingerprint.
 3. Implement `call`. Return `RuntimeToolResult.error(...)` or throw a `RuntimeToolException` for a failure the model can
