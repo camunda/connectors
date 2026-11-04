@@ -75,9 +75,10 @@ exception must not turn into text the model acts on. The job is retried like any
 Tool names are unique. A custom tool uses a name with a prefix of its own. The prefix `c8__` is for the tools that the
 connector ships, such as the tools of the document flow.
 
-A tool element of a process must not have the name of a registered runtime tool, whether the tool is enabled or not.
-Such an element would be indistinguishable to the model and lose against the runtime tool without notice, and what a
-tool enables can change. An agent job whose tools contain such a name fails with an error code that names the conflict.
+A tool element of a process must not have the name of an enabled runtime tool. Such an element would be
+indistinguishable to the model and lose against the runtime tool without notice. The check runs in every agent job
+against the tools the job offers, so a tool that is not enabled reserves no name. An agent job whose tools contain a
+name twice, once as a process tool and once as an enabled runtime tool, fails with an error code that names the conflict.
 
 ### Agent instance features
 
@@ -91,10 +92,12 @@ its process, which may already contain an element with such a name, must keep ru
 ### Tagging, one execution site, and mixed batches
 
 The agent tags every tool call of an assistant message with the kind of its tool, process or runtime, exactly once: when
-it receives the message from the model, before the conversation takes the message in. A call is a runtime call if the
-agent instance has the `runtimeTools` feature and a registered runtime tool has the name, enabled or not. The tag is
+it receives the message from the model, before the conversation takes the message in. For an agent instance with the
+`runtimeTools` feature every call is matched against the tools offered in the job: it takes the kind of the tool with its
+name. A call whose name is not offered, as a model may invent one or a tool may have been disabled, is a runtime call: the
+agent answers it with an error result that says the tool does not exist, and it never goes to the process. The tag is
 persisted with the message and never computed again. Only process calls are activated. The definition of a runtime tool
-declares the kind runtime and the registry rejects other tools at start-up; the tag of a call, not the definition,
+declares the kind runtime and the registration rejects other tools at start-up; the tag of a call, not the definition,
 decides how a call is answered.
 
 Runtime calls run in one place, an executor that the request handler calls, and the composer of the next turn never runs
@@ -130,8 +133,8 @@ The contract is stated in the javadoc of the SPI. A tool author can rely on it, 
 * **Below the job timeout.** The framework neither cancels nor times out a call.
 * **Failures** as described above.
 
-A call that names a registered runtime tool that is not enabled when it runs gets an error
-result and never goes to the process.
+A runtime call whose tool does not exist or is not enabled when it runs gets an error result and never goes to the
+process.
 
 The executor keeps the start and completion time of every call, so later metrics and events with durations need no
 change of the contract.
@@ -151,8 +154,8 @@ has no element. In a mixed batch the results carry the turn start of the job tha
 
 * **Every conversation store must keep the tag.** A store that drops it turns a runtime call into a process call that
   never gets a result. A missing tag reads as a process call, so existing data keeps working.
-* A tool call that targets a registered runtime tool that is not enabled when it runs gets an error result, and the model
-  has to recover.
+* A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it runs, gets an error
+  result, and the model has to recover.
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
   results. A process call that never completes holds that request back, as it does for every result of the batch.
 * A tool runs in the thread of the job without a timeout, so a slow or blocking tool holds the job.

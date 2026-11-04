@@ -54,8 +54,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -98,13 +98,10 @@ class AgentTaskRequestHandlerTest {
   @Mock private AgentInstanceClient agentInstanceClient;
 
   @Spy
-  private RuntimeToolRegistry runtimeToolRegistry =
-      new RuntimeToolRegistryImpl(
-          List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)));
-
-  @Spy
-  private RuntimeToolExecutor runtimeToolExecutor =
-      new RuntimeToolExecutorImpl(runtimeToolRegistry, TestObjectMapperSupplier.INSTANCE);
+  private RuntimeTools runtimeTools =
+      new RuntimeToolsImpl(
+          List.of(StubRuntimeTool.of("acme_lookup", (context, call) -> null)),
+          TestObjectMapperSupplier.INSTANCE);
 
   @Mock private AgentTaskExecutionContext agentExecutionContext;
 

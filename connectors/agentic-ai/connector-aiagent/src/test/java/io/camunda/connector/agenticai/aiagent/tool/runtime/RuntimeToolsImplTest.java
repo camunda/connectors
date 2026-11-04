@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.agent;
+package io.camunda.connector.agenticai.aiagent.tool.runtime;
 
 import static io.camunda.connector.agenticai.aiagent.TestAgentExecutionContext.withConfiguration;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TEST_CHAT_MODEL;
@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeTool;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolCall;
+import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolException;
 import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
@@ -24,11 +26,9 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentCont
 import io.camunda.connector.agenticai.aiagent.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
+import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.request.MemoryTemplateConfiguration;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -38,10 +38,16 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 
-class RuntimeToolExecutorImplTest {
+class RuntimeToolsImplTest {
 
+  private static final AgentExecutionContext PLAIN =
+      withConfiguration(
+          new AgentConfiguration(
+              TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null));
   private static final AgentExecutionContext WITH_MEMORY =
       withConfiguration(
           new AgentConfiguration(
@@ -52,12 +58,12 @@ class RuntimeToolExecutorImplTest {
               null,
               null,
               null));
-  private static final AgentExecutionContext WITHOUT_MEMORY =
-      withConfiguration(
-          new AgentConfiguration(
-              TEST_CHAT_MODEL, TEST_SYSTEM_PROMPT, null, null, null, null, null));
   private static final AgentContext NEW_INSTANCE =
       AgentContext.empty().withFeatures(AgentFeatures.ofNewInstance());
+  private static final AgentContext WITHOUT_FEATURES = AgentContext.empty();
+
+  private static final String ALWAYS = "acme_always";
+  private static final String WITH_MEMORY_ONLY = "acme_memory";
 
   private static final RuntimeTool NOTE_TOOL =
       StubRuntimeTool.of(
@@ -77,11 +83,19 @@ class RuntimeToolExecutorImplTest {
               })
           .enabledWhen(context -> context.executionContext().configuration().memory() != null);
 
-  private final RuntimeToolExecutor executor = executorOf(NOTE_TOOL);
+  private final RuntimeTools tools = toolsOf(NOTE_TOOL);
 
-  private static RuntimeToolExecutor executorOf(RuntimeTool... tools) {
-    return new RuntimeToolExecutorImpl(
-        new RuntimeToolRegistryImpl(List.of(tools)), TestObjectMapperSupplier.INSTANCE);
+  private static RuntimeTools toolsOf(RuntimeTool... tools) {
+    return new RuntimeToolsImpl(List.of(tools), TestObjectMapperSupplier.INSTANCE);
+  }
+
+  private static RuntimeTool tool(String name, Predicate<RuntimeToolContext> enabled) {
+    return StubRuntimeTool.of(name, (context, call) -> RuntimeToolResult.success(name))
+        .enabledWhen(enabled);
+  }
+
+  private static List<String> names(List<ToolDefinition> definitions) {
+    return definitions.stream().map(ToolDefinition::name).toList();
   }
 
   private static ToolCall note(String id, String text) {
@@ -98,17 +112,125 @@ class RuntimeToolExecutorImplTest {
     return ((TextContent) result.content().getFirst()).text();
   }
 
-  private List<RuntimeToolExecution> execute(
-      RuntimeToolExecutor executor, AgentExecutionContext executionContext, ToolCall... calls) {
-    return executor.execute(
-        new RuntimeToolContextImpl(executionContext, NEW_INSTANCE), List.of(calls));
+  private static List<RuntimeToolExecution> execute(
+      RuntimeTools tools, AgentExecutionContext executionContext, ToolCall... calls) {
+    return tools.execute(executionContext, NEW_INSTANCE, List.of(calls));
+  }
+
+  private final RuntimeTools registered =
+      toolsOf(
+          tool(ALWAYS, context -> true),
+          tool(
+              WITH_MEMORY_ONLY,
+              context -> context.executionContext().configuration().memory() != null));
+
+  @Test
+  void offersOnlyTheToolsEnabledForTheAgentExecution() {
+    assertThat(names(registered.enabledDefinitions(PLAIN, NEW_INSTANCE))).containsExactly(ALWAYS);
+    assertThat(names(registered.enabledDefinitions(WITH_MEMORY, NEW_INSTANCE)))
+        .containsExactlyInAnyOrder(ALWAYS, WITH_MEMORY_ONLY);
+  }
+
+  @Test
+  void offersNoToolToAnAgentWithoutTheRuntimeToolsFeature() {
+    assertThat(registered.enabledDefinitions(WITH_MEMORY, WITHOUT_FEATURES)).isEmpty();
+  }
+
+  @Test
+  void offersTheRuntimeDefinitionsWithTheRuntimeKind() {
+    assertThat(registered.enabledDefinitions(WITH_MEMORY, NEW_INSTANCE))
+        .extracting(ToolDefinition::kind)
+        .containsOnly(ToolKind.RUNTIME);
+  }
+
+  @Test
+  void aToolCanBeEnabledOnlyWithAFeatureOfTheAgentInstance() {
+    final var featured =
+        toolsOf(tool("acme_featured", context -> context.agentContext().supports("acme")));
+    final var withFeature = AgentContext.empty().withFeatures(List.of("runtimeTools", "acme"));
+
+    assertThat(featured.enabledDefinitions(PLAIN, NEW_INSTANCE)).isEmpty();
+    assertThat(names(featured.enabledDefinitions(PLAIN, withFeature)))
+        .containsExactly("acme_featured");
+  }
+
+  @Test
+  void keepsTheRegistrationOrderOfTheEnabledTools() {
+    final var ordered =
+        toolsOf(
+            tool("acme_c", context -> true),
+            tool("acme_hidden", context -> false),
+            tool("acme_a", context -> true),
+            tool("acme_b", context -> true));
+
+    assertThat(names(ordered.enabledDefinitions(PLAIN, NEW_INSTANCE)))
+        .containsExactly("acme_c", "acme_a", "acme_b");
+  }
+
+  @Test
+  void rejectsABlankToolName() {
+    final var blank = StubRuntimeTool.of(" ", (context, call) -> null);
+
+    assertThatThrownBy(() -> toolsOf(blank))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("non-blank");
+  }
+
+  @Test
+  void rejectsAToolWhoseDefinitionDoesNotDeclareTheRuntimeKind() {
+    final var process =
+        StubRuntimeTool.of(
+            ToolDefinition.builder().name("acme_process").inputSchema(Map.of()).build(),
+            (context, call) -> null);
+
+    assertThatThrownBy(() -> toolsOf(process))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("acme_process")
+        .hasMessageContaining("RUNTIME");
+  }
+
+  @Test
+  void rejectsDuplicateToolNames() {
+    final var first = StubRuntimeTool.of("acme_lookup", (context, call) -> null);
+    final var second = StubRuntimeTool.of("acme_lookup", (context, call) -> null);
+
+    assertThatThrownBy(() -> toolsOf(first, second))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("acme_lookup");
+  }
+
+  @Test
+  void readsTheDefinitionOfAToolOnceAndOffersTheCachedDefinition() {
+    final var reads = new AtomicInteger();
+    final var definition = ToolDefinition.runtime("acme_counted", "d", Map.of("type", "object"));
+    final RuntimeTool counting =
+        new RuntimeTool() {
+          @Override
+          public ToolDefinition definition() {
+            reads.incrementAndGet();
+            return definition;
+          }
+
+          @Override
+          public RuntimeToolResult call(RuntimeToolContext context, RuntimeToolCall call) {
+            return RuntimeToolResult.success("ok");
+          }
+        };
+    final var counted = toolsOf(counting);
+
+    final var first = counted.enabledDefinitions(PLAIN, NEW_INSTANCE);
+    final var second = counted.enabledDefinitions(PLAIN, NEW_INSTANCE);
+
+    assertThat(first).containsExactly(definition);
+    assertThat(second).containsExactly(definition);
+    assertThat(reads).hasValue(1);
   }
 
   @Test
   void runsARuntimeToolAndReturnsItsResult() {
     final var call = note("n1", "buy milk");
 
-    final var executions = execute(executor, WITH_MEMORY, call);
+    final var executions = execute(tools, WITH_MEMORY, call);
 
     assertThat(executions)
         .singleElement()
@@ -125,7 +247,7 @@ class RuntimeToolExecutorImplTest {
   void keepsTheTimesTheCallStartedAndCompleted() {
     final var before = OffsetDateTime.now();
 
-    final var executions = execute(executor, WITH_MEMORY, note("n1", "a"));
+    final var executions = execute(tools, WITH_MEMORY, note("n1", "a"));
 
     final var after = OffsetDateTime.now();
     assertThat(executions)
@@ -155,7 +277,7 @@ class RuntimeToolExecutorImplTest {
         StubRuntimeTool.of("acme_report", (context, call) -> RuntimeToolResult.success(content));
 
     final var executions =
-        execute(executorOf(tool), WITH_MEMORY, runtimeCall("r1", "acme_report", Map.of()));
+        execute(toolsOf(tool), WITH_MEMORY, runtimeCall("r1", "acme_report", Map.of()));
 
     assertThat(executions)
         .singleElement()
@@ -179,8 +301,7 @@ class RuntimeToolExecutorImplTest {
             runtimeCall("c2", "acme_order", Map.of()),
             runtimeCall("c3", "acme_order", Map.of()));
 
-    final var executions =
-        executorOf(tool).execute(new RuntimeToolContextImpl(WITH_MEMORY, NEW_INSTANCE), calls);
+    final var executions = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, calls);
 
     assertThat(order).containsExactly("c1", "c2", "c3");
     assertThat(executions)
@@ -191,13 +312,13 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void givesACallOfAToolThatIsNotEnabledWhenItRunsAnErrorResult() {
-    final var executions = execute(executor, WITHOUT_MEMORY, note("n1", "a"));
+    final var executions = execute(tools, PLAIN, note("n1", "a"));
 
     assertThat(executions)
         .singleElement()
         .satisfies(execution -> {
           assertThat(execution.result().id()).isEqualTo("n1");
-          assertThat(text(execution)).isEqualTo("The tool 'acme_note' is not enabled.");
+          assertThat(text(execution)).isEqualTo("The tool 'acme_note' does not exist.");
           assertThat(execution.startedAt()).isNotNull();
           assertThat(execution.completedAt()).isNotNull();
         });
@@ -205,25 +326,21 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void givesACallOfAnUnknownToolAnErrorResult() {
-    final var executions =
-        execute(executor, WITH_MEMORY, runtimeCall("u1", "acme_unknown", Map.of()));
+    final var executions = execute(tools, WITH_MEMORY, runtimeCall("u1", "acme_unknown", Map.of()));
 
     assertThat(executions)
         .singleElement()
         .satisfies(execution ->
-            assertThat(text(execution)).isEqualTo("The tool 'acme_unknown' is not enabled."));
+            assertThat(text(execution)).isEqualTo("The tool 'acme_unknown' does not exist."));
   }
 
   @Test
   void givesACallOfAnAgentWithoutTheRuntimeToolsFeatureAnErrorResult() {
-    final var executions =
-        executor.execute(
-            new RuntimeToolContextImpl(WITH_MEMORY, AgentContext.empty()),
-            List.of(note("n1", "a")));
+    final var executions = tools.execute(WITH_MEMORY, WITHOUT_FEATURES, List.of(note("n1", "a")));
 
     assertThat(executions)
         .singleElement()
-        .satisfies(execution -> assertThat(text(execution)).contains("not enabled"));
+        .satisfies(execution -> assertThat(text(execution)).contains("does not exist"));
   }
 
   @Test
@@ -234,16 +351,12 @@ class RuntimeToolExecutorImplTest {
     final var call = runtimeCall("f1", "acme_featured", Map.of());
     final var withFeature = AgentContext.empty().withFeatures(List.of("runtimeTools", "acme"));
 
-    final var without =
-        executorOf(tool)
-            .execute(new RuntimeToolContextImpl(WITH_MEMORY, NEW_INSTANCE), List.of(call));
-    final var with =
-        executorOf(tool)
-            .execute(new RuntimeToolContextImpl(WITH_MEMORY, withFeature), List.of(call));
+    final var without = toolsOf(tool).execute(WITH_MEMORY, NEW_INSTANCE, List.of(call));
+    final var with = toolsOf(tool).execute(WITH_MEMORY, withFeature, List.of(call));
 
     assertThat(without)
         .singleElement()
-        .satisfies(execution -> assertThat(text(execution)).contains("not enabled"));
+        .satisfies(execution -> assertThat(text(execution)).contains("does not exist"));
     assertThat(with)
         .singleElement()
         .satisfies(execution -> assertThat(text(execution)).isEqualTo("ok"));
@@ -251,7 +364,7 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void keepsTheMessageOfAnErrorResultOfATool() {
-    final var executions = execute(executor, WITH_MEMORY, note("n1", " "));
+    final var executions = execute(tools, WITH_MEMORY, note("n1", " "));
 
     assertThat(executions)
         .singleElement()
@@ -261,7 +374,7 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void turnsARuntimeToolExceptionIntoAnErrorResultWithItsMessage() {
-    final var executions = execute(executor, WITH_MEMORY, note("n1", "reject"));
+    final var executions = execute(tools, WITH_MEMORY, note("n1", "reject"));
 
     assertThat(executions)
         .singleElement()
@@ -281,9 +394,7 @@ class RuntimeToolExecutorImplTest {
 
     final var executions =
         execute(
-            executorOf(tool),
-            WITH_MEMORY,
-            runtimeCall("l1", "acme_limited", Map.of("limit", "many")));
+            toolsOf(tool), WITH_MEMORY, runtimeCall("l1", "acme_limited", Map.of("limit", "many")));
 
     assertThat(executions)
         .singleElement()
@@ -295,7 +406,7 @@ class RuntimeToolExecutorImplTest {
   void anUnexpectedExceptionOfAToolPropagates() {
     final var call = note("n1", "explode");
 
-    assertThatThrownBy(() -> execute(executor, WITH_MEMORY, call))
+    assertThatThrownBy(() -> execute(tools, WITH_MEMORY, call))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("unexpected failure");
   }
@@ -305,7 +416,7 @@ class RuntimeToolExecutorImplTest {
     final var tool = StubRuntimeTool.of("acme_null", (context, call) -> null);
     final var call = runtimeCall("c1", "acme_null", Map.of());
 
-    assertThatThrownBy(() -> execute(executorOf(tool), WITH_MEMORY, call))
+    assertThatThrownBy(() -> execute(toolsOf(tool), WITH_MEMORY, call))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("acme_null");
   }
@@ -324,10 +435,8 @@ class RuntimeToolExecutorImplTest {
             });
     final var agentContext = NEW_INSTANCE.withProperty("hello", "world");
 
-    executorOf(reading)
-        .execute(
-            new RuntimeToolContextImpl(WITH_MEMORY, agentContext),
-            List.of(runtimeCall("r1", "acme_reading", Map.of())));
+    toolsOf(reading)
+        .execute(WITH_MEMORY, agentContext, List.of(runtimeCall("r1", "acme_reading", Map.of())));
 
     assertThat(seen)
         .containsExactly(WITH_MEMORY, AgentFeatures.ofNewInstance(), Map.of("hello", "world"));
@@ -335,7 +444,6 @@ class RuntimeToolExecutorImplTest {
 
   @Test
   void anEmptyBatchHasNoExecutions() {
-    assertThat(executor.execute(new RuntimeToolContextImpl(WITH_MEMORY, NEW_INSTANCE), List.of()))
-        .isEmpty();
+    assertThat(tools.execute(WITH_MEMORY, NEW_INSTANCE, List.of())).isEmpty();
   }
 }

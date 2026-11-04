@@ -82,8 +82,9 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolExecution;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolsImpl;
 import io.camunda.connector.agenticai.aiagent.tool.runtime.StubRuntimeTool;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.error.ConnectorException;
@@ -146,12 +147,9 @@ class AgentSubProcessRequestHandlerTest {
           .enabledWhen(context -> TOGGLE_ENABLED.get());
 
   @Spy
-  private RuntimeToolRegistry runtimeToolRegistry =
-      new RuntimeToolRegistryImpl(List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL));
-
-  @Spy
-  private RuntimeToolExecutor runtimeToolExecutor =
-      new RuntimeToolExecutorImpl(runtimeToolRegistry, TestObjectMapperSupplier.INSTANCE);
+  private RuntimeTools runtimeTools =
+      new RuntimeToolsImpl(
+          List.of(LOOKUP_TOOL, HIDDEN_TOOL, TOGGLE_TOOL), TestObjectMapperSupplier.INSTANCE);
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private AgentSubProcessExecutionContext agentExecutionContext;
@@ -936,7 +934,8 @@ class AgentSubProcessRequestHandlerTest {
   }
 
   @Test
-  void givesACallOfARegisteredRuntimeToolThatIsNotEnabledAnErrorResult() {
+  void
+      givesACallOfARegisteredRuntimeToolThatIsNotEnabledAnErrorResultAndDoesNotHandItToTheProcess() {
     mockSystemPrompt();
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
@@ -970,7 +969,7 @@ class AgentSubProcessRequestHandlerTest {
                         assertThat(result.content())
                             .containsExactly(
                                 TextContent.textContent(
-                                    "The tool 'acme_hidden' is not enabled."))));
+                                    "The tool 'acme_hidden' does not exist."))));
   }
 
   @Test
@@ -1159,7 +1158,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // the first job hands out the call of the process only and runs no tool, the second one runs
     // the tool and returns the results of all calls in the order of the calls
-    verify(runtimeToolExecutor, times(1)).execute(any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1189,7 +1188,7 @@ class AgentSubProcessRequestHandlerTest {
                         tuple(
                             "call-1",
                             List.of(
-                                TextContent.textContent("The tool 'acme_toggle' is not enabled."))),
+                                TextContent.textContent("The tool 'acme_toggle' does not exist."))),
                         tuple("call-2", List.of(TextContent.textContent("Sunny")))));
   }
 
@@ -1229,7 +1228,7 @@ class AgentSubProcessRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    verify(runtimeToolExecutor, times(1)).execute(any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getValue().snapshot().messages())
         .filteredOn(ToolCallResultMessage.class::isInstance)
         .singleElement()
@@ -1272,7 +1271,7 @@ class AgentSubProcessRequestHandlerTest {
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
     verify(chatModel, times(3)).execute(any());
-    verify(runtimeToolExecutor, times(1)).execute(any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
     assertThat(chatModelRequestCaptor.getAllValues().get(2).snapshot().messages().getLast())
         .isInstanceOf(ToolCallResultMessage.class);
     assertThat(response.responseValue().responseMessage()).isEqualTo(doneMessage);
@@ -1331,12 +1330,12 @@ class AgentSubProcessRequestHandlerTest {
 
     verify(chatModel, times(2)).execute(any());
     // the tool of the first round ran; the limit stopped the second round before its tool ran
-    verify(runtimeToolExecutor, times(1)).execute(any(), anyList());
+    verify(runtimeTools, times(1)).execute(any(), any(), anyList());
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"acme_lookup", "acme_hidden", "acme_toggle"})
-  void failsWhenAToolOfTheProcessHasTheNameOfARegisteredRuntimeToolEnabledOrNot(String name) {
+  @ValueSource(strings = {"acme_lookup", "acme_toggle"})
+  void failsWhenAToolOfTheProcessHasTheNameOfAnEnabledRuntimeTool(String name) {
     // the tool definitions of the agent context hold the ad-hoc tools and the tools a gateway
     // resolved; the check covers both
     final var conflicting =
@@ -1364,6 +1363,93 @@ class AgentSubProcessRequestHandlerTest {
             });
 
     verifyNoInteractions(chatModelRegistry, chatModel, agentInputComposer);
+  }
+
+  @Test
+  void acceptsAToolOfTheProcessWithTheNameOfARuntimeToolThatIsNotEnabled() {
+    final var hiddenToolOfTheProcess =
+        ToolDefinition.builder()
+            .name("acme_hidden")
+            .description("A tool of the process")
+            .inputSchema(Map.of())
+            .build();
+    final var context = INITIAL_AGENT_CONTEXT.withToolDefinitions(List.of(hiddenToolOfTheProcess));
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(context, List.of()));
+    final var hiddenCall = new ToolCall("call-1", "acme_hidden", Map.of());
+    mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(hiddenCall)).build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(1)).execute(any());
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(hiddenCall));
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
+  }
+
+  @Test
+  void tagsTheToolCallsWithTheKindOfTheToolOfTheRoundAndTreatsAnUnknownNameAsRuntime() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var lookupCall = new ToolCall("call-1", "acme_lookup", Map.of());
+    final var processCall = new ToolCall("call-2", "getWeather", Map.of("location", "MUC"));
+    final var unknownCall = new ToolCall("call-3", "acme_unknown", Map.of());
+    mockChatModelExecution(
+        AssistantMessage.builder()
+            .toolCalls(List.of(lookupCall, processCall, unknownCall))
+            .build());
+    mockResponseHandler();
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    verify(agentInstanceClient)
+        .applyTurnCompletion(eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any());
+    assertThat(turnCaptor.getValue().toolCalls())
+        .containsExactly(
+            lookupCall.withKind(ToolKind.RUNTIME),
+            processCall.withKind(ToolKind.PROCESS),
+            unknownCall.withKind(ToolKind.RUNTIME));
+    // only the call of the process goes to the process
+    assertThat(response.responseValue().toolCalls())
+        .containsExactly(ToolCallProcessVariable.from(processCall));
+  }
+
+  @Test
+  void givesACallOfAnUnknownToolAnErrorResultAndDoesNotHandItToTheProcess() {
+    mockSystemPrompt();
+    mockProceed(USER_MESSAGE);
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new ReadyToConverse(INITIAL_AGENT_CONTEXT, List.of()));
+    final var unknownCall = new ToolCall("call-1", "acme_unknown", Map.of());
+    final var metrics = new AgentMetrics(1, new TokenUsage(10, 20), 1);
+    doReturn(chatModel).when(chatModelRegistry).resolve(any());
+    doReturn(
+            new ChatResult.Completed(
+                AssistantMessage.builder().toolCalls(List.of(unknownCall)).build(), metrics))
+        .doReturn(new ChatResult.Completed(assistantMessage("done"), metrics))
+        .when(chatModel)
+        .execute(chatModelRequestCaptor.capture());
+    mockResponseHandler();
+
+    requestHandler.handleRequest(agentExecutionContext);
+
+    verify(chatModel, times(2)).execute(any());
+    assertThat(chatModelRequestCaptor.getAllValues().get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .singleElement()
+                    .satisfies(result ->
+                        assertThat(result.content())
+                            .containsExactly(
+                                TextContent.textContent(
+                                    "The tool 'acme_unknown' does not exist."))));
   }
 
   @Test
@@ -1453,9 +1539,11 @@ class AgentSubProcessRequestHandlerTest {
     mockProceed(USER_MESSAGE);
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(legacyContext, List.of()));
-    // a call named like a runtime tool belongs to the process of such an instance
+    // every call belongs to the process of such an instance, whatever its name
     final var lookupCall = new ToolCall("call-1", "acme_lookup", Map.of());
-    mockChatModelExecution(AssistantMessage.builder().toolCalls(List.of(lookupCall)).build());
+    final var unknownCall = new ToolCall("call-2", "acme_unknown", Map.of());
+    mockChatModelExecution(
+        AssistantMessage.builder().toolCalls(List.of(lookupCall, unknownCall)).build());
     mockResponseHandler();
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
@@ -1465,7 +1553,8 @@ class AgentSubProcessRequestHandlerTest {
         .extracting(ToolDefinition::name)
         .doesNotContain("acme_lookup");
     assertThat(response.responseValue().toolCalls())
-        .containsExactly(ToolCallProcessVariable.from(lookupCall));
+        .containsExactly(
+            ToolCallProcessVariable.from(lookupCall), ToolCallProcessVariable.from(unknownCall));
     assertThat(response.responseValue().context().features()).isEmpty();
   }
 
@@ -1523,7 +1612,7 @@ class AgentSubProcessRequestHandlerTest {
     assertThat(firstJob.responseValue().toolCalls())
         .extracting(call -> call.metadata().id())
         .containsExactly("call-2");
-    verify(runtimeToolExecutor, never()).execute(any(), anyList());
+    verify(runtimeTools, never()).execute(any(), any(), anyList());
 
     betweenJobs.run();
 

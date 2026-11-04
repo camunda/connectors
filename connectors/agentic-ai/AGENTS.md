@@ -223,10 +223,11 @@ High-frequency traps (detail behind each link):
   `AgentContext.supports(...)`. [ADR 016](docs/adr/016-runtime-tools.md).
 - **Runtime tool calls are tagged once and run in the job that composes the next turn**: the agent tags every tool call of
   an assistant message with its `ToolKind` (`PROCESS` or `RUNTIME`) before the message enters the conversation, and never
-  computes it again. When the model issues runtime and process calls together, only the process calls are activated, and
+  computes it again. A call takes the kind of the tool of its name among the tools offered in the job; a name that is not
+  offered is a runtime call. When the model issues runtime and process calls together, only the process calls are activated, and
   the runtime calls run when the next turn is composed, merged with the process results in call order. `ToolCall.kind` is
-  persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A call of a
-  runtime tool that is not enabled when it runs gets an error result. `ai-agent.md` §9,
+  persisted (written only for `RUNTIME`, missing reads as `PROCESS`), so every conversation store must keep it. A runtime
+  call whose tool does not exist or is not enabled when it runs gets an error result. `ai-agent.md` §9,
   [ADR 016](docs/adr/016-runtime-tools.md).
 - **`Message.id()` is randomly generated per construction, not deterministic**: two freshly built
   messages with identical content have *different* ids. Stability only holds once a message has

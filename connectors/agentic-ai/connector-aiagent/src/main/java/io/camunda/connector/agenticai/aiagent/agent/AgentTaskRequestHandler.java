@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.error.ConnectorException;
 import org.jspecify.annotations.Nullable;
 
@@ -27,8 +27,7 @@ public class AgentTaskRequestHandler
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeTools runtimeTools) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -37,8 +36,7 @@ public class AgentTaskRequestHandler
         systemPromptComposer,
         responseHandler,
         agentInstanceClient,
-        runtimeToolRegistry,
-        runtimeToolExecutor);
+        runtimeTools);
   }
 
   @Override

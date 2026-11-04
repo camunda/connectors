@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSessi
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationSnapshot;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.api.conversation.ConversationStoreRequest;
-import io.camunda.connector.agenticai.aiagent.api.tool.RuntimeToolContext;
 import io.camunda.connector.agenticai.aiagent.chatmodel.ChatModelRegistry;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversation;
 import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
@@ -46,8 +45,7 @@ import io.camunda.connector.agenticai.aiagent.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.ToolCallProcessVariable;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolContextImpl;
-import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeToolRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.ConnectorResponse;
 import io.camunda.connector.api.outbound.JobCompletionFailure;
@@ -56,6 +54,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -75,8 +74,7 @@ public abstract class BaseAgentRequestHandler<
   private final SystemPromptComposer systemPromptComposer;
   private final AgentResponseHandler responseHandler;
   private final AgentInstanceClient agentInstanceClient;
-  private final RuntimeToolRegistry runtimeToolRegistry;
-  private final RuntimeToolExecutor runtimeToolExecutor;
+  private final RuntimeTools runtimeTools;
 
   public BaseAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -86,8 +84,7 @@ public abstract class BaseAgentRequestHandler<
       SystemPromptComposer systemPromptComposer,
       AgentResponseHandler responseHandler,
       AgentInstanceClient agentInstanceClient,
-      RuntimeToolRegistry runtimeToolRegistry,
-      RuntimeToolExecutor runtimeToolExecutor) {
+      RuntimeTools runtimeTools) {
     this.agentInitializer = agentInitializer;
     this.conversationStoreRegistry = conversationStoreRegistry;
     this.agentInputComposer = agentInputComposer;
@@ -95,8 +92,7 @@ public abstract class BaseAgentRequestHandler<
     this.systemPromptComposer = systemPromptComposer;
     this.responseHandler = responseHandler;
     this.agentInstanceClient = agentInstanceClient;
-    this.runtimeToolRegistry = runtimeToolRegistry;
-    this.runtimeToolExecutor = runtimeToolExecutor;
+    this.runtimeTools = runtimeTools;
   }
 
   @Override
@@ -128,12 +124,13 @@ public abstract class BaseAgentRequestHandler<
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
     try (var session = store.createSession(executionContext, agentContext)) {
-      final var runtimeToolContext = new RuntimeToolContextImpl(executionContext, agentContext);
       // AgentConfiguration#toolDefinitions() becomes the authoritative current tool list for the
       // rest of this invocation once populated here: the durable tool definitions of the
       // AgentContext plus the runtime tools enabled for this agent, which are never persisted.
       final var configuration =
-          executionContext.configuration().withToolDefinitions(toolDefinitions(runtimeToolContext));
+          executionContext
+              .configuration()
+              .withToolDefinitions(toolDefinitions(executionContext, agentContext));
       final var agentInput = AgentInput.from(configuration.userPrompt(), toolCallResults);
 
       LOGGER.trace("Loading previous conversation (if any) for rehydration");
@@ -147,7 +144,8 @@ public abstract class BaseAgentRequestHandler<
       if (compositionResult
           instanceof CompositionResult.RuntimeToolResultsRequired(var runtimeToolCalls)) {
         // the results of the process arrived: the agent executes its own calls now
-        final var executions = runtimeToolExecutor.execute(runtimeToolContext, runtimeToolCalls);
+        final var executions =
+            runtimeTools.execute(executionContext, agentContext, runtimeToolCalls);
         compositionResult =
             agentInputComposer.composeWithRuntimeToolResults(
                 configuration, agentContext, previousConversation, agentInput, executions);
@@ -180,14 +178,18 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * @throws ConnectorException if a tool of the process has the name of a registered runtime tool
+   * @throws ConnectorException if a tool of the process has the name of an enabled runtime tool
    */
-  private List<ToolDefinition> toolDefinitions(RuntimeToolContext context) {
-    final var agentContext = context.agentContext();
+  private List<ToolDefinition> toolDefinitions(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
     final var processToolDefinitions = agentContext.toolDefinitions();
+    final var runtimeToolDefinitions =
+        runtimeTools.enabledDefinitions(executionContext, agentContext);
+    final var runtimeToolNames =
+        runtimeToolDefinitions.stream().map(ToolDefinition::name).collect(Collectors.toSet());
     processToolDefinitions.stream()
         .map(ToolDefinition::name)
-        .filter(name -> kindOf(agentContext, name) == ToolKind.RUNTIME)
+        .filter(runtimeToolNames::contains)
         .findFirst()
         .ifPresent(name -> {
           throw new ConnectorException(
@@ -195,27 +197,28 @@ public abstract class BaseAgentRequestHandler<
               "Tool name conflict: the tool '%s' of the process has the name of a runtime tool of the AI Agent. Rename the tool in the process."
                   .formatted(name));
         });
-    return Stream.concat(
-            processToolDefinitions.stream(),
-            runtimeToolRegistry.enabledToolDefinitions(context).stream())
-        .toList();
+    return Stream.concat(processToolDefinitions.stream(), runtimeToolDefinitions.stream()).toList();
   }
 
-  /** A registered runtime tool counts whether it is enabled or not. */
-  private ToolKind kindOf(AgentContext agentContext, String toolName) {
-    return agentContext.supports(AgentFeatures.RUNTIME_TOOLS)
-            && runtimeToolRegistry.toolNames().contains(toolName)
-        ? ToolKind.RUNTIME
-        : ToolKind.PROCESS;
-  }
-
-  private AssistantMessage withToolKinds(AgentContext agentContext, AssistantMessage message) {
-    return message.hasToolCalls()
-        ? message.withToolCalls(
-            message.toolCalls().stream()
-                .map(call -> call.withKind(kindOf(agentContext, call.name())))
-                .toList())
-        : message;
+  /**
+   * Tags the calls of an agent with the runtime tools feature with the kind of the offered tool of
+   * their name. A call of a name that is not offered is a runtime call: the agent answers it with
+   * an error result, and it never reaches the process.
+   */
+  private AssistantMessage withToolKinds(
+      AgentContext agentContext, List<ToolDefinition> offeredTools, AssistantMessage message) {
+    if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS) || !message.hasToolCalls()) {
+      return message;
+    }
+    final var kindsByName =
+        offeredTools.stream()
+            .collect(
+                Collectors.toMap(
+                    ToolDefinition::name, ToolDefinition::kind, (first, second) -> first));
+    return message.withToolCalls(
+        message.toolCalls().stream()
+            .map(call -> call.withKind(kindsByName.getOrDefault(call.name(), ToolKind.RUNTIME)))
+            .toList());
   }
 
   /**
@@ -377,7 +380,10 @@ public abstract class BaseAgentRequestHandler<
 
     // the one place the tool calls are tagged with the kind of their tool
     final var assistantMessage =
-        withToolKinds(conversation.persistedContext(), chatResult.assistantMessage());
+        withToolKinds(
+            conversation.persistedContext(),
+            agentConfiguration.toolDefinitions(),
+            chatResult.assistantMessage());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }
@@ -417,9 +423,8 @@ public abstract class BaseAgentRequestHandler<
 
     throwIfLimitsReached(conversation, agentConfiguration);
     final var executions =
-        runtimeToolExecutor.execute(
-            new RuntimeToolContextImpl(executionContext, conversation.persistedContext()),
-            currentTurn.runtimeToolCalls());
+        runtimeTools.execute(
+            executionContext, conversation.persistedContext(), currentTurn.runtimeToolCalls());
     final var nextConversation =
         conversation.nextRuntimeToolRound(
             ToolCallResultsInputBuilder.build(

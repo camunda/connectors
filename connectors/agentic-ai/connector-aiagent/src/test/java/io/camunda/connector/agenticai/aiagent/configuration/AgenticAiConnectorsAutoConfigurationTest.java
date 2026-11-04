@@ -90,6 +90,7 @@ import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfigur
 import io.camunda.connector.agenticai.aiagent.request.v2.GeminiChatModelConfiguration.GeminiModel;
 import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiChatModelConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.aiagent.tool.runtime.RuntimeTools;
 import io.camunda.connector.agenticai.common.http.AgenticAiHttpProxySupport;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.tools.schema.AdHocToolsSchemaResolver;
@@ -124,6 +125,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AdHocToolsSchemaResolver.class,
           ProcessDefinitionAdHocToolElementsResolver.class,
           GatewayToolHandlerRegistry.class,
+          RuntimeTools.class,
           AgentToolsResolver.class,
           AgentInitializer.class,
           InProcessConversationStore.class,
