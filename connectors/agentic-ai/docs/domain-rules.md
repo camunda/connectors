@@ -1,3 +1,7 @@
+---
+applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agentic-ai/**"
+---
+
 # Agentic AI domain rules
 
 Each rule gives a principle, the location in this module where it applies, and the review finding that caused it. Follow the rules when you change code. In a review, flag each change that breaks a rule. Give the name of the rule.
