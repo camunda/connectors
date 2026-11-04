@@ -23,6 +23,8 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -268,6 +270,40 @@ class ColdStartPlatformThreadJobHandlerTest {
   }
 
   @Test
+  void callerContextClassLoaderIsUsedInDelegate_andPoolThreadLoaderIsRestoredAfterwards()
+      throws Exception {
+    // like the production pool: threads that do not inherit thread locals start with the system
+    // class loader as context class loader, which cannot see the nested application jars
+    var isolatedPool =
+        Executors.newSingleThreadExecutor(
+            Thread.ofPlatform().daemon(true).inheritInheritableThreadLocals(false).factory());
+    try (var applicationLoader =
+        new URLClassLoader(
+            new URL[0], ColdStartPlatformThreadJobHandlerTest.class.getClassLoader())) {
+      var seenInDelegate = new AtomicReference<ClassLoader>();
+      var handler =
+          new ColdStartPlatformThreadJobHandler(
+              (c, j) -> seenInDelegate.set(Thread.currentThread().getContextClassLoader()),
+              isolatedPool);
+
+      await(
+          onVirtualThread(() -> {
+            Thread.currentThread().setContextClassLoader(applicationLoader);
+            handler.handle(client, job);
+          }));
+
+      assertThat(seenInDelegate.get()).isSameAs(applicationLoader);
+      var loaderOnPoolThread = new CompletableFuture<ClassLoader>();
+      isolatedPool.execute(
+          () -> loaderOnPoolThread.complete(Thread.currentThread().getContextClassLoader()));
+      assertThat(loaderOnPoolThread.get(TIMEOUT_SECONDS, TimeUnit.SECONDS))
+          .isSameAs(ClassLoader.getSystemClassLoader());
+    } finally {
+      isolatedPool.shutdownNow();
+    }
+  }
+
+  @Test
   void interruptOfWaitingCaller_isForwardedAndCallerWaitsForDelegateOutcome() throws Exception {
     var delegateInterrupted = new CountDownLatch(1);
     var started = new CountDownLatch(1);
@@ -344,16 +380,19 @@ class ColdStartPlatformThreadJobHandlerTest {
           onVirtualThread(() -> {
             callerThread.set(Thread.currentThread());
             callerStarted.countDown();
+            // interrupted before handle(): the first wait fails at once and records the interrupt
+            // for the queued task, the caller then parks waiting for the outcome
+            Thread.currentThread().interrupt();
             handler.handle(client, job);
           });
       await(callerStarted);
-      // wait until the caller is parked waiting for the queued job, then interrupt it
+      // once the caller parks, the interrupt request is recorded, so releasing the blocker is safe
       var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
       while (callerThread.get().getState() != Thread.State.WAITING
           && System.nanoTime() < deadline) {
         Thread.onSpinWait();
       }
-      callerThread.get().interrupt();
+      assertThat(callerThread.get().getState()).isEqualTo(Thread.State.WAITING);
       releaseBlocker.countDown();
       await(caller);
 

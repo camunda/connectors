@@ -85,7 +85,9 @@ public class ColdStartPlatformThreadJobHandler implements JobHandler {
   }
 
   private void handleOnPlatformThread(JobClient client, ActivatedJob job) throws Exception {
-    var task = new PlatformTask(client, job, MDC.getCopyOfContextMap());
+    var task =
+        new PlatformTask(
+            client, job, MDC.getCopyOfContextMap(), Thread.currentThread().getContextClassLoader());
     try {
       platformExecutor.execute(task);
     } catch (RejectedExecutionException e) {
@@ -96,20 +98,29 @@ public class ColdStartPlatformThreadJobHandler implements JobHandler {
     task.awaitOutcome();
   }
 
-  /** Runs the delegate on a platform thread and lets the waiting thread forward interrupts. */
+  /**
+   * Runs the delegate on a platform thread with the caller's MDC and context class loader, and lets
+   * the waiting thread forward interrupts.
+   */
   private final class PlatformTask implements Runnable {
 
     private final JobClient client;
     private final ActivatedJob job;
     private final Map<String, String> mdc;
+    private final ClassLoader contextClassLoader;
     private final CompletableFuture<Void> outcome = new CompletableFuture<>();
     private Thread runner;
     private boolean interruptRequested;
 
-    private PlatformTask(JobClient client, ActivatedJob job, Map<String, String> mdc) {
+    private PlatformTask(
+        JobClient client,
+        ActivatedJob job,
+        Map<String, String> mdc,
+        ClassLoader contextClassLoader) {
       this.client = client;
       this.job = job;
       this.mdc = mdc;
+      this.contextClassLoader = contextClassLoader;
     }
 
     @Override
@@ -120,6 +131,9 @@ public class ColdStartPlatformThreadJobHandler implements JobHandler {
           runner.interrupt();
         }
       }
+      var thread = Thread.currentThread();
+      var previousContextClassLoader = thread.getContextClassLoader();
+      thread.setContextClassLoader(contextClassLoader);
       setMdc(mdc);
       try {
         delegate.handle(client, job);
@@ -128,6 +142,7 @@ public class ColdStartPlatformThreadJobHandler implements JobHandler {
         outcome.completeExceptionally(t);
       } finally {
         MDC.clear();
+        thread.setContextClassLoader(previousContextClassLoader);
         synchronized (this) {
           runner = null;
           // the pool thread is reused, so an interrupt meant for this job must not leak
