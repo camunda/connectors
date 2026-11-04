@@ -16,9 +16,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
+import io.a2a.json.JsonProcessingException;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
@@ -45,6 +45,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -77,7 +79,7 @@ class A2aClientWebhookExecutableTest {
   @BeforeEach
   void beforeEach() {
     A2aSdkObjectConverter a2aSdkObjectConverter = mock(A2aSdkObjectConverter.class);
-    webhookExecutable = new A2aClientWebhookExecutable(a2aSdkObjectConverter, new ObjectMapper());
+    webhookExecutable = new A2aClientWebhookExecutable(a2aSdkObjectConverter);
 
     lenient()
         .when(a2aSdkObjectConverter.convert(any(Task.class)))
@@ -143,6 +145,42 @@ class A2aClientWebhookExecutableTest {
 
     assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
         .isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "",
+        "   ",
+        "null",
+        "{}",
+        "[]",
+        "{\"kind\": \"task\"}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\"}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"contextId\": \"ctx-123\", \"status\": {}}",
+        "{\"kind\": \"task\", \"id\": \"task-123\", \"status\": {\"state\": \"completed\"}}",
+        "{\"kind\": \"message\", \"messageId\": \"m-1\", \"role\": \"agent\", \"parts\": []}"
+      })
+  void triggerWebhook_PayloadIsNotAValidTask_ThrowsWrappedParsingException(String body) {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "a2aWebhookContext",
+                        "clientResponse", "=task",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
+    when(payload.rawBody()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+
+    webhookExecutable.activate(ctx);
+
+    assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
+        .isInstanceOf(RuntimeException.class)
+        .hasCauseInstanceOf(JsonProcessingException.class);
   }
 
   @Test
