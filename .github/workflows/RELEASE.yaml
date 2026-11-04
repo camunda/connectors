@@ -89,7 +89,8 @@ jobs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
-      mavenCacheKey: ${{ steps.maven-cache-key.outputs.value }}
+      mavenCacheKey: ${{ steps.maven-cache-key.outputs.key }}
+      mavenCacheRestorePrefix: ${{ steps.maven-cache-key.outputs.restore-prefix }}
     steps:
       - uses: camunda/infra-global-github-actions/start-build-monitor@ead99f6c9c536f5c47e443929d47e8fcfdb05a81 # start-build-monitor-1.0.1
         continue-on-error: true
@@ -125,18 +126,16 @@ jobs:
 
       - name: Determine Maven cache key
         id: maven-cache-key
-        env:
-          CACHE_KEY: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-internal
-        run: echo "value=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/maven-cache-key
 
       # Restore-only: WARM_MAVEN_CACHE.yml saves this from main. Keep the key in sync.
       - name: Restore cache
         uses: actions/cache/restore@v4
         with:
           path: ~/.m2/repository
-          key: ${{ steps.maven-cache-key.outputs.value }}
+          key: ${{ steps.maven-cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ steps.maven-cache-key.outputs.restore-prefix }}
 
       - name: Import Secrets
         id: secrets
@@ -425,7 +424,7 @@ jobs:
           path: ~/.m2/repository
           key: ${{ needs.setup.outputs.mavenCacheKey }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ${{ needs.setup.outputs.mavenCacheRestorePrefix }}
 
       - name: Log Maven deployment target
         run: |
