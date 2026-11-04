@@ -58,6 +58,7 @@ public class RuntimeTools {
    */
   private static final ObjectMapper PLAIN_READER = JsonMapper.builder().build();
 
+  private final ObjectMapper objectMapper;
   private final ObjectMapper argumentsMapper;
   private final ObjectMapper resultMapper;
   private final DocumentParameterResolver documentParameterResolver;
@@ -71,6 +72,7 @@ public class RuntimeTools {
       ObjectMapper objectMapper,
       DocumentParameterResolver documentParameterResolver) {
     this.registrationsByName = register(tools);
+    this.objectMapper = objectMapper;
     this.argumentsMapper = RuntimeToolCallImpl.argumentsMapper(objectMapper);
     this.resultMapper =
         objectMapper.copy().registerModule(new SimpleModule().addSerializer(new DocumentAsItIs()));
@@ -83,7 +85,7 @@ public class RuntimeTools {
     if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS)) {
       return List.of();
     }
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
     return registrationsByName.values().stream()
         .filter(registration -> registration.tool().isEnabled(context))
         .map(Registration::definition)
@@ -106,7 +108,7 @@ public class RuntimeTools {
    */
   public List<RuntimeToolExecution> execute(
       AgentExecutionContext executionContext, AgentContext agentContext, List<ToolCall> calls) {
-    final var context = new RuntimeToolContextImpl(executionContext, agentContext);
+    final var context = RuntimeToolContextImpl.of(executionContext, agentContext, objectMapper);
     return calls.stream().map(call -> execute(context, call)).toList();
   }
 
