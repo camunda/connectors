@@ -15,8 +15,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.testutil.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -70,7 +70,7 @@ class WorkspaceDocumentTest {
             new IngestedDocument(document, DocumentOrigin.toolCall("search", "call-1")));
 
     assertThat(entry.id()).isEqualTo(DocumentHandle.idFor(document));
-    assertThat(entry.source()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
+    assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("search", "call-1"));
     assertThat(DocumentHandle.fileNameFor(entry.reference())).isEqualTo("report.pdf");
     assertThat(DocumentHandle.contentTypeFor(entry.reference())).isEqualTo("application/pdf");
     assertThat(entry.reference())
@@ -109,22 +109,22 @@ class WorkspaceDocumentTest {
         .containsEntry("camunda.document.type", "external")
         .containsEntry("url", "https://example.com/a.pdf?token=secret")
         .containsEntry("name", "a.pdf");
-    assertThat(entry.source()).isEqualTo(DocumentOrigin.userMessage());
+    assertThat(entry.origin()).isEqualTo(DocumentOrigin.userMessage());
   }
 
   @Test
-  void sourceOfAnEntryWithoutAToolCallOrMessageIdHasOnlyTheType() throws JsonProcessingException {
+  void originOfAnEventHasOnlyTheType() throws JsonProcessingException {
     final var entry =
         DocumentIngestion.entryFor(
             new IngestedDocument(camundaDocument("hello"), DocumentOrigin.event()));
 
     assertThat(
-            objectMapper.readTree(objectMapper.writeValueAsString(entry)).get("source").toString())
+            objectMapper.readTree(objectMapper.writeValueAsString(entry)).get("origin").toString())
         .isEqualTo("{\"type\":\"EVENT\"}");
   }
 
   @Test
-  void serializesTheIdThenTheSourceThenTheUntouchedReference() throws JsonProcessingException {
+  void serializesTheIdThenTheOriginThenTheUntouchedReference() throws JsonProcessingException {
     final var document = camundaDocument("hello");
     final var entry =
         DocumentIngestion.entryFor(
@@ -132,9 +132,9 @@ class WorkspaceDocumentTest {
 
     final var json = objectMapper.readTree(objectMapper.writeValueAsString(entry));
 
-    assertThat(json.fieldNames()).toIterable().containsExactly("id", "source", "reference");
+    assertThat(json.fieldNames()).toIterable().containsExactly("id", "origin", "reference");
     assertThat(json.get("id").asText()).isEqualTo(DocumentHandle.idFor(document).value());
-    assertThat(json.get("source").toString())
+    assertThat(json.get("origin").toString())
         .isEqualTo("{\"type\":\"TOOL_CALL\",\"toolName\":\"search\",\"toolCallId\":\"call-1\"}");
     assertThat(objectMapper.convertValue(json.get("reference"), Map.class))
         .isEqualTo(entry.reference());
@@ -148,28 +148,28 @@ class WorkspaceDocumentTest {
   void unknownPropertiesAreIgnoredWhenReadingAnEntry() throws JsonProcessingException {
     final var json =
         """
-        {"id":"d1","future":true,"source":{"type":"TOOL_CALL","toolName":"t","toolCallId":"c","future":1},
+        {"id":"d1","future":true,"origin":{"type":"TOOL_CALL","toolName":"t","toolCallId":"c","future":1},
          "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}\
         """;
 
     final var entry = objectMapper.readValue(json, WorkspaceDocument.class);
 
     assertThat(entry.id()).isEqualTo(DocumentId.of("d1"));
-    assertThat(entry.source()).isEqualTo(DocumentOrigin.toolCall("t", "c"));
+    assertThat(entry.origin()).isEqualTo(DocumentOrigin.toolCall("t", "c"));
     assertThat(entry.reference()).containsEntry("name", "y.txt");
   }
 
   @Test
-  void aSourceThatWasPersistedWithAMessageIdIsStillRead() throws JsonProcessingException {
+  void anOriginWithUnknownPropertiesIsStillRead() throws JsonProcessingException {
     final var json =
         """
-        {"id":"d1","source":{"type":"USER_MESSAGE","messageId":"m-1"},
+        {"id":"d1","origin":{"type":"USER_MESSAGE","messageId":"m-1"},
          "reference":{"camunda.document.type":"external","url":"https://x/y","name":"y.txt"}}\
         """;
 
     final var entry = objectMapper.readValue(json, WorkspaceDocument.class);
 
-    assertThat(entry.source()).isEqualTo(DocumentOrigin.userMessage());
+    assertThat(entry.origin()).isEqualTo(DocumentOrigin.userMessage());
   }
 
   @Test
@@ -246,8 +246,7 @@ class WorkspaceDocumentTest {
             DocumentIngestion.entryFor(new IngestedDocument(camunda, DocumentOrigin.event())).id())
         .isEqualTo(DocumentHandle.idFor(camunda));
     assertThat(
-            DocumentIngestion.entryFor(new IngestedDocument(external, DocumentOrigin.event()))
-                .id())
+            DocumentIngestion.entryFor(new IngestedDocument(external, DocumentOrigin.event())).id())
         .isEqualTo(DocumentHandle.idFor(external));
   }
 

@@ -9,14 +9,14 @@ package io.camunda.connector.agenticai.aiagent.tool.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.api.tool.AgentDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.api.document.Document;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document of the workspace; the document is read from its reference when it is asked for. Safe to
- * read from several threads: reading the reference twice gives equal documents.
+ * A document of the workspace; the document is read from its reference when it is asked for. Safe
+ * to read from several threads: reading the reference twice gives equal documents.
  */
 final class AgentDocumentImpl implements AgentDocument {
 
@@ -35,8 +35,8 @@ final class AgentDocumentImpl implements AgentDocument {
   }
 
   @Override
-  public DocumentOrigin source() {
-    return entry.source();
+  public DocumentOrigin origin() {
+    return entry.origin();
   }
 
   @Override

@@ -107,7 +107,7 @@ public final class DocumentIngestion {
     final var document = ingested.document();
     rejectLargeInlineContent(document);
     return new WorkspaceDocument(
-        DocumentHandle.idFor(document), ingested.source(), serializeReference(document));
+        DocumentHandle.idFor(document), ingested.origin(), serializeReference(document));
   }
 
   private static void rejectLargeInlineContent(Document document) {

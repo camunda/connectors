@@ -51,7 +51,7 @@ public class ToolCallResultsInputBuilder {
 
   /**
    * A document that is a whole result is persisted as its tag, like the documents that are not a
-   * whole result. The documents of every result are registered with the tool call as their source.
+   * whole result. The documents of every result are registered with the tool call as their origin.
    */
   private static TurnInput buildWithDocumentTags(List<ToolCallBatch.Entry> entries) {
     final var results =
@@ -61,8 +61,8 @@ public class ToolCallResultsInputBuilder {
             .toList();
     final var documents = new ArrayList<IngestedDocument>();
     for (final var entry : entries) {
-      final var source = DocumentOrigin.toolCall(entry.result().name(), entry.result().id());
-      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, source)));
+      final var origin = DocumentOrigin.toolCall(entry.result().name(), entry.result().id());
+      entry.documents().forEach(document -> documents.add(new IngestedDocument(document, origin)));
     }
     return new TurnInput(
         List.of(
