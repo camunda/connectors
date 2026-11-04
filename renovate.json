@@ -189,6 +189,34 @@
         "org.apache.maven.plugins:maven-failsafe-plugin"
       ],
       "enabled": false
+    },
+    {
+      "description": "Disable minor/patch updates for the A2A Java SDK — 0.3.4 (published to Maven Central without the .Final suffix) changed A2AHttpClient's getAsyncSSE/postAsyncSSE to take Consumer<ServerSentEvent> instead of Consumer<String> and removed Task.TYPE_REFERENCE, so the agentic-ai CustomJdkA2AHttpClient and A2aClientWebhookExecutable no longer compile. Upgrading needs a code migration of our forked JDK HTTP client's SSE handling. Re-enable once that lands.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackageNames": [
+        "io.github.a2asdk:**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Disable minor/major updates for the Google Cloud libraries-bom in parent/pom.xml on stable/8.7 — 26.91.0's gax-httpjson calls NetHttpTransport.Builder.setSecurityProvider, which only exists in google-http-client 2.2.0+, but stable/8.6 and stable/8.7 deliberately stay on google-http-client 1.45.2 (see the google-http-client rule above). connector-google-gemini's vertexai tests fail with NoSuchMethodError. secret-providers/pom.xml has its own independently-versioned libraries-bom and is unaffected.",
+      "matchBaseBranches": [
+        "stable/8.7"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "matchPackageNames": [
+        "com.google.cloud:libraries-bom"
+      ],
+      "matchFileNames": [
+        "parent/pom.xml"
+      ],
+      "enabled": false
     }
   ],
   "baseBranchPatterns": [
