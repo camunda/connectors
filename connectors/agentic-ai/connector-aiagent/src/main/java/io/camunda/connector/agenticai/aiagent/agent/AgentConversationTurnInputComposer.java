@@ -15,7 +15,8 @@ import java.util.List;
 
 /**
  * Composes the next conversation turn input from raw history and the current invocation state. The
- * composer executes no tool: the results of runtime tool calls are given to it.
+ * composer produces no tool call result itself: the results of the local tool calls are given to
+ * it.
  */
 public interface AgentConversationTurnInputComposer {
 
@@ -25,10 +26,10 @@ public interface AgentConversationTurnInputComposer {
    * event), which completes the process side of the turn, or the result is {@link
    * CompositionResult.Deferred}.
    *
-   * <p>A previous turn without runtime tool calls is composed in this one step. When the previous
-   * turn also has runtime tool calls and the process side is complete, the result is {@link
-   * CompositionResult.RuntimeToolResultsRequired}: execute the calls and compose again with {@link
-   * #composeWithRuntimeToolResults}.
+   * <p>A previous turn without local tool calls is composed in this one step. When the previous
+   * turn also has local tool calls and the process side is complete, the result is {@link
+   * CompositionResult.LocalToolCallResultsRequired}: get the results of the calls and compose again
+   * with {@link #composeWithLocalToolCallResults}.
    */
   CompositionResult compose(
       AgentConfiguration configuration,
@@ -37,14 +38,15 @@ public interface AgentConversationTurnInputComposer {
       AgentInput agentInput);
 
   /**
-   * Composes the next turn input with the executions of the runtime tool calls of the previous
-   * turn. The tool call results of the turn are the results of the process and of the runtime
-   * tools, in call order. The result is never {@link CompositionResult.RuntimeToolResultsRequired}.
+   * Composes the next turn input with the results of the local tool calls of the previous turn. The
+   * tool call results of the turn are the results of the process and the results of the agent tool
+   * calls, in call order. The result is never {@link
+   * CompositionResult.LocalToolCallResultsRequired}.
    *
-   * @param executions the executions of the runtime tool calls of the last assistant message of
-   *     {@code previousConversation}, none for a turn without such calls
+   * @param executions the results of the local tool calls of the last assistant message of {@code
+   *     previousConversation}, none for a turn without such calls
    */
-  CompositionResult composeWithRuntimeToolResults(
+  CompositionResult composeWithLocalToolCallResults(
       AgentConfiguration configuration,
       AgentContext agentContext,
       PreviousConversation previousConversation,

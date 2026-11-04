@@ -65,24 +65,30 @@ public record AgentConversationTurn(
     return assistantMessage.toolCalls();
   }
 
-  public List<ToolCall> processToolCalls() {
-    return toolCallsOfKind(ToolKind.PROCESS);
+  /**
+   * Whether the call is a local tool call, a call of a runtime tool or a rejected call: the agent
+   * produces its tool call result itself and the process never gets it.
+   */
+  public static boolean isLocalToolCall(ToolCall toolCall) {
+    return toolCall.kind() == ToolKind.RUNTIME || toolCall.rejection() != null;
   }
 
-  public List<ToolCall> runtimeToolCalls() {
-    return toolCallsOfKind(ToolKind.RUNTIME);
+  /** The calls of the tools of the process, activated as BPMN elements. */
+  public List<ToolCall> processToolCalls() {
+    return toolCalls().stream().filter(toolCall -> !isLocalToolCall(toolCall)).toList();
+  }
+
+  /** The local tool calls: calls of runtime tools and rejected calls. */
+  public List<ToolCall> localToolCalls() {
+    return toolCalls().stream().filter(AgentConversationTurn::isLocalToolCall).toList();
   }
 
   public boolean hasProcessToolCalls() {
-    return toolCalls().stream().anyMatch(toolCall -> toolCall.kind() == ToolKind.PROCESS);
+    return toolCalls().stream().anyMatch(toolCall -> !isLocalToolCall(toolCall));
   }
 
-  public boolean hasRuntimeToolCalls() {
-    return toolCalls().stream().anyMatch(toolCall -> toolCall.kind() == ToolKind.RUNTIME);
-  }
-
-  private List<ToolCall> toolCallsOfKind(ToolKind kind) {
-    return toolCalls().stream().filter(toolCall -> toolCall.kind() == kind).toList();
+  public boolean hasLocalToolCalls() {
+    return toolCalls().stream().anyMatch(AgentConversationTurn::isLocalToolCall);
   }
 
   /**

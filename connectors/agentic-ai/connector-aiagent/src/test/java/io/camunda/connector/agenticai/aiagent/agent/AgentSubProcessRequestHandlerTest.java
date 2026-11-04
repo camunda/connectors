@@ -1091,10 +1091,7 @@ class AgentSubProcessRequestHandlerTest {
 
     // a registered tool is a runtime tool whether it is enabled or not
     final var tagged =
-        List.of(
-            lookupCall.withKind(ToolKind.RUNTIME),
-            hiddenCall.withKind(ToolKind.RUNTIME),
-            processCall);
+        List.of(lookupCall.withKind(ToolKind.RUNTIME), rejectedAsUnknown(hiddenCall), processCall);
     verify(agentInstanceClient)
         .applyTurnCompletion(eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any());
     assertThat(turnCaptor.getValue().toolCalls()).isEqualTo(tagged);
@@ -1128,8 +1125,8 @@ class AgentSubProcessRequestHandlerTest {
     mockSystemPrompt();
     // the results of the process arrived: the turn needs the results of the runtime tools
     when(agentInputComposer.compose(any(), any(), any(), any()))
-        .thenReturn(new CompositionResult.RuntimeToolResultsRequired(List.of(lookupCall)));
-    when(agentInputComposer.composeWithRuntimeToolResults(any(), any(), any(), any(), any()))
+        .thenReturn(new CompositionResult.LocalToolCallResultsRequired(List.of(lookupCall)));
+    when(agentInputComposer.composeWithLocalToolCallResults(any(), any(), any(), any(), any()))
         .thenReturn(new CompositionResult.NextTurn(List.of(USER_MESSAGE)));
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new ReadyToConverse(context, List.of()));
@@ -1142,7 +1139,7 @@ class AgentSubProcessRequestHandlerTest {
     final ArgumentCaptor<List<RuntimeToolExecution>> executionsCaptor =
         ArgumentCaptor.forClass(List.class);
     verify(agentInputComposer)
-        .composeWithRuntimeToolResults(any(), any(), any(), any(), executionsCaptor.capture());
+        .composeWithLocalToolCallResults(any(), any(), any(), any(), executionsCaptor.capture());
     assertThat(executionsCaptor.getValue())
         .extracting(
             execution -> execution.call().id(),
@@ -1179,6 +1176,31 @@ class AgentSubProcessRequestHandlerTest {
 
     // the call was tagged in the first job: it gets an error result and is not left to the process
     // forever
+    assertThat(chatRequests).hasSize(2);
+    assertThat(chatRequests.get(1).snapshot().messages().getLast())
+        .isInstanceOfSatisfying(
+            ToolCallResultMessage.class,
+            message ->
+                assertThat(message.results())
+                    .extracting(ToolCallResultContent::id, ToolCallResultContent::content)
+                    .containsExactly(
+                        tuple(
+                            "call-1",
+                            List.of(
+                                TextContent.textContent(
+                                    "The tool 'acme_toggle' is not available."))),
+                        tuple("call-2", List.of(TextContent.textContent("Sunny")))));
+  }
+
+  @Test
+  void aCallOfAToolThatIsNotOfferedStaysRejectedWhenTheToolIsEnabledBetweenTheTwoJobs() {
+    TOGGLE_ENABLED.set(false);
+
+    final var chatRequests =
+        handleMixedBatchInTwoJobs("acme_toggle", () -> TOGGLE_ENABLED.set(true));
+
+    // the call was rejected in the first job: the tool is never called with the arguments of a call
+    // the model made without being offered it
     assertThat(chatRequests).hasSize(2);
     assertThat(chatRequests.get(1).snapshot().messages().getLast())
         .isInstanceOfSatisfying(
@@ -1416,7 +1438,7 @@ class AgentSubProcessRequestHandlerTest {
         .containsExactly(
             lookupCall.withKind(ToolKind.RUNTIME),
             processCall.withKind(ToolKind.PROCESS),
-            unknownCall.withKind(ToolKind.RUNTIME));
+            rejectedAsUnknown(unknownCall));
     // only the call of the process goes to the process
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(processCall));
@@ -1695,8 +1717,7 @@ class AgentSubProcessRequestHandlerTest {
     verify(agentInstanceClient)
         .applyTurnCompletion(eq(agentExecutionContext), any(), turnCaptor.capture(), any(), any());
     assertThat(turnCaptor.getValue().toolCalls())
-        .containsExactly(
-            unknownCall.withKind(ToolKind.RUNTIME), processCall.withKind(ToolKind.PROCESS));
+        .containsExactly(rejectedAsUnknown(unknownCall), processCall.withKind(ToolKind.PROCESS));
     // only the call of the process goes to the process
     assertThat(response.responseValue().toolCalls())
         .containsExactly(ToolCallProcessVariable.from(processCall));
@@ -1715,9 +1736,9 @@ class AgentSubProcessRequestHandlerTest {
             realComposer.compose(
                 i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3)));
     lenient()
-        .when(agentInputComposer.composeWithRuntimeToolResults(any(), any(), any(), any(), any()))
+        .when(agentInputComposer.composeWithLocalToolCallResults(any(), any(), any(), any(), any()))
         .thenAnswer(i ->
-            realComposer.composeWithRuntimeToolResults(
+            realComposer.composeWithLocalToolCallResults(
                 i.getArgument(0),
                 i.getArgument(1),
                 i.getArgument(2),
@@ -1844,5 +1865,9 @@ class AgentSubProcessRequestHandlerTest {
     when(chatModelRegistry.resolve(any())).thenReturn(chatModel);
     when(chatModel.execute(chatModelRequestCaptor.capture()))
         .thenReturn(new ChatResult.Completed(assistantMessage, metrics));
+  }
+
+  private static ToolCall rejectedAsUnknown(ToolCall call) {
+    return call.withRejection("The tool '%s' does not exist.".formatted(call.name()));
   }
 }

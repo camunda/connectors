@@ -37,12 +37,12 @@ public sealed interface CompositionResult {
   record NoInput() implements CompositionResult {}
 
   /**
-   * The results of the process are complete or interrupted, and the turn also has runtime tool
-   * calls to execute. The caller executes them and composes again with their results.
+   * The results of the process are complete or interrupted, and the turn also has local tool calls.
+   * The caller gets their results and composes again with them.
    */
-  record RuntimeToolResultsRequired(List<ToolCall> runtimeToolCalls) implements CompositionResult {
-    public RuntimeToolResultsRequired {
-      runtimeToolCalls = List.copyOf(runtimeToolCalls);
+  record LocalToolCallResultsRequired(List<ToolCall> localToolCalls) implements CompositionResult {
+    public LocalToolCallResultsRequired {
+      localToolCalls = List.copyOf(localToolCalls);
     }
   }
 

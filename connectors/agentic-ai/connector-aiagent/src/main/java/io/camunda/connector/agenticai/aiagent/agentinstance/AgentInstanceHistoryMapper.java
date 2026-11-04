@@ -16,6 +16,7 @@ import io.camunda.client.impl.response.DocumentReferenceResponseImpl;
 import io.camunda.client.protocol.rest.DocumentMetadataResponse;
 import io.camunda.client.protocol.rest.DocumentReference;
 import io.camunda.client.protocol.rest.DocumentReference.CamundaDocumentTypeEnum;
+import io.camunda.connector.agenticai.aiagent.conversation.AgentConversationTurn;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -30,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.message.content.TextContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCall;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
-import io.camunda.connector.agenticai.aiagent.model.tool.ToolKind;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
@@ -77,8 +77,8 @@ public class AgentInstanceHistoryMapper {
    * @param turnIngestionTimestamp the timestamp for non-tool-result items (e.g. a {@link
    *     UserMessage}), passed in by the caller so this mapper stays clock-free. Tool-call results
    *     use their own resolved {@link ToolCallResult#completedAt()} instead (see ADR 008).
-   * @param toolCallsById the tool calls of the previous turn by id; a result of a call of a runtime
-   *     tool is reported without a BPMN element
+   * @param toolCallsById the tool calls of the previous turn by id; a result of a local tool call
+   *     is reported without a BPMN element
    */
   public List<InputHistoryItem> inputHistoryItems(
       Message message, Map<String, ToolCall> toolCallsById, OffsetDateTime turnIngestionTimestamp) {
@@ -181,7 +181,7 @@ public class AgentInstanceHistoryMapper {
    * Resolves the BPMN element id for a tool call history entry. Prefers an already-resolved {@code
    * elementId} carried on the model (tool call results); otherwise derives it from the (namespaced)
    * tool name via the gateway handlers, falling back to the name itself for ad-hoc tools. A call of
-   * a runtime tool has no BPMN element: its element id is {@code null}.
+   * a runtime tool and a rejected call have no BPMN element: their element id is {@code null}.
    *
    * @param toolCall the originating tool call, {@code null} if it is not known
    */
@@ -194,7 +194,7 @@ public class AgentInstanceHistoryMapper {
       throw new IllegalArgumentException(
           "Cannot resolve element id for a tool call history entry: both elementId and toolName are null");
     }
-    if (toolCall != null && toolCall.kind() == ToolKind.RUNTIME) {
+    if (toolCall != null && AgentConversationTurn.isLocalToolCall(toolCall)) {
       return null;
     }
     return gatewayToolHandlers.resolveElementId(toolName).orElse(toolName);
