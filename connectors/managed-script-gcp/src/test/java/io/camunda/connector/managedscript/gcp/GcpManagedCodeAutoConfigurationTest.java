@@ -178,6 +178,13 @@ class GcpManagedCodeAutoConfigurationTest {
   }
 
   @Test
+  void rejectsADeployerServiceAccountThatIsNotAnEmail() {
+    assertThatThrownBy(() ->
+            new GcpManagedCodeProperties("p", "r", FUNCTION_SA, BUILD_SA, "deployer", null, null))
+        .hasMessageContaining("gcp.deployer-service-account 'deployer' must be the email");
+  }
+
+  @Test
   void readsTheMemoryThatTheApiReportsInBytes() {
     assertThat(GcpManagedCodeProperties.memoryBytes("512Mi")).isEqualTo(512L * 1024 * 1024);
     assertThat(GcpManagedCodeProperties.memoryBytes("536870912")).isEqualTo(512L * 1024 * 1024);

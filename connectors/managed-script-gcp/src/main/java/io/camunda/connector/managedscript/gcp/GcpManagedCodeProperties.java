@@ -56,7 +56,7 @@ public record GcpManagedCodeProperties(
     deployerServiceAccount =
         deployerServiceAccount == null || deployerServiceAccount.isBlank()
             ? null
-            : deployerServiceAccount.strip();
+            : email(deployerServiceAccount, "deployer-service-account");
     memoryMb = memoryMb == null ? DEFAULT_MEMORY_MB : memoryMb;
     if (memoryMb < MIN_MEMORY_MB || memoryMb > MAX_MEMORY_MB) {
       throw new IllegalArgumentException(

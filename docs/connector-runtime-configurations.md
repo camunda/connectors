@@ -228,8 +228,12 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
 - A function serves one request at a time (request concurrency 1): after each call, the wrapper
   kills every process it did not start with, which would kill a concurrent script.
   `gcp.max-instance-count` is therefore the most scripts of a language that run at once (default
-  1000, the most Cloud Run allows without a quota increase); a call beyond it fails with
-  `PLATFORM_THROTTLED`. It also bounds what the executors of a cluster can cost at once.
+  1000, the most Cloud Run allows without a quota increase). A call beyond it usually fails with
+  `PLATFORM_THROTTLED`, but under a burst, such as on a new revision, Cloud Run may answer it with
+  HTTP 500 instead, which fails with `PLATFORM_EXECUTION_FAILED` and no retry: a 500 cannot be told
+  apart from an instance that died during its script, which must not run again. Set it above the
+  number of scripts of a language that run at once. It also bounds what the executors of a cluster
+  can cost at once.
 - The function timeout is `execution-timeout` plus 5 seconds, so that the wrapper reports `TIMEOUT`
   before Cloud Run stops it, and is passed to the wrapper in `EXECUTOR_FUNCTION_TIMEOUT_MS`. HTTP
   functions run for at most 3600 seconds, so startup fails when `execution-timeout` is above 3595
