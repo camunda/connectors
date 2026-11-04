@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.subprocess;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AgentToolSpecifications.SUPERFLUX_PRODUCT_TOOL_NAME;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertDocumentContentBlockJson;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.assertExtractedDocumentsUserMessage;
 import static io.camunda.connector.e2e.agenticai.aiagent.ToolCallResultDocumentAssertions.parseDocumentReference;
@@ -31,6 +32,7 @@ import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompleti
 import io.camunda.connector.e2e.agenticai.aiagent.wiremock.openai.OpenAiCompletionsRecordedConversation;
 import io.camunda.connector.e2e.agenticai.assertj.AgentSubProcessResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,6 +40,15 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 @SlowTest
 public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
+
+  private static final String USER_PROMPT = "Call a tool that does not exist";
+  private static final String AI_TOOL_CALL_TEXT = "I will call my tools.";
+  private static final String AI_FINAL_TEXT = "I got the results.";
+  private static final String UNKNOWN_TOOL_NAME = "does_not_exist";
+  private static final ToolCall UNKNOWN_CALL = ToolCall.of("unknown-1", UNKNOWN_TOOL_NAME, "{}");
+  private static final String UNKNOWN_TOOL_ERROR = "The tool 'does_not_exist' does not exist.";
+  private static final ToolCall SUPERFLUX_CALL =
+      ToolCall.of("flux-1", SUPERFLUX_PRODUCT_TOOL_NAME, "{\"a\": 5, \"b\": 3}");
 
   @Test
   void executesAgentWithToolCallingAndUserFeedback() throws Exception {
@@ -203,6 +214,100 @@ public class AgentSubProcessToolCallingTests extends BaseAgentSubProcessTest {
                 .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
                 .hasResponseMessageText(aiFinalResponseText)
                 .hasResponseText(aiFinalResponseText));
+
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
+  }
+
+  @Test
+  void answersACallOfAnUnknownToolWithAnErrorAndCallsTheModelAgain() throws Exception {
+    assertUnknownToolIsAnswered(Map.of("userPrompt", USER_PROMPT));
+  }
+
+  /**
+   * An agent instance created without the runtime tools feature has no features in its persisted
+   * context: the agent starts with that context instead of creating a new one.
+   */
+  @Test
+  void answersACallOfAnUnknownToolForAnAgentInstanceWithoutTheRuntimeToolsFeature()
+      throws Exception {
+    assertUnknownToolIsAnswered(
+        Map.of(
+            "userPrompt",
+            USER_PROMPT,
+            "agent",
+            Map.of("context", Map.of("state", "INITIALIZING"))));
+  }
+
+  @Test
+  void answersAnUnknownToolNextToAToolOfTheProcessInCallOrder() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL, SUPERFLUX_CALL),
+        Turn.text(AI_FINAL_TEXT, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest =
+        awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", USER_PROMPT)));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(expectedSystemPrompt()),
+        ExpectedMessage.user(USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(
+            AI_TOOL_CALL_TEXT, UNKNOWN_TOOL_NAME, SUPERFLUX_PRODUCT_TOOL_NAME),
+        ExpectedMessage.toolCallResult("unknown-1", UNKNOWN_TOOL_ERROR),
+        ExpectedMessage.toolCallResult("flux-1", "24"));
+
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasNoActiveIncidents()
+        .hasCompletedElement(SUPERFLUX_PRODUCT_TOOL_NAME, 1)
+        .hasNotActivatedElements(UNKNOWN_TOOL_NAME);
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasLastIterationKey(2)
+                .hasResponseText(AI_FINAL_TEXT));
+
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
+  }
+
+  /**
+   * The agent answers the call in the same job and calls the model again. The call never reaches
+   * the process: no element of that name is requested for activation, so no incident is raised.
+   */
+  private void assertUnknownToolIsAnswered(Map<String, Object> processVariables) throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.toolCalls(AI_TOOL_CALL_TEXT, 10, 20, UNKNOWN_CALL), Turn.text(AI_FINAL_TEXT, 11, 22));
+    enqueueUserFeedback(userSatisfiedFeedback());
+
+    final var zeebeTest = awaitProcessCompletion(createProcessInstance(processVariables));
+
+    final var recorded = OpenAiCompletionsRecordedConversation.recorded();
+    assertThat(recorded.modelCallCount()).isEqualTo(2);
+
+    assertConversationMessages(
+        recorded.lastRequest(),
+        ExpectedMessage.system(expectedSystemPrompt()),
+        ExpectedMessage.user(USER_PROMPT),
+        ExpectedMessage.assistantWithToolCalls(AI_TOOL_CALL_TEXT, UNKNOWN_TOOL_NAME),
+        ExpectedMessage.toolCallResult("unknown-1", UNKNOWN_TOOL_ERROR));
+
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasNoActiveIncidents()
+        .hasNotActivatedElements(UNKNOWN_TOOL_NAME);
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            AgentSubProcessResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(21, 42), 1))
+                .hasResponseText(AI_FINAL_TEXT));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }

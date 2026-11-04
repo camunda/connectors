@@ -294,7 +294,8 @@ current features when its context is created at its first job (`AgentInitializer
 `runtimeTools` (`AgentFeatures.RUNTIME_TOOLS`, the runtime tool facility, `AgentContext.supports(String)`).
 A context that exists without `features` belongs to an instance created before the features and never gets features
 added later, so its behavior stays as it was created. The reasons are in [ADR 016](../adr/016-runtime-tools.md); in
-short, an instance without `runtimeTools` has no runtime tool and no tool element checked against runtime tool names.
+short, `runtimeTools` decides only whether runtime tools are offered: an instance without it has no runtime tool and no
+tool element checked against runtime tool names. The kind of a tool call (§9) is set for every instance.
 `RuntimeTools` reads the features from the `AgentContext`; they are not part of the configuration fingerprint.
 
 ### AgentExecutionContext (the transient request context)
@@ -535,7 +536,7 @@ If job completion fails (e.g., the job was superseded), Zeebe retries with the *
 
 4. **`ConversationContext` must be serializable and self-contained.** It is persisted as part of the `agentContext` process variable in Zeebe. It must contain everything needed to locate the conversation data (e.g., a document reference, a version number, a branch pointer) — without relying on external state that could change between turns.
 
-5. **The `kind` of a tool call must round-trip.** The assistant message of a stored turn carries the `kind` of its tool calls ([§9](#9-tool-completion)); the agent never computes it again. A store that drops it turns a runtime tool call into a process tool call that never gets a result. A `ToolCall` serializes `kind` only for `RUNTIME`, and a missing value reads as `PROCESS`.
+5. **The `kind` of a tool call must round-trip.** The assistant message of a stored turn carries the `kind` of its tool calls ([§9](#9-tool-completion)), of every agent instance; the agent never computes it again. A store that drops it turns a runtime tool call into a process tool call that never gets a result. A `ToolCall` serializes `kind` only for `RUNTIME`, and a missing value reads as `PROCESS`.
 
 #### How each built-in store satisfies this contract
 
@@ -840,10 +841,10 @@ assistant message against them (`ProcessToolCallResults(resultsById, arrivedResu
 
 **Tool call kind.** Every `ToolCall` carries a `kind` (`ToolKind`): `PROCESS` for a tool that is a BPMN element, `RUNTIME`
 for a tool the agent executes itself (§25.4). The agent tags the calls of an assistant message once, between the model result
-and `AgentConversation.ingest`. For an agent instance with the `runtimeTools` feature, a call takes the kind of the tool
-of its name in the tool list of the job (the tools of the process and the enabled runtime tools); a call whose name is
-not in the list is `RUNTIME`. An instance without the feature keeps every call `PROCESS`. The tag is persisted with
-the message and never computed again. The JSON of a tool call holds `kind` (`"runtime"`) only for `RUNTIME`, and a missing value reads as
+and `AgentConversation.ingest`, for every agent instance, with or without the `runtimeTools` feature. A call takes the kind
+of the tool of its name in the tool list of the job (the tools of the process and the enabled runtime tools; for an
+instance without the feature, the tools of the process); a call whose name is not in the list is `RUNTIME`. The tag is
+persisted with the message and never computed again, so it may appear in the state of any agent instance. The JSON of a tool call holds `kind` (`"runtime"`) only for `RUNTIME`, and a missing value reads as
 `PROCESS`, so state written before the tag exists loads unchanged. A conversation store must keep the tag; a store that
 drops it turns a runtime tool call into a process tool call that never gets a result. A change of what a runtime tool
 enables therefore cannot misroute a call. The agent answers a runtime call whose tool is not offered in the job that executes it
@@ -2157,8 +2158,8 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
    Keep its answer stable while an agent instance runs: the tools are part of every model request, so a change
    invalidates the prompt cache of the provider and shows the model a different set of tools.
 5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
-   definitions that do not declare the kind `RUNTIME` at startup. An agent instance without the `runtimeTools` feature is
-   offered no runtime tool.
+   definitions that do not declare the kind `RUNTIME` at startup. The `runtimeTools` feature only decides whether the tools are
+   offered: an agent instance without it is offered no runtime tool.
 
 **Execution contract**
 

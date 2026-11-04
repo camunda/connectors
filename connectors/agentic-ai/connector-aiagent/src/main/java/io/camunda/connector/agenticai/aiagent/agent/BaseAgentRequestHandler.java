@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.model.AgentConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentFeatures;
 import io.camunda.connector.agenticai.aiagent.model.AgentInstanceKey;
 import io.camunda.connector.agenticai.aiagent.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.aiagent.model.message.Message;
@@ -204,13 +203,13 @@ public abstract class BaseAgentRequestHandler<
   }
 
   /**
-   * Tags the calls of an agent with the runtime tools feature with the kind of the offered tool of
-   * their name. A call of a name that is not offered is a runtime call: the agent answers it with
-   * an error result, and it never reaches the process.
+   * Tags the calls with the kind of the offered tool of their name. A call of a name that is not
+   * offered is a runtime call: the agent answers it with an error result, and it never reaches the
+   * process.
    */
   private AssistantMessage withToolKinds(
-      AgentContext agentContext, List<ToolDefinition> offeredTools, AssistantMessage message) {
-    if (!agentContext.supports(AgentFeatures.RUNTIME_TOOLS) || !message.hasToolCalls()) {
+      List<ToolDefinition> offeredTools, AssistantMessage message) {
+    if (!message.hasToolCalls()) {
       return message;
     }
     final var kindsByName =
@@ -383,10 +382,7 @@ public abstract class BaseAgentRequestHandler<
 
     // the one place the tool calls are tagged with the kind of their tool
     final var assistantMessage =
-        withToolKinds(
-            conversation.persistedContext(),
-            agentConfiguration.toolDefinitions(),
-            chatResult.assistantMessage());
+        withToolKinds(agentConfiguration.toolDefinitions(), chatResult.assistantMessage());
     return new ModelResponse(
         conversation.ingest(assistantMessage, chatResult.metrics()), chatResult);
   }
