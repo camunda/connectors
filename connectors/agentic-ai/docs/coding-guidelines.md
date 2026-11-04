@@ -70,4 +70,4 @@ For verification specifics (unit vs e2e, the Definition of Done, TDD), see your 
 
 ## 5. Design
 
-Follow the [design rules](design-rules.md).
+Follow the [code design rules](code-design.md).

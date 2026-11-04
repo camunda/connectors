@@ -2,7 +2,7 @@
 applyTo: "connectors/agentic-ai/**,connectors-e2e-test/connectors-e2e-test-agentic-ai/**"
 ---
 
-# Agentic AI design rules
+# Agentic AI code design
 
 Make new code agree with the [target architecture](target-architecture.md). Follow the rules when you plan a
 change and when you write code. In a review, flag each change that breaks a rule. Give the name of the rule.
