@@ -90,7 +90,7 @@ public final class DocumentExpander {
 
   /**
    * Renders the object the way the model reads it, a {@link Document} at any depth as its tag (see
-   * {@link DocumentReferenceContent#toTag()}), and returns the rendered tree with the documents it
+   * {@link DocumentTags#shortTag(Document)}), and returns the rendered tree with the documents it
    * replaced.
    */
   public TaggedObject renderWithTags(Object value) {
@@ -188,7 +188,8 @@ public final class DocumentExpander {
         continue;
       }
 
-      expanded.add(new TextContent(reference.toTag(), reference.metadata()));
+      expanded.add(
+          new TextContent(DocumentTags.longTag(workspace, reference.id()), reference.metadata()));
       changed = true;
       final var withContent = !forModel || reference.delivery() == DocumentDelivery.CONTENT;
       if (withContent
@@ -229,10 +230,10 @@ public final class DocumentExpander {
     for (final var current : content) {
       switch (current) {
         case DocumentReferenceContent reference -> {
-          final var document = rehydrate(workspace, reference.id());
           // the short tag of the document, without source, tool name and tool call id
-          final var tag = document != null ? DocumentReferences.from(document) : reference;
-          expanded.add(new TextContent(tag.toTag(), reference.metadata()));
+          expanded.add(
+              new TextContent(
+                  DocumentTags.shortTag(workspace, reference.id()), reference.metadata()));
           changed = true;
         }
         case ObjectContent objectContent -> {
@@ -296,7 +297,7 @@ public final class DocumentExpander {
       if (collected != null) {
         collected.add(document);
       }
-      gen.writeString(DocumentReferences.from(document).toTag());
+      gen.writeString(DocumentTags.shortTag(document));
     }
   }
 }

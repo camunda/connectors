@@ -6,66 +6,33 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import io.camunda.connector.agenticai.aiagent.model.tool.ToolCallResultContent;
 import io.camunda.connector.api.document.Document;
-import org.jspecify.annotations.Nullable;
 
 /**
- * Creates the {@link DocumentReferenceContent} blocks of documents and workspace entries, deriving
- * the id and the attributes the model is shown with {@link DocumentHandle}.
+ * Creates the {@link DocumentReferenceContent} blocks of documents: the block holds the id of the
+ * document, derived with {@link DocumentHandle#idFor(Document)}, and the delivery {@code
+ * reference}.
  */
 public final class DocumentReferences {
 
   private DocumentReferences() {}
 
-  /**
-   * Creates the block of a document that is a whole tool result, the short tag the model sees for
-   * it: it has no origin and the delivery {@code reference}.
-   */
+  /** Creates the block of a document with the delivery {@code reference}. */
   public static DocumentReferenceContent from(Document document) {
-    return from(document, null);
-  }
-
-  /**
-   * Creates the block of a document with the delivery {@code reference}.
-   *
-   * @param origin where the document entered the conversation, or {@code null} for none
-   */
-  public static DocumentReferenceContent from(Document document, @Nullable DocumentOrigin origin) {
     return new DocumentReferenceContent(
-        DocumentHandle.idFor(document),
-        DocumentHandle.fileNameFor(document),
-        DocumentHandle.contentTypeFor(document),
-        DocumentHandle.sizeFor(document),
-        origin,
-        DocumentDelivery.REFERENCE,
-        null);
-  }
-
-  /** Creates the block of a workspace document with the delivery {@code reference}. */
-  public static DocumentReferenceContent from(WorkspaceDocument entry) {
-    final var reference = DocumentIngestion.referenceOf(entry);
-    return new DocumentReferenceContent(
-        entry.id(),
-        DocumentHandle.fileNameFor(reference),
-        DocumentHandle.contentTypeFor(reference),
-        DocumentHandle.sizeFor(reference),
-        entry.origin(),
-        DocumentDelivery.REFERENCE,
-        null);
+        DocumentHandle.idFor(document), DocumentDelivery.REFERENCE, null);
   }
 
   /**
    * The result with every document that is the whole content of the result (a top-level {@link
-   * DocumentContent}) as a {@link DocumentReferenceContent} without an origin, the tag the model
-   * sees for it. Documents nested in an {@code ObjectContent} stay documents. A result that holds
-   * no top-level document is returned as it is, so applying this twice gives the same result.
+   * DocumentContent}) as a {@link DocumentReferenceContent}, which the model sees as the short tag.
+   * Documents nested in an {@code ObjectContent} stay documents. A result that holds no top-level
+   * document is returned as it is, so applying this twice gives the same result.
    */
   public static ToolCallResultContent withDocumentReferences(ToolCallResultContent result) {
     if (result.content().stream().noneMatch(DocumentContent.class::isInstance)) {

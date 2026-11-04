@@ -9,35 +9,22 @@ package io.camunda.connector.agenticai.aiagent.model.message.content;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
-import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.agenticai.aiagent.model.tool.DocumentDelivery;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A document that is part of the conversation, as persisted: the document is identified by its
- * stable id and its content is read from the document workspace when the model is called. The block
- * carries what the model is told about the document, never a store id, content hash, other metadata
- * or URL (an external URL may be a presigned one).
+ * A document that is part of the conversation, as persisted: the block holds the stable id of the
+ * document and how it reaches the model. Everything the model reads about the document, the file
+ * name, content type, size and origin, is read from the document workspace when the block is
+ * rendered, and the content is read from the workspace when the model is called. The block never
+ * carries a store id, content hash, other metadata or URL (an external URL may be a presigned one).
  *
- * <p>The model sees the block as a self-closing XML tag (see {@link #toTag()}), e.g.:
+ * <p>The model sees the block as a self-closing XML tag rendered from the workspace document, e.g.:
  *
  * <pre>{@code
- * <doc id="25ece9fa-aeea-..." fileName="report.pdf" contentType="application/pdf" size="48213" toolName="search" toolCallId="call_abc" />
+ * <doc id="doc_3f9a1c0b27de" fileName="report.pdf" contentType="application/pdf" size="48213" toolName="search" toolCallId="call_abc" />
  * }</pre>
- *
- * <p>Null or blank attributes are omitted; {@code toolName} and {@code toolCallId} are only present
- * for documents that came from a tool result, {@code source} ({@code user_message} or {@code
- * event}) only for the other documents. A file name that equals the id (a document stored without a
- * name of its own) is dropped, it would only repeat the id. {@code size} (bytes) is present for a
- * Camunda document whose reference metadata carries one; it is never looked up by reading the
- * document.
- *
- * <p>A tool result that is a document holds the block without a source, the short tag the model
- * sees for a document of a tool result. A document nested in the object of a tool result stays a
- * document.
  *
  * <p>The {@code delivery} tells how the document reaches the model: with {@link
  * DocumentDelivery#REFERENCE} the model sees the tag only, with {@link DocumentDelivery#CONTENT}
@@ -46,25 +33,18 @@ import org.jspecify.annotations.Nullable;
  * chat models never see this block: it is expanded to its tag text and, for the delivery {@code
  * content}, the document content before the request is built.
  *
+ * <p>A tool result that is a document holds this block; the model sees the short tag for it, which
+ * has no origin attributes. A document nested in the object of a tool result stays a document.
+ *
  * @param id the stable id of the document
- * @param fileName the file name the model is shown, if known
- * @param contentType the content type the model is shown, if known
- * @param size the size in bytes the model is shown, if known
- * @param origin where the document entered the conversation, the same value as the origin of its
- *     workspace document; {@code null} for the block of a document that is a whole tool result. The
- *     tag shows {@code user_message} or {@code event} for such an origin and the tool name and tool
- *     call id of a tool call origin; the message id is not part of it
  * @param delivery how the document reaches the model, {@link DocumentDelivery#REFERENCE} if not
  *     given
+ * @param metadata the metadata of the content block
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DocumentReferenceContent(
     DocumentId id,
-    @Nullable String fileName,
-    @Nullable String contentType,
-    @Nullable Long size,
-    @Nullable DocumentOrigin origin,
     DocumentDelivery delivery,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable Map<String, Object> metadata)
     implements Content {
@@ -73,9 +53,6 @@ public record DocumentReferenceContent(
     if (id == null) {
       throw new IllegalArgumentException("Document id cannot be null or empty");
     }
-    if (fileName != null && fileName.equals(id.value())) {
-      fileName = null;
-    }
     if (delivery == null) {
       delivery = DocumentDelivery.REFERENCE;
     }
@@ -83,33 +60,7 @@ public record DocumentReferenceContent(
 
   /** Returns the block with the given delivery. */
   public DocumentReferenceContent withDelivery(DocumentDelivery delivery) {
-    return new DocumentReferenceContent(
-        id, fileName, contentType, size, origin, delivery, metadata);
-  }
-
-  /** The tag the model sees for the document. */
-  public String toTag() {
-    final var sb = new StringBuilder("<doc");
-    appendAttribute(sb, "id", id.value());
-    appendAttribute(sb, "fileName", fileName);
-    appendAttribute(sb, "contentType", contentType);
-    appendAttribute(sb, "size", size == null ? null : String.valueOf(size));
-    appendAttribute(
-        sb,
-        "source",
-        switch (origin) {
-          case DocumentOrigin.UserMessage ignored -> "user_message";
-          case DocumentOrigin.Event ignored -> "event";
-          case DocumentOrigin.ToolCall ignored -> null;
-          case null -> null;
-        });
-    appendAttribute(
-        sb, "toolName", origin instanceof DocumentOrigin.ToolCall call ? call.toolName() : null);
-    appendAttribute(
-        sb,
-        "toolCallId",
-        origin instanceof DocumentOrigin.ToolCall call ? call.toolCallId() : null);
-    return sb.append(" />").toString();
+    return new DocumentReferenceContent(id, delivery, metadata);
   }
 
   /**
@@ -120,11 +71,5 @@ public record DocumentReferenceContent(
     return new IllegalStateException(
         "DocumentReferenceContent of document '%s' must be expanded to its tag text and document content before the request"
             .formatted(id));
-  }
-
-  private static void appendAttribute(StringBuilder sb, String name, @Nullable String value) {
-    if (StringUtils.isNotBlank(value)) {
-      sb.append(" %s=\"%s\"".formatted(name, StringEscapeUtils.escapeXml10(value)));
-    }
   }
 }
