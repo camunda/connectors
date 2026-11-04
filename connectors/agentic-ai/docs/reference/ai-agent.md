@@ -2149,6 +2149,8 @@ and `RuntimeToolTestConfiguration` in the e2e module of the AI Agent is a small 
    on different workers.
 4. Override `isEnabled` if the tool is offered only to some agents. It reads the invocation and the agent context from the
    `RuntimeToolContext`, and is called when the tools of a job are assembled and again when a call is executed.
+   Keep its answer stable while an agent instance runs: the tools are part of every model request, so a change
+   invalidates the prompt cache of the provider and shows the model a different set of tools.
 5. Register the tool as a Spring bean of type `RuntimeTool`. `RuntimeTools` rejects blank and duplicate names and
    definitions that do not declare the kind `RUNTIME` at startup. An agent instance without the `runtimeTools` feature is
    offered no runtime tool.
