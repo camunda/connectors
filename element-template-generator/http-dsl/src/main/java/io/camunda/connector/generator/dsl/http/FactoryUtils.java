@@ -24,16 +24,15 @@ public class FactoryUtils {
   public static List<RestTemplateGenerator.Operation> transformOperationParseResults(
       List<OperationParseResult> operations) {
     return operations.stream()
-        .map(
-            o ->
-                new RestTemplateGenerator.Operation.Builder()
-                    .id(o.id())
-                    .path(o.path())
-                    .method(o.method().name())
-                    .tags(o.tags())
-                    .supported(o.supported())
-                    .description(o.description())
-                    .build())
+        .map(o ->
+            new RestTemplateGenerator.Operation.Builder()
+                .id(o.id())
+                .path(o.path())
+                .method(o.method().name())
+                .tags(o.tags())
+                .supported(o.supported())
+                .description(o.description())
+                .build())
         .toList();
   }
 }

@@ -1,9 +1,8 @@
 #!/usr/bin/env groovy
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-
-import java.nio.file.Files
+def loader = new GroovyClassLoader(getClass().classLoader)
+def T = loader.parseClass(new File(project.basedir, '../bin/TemplateTransforms.groovy'))
+def A = loader.parseClass(new File(project.basedir, 'bin/AgentTemplateTransforms.groovy'))
 
 static def replaceDocumentationLinks(String text) {
     if (text == null) return null
@@ -27,124 +26,65 @@ static def retagLeafSteps(List steps, String fromTag, String toTag) {
     }
 }
 
-// Moves the given property ids to sit right after another property id. No-op if either side
-// isn't found. Duplicated in transform-ai-agent-task-template.groovy since this script's
-// execution runs before that one's, per the pom's execution order for the v2 task/sub-process
-// pair.
-static def moveAfter(List properties, List idsToMove, String afterId) {
-    def moving = properties.findAll { it.id in idsToMove }
-    if (moving.isEmpty()) {
-        return properties
-    }
-    def remaining = properties.findAll { !(it.id in idsToMove) }
-    def anchorIndex = remaining.findIndexOf { it.id == afterId }
-    if (anchorIndex < 0) {
-        return properties
-    }
-    remaining.addAll(anchorIndex + 1, moving)
-    return remaining
-}
-
-def sourceFile = sourceFile
-if (!sourceFile) {
-    System.err.println("Error: Source file path required as property")
-    System.exit(1)
-}
-
-def outputFile = outputFile
-if (!outputFile) {
-    System.err.println("Error: Output file path required as property")
-    System.exit(1)
-}
-def outputFilePath = new File((String) outputFile)
-
-def templateId = templateId
-if (!templateId) {
-    System.err.println("Error: Template id required as property")
-    System.exit(1)
-}
-
-def connectorType = connectorType
-if (!connectorType) {
-    System.err.println("Error: Connector type required as property")
-    System.exit(1)
-}
+def file = T.existingFile(T.requiredProperty(binding, 'sourceFile'))
+def outputFilePath = new File(T.requiredProperty(binding, 'outputFile'))
+def templateId = T.requiredProperty(binding, 'templateId')
+def connectorType = T.requiredProperty(binding, 'connectorType')
 
 // optional: agentType for the zeebe:agentDefinition marker; unset means no marker is added
-def agentType = binding.hasVariable('agentType') ? agentType : null
+def agentType = T.optionalProperty(binding, 'agentType')
 
 // optional: mark the derived template as deprecated; unset means no "deprecated" block is added
-def deprecationMessage = binding.hasVariable('deprecationMessage') ? deprecationMessage : null
-def deprecationDocumentationRef = binding.hasVariable('deprecationDocumentationRef') ? deprecationDocumentationRef : null
+def deprecationMessage = T.optionalProperty(binding, 'deprecationMessage')
+def deprecationDocumentationRef = T.optionalProperty(binding, 'deprecationDocumentationRef')
 
 // optional: "templateId=file" tuples (one per line) of default-system-prompt deviations, keyed by
 // the derived template's own id (this script always assigns the derived template's id from the
 // templateId property above, so that is the stable lookup key here, not the source template's own
-// id). A template whose id has no entry keeps the source template's default. Duplicated in
-// transform-ai-agent-task-template.groovy since each script is invoked as a standalone gmavenplus
-// execution.
-def systemPromptOverrides = binding.hasVariable('systemPromptOverrides') ? systemPromptOverrides : null
-def systemPromptOverrideFileById = [:]
-((String) (systemPromptOverrides ?: "")).eachLine { line ->
-    line = line.trim()
-    if (!line) return
-    def parts = line.split('=', 2)
-    if (parts.length == 2) {
-        systemPromptOverrideFileById[parts[0].trim()] = parts[1].trim()
-    }
-}
-def systemPromptOverrideFile = systemPromptOverrideFileById[(String) templateId]
-def systemPromptDefault = systemPromptOverrideFile ? new File((String) systemPromptOverrideFile).getText('UTF-8').stripTrailing() : null
+// id). A template whose id has no entry keeps the source template's default.
+def systemPromptOverrides = T.optionalProperty(binding, 'systemPromptOverrides')
+def systemPromptDefault = A.systemPromptOverride(systemPromptOverrides, templateId)
 
-def file = new File((String) sourceFile)
-if (!file.exists()) {
-    System.err.println("Error: Source file ${sourceFile} not found")
-    System.exit(1)
-}
+// optional: "true" for templates whose OpenAI provider has per-API-family effort properties
+def moveOpenAiEffortAfterModel = T.optionalProperty(binding, 'moveOpenAiEffortAfterModel')?.toString()?.toBoolean()
 
-def mapper = new ObjectMapper()
-mapper.enable(SerializationFeature.INDENT_OUTPUT)
+def json = T.readJson(file)
 
-def json = mapper.readValue(file, Map.class)
+// Properties to drop from the task template
+def skipProperties = [
+    "data.tools.containerElementId",
+    "data.tools.toolCallResults",
+    "resultExpression"
+]
+
+// every id this script looks up must exist, so a rename in the source template fails the build
+T.requireIds((List) json.get("groups"), ["limits"], "Groups in ${file}")
+T.requireIds(
+    (List) json.get('properties'),
+    skipProperties + [
+        "id",
+        "resultVariable",
+        "data.agentContext",
+        "data.response.includeAssistantMessage",
+        "data.limits.maxModelCalls"
+    ] + (systemPromptDefault ? ["data.systemPrompt.prompt"] : []),
+    "Properties in ${file}"
+)
+T.requireTaskDefinitionType((List) json.get('properties'))
 
 // never carry over a "deprecated" block from the source template; this script decides
 // deprecation for the derived template on its own, via the properties above
-if (deprecationMessage) {
-    def orderedJson = new LinkedHashMap()
-    json.each { key, value ->
-        orderedJson.put(key, value)
-        if (key == "keywords") {
-            orderedJson.put("deprecated", [
-                message         : (String) deprecationMessage,
-                documentationRef: (String) deprecationDocumentationRef
-            ])
-        }
-    }
-    json = orderedJson
-} else {
-    json.remove("deprecated")
-}
+json = T.applyDeprecation(json, deprecationMessage, deprecationDocumentationRef)
 
 def isHybrid = json.id?.toString()?.contains("-hybrid")
 
 // copy existing file to versioned directory if version was updated
-if (outputFilePath.exists() && !isHybrid) {
-    def existingJson = mapper.readValue(outputFilePath, Map.class)
-    def existingVersion = existingJson.version as Integer
-    def sourceVersion = json.version as Integer
-
-    if (sourceVersion > existingVersion) {
-        def baseName = outputFilePath.name.replaceFirst(/\.json$/, "")
-        def versionedDir = new File(outputFilePath.parent, "versioned")
-        def versionedFile = new File(versionedDir, "${baseName}-${existingVersion}.json")
-
-        Files.copy(outputFilePath.toPath(), versionedFile.toPath())
-        println("Backed up existing template version ${existingVersion} to: ${versionedFile.path}")
-    }
+if (!isHybrid) {
+    T.backupIfVersionBumped(outputFilePath, json)
 }
 
 // Update template metadata
-json.id = (String) templateId
+json.id = templateId
 json.name = "AI Agent Sub-process"
 json.description = "Run a multi-step AI reasoning loop with dynamic tool selection"
 json.documentationRef = replaceDocumentationLinks(json.documentationRef)
@@ -187,11 +127,6 @@ def updatedGroups = []
 json.put('groups', updatedGroups)
 
 // Transform properties
-def skipProperties = [
-    "data.tools.containerElementId",
-    "data.tools.toolCallResults",
-    "resultExpression"
-]
 def updatedProperties = []
 
 ((List) json.get('properties')).each { property ->
@@ -217,8 +152,8 @@ def updatedProperties = []
     }
 
     // Update specific property values and bindings
-    if (property.binding?.type == "zeebe:taskDefinition" && property.binding?.property == "type") {
-        property.value = (String) connectorType
+    if (T.isTaskDefinitionType(property)) {
+        property.value = connectorType
 
         // Add new hidden properties after the type property
         updatedProperties.add(property)
@@ -267,7 +202,7 @@ def updatedProperties = []
             ])
         }
     } else if (property.id == "id") {
-        property.value = (String) templateId
+        property.value = templateId
         updatedProperties.add(property)
     } else if (property.id == "resultVariable") {
         property.binding = [source: "=agent", type: "zeebe:output"]
@@ -345,13 +280,9 @@ updatedProperties.add([
     type: "Hidden"
 ])
 
-// OpenAI's Effort is declared per API family (a sibling of Model, like the other per-family
-// request parameters), so it's emitted before Model. Move it after, matching Anthropic/Bedrock.
-updatedProperties = moveAfter(
-    updatedProperties,
-    ["provider.openai.api.completions.effort", "provider.openai.api.responses.effort"],
-    "provider.openai.model.model"
-)
+if (moveOpenAiEffortAfterModel) {
+    updatedProperties = A.moveOpenAiEffortAfterModel(updatedProperties)
+}
 
 json.put('properties', updatedProperties)
-mapper.writeValue(outputFilePath, json)
+T.writeJson(outputFilePath, json)

@@ -210,10 +210,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
    */
   private List<Secret> declaredSecretNames(Map<String, String> rawProperties) {
     return rawProperties.entrySet().stream()
-        .flatMap(
-            entry ->
-                SecretUtil.retrieveLegacySecretKeysInInput(entry.getValue()).stream()
-                    .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
+        .flatMap(entry ->
+            SecretUtil.retrieveLegacySecretKeysInInput(entry.getValue()).stream()
+                .map(name -> new Secret(name, Arrays.asList(entry.getKey().split("\\.")))))
         .distinct()
         .toList();
   }
@@ -244,18 +243,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return new CorrelationResult.Failure.InvalidInput(
           connectorInputException.getMessage(), connectorInputException);
     } catch (FeelEngineWrapperException feelEngineWrapperException) {
-      log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withMessage("Failed to evaluate FEEL expression", feelEngineWrapperException));
+      log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withMessage("Failed to evaluate FEEL expression", feelEngineWrapperException));
       return new CorrelationResult.Failure.Other(feelEngineWrapperException);
     } catch (Exception exception) {
-      log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withMessage("Failed to correlate inbound event", exception));
+      log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withMessage("Failed to correlate inbound event", exception));
       LOG.error("Failed to correlate inbound event", exception);
       return new CorrelationResult.Failure.Other(exception);
     }
@@ -310,65 +307,60 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private void logCorrelationSuccess(Success success) {
     switch (success) {
       case ProcessInstanceCreated processInstanceCreated:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Process instance created")
-                    .withData(
-                        Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Process instance created")
+                .withData(
+                    Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
         break;
       case MessagePublished messagePublished:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Message published")
-                    .withData(
-                        Map.of(
-                            "messageKey",
-                            messagePublished.messageKey(),
-                            "correlationKey",
-                            redactMessage(messagePublished.correlationKey()))));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message published")
+                .withData(
+                    Map.of(
+                        "messageKey",
+                        messagePublished.messageKey(),
+                        "correlationKey",
+                        redactMessage(messagePublished.correlationKey()))));
         break;
       case MessageAlreadyCorrelated ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Message already correlated"));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message already correlated"));
         break;
       case Success.MessageCorrelated messageCorrelated:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Message correlated to process instance")
-                    .withData(
-                        Map.of(
-                            "processInstanceKey",
-                            messageCorrelated.processInstanceKey(),
-                            "messageKey",
-                            messageCorrelated.messageKey(),
-                            "correlationKey",
-                            redactMessage(messageCorrelated.correlationKey()))));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Message correlated to process instance")
+                .withData(
+                    Map.of(
+                        "processInstanceKey",
+                        messageCorrelated.processInstanceKey(),
+                        "messageKey",
+                        messageCorrelated.messageKey(),
+                        "correlationKey",
+                        redactMessage(messageCorrelated.correlationKey()))));
 
         break;
       case Success.ProcessInstanceCreatedWithResult processInstanceCreatedWithResult:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.INFO)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Process instance created with result")
-                    .withData(
-                        Map.of(
-                            "processInstanceKey",
-                            processInstanceCreatedWithResult.processInstanceKey())));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Process instance created with result")
+                .withData(
+                    Map.of(
+                        "processInstanceKey",
+                        processInstanceCreatedWithResult.processInstanceKey())));
 
         break;
     }
@@ -377,36 +369,32 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private void logCorrelationFailure(Failure failure) {
     switch (failure) {
       case ActivationConditionNotMet ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.WARNING)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Activation condition not met"));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.WARNING)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Activation condition not met"));
         break;
       case InvalidInput ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Invalid input: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Invalid input: " + failure.message()));
         break;
       case ZeebeClientStatus ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Zeebe client status error: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Zeebe client status error: " + failure.message()));
         break;
       case Other ignored:
-        logRuntime(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag(ActivityLogTag.CORRELATION)
-                    .withMessage("Other error: " + failure.message()));
+        logRuntime(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CORRELATION)
+                .withMessage("Other error: " + failure.message()));
         break;
     }
   }
@@ -734,11 +722,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
     connectorDetails = newDetails;
     reReadSecrets = null;
-    logRuntime(
-        builder ->
-            builder
-                .withTag(ActivityLogTag.LIFECYCLE)
-                .withSeverity(Severity.INFO)
-                .withMessage("Updated configuration due to new process version deployment"));
+    logRuntime(builder ->
+        builder
+            .withTag(ActivityLogTag.LIFECYCLE)
+            .withSeverity(Severity.INFO)
+            .withMessage("Updated configuration due to new process version deployment"));
   }
 }

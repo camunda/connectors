@@ -32,7 +32,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,12 +115,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         "Triggered Slack webhook with method: {} and URL: {}",
         webhookProcessingPayload.method(),
         webhookProcessingPayload.requestURL());
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.INFO)
-                .withTag(webhookProcessingPayload.method())
-                .withMessage("URL: " + webhookProcessingPayload.requestURL()));
+    context.log(activity ->
+        activity
+            .withSeverity(Severity.INFO)
+            .withTag(webhookProcessingPayload.method())
+            .withMessage("URL: " + webhookProcessingPayload.requestURL()));
     verifySlackRequestAuthentic(webhookProcessingPayload);
 
     Map bodyAsMap =
@@ -142,12 +140,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       try {
         bodyAsMap = objectMapper.readValue((String) bodyAsMap.get(FORM_VALUE_PAYLOAD), Map.class);
       } catch (Exception e) {
-        context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag("JSON Parsing")
-                    .withMessage("Failed to parse 'payload' as JSON", e));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag("JSON Parsing")
+                .withMessage("Failed to parse 'payload' as JSON", e));
       }
       return new SlackWebhookProcessingResult(
           new MappedHttpRequest(
@@ -186,29 +183,41 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
                 payload.params()));
   }
 
+  /**
+   * Splits on {@code &} and the first {@code =} before URL-decoding, so encoded separators in a
+   * value (e.g. {@code &amp;} inside an interactivity payload) are not treated as separators.
+   */
+  private static Map<String, String> parseFormUrlEncoded(String body) {
+    Map<String, String> result = new LinkedHashMap<>();
+    for (String pair : body.split("&")) {
+      if (pair.isEmpty()) {
+        continue;
+      }
+      String[] parts = pair.split("=", 2);
+      result.putIfAbsent(
+          URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+          parts.length > 1 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "");
+    }
+    return result;
+  }
+
   private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) {
     var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveMap.putAll(headers);
     String contentTypeHeader =
         caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString =
-          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("=", 2))
-          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+      return parseFormUrlEncoded(new String(rawBody, StandardCharsets.UTF_8));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
         return objectMapper.readValue(rawBody, Map.class);
       } catch (IOException e) {
-        context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag("JSON Parsing")
-                    .withMessage("Failed to parse JSON from raw body due to an IOException", e));
+        context.log(activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag("JSON Parsing")
+                .withMessage("Failed to parse JSON from raw body due to an IOException", e));
         throw new RuntimeException(e);
       }
     }
@@ -222,12 +231,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             new String(webhookProcessingPayload.rawBody(), StandardCharsets.UTF_8),
             webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
             ZonedDateTime.now().toInstant().toEpochMilli())) {
-      context.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag(webhookProcessingPayload.method())
-                  .withMessage("HMAC signature did not match"));
+      context.log(activity ->
+          activity
+              .withSeverity(Severity.ERROR)
+              .withTag(webhookProcessingPayload.method())
+              .withMessage("HMAC signature did not match"));
       throw new RuntimeException("HMAC signature did not match");
     }
   }

@@ -205,6 +205,7 @@ class DefaultEmbeddingModelFactoryTest {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
+                  null,
                   OPEN_AI_API_KEY,
                   OPEN_AI_MODEL_NAME,
                   "test-org-id",
@@ -216,7 +217,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).organizationId(provider.openAi().organizationId());
             verify(builder).projectId(provider.openAi().projectId());
             verify(builder).dimensions(provider.openAi().dimensions());
@@ -231,11 +232,11 @@ class DefaultEmbeddingModelFactoryTest {
       OpenAiEmbeddingModelProvider provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
-                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
+                  null, OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       testOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).organizationId(anyString());
             verify(builder, never()).projectId(anyString());
             verify(builder, never()).dimensions(anyInt());
@@ -260,7 +261,7 @@ class DefaultEmbeddingModelFactoryTest {
       var provider =
           new OpenAiEmbeddingModelProvider(
               new OpenAiEmbeddingModelProvider.Configuration(
-                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
+                  null, OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
 
       var builder = spy(OpenAiEmbeddingModel.builder());
 
@@ -305,6 +306,7 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
+                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   1536,
@@ -313,7 +315,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).dimensions(provider.azureOpenAi().dimensions());
             verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
             verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
@@ -326,6 +328,7 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
+                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   null,
@@ -334,7 +337,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder, never()).dimensions(anyInt());
             verify(builder, never()).maxRetries(anyInt());
             verify(builder, never()).customHeaders(anyMap());
@@ -349,6 +352,7 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
+                  null,
                   new AzureClientCredentialsAuthentication(
                       "client-id", "client-secret", "tenant-id", authorityHost),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
@@ -358,7 +362,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testAzureOpenAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).dimensions(provider.azureOpenAi().dimensions());
             verify(builder).maxRetries(provider.azureOpenAi().maxRetries());
             verify(builder).customHeaders(provider.azureOpenAi().customHeaders());
@@ -383,6 +387,7 @@ class DefaultEmbeddingModelFactoryTest {
           new AzureOpenAiEmbeddingModelProvider(
               new AzureOpenAiEmbeddingModelProvider.Configuration(
                   AZURE_OPENAI_ENDPOINT,
+                  null,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
                   AZURE_OPENAI_DEPLOYMENT_NAME,
                   null,
@@ -451,6 +456,7 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
+                  null,
                   new ApplicationDefaultCredentialsAuthentication(),
                   MODEL_NAME,
                   DIMENSIONS,
@@ -458,7 +464,7 @@ class DefaultEmbeddingModelFactoryTest {
                   MAX_RETRIES));
       testVertexAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).publisher(PUBLISHER);
             verify(builder).outputDimensionality(DIMENSIONS);
             verify(builder).maxRetries(MAX_RETRIES);
@@ -473,6 +479,7 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
+                  null,
                   new ServiceAccountCredentialsAuthentication("{}"),
                   MODEL_NAME,
                   DIMENSIONS,
@@ -487,7 +494,7 @@ class DefaultEmbeddingModelFactoryTest {
 
         testVertexAiEmbeddingModelBuilder(
             provider,
-            (builder) -> {
+            builder -> {
               verify(builder).publisher(PUBLISHER);
               verify(builder).outputDimensionality(DIMENSIONS);
               verify(builder).maxRetries(MAX_RETRIES);
@@ -505,6 +512,7 @@ class DefaultEmbeddingModelFactoryTest {
               new GoogleVertexAiEmbeddingModelProvider.Configuration(
                   PROJECT_ID,
                   REGION,
+                  null,
                   new ApplicationDefaultCredentialsAuthentication(),
                   MODEL_NAME,
                   DIMENSIONS,
@@ -513,7 +521,7 @@ class DefaultEmbeddingModelFactoryTest {
 
       testVertexAiEmbeddingModelBuilder(
           provider,
-          (builder) -> {
+          builder -> {
             verify(builder).publisher(VERTEX_AI_DEFAULT_PUBLISHER);
             verify(builder, never()).maxRetries(anyInt());
           });

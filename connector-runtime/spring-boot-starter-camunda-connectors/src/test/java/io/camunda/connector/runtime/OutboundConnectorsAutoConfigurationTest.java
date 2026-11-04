@@ -63,14 +63,13 @@ class OutboundConnectorsAutoConfigurationTest {
 
   @Test
   void shouldCreateConnectorExecutorServiceByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
-          assertThat(context).hasBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-          assertThat(context.getBean(CamundaClientExecutorService.class))
-              .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
-              .isInstanceOf(MeteredCamundaClientExecutorService.class);
-        });
+    contextRunner.run(context -> {
+      assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
+      assertThat(context).hasBean(CONNECTOR_EXECUTOR_BEAN_NAME);
+      assertThat(context.getBean(CamundaClientExecutorService.class))
+          .isSameAs(context.getBean(CONNECTOR_EXECUTOR_BEAN_NAME))
+          .isInstanceOf(MeteredCamundaClientExecutorService.class);
+    });
   }
 
   @Test
@@ -87,41 +86,39 @@ class OutboundConnectorsAutoConfigurationTest {
   void shouldNotCreateConnectorExecutorServiceWhenVirtualThreadsAreDisabled() {
     contextRunner
         .withPropertyValues("camunda.connector.virtual-threads.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
-              assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
-            });
+        .run(context -> {
+          assertThat(context).doesNotHaveBean(CONNECTOR_EXECUTOR_BEAN_NAME);
+          assertThat(context).hasSingleBean(CamundaClientExecutorService.class);
+        });
   }
 
   @Test
   void shouldDefaultSecretFilterModeToStrict() {
-    contextRunner.run(
-        context -> {
-          var secretFilterFactory = context.getBean(SecretFilterFactory.class);
-          assertThat(modeOf(secretFilterFactory)).isEqualTo(SecretFilterMode.STRICT);
+    contextRunner.run(context -> {
+      var secretFilterFactory = context.getBean(SecretFilterFactory.class);
+      assertThat(modeOf(secretFilterFactory)).isEqualTo(SecretFilterMode.STRICT);
 
-          @SuppressWarnings("unchecked")
-          var factoriesByPhysicalTenantId =
-              (Map<String, SecretFilterFactory>)
-                  context.getBean(
-                      "secretFilterFactoriesByPhysicalTenantId",
-                      Map.class); // legacy-client fallback yields one entry, but assert on all
-          assertThat(factoriesByPhysicalTenantId).isNotEmpty();
-          factoriesByPhysicalTenantId
-              .values()
-              .forEach(factory -> assertThat(modeOf(factory)).isEqualTo(SecretFilterMode.STRICT));
+      @SuppressWarnings("unchecked")
+      var factoriesByPhysicalTenantId =
+          (Map<String, SecretFilterFactory>)
+              context.getBean(
+                  "secretFilterFactoriesByPhysicalTenantId",
+                  Map.class); // legacy-client fallback yields one entry, but assert on all
+      assertThat(factoriesByPhysicalTenantId).isNotEmpty();
+      factoriesByPhysicalTenantId
+          .values()
+          .forEach(factory -> assertThat(modeOf(factory)).isEqualTo(SecretFilterMode.STRICT));
 
-          var manager = context.getBean(OutboundConnectorManager.class);
-          @SuppressWarnings("unchecked")
-          var managerFactories =
-              (Map<String, SecretFilterFactory>)
-                  ReflectionTestUtils.getField(manager, "secretFilterFactoriesByPhysicalTenantId");
-          assertThat(managerFactories).isNotEmpty();
-          managerFactories
-              .values()
-              .forEach(factory -> assertThat(modeOf(factory)).isEqualTo(SecretFilterMode.STRICT));
-        });
+      var manager = context.getBean(OutboundConnectorManager.class);
+      @SuppressWarnings("unchecked")
+      var managerFactories =
+          (Map<String, SecretFilterFactory>)
+              ReflectionTestUtils.getField(manager, "secretFilterFactoriesByPhysicalTenantId");
+      assertThat(managerFactories).isNotEmpty();
+      managerFactories
+          .values()
+          .forEach(factory -> assertThat(modeOf(factory)).isEqualTo(SecretFilterMode.STRICT));
+    });
   }
 
   private static SecretFilterMode modeOf(SecretFilterFactory factory) {

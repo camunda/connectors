@@ -86,14 +86,13 @@ class InboundCorrelationConfigurationTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(
-            () ->
-                configuration.inboundCorrelationHandler(
-                    registry,
-                    clientProvider(),
-                    mock(ObjectMapper.class),
-                    mock(DocumentFactory.class),
-                    mock(ConnectorsInboundMetrics.class)))
+    assertThatThrownBy(() ->
+            configuration.inboundCorrelationHandler(
+                registry,
+                clientProvider(),
+                mock(ObjectMapper.class),
+                mock(DocumentFactory.class),
+                mock(ConnectorsInboundMetrics.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("InboundCorrelationHandler");
   }

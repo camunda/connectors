@@ -36,12 +36,11 @@ class SaaSSecretConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.saas.secrets.enabled=false", "camunda.client.cloud.clusterId=some-cluster")
-        .run(
-            context -> {
-              assertThat(context).hasNotFailed();
-              assertThat(context).doesNotHaveBean(SecretProvider.class);
-              assertThat(context.getBeanNamesForType(SecretProvider.class)).isEmpty();
-            });
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).doesNotHaveBean(SecretProvider.class);
+          assertThat(context.getBeanNamesForType(SecretProvider.class)).isEmpty();
+        });
   }
 
   @Test
@@ -64,10 +63,9 @@ class SaaSSecretConfigurationTest {
             "camunda.saas.secrets.enabled=false",
             "camunda.connector.secret-resolver.legacy.mode=ON",
             "camunda.client.cloud.clusterId=some-cluster")
-        .run(
-            context -> {
-              assertThat(context).hasNotFailed();
-              assertThat(context).doesNotHaveBean(SecretProvider.class);
-            });
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).doesNotHaveBean(SecretProvider.class);
+        });
   }
 }

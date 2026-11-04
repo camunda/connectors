@@ -110,7 +110,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -139,7 +139,7 @@ class WebhookControllerTestZeebeTest {
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
         .thenReturn(
-            (c) -> new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null, 201));
+            c -> new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null, 201));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -150,7 +150,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -181,7 +181,7 @@ class WebhookControllerTestZeebeTest {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn((WebhookResultContext) -> new WebhookHttpResponse(Map.of(), null, null));
+        .thenReturn(WebhookResultContext -> new WebhookHttpResponse(Map.of(), null, null));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -196,7 +196,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandlerMock,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -221,7 +221,7 @@ class WebhookControllerTestZeebeTest {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn((WebhookResultContext) -> new WebhookHttpResponse(Map.of(), null, null));
+        .thenReturn(WebhookResultContext -> new WebhookHttpResponse(Map.of(), null, null));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -236,7 +236,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandlerMock,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -261,7 +261,7 @@ class WebhookControllerTestZeebeTest {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn((WebhookResultContext) -> WebhookHttpResponse.ok(Map.of()));
+        .thenReturn(WebhookResultContext -> WebhookHttpResponse.ok(Map.of()));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -278,7 +278,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandlerMock,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -315,7 +315,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -352,7 +352,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDefinition,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -384,7 +384,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -418,7 +418,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -453,7 +453,7 @@ class WebhookControllerTestZeebeTest {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn((c) -> WebhookHttpResponse.ok(Map.of("keyResponse", "valueResponse")));
+        .thenReturn(c -> WebhookHttpResponse.ok(Map.of("keyResponse", "valueResponse")));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -467,7 +467,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -506,7 +506,7 @@ class WebhookControllerTestZeebeTest {
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(c.correlation()));
+    when(webhookResult.response()).thenReturn(c -> WebhookHttpResponse.ok(c.correlation()));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -517,7 +517,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandlerMock,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -552,7 +552,7 @@ class WebhookControllerTestZeebeTest {
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(null));
+    when(webhookResult.response()).thenReturn(c -> WebhookHttpResponse.ok(null));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -563,7 +563,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandlerMock,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -599,7 +599,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -636,7 +636,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -674,7 +674,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -728,7 +728,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -766,7 +766,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -804,7 +804,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);
@@ -842,7 +842,7 @@ class WebhookControllerTestZeebeTest {
             v -> {},
             webhookDef,
             correlationHandler,
-            (e) -> {},
+            e -> {},
             mapper,
             activityLogRegistry,
             camundaClient);

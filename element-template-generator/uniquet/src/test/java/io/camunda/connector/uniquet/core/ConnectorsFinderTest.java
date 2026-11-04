@@ -50,11 +50,10 @@ class ConnectorsFinderTest {
         ConnectorsFinder.create(Path.of("src/test/resources"), null);
     List<Connector> connectors = connectorsFinder.getAllConnectors();
     assertEquals(2, connectors.size());
-    connectors.forEach(
-        c -> {
-          assertTrue(c.currentElementTemplate().getName().endsWith(".json"));
-          c.versionedElementTemplate().forEach(v -> assertTrue(v.getName().endsWith(".json")));
-        });
+    connectors.forEach(c -> {
+      assertTrue(c.currentElementTemplate().getName().endsWith(".json"));
+      c.versionedElementTemplate().forEach(v -> assertTrue(v.getName().endsWith(".json")));
+    });
   }
 
   @Test

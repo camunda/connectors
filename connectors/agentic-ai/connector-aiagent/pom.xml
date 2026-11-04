@@ -19,7 +19,7 @@
 
   <properties>
     <version.anthropic-java>2.75.0</version.anthropic-java>
-    <version.openai-java>4.94.0</version.openai-java>
+    <version.openai-java>4.96.0</version.openai-java>
     <!-- Per-template-id default system prompt deviations, one "templateId=file" tuple per line.
          A template whose id has no entry here keeps the generator's own default
          (PromptConfiguration.DEFAULT_SYSTEM_PROMPT). Today this holds only the v1 deviation: the
@@ -688,6 +688,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -730,6 +734,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
                 </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
+                </property>
               </properties>
             </configuration>
           </execution>
@@ -759,6 +767,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>
@@ -793,6 +805,10 @@ ${project.basedir}/element-templates/hybrid/agenticai-ai-agent-task.v2-hybrid.js
                 <property>
                   <name>systemPromptOverrides</name>
                   <value>${systemPromptOverrides}</value>
+                </property>
+                <property>
+                  <name>moveOpenAiEffortAfterModel</name>
+                  <value>true</value>
                 </property>
               </properties>
             </configuration>

@@ -127,15 +127,13 @@ class SelfManagedApiSecurityAutoConfigurationTest {
               "camunda.connector.configuration.validation.unsecured=true",
               "camunda.connector.auth.self-managed.issuer=https://issuer.example.com",
               "camunda.connector.auth.self-managed.audience=" + AUDIENCE)
-          .run(
-              context ->
-                  assertThat(context)
-                      .hasFailed()
-                      .getFailure()
-                      .rootCause()
-                      .isInstanceOf(IllegalStateException.class)
-                      .hasMessageContaining(
-                          "camunda.connector.configuration.validation.unsecured"));
+          .run(context ->
+              assertThat(context)
+                  .hasFailed()
+                  .getFailure()
+                  .rootCause()
+                  .isInstanceOf(IllegalStateException.class)
+                  .hasMessageContaining("camunda.connector.configuration.validation.unsecured"));
     }
   }
 
@@ -241,14 +239,13 @@ class SelfManagedApiSecurityAutoConfigurationTest {
       new WebApplicationContextRunner()
           .withUserConfiguration(SelfManagedApiSecurityAutoConfiguration.class)
           .withPropertyValues("camunda.connector.auth.self-managed.issuer=" + OIDC_SERVER.issuer())
-          .run(
-              context ->
-                  assertThat(context)
-                      .hasFailed()
-                      .getFailure()
-                      .rootCause()
-                      .isInstanceOf(IllegalStateException.class)
-                      .hasMessageContaining("camunda.connector.auth.self-managed.audience"));
+          .run(context ->
+              assertThat(context)
+                  .hasFailed()
+                  .getFailure()
+                  .rootCause()
+                  .isInstanceOf(IllegalStateException.class)
+                  .hasMessageContaining("camunda.connector.auth.self-managed.audience"));
     }
   }
 
@@ -270,9 +267,8 @@ class SelfManagedApiSecurityAutoConfigurationTest {
               "camunda.client.mode=saas",
               "camunda.connector.auth.self-managed.issuer=" + OIDC_SERVER.issuer(),
               "camunda.connector.auth.self-managed.audience=" + AUDIENCE)
-          .run(
-              context ->
-                  assertThat(context).hasBean("selfManagedConfigurationValidationFilterChain"));
+          .run(context ->
+              assertThat(context).hasBean("selfManagedConfigurationValidationFilterChain"));
     }
   }
 

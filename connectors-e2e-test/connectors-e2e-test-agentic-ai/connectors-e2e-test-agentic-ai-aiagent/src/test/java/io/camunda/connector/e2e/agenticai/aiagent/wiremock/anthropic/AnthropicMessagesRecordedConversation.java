@@ -149,17 +149,16 @@ public final class AnthropicMessagesRecordedConversation {
 
       if ("user".equals(role) && isToolResultMessage) {
         final List<RecordedMessage> toolResults = new ArrayList<>();
-        content.forEach(
-            block -> {
-              if ("tool_result".equals(block.path("type").asText())) {
-                toolResults.add(
-                    new RecordedMessage(
-                        "tool",
-                        List.of(new ContentBlock("text", toolResultText(block.path("content")))),
-                        List.of(),
-                        block.path("tool_use_id").asText()));
-              }
-            });
+        content.forEach(block -> {
+          if ("tool_result".equals(block.path("type").asText())) {
+            toolResults.add(
+                new RecordedMessage(
+                    "tool",
+                    List.of(new ContentBlock("text", toolResultText(block.path("content")))),
+                    List.of(),
+                    block.path("tool_use_id").asText()));
+          }
+        });
         return toolResults;
       }
 
@@ -167,23 +166,21 @@ public final class AnthropicMessagesRecordedConversation {
       final var contentParts =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> !"tool_use".equals(block.path("type").asText()))
-              .map(
-                  block -> {
-                    final var kind = block.path("type").asText();
-                    return new ContentBlock(
-                        kind, "text".equals(kind) ? block.path("text").asText() : null);
-                  })
+              .map(block -> {
+                final var kind = block.path("type").asText();
+                return new ContentBlock(
+                    kind, "text".equals(kind) ? block.path("text").asText() : null);
+              })
               .toList();
 
       final var toolCalls =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> "tool_use".equals(block.path("type").asText()))
-              .map(
-                  block ->
-                      new RecordedToolCall(
-                          block.path("id").asText(),
-                          block.path("name").asText(),
-                          block.path("input").toString()))
+              .map(block ->
+                  new RecordedToolCall(
+                      block.path("id").asText(),
+                      block.path("name").asText(),
+                      block.path("input").toString()))
               .toList();
 
       return List.of(new RecordedMessage(role, contentParts, toolCalls, null));

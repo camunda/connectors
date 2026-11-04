@@ -101,17 +101,16 @@ class AgentSubProcessMistralReasoningTests extends BaseMistralSubProcessTest {
             AgentSubProcessResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasResponseText(responseText)
-                .hasResponseMessageSatisfying(
-                    message ->
-                        assertThat(message.content())
-                            .as("assistant content")
-                            .containsExactly(
-                                new ReasoningContent(
-                                    "mistral",
-                                    Map.of("type", "thinking", "closed", true),
-                                    reasoningText,
-                                    null),
-                                TextContent.textContent(responseText))));
+                .hasResponseMessageSatisfying(message ->
+                    assertThat(message.content())
+                        .as("assistant content")
+                        .containsExactly(
+                            new ReasoningContent(
+                                "mistral",
+                                Map.of("type", "thinking", "closed", true),
+                                reasoningText,
+                                null),
+                            TextContent.textContent(responseText))));
   }
 
   // ---------------------------------------------------------------------------
@@ -166,12 +165,11 @@ class AgentSubProcessMistralReasoningTests extends BaseMistralSubProcessTest {
     final List<JsonNode> assistantMessages = new ArrayList<>();
     request
         .path("messages")
-        .forEach(
-            message -> {
-              if ("assistant".equals(message.path("role").asText()) && message.has("content")) {
-                assistantMessages.add(message);
-              }
-            });
+        .forEach(message -> {
+          if ("assistant".equals(message.path("role").asText()) && message.has("content")) {
+            assistantMessages.add(message);
+          }
+        });
     assertThat(assistantMessages)
         .as("assistant messages with content in the replayed conversation")
         .hasSize(1);

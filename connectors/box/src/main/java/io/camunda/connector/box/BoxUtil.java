@@ -25,13 +25,12 @@ public class BoxUtil {
 
   public static String getItemId(String path, BoxClient client) {
     return findItemId(path, client)
-        .orElseThrow(
-            () ->
-                new ConnectorException(
-                    "ITEM_NOT_FOUND",
-                    "Could not find item '"
-                        + path
-                        + "'. Paths must start with '/' (e.g. /Invoices/2026), or be a Box item ID."));
+        .orElseThrow(() ->
+            new ConnectorException(
+                "ITEM_NOT_FOUND",
+                "Could not find item '"
+                    + path
+                    + "'. Paths must start with '/' (e.g. /Invoices/2026), or be a Box item ID."));
   }
 
   public static Optional<String> findItemId(String path, BoxClient client) {
@@ -50,11 +49,10 @@ public class BoxUtil {
       String folderId, BoxPath.Segments segments, BoxClient client) {
     String segment = segments.segments().getFirst();
     return findChildIdByName(folderId, segment, client)
-        .flatMap(
-            childId ->
-                segments.isPathEnd()
-                    ? Optional.of(childId)
-                    : findItemIdInTree(childId, segments.withoutFirstSegment(), client));
+        .flatMap(childId ->
+            segments.isPathEnd()
+                ? Optional.of(childId)
+                : findItemIdInTree(childId, segments.withoutFirstSegment(), client));
   }
 
   private static Optional<String> findChildIdByName(

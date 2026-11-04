@@ -20,9 +20,8 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
   public McpClientGetPromptResult convertStorableMcpResultData(DocumentFactory documentFactory) {
     var messagesWithDocumentReferences =
         messages.stream()
-            .map(
-                promptMessage ->
-                    replaceContentWithDocumentReferenceIfNeeded(documentFactory, promptMessage))
+            .map(promptMessage ->
+                replaceContentWithDocumentReferenceIfNeeded(documentFactory, promptMessage))
             .toList();
 
     return new McpClientGetPromptResult(this.description, messagesWithDocumentReferences);

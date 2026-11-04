@@ -205,10 +205,9 @@ public class BoxOperations {
             sort -> queryParams.sort = new EnumWrapper<SearchForContentQueryParamsSortField>(sort));
     Optional.ofNullable(search.sortDirection())
         .map(BoxRequest.Operation.Search.SortDirection::getValue)
-        .ifPresent(
-            direction ->
-                queryParams.direction =
-                    new EnumWrapper<SearchForContentQueryParamsDirectionField>(direction));
+        .ifPresent(direction ->
+            queryParams.direction =
+                new EnumWrapper<SearchForContentQueryParamsDirectionField>(direction));
     var items =
         client.search.searchForContent(queryParams).getSearchResults().getEntries().stream()
             .map(entry -> new BoxResult.Item(entry.getId(), entry.getType()))

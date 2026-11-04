@@ -34,25 +34,22 @@ public class AzureHttpProxySupport {
   public Optional<ProxyOptions> proxyOptions(String scheme) {
     return proxyConfiguration
         .getProxyDetails(scheme)
-        .map(
-            proxyDetails -> {
-              LOG.debug(
-                  "Using proxy for target scheme [{}] => [{}:{}]",
-                  scheme,
-                  proxyDetails.host(),
-                  proxyDetails.port());
-              final var options =
-                  new ProxyOptions(
-                      ProxyOptions.Type.HTTP,
-                      new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              options.setNonProxyHosts(
-                  NonProxyHosts.getNonProxyHostsPatterns()
-                      .distinct()
-                      .collect(Collectors.joining("|")));
-              if (proxyDetails.hasCredentials()) {
-                options.setCredentials(proxyDetails.user(), proxyDetails.password());
-              }
-              return options;
-            });
+        .map(proxyDetails -> {
+          LOG.debug(
+              "Using proxy for target scheme [{}] => [{}:{}]",
+              scheme,
+              proxyDetails.host(),
+              proxyDetails.port());
+          final var options =
+              new ProxyOptions(
+                  ProxyOptions.Type.HTTP,
+                  new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+          options.setNonProxyHosts(
+              NonProxyHosts.getNonProxyHostsPatterns().distinct().collect(Collectors.joining("|")));
+          if (proxyDetails.hasCredentials()) {
+            options.setCredentials(proxyDetails.user(), proxyDetails.password());
+          }
+          return options;
+        });
   }
 }

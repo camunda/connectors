@@ -136,13 +136,12 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
         configuredEndpoint(backend).map(endpoint -> URI.create(endpoint).getScheme()).orElse(null);
     httpProxySupport
         .okHttpProxy(scheme != null ? scheme : ProxyConfiguration.SCHEME_HTTPS)
-        .ifPresent(
-            p -> {
-              builder.proxy(p.proxy());
-              if (p.hasCredentials()) {
-                builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
-              }
-            });
+        .ifPresent(p -> {
+          builder.proxy(p.proxy());
+          if (p.hasCredentials()) {
+            builder.proxyAuthenticator(ProxyAuthenticator.basic(p.username(), p.password()));
+          }
+        });
     return builder.build();
   }
 
@@ -175,15 +174,14 @@ public class OpenAiChatModelFactory implements ChatModelFactory {
       case ApiKeyAuthentication apiKeyAuth -> builder.apiKey(apiKeyAuth.apiKey());
       case OAuthClientCredentialsAuthentication oauth ->
           builder.credential(
-              BearerTokenCredential.create(
-                  () ->
-                      oAuthClientCredentialsTokenResolver.resolveAccessToken(
-                          oauth.oauthTokenEndpoint(),
-                          oauth.clientId(),
-                          oauth.clientSecret(),
-                          oauth.audience(),
-                          oauth.clientAuthentication().oauthConstant(),
-                          oauth.scopes())));
+              BearerTokenCredential.create(() ->
+                  oAuthClientCredentialsTokenResolver.resolveAccessToken(
+                      oauth.oauthTokenEndpoint(),
+                      oauth.clientId(),
+                      oauth.clientSecret(),
+                      oauth.audience(),
+                      oauth.clientAuthentication().oauthConstant(),
+                      oauth.scopes())));
     }
   }
 

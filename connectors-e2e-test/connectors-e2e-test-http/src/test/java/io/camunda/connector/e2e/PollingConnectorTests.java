@@ -159,14 +159,13 @@ public class PollingConnectorTests {
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptionsMatching(
             e -> e instanceof ProblemException && e.getMessage().contains("404"))
-        .until(
-            () ->
-                camundaClient
-                        .newEvaluateExpressionCommand()
-                        .expression("=camunda.vars.env." + variableName)
-                        .send()
-                        .join()
-                        .getResult()
-                    != null);
+        .until(() ->
+            camundaClient
+                    .newEvaluateExpressionCommand()
+                    .expression("=camunda.vars.env." + variableName)
+                    .send()
+                    .join()
+                    .getResult()
+                != null);
   }
 }

@@ -23,15 +23,15 @@ class SlackWebhookPropertiesCredentialTest {
 
   private static String properties(String slackCredential, String slackSigningSecret) {
     return """
-        {
-          "inbound": {
-            "context": "slackTest",
-            %s
-            %s
-            "verificationExpression": null
-          }
-        }
-        """
+    {
+      "inbound": {
+        "context": "slackTest",
+        %s
+        %s
+        "verificationExpression": null
+      }
+    }
+    """
         .formatted(slackCredential, slackSigningSecret);
   }
 

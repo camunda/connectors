@@ -331,12 +331,11 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(document);
-              assertThat(conversation.previousDocuments()).isEmpty();
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(document);
+          assertThat(conversation.previousDocuments()).isEmpty();
+        });
 
     final var creationRequest = documentCreationRequestCaptor.getValue();
     assertDocumentCreationRequest(creationRequest, updatedAgentContext);
@@ -380,12 +379,11 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments()).containsExactly(previousDocument);
+        });
 
     final var expectedMessages = new ArrayList<>(TEST_MESSAGES);
     expectedMessages.add(userMessage);
@@ -442,18 +440,16 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments())
-                  .containsExactlyElementsOf(expectedPreviousDocuments);
-            });
-
-    expectedDeletedDocuments.forEach(
-        reference -> {
-          verify(documentStore).deleteDocument(reference);
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments())
+              .containsExactlyElementsOf(expectedPreviousDocuments);
         });
+
+    expectedDeletedDocuments.forEach(reference -> {
+      verify(documentStore).deleteDocument(reference);
+    });
   }
 
   @Test
@@ -494,16 +490,15 @@ class CamundaDocumentConversationStoreTest {
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
-        .satisfies(
-            conversation -> {
-              assertThat(conversation.conversationId()).isNotEmpty();
-              assertThat(conversation.document()).isEqualTo(newDocument);
-              assertThat(conversation.previousDocuments())
-                  .containsExactly(
-                      previousDocuments.get(0), // this failed to be purged
-                      previousDocuments.get(2),
-                      previousDocument);
-            });
+        .satisfies(conversation -> {
+          assertThat(conversation.conversationId()).isNotEmpty();
+          assertThat(conversation.document()).isEqualTo(newDocument);
+          assertThat(conversation.previousDocuments())
+              .containsExactly(
+                  previousDocuments.get(0), // this failed to be purged
+                  previousDocuments.get(2),
+                  previousDocument);
+        });
   }
 
   @Test

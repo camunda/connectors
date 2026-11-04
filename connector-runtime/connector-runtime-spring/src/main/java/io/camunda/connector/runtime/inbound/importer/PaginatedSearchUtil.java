@@ -50,9 +50,8 @@ final class PaginatedSearchUtil {
               String cursor = page.page().endCursor();
               return isNotBlank(cursor) ? pageFetcher.apply(cursor) : null;
             })
-        .peek(
-            page ->
-                LOG.trace("A page of size {} has been fetched, continuing...", page.items().size()))
+        .peek(page ->
+            LOG.trace("A page of size {} has been fetched, continuing...", page.items().size()))
         .flatMap(page -> page.items().stream());
   }
 }

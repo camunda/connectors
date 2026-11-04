@@ -104,10 +104,8 @@ public final class PhysicalTenantClients {
         camundaClientProvider
             .orderedStream()
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "No CamundaClient configured for '" + beanName + "'"));
+            .orElseThrow(() ->
+                new IllegalStateException("No CamundaClient configured for '" + beanName + "'"));
     LOG.warn(
         "Several CamundaClients are configured and none is designated primary; the single-client "
             + "'{}' bean is bound to the client of physical tenant '{}'. Set "

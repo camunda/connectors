@@ -6,15 +6,20 @@
  */
 package io.camunda.connector.model.embedding.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
@@ -37,7 +42,23 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                   "Specify Azure OpenAI endpoint. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
-      @Valid @NotNull AzureAuthentication authentication,
+      // Declared before the inline authentication it gates below.
+      @FEEL
+          @Valid
+          @TemplateProperty(
+              group = "embeddingModel",
+              label = "Azure OpenAI credential",
+              type = TemplateProperty.PropertyType.Configuration,
+              optional = true,
+              description =
+                  "Choose a reusable Azure OpenAI credential, or configure one-time authentication below.")
+          AzureOpenAiEmbeddingCredential azureOpenAiCredential,
+      @NestedProperties(
+              condition =
+                  @PropertyCondition(
+                      property = "embeddingModelProvider.azureOpenAi.azureOpenAiCredential",
+                      isEmpty = NullableBoolean.TRUE))
+          AzureAuthentication authentication,
       @NotBlank
           @TemplateProperty(
               group = "embeddingModel",
@@ -72,7 +93,33 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
               description = "Map of custom HTTP headers to add to the request.",
               feel = FeelMode.required,
               optional = true)
-          Map<String, String> customHeaders) {}
+          Map<String, String> customHeaders) {
+
+    /** The bound credential's authentication takes precedence; the inline value is the fallback. */
+    @Override
+    public AzureAuthentication authentication() {
+      return azureOpenAiCredential != null
+          ? azureOpenAiCredential.authentication()
+          : authentication;
+    }
+
+    @AssertTrue(message = "No authentication provided by the credential or the element template")
+    @JsonIgnore
+    public boolean isAuthenticationPresent() {
+      return authentication() != null;
+    }
+
+    /**
+     * Validates the inline authentication only when no credential is bound. When a credential is
+     * bound it is the effective source, and the inline value is irrelevant - including a leftover
+     * discriminator Modeler emits unconditionally with its secret subfields hidden.
+     */
+    @Valid
+    @JsonIgnore
+    public AzureAuthentication getInlineAuthenticationWhenNoCredentialBound() {
+      return azureOpenAiCredential != null ? null : authentication;
+    }
+  }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
@@ -94,6 +141,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
     record AzureApiKeyAuthentication(
         @NotBlank
             @TemplateProperty(
+                secret = true,
                 group = "embeddingModel",
                 label = "API key",
                 type = TemplateProperty.PropertyType.String,
@@ -121,6 +169,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
             String clientId,
         @NotBlank
             @TemplateProperty(
+                secret = true,
                 group = "embeddingModel",
                 label = "Client secret",
                 description = "Secret of a Microsoft Entra application",

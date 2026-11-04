@@ -35,21 +35,20 @@ public class BoxAuthenticationTest {
 
   private NetworkSession recordingSession() {
     return new NetworkSession()
-        .withNetworkClient(
-            options -> {
-              requests.add(options);
-              if (options.getUrl().endsWith("/oauth2/token")) {
-                return new FetchResponse.Builder(200, Map.of())
-                    .data(
-                        MAPPER
-                            .createObjectNode()
-                            .put("access_token", "token")
-                            .put("expires_in", 3600)
-                            .put("token_type", "bearer"))
-                    .build();
-              }
-              throw new IllegalStateException("unexpected request: " + options.getUrl());
-            });
+        .withNetworkClient(options -> {
+          requests.add(options);
+          if (options.getUrl().endsWith("/oauth2/token")) {
+            return new FetchResponse.Builder(200, Map.of())
+                .data(
+                    MAPPER
+                        .createObjectNode()
+                        .put("access_token", "token")
+                        .put("expires_in", 3600)
+                        .put("token_type", "bearer"))
+                .build();
+          }
+          throw new IllegalStateException("unexpected request: " + options.getUrl());
+        });
   }
 
   private FetchOptions tokenRequestFor(Authentication authentication) {

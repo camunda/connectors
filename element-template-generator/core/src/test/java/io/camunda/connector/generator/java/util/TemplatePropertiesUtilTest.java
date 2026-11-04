@@ -60,12 +60,11 @@ public class TemplatePropertiesUtilTest {
 
     assertThat(properties)
         .singleElement()
-        .satisfies(
-            property -> {
-              assertThat(property.getId()).isEqualTo("nested.clientId");
-              assertThat(property.getBinding())
-                  .isEqualTo(new ConfigurationTemplateProperty("clientId"));
-            });
+        .satisfies(property -> {
+          assertThat(property.getId()).isEqualTo("nested.clientId");
+          assertThat(property.getBinding())
+              .isEqualTo(new ConfigurationTemplateProperty("clientId"));
+        });
   }
 
   @Test
@@ -76,11 +75,10 @@ public class TemplatePropertiesUtilTest {
 
     assertThat(properties)
         .singleElement()
-        .satisfies(
-            property -> {
-              assertThat(property.getId()).isEqualTo("nested.clientId");
-              assertThat(property.getBinding())
-                  .isEqualTo(new ConfigurationTemplateProperty("clientId"));
-            });
+        .satisfies(property -> {
+          assertThat(property.getId()).isEqualTo("nested.clientId");
+          assertThat(property.getBinding())
+              .isEqualTo(new ConfigurationTemplateProperty("clientId"));
+        });
   }
 }

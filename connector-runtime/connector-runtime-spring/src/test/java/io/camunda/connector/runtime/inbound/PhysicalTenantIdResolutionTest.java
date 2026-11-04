@@ -137,10 +137,9 @@ class PhysicalTenantIdResolutionTest {
         .thenThrow(
             new IllegalArgumentException("No CamundaClient configured under name 'default'"));
 
-    assertThatThrownBy(
-            () ->
-                configuration.searchQueryClientsByPhysicalTenantId(
-                    registry, clientProvider(), null, 200))
+    assertThatThrownBy(() ->
+            configuration.searchQueryClientsByPhysicalTenantId(
+                registry, clientProvider(), null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("default");
   }
@@ -154,10 +153,9 @@ class PhysicalTenantIdResolutionTest {
     when(registry.get("engine-a")).thenReturn(clientA);
     when(registry.get("engine-b")).thenReturn(clientB);
 
-    assertThatThrownBy(
-            () ->
-                configuration.searchQueryClientsByPhysicalTenantId(
-                    registry, clientProvider(), null, 200))
+    assertThatThrownBy(() ->
+            configuration.searchQueryClientsByPhysicalTenantId(
+                registry, clientProvider(), null, 200))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("same physical tenant ID");
   }

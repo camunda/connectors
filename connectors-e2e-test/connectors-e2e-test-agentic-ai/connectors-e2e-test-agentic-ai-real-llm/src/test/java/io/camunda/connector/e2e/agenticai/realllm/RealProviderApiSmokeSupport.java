@@ -708,11 +708,10 @@ abstract class RealProviderApiSmokeSupport {
             .filter(p -> p.supports(Capability.PROMPT_CACHING))
             // OpenAI and Gemini cache placement is opportunistic, so keep them manual rather than
             // requiring a positive cache hit in the provider-sharded PR workflow.
-            .filter(
-                p ->
-                    (p.providerGroup() != RealLlmProviderGroup.OPENAI
-                            && p.providerGroup() != RealLlmProviderGroup.VERTEX)
-                        || !RealLlmProviderGroup.isShardedRun()),
+            .filter(p ->
+                (p.providerGroup() != RealLlmProviderGroup.OPENAI
+                        && p.providerGroup() != RealLlmProviderGroup.VERTEX)
+                    || !RealLlmProviderGroup.isShardedRun()),
         "prompt-caching");
   }
 
@@ -744,13 +743,12 @@ abstract class RealProviderApiSmokeSupport {
   void mockClassifiedFactTool() {
     processTestContext
         .mockJobWorker(TOOL_JOB_TYPE)
-        .withHandler(
-            (jobClient, job) ->
-                jobClient
-                    .newCompleteCommand(job)
-                    .variable("toolCallResult", PLANTED_SECRET)
-                    .send()
-                    .join());
+        .withHandler((jobClient, job) ->
+            jobClient
+                .newCompleteCommand(job)
+                .variable("toolCallResult", PLANTED_SECRET)
+                .send()
+                .join());
   }
 
   // Helpers
@@ -833,11 +831,10 @@ abstract class RealProviderApiSmokeSupport {
         () ->
             camundaClient
                 .newUserTaskSearchRequest()
-                .filter(
-                    f ->
-                        f.processInstanceKey(instance.getProcessInstanceKey())
-                            .elementId(elementId)
-                            .state(UserTaskState.CREATED))
+                .filter(f ->
+                    f.processInstanceKey(instance.getProcessInstanceKey())
+                        .elementId(elementId)
+                        .state(UserTaskState.CREATED))
                 .send()
                 .join()
                 .items()
@@ -978,10 +975,9 @@ abstract class RealProviderApiSmokeSupport {
   private boolean isCompleted(ProcessInstanceEvent instance) {
     return !camundaClient
         .newProcessInstanceSearchRequest()
-        .filter(
-            f ->
-                f.processInstanceKey(instance.getProcessInstanceKey())
-                    .state(ProcessInstanceState.COMPLETED))
+        .filter(f ->
+            f.processInstanceKey(instance.getProcessInstanceKey())
+                .state(ProcessInstanceState.COMPLETED))
         .send()
         .join()
         .items()

@@ -39,12 +39,8 @@ final class WebhookConnectorValidationUtil {
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;
       connector
           .context()
-          .log(
-              activity ->
-                  activity
-                      .withSeverity(Severity.WARNING)
-                      .withTag(WARNING_TAG)
-                      .withMessage(message));
+          .log(activity ->
+              activity.withSeverity(Severity.WARNING).withTag(WARNING_TAG).withMessage(message));
     }
   }
 }

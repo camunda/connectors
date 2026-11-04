@@ -172,11 +172,10 @@ class InboundWebhookRestControllerTest {
     var webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenAnswer(
-            inv -> {
-              rawBodyCaptor.set(((WebhookProcessingPayload) inv.getArgument(0)).rawBody());
-              return webhookResult;
-            });
+        .thenAnswer(inv -> {
+          rawBodyCaptor.set(((WebhookProcessingPayload) inv.getArgument(0)).rawBody());
+          return webhookResult;
+        });
 
     var correlationHandler = mock(InboundCorrelationHandler.class);
     when(correlationHandler.correlate(anyList(), any()))
@@ -800,10 +799,9 @@ class InboundWebhookRestControllerTest {
 
     assertThat(loggedEvents).isNotEmpty();
     assertThat(loggedEvents)
-        .noneMatch(
-            event ->
-                event.getFormattedMessage().contains("secret leak reason")
-                    || event.getFormattedMessage().contains("SUPER_SECRET_VALUE"));
+        .noneMatch(event ->
+            event.getFormattedMessage().contains("secret leak reason")
+                || event.getFormattedMessage().contains("SUPER_SECRET_VALUE"));
     // getFormattedMessage() excludes an attached throwable, so a regression to
     // LOG.warn("...", e) would still pass the assertion above while the throwable (message and
     // stack trace) carried the secret when actually rendered — assert no event carries one.
@@ -832,14 +830,13 @@ class InboundWebhookRestControllerTest {
     var webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn(
-            ctx -> {
-              throw new RuntimeException(
-                  "Failed to bind element properties to DynamicWebhookPropertiesWrapper using"
-                      + " FEEL evaluation/deserialization (tenantId=<default>)",
-                  new FeelEngineWrapperException(
-                      "secret leak reason", "={{secrets.SUPER_SECRET}}", null));
-            });
+        .thenReturn(ctx -> {
+          throw new RuntimeException(
+              "Failed to bind element properties to DynamicWebhookPropertiesWrapper using"
+                  + " FEEL evaluation/deserialization (tenantId=<default>)",
+              new FeelEngineWrapperException(
+                  "secret leak reason", "={{secrets.SUPER_SECRET}}", null));
+        });
     when(executable.triggerWebhook(any(WebhookProcessingPayload.class))).thenReturn(webhookResult);
 
     var correlationHandler = mock(InboundCorrelationHandler.class);
@@ -880,10 +877,9 @@ class InboundWebhookRestControllerTest {
 
     assertThat(loggedEvents).isNotEmpty();
     assertThat(loggedEvents)
-        .noneMatch(
-            event ->
-                event.getFormattedMessage().contains("secret leak reason")
-                    || event.getFormattedMessage().contains("SUPER_SECRET"));
+        .noneMatch(event ->
+            event.getFormattedMessage().contains("secret leak reason")
+                || event.getFormattedMessage().contains("SUPER_SECRET"));
     assertThat(loggedEvents).noneMatch(event -> event.getThrowableProxy() != null);
 
     assertThat(latestActivity(activityLogRegistry, executableId).message())
@@ -948,10 +944,9 @@ class InboundWebhookRestControllerTest {
 
     assertThat(loggedEvents).isNotEmpty();
     assertThat(loggedEvents)
-        .noneMatch(
-            event ->
-                event.getFormattedMessage().contains("secret leak reason")
-                    || event.getFormattedMessage().contains("SUPER_SECRET"));
+        .noneMatch(event ->
+            event.getFormattedMessage().contains("secret leak reason")
+                || event.getFormattedMessage().contains("SUPER_SECRET"));
     // getFormattedMessage() excludes an attached throwable, so a regression to
     // LOG.warn("...", e) would still pass the assertion above while the throwable (message and
     // stack trace) carried the secret when actually rendered — assert no event carries one.

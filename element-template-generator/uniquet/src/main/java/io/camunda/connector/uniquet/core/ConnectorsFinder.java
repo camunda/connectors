@@ -81,13 +81,12 @@ public class ConnectorsFinder {
     return Arrays.stream(files)
         .filter(f -> f.getName().equals(VERSIONED))
         .findFirst()
-        .map(
-            versionedDirectory ->
-                Arrays.stream(files)
-                    .filter(File::isFile)
-                    .filter(ConnectorsFinder::isJsonFile)
-                    .filter(this::isIgnoredTemplate)
-                    .map(currentFile -> this.mapToConnector(currentFile, versionedDirectory)))
+        .map(versionedDirectory ->
+            Arrays.stream(files)
+                .filter(File::isFile)
+                .filter(ConnectorsFinder::isJsonFile)
+                .filter(this::isIgnoredTemplate)
+                .map(currentFile -> this.mapToConnector(currentFile, versionedDirectory)))
         .orElse(
             Arrays.stream(files)
                 .filter(File::isFile)

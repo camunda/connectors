@@ -36,13 +36,13 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] },
-            { "id": "x", "condition": { "property": "authType", "equals": "pat" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] },
+                { "id": "x", "condition": { "property": "authType", "equals": "pat" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -51,13 +51,13 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] },
-            { "id": "x", "condition": { "property": "authType", "equals": "patt" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] },
+                { "id": "x", "condition": { "property": "authType", "equals": "patt" } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/properties/1/condition/equals");
@@ -69,13 +69,13 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "op", "choices": [{"value":"a"},{"value":"b"}] },
-            { "id": "x", "condition": { "property": "op", "oneOf": ["a", "c", "b", "d"] } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "op", "choices": [{"value":"a"},{"value":"b"}] },
+                { "id": "x", "condition": { "property": "op", "oneOf": ["a", "c", "b", "d"] } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(2);
     assertThat(findings)
@@ -89,17 +89,17 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "p", "choices": [{"value":"a"}] },
-            { "id": "q", "choices": [{"value":"x"}] },
-            { "id": "r", "condition": { "allMatch": [
-              { "property": "p", "equals": "a" },
-              { "property": "q", "equals": "y" }
-            ]}}
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "p", "choices": [{"value":"a"}] },
+                { "id": "q", "choices": [{"value":"x"}] },
+                { "id": "r", "condition": { "allMatch": [
+                  { "property": "p", "equals": "a" },
+                  { "property": "q", "equals": "y" }
+                ]}}
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer())
@@ -111,13 +111,13 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "freeText" },
-            { "id": "x", "condition": { "property": "freeText", "equals": "anything" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "freeText" },
+                { "id": "x", "condition": { "property": "freeText", "equals": "anything" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -126,14 +126,14 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "op", "choices": [{"value":"a"}], "condition": { "property": "g", "equals": "x" } },
-            { "id": "op", "choices": [{"value":"b"}], "condition": { "property": "g", "equals": "y" } },
-            { "id": "z", "condition": { "property": "op", "equals": "b" } }
-          ]
-        }
-        """);
+            {
+              "properties": [
+                { "id": "op", "choices": [{"value":"a"}], "condition": { "property": "g", "equals": "x" } },
+                { "id": "op", "choices": [{"value":"b"}], "condition": { "property": "g", "equals": "y" } },
+                { "id": "z", "condition": { "property": "op", "equals": "b" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).extracting(Finding::ruleId).doesNotContain(rule.id());
   }
 
@@ -147,20 +147,20 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
-          ],
-          "configurationTemplates": [
             {
               "properties": [
-                { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
-                { "id": "x", "condition": { "property": "authType", "equals": "basic" } }
+                { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
+              ],
+              "configurationTemplates": [
+                {
+                  "properties": [
+                    { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
+                    { "id": "x", "condition": { "property": "authType", "equals": "basic" } }
+                  ]
+                }
               ]
             }
-          ]
-        }
-        """);
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -169,20 +169,20 @@ class ConditionValueInChoicesRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "properties": [
-            { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
-          ],
-          "configurationTemplates": [
             {
               "properties": [
-                { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
-                { "id": "x", "condition": { "property": "authType", "equals": "pat" } }
+                { "id": "authType", "choices": [{"value":"pat"},{"value":"oauth"}] }
+              ],
+              "configurationTemplates": [
+                {
+                  "properties": [
+                    { "id": "authType", "choices": [{"value":"basic"},{"value":"bearer"}] },
+                    { "id": "x", "condition": { "property": "authType", "equals": "pat" } }
+                  ]
+                }
               ]
             }
-          ]
-        }
-        """);
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer())

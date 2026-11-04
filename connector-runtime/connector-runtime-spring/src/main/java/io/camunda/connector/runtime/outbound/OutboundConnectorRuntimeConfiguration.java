@@ -144,12 +144,11 @@ public class OutboundConnectorRuntimeConfiguration {
       ConfigurableListableBeanFactory beanFactory) {
     this.beanFactory = beanFactory;
     return Arrays.stream(beanFactory.getBeanNamesForType(OutboundConnectorFunction.class))
-        .map(
-            name -> {
-              var type = resolveConcreteType(beanFactory, name, OutboundConnectorFunction.class);
-              return new DefaultOutboundConnectorFactory.FunctionRegistration(
-                  type, () -> resolveFreshInstance(beanFactory, name, type));
-            })
+        .map(name -> {
+          var type = resolveConcreteType(beanFactory, name, OutboundConnectorFunction.class);
+          return new DefaultOutboundConnectorFactory.FunctionRegistration(
+              type, () -> resolveFreshInstance(beanFactory, name, type));
+        })
         .toList();
   }
 
@@ -158,12 +157,11 @@ public class OutboundConnectorRuntimeConfiguration {
       ConfigurableListableBeanFactory beanFactory) {
     this.beanFactory = beanFactory;
     return Arrays.stream(beanFactory.getBeanNamesForType(OutboundConnectorProvider.class))
-        .map(
-            name -> {
-              var type = resolveConcreteType(beanFactory, name, OutboundConnectorProvider.class);
-              return new DefaultOutboundConnectorFactory.ProviderRegistration(
-                  type, () -> resolveFreshInstance(beanFactory, name, type));
-            })
+        .map(name -> {
+          var type = resolveConcreteType(beanFactory, name, OutboundConnectorProvider.class);
+          return new DefaultOutboundConnectorFactory.ProviderRegistration(
+              type, () -> resolveFreshInstance(beanFactory, name, type));
+        })
         .toList();
   }
 
@@ -574,11 +572,10 @@ public class OutboundConnectorRuntimeConfiguration {
     // recompute the same physical tenant ID a second time inside the value-mapper) and reused as
     // both the map key and the cache's own id.
     return clientNames(registry, legacyCamundaClient).stream()
-        .map(
-            name ->
-                Map.entry(
-                    resolvePhysicalTenantId(registry, name, legacyCamundaClient),
-                    resolveClient(registry, name, legacyCamundaClient)))
+        .map(name ->
+            Map.entry(
+                resolvePhysicalTenantId(registry, name, legacyCamundaClient),
+                resolveClient(registry, name, legacyCamundaClient)))
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey,

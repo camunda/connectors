@@ -200,17 +200,16 @@ public class MessageTenantIdTests {
         .pollInSameThread()
         .await()
         .atMost(Duration.ofSeconds(15))
-        .untilAsserted(
-            () ->
-                org.assertj.core.api.Assertions.assertThat(
-                        camundaClient
-                            .newMessageSubscriptionSearchRequest()
-                            .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
-                            .send()
-                            .join()
-                            .items())
-                    .extracting(MessageSubscription::getMessageSubscriptionState)
-                    .containsExactly(MessageSubscriptionState.CREATED));
+        .untilAsserted(() ->
+            org.assertj.core.api.Assertions.assertThat(
+                    camundaClient
+                        .newMessageSubscriptionSearchRequest()
+                        .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
+                        .send()
+                        .join()
+                        .items())
+                .extracting(MessageSubscription::getMessageSubscriptionState)
+                .containsExactly(MessageSubscriptionState.CREATED));
   }
 
   /** Runs the send task in the default tenant, so only the {@code tenantId} input differs. */
@@ -246,20 +245,18 @@ public class MessageTenantIdTests {
         .pollInSameThread()
         .await()
         .atMost(Duration.ofSeconds(15))
-        .untilAsserted(
-            () ->
-                org.assertj.core.api.Assertions.assertThat(
-                        camundaClient
-                            .newIncidentSearchRequest()
-                            .filter(f -> f.processInstanceKey(sender.getProcessInstanceKey()))
-                            .send()
-                            .join()
-                            .items())
-                    .extracting(Incident::getErrorMessage)
-                    .anySatisfy(
-                        message ->
-                            org.assertj.core.api.Assertions.assertThat(message)
-                                .contains("code " + statusCode)));
+        .untilAsserted(() ->
+            org.assertj.core.api.Assertions.assertThat(
+                    camundaClient
+                        .newIncidentSearchRequest()
+                        .filter(f -> f.processInstanceKey(sender.getProcessInstanceKey()))
+                        .send()
+                        .join()
+                        .items())
+                .extracting(Incident::getErrorMessage)
+                .anySatisfy(message ->
+                    org.assertj.core.api.Assertions.assertThat(message)
+                        .contains("code " + statusCode)));
   }
 
   private void assertStaysActive(ProcessInstanceEvent instance) {
@@ -282,46 +279,43 @@ public class MessageTenantIdTests {
         .await()
         .during(Duration.ofSeconds(3))
         .atMost(Duration.ofSeconds(15))
-        .untilAsserted(
-            () -> {
-              for (var receiver : receivers) {
-                var subscriptions =
-                    camundaClient
-                        .newMessageSubscriptionSearchRequest()
-                        .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
-                        .send()
-                        .join()
-                        .items();
-                org.assertj.core.api.Assertions.assertThat(subscriptions)
-                    .extracting(MessageSubscription::getMessageSubscriptionState)
-                    .containsExactly(MessageSubscriptionState.CREATED);
-              }
-              var correlations =
-                  camundaClient
-                      .newCorrelatedMessageSubscriptionSearchRequest()
-                      .filter(f -> f.messageName(MESSAGE_NAME))
-                      .send()
-                      .join()
-                      .items();
-              org.assertj.core.api.Assertions.assertThat(correlations).isEmpty();
-            });
+        .untilAsserted(() -> {
+          for (var receiver : receivers) {
+            var subscriptions =
+                camundaClient
+                    .newMessageSubscriptionSearchRequest()
+                    .filter(f -> f.processInstanceKey(receiver.getProcessInstanceKey()))
+                    .send()
+                    .join()
+                    .items();
+            org.assertj.core.api.Assertions.assertThat(subscriptions)
+                .extracting(MessageSubscription::getMessageSubscriptionState)
+                .containsExactly(MessageSubscriptionState.CREATED);
+          }
+          var correlations =
+              camundaClient
+                  .newCorrelatedMessageSubscriptionSearchRequest()
+                  .filter(f -> f.messageName(MESSAGE_NAME))
+                  .send()
+                  .join()
+                  .items();
+          org.assertj.core.api.Assertions.assertThat(correlations).isEmpty();
+        });
   }
 
   private void createTenant(String tenantId) {
-    ignoringConflict(
-        () ->
-            camundaClient.newCreateTenantCommand().tenantId(tenantId).name(tenantId).send().join());
+    ignoringConflict(() ->
+        camundaClient.newCreateTenantCommand().tenantId(tenantId).name(tenantId).send().join());
   }
 
   private void assignClientUser(String tenantId) {
-    ignoringConflict(
-        () ->
-            camundaClient
-                .newAssignUserToTenantCommand()
-                .username(CLIENT_USER)
-                .tenantId(tenantId)
-                .send()
-                .join());
+    ignoringConflict(() ->
+        camundaClient
+            .newAssignUserToTenantCommand()
+            .username(CLIENT_USER)
+            .tenantId(tenantId)
+            .send()
+            .join());
   }
 
   /** The cluster outlives a single test, so tenants created by an earlier test already exist. */

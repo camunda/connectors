@@ -159,19 +159,17 @@ public final class BedrockConverseRecordedConversation {
 
       if ("user".equals(role) && isToolResultMessage) {
         final List<RecordedMessage> toolResults = new ArrayList<>();
-        content.forEach(
-            block -> {
-              final var toolResult = block.path("toolResult");
-              if (!toolResult.isMissingNode()) {
-                toolResults.add(
-                    new RecordedMessage(
-                        "tool",
-                        List.of(
-                            new ContentBlock("text", toolResultText(toolResult.path("content")))),
-                        List.of(),
-                        toolResult.path("toolUseId").asText()));
-              }
-            });
+        content.forEach(block -> {
+          final var toolResult = block.path("toolResult");
+          if (!toolResult.isMissingNode()) {
+            toolResults.add(
+                new RecordedMessage(
+                    "tool",
+                    List.of(new ContentBlock("text", toolResultText(toolResult.path("content")))),
+                    List.of(),
+                    toolResult.path("toolUseId").asText()));
+          }
+        });
         return toolResults;
       }
 
@@ -181,24 +179,22 @@ public final class BedrockConverseRecordedConversation {
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> block.path("toolUse").isMissingNode())
               .filter(block -> block.path("cachePoint").isMissingNode())
-              .map(
-                  block -> {
-                    final var kind = blockKind(block);
-                    return new ContentBlock(
-                        kind, "text".equals(kind) ? block.path("text").asText() : null);
-                  })
+              .map(block -> {
+                final var kind = blockKind(block);
+                return new ContentBlock(
+                    kind, "text".equals(kind) ? block.path("text").asText() : null);
+              })
               .toList();
 
       final var toolCalls =
           StreamSupport.stream(content.spliterator(), false)
               .filter(block -> !block.path("toolUse").isMissingNode())
               .map(block -> block.path("toolUse"))
-              .map(
-                  toolUse ->
-                      new RecordedToolCall(
-                          toolUse.path("toolUseId").asText(),
-                          toolUse.path("name").asText(),
-                          toolUse.path("input").toString()))
+              .map(toolUse ->
+                  new RecordedToolCall(
+                      toolUse.path("toolUseId").asText(),
+                      toolUse.path("name").asText(),
+                      toolUse.path("input").toString()))
               .toList();
 
       return List.of(new RecordedMessage(role, contentParts, toolCalls, null));

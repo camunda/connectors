@@ -49,11 +49,10 @@ public class JdkProxyAuthenticator extends Authenticator {
     return proxyConfiguration
         .getProxyDetails(protocol)
         .filter(ProxyDetails::hasCredentials)
-        .map(
-            details -> {
-              LOG.debug("Providing proxy authentication for protocol [{}]", protocol);
-              return new PasswordAuthentication(details.user(), details.password().toCharArray());
-            })
+        .map(details -> {
+          LOG.debug("Providing proxy authentication for protocol [{}]", protocol);
+          return new PasswordAuthentication(details.user(), details.password().toCharArray());
+        })
         .orElse(null);
   }
 }

@@ -61,6 +61,17 @@ Enter all necessary fields according to your service specification:
 - **Timestamp timeout in seconds**: Adds a timestamp to the SOAP header, which is valid for the given time in seconds.
 - **Signature parts**: Defines which parts of the SOAP message should be signed. If no signature parts are specified, the SOAP body is signed by default.
 
+### Reusable credential
+
+Instead of the inline fields above, choose a reusable **SOAP credential** in the **Authentication** group. When one is
+chosen, the inline authentication fields are hidden and the credential is used.
+
+A credential holds a **WSS username token** or a **WSS signature (single certificate)**. Not available in a credential:
+
+- **Keystore certificate**: it points at a file mounted into the connector runtime, so it is only available inline.
+- **Signature parts**: a credential cannot hold the FEEL list they need, so the SOAP body is signed by default.
+- **None**: nothing to store.
+
 ## SOAP message
 
 ### SOAP version

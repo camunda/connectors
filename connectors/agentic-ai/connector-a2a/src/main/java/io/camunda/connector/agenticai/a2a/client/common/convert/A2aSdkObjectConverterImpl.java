@@ -63,15 +63,14 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
       return List.of();
     }
     return task.getArtifacts().stream()
-        .map(
-            artifact ->
-                A2aArtifact.builder()
-                    .artifactId(artifact.artifactId())
-                    .name(artifact.name())
-                    .description(artifact.description())
-                    .metadata(artifact.metadata())
-                    .contents(partConverter.convert(artifact.parts()))
-                    .build())
+        .map(artifact ->
+            A2aArtifact.builder()
+                .artifactId(artifact.artifactId())
+                .name(artifact.name())
+                .description(artifact.description())
+                .metadata(artifact.metadata())
+                .contents(partConverter.convert(artifact.parts()))
+                .build())
         .toList();
   }
 

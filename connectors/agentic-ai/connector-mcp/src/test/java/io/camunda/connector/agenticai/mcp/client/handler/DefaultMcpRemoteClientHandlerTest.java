@@ -115,10 +115,8 @@ class DefaultMcpRemoteClientHandlerTest {
     final var exception = new IllegalArgumentException("Failed to create client");
     when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenThrow(exception);
 
-    assertThatThrownBy(
-            () ->
-                handler.handle(
-                    context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(() ->
+            handler.handle(context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
@@ -132,10 +130,8 @@ class DefaultMcpRemoteClientHandlerTest {
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
         .thenThrow(exception);
 
-    assertThatThrownBy(
-            () ->
-                handler.handle(
-                    context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(() ->
+            handler.handle(context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
@@ -168,11 +164,10 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_TOOLS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -198,20 +193,19 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(op.params())
-                                      .containsEntry("name", "test-tool")
-                                      .hasEntrySatisfying(
-                                          "arguments",
-                                          args ->
-                                              assertThat(args)
-                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                                  .containsExactlyEntriesOf(arguments)))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(op.params())
+                                  .containsEntry("name", "test-tool")
+                                  .hasEntrySatisfying(
+                                      "arguments",
+                                      args ->
+                                          assertThat(args)
+                                              .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                              .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -235,11 +229,10 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_TOOLS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -262,22 +255,21 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op -> {
-                                assertThat(op.method()).isEqualTo(CALL_TOOL);
-                                assertThat(op.params())
-                                    .containsEntry("name", "test-tool")
-                                    .hasEntrySatisfying(
-                                        "arguments",
-                                        args ->
-                                            assertThat(args)
-                                                .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                                .containsExactlyEntriesOf(arguments));
-                              })),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op -> {
+                            assertThat(op.method()).isEqualTo(CALL_TOOL);
+                            assertThat(op.params())
+                                .containsEntry("name", "test-tool")
+                                .hasEntrySatisfying(
+                                    "arguments",
+                                    args ->
+                                        assertThat(args)
+                                            .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                            .containsExactlyEntriesOf(arguments));
+                          })),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -299,15 +291,14 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(op.params())
-                                      .containsEntry("name", "test-tool")
-                                      .doesNotContainKey("arguments"))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(op.params())
+                                  .containsEntry("name", "test-tool")
+                                  .doesNotContainKey("arguments"))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -330,11 +321,10 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_RESOURCES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_RESOURCES, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -358,11 +348,10 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -388,17 +377,15 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op ->
-                                  assertThat(operation)
-                                      .returns(READ_RESOURCE, McpClientOperation::method)
-                                      .returns(
-                                          Map.of("uri", "resource-1"),
-                                          McpClientOperation::params))),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op ->
+                              assertThat(operation)
+                                  .returns(READ_RESOURCE, McpClientOperation::method)
+                                  .returns(
+                                      Map.of("uri", "resource-1"), McpClientOperation::params))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -421,11 +408,10 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .returns(LIST_PROMPTS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::params)),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .returns(LIST_PROMPTS, McpClientOperation::method)
+                      .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -456,22 +442,21 @@ class DefaultMcpRemoteClientHandlerTest {
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
-              assertArg(
-                  operation ->
-                      assertThat(operation)
-                          .isInstanceOfSatisfying(
-                              McpClientOperation.McpClientOperationImpl.class,
-                              op -> {
-                                assertThat(op.method()).isEqualTo(GET_PROMPT);
-                                assertThat(op.params())
-                                    .containsEntry("name", "code_review")
-                                    .hasEntrySatisfying(
-                                        "arguments",
-                                        args ->
-                                            assertThat(args)
-                                                .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                                .containsExactlyEntriesOf(arguments));
-                              })),
+              assertArg(operation ->
+                  assertThat(operation)
+                      .isInstanceOfSatisfying(
+                          McpClientOperation.McpClientOperationImpl.class,
+                          op -> {
+                            assertThat(op.method()).isEqualTo(GET_PROMPT);
+                            assertThat(op.params())
+                                .containsEntry("name", "code_review")
+                                .hasEntrySatisfying(
+                                    "arguments",
+                                    args ->
+                                        assertThat(args)
+                                            .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                            .containsExactlyEntriesOf(arguments));
+                          })),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -628,14 +613,12 @@ class DefaultMcpRemoteClientHandlerTest {
   static List<Arguments> mcpOperationArguments() {
     List<Arguments> result = new ArrayList<>();
     transports()
-        .forEach(
-            transport -> {
-              result.add(arguments(transport, Map.of("arg1", "value1", "arg2", 5)));
-              result.add(
-                  arguments(
-                      transport,
-                      Map.of("nested", Map.of("key", "value"), "array", List.of(1, 2, 3))));
-            });
+        .forEach(transport -> {
+          result.add(arguments(transport, Map.of("arg1", "value1", "arg2", 5)));
+          result.add(
+              arguments(
+                  transport, Map.of("nested", Map.of("key", "value"), "array", List.of(1, 2, 3))));
+        });
 
     return result;
   }

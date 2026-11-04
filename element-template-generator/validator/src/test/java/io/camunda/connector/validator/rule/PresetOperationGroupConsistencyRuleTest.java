@@ -37,17 +37,17 @@ class PresetOperationGroupConsistencyRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "operation" }, { "id": "auth" } ],
-          "properties": [
-            { "id": "operationGroup", "group": "operation" },
-            { "id": "creds", "group": "auth" }
-          ],
-          "presets": [
-            { "id": "p", "properties": { "operationGroup": "x" } }
-          ]
-        }
-        """);
+            {
+              "groups": [ { "id": "operation" }, { "id": "auth" } ],
+              "properties": [
+                { "id": "operationGroup", "group": "operation" },
+                { "id": "creds", "group": "auth" }
+              ],
+              "presets": [
+                { "id": "p", "properties": { "operationGroup": "x" } }
+              ]
+            }
+            """);
     assertThat(rule.apply(FILE, template)).isEmpty();
   }
 
@@ -62,17 +62,17 @@ class PresetOperationGroupConsistencyRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "operation" } ],
-          "properties": [
-            { "id": "operationGroup", "group": "operation" },
-            { "id": "creds", "group": "auth" }
-          ],
-          "presets": [
-            { "id": "p", "properties": { "operationGroup": "x", "creds": "y" } }
-          ]
-        }
-        """);
+            {
+              "groups": [ { "id": "operation" } ],
+              "properties": [
+                { "id": "operationGroup", "group": "operation" },
+                { "id": "creds", "group": "auth" }
+              ],
+              "presets": [
+                { "id": "p", "properties": { "operationGroup": "x", "creds": "y" } }
+              ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).message()).contains("creds").contains("operation");
@@ -83,12 +83,12 @@ class PresetOperationGroupConsistencyRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "auth" }, { "id": "operation" } ],
-          "properties": [ { "id": "operationGroup", "group": "operation" } ],
-          "presets": [ { "id": "p", "properties": { "operationGroup": "x" } } ]
-        }
-        """);
+            {
+              "groups": [ { "id": "auth" }, { "id": "operation" } ],
+              "properties": [ { "id": "operationGroup", "group": "operation" } ],
+              "presets": [ { "id": "p", "properties": { "operationGroup": "x" } } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(1);
     assertThat(findings.get(0).jsonPointer()).isEqualTo("/groups/1");
@@ -100,12 +100,12 @@ class PresetOperationGroupConsistencyRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [ { "id": "auth" } ],
-          "properties": [ { "id": "operationGroup", "group": "auth" } ],
-          "presets": [ { "id": "p", "properties": { "operationGroup": "x" } } ]
-        }
-        """);
+            {
+              "groups": [ { "id": "auth" } ],
+              "properties": [ { "id": "operationGroup", "group": "auth" } ],
+              "presets": [ { "id": "p", "properties": { "operationGroup": "x" } } ]
+            }
+            """);
     List<Finding> findings = rule.apply(FILE, template);
     assertThat(findings).hasSize(2);
     assertThat(findings).extracting(Finding::jsonPointer).contains("/groups");
@@ -116,12 +116,12 @@ class PresetOperationGroupConsistencyRuleTest {
     JsonNode template =
         read(
             """
-        {
-          "groups": [],
-          "properties": [ { "id": "x", "group": "wrong" } ],
-          "presets": [ { "id": "p", "properties": { "x": "v" } } ]
-        }
-        """);
+            {
+              "groups": [],
+              "properties": [ { "id": "x", "group": "wrong" } ],
+              "presets": [ { "id": "p", "properties": { "x": "v" } } ]
+            }
+            """);
     assertThat(rule.apply(Path.of("connectors/agentic-ai/element-templates/x.json"), template))
         .isEmpty();
   }

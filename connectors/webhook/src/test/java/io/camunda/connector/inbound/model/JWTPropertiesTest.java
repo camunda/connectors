@@ -29,19 +29,17 @@ public class JWTPropertiesTest {
 
   @Test
   public void rejectsNullAudience() {
-    assertThatThrownBy(
-            () ->
-                new JWTProperties(
-                    "https://mockUrl.com", "https://idp.local", null, null, List.of("admin")))
+    assertThatThrownBy(() ->
+            new JWTProperties(
+                "https://mockUrl.com", "https://idp.local", null, null, List.of("admin")))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
   public void rejectsBlankAudience() {
-    assertThatThrownBy(
-            () ->
-                new JWTProperties(
-                    "https://mockUrl.com", "https://idp.local", "   ", null, List.of("admin")))
+    assertThatThrownBy(() ->
+            new JWTProperties(
+                "https://mockUrl.com", "https://idp.local", "   ", null, List.of("admin")))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }

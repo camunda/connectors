@@ -57,15 +57,14 @@ final class OpenAiCompletionsRecordedChatRequestAdapter implements RecordedChatR
     // flat (type, schemaName, jsonSchema) shape.
     return delegate
         .responseFormat()
-        .map(
-            format -> {
-              final var jsonSchema = format.jsonSchema();
-              final String name = jsonSchema != null ? (String) jsonSchema.get("name") : null;
-              @SuppressWarnings("unchecked")
-              final Map<String, Object> schema =
-                  jsonSchema != null ? (Map<String, Object>) jsonSchema.get("schema") : null;
-              return new RecordedResponseFormat(format.type(), name, schema);
-            });
+        .map(format -> {
+          final var jsonSchema = format.jsonSchema();
+          final String name = jsonSchema != null ? (String) jsonSchema.get("name") : null;
+          @SuppressWarnings("unchecked")
+          final Map<String, Object> schema =
+              jsonSchema != null ? (Map<String, Object>) jsonSchema.get("schema") : null;
+          return new RecordedResponseFormat(format.type(), name, schema);
+        });
   }
 
   private record MessageAdapter(OpenAiCompletionsRecordedConversation.RecordedMessage delegate)
@@ -82,12 +81,11 @@ final class OpenAiCompletionsRecordedChatRequestAdapter implements RecordedChatR
         return List.of(new RecordedContentPart("text", delegate.content()));
       }
       return delegate.contentParts().stream()
-          .map(
-              part -> {
-                final var kind = part.path("type").asText();
-                return new RecordedContentPart(
-                    kind, "text".equals(kind) ? part.path("text").asText() : null);
-              })
+          .map(part -> {
+            final var kind = part.path("type").asText();
+            return new RecordedContentPart(
+                kind, "text".equals(kind) ? part.path("text").asText() : null);
+          })
           .toList();
     }
 

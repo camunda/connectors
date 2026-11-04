@@ -256,14 +256,13 @@ public class SearchQueryClientTest {
 
     // Start multiple instances
     IntStream.range(0, 3)
-        .forEach(
-            i ->
-                camundaClient
-                    .newCreateInstanceCommand()
-                    .bpmnProcessId("paginatedFlowProcess")
-                    .latestVersion()
-                    .send()
-                    .join());
+        .forEach(i ->
+            camundaClient
+                .newCreateInstanceCommand()
+                .bpmnProcessId("paginatedFlowProcess")
+                .latestVersion()
+                .send()
+                .join());
 
     waitForActiveElement(processDefinitionKey, "waitTask");
 
@@ -340,20 +339,19 @@ public class SearchQueryClientTest {
 
   private void createAndDeployProcess(String processId, int versions) {
     IntStream.range(0, versions)
-        .forEach(
-            i -> {
-              BpmnModelInstance modelInstance;
-              modelInstance =
-                  Bpmn.createExecutableProcess(processId)
-                      .startEvent("StartEvent" + i)
-                      .endEvent()
-                      .done();
-              camundaClient
-                  .newDeployResourceCommand()
-                  .addProcessModel(modelInstance, processId + ".bpmn")
-                  .send()
-                  .join();
-            });
+        .forEach(i -> {
+          BpmnModelInstance modelInstance;
+          modelInstance =
+              Bpmn.createExecutableProcess(processId)
+                  .startEvent("StartEvent" + i)
+                  .endEvent()
+                  .done();
+          camundaClient
+              .newDeployResourceCommand()
+              .addProcessModel(modelInstance, processId + ".bpmn")
+              .send()
+              .join();
+        });
   }
 
   private void waitForIndexing(int expectedCount) {
@@ -361,39 +359,35 @@ public class SearchQueryClientTest {
     Awaitility.await("should deploy process definitions and import in ES")
         .atMost(Duration.ofSeconds(15))
         .ignoreExceptions() // Ignore exceptions and continue retrying
-        .untilAsserted(
-            () -> {
-              final var result = camundaClient.newProcessDefinitionSearchRequest().send().join();
-              assertThat(result.items().size()).isEqualTo(expectedCount);
-            });
+        .untilAsserted(() -> {
+          final var result = camundaClient.newProcessDefinitionSearchRequest().send().join();
+          assertThat(result.items().size()).isEqualTo(expectedCount);
+        });
   }
 
   private void waitForMessageSubscription() {
     Awaitility.await("should create message subscription")
         .atMost(Duration.ofSeconds(15))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              final var result = camundaClient.newMessageSubscriptionSearchRequest().send().join();
-              assertThat(result.items()).isNotEmpty();
-            });
+        .untilAsserted(() -> {
+          final var result = camundaClient.newMessageSubscriptionSearchRequest().send().join();
+          assertThat(result.items()).isNotEmpty();
+        });
   }
 
   private void waitForActiveElement(long processDefinitionKey, String elementId) {
     Awaitility.await("should have active element")
         .atMost(Duration.ofSeconds(15))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              final var result =
-                  camundaClient
-                      .newElementInstanceSearchRequest()
-                      .filter(
-                          f -> f.processDefinitionKey(processDefinitionKey).elementId(elementId))
-                      .send()
-                      .join();
-              assertThat(result.items()).isNotEmpty();
-            });
+        .untilAsserted(() -> {
+          final var result =
+              camundaClient
+                  .newElementInstanceSearchRequest()
+                  .filter(f -> f.processDefinitionKey(processDefinitionKey).elementId(elementId))
+                  .send()
+                  .join();
+          assertThat(result.items()).isNotEmpty();
+        });
   }
 
   private void waitForProcessDefinition(long processDefinitionKey) {
