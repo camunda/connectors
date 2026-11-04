@@ -25,9 +25,11 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.PutRetentionPolicyRequest;
@@ -99,6 +101,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private final Map<ScriptLanguage, LambdaExecutor> executors = new EnumMap<>(ScriptLanguage.class);
   private final LambdaClient lambda;
   private final LambdaClient invoker;
+  private final AwsCredentialsProvider credentials;
   private final CloudWatchLogsClient logs;
   private final ObjectMapper mapper;
   private final String prefix;
@@ -114,10 +117,12 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
    * @param lambda the control-plane client, with the SDK's retries
    * @param invoker the client of the invocations: no SDK retries, and a read timeout longer than
    *     the function timeout
+   * @param credentials the credentials of the invoker, resolved before each invocation
    */
   public AwsLambdaManagedCodeProvider(
       LambdaClient lambda,
       LambdaClient invoker,
+      AwsCredentialsProvider credentials,
       CloudWatchLogsClient logs,
       ObjectMapper mapper,
       String prefix,
@@ -126,6 +131,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     this(
         lambda,
         invoker,
+        credentials,
         logs,
         mapper,
         prefix,
@@ -139,6 +145,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   AwsLambdaManagedCodeProvider(
       LambdaClient lambda,
       LambdaClient invoker,
+      AwsCredentialsProvider credentials,
       CloudWatchLogsClient logs,
       ObjectMapper mapper,
       String prefix,
@@ -149,6 +156,7 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       Sleeper sleeper) {
     this.lambda = lambda;
     this.invoker = invoker;
+    this.credentials = credentials;
     this.logs = logs;
     this.mapper = mapper;
     this.prefix = prefix;
@@ -230,6 +238,17 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
           ErrorCode.RESOURCE_LIMIT,
           "The script and its input take %d bytes, more than the %d of a Lambda invocation"
               .formatted(payload.length, MAX_REQUEST_BYTES));
+    }
+    try {
+      // Before the call, so that a credentials failure is known to have run nothing: within the
+      // call, the SDK reports it like a lost request.
+      credentials.resolveCredentials();
+    } catch (SdkException e) {
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_UNAVAILABLE,
+          bounded(
+              "Lambda executor '%s' was not called: the credentials of the runtime cannot be resolved: %s"
+                  .formatted(name, message(e))));
     }
     final InvokeResponse response;
     try {
@@ -316,6 +335,13 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
     lambda.close();
     invoker.close();
     logs.close();
+    if (credentials instanceof AutoCloseable closeable) {
+      try {
+        closeable.close();
+      } catch (Exception e) {
+        LOG.debug("Closing the AWS credentials provider failed", e);
+      }
+    }
   }
 
   /**

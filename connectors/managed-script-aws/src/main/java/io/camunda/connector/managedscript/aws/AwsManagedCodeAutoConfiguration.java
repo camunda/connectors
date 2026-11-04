@@ -37,9 +37,11 @@ public class AwsManagedCodeAutoConfiguration {
         Binder.get(environment).bindOrCreate(ManagedCodeSettings.PREFIX, ManagedCodeSettings.class);
     final var functionTimeoutSeconds =
         AwsLambdaManagedCodeProvider.functionTimeoutSeconds(shared.executionTimeout());
+    final var credentials = AwsClients.credentials();
     return new AwsLambdaManagedCodeProvider(
         AwsClients.lambda(aws.region()),
-        AwsClients.invoker(aws.region(), functionTimeoutSeconds),
+        AwsClients.invoker(aws.region(), functionTimeoutSeconds, credentials),
+        credentials,
         AwsClients.logs(aws.region()),
         ConnectorsObjectMapperSupplier.getCopy(),
         shared.deploymentNamePrefix(),

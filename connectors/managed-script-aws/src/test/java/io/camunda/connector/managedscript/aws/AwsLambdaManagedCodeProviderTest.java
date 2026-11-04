@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.SdkBytes;
@@ -76,6 +77,7 @@ class AwsLambdaManagedCodeProviderTest {
 
   private final LambdaClient lambda = mock(LambdaClient.class);
   private final LambdaClient invoker = mock(LambdaClient.class);
+  private final AwsCredentialsProvider credentials = mock(AwsCredentialsProvider.class);
   private final CloudWatchLogsClient logs = mock(CloudWatchLogsClient.class);
   private final List<Duration> sleeps = new ArrayList<>();
   private final AwsLambdaManagedCodeProvider provider = provider(Duration.ofMinutes(1));
@@ -500,6 +502,22 @@ class AwsLambdaManagedCodeProviderTest {
   }
 
   @Test
+  void reportsCredentialsThatCannotBeResolvedAsUnavailableWithoutCalling() {
+    // A read timeout of the metadata or STS call, which within the invocation would look sent.
+    when(credentials.resolveCredentials())
+        .thenThrow(
+            SdkClientException.create(
+                "Unable to load credentials from any of the providers in the chain",
+                new SocketTimeoutException("Read timed out")));
+
+    final var response = provider.execute(ScriptLanguage.PYTHON, request("s"));
+
+    assertThat(response.error().code()).isEqualTo(ErrorCode.PLATFORM_UNAVAILABLE.name());
+    assertThat(response.error().retryable()).isTrue();
+    verify(invoker, never()).invoke(any(InvokeRequest.class));
+  }
+
+  @Test
   void reportsAnInvocationThatGotNoPooledConnectionAsUnavailable() {
     // The Apache client waits for a free connection while the others run scripts.
     when(invoker.invoke(any(InvokeRequest.class)))
@@ -573,6 +591,7 @@ class AwsLambdaManagedCodeProviderTest {
     return new AwsLambdaManagedCodeProvider(
         lambda,
         invoker,
+        credentials,
         logs,
         new ObjectMapper(),
         PREFIX,

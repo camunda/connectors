@@ -95,7 +95,7 @@ class AwsManagedCodeAutoConfigurationTest {
 
   @Test
   void neverRetriesAnInvocationAndReadsForLongerThanTheFunctionRuns() {
-    try (var invoker = AwsClients.invoker("eu-central-1", 35)) {
+    try (var invoker = AwsClients.invoker("eu-central-1", 35, AwsClients.credentials())) {
       final var configuration = invoker.serviceClientConfiguration();
       assertThat(configuration.overrideConfiguration().retryStrategy())
           .hasValueSatisfying(strategy -> assertThat(strategy.maxAttempts()).isEqualTo(1));
@@ -117,7 +117,7 @@ class AwsManagedCodeAutoConfigurationTest {
   @Test
   void takesCredentialsFromTheDefaultChainOnly() {
     try (var lambda = AwsClients.lambda("eu-central-1");
-        var invoker = AwsClients.invoker("eu-central-1", 35);
+        var invoker = AwsClients.invoker("eu-central-1", 35, AwsClients.credentials());
         var logs = AwsClients.logs("eu-central-1")) {
       assertThat(lambda.serviceClientConfiguration().credentialsProvider())
           .isInstanceOf(DefaultCredentialsProvider.class);

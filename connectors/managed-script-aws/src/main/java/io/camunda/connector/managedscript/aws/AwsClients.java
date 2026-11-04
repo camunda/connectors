@@ -7,6 +7,7 @@
 package io.camunda.connector.managedscript.aws;
 
 import java.time.Duration;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.awscore.retry.AwsRetryStrategy;
@@ -30,11 +31,11 @@ final class AwsClients {
 
   /** Lambda control plane, with the SDK's default retries. */
   static LambdaClient lambda(String region) {
-    return configure(LambdaClient.builder(), region).build();
+    return configure(LambdaClient.builder(), region, credentials()).build();
   }
 
   static CloudWatchLogsClient logs(String region) {
-    return configure(CloudWatchLogsClient.builder(), region).build();
+    return configure(CloudWatchLogsClient.builder(), region, credentials()).build();
   }
 
   /**
@@ -42,9 +43,10 @@ final class AwsClients {
    * attempt, and read for longer than the function may run, so that the client does not give up on
    * a script that is still running.
    */
-  static LambdaClient invoker(String region, int functionTimeoutSeconds) {
+  static LambdaClient invoker(
+      String region, int functionTimeoutSeconds, AwsCredentialsProvider credentials) {
     final var timeout = Duration.ofSeconds(functionTimeoutSeconds).plus(INVOCATION_MARGIN);
-    return configure(LambdaClient.builder(), region)
+    return configure(LambdaClient.builder(), region, credentials)
         .httpClientBuilder(Apache5HttpClient.builder().socketTimeout(timeout))
         .overrideConfiguration(o ->
             o.retryStrategy(AwsRetryStrategy.doNotRetry())
@@ -53,8 +55,14 @@ final class AwsClients {
         .build();
   }
 
-  private static <B extends AwsClientBuilder<B, ?>> B configure(B builder, String region) {
-    builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
+  /** The default chain, which the invocations share with the provider. */
+  static AwsCredentialsProvider credentials() {
+    return DefaultCredentialsProvider.builder().build();
+  }
+
+  private static <B extends AwsClientBuilder<B, ?>> B configure(
+      B builder, String region, AwsCredentialsProvider credentials) {
+    builder.credentialsProvider(credentials);
     if (region != null) {
       builder.region(Region.of(region));
     }
