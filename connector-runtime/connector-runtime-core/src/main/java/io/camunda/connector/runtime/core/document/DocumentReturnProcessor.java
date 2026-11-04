@@ -129,7 +129,9 @@ public class DocumentReturnProcessor {
       throw invalidJson(e.getMessage(), e);
     }
     if (values.isEmpty()) {
-      throw invalidJson("no content to map due to end-of-input", null);
+      // An empty or whitespace-only payload (e.g. a 204 No Content) carries no value: map it to
+      // null, like the legacy storeResponse path does, instead of failing the job.
+      return null;
     }
     return values.size() == 1 ? values.getFirst() : values;
   }

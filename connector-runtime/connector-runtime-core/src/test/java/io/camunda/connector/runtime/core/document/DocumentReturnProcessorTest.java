@@ -131,9 +131,7 @@ class DocumentReturnProcessorTest {
         "[1,2,3] </body>",
         "<html>err</html>",
         "OK",
-        "{\"a\":1",
-        "",
-        "   \n\t "
+        "{\"a\":1"
       })
   void jsonChoiceFailsForPayloadThatIsNotFullyValidJson(String body) {
     RawPayload payload = RawPayload.of(body.getBytes(StandardCharsets.UTF_8), null, null);
@@ -228,6 +226,17 @@ class DocumentReturnProcessorTest {
 
     assertThat(processor.process(ret, format(DocumentReturnChoice.DOCUMENT)))
         .isInstanceOf(Document.class);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   \n\t "})
+  void jsonChoiceReturnsNullForEmptyOrBlankPayload(String body) {
+    RawPayload payload =
+        RawPayload.of(body.getBytes(StandardCharsets.UTF_8), "application/json", null);
+
+    DocumentReturn<Object> ret = new DocumentReturn<>(payload, (converted, choice) -> converted);
+
+    assertThat(processor.process(ret, format(DocumentReturnChoice.JSON))).isNull();
   }
 
   @Test
