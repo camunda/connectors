@@ -23,18 +23,38 @@ package io.camunda.connector.managedscript.api;
 public class ProvisioningException extends RuntimeException {
 
   private final ErrorCode code;
+  private final boolean permissionDenied;
 
   public ProvisioningException(ErrorCode code, String message) {
-    super(message);
-    this.code = code;
+    this(code, message, null, false);
   }
 
   public ProvisioningException(ErrorCode code, String message, Throwable cause) {
+    this(code, message, cause, false);
+  }
+
+  private ProvisioningException(
+      ErrorCode code, String message, Throwable cause, boolean permissionDenied) {
     super(message, cause);
     this.code = code;
+    this.permissionDenied = permissionDenied;
+  }
+
+  /**
+   * The platform denied the identity of the runtime. A permanent failure, except while the grants
+   * of a new cluster propagate: within that window the connector tries again, and waiting jobs keep
+   * their retries.
+   */
+  public static ProvisioningException permissionDenied(String message, Throwable cause) {
+    return new ProvisioningException(ErrorCode.PLATFORM_REJECTED, message, cause, true);
   }
 
   public ErrorCode code() {
     return code;
+  }
+
+  /** Whether the platform denied the identity of the runtime; see {@link #permissionDenied}. */
+  public boolean permissionDenied() {
+    return permissionDenied;
   }
 }

@@ -27,12 +27,12 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +81,7 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   private final InterpreterLocator locator;
   private final Duration callGrace;
 
-  private volatile Map<ScriptLanguage, Executor> executors;
+  private final Map<ScriptLanguage, Executor> executors = new ConcurrentHashMap<>();
 
   public LocalManagedCodeProvider(Path directory, ObjectMapper mapper) {
     this(directory, mapper, InterpreterLocator.onPath());
@@ -111,51 +111,26 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
   }
 
   /**
-   * Writes the wrapper files of every language whose interpreter is installed, and checks them
-   * against the digest of the wrapper. A language without a suitable interpreter fails its own
-   * scripts, so that a host with only Node.js still runs JavaScript.
+   * Finds the interpreter of the language, writes its wrapper files and checks them against the
+   * digest of the wrapper. A language without a suitable interpreter fails on its own, so that a
+   * host with only Node.js still runs JavaScript, and the connector looks for the interpreter again
+   * later, so that installing it takes no restart.
    *
-   * @throws ProvisioningException when no language can run, or the host is Windows
+   * @throws ProvisioningException when the language cannot run, or the host is Windows
    */
   @Override
-  public synchronized void ensureExecutors() {
+  public void ensureExecutors(ScriptLanguage language) {
     requireSupportedHost();
-    final var ready = new EnumMap<ScriptLanguage, Executor>(ScriptLanguage.class);
-    final var unavailable = new ArrayList<String>();
-    for (var runtime : LocalRuntime.values()) {
-      try {
-        ready.put(runtime.language(), prepare(runtime));
-      } catch (ProvisioningException e) {
-        if (e.code() == ErrorCode.PLATFORM_INTERRUPTED) {
-          throw e;
-        }
-        LOG.info(
-            "Local managed scripts: no {} scripts: {}",
-            runtime.language().language(),
-            e.getMessage());
-        unavailable.add(e.getMessage());
-      }
-    }
-    if (ready.isEmpty()) {
-      throw new ProvisioningException(
-          ErrorCode.PLATFORM_REJECTED,
-          "No script can run on this host. " + String.join(". ", unavailable));
-    }
-    executors = Map.copyOf(ready);
+    executors.put(language, prepare(LocalRuntime.of(language)));
   }
 
   @Override
   public ExecutionResponse execute(ScriptLanguage language, ExecutionRequest request) {
-    final var current = executors;
-    if (current == null) {
+    final var executor = executors.get(language);
+    if (executor == null) {
       return ExecutionResponse.failed(
-          ErrorCode.DEPLOYMENT_MISSING, "The local executors have not been prepared");
-    }
-    final Executor executor;
-    try {
-      executor = current.containsKey(language) ? current.get(language) : prepareAgain(language);
-    } catch (ProvisioningException e) {
-      return ExecutionResponse.failed(e.code(), e.getMessage());
+          ErrorCode.DEPLOYMENT_MISSING,
+          "The local executor of " + language.language() + " has not been prepared");
     }
     final var missing = executor.missingFile();
     if (missing != null) {
@@ -175,10 +150,15 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
           request.executionId(),
           input,
           Duration.ofMillis(request.timeoutMs()).plus(callGrace));
-    } catch (IOException e) {
+    } catch (ProcessRunner.NotStartedException e) {
+      // Nothing ran, so the job may make the executor ready again and call it at once.
       return ExecutionResponse.failed(
           ErrorCode.DEPLOYMENT_MISSING,
           "Cannot run the local wrapper with " + executor.interpreter() + ": " + e.getMessage());
+    } catch (IOException e) {
+      // The script may have run: calling it again within the job could run it twice.
+      return ExecutionResponse.failed(
+          ErrorCode.PLATFORM_EXECUTION_FAILED, "The local call failed: " + e.getMessage());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return ExecutionResponse.failed(
@@ -186,28 +166,10 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
   }
 
-  /** The interpreter this provider runs a language with, once its executors are ready. */
+  /** The interpreter this provider runs a language with, once its executor is ready. */
   Path interpreter(ScriptLanguage language) {
-    final var current = executors;
-    return current == null || !current.containsKey(language)
-        ? null
-        : current.get(language).interpreter();
-  }
-
-  /**
-   * Looks again for the interpreter of a language that had none when the executors were prepared,
-   * so that installing it does not take a restart of the runtime. Only a failed job gets here.
-   */
-  private synchronized Executor prepareAgain(ScriptLanguage language) {
-    final var current = executors;
-    if (current.containsKey(language)) {
-      return current.get(language);
-    }
-    final var executor = prepare(LocalRuntime.of(language));
-    final var ready = new EnumMap<ScriptLanguage, Executor>(current);
-    ready.put(language, executor);
-    executors = Map.copyOf(ready);
-    return executor;
+    final var executor = executors.get(language);
+    return executor == null ? null : executor.interpreter();
   }
 
   private Executor prepare(LocalRuntime runtime) {
@@ -249,7 +211,12 @@ public class LocalManagedCodeProvider implements ManagedCodeProvider {
     }
     // A directory of this call, removed whatever happens to the wrapper: when it is killed at the
     // deadline, or crashes, its own cleanup does not run, and the script and its output would stay.
-    final var callDirectory = Files.createTempDirectory(scratch, "call-");
+    final Path callDirectory;
+    try {
+      callDirectory = Files.createTempDirectory(scratch, "call-");
+    } catch (IOException e) {
+      throw new ProcessRunner.NotStartedException(e);
+    }
     environment.put("EXECUTOR_TMP", callDirectory.toString());
     final ProcessRunner.Result result;
     try {

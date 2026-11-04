@@ -10,15 +10,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.managedscript.api.ManagedCodeProvider;
+import io.camunda.connector.managedscript.api.ScriptLanguage;
 import io.camunda.connector.managedscript.local.LocalManagedCodeProperties;
 import io.camunda.connector.managedscript.local.LocalManagedCodeProvider;
 import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.tenant.PhysicalTenantClientSelector;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class ManagedCodeAutoConfigurationTest {
@@ -89,7 +94,7 @@ class ManagedCodeAutoConfigurationTest {
 
   @Test
   void keepsTheProviderNameAsWrittenSoThatAnErrorQuotesIt() {
-    assertThat(new ManagedCodeProperties(true, "local ", null, null, null).provider())
+    assertThat(new ManagedCodeProperties(true, "local ", null, null, null, null, null).provider())
         .isEqualTo("local ");
   }
 
@@ -105,8 +110,84 @@ class ManagedCodeAutoConfigurationTest {
       final var properties = context.getBean(ManagedCodeProperties.class);
       assertThat(properties.deploymentNamePrefix()).isEqualTo("camunda-ms-");
       assertThat(properties.executionTimeout()).isEqualTo(Duration.ofSeconds(30));
+      assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofMinutes(2));
+      assertThat(properties.grantPropagationWindow()).isEqualTo(Duration.ofMinutes(2));
       assertThat(properties.provisioningRetryBackoff()).isEqualTo(Duration.ofSeconds(10));
     });
+  }
+
+  @Test
+  void startsTheExecutorsOnceTheRuntimeIsReady() {
+    final var provider = new FakeProvider();
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=fake")
+        .withBean("fakeProvider", ManagedCodeProvider.class, () -> provider)
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(provider.ensured).isEmpty();
+
+          context.publishEvent(
+              new ApplicationReadyEvent(
+                  new SpringApplication(),
+                  new String[0],
+                  context.getSourceApplicationContext(),
+                  Duration.ZERO));
+
+          Awaitility.await()
+              .atMost(Duration.ofSeconds(5))
+              .untilAsserted(() ->
+                  assertThat(provider.ensured).containsExactlyInAnyOrder(ScriptLanguage.values()));
+        });
+  }
+
+  @Test
+  void stopsTheThreadsOfTheExecutorsWithTheContext() {
+    final var interrupted = new CountDownLatch(ScriptLanguage.values().length);
+    final var provider =
+        new FakeProvider() {
+          @Override
+          public void ensureExecutors(ScriptLanguage language) {
+            super.ensureExecutors(language);
+            try {
+              new CountDownLatch(1).await();
+            } catch (InterruptedException e) {
+              interrupted.countDown();
+            }
+          }
+        };
+    contextRunner
+        .withPropertyValues(
+            "camunda.connector.managed-code.enabled=true",
+            "camunda.connector.managed-code.provider=fake")
+        .withBean("fakeProvider", ManagedCodeProvider.class, () -> provider)
+        .run(context -> {
+          context.getBean(ExecutorReadiness.class).startAll();
+          Awaitility.await()
+              .atMost(Duration.ofSeconds(5))
+              .until(() -> provider.ensured.size() == ScriptLanguage.values().length);
+        });
+
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(() ->
+            assertThat(interrupted.getCount())
+                .as("the waiting attempts were interrupted")
+                .isZero());
+  }
+
+  @Test
+  void bindsTheProvisioningProperties() {
+    enabled
+        .withPropertyValues(
+            "camunda.connector.managed-code.provisioning-timeout=45s",
+            "camunda.connector.managed-code.grant-propagation-window=0s")
+        .run(context -> {
+          final var properties = context.getBean(ManagedCodeProperties.class);
+          assertThat(properties.provisioningTimeout()).isEqualTo(Duration.ofSeconds(45));
+          assertThat(properties.grantPropagationWindow()).isEqualTo(Duration.ZERO);
+        });
   }
 
   @Test

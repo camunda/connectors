@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.managedscript;
 
+import io.camunda.connector.managedscript.api.ManagedCodeSettings;
 import java.time.Duration;
-import java.util.regex.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -18,6 +18,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param deploymentNamePrefix prefix of every executor name, one per cluster; the identity of the
  *     runtime may only manage executors whose name starts with it (default {@code camunda-ms-})
  * @param executionTimeout how long a script may run before the executor stops it (default 30s)
+ * @param provisioningTimeout how long a job waits for the executor of its language before it fails
+ *     with {@code PROVISIONING_PENDING}, its retries unchanged (default 2m)
+ * @param grantPropagationWindow how long after the first attempt of the runtime a permission denial
+ *     is taken for grants that still propagate, and tried again (default 2m)
  * @param provisioningRetryBackoff backoff of a job that failed because of the platform and keeps
  *     its retries, whatever the task's {@code retryBackoff} header says (default 10s)
  */
@@ -27,35 +31,26 @@ public record ManagedCodeProperties(
     String provider,
     String deploymentNamePrefix,
     Duration executionTimeout,
+    Duration provisioningTimeout,
+    Duration grantPropagationWindow,
     Duration provisioningRetryBackoff) {
 
-  static final String DEFAULT_DEPLOYMENT_NAME_PREFIX = "camunda-ms-";
-
-  /** {@code <py|js>-} and the 12 hexadecimal characters of the wrapper digest. */
-  static final int EXECUTOR_NAME_SUFFIX_LENGTH = 15;
-
-  /** Cloud Run function ids have at most 63 characters, Lambda function names 64. */
-  private static final int MAX_DEPLOYMENT_NAME_PREFIX_LENGTH = 63 - EXECUTOR_NAME_SUFFIX_LENGTH;
-
-  private static final Pattern DEPLOYMENT_NAME_PREFIX =
-      Pattern.compile("[a-z][a-z0-9-]{0,%d}".formatted(MAX_DEPLOYMENT_NAME_PREFIX_LENGTH - 1));
-
-  private static final Duration DEFAULT_EXECUTION_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration DEFAULT_PROVISIONING_TIMEOUT = Duration.ofMinutes(2);
+  // IAM grants took 66 to 98 seconds to apply, measured once.
+  private static final Duration DEFAULT_GRANT_PROPAGATION_WINDOW = Duration.ofMinutes(2);
   private static final Duration DEFAULT_PROVISIONING_RETRY_BACKOFF = Duration.ofSeconds(10);
 
   public ManagedCodeProperties {
     provider = provider == null ? "" : provider;
-    deploymentNamePrefix =
-        deploymentNamePrefix == null || deploymentNamePrefix.isBlank()
-            ? DEFAULT_DEPLOYMENT_NAME_PREFIX
-            : deploymentNamePrefix.strip();
-    if (!DEPLOYMENT_NAME_PREFIX.matcher(deploymentNamePrefix).matches()) {
-      throw new IllegalArgumentException(
-          ("camunda.connector.managed-code.deployment-name-prefix '%s' must start with a lowercase"
-                  + " letter and contain at most %d lowercase letters, digits and hyphens")
-              .formatted(deploymentNamePrefix, MAX_DEPLOYMENT_NAME_PREFIX_LENGTH));
-    }
-    executionTimeout = positive(executionTimeout, DEFAULT_EXECUTION_TIMEOUT);
+    // Read by the providers too: their defaults and validation are those of the API.
+    final var settings = new ManagedCodeSettings(deploymentNamePrefix, executionTimeout);
+    deploymentNamePrefix = settings.deploymentNamePrefix();
+    executionTimeout = settings.executionTimeout();
+    provisioningTimeout = positive(provisioningTimeout, DEFAULT_PROVISIONING_TIMEOUT);
+    grantPropagationWindow =
+        grantPropagationWindow == null || grantPropagationWindow.isNegative()
+            ? DEFAULT_GRANT_PROPAGATION_WINDOW
+            : grantPropagationWindow;
     provisioningRetryBackoff =
         positive(provisioningRetryBackoff, DEFAULT_PROVISIONING_RETRY_BACKOFF);
   }

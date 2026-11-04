@@ -14,7 +14,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
@@ -30,13 +32,34 @@ public class ManagedCodeAutoConfiguration {
 
   private static final int RESOURCE_CACHE_SIZE = 256;
 
+  /** Closed with the context, which stops its threads. */
+  @Bean
+  ExecutorReadiness managedCodeExecutorReadiness(
+      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+    return new ExecutorReadiness(
+        requireProvider(providers, properties),
+        properties.provisioningRetryBackoff(),
+        properties.grantPropagationWindow());
+  }
+
+  /** Once the runtime is ready, so that a slow provider does not hold back its startup. */
+  @Bean
+  ApplicationListener<ApplicationReadyEvent> managedCodeExecutorsOnReady(
+      ExecutorReadiness readiness) {
+    return event -> readiness.startAll();
+  }
+
   @Bean
   ManagedScriptJobHandler managedScriptJobHandler(
-      ObjectProvider<ManagedCodeProvider> providers, ManagedCodeProperties properties) {
+      ObjectProvider<ManagedCodeProvider> providers,
+      ExecutorReadiness readiness,
+      ManagedCodeProperties properties) {
     return new ManagedScriptJobHandler(
         requireProvider(providers, properties),
+        readiness,
         new ScriptResources(RESOURCE_CACHE_SIZE),
         ConnectorsObjectMapperSupplier.getCopy(),
+        properties.provisioningTimeout(),
         properties.executionTimeout(),
         properties.provisioningRetryBackoff());
   }
