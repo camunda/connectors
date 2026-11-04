@@ -25,6 +25,9 @@ Deep architecture lives in the reference docs, linked instead of copied:
 - [`docs/reference/native-providers.md`](docs/reference/native-providers.md): per-provider specifics
   for the native/v2 (non-LangChain4j) chat model providers
 - [`docs/adr/`](docs/adr/): architecture decision records
+- [`docs/coding-guidelines.md`](docs/coding-guidelines.md): general coding behavior and design rules
+- [`docs/domain-rules.md`](docs/domain-rules.md): domain rules from past review findings
+- [`docs/target-architecture.md`](docs/target-architecture.md): target state of the module
 - [`docs/template-text-guidelines.md`](docs/template-text-guidelines.md): help text conventions for
   element templates
 - [`docs/breaking-changes.md`](docs/breaking-changes.md): breaking changes for custom extensions, per release
@@ -243,11 +246,21 @@ Do not break these (full statement and rationale in
   gateway tool by implementing the SPI and registering a bean. See
   [§25](docs/reference/ai-agent.md#25-extension-playbooks).
 
+The [target architecture](docs/target-architecture.md) shows the target state beyond these invariants.
+
 ## Working in this module
 
 General coding behavior (think before coding, simplicity, surgical changes, goal-driven execution)
 lives in [`docs/coding-guidelines.md`](docs/coding-guidelines.md). The rules below are the module
 specifics.
+
+@docs/coding-guidelines.md
+
+@docs/domain-rules.md
+
+If your tool does not resolve `@` imports, read [`docs/domain-rules.md`](docs/domain-rules.md) too.
+The [target architecture](docs/target-architecture.md) shows the target state of the module. Read it
+before you plan a structural change: a new module, collaborator, SPI or cross-module policy.
 
 ### Building & testing
 
@@ -333,6 +346,8 @@ Before claiming a change is complete:
   [Real-LLM CPT coverage](../../connectors-e2e-test/connectors-e2e-test-agentic-ai/AGENTS.md#real-llm-cpt-coverage)).
 - [ ] Element templates regenerated (`mvn clean compile -f connectors/agentic-ai/pom.xml`) if template properties changed;
   check the JSON diff.
+- [ ] The change follows the [domain rules](docs/domain-rules.md) and the design rules in
+  [coding guidelines](docs/coding-guidelines.md).
 - [ ] Documentation updated per [Keeping documentation up to date](#keeping-documentation-up-to-date).
 - [ ] Breaking changes for custom extensions are recorded in [`docs/breaking-changes.md`](docs/breaking-changes.md).
   A break of `aiagent-api` or `aiagent-model` fails the build until it is accepted in the module's
