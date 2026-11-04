@@ -78,7 +78,6 @@
     <dependency>
       <groupId>io.soabase.record-builder</groupId>
       <artifactId>record-builder-core</artifactId>
-      <version>${version.record-builder}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -163,7 +162,6 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <dependencies>
           <dependency>
             <groupId>io.camunda.connector</groupId>
