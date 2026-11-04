@@ -112,7 +112,7 @@ class AgentSubProcessAnthropicPromptCachingTests extends BaseAnthropicSubProcess
               .isReady()
               .hasAgentInstanceKey()
               .hasMetrics(expectedMetrics);
-          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey());
+          agentInstanceKey.set(agentResponse.context().metadata().agentInstanceKey().value());
         });
 
     AgentInstanceEngineVerifier.verify(camundaClient, agentInstanceKey.get())

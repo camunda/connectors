@@ -15,6 +15,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -36,11 +37,18 @@ class PromptConfigurationTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
-    void supportsEmptySystemPrompt(String prompt) {
+    void doesNotSupportEmptySystemPrompt(String prompt) {
       final var systemPrompt = new SystemPromptConfiguration(prompt);
 
-      assertThat(validator.validate(systemPrompt)).isEmpty();
-      assertThat(systemPrompt.prompt()).isEqualTo(prompt);
+      assertThat(validator.validate(systemPrompt))
+          .hasSize(1)
+          .extracting(c -> c.getPropertyPath().toString(), ConstraintViolation::getMessage)
+          .contains(tuple("prompt", "must not be blank"));
+    }
+
+    @Test
+    void supportsNonBlankSystemPrompt() {
+      assertThat(validator.validate(new SystemPromptConfiguration("You are helpful."))).isEmpty();
     }
   }
 

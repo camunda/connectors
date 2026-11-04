@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 class AgentMetadataTest {
@@ -20,5 +21,34 @@ class AgentMetadataTest {
 
     assertThat(metadata.configurationFingerprintHistory()).isEmpty();
     assertThat(metadata.configurationFingerprintAt(3)).isNull();
+  }
+
+  @Test
+  void persistsTheAgentInstanceKeyAsANumber() throws Exception {
+    final var objectMapper = new ObjectMapper();
+    final var metadata = new AgentMetadata(1L, 2L, AgentInstanceKey.of(2251799813691441L), 3);
+
+    final var json = objectMapper.writeValueAsString(metadata);
+    final var restored = objectMapper.readValue(json, AgentMetadata.class);
+
+    assertThat(objectMapper.readTree(json).path("agentInstanceKey").isNumber()).isTrue();
+    assertThat(json).contains("\"agentInstanceKey\":2251799813691441");
+    assertThat(restored).isEqualTo(metadata);
+  }
+
+  @Test
+  void readsMetadataWrittenBeforeTheAgentInstanceKeyWasATypeAndWithoutOne() throws Exception {
+    final var objectMapper = new ObjectMapper();
+
+    final var withKey =
+        objectMapper.readValue(
+            "{\"processDefinitionKey\":1,\"processInstanceKey\":2,\"agentInstanceKey\":42}",
+            AgentMetadata.class);
+    final var withoutKey =
+        objectMapper.readValue(
+            "{\"processDefinitionKey\":1,\"processInstanceKey\":2}", AgentMetadata.class);
+
+    assertThat(withKey.agentInstanceKey()).isEqualTo(AgentInstanceKey.of(42L));
+    assertThat(withoutKey.agentInstanceKey()).isNull();
   }
 }
