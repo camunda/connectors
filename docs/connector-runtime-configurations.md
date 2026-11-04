@@ -102,6 +102,103 @@ camunda.connector.managed-code.local.directory=/home/me/.camunda/managed-script
   fails with a message saying that Python 3.10 or later was not found, until you install it: the
   first job after `provisioning-retry-backoff` looks again, so the runtime does not need a restart.
 
+### AWS Lambda provider
+
+The `aws` provider, in `connectors/managed-script-aws`, runs scripts through one zip Lambda function
+per language and cluster: `python3.13` for `.py` scripts and `nodejs22.x` for `.js` scripts. The
+module is not in the default bundle: add its jar, with its dependencies (the AWS SDK clients of
+Lambda, CloudWatch Logs and STS, and the Apache 5 HTTP client), to the runtime's classpath.
+
+```properties
+camunda.connector.managed-code.enabled=true
+camunda.connector.managed-code.provider=aws
+camunda.connector.managed-code.deployment-name-prefix=ce-0123456789abcdef01234567-
+camunda.connector.managed-code.aws.region=eu-central-1
+camunda.connector.managed-code.aws.execution-role-arn=arn:aws:iam::123456789012:role/camunda-ms-executor
+camunda.connector.managed-code.aws.memory-mb=512
+camunda.connector.managed-code.aws.log-retention-days=30
+```
+
+- An executor is named `<deployment-name-prefix><py|js>-<12 hex of the wrapper digest>`. When it is
+  absent, the provider creates its log group, `/aws/lambda/<function name>`, with the retention
+  first, then the function, and waits until it is active. Concurrent runtime instances converge: one
+  creation wins, the others adopt the function.
+- The function timeout is `execution-timeout` plus 5 seconds, so that the wrapper reports `TIMEOUT`
+  before Lambda stops it. Lambda functions run for at most 900 seconds, so startup fails when
+  `execution-timeout` is above 895 seconds.
+- Memory, function timeout and execution role are compared whenever the provider makes an executor
+  ready, and updated in place (`UpdateFunctionConfiguration`) when they differ. A configuration change
+  therefore creates no function and leaves none behind.
+- `aws.region` is the region of the executors; without it, the SDK's default region chain applies
+  (`AWS_REGION`, the profile). `aws.memory-mb` is between 128 and 10240 (default 512).
+  `aws.log-retention-days` is a value that CloudWatch Logs accepts, such as 7, 14, 30 or 90
+  (default 30).
+- Credentials come from the default chain of the AWS SDK only: environment variables, a web-identity
+  token file (`AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN`, as set by IRSA on EKS), the profile
+  files, then the container or instance metadata. The provider works without the metadata server.
+  The configuration holds no access key.
+- A script is invoked synchronously, never retried by the SDK, so that it runs at most once per job
+  attempt. A request above 6 MB, the script and its input as JSON, fails with `RESOURCE_LIMIT`
+  before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error or a
+  connection that could not be made with `PLATFORM_UNAVAILABLE`. A Lambda function error, such as
+  the function timeout or memory, a connection lost after the request was sent, and a response
+  outside the contract fail with `PLATFORM_EXECUTION_FAILED`: the script may have run. A call
+  cut because the runtime stops fails with `PLATFORM_INTERRUPTED` and keeps its retries, as with
+  the other providers: Lambda still runs the script to its end, so it may run again.
+- A denied call, while making the executors ready or invoking them, is retried as long as the grants
+  of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`.
+- The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete
+  the functions and log groups under the prefix that no runtime instance uses any more.
+
+The **execution role** is attached to the executors, which run customer code: it must grant
+nothing but writing to their log groups, since a script can read the memory of the wrapper during
+its call. Its trust policy lets `lambda.amazonaws.com` assume it, and its permissions are:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:<region>:<account>:log-group:/aws/lambda/<prefix>*:*"
+    }
+  ]
+}
+```
+
+The **identity of the runtime** needs this minimal policy, limited to the prefix of its cluster:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:GetFunction",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:InvokeFunction",
+        "lambda:TagResource"
+      ],
+      "Resource": "arn:aws:lambda:<region>:<account>:function:<prefix>*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:PutRetentionPolicy"],
+      "Resource": "arn:aws:logs:<region>:<account>:log-group:/aws/lambda/<prefix>*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "<execution role ARN>",
+      "Condition": { "StringEquals": { "iam:PassedToService": "lambda.amazonaws.com" } }
+    }
+  ]
+}
+```
+
 The job timeout of a managed-script task must cover `provisioning-timeout` and `execution-timeout`,
 plus a few seconds for the call, so that a script still running does not get its job activated
 again. The job worker's default job timeout (5 minutes, `camunda.client.worker.defaults.timeout`)
