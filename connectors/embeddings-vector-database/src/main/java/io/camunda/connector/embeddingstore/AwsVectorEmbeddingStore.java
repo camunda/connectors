@@ -19,6 +19,9 @@ import java.util.List;
  * search result and create it with their own defaults. This base checks the index or table first,
  * so a wrong name or region fails the job, and builds the LangChain4j store from the settings of
  * the index or table that actually exists.
+ *
+ * <p>Only the chunk text is stored. Retrieve never returns segment metadata, and parsed document
+ * metadata can exceed S3 Vectors' metadata limits or collide with DynamoDB attribute names.
  */
 abstract class AwsVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
 
@@ -40,11 +43,6 @@ abstract class AwsVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
   protected abstract EmbeddingStore<TextSegment> openForRead(int dimension);
 
   protected abstract String name();
-
-  /** Returns the segment as it is stored. */
-  protected TextSegment toStoredSegment(TextSegment segment) {
-    return segment;
-  }
 
   @Override
   public String add(Embedding embedding) {
@@ -83,7 +81,9 @@ abstract class AwsVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
     writeStore.addAll(
         ids,
         embeddings,
-        segments == null ? null : segments.stream().map(this::toStoredSegment).toList());
+        segments == null
+            ? null
+            : segments.stream().map(segment -> TextSegment.from(segment.text())).toList());
   }
 
   @Override

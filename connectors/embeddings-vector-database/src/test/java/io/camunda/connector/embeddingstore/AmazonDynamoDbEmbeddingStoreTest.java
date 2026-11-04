@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
@@ -154,7 +155,9 @@ class AmazonDynamoDbEmbeddingStoreTest {
     when(client.describeTable(any(DescribeTableRequest.class)))
         .thenReturn(described(table("pk", vectorIndex("index", ProjectionType.ALL, "vector"))));
 
-    store.add(Embedding.from(new float[] {1, 2, 3}), TextSegment.from("chunk"));
+    store.add(
+        Embedding.from(new float[] {1, 2, 3}),
+        TextSegment.from("chunk", Metadata.from("author", "someone")));
 
     var write = ArgumentCaptor.forClass(BatchWriteItemRequest.class);
     verify(client).batchWriteItem(write.capture());
@@ -162,7 +165,7 @@ class AmazonDynamoDbEmbeddingStoreTest {
         .singleElement()
         .satisfies(request ->
             assertThat(request.putRequest().item())
-                .containsKeys("pk", "vector", AmazonDynamoDbEmbeddingStore.TEXT_ATTRIBUTE));
+                .containsOnlyKeys("pk", "vector", AmazonDynamoDbEmbeddingStore.TEXT_ATTRIBUTE));
   }
 
   @Test

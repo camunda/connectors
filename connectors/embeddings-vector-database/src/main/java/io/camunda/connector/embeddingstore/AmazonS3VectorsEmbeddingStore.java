@@ -23,9 +23,8 @@ import software.amazon.awssdk.services.s3vectors.model.MetadataConfiguration;
 import software.amazon.awssdk.services.s3vectors.model.NotFoundException;
 
 /**
- * Amazon S3 Vectors store. Only the chunk text is stored, as non-filterable metadata: S3 Vectors
- * allows at most 2 KB of filterable metadata and 50 metadata keys per vector, which chunk text and
- * parsed document metadata would exceed.
+ * Amazon S3 Vectors store. The chunk text is stored as non-filterable metadata, because S3 Vectors
+ * allows at most 2 KB of filterable metadata per vector.
  */
 class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
 
@@ -52,11 +51,6 @@ class AmazonS3VectorsEmbeddingStore extends AwsVectorEmbeddingStore {
   @Override
   protected String name() {
     return "Amazon S3 Vectors";
-  }
-
-  @Override
-  protected TextSegment toStoredSegment(TextSegment segment) {
-    return TextSegment.from(segment.text());
   }
 
   @Override
