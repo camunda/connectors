@@ -694,7 +694,7 @@ class GcpCloudRunManagedCodeProviderTest {
         new ObjectMapper(),
         PREFIX,
         new GcpManagedCodeProperties(
-            "camunda-p", "europe-west1", SERVICE_ACCOUNT, BUILD_SERVICE_ACCOUNT, null, "512Mi", 10),
+            "camunda-p", "europe-west1", SERVICE_ACCOUNT, BUILD_SERVICE_ACCOUNT, null, 512, 10),
         Duration.ofSeconds(30),
         activationTimeout,
         Duration.ofMillis(100),

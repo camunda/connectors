@@ -25,7 +25,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     identity of the runtime would need to act as that account, which often has Editor
  * @param deployerServiceAccount email of a service account that the application default credentials
  *     impersonate to create and call the executors; none to use them as they are
- * @param memory memory of an executor, in {@code Mi} or {@code Gi} (default {@code 512Mi})
+ * @param memoryMb memory of an executor, in MiB (default 512)
  * @param maxInstanceCount most instances of an executor, hence most scripts of a language running
  *     at once (default 1000, the most Cloud Run allows without a quota increase)
  */
@@ -36,15 +36,14 @@ public record GcpManagedCodeProperties(
     String functionServiceAccount,
     String buildServiceAccount,
     String deployerServiceAccount,
-    String memory,
+    Integer memoryMb,
     Integer maxInstanceCount) {
 
-  private static final String DEFAULT_MEMORY = "512Mi";
+  private static final int DEFAULT_MEMORY_MB = 512;
+  private static final int MIN_MEMORY_MB = 128;
+  private static final int MAX_MEMORY_MB = 32 * 1024;
   private static final int DEFAULT_MAX_INSTANCE_COUNT = 1000;
   private static final long MIB = 1024L * 1024;
-  private static final long MIN_MEMORY_BYTES = 128 * MIB;
-  private static final long MAX_MEMORY_BYTES = 32 * 1024 * MIB;
-  private static final Pattern MEMORY = Pattern.compile("[1-9][0-9]{0,5}(Mi|Gi)");
 
   /** What the Cloud Functions API may answer for a memory: a quantity with a binary or SI unit. */
   private static final Pattern QUANTITY = Pattern.compile("([0-9]+)(k|Ki|M|Mi|G|Gi)?");
@@ -58,14 +57,11 @@ public record GcpManagedCodeProperties(
         deployerServiceAccount == null || deployerServiceAccount.isBlank()
             ? null
             : deployerServiceAccount.strip();
-    memory = memory == null || memory.isBlank() ? DEFAULT_MEMORY : memory.strip();
-    if (!MEMORY.matcher(memory).matches()
-        || memoryBytes(memory) < MIN_MEMORY_BYTES
-        || memoryBytes(memory) > MAX_MEMORY_BYTES) {
+    memoryMb = memoryMb == null ? DEFAULT_MEMORY_MB : memoryMb;
+    if (memoryMb < MIN_MEMORY_MB || memoryMb > MAX_MEMORY_MB) {
       throw new IllegalArgumentException(
-          ("camunda.connector.managed-code.gcp.memory '%s' must be between 128Mi and 32Gi, in Mi or"
-                  + " Gi, such as 512Mi or 1Gi")
-              .formatted(memory));
+          "camunda.connector.managed-code.gcp.memory-mb %d must be between %d and %d"
+              .formatted(memoryMb, MIN_MEMORY_MB, MAX_MEMORY_MB));
     }
     maxInstanceCount = maxInstanceCount == null ? DEFAULT_MAX_INSTANCE_COUNT : maxInstanceCount;
     if (maxInstanceCount < 1) {
@@ -73,6 +69,11 @@ public record GcpManagedCodeProperties(
           "camunda.connector.managed-code.gcp.max-instance-count %d must be positive"
               .formatted(maxInstanceCount));
     }
+  }
+
+  /** The memory in the unit of the Cloud Functions API, such as {@code 512Mi}. */
+  String availableMemory() {
+    return memoryMb + "Mi";
   }
 
   /** {@code projects/<project>/locations/<region>}. */

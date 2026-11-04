@@ -81,7 +81,8 @@ class GcpManagedCodeAutoConfigurationTest {
   void hasDefaultsForTheMemoryAndTheMaxInstanceCount() {
     gcp.run(context -> {
       final var properties = context.getBean(GcpManagedCodeProperties.class);
-      assertThat(properties.memory()).isEqualTo("512Mi");
+      assertThat(properties.memoryMb()).isEqualTo(512);
+      assertThat(properties.availableMemory()).isEqualTo("512Mi");
       assertThat(properties.maxInstanceCount()).isEqualTo(1000);
       assertThat(properties.deployerServiceAccount()).isNull();
       assertThat(properties.location()).isEqualTo("projects/camunda-p/locations/europe-west1");
@@ -155,11 +156,11 @@ class GcpManagedCodeAutoConfigurationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"64Mi", "33Gi", "512MB", "512", "1.5Gi"})
-  void rejectsAMemoryOutsideTheRangeOrInAnotherUnit(String memory) {
-    assertThatThrownBy(
-            () -> new GcpManagedCodeProperties("p", "r", FUNCTION_SA, BUILD_SA, null, memory, null))
-        .hasMessageContaining("between 128Mi and 32Gi");
+  @ValueSource(ints = {-1, 0, 127, 32769})
+  void rejectsAMemoryOutsideTheRange(int memoryMb) {
+    assertThatThrownBy(() ->
+            new GcpManagedCodeProperties("p", "r", FUNCTION_SA, BUILD_SA, null, memoryMb, null))
+        .hasMessageContaining("memory-mb " + memoryMb + " must be between 128 and 32768");
   }
 
   @Test

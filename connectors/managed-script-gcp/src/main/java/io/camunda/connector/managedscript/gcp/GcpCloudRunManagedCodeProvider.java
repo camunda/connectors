@@ -132,7 +132,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
   private final String location;
   private final String functionServiceAccount;
   private final String buildServiceAccount;
-  private final String memory;
+  private final int memoryMb;
   private final long memoryBytes;
   private final int maxInstanceCount;
   private final int functionTimeoutSeconds;
@@ -187,8 +187,8 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
     this.buildServiceAccount =
         "projects/%s/serviceAccounts/%s"
             .formatted(properties.projectId(), properties.buildServiceAccount());
-    this.memory = properties.memory();
-    this.memoryBytes = GcpManagedCodeProperties.memoryBytes(properties.memory());
+    this.memoryMb = properties.memoryMb();
+    this.memoryBytes = GcpManagedCodeProperties.memoryBytes(properties.availableMemory());
     this.maxInstanceCount = properties.maxInstanceCount();
     this.functionTimeoutSeconds = functionTimeoutSeconds(executionTimeout);
     this.activationTimeout = activationTimeout;
@@ -555,10 +555,10 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
                         .build());
         updated = true;
         LOG.info(
-            "Updating the settings of Cloud Run executor '{}': memory {}, timeout {} s,"
+            "Updating the settings of Cloud Run executor '{}': memory {} MiB, timeout {} s,"
                 + " max instances {}, service account {}",
             name,
-            memory,
+            memoryMb,
             functionTimeoutSeconds,
             maxInstanceCount,
             functionServiceAccount);
@@ -581,7 +581,7 @@ public class GcpCloudRunManagedCodeProvider implements ManagedCodeProvider, Auto
    */
   private ServiceConfig.Builder serviceConfig(Map<String, String> environment) {
     return ServiceConfig.newBuilder()
-        .setAvailableMemory(memory)
+        .setAvailableMemory(memoryMb + "Mi")
         .setTimeoutSeconds(functionTimeoutSeconds)
         .setMaxInstanceCount(maxInstanceCount)
         .setMaxInstanceRequestConcurrency(1)

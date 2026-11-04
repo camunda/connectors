@@ -216,7 +216,7 @@ camunda.connector.managed-code.gcp.region=europe-west1
 camunda.connector.managed-code.gcp.function-service-account=camunda-ms-executor@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.build-service-account=camunda-ms-builder@my-project.iam.gserviceaccount.com
 camunda.connector.managed-code.gcp.deployer-service-account=camunda-ms-deployer@my-project.iam.gserviceaccount.com
-camunda.connector.managed-code.gcp.memory=512Mi
+camunda.connector.managed-code.gcp.memory-mb=512
 camunda.connector.managed-code.gcp.max-instance-count=1000
 ```
 
@@ -238,8 +238,8 @@ camunda.connector.managed-code.gcp.max-instance-count=1000
   all traffic on the latest revision are compared whenever the provider makes an executor ready,
   and updated in place, as a new revision of the same function, when they differ. A configuration change therefore creates no
   function and leaves none behind.
-- `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory` is between `128Mi` and
-  `32Gi`, in `Mi` or `Gi` (default `512Mi`).
+- `gcp.project-id` and `gcp.region` locate the executors. `gcp.memory-mb` is between 128 and
+  32768 (default 512).
 - `gcp.function-service-account` is required: without it, Cloud Run would run the executors as the
   default compute service account, which often has Editor on the project.
 - `gcp.build-service-account` is required for the same reason. The provider uploads the source of
