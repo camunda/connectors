@@ -24,6 +24,10 @@ for impossible scenarios, no unrequested flexibility. Touch only what the task r
 | `connectors-e2e-test/`         | End-to-end test modules                                              |
 | `docs/adr/`                    | Architecture decision records                                       |
 
+**Module-specific instructions:** the agentic AI connectors have their own
+[`connectors/agentic-ai/AGENTS.md`](../connectors/agentic-ai/AGENTS.md). Read it before you change
+code in `connectors/agentic-ai/` or `connectors-e2e-test/connectors-e2e-test-agentic-ai/`.
+
 **License split:** Apache 2.0 (SDK, Runtime, HTTP REST connector, Element Template Generator) vs.
 Camunda Self-Managed Free Edition (most out-of-the-box connectors) — check a module's `pom.xml`/`LICENSE`
 before copying code across the boundary.
