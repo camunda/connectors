@@ -52,7 +52,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Golden-fixture test: an agent instance created by Camunda 8.10 (no features, documents stored as
- * bare content or as a tag in the older attribute format followed by the content, no registry)
+ * bare content or as a tag in the older attribute format followed by the content, no workspace)
  * loads and continues with new documents of every kind in the form Camunda 8.10 composes them, and
  * never gets a workspace, features, response documents or runtime tools.
  */
