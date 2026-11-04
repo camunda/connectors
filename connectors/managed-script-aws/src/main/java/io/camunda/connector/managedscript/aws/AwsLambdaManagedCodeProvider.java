@@ -15,6 +15,7 @@ import io.camunda.connector.managedscript.api.ManagedCodeProvider;
 import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
@@ -255,6 +256,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
       // Before the call, so that a credentials failure is known to have run nothing: within the
       // call, the SDK reports it like a lost request.
       credentials.resolveCredentials();
+    } catch (UncheckedIOException e) {
+      throw tokenFileFailure(
+          "The web-identity token file of the runtime cannot be read to call Lambda executor '%s': %s",
+          name, e);
     } catch (SdkException e) {
       final var service = serviceError(e);
       if (service != null && denied(service)) {
@@ -357,6 +362,10 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
   private void resolveCredentials(String name) {
     try {
       credentials.resolveCredentials();
+    } catch (UncheckedIOException e) {
+      throw tokenFileFailure(
+          "The web-identity token file of the runtime cannot be read to make Lambda executor '%s' ready: %s",
+          name, e);
     } catch (SdkException e) {
       final var service = serviceError(e);
       if (service != null) {
@@ -376,6 +385,19 @@ public class AwsLambdaManagedCodeProvider implements ManagedCodeProvider, AutoCl
                   .formatted(name, message(e))),
           e);
     }
+  }
+
+  /**
+   * A web-identity provider that resolved before reads its token file again when it refreshes, and
+   * the SDK reports a file that is gone or unreadable as an unchecked I/O failure, not as an SDK
+   * exception. As for a token file that was never there, no identity of the runtime is usable until
+   * the mount is fixed, so it is a denial, retried within the grant-propagation window.
+   */
+  private static ProvisioningException tokenFileFailure(
+      String template, String name, UncheckedIOException e) {
+    final var cause = e.getCause() == null ? e : e.getCause();
+    return ProvisioningException.permissionDenied(
+        bounded(template.formatted(name, message(cause))), e);
   }
 
   /** The rejection of an AWS service behind the failure, such as STS, if any. */

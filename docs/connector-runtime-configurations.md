@@ -142,9 +142,11 @@ camunda.connector.managed-code.aws.log-retention-days=30
   - When the web-identity exchange fails, the chain goes on to the metadata server. On EKS, require
     IMDSv2 (`HttpTokens=required`) with a hop limit of 1 on the nodes, so that a broken trust does
     not let the runtime run as the node role.
-  - STS, which exchanges the web-identity token, takes its region from `AWS_REGION`, not from
-    `aws.region`. Without it, the SDK uses the global endpoint `sts.amazonaws.com`: set
-    `AWS_REGION` where that endpoint is blocked.
+  - STS, which exchanges the web-identity token, takes its region from the region chain of the AWS
+    SDK, not from `camunda.connector.managed-code.aws.region`: the JVM property `aws.region`, which
+    wins over the environment variable `AWS_REGION`, then the `region` of the profile files, then
+    the instance metadata. When none of them gives a region, the SDK uses the global endpoint
+    `sts.amazonaws.com`: set `AWS_REGION` where that endpoint is blocked.
 - A script is invoked synchronously, never retried by the SDK, so that it runs at most once per job
   attempt. A request above 6 MB, the script and its input as JSON, fails with `RESOURCE_LIMIT`
   before any call. A throttled invocation fails with `PLATFORM_THROTTLED`, a service error or a
@@ -157,8 +159,9 @@ camunda.connector.managed-code.aws.log-retention-days=30
   of a new cluster may still be propagating, and then fails with `PLATFORM_REJECTED`. So are
   credentials that no source of the chain can provide, such as a web-identity exchange that STS
   denies, a token for another audience or a missing token file: the message names the failure of
-  the web-identity token first. Once the credentials have resolved, a refresh that cannot reach STS
-  or the metadata server fails with `PLATFORM_UNAVAILABLE`.
+  the web-identity token first. The same goes for a token file that becomes missing or unreadable
+  after the credentials resolved, when they are refreshed. Once the credentials have resolved, a
+  refresh that cannot reach STS or the metadata server fails with `PLATFORM_UNAVAILABLE`.
 - The runtime never deletes an executor or its log group. After an upgrade of the wrapper, delete
   the functions and log groups under the prefix that no runtime instance uses any more.
 

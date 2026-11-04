@@ -25,9 +25,11 @@ import io.camunda.connector.managedscript.api.ProvisioningException;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -461,6 +463,38 @@ class AwsLambdaManagedCodeProviderTest {
     assertThat(provisioning.permissionDenied()).isTrue();
     assertThat(provisioning.getMessage()).contains(STS_DENIAL);
     assertThat(invocation.permissionDenied()).isTrue();
+    verify(invoker, never()).invoke(any(InvokeRequest.class));
+  }
+
+  @Test
+  void marksALostTokenFileOfResolvedCredentialsAsAPermissionDenialThatNamesTheFile() {
+    // The SDK reports the token file that its refresh cannot read as an unchecked I/O failure.
+    final var chain =
+        chain(
+            new ScriptedCredentials()
+                .thenSucceed()
+                .thenThrow(
+                    new UncheckedIOException(
+                        new NoSuchFileException("/var/run/secrets/eks/token"))));
+    chain.resolveCredentials();
+    final var provider = provider(chain);
+
+    final var provisioning =
+        catchThrowableOfType(
+            ProvisioningException.class, () -> provider.ensureExecutors(ScriptLanguage.PYTHON));
+    final var invocation =
+        catchThrowableOfType(
+            ProvisioningException.class,
+            () -> provider.execute(ScriptLanguage.PYTHON, request("s")));
+
+    assertThat(provisioning.permissionDenied()).isTrue();
+    assertThat(provisioning.getMessage())
+        .contains("web-identity token file")
+        .contains("/var/run/secrets/eks/token");
+    assertThat(invocation.permissionDenied()).isTrue();
+    assertThat(invocation.getMessage())
+        .contains("web-identity token file")
+        .contains("/var/run/secrets/eks/token");
     verify(invoker, never()).invoke(any(InvokeRequest.class));
   }
 
