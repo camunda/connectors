@@ -289,6 +289,9 @@
     "label" : "Username",
     "description" : "Username for basic authentication",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authorization",
     "binding" : {
@@ -312,6 +315,9 @@
     "label" : "Password",
     "description" : "Password for basic authentication",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authorization",
     "binding" : {
@@ -352,6 +358,9 @@
     "label" : "API key",
     "description" : "Expected API key",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authorization",
     "binding" : {

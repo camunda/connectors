@@ -253,26 +253,57 @@ class WebhookAuthorizationCredentialTest {
   }
 
   @Test
-  void activation_basicWithNeitherSource_stillActivates() {
+  void activation_basicWithNeitherSource_fails() {
     // The runtime drops value="" properties, so an unfilled Modeler field arrives as absent.
     var context = contextFor("{ \"type\": \"BASIC\" }").build();
 
-    new HttpWebhookExecutable().activate(context);
+    assertThatThrownBy(() -> new HttpWebhookExecutable().activate(context))
+        .hasRootCauseMessage(
+            "No username provided by the reusable credential or the element template");
   }
 
   @Test
-  void activation_basicWithAbsentPassword_stillActivates() {
+  void activation_basicWithAbsentPassword_fails() {
     var context = contextFor("{ \"type\": \"BASIC\", \"username\": \"user\" }").build();
 
-    new HttpWebhookExecutable().activate(context);
+    assertThatThrownBy(() -> new HttpWebhookExecutable().activate(context))
+        .hasRootCauseMessage(
+            "No password provided by the reusable credential or the element template");
   }
 
   @Test
-  void activation_basicWithEmptyStringValues_stillActivates() {
+  void activation_basicWithEmptyStringPassword_fails() {
     var context =
         contextFor("{ \"type\": \"BASIC\", \"username\": \"user\", \"password\": \"\" }").build();
 
-    new HttpWebhookExecutable().activate(context);
+    assertThatThrownBy(() -> new HttpWebhookExecutable().activate(context))
+        .hasRootCauseMessage(
+            "No password provided by the reusable credential or the element template");
+  }
+
+  @Test
+  void activation_basicWithAnUnresolvedCredential_fails() {
+    // A credential reference that does not resolve arrives as null, like an absent property.
+    var context = contextFor("{ \"type\": \"BASIC\", \"basicCredential\": null }").build();
+
+    assertThatThrownBy(() -> new HttpWebhookExecutable().activate(context))
+        .hasRootCauseMessage(
+            "No username provided by the reusable credential or the element template");
+  }
+
+  @Test
+  void activation_apiKeyWithNeitherSource_fails() {
+    var context =
+        contextFor(
+                """
+                { "type": "APIKEY", "apiKeyLocator": "%s" }
+                """
+                    .formatted(LOCATOR.replace("\"", "\\\"")))
+            .build();
+
+    assertThatThrownBy(() -> new HttpWebhookExecutable().activate(context))
+        .hasRootCauseMessage(
+            "No API key provided by the reusable credential or the element template");
   }
 
   @Test

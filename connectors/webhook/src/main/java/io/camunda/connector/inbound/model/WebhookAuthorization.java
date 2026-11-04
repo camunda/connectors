@@ -14,6 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NullableBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
@@ -67,6 +68,7 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
               description = "Username for basic authentication",
               feel = FeelMode.optional,
               group = "authorization",
+              constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
                       property = "inbound.auth.basicCredential",
@@ -78,6 +80,7 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
               description = "Password for basic authentication",
               feel = FeelMode.optional,
               group = "authorization",
+              constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
                       property = "inbound.auth.basicCredential",
@@ -85,6 +88,23 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
           @FEEL
           String password)
       implements WebhookAuthorization {
+
+    /**
+     * Activation does not cascade bean validation, so the effective values are checked here. An
+     * unresolved credential reference arrives as null and is rejected like an absent inline value.
+     */
+    public BasicAuth {
+      var effectiveUsername = basicCredential != null ? basicCredential.username() : username;
+      var effectivePassword = basicCredential != null ? basicCredential.password() : password;
+      if (effectiveUsername == null || effectiveUsername.isBlank()) {
+        throw new IllegalArgumentException(
+            "No username provided by the reusable credential or the element template");
+      }
+      if (effectivePassword == null || effectivePassword.isBlank()) {
+        throw new IllegalArgumentException(
+            "No password provided by the reusable credential or the element template");
+      }
+    }
 
     public BasicAuth(String username, String password) {
       this(null, username, password);
@@ -137,6 +157,7 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
               description = "Expected API key",
               feel = FeelMode.optional,
               group = "authorization",
+              constraints = @PropertyConstraints(notEmpty = true),
               condition =
                   @PropertyCondition(
                       property = "inbound.auth.apiKeyCredential",
@@ -153,6 +174,15 @@ public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth
           @NotEmpty
           Function<Object, String> apiKeyLocator)
       implements WebhookAuthorization {
+
+    /** See {@link BasicAuth}: the effective API key is checked here. */
+    public ApiKeyAuth {
+      var effectiveApiKey = apiKeyCredential != null ? apiKeyCredential.apiKey() : apiKey;
+      if (effectiveApiKey == null || effectiveApiKey.isBlank()) {
+        throw new IllegalArgumentException(
+            "No API key provided by the reusable credential or the element template");
+      }
+    }
 
     public ApiKeyAuth(String apiKey, Function<Object, String> apiKeyLocator) {
       this(null, apiKey, apiKeyLocator);
