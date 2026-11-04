@@ -348,7 +348,7 @@ class WorkspaceDocumentTest {
   }
 
   @Test
-  void serializedEntrySizes() throws JsonProcessingException {
+  void serializedEntriesStayWithinTheirSizeBudget() throws JsonProcessingException {
     final var camundaEntry =
         DocumentIngestion.entryFor(
             new IngestedDocument(
@@ -371,15 +371,8 @@ class WorkspaceDocumentTest {
                     null),
                 DocumentOrigin.toolCall("Search_Tool", "call_0123456789abcdef")));
 
-    final var sizes =
-        Map.of(
-            "camunda", objectMapper.writeValueAsBytes(camundaEntry).length,
-            "external", objectMapper.writeValueAsBytes(externalEntry).length,
-            "inline1KB", objectMapper.writeValueAsBytes(inlineEntry).length);
-    System.out.println("DOCUMENT REGISTRY ENTRY SIZES " + sizes);
-
-    assertThat(sizes.get("camunda")).isLessThan(700);
-    assertThat(sizes.get("external")).isLessThan(400);
-    assertThat(sizes.get("inline1KB")).isBetween(1024, 1700);
+    assertThat(objectMapper.writeValueAsBytes(camundaEntry).length).isLessThan(700);
+    assertThat(objectMapper.writeValueAsBytes(externalEntry).length).isLessThan(400);
+    assertThat(objectMapper.writeValueAsBytes(inlineEntry).length).isBetween(1024, 1700);
   }
 }
