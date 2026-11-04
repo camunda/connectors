@@ -243,7 +243,22 @@ public record MistralChatModelConfiguration(@Valid @NotNull MistralConnection mi
               defaultValueType = TemplateProperty.DefaultValueType.String,
               placeholder = "mistral-medium-latest",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String model) {}
+          String model,
+      @NotNull
+          @TemplateProperty(
+              group = "model",
+              label = "Safe prompt",
+              tooltip =
+                  "Injects Mistral's safety prompt before the conversation. <br><br>Details in the <a href=\"https://docs.mistral.ai/capabilities/guardrailing/\" target=\"_blank\">documentation</a>.",
+              type = TemplateProperty.PropertyType.Boolean,
+              defaultValue = "true",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean)
+          Boolean safePrompt) {
+
+    public MistralModel(String model) {
+      this(model, true);
+    }
+  }
 
   public record MistralParameters(
       @Min(1)

@@ -27,9 +27,12 @@ import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfigu
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralConnection;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralEffort;
 import io.camunda.connector.agenticai.aiagent.request.v2.MistralChatModelConfiguration.MistralParameters;
+import io.camunda.connector.agenticai.aiagent.request.v2.OpenAiRequestCustomizations;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -113,7 +116,15 @@ public class MistralChatModel implements ChatModel {
         params == null ? null : params.temperature(),
         params == null ? null : params.topP(),
         effort(params),
-        connection.backend().requestCustomizations());
+        requestCustomizations(connection));
+  }
+
+  private OpenAiRequestCustomizations requestCustomizations(MistralConnection connection) {
+    final OpenAiRequestCustomizations customizations = connection.backend().requestCustomizations();
+    final Map<String, Object> bodyProperties = new HashMap<>(customizations.bodyProperties());
+    bodyProperties.put("safe_prompt", connection.model().safePrompt());
+    return new OpenAiRequestCustomizations(
+        customizations.headers(), customizations.queryParameters(), bodyProperties);
   }
 
   /**

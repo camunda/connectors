@@ -77,6 +77,19 @@ class AgentSubProcessMistralReasoningTests extends BaseMistralSubProcessTest {
         .isFalse();
   }
 
+  @Test
+  void safePromptIsSentOnEveryModelCall() throws Exception {
+    OpenAiCompletionsChatModelStubs.stubConversation(
+        Turn.text("12.", 10, 20), Turn.text("24.", 30, 15));
+    enqueueUserFeedback(userFollowUpFeedback("Now times 2?"), userSatisfiedFeedback());
+
+    awaitProcessCompletion(createProcessInstance(Map.of("userPrompt", "What is 5 + 7?")));
+
+    assertThat(parseRecordedRequests())
+        .allSatisfy(request ->
+            assertThat(request.path("safe_prompt").asBoolean()).as("safe_prompt").isTrue());
+  }
+
   // ---------------------------------------------------------------------------
   // Chunked reasoning content parsing
   // ---------------------------------------------------------------------------

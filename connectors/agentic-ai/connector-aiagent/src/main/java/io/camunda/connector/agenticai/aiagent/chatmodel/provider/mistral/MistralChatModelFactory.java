@@ -139,7 +139,7 @@ public class MistralChatModelFactory implements ChatModelFactory {
       MistralCustomBackend custom,
       OAuthClientCredentialsTokenResolver oAuthClientCredentialsTokenResolver) {
     final var connection = custom.custom();
-    builder.baseUrl(connection.endpoint());
+    builder.baseUrl(customBaseUrl(connection.endpoint()));
 
     switch (connection.authentication()) {
       case NoAuthentication() ->
@@ -156,6 +156,11 @@ public class MistralChatModelFactory implements ChatModelFactory {
                       oauth.clientAuthentication().oauthConstant(),
                       oauth.scopes())));
     }
+  }
+
+  /** Accepts both a bare host and a versioned base URL for Mistral-compatible endpoints. */
+  static String customBaseUrl(String endpoint) {
+    return endpoint.endsWith("/v1") ? endpoint : endpoint + "/v1";
   }
 
   /**

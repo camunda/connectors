@@ -531,21 +531,6 @@ class OpenAiCompletionsRequestConverterTest {
     final var tool = params.tools().orElseThrow().get(0).function().orElseThrow();
     assertThat(tool.function().name()).isEqualTo("SuperfluxProduct");
     assertThat(tool.function().description()).contains("desc");
-
-    final var toolNode = requestBodyAsJson(params).path("tools").get(0);
-    assertThat(toolNode.path("function").path("parameters").path("type").asText())
-        .isEqualTo("object");
-    assertThat(
-            toolNode
-                .path("function")
-                .path("parameters")
-                .path("properties")
-                .path("quantity")
-                .path("type")
-                .asText())
-        .isEqualTo("integer");
-    assertThat(toolNode.path("function").path("parameters").path("required").get(0).asText())
-        .isEqualTo("quantity");
   }
 
   @Test

@@ -201,11 +201,40 @@ public class CamundaAgentInstanceClient implements AgentInstanceClient {
       return;
     }
 
-    applyBatchedUpdate(
-        executionContext,
-        agentInstanceKey.value(),
-        AgentInstanceUpdateStatus.TOOL_DISCOVERY,
-        List.of());
+    final var camundaClient = clientSelector.forJob(executionContext.jobContext());
+    CamundaApiRetry.execute(
+        () -> {
+          executeStatusUpdate(
+              camundaClient,
+              executionContext,
+              agentInstanceKey.value(),
+              AgentInstanceUpdateStatus.TOOL_DISCOVERY);
+          return null;
+        },
+        AgentInstanceErrorClassifier.INSTANCE,
+        retriesProperties.maxRetries(),
+        retriesProperties.initialRetryDelay(),
+        this::buildBatchedUpdateException,
+        sleeper);
+  }
+
+  /**
+   * Sends a status-only update without history items. The job key and lease token fence the status
+   * change, so a superseded job activation cannot overwrite the status set by the active one.
+   */
+  private void executeStatusUpdate(
+      CamundaClient camundaClient,
+      AgentExecutionContext executionContext,
+      long agentInstanceKey,
+      AgentInstanceUpdateStatus status) {
+    final JobContext jobContext = executionContext.jobContext();
+    camundaClient
+        .newUpdateAgentInstanceCommand(agentInstanceKey)
+        .elementInstanceKey(jobContext.getElementInstanceKey())
+        .status(status)
+        .jobKey(jobContext.getJobKey())
+        .jobLeaseToken(ensureJobLeaseToken(jobContext))
+        .execute();
   }
 
   @Override
