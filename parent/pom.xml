@@ -104,7 +104,7 @@ limitations under the License.</license.inlineheader>
     <tomcat.version>10.1.61</tomcat.version>
     <version.spring-cloud-gcp-starter-logging>5.13.12</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.6.6</version.logback>
-    <version.log4j>2.25.5</version.log4j>
+    <version.log4j>2.26.1</version.log4j>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.software-aws-java-sdk>2.57.8</version.software-aws-java-sdk>
