@@ -17,8 +17,10 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentId;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentWorkspace;
 import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.InlineDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.ArrayList;
@@ -125,6 +127,17 @@ public final class DocumentIngestion {
                   inline.content().length(),
                   MAX_INLINE_CONTENT_LENGTH));
     }
+  }
+
+  /**
+   * Reads the stored reference of a workspace document as a typed {@link DocumentReference}, which
+   * needs no {@code DocumentFactory}: it carries the identifiers and the metadata of the reference
+   * but gives no access to the content.
+   *
+   * @throws IllegalArgumentException if the stored reference cannot be read
+   */
+  public static DocumentReference referenceOf(WorkspaceDocument entry) {
+    return REFERENCE_MAPPER.convertValue(entry.reference(), DocumentReferenceModel.class);
   }
 
   private static Map<String, Object> serializeReference(Document document) {
