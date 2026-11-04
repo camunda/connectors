@@ -30,17 +30,17 @@ import java.util.Objects;
  * reference.
  *
  * @param id the stable id the workspace is keyed by
- * @param source where the document entered the conversation
+ * @param origin where the document entered the conversation
  * @param reference the document reference JSON
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record WorkspaceDocument(
-    DocumentId id, DocumentOrigin source, Map<String, Object> reference) {
+    DocumentId id, DocumentOrigin origin, Map<String, Object> reference) {
 
   public WorkspaceDocument {
     Objects.requireNonNull(id, "id must not be null");
-    Objects.requireNonNull(source, "source must not be null");
+    Objects.requireNonNull(origin, "origin must not be null");
     Objects.requireNonNull(reference, "reference must not be null");
     reference = Collections.unmodifiableMap(new LinkedHashMap<>(reference));
   }

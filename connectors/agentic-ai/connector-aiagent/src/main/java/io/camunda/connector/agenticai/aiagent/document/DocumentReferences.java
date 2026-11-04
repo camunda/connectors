@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.document;
 
-import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
+import io.camunda.connector.agenticai.aiagent.model.document.WorkspaceDocument;
 import io.camunda.connector.agenticai.aiagent.model.message.content.Content;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.aiagent.model.message.content.DocumentReferenceContent;
@@ -26,7 +26,7 @@ public final class DocumentReferences {
 
   /**
    * Creates the block of a document that is a whole tool result, the short tag the model sees for
-   * it: it has no source and the delivery {@code reference}.
+   * it: it has no origin and the delivery {@code reference}.
    */
   public static DocumentReferenceContent from(Document document) {
     return from(document, null);
@@ -35,15 +35,15 @@ public final class DocumentReferences {
   /**
    * Creates the block of a document with the delivery {@code reference}.
    *
-   * @param source where the document entered the conversation, or {@code null} for none
+   * @param origin where the document entered the conversation, or {@code null} for none
    */
-  public static DocumentReferenceContent from(Document document, @Nullable DocumentOrigin source) {
+  public static DocumentReferenceContent from(Document document, @Nullable DocumentOrigin origin) {
     return new DocumentReferenceContent(
         DocumentHandle.idFor(document),
         DocumentHandle.fileNameFor(document),
         DocumentHandle.contentTypeFor(document),
         DocumentHandle.sizeFor(document),
-        source,
+        origin,
         DocumentDelivery.REFERENCE,
         null);
   }
@@ -55,14 +55,14 @@ public final class DocumentReferences {
         DocumentHandle.fileNameFor(entry.reference()),
         DocumentHandle.contentTypeFor(entry.reference()),
         DocumentHandle.sizeFor(entry.reference()),
-        entry.source(),
+        entry.origin(),
         DocumentDelivery.REFERENCE,
         null);
   }
 
   /**
    * The result with every document that is the whole content of the result (a top-level {@link
-   * DocumentContent}) as a {@link DocumentReferenceContent} without a source, the tag the model
+   * DocumentContent}) as a {@link DocumentReferenceContent} without an origin, the tag the model
    * sees for it. Documents nested in an {@code ObjectContent} stay documents. A result that holds
    * no top-level document is returned as it is, so applying this twice gives the same result.
    */

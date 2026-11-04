@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Immutable, insertion-ordered workspace of the documents known to the agent, keyed by the stable id
- * of the document. The first registration of an id wins, so registering a document again is a
+ * Immutable, insertion-ordered workspace of the documents known to the agent, keyed by the stable
+ * id of the document. The first registration of an id wins, so registering a document again is a
  * no-op.
  */
 public final class DocumentWorkspace {

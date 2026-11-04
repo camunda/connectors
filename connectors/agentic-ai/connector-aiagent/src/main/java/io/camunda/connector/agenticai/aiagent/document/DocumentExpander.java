@@ -130,9 +130,9 @@ public final class DocumentExpander {
   /**
    * Returns the messages expanded for the model: in a user message the tag text of every document
    * reference, followed by the document for the references with the delivery {@code content}; in a
-   * tool result the tag text of every reference, the tag of the document of the workspace or the one
-   * of the reference when the workspace has no readable document. In both, a document nested in an
-   * object is replaced by its tag.
+   * tool result the tag text of every reference, the tag of the document of the workspace or the
+   * one of the reference when the workspace has no readable document. In both, a document nested in
+   * an object is replaced by its tag.
    */
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
@@ -170,7 +170,8 @@ public final class DocumentExpander {
 
   // Identity check detects that nothing changed, so the input is returned as is
   @SuppressWarnings("ReferenceEquality")
-  private List<Content> expand(List<Content> content, DocumentWorkspace workspace, boolean forModel) {
+  private List<Content> expand(
+      List<Content> content, DocumentWorkspace workspace, boolean forModel) {
     final var expanded = new ArrayList<Content>(content.size());
     boolean changed = false;
     for (int i = 0; i < content.size(); i++) {

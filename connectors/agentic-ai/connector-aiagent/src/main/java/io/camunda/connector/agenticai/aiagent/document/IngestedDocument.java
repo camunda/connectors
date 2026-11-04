@@ -10,4 +10,4 @@ import io.camunda.connector.agenticai.aiagent.model.document.DocumentOrigin;
 import io.camunda.connector.api.document.Document;
 
 /** A document that entered the conversation during turn composition, with where it came from. */
-public record IngestedDocument(Document document, DocumentOrigin source) {}
+public record IngestedDocument(Document document, DocumentOrigin origin) {}

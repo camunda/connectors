@@ -8,53 +8,49 @@ package io.camunda.connector.agenticai.aiagent.model.document;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Where a document entered the conversation, as persisted in the document workspace.
- *
- * @param type the kind of input the document came with
- * @param toolName the name of the tool that returned the document, only for {@link Type#TOOL_CALL}
- * @param toolCallId the id of the tool call that returned the document, only for {@link
- *     Type#TOOL_CALL}
+ * Where a document entered the conversation, as persisted in the document workspace. It is
+ * serialized with the discriminator {@code type}: {@code USER_MESSAGE}, {@code EVENT} or {@code
+ * TOOL_CALL}.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = DocumentOrigin.UserMessage.class, name = "USER_MESSAGE"),
+  @JsonSubTypes.Type(value = DocumentOrigin.Event.class, name = "EVENT"),
+  @JsonSubTypes.Type(value = DocumentOrigin.ToolCall.class, name = "TOOL_CALL")
+})
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record DocumentOrigin(Type type, @Nullable String toolName, @Nullable String toolCallId) {
+public sealed interface DocumentOrigin {
 
-  /** The kind of input a document came with. */
-  public enum Type {
-    /** The document was returned by a tool call. */
-    TOOL_CALL(null),
-    /** The document is part of the user prompt. */
-    USER_MESSAGE("user_message"),
-    /** The document is part of event data. */
-    EVENT("event");
+  /** The document is part of the user prompt. */
+  record UserMessage() implements DocumentOrigin {}
 
-    private final @Nullable String tagValue;
+  /** The document is part of event data. */
+  record Event() implements DocumentOrigin {}
 
-    Type(@Nullable String tagValue) {
-      this.tagValue = tagValue;
-    }
+  /**
+   * The document was returned by a tool call.
+   *
+   * @param toolName the name of the tool that returned the document
+   * @param toolCallId the id of the tool call that returned the document
+   */
+  record ToolCall(@Nullable String toolName, @Nullable String toolCallId)
+      implements DocumentOrigin {}
 
-    /**
-     * The value of the {@code source} attribute of the document tag; {@code null} for a tool call
-     * document, whose tag carries {@code toolName} and {@code toolCallId} instead.
-     */
-    public @Nullable String tagValue() {
-      return tagValue;
-    }
+  static DocumentOrigin userMessage() {
+    return new UserMessage();
   }
 
-  public static DocumentOrigin toolCall(@Nullable String toolName, @Nullable String toolCallId) {
-    return new DocumentOrigin(Type.TOOL_CALL, toolName, toolCallId);
+  static DocumentOrigin event() {
+    return new Event();
   }
 
-  public static DocumentOrigin userMessage() {
-    return new DocumentOrigin(Type.USER_MESSAGE, null, null);
-  }
-
-  public static DocumentOrigin event() {
-    return new DocumentOrigin(Type.EVENT, null, null);
+  static DocumentOrigin toolCall(@Nullable String toolName, @Nullable String toolCallId) {
+    return new ToolCall(toolName, toolCallId);
   }
 }

@@ -24,7 +24,7 @@ public interface AgentDocument {
   DocumentId id();
 
   /** Where the document entered the conversation. */
-  DocumentOrigin source();
+  DocumentOrigin origin();
 
   /**
    * The document itself, to read its metadata and content. Reading the content of an external
