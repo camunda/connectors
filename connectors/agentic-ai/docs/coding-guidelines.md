@@ -70,4 +70,5 @@ For verification specifics (unit vs e2e, the Definition of Done, TDD), see your 
 
 ## 5. Design
 
-Follow the [code design rules](code-design.md).
+In `connectors/agentic-ai` and its e2e module, follow the [code design rules](code-design.md). The
+other modules in the scope above do not use them yet.
