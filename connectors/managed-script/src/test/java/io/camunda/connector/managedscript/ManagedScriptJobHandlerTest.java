@@ -313,12 +313,16 @@ class ManagedScriptJobHandlerTest {
             "1",
             "FAILED",
             null,
-            new ExecutionResponse.Error("SCRIPT_ERROR", "boom", null, true, false)),
+            new ExecutionResponse.Error("SCRIPT_ERROR", "boom", null, true, false),
+            null,
+            false),
         new ExecutionResponse(
             "1",
             "FAILED",
             null,
-            new ExecutionResponse.Error("PLATFORM_THROTTLED", "slow down", null, false, false)));
+            new ExecutionResponse.Error("PLATFORM_THROTTLED", "slow down", null, false, false),
+            null,
+            false));
 
     final var script = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
     final var throttled = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
@@ -342,9 +346,9 @@ class ManagedScriptJobHandlerTest {
   void treatsAMissingOrUnknownOutcomeAsAnInvalidResult() {
     store("sum.py", "x");
     provider.respond(
-        new ExecutionResponse("1", null, null, null),
-        new ExecutionResponse("1", "RUNNING", null, null),
-        new ExecutionResponse("1", "FAILED", null, null));
+        new ExecutionResponse("1", null, null, null, null, false),
+        new ExecutionResponse("1", "RUNNING", null, null, null, false),
+        new ExecutionResponse("1", "FAILED", null, null, null, false));
 
     for (int i = 0; i < 3; i++) {
       assertFailed(
@@ -518,7 +522,7 @@ class ManagedScriptJobHandlerTest {
   @Test
   void treatsAnUnsupportedContractVersionAsAnInvalidResult() {
     store("sum.py", "x");
-    provider.respond(new ExecutionResponse("2", "COMPLETED", Map.of("sum", 5), null));
+    provider.respond(new ExecutionResponse("2", "COMPLETED", Map.of("sum", 5), null, null, false));
 
     final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
@@ -529,14 +533,59 @@ class ManagedScriptJobHandlerTest {
   void requiresTheVariablesOfACompletedScript() {
     store("sum.py", "x");
     provider.respond(
-        new ExecutionResponse("1", "COMPLETED", null, null),
-        new ExecutionResponse("1", "COMPLETED", Map.of(), null));
+        new ExecutionResponse("1", "COMPLETED", null, null, null, false),
+        new ExecutionResponse("1", "COMPLETED", Map.of(), null, null, false));
 
     final var missing = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
     final var empty = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
 
     assertFailed(missing, ErrorCode.INVALID_RESULT, 0);
     assertThat(empty).isEqualTo(new Outcome.Completed(Map.of()));
+  }
+
+  @Test
+  void putsTheEndOfTheScriptLogsInTheIncidentAfterTheStackTrace() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse(
+            "1",
+            "FAILED",
+            null,
+            new ExecutionResponse.Error(
+                "SCRIPT_ERROR", "KeyError: 'total'", "Traceback ...", false, false),
+            "loaded 3 order lines\n",
+            false));
+
+    final var outcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    final var failed = assertFailed(outcome, ErrorCode.SCRIPT_ERROR, 0);
+    assertThat(failed.message())
+        .isEqualTo(
+            "SCRIPT_ERROR: KeyError: 'total'\nTraceback ...\n"
+                + IncidentMessage.LOGS_HEADER
+                + "\nloaded 3 order lines\n");
+  }
+
+  @Test
+  void putsTheScriptLogsInTheIncidentOfAnInvalidResult() {
+    store("sum.py", "x");
+    provider.respond(
+        new ExecutionResponse(
+            "1",
+            "FAILED",
+            null,
+            new ExecutionResponse.Error("BUILD_FAILED", "old code", null, false, false),
+            "step 1\n",
+            false),
+        new ExecutionResponse("1", "RUNNING", null, null, "step 2\n", false));
+
+    final var unknownCode = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+    final var unknownOutcome = handler.handle(client, "default", job(SCRIPT_HEADER), Map.of());
+
+    assertThat(assertFailed(unknownCode, ErrorCode.INVALID_RESULT, 0).message())
+        .endsWith("\n" + IncidentMessage.LOGS_HEADER + "\nstep 1\n");
+    assertThat(assertFailed(unknownOutcome, ErrorCode.INVALID_RESULT, 0).message())
+        .endsWith("\n" + IncidentMessage.LOGS_HEADER + "\nstep 2\n");
   }
 
   @Test
@@ -677,7 +726,12 @@ class ManagedScriptJobHandlerTest {
 
   private static ExecutionResponse scriptFailure(String code, String message, String stackTrace) {
     return new ExecutionResponse(
-        "1", "FAILED", null, new ExecutionResponse.Error(code, message, stackTrace, false, false));
+        "1",
+        "FAILED",
+        null,
+        new ExecutionResponse.Error(code, message, stackTrace, false, false),
+        null,
+        false);
   }
 
   private static Outcome.Failed assertFailed(Outcome outcome, ErrorCode code, Integer retries) {

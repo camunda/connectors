@@ -9,15 +9,19 @@ package io.camunda.connector.managedscript;
 import io.camunda.connector.managedscript.api.ErrorCode;
 import io.camunda.connector.managedscript.api.ScriptLanguage;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
+import java.util.stream.Collectors;
 
 /**
  * Builds the error message of a failed job, which is also the incident message: {@code <code>:
- * <message>}, then the stack trace of the script when there is one.
+ * <message>}, then the stack trace of the script when there is one, then as much of the end of the
+ * script logs as fits.
  *
- * <p>The runtime masks resolved secrets in this text, but only whole ones. Cuts therefore fall
- * between words of the message and between lines of the stack trace, so that a secret is either
- * kept whole or left out, never kept in part.
+ * <p>The runtime masks the secrets that it resolved in this text, but only whole ones. Cuts
+ * therefore fall between words of the message and between lines of the stack trace and of the logs,
+ * so that a secret with no space or line break in it is either kept whole or left out, never kept
+ * in part.
  */
 final class IncidentMessage {
 
@@ -32,16 +36,49 @@ final class IncidentMessage {
 
   static final String TRUNCATED = "... (truncated)";
 
+  static final String LOGS_HEADER = "Script logs:";
+
+  static final String CONTROL_LINE = "... (line with control characters left out)";
+
   private IncidentMessage() {}
+
+  /**
+   * The text of {@link #format(ErrorCode, String, String, ScriptLanguage)}, then the end of the
+   * logs in the room that it leaves, cut between lines and with the same rule for control
+   * characters. Logs that do not fit at all are left out.
+   *
+   * @param logs {@code null} when the executor sent none
+   * @param logsTruncated whether the executor cut the start of the logs; their first line is then
+   *     left out, because it can be the end of a secret
+   */
+  static String format(
+      ErrorCode code,
+      String message,
+      String stackTrace,
+      ScriptLanguage language,
+      String logs,
+      boolean logsTruncated) {
+    final var text = format(code, message, stackTrace, language);
+    if (logs == null || logs.isBlank()) {
+      return text;
+    }
+    final var room = MAX_LENGTH - text.length() - LOGS_HEADER.length() - 2;
+    final var end = endOfLogs(withoutControlLines(logs), logsTruncated, room);
+    return end == null ? text : text + "\n" + LOGS_HEADER + "\n" + end;
+  }
 
   /**
    * Keeps the code whole, cuts the message between words, and cuts the stack trace between lines:
    * keeping its end for Python, whose tracebacks end with the failing frame, and its start for
-   * JavaScript, whose stacks start with it.
+   * JavaScript, whose stacks start with it. A line of the message or of the stack trace with a
+   * control character other than a carriage return or a tab is replaced by {@link #CONTROL_LINE}.
    *
    * @param language {@code null} when the failure happened before the language was known
    */
-  static String format(ErrorCode code, String message, String stackTrace, ScriptLanguage language) {
+  static String format(
+      ErrorCode code, String rawMessage, String rawStackTrace, ScriptLanguage language) {
+    final var message = withoutControlLines(rawMessage);
+    final var stackTrace = withoutControlLines(rawStackTrace);
     final var head =
         code.name()
             + ": "
@@ -78,6 +115,50 @@ final class IncidentMessage {
     return keepEnd
         ? head + "\n" + TRUNCATED + "\n" + trace
         : head + "\n" + trace + "\n" + TRUNCATED;
+  }
+
+  /** The whole lines at the end of the logs that fit in {@code room}, or {@code null} for none. */
+  private static String endOfLogs(String logs, boolean logsTruncated, int room) {
+    if (!logsTruncated && logs.length() <= room) {
+      return logs;
+    }
+    final var lines = logs.split("\n", -1);
+    final var space = room - TRUNCATED.length() - 1;
+    final Deque<String> kept = new ArrayDeque<>();
+    int size = 0;
+    for (int i = lines.length - 1; i >= (logsTruncated ? 1 : 0); i--) {
+      final var added = lines[i].length() + (kept.isEmpty() ? 0 : 1);
+      if (size + added > space) {
+        break;
+      }
+      kept.addFirst(lines[i]);
+      size += added;
+    }
+    return kept.isEmpty() ? null : TRUNCATED + "\n" + String.join("\n", kept);
+  }
+
+  private static String withoutControlLines(String text) {
+    if (text == null) {
+      return null;
+    }
+    return Arrays.stream(text.split("\n", -1))
+        // Operate shows the incident message as text, where a control character, a line separator
+        // or a bidirectional override can hide or reorder what the script printed. Masking matches
+        // each secret exactly, so a secret with one character removed stays readable. A carriage
+        // return stays, so that a secret with CRLF line endings stays whole.
+        .map(line ->
+            line.codePoints().anyMatch(c -> c != '\t' && c != '\r' && isControl(c))
+                ? CONTROL_LINE
+                : line)
+        .collect(Collectors.joining("\n"));
+  }
+
+  private static boolean isControl(int codePoint) {
+    final var type = Character.getType(codePoint);
+    return type == Character.CONTROL
+        || type == Character.FORMAT
+        || type == Character.LINE_SEPARATOR
+        || type == Character.PARAGRAPH_SEPARATOR;
   }
 
   /** The message within {@link #MAX_MESSAGE_LENGTH}, cut after its last whole word. */

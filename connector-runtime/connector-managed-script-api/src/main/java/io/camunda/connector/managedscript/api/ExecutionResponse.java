@@ -18,17 +18,38 @@ package io.camunda.connector.managedscript.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
-/** Execution contract version 1 response. */
+/**
+ * Execution contract version 1 response.
+ *
+ * @param logs the end of what the script wrote to stderr; {@code null} when the executor sends none
+ * @param logsTruncated whether the executor cut the start of the logs
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ExecutionResponse(
-    String contractVersion, String outcome, Map<String, Object> variables, Error error) {
+    String contractVersion,
+    String outcome,
+    @Nullable Map<String, Object> variables,
+    @Nullable Error error,
+    // Platform metadata next to the contract fields.
+    @Nullable String logs,
+    boolean logsTruncated) {
+
+  public ExecutionResponse(
+      String contractVersion,
+      String outcome,
+      @Nullable Map<String, Object> variables,
+      @Nullable Error error) {
+    this(contractVersion, outcome, variables, error, null, false);
+  }
 
   public static final String COMPLETED = "COMPLETED";
   public static final String FAILED = "FAILED";
 
   public static ExecutionResponse completed(Map<String, Object> variables) {
-    return new ExecutionResponse(ExecutionRequest.CONTRACT_VERSION, COMPLETED, variables, null);
+    return new ExecutionResponse(
+        ExecutionRequest.CONTRACT_VERSION, COMPLETED, variables, null, null, false);
   }
 
   /** A failure raised outside the script, so without a stack trace. */
@@ -37,7 +58,9 @@ public record ExecutionResponse(
         ExecutionRequest.CONTRACT_VERSION,
         FAILED,
         null,
-        new Error(code.name(), message, null, code.retryable(), false));
+        new Error(code.name(), message, null, code.retryable(), false),
+        null,
+        false);
   }
 
   public boolean isDeploymentMissing() {
@@ -52,5 +75,9 @@ public record ExecutionResponse(
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record Error(
-      String code, String message, String stackTrace, boolean retryable, boolean truncated) {}
+      String code,
+      String message,
+      @Nullable String stackTrace,
+      boolean retryable,
+      boolean truncated) {}
 }
