@@ -88,26 +88,38 @@ behavior existed keeps the behavior it started with. A feature is never added to
 
 The first feature is `runtimeTools`. An instance without it is offered no runtime tool and checks no tool name, because
 its process, which may already contain an element with such a name, must keep running. The feature gates only what is
-offered. The answer for a call of a tool that is not offered applies to every agent instance, because the process never
-activates an element for such a call and an instance that hands it to the process waits for a result forever.
+offered. The rejection of a call of a tool that is not offered applies to every agent instance, because the process never
+activates an element for such a call and an instance that hands it to the process waits for a result forever, without
+an incident. This is a deliberate exception to the rule that a behavior with a persisted shape is gated on a feature.
 
 ### Tagging, one execution site, and mixed batches
 
-The agent tags every tool call of an assistant message with the kind of its tool, process or runtime, exactly once: when
-it receives the message from the model, before the conversation takes the message in. Every call, of every agent instance,
-is matched against the tools offered in the job: it takes the kind of the tool with its name. A call whose name is not offered, as a model may invent one or a tool may have been disabled, is a runtime call: the
-tag says that the agent answers the call and that the process never gets it. The agent answers a call of a tool that is
-not offered with an error result that says the tool does not exist; this is a step of the agent, not of a tool. The tag
-is persisted with the message and never computed again, so it may appear in the state of any agent instance, also of
-one created before runtime tools existed. Only process calls are activated. The definition of a runtime tool
-declares the kind runtime and the registration rejects other tools at start-up; the tag of a call, not the definition,
-decides how a call is answered.
+The agent tags every tool call of an assistant message exactly once: when it receives the message from the model, before
+the conversation takes the message in. Every call, of every agent instance, is matched against the tools offered in the
+job, and the tag is persisted with the call and never computed again, so it may appear in the state of any agent
+instance, also of one created before runtime tools existed.
+
+The kind of a call is the kind of the tool with its name, process or runtime. Only process calls are activated. The
+definition of a runtime tool declares the kind runtime and the registration rejects other tools at start-up; the tag of
+a call, not the definition, decides who produces the tool call result of a call.
+
+A call whose name is not offered, as a model may invent one or a tool may have been disabled, gets a rejection: the
+error text that becomes the tool call result of the call, persisted with the call at the same point. Its kind stays
+process, but the agent produces the tool call result itself and the process never gets the call. A rejected call gets
+an error result that says the tool does not exist as its tool call result, and is never executed, also when a runtime
+tool with that name is enabled by the time the tool call result is composed. A rejection is a step of the agent, not of
+a tool.
+
+A **local tool call** is a tool call whose tool call result the agent produces itself, in two kinds: the call of a
+runtime tool and the rejected call. A **process tool call** is a call of a tool of the process, and its tool call result
+arrives from the process.
 
 Runtime calls are executed in one place, an executor that the request handler calls, and the composer of the next turn
-never executes a tool or changes the context. If the model calls runtime tools only, the agent executes them in the same
-job and calls the model again; this round counts against the model-call limit. If the model calls both kinds, **only the
-process calls are activated**. The agent executes the runtime calls when it composes the next turn, and merges their
-results with the process results in call order. An interrupted turn still executes them.
+never executes a tool or changes the context. If the message has local tool calls only, the agent adds their tool call
+results in the same job and calls the model again; this round counts against the model-call limit. If the message also
+has process calls, **only the process calls are activated**. The agent adds the tool call results of the local tool
+calls when it composes the next turn, and merges them with the process results in call order. An interrupted turn still
+gets them.
 
 The alternatives for mixed batches were:
 
@@ -117,10 +129,12 @@ The alternatives for mixed batches were:
 * *Classify the calls again in the later job.* Rejected: what a tool enables can change between the two jobs, and so can
   the runtime tool beans of the worker. The agent would then wait for a result of a call that the process never runs, or
   execute a tool whose element already ran.
-* *Persist the classification on the tool call.* **Chosen**: a small persisted tag and no pending-results state. A call
-  keeps its kind for the life of the conversation, so a change of what a tool enables cannot misroute it. The results are
-  a function of the conversation and the tags, so a retried job computes them again. The price is that every
-  conversation store must keep the tag.
+* *Persist the classification on the tool call.* **Chosen**: a small persisted tag, the kind of the named tool, and a
+  rejection for a call that must not be carried out, and no pending-results state. A call keeps its kind and its
+  rejection for the life of the conversation, so a change of what a tool enables can neither send a call to the process
+  that is a local tool call, nor execute a call that was rejected. A call of a runtime tool that is no longer
+  enabled when it is executed gets an error result. The results are a function of the conversation and the persisted
+  decisions, so a retried job computes them again. The price is that every conversation store must keep both.
 * *Execute every runtime call in its own round before the process calls.* Rejected: one more model call for every mixed
   batch, and it changes what the model sees in the middle of a batch.
 * *Make the model split its batches.* Rejected: not controllable.
@@ -136,28 +150,35 @@ The contract is stated in the javadoc of the SPI. A tool author can rely on it, 
 * **Below the job timeout.** The framework neither cancels nor times out a call.
 * **Failures** as described above.
 
-A runtime call whose tool is not offered gets an error result from the agent, and one whose tool is no longer enabled
-when it is executed gets an error result from the executor. Neither goes to the process.
+A rejected call gets an error result from the agent, and a runtime call whose tool is no longer enabled when it is
+executed gets the error result that the tool is not available from the executor. Neither goes to the process.
 
 The executor keeps the start and completion time of every call, so later metrics and events with durations need no
 change of the contract.
 
 The history reports runtime tool calls and results like other tool calls, without an element id, because a runtime tool
-has no element. In a mixed batch the results carry the turn start of the job that composes them.
+has no element; a rejected call has none either. In a mixed batch the results carry the turn start of the job that composes them.
 
 ### Positive Consequences
 
 * A runtime tool call costs no job round trip, and a batch of runtime calls only costs no extra job.
 * A tool author implements one interface and needs no core class.
 * Mixed batches need a small persisted tag and no pending results. A retried job computes the results again.
-* A change of what a tool enables cannot misroute a call. At worst, a call that would have succeeded gets an error result.
+* A change of what a tool enables cannot send a call to the wrong place. At worst, a call that would have succeeded gets
+  an error result.
 * The framework can add members to the types a tool receives without breaking tools.
 
 ### Negative Consequences
 
-* **Every conversation store must keep the tag.** A store that drops it turns a runtime call into a process call that
-  never gets a result, for an agent instance with or without the `runtimeTools` feature. A missing tag reads as a process
-  call, so existing data keeps working.
+* **Every conversation store must keep the tag and the rejection.** A store that drops them turns a runtime call or a
+  rejected call into a process call that never gets a result, for an agent instance with or without the `runtimeTools`
+  feature. A missing tag reads as a process call and a missing rejection as none, so existing data keeps working.
+* **Workers of different versions can mishandle a runtime call or a rejected call in flight.** A worker that predates
+  the tag ignores the unknown properties of a stored call and treats such a call as a call of the process. It raises no
+  incident and the instance waits for a result that never comes. The JSON of every other call is unchanged, so an agent
+  instance that calls only tools of the process is not affected. A rejected call names a tool that does not exist, which
+  hung the agent before too. While a runtime call is in flight, the agent instances are drained before a rolling upgrade,
+  or only workers of one version run.
 * A tool call that names a tool that is not offered, or a runtime tool that is not enabled when it is executed, gets an
   error result, and the model has to recover.
 * The model receives the results of the runtime calls of a mixed batch with the next request, together with the process
@@ -187,3 +208,6 @@ has no element. In a mixed batch the results carry the turn start of the job tha
   both contexts without the conversation context closes this access.
 * **An engine and Operate marker for runtime tools in the history.** The history API has no tool kind and no result
   status, so a runtime tool is recognizable only by its missing element id and an error result is plain text.
+* **An error flag on the tool result.** The tool result model has no error flag, so the error that is the tool call
+  result of a rejected call, like every error of a runtime tool, is plain text that the model reads. A flag would let
+  the model and the history tell an error from a result.
